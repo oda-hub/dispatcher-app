@@ -44,7 +44,7 @@ import ddosaclient as dc
 class QueryProduct(object):
 
     def __init__(self,target=None,modules=[],assume=[]):
-        self.targe=target
+        self.target=target
         self.modules=modules
         self.assume=assume
 
@@ -88,14 +88,16 @@ class OsaQuery(object):
                                        assume=query_prod.assume)
 
         try:
-            assert (type(res["result"]) == dict)
+            res["result"]
+            print("cached object in", res['cached_path'])
         except:
 
             raise RuntimeError('ddosa connection or processing failed')
 
+        #sprint('res',res)
         return res
 
-    def get_data(self,res,prod_name,json_file=True):
+    def get_data(self,res,prod_name,json_file=None):
         data = ast.literal_eval(str(res['data']))
 
         if json_file is not None:
@@ -104,10 +106,11 @@ class OsaQuery(object):
 
             print("jsonifiable data dumped to ",json_file)
 
-        print("cached object in", r['cached_path'])
+
 
         e = None
         prod_path = None
+        print (data.keys())
         try:
             v = data[prod_name]
 
@@ -116,7 +119,7 @@ class OsaQuery(object):
             prod_path = None
 
         if e is None:
-            prod_path = (res['cached_path'][0].replace("data/ddcache", q.ddcache_root_local) + "/" + v[1]).replace(
+            prod_path = (res['cached_path'][0].replace("data/ddcache", self.ddcache_root_local) + "/" + v[1]).replace(
                 "//",
                 "/") + ".gz"
 

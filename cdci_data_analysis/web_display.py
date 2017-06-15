@@ -32,35 +32,52 @@ from mpld3 import plugins
 import  numpy as np
 from astropy.io import  fits as pf
 
-def draw_fig(image_paht,dummy=False):
+def draw_fig(image_array,dummy=False):
+
+
+    fig, ax = plt.subplots(figsize=(4, 3))
+
+    im = ax.imshow(image_array,origin='lower', zorder=1, interpolation='none',aspect='equal')
+    fig.colorbar(im, ax=ax)
+
+
+    plugins.connect(fig, plugins.MousePosition(fontsize=14))
+
+    return mpld3.fig_to_dict(fig)
+
+def draw_spectrum(spectrum,dummy=False):
 
 
 
 
     fig, ax = plt.subplots(figsize=(4, 3))
-    print  (image_paht)
 
-    if dummy == True:
-        x = np.linspace(-2, 2, 200)
-        y = x[:, None]
-        image = np.zeros((200, 200, 4))
+    ax.errorbar(spectrum['CHANNEL'],spectrum['RATE'],yerr=spectrum['STAT_ERR'],fmt='-o')
+    ax.set_xlabel('channel')
+    ax.set_ylabel('rate')
 
-        image[:, :, 0] = np.exp(- (x - 1) ** 2 - (y) ** 2)
-        image[:, :, 1] = np.exp(- (x + 0.71) ** 2 - (y - 0.71) ** 2)
-        image[:, :, 2] = np.exp(- (x + 0.71) ** 2 - (y + 0.71) ** 2)
-        image[:, :, 3] = np.exp(-0.25 * (x ** 2 + y ** 2))
-    else:
-        image = pf.getdata(image_paht, ext=4)
+    plugins.connect(fig, plugins.MousePosition(fontsize=14))
+
+    return mpld3.fig_to_dict(fig)
+
+
+def draw_dummy():
+
+    fig, ax = plt.subplots(figsize=(4, 3))
+
+    x = np.linspace(-2, 2, 200)
+    y = x[:, None]
+    image = np.zeros((200, 200, 4))
+
+    image[:, :, 0] = np.exp(- (x - 1) ** 2 - (y) ** 2)
+    image[:, :, 1] = np.exp(- (x + 0.71) ** 2 - (y - 0.71) ** 2)
+    image[:, :, 2] = np.exp(- (x + 0.71) ** 2 - (y + 0.71) ** 2)
+    image[:, :, 3] = np.exp(-0.25 * (x ** 2 + y ** 2))
 
     im = ax.imshow(image,origin='lower', zorder=1, interpolation='none',aspect='equal')
     fig.colorbar(im, ax=ax)
 
-    #ax.set_title('An Image', size=20)
 
     plugins.connect(fig, plugins.MousePosition(fontsize=14))
-    #mpld3.save_json(fig, 'fig.json')
-    #print("-------------------------------")
-    #print('dctionary',mpld3.fig_to_dict(fig))
-    #print("-------------------------------")
-    return mpld3.fig_to_dict(fig)
 
+    return mpld3.fig_to_dict(fig)

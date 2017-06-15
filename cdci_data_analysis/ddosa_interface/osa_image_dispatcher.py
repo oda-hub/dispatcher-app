@@ -20,6 +20,8 @@ __author__ = "Andrea Tramacere"
 from ..analysis.products import Image
 from ..analysis.parameters import *
 from .osa_dispatcher import    OsaQuery,QueryProduct
+from ..web_display import draw_fig
+from astropy.io import  fits as pf
 
 
 def do_mosaic_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.001"]):
@@ -60,13 +62,18 @@ def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None
 
     q=OsaQuery(config=config)
 
+    time_range_type = analysis_prod.get_par_by_name('time_group_selector').value
+    if time_range_type == 'scw_list':
 
-    if analysis_prod.time_group_selector == 'from_scw_list':
+        query_prod=do_mosaic_from_scw_list(analysis_prod.get_par_by_name('E1').value,
+                                      analysis_prod.get_par_by_name('E2').value,
+                                      analysis_prod.get_par_by_name('scw_list').value)
 
-        query_prod=do_mosaic_from_scw_list(analysis_prod.E1, analysis_prod.E2, analysis_prod.scw_list)
-
-    elif analysis_prod.time_group_selector == 'time_range_iso':
-        query_prod = do_mosaic_from_time_span( analysis_prod.E1, analysis_prod.E2, analysis_prod.T1, analysis_prod.T2)
+    elif time_range_type == 'time_range_iso':
+        query_prod = do_mosaic_from_time_span(analysis_prod.get_par_by_name('E1').value,
+                                       analysis_prod.get_par_by_name('E2').value,
+                                       analysis_prod.get_par_by_name('T1').value,
+                                       analysis_prod.get_par_by_name('T2').value)
 
     else:
         raise RuntimeError('wrong time format')
@@ -74,9 +81,9 @@ def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None
 
     res=q.run_query(query_prod=query_prod)
 
-    data, image_path, e=q.get_data(res,'skiima')
-
-    return image_path,e
+    data, image_path, e=q.get_data(res,'skyima')
+    image = pf.getdata(image_path, ext=4)
+    return image,e
 
 
 
@@ -87,8 +94,8 @@ def OSA_ISGRI_IMAGE():
 
         E_range_keV = ParameterRange(E1_keV, E2_keV, 'E_range')
 
-        t1_iso = Time('iso', 'T1_iso', value='2001-12-11T00:00:00.0')
-        t2_iso = Time('iso', 'T2_iso', value='2001-12-11T00:00:00.0')
+        t1_iso = Time('iso', 'T1', value='2001-12-11T00:00:00.0')
+        t2_iso = Time('iso', 'T2', value='2001-12-11T00:00:00.0')
 
         t1_mjd = Time('mjd', 'T1_mjd', value=1.0)
         t2_mjd = Time('mjd', 'T2_mjd', value=1.0)
@@ -98,13 +105,13 @@ def OSA_ISGRI_IMAGE():
         t_range_iso = ParameterRange(t1_iso, t2_iso,'time_range_iso')
         t_range_mjd = ParameterRange(t1_mjd, t2_mjd,'time_range_mjd')
 
-        scw_list = Time('prod_list', 'scw_list', value='035200230010.001,035200240010.001')
+        scw_list = Time('prod_list', 'scw_list', value=['035200230010.001','035200240010.001'])
 
 
 
         time_group = ParameterGroup([t_range_iso, t_range_mjd,scw_list],'time_range',selected='scw_list')
 
-        time_group_selector = ParameterGroup.build_selector('time_group_selector')
+        time_group_selector = time_group.build_selector('time_group_selector')
 
 
         E_cut=Energy('keV','E_cut',value=0.1)
@@ -114,4 +121,4 @@ def OSA_ISGRI_IMAGE():
 
 
 
-        return Image(parameters_list,get_product_method=get_osa_image)
+        return Image(parameters_list,get_product_method=get_osa_image,html_draw_method=draw_fig)

@@ -37,7 +37,7 @@ class myForm(Form):
 class AnalysisProduct(object):
 
 
-    def __init__(self,_list,get_product_method=None):
+    def __init__(self,_list,get_product_method=None,html_draw_method=None):
 
 
         self._parameters_structure=_list
@@ -45,6 +45,7 @@ class AnalysisProduct(object):
         self._build_par_dictionary()
         self.product=None
         self._get_product_method=get_product_method
+        self._html_draw_method=html_draw_method
 
     @property
     def parameters(self):
@@ -195,6 +196,12 @@ class AnalysisProduct(object):
             return None
 
 
+    def get_html_draw(self,p):
+        if self._html_draw_method is not None:
+            return self._html_draw_method(p)
+        else:
+            return None
+
     def print_list(self, l):
         return l
 
@@ -220,8 +227,10 @@ class AnalysisProduct(object):
         else:
             return l
 
-class Image(AnalysisProduct):
+class BaseProdcut(AnalysisProduct):
+    pass
 
+class Image(AnalysisProduct):
     def __init__(self,parameters_list,**kwargs):
         super(Image, self).__init__(parameters_list,**kwargs)
 
@@ -233,7 +242,8 @@ class LightCurve(AnalysisProduct):
 
 
 class Spectrum(AnalysisProduct):
-    pass
+    def __init__(self, parameters_list, **kwargs):
+        super(Spectrum, self).__init__(parameters_list, **kwargs)
 
 
 

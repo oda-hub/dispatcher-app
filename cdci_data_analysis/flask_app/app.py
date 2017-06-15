@@ -18,6 +18,7 @@ from flask import Flask, render_template, request,jsonify
 
 
 from ..ddosa_interface.osa_image_dispatcher import OSA_ISGRI_IMAGE
+from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
 
 
 
@@ -43,37 +44,41 @@ def index():
 
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
-    print('osa conf', app.config.get('osaconf'), request.method)
-    im = app.config.get('Image')
+    #print('osa conf', app.config.get('osaconf'), request.method)
+    prod_type='SPECTRUM'
+    if prod_type=='IMAGE':
+        prod= OSA_ISGRI_IMAGE()
+    if prod_type=='SPECTRUM':
+        prod = OSA_ISGRI_SPECTRUM()
 
+    prod.parameters
     if request.method == 'GET':
         print('request', request)
         par_names=['E1','E2','T1','T2']
 
         for p in par_names:
             print('set from form',p,request.args.get(p))
-            im.set_par_value(p, request.args.get(p))
+            prod.set_par_value(p, request.args.get(p))
             print('--')
-        im.set_par_value('time_group_selector','scw_list')
-        im.show_parameters_list()
+        prod.set_par_value('time_group_selector','scw_list')
+        prod.show_parameters_list()
         if request.args.get('image_type') == 'Real':
-            image_paht, exception=im.get_product(config=app.config.get('osaconf'))
-            image_html = draw_fig(image_paht)
+
+            out_prod, exception=prod.get_product(config=app.config.get('osaconf'))
+            html_fig= prod.get_html_draw(out_prod)
+
         else:
             # print('osa conf',app.config.get('osaconf'))
-            image_html = draw_fig(None, dummy=True)
+            html_fig = draw_fig(None, dummy=True)
 
 
 
-        return jsonify(image_html)
+        return jsonify(html_fig)
 
     return None
 
 
 def run_app(conf):
     app.config['osaconf'] = conf
-    im = OSA_ISGRI_IMAGE()
-    im.parameters
-    app.config['Image']=im
     app.run(host=conf.dispatcher_url, port=conf.dispatcher_port, debug=True)
 
