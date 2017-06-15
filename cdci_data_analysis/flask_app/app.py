@@ -31,12 +31,9 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    im = OSA_ISGRI_IMAGE.standard()
-    im.list_parameters
+    im = OSA_ISGRI_IMAGE()
+    im.parameters
 
-    form=im.build_query_forms(request.form)
-
-    app.config['Image'] = im
     return
     #return render_template('analysis_display_app.html', form=form,image_html='')
 
@@ -54,13 +51,13 @@ def run_analysis_test():
         par_names=['E1','E2','T1','T2']
 
         for p in par_names:
-            print('set',p,request.args.get(p))
+            print('set from form',p,request.args.get(p))
             im.set_par_value(p, request.args.get(p))
-
+            print('--')
         im.set_par_value('time_group_selector','scw_list')
-
+        im.show_parameters_list()
         if request.args.get('image_type') == 'Real':
-            image_paht, exception=im.get_product()
+            image_paht, exception=im.get_product(config=app.config.get('osaconf'))
             image_html = draw_fig(image_paht)
         else:
             # print('osa conf',app.config.get('osaconf'))
@@ -75,5 +72,8 @@ def run_analysis_test():
 
 def run_app(conf):
     app.config['osaconf'] = conf
+    im = OSA_ISGRI_IMAGE()
+    im.parameters
+    app.config['Image']=im
     app.run(host=conf.dispatcher_url, port=conf.dispatcher_port, debug=True)
 

@@ -22,6 +22,13 @@ __author__ = "Andrea Tramacere"
 
 from .parameters import *
 
+from flask import Flask, render_template, request
+from wtforms import Form
+import  json
+
+class myForm(Form):
+    pass
+
 
 
 
@@ -37,7 +44,7 @@ class AnalysisProduct(object):
         self._parameters_list=self._build_parameters_list(_list)
         self._build_par_dictionary()
         self.product=None
-        self.get_product=get_product_method
+        self._get_product_method=get_product_method
 
     @property
     def parameters(self):
@@ -47,13 +54,16 @@ class AnalysisProduct(object):
 
     def get_par_by_name(self,name):
         p=None
-        for p in self._parameters_list:
-            if p.name==name:
-                return p
+        for p1 in self._parameters_list:
+            if p1.name==name:
+                p=p1
+        if p is None:
+            raise  Warning('parameter',name,'not found')
         return p
 
     def set_par_value(self,name,value):
         p=self.get_par_by_name(name)
+        print('get par',p.name,'set value',value)
         if p is not None:
             p.value=value
 
@@ -143,12 +153,13 @@ class AnalysisProduct(object):
             par_dictionary['field value'] = []
 
         for par in par_group.par_list:
+            #print('par',par,type(par))
             if isinstance(par,Parameter):
                 val={}
                 par_dictionary['field value'].append(val)
                 self._build_parameter_dic(par,par_dictionary=val)
 
-            elif type(par)==ParameterRange:
+            elif isinstance(par,ParameterRange):
                 val = {}
                 par_dictionary['field value'].append(val)
                 self._build_parameter_range_dic(par,par_dictionary=val)
@@ -177,12 +188,11 @@ class AnalysisProduct(object):
             par_dictionary['field name'] = par.name
             par_dictionary['field value']=par.value
 
-
-
-
-
-
-
+    def get_product(self,config=None):
+        if self._get_product_method is not None:
+            return self._get_product_method(self,config=config)
+        else:
+            return None
 
 
     def print_list(self, l):
@@ -212,8 +222,8 @@ class AnalysisProduct(object):
 
 class Image(AnalysisProduct):
 
-    def __init__(self,parameters_list,):
-        super(Image, self).__init__(parameters_list)
+    def __init__(self,parameters_list,**kwargs):
+        super(Image, self).__init__(parameters_list,**kwargs)
 
 
 

@@ -25,7 +25,7 @@ from builtins import (bytes, str, open, super, range,
 
 __author__ = "Andrea Tramacere"
 
-
+import  ast
 from datetime import datetime, date, time
 
 import  numpy as np
@@ -56,11 +56,12 @@ class ParameterGroup(object):
 
     @property
     def par_list(self):
-        return [p.name for p in self._par_list]
+        return self._par_list
 
     @property
     def names(self):
-        return self._par_list
+        return [p.name for p in self._par_list]
+
 
     def select(self,name):
         if isinstance(name,Parameter):
@@ -70,7 +71,7 @@ class ParameterGroup(object):
                 self.msk[ID]=True
                 self._selected=self._par_list[ID].name
 
-        if self.msk>1 and self.exclusive==True:
+        if self.msk.sum()>1 and self.exclusive==True:
             raise RuntimeError('only one paramter can be selected in mutually exclusive groups')
 
 
@@ -100,7 +101,7 @@ class ParameterGroup(object):
 
 
     def build_selector(self,name):
-        return  Parameter(name, self.names)
+        return  Parameter(name, allowed_values=self.names)
 
 
 class ParameterRange(object):
@@ -128,10 +129,11 @@ class ParameterRange(object):
 
 
 class Parameter(object):
-    def __init__(self,name='par',units=None,allowed_units=[],check_value=None,value=None,wtform_dict=None):
+    def __init__(self,name='par',units=None,allowed_units=[],check_value=None,value=None,allowed_values=None):
         self.check_value=check_value
 
         self._allowed_units = allowed_units
+        self._allowed_values = allowed_values
         self.name = name
         self.units=units
         self.value = value
@@ -146,11 +148,16 @@ class Parameter(object):
 
     @value.setter
     def value(self,v):
+        print ('set',self.name,v,self._allowed_values)
         if v is not None:
             if self.check_value is not None:
-                self.check_value(v, self.units)
-            self._value =v
-
+                self.check_value(v, units=self.units,name=self.name)
+            if self._allowed_values is not None:
+                if v not in self._allowed_values:
+                    raise RuntimeError('value',v,'not allowed, allowed=',self._allowed_values)
+            self._value=v
+        else:
+            self._value=None
 
 
     @property
@@ -160,7 +167,8 @@ class Parameter(object):
     @units.setter
     def units(self,units):
 
-        if self._allowed_units is not []:
+        if self._allowed_units !=[] and self._allowed_units is not None:
+
             self.chekc_units(units,self._allowed_units,self.name)
 
         self._units=units
@@ -237,25 +245,27 @@ class Time(Parameter):
 
 
     @staticmethod
-    def check_time_value(value,units):
+    def check_time_value(value,units,name='par'):
         if units == 'iso':
             try:
                 c = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%f")
             except:
-                raise RuntimeError('value is not iso format YYYY-MM-DDThh:mm:ss.sssss','it is',type(value),value)
-        if units == 'mjd':
+                raise RuntimeError(name,'value is not iso format YYYY-MM-DDThh:mm:ss.sssss','it is',type(value),value)
+        elif units == 'mjd':
             try:
                 assert (type(value) == int or type(value) == float)
             except:
-                raise RuntimeError('value is not MJD format : int or float', 'it is ','it is',type(value),value)
+                raise RuntimeError(name,'value is not MJD format : int or float', 'it is ','it is',type(value),value)
 
-        if units=='prod_list':
+        elif units=='prod_list':
             try:
                 print(type(value))
                 assert (type(value) == list or type(value) == str  or type(str(value))== str)
             except:
-                raise RuntimeError('value is not product list format : list of strings','it is',type(value),value)
+                raise RuntimeError(name,'value is not product list format : list of strings','it is',type(value),value)
 
+        else:
+            raise  RuntimeError(name,'units not valid',units)
 
 
 
@@ -279,8 +289,20 @@ class Energy(Parameter):
 
 
     @staticmethod
-    def check_energy_value(value, units=None):
-        assert (type(value) is int or type(value) is float)
+    def check_energy_value(value, units=None,name=None):
+        print('check type of ',name,'value', value, 'type',type(value))
 
+
+        try:
+            value=ast.literal_eval(value)
+        except:
+            pass
+
+        if type(value)==int:
+            pass
+        if type(value)==float:
+            pass
+        else:
+            raise RuntimeError('type of ',name,'not valid',type(value))
 
 
