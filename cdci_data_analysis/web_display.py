@@ -61,23 +61,30 @@ def draw_spectrum(spectrum,dummy=False):
     return mpld3.fig_to_dict(fig)
 
 
-def draw_dummy():
+def draw_dummy(dummy=True):
+
+
+
 
     fig, ax = plt.subplots(figsize=(4, 3))
 
-    x = np.linspace(-2, 2, 200)
-    y = x[:, None]
-    image = np.zeros((200, 200, 4))
+    if dummy == True:
+        x = np.linspace(-2, 2, 200)
+        y = x[:, None]
+        image = np.zeros((200, 200, 4))
 
-    image[:, :, 0] = np.exp(- (x - 1) ** 2 - (y) ** 2)
-    image[:, :, 1] = np.exp(- (x + 0.71) ** 2 - (y - 0.71) ** 2)
-    image[:, :, 2] = np.exp(- (x + 0.71) ** 2 - (y + 0.71) ** 2)
-    image[:, :, 3] = np.exp(-0.25 * (x ** 2 + y ** 2))
+        image[:, :, 0] = np.exp(- (x - 1) ** 2 - (y) ** 2)
+        image[:, :, 1] = np.exp(- (x + 0.71) ** 2 - (y - 0.71) ** 2)
+        image[:, :, 2] = np.exp(- (x + 0.71) ** 2 - (y + 0.71) ** 2)
+        image[:, :, 3] = np.exp(-0.25 * (x ** 2 + y ** 2))
+
 
     im = ax.imshow(image,origin='lower', zorder=1, interpolation='none',aspect='equal')
     fig.colorbar(im, ax=ax)
 
 
     plugins.connect(fig, plugins.MousePosition(fontsize=14))
-
+    
     return mpld3.fig_to_dict(fig)
+
+

@@ -22,7 +22,7 @@ from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
 
 
 
-from ..web_display import draw_fig
+from ..web_display import draw_dummy
 
 app = Flask(__name__)
 
@@ -45,13 +45,14 @@ def index():
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
     #print('osa conf', app.config.get('osaconf'), request.method)
-    prod_type='SPECTRUM'
-    if prod_type=='IMAGE':
+    prod_type=request.args.get('product_type')
+    print ('prod_type',prod_type)
+    if prod_type=='image':
         prod= OSA_ISGRI_IMAGE()
-    if prod_type=='SPECTRUM':
+    if prod_type=='spectrum':
         prod = OSA_ISGRI_SPECTRUM()
 
-    prod.parameters
+    #sprod.parameters
     if request.method == 'GET':
         print('request', request)
         par_names=['E1','E2','T1','T2']
@@ -69,7 +70,7 @@ def run_analysis_test():
 
         else:
             # print('osa conf',app.config.get('osaconf'))
-            html_fig = draw_fig(None, dummy=True)
+            html_fig = draw_dummy()
 
 
 
