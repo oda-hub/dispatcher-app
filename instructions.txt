@@ -1,0 +1,13 @@
+#mount isdc using fuse
+mkdir isdc
+sshfs nx:/ /Users/orion/astro/Programmi/Projects/Integral_Web_Analysis/ddosaclient/isdc
+
+#tunnel to intgccn01 machine
+ssh -t -L 32779:localhost:32779 nx ssh -t -L 32779:localhost:32779 tramacer@intggcn01.isdc.unige.ch
+
+ssh -t -L 32779:localhost:32779 tramacer@intggcn01.isdc.unige.ch
+
+cp .secret-ddosa-client ~
+
+
+testing machine: http://cdciweb01.isdc.unige.ch

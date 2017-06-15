@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-bokeh-2.0.4.css') }}" type="text/css" />
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bokeh.css') }}" type="text/css" />
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/continuum.css') }}" type="text/css" />
+
+    <script type="text/javascript" src="{{ url_for('static', filename='js/bokeh.js') }}"></script>
+
+
+    <link href="http://getbootstrap.com/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link href="http://getbootstrap.com/examples/jumbotron-narrow/jumbotron-narrow.css" rel="stylesheet">
+
+    <script src="../static/js/addInput.js" language="Javascript" type="text/javascript"></script>
+
+
+
+
+</head>
+<body>
+
+
+<div class="col-md-8">
+    <div class="panel panel-primary text-center ">
+
+<nav>
+                <ul class="nav nav-pills pull-right">
+
+                    <li role="presentation"><a href="#">Sign In</a>
+                    </li>
+                    <li role="presentation"><a href="showSignUp">Sign Up</a>
+                    </li>
+                </ul>
+            </nav>
+<h2 class="text-muted">INTEGRAL  Web Analysis</h2   >
+
+
+
+</div>
+<div class="panel panel-default">
+  <div class="row outer">
+
+    <div class="col-md-4 text-left">
+    <br>
+    <br>
+    {% from "_formhelpers.html" import render_field %}
+       <h3 class="text-muted">Parameters</h3>
+       <br>
+       <form method=post action="/">
+         <dl>
+             {{ render_field(form.E1) }}
+             {{ render_field(form.E2) }}
+             {{ render_field(form.E_cut) }}
+
+
+
+
+
+
+           <br>
+           {{ form.time_format(**{"onchange":'HideShow(time_format.value,["iso","mjd","scw_list"]);'}) }}
+            <label for="time_format">Time Format</label>
+
+           <div id="iso" style="display:none;">
+           {{render_field(form.T1_iso)}}
+           {{render_field(form.T2_iso)}}
+            </div>
+
+           <div id="scw_list" style="display:none;">
+           {{render_field(form.scw_list)}}
+            </div>
+
+            <div id="mjd" style="display:none;">
+            {{render_field(form.T1_mjd)}}
+            {{render_field(form.T2_mjd)}}
+            </div>
+
+           <br>
+
+
+
+
+
+           {{ render_field(form.instrument)}}
+           {{ render_field(form.image_type)}}
+
+           <body  onload='HideShow(time_format.value,["iso", "mjd", "scw_list"])'>
+
+
+         </dl>
+
+
+         <input type=submit value='submit' name='submit_btn'>
+       </form>
+    </div>
+    <div class="col-md-6">
+
+     {{ image_html|indent(4)|safe }}
+
+    </div>
+  </div>
+</div>
+</div>
+
+
+</body>
+
+
+</html>

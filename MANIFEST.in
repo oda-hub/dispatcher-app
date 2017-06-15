@@ -1,0 +1,3 @@
+recursive-include  cdci_data_analysis/config_dir *
+recursive-include  cdci_data_analysis/flask_app/static *
+recursive-include  cdci_data_analysis/flask_app/templates *
