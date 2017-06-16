@@ -22,12 +22,8 @@ __author__ = "Andrea Tramacere"
 
 from .parameters import *
 
-from flask import Flask, render_template, request
-from wtforms import Form
-import  json
 
-class myForm(Form):
-    pass
+
 
 
 

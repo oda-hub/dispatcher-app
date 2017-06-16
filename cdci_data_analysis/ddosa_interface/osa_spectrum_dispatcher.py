@@ -99,10 +99,10 @@ def get_osa_spectrum(analysis_prod,dump_json=False,use_dicosverer=False,config=N
     res = q.run_query(query_prod=query_prod)
 
     data, prod_path, e = q.get_data(res, 'spectrum')
-    spectrun = pf.getdata(prod_path, ext=14)
+    spectrum = pf.open(prod_path)
     print ('prod path',prod_path)
 
-    return spectrun, e
+    return spectrum, e
 
 def OSA_ISGRI_SPECTRUM():
     E1_keV = Energy('keV', 'E1', value=20.0)
