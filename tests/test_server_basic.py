@@ -62,12 +62,6 @@ class DispatcherServer(object):
         time.sleep(0.5)
         self.stop()
 
-def test_starting():
-    with DispatcherServer() as server:
-        print server
-        c=requests.get(server.url+"/")
-        print c.content
-
 def test_urltest():
     with DispatcherServer() as server:
         print server

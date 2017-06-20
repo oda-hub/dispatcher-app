@@ -81,9 +81,8 @@ def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None
 
     res=q.run_query(query_prod=query_prod)
 
-    data, image_path, e=q.get_data(res,'skyima')
-    image = pf.getdata(image_path, ext=4)
-    return image,e
+    image = pf.getdata(res.skyima, ext=4)
+    return image,None # none?
 
 
 
