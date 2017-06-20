@@ -4,28 +4,51 @@ import time
 import re
 import signal
 import os
+import traceback
+
+from threading import Thread
+from time import sleep
+
+
+
 
 class DispatcherServer(object):
     def __init__(self):
         pass
 
-    def start(self):
-        self.process=subprocess.Popen(["python","bin/run_osa_cdci_server.py"],stdout=subprocess.PIPE, stderr=subprocess.PIPE) # separate process or thread?.. 
+    url=None
 
-        print("\n\nfollowing server startup")
-        for line in iter(self.process.stderr.readline,''):
-            print line.rstrip()
+    def follow_output(self):
+        url=None
+        for line in iter(self.process.stdout.readline,''):
+            print "following server:",line.rstrip()
             m=re.search("Running on (.*?) \(Press CTRL\+C to quit\)",line)
             if m:
-                self.url=m.group(1)
-                print("found url:",self.url)
+                url=m.group(1) # alaternatively get from configenv
+                print("found url:",url)
         
             if re.search("\* Debugger PIN:.*?",line):
                 print("server ready")
-                break
+                url=url.replace("0.0.0.0","127.0.0.1")
+                self.url=url
 
+    def start(self):
+        #self.process=subprocess.Popen(["python","bin/run_osa_cdci_server.py"]) #,stdout=subprocess.PIPE, stderr=subprocess.STDOUT) # separate process or thread?.. 
+        self.process=subprocess.Popen(["python","bin/run_osa_cdci_server.py"],stdout=subprocess.PIPE, stderr=subprocess.STDOUT) # separate process or thread?.. 
+
+        print("\n\nfollowing server startup")
+
+        thread = Thread(target = self.follow_output, args = ())
+        thread.start()
+
+        while self.url is None:
+            time.sleep(0.1)
+        time.sleep(0.2)
+
+        self.url="http://127.0.0.1:5000"
 
         return self
+    
 
     def stop(self):
         os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
@@ -33,8 +56,10 @@ class DispatcherServer(object):
     def __enter__(self):
         return self.start()
 
-    def __exit__(self, _type, value, traceback):
-        print("exiting:",_type,value, traceback)
+    def __exit__(self, _type, value, tracebac):
+        print("exiting:",_type,value, tracebac)
+        traceback.print_tb(tracebac)
+        time.sleep(0.5)
         self.stop()
 
 def test_starting():
@@ -42,3 +67,18 @@ def test_starting():
         print server
         c=requests.get(server.url+"/")
         print c.content
+
+def test_urltest():
+    with DispatcherServer() as server:
+        print server
+        c=requests.get(server.url+"/test",params=dict(
+                        product_type="image",
+                        E1=20.,
+                        E2=40.,
+                        T1="2008-01-01T11:11:11.0",
+                        T2="2008-06-01T11:11:11.0",
+                    ))
+        jdata=c.json()
+
+        print jdata.keys()
+        print jdata['data']

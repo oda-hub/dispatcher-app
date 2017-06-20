@@ -83,7 +83,7 @@ class OsaQuery(object):
 
 
     def run_query(self,query_prod):
-        res= dc.RemoteDDOSA(self.url).query(target=query_prod.target,
+        res= dc.RemoteDDOSA(self.url, self.ddcache_root_local).query(target=query_prod.target,
                                        modules=query_prod.modules,
                                        assume=query_prod.assume)
 
