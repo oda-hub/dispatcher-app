@@ -39,9 +39,6 @@ def index():
     #return render_template('analysis_display_app.html', form=form,image_html='')
 
 
-
-
-
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
     #print('osa conf', app.config.get('osaconf'), request.method)
@@ -76,7 +73,7 @@ def run_analysis_test():
 
         return jsonify(html_fig)
 
-    return None
+    return jsonify("invalid method")
 
 
 def run_app(conf):

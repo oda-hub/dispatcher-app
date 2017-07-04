@@ -54,17 +54,18 @@ from astropy.io import  fits as pf
 
 
 def do_spectrum_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.001"]):
-    dic_str = str(scw_list[0])
-    target="ii_spectra_extract"
-    modules=["ddosa", "git://ddosadm"]
-    assume=['ddosa.ScWData(input_scwid="%s")'%dic_str,\
-                       'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),\
-                       'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+    target="ISGRISpectraSum"
+    modules=["ddosa","git://ddosadm","git://useresponse","git://process_isgri_spectra","git://rangequery"]
+    assume=['process_isgri_spectra.ScWSpectraList(input_scwlist=ddosa.IDScWList(use_scwid_list=[%s]))'%(",".join(["\""+s+"\"" for s in scw_list])),
+            'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
+            'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+
+    print(assume)
 
     return QueryProduct(target=target, modules=modules, assume=assume)
 
 
-def do_spectrum_from_time_span(E1,E2,T1,T2):
+def do_spectrum_from_time_span_single_scw(E1,E2,T1,T2):
     target="ii_spectra_extract"
     modules=["ddosa", "git://ddosadm"]
     assume=['ddosa.ScWImageList(input_scwlist=rangequery.TimeDirectionScWList(use_coordinates=dict(RA=83,DEC=22,radius=5),\
@@ -72,6 +73,23 @@ def do_spectrum_from_time_span(E1,E2,T1,T2):
         use_max_pointings=3)'%dict(T1=T1,T2=T2),\
         'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),\
         'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+
+    return QueryProduct(target=target, modules=modules, assume=assume)
+
+def do_spectrum_from_time_span(E1,E2,T1,T2):
+    target="ISGRISpectraSum"
+    modules=["ddosa","git://ddosadm","git://useresponse","git://process_isgri_spectra","git://rangequery"],
+
+    assume=['process_isgri_spectra.ScWSpectraList(\
+      input_scwlist=\
+      rangequery.TimeDirectionScWList(\
+          use_coordinates=dict(RA=83,DEC=22,radius=5),\
+          use_timespan=dict(T1=%(T1)s,T2=%(T2)s)),\
+          use_max_pointings=3)\
+    '%dict(T1=T1,T2=T2),\
+    'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),\
+    'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+
 
     return QueryProduct(target=target, modules=modules, assume=assume)
 
@@ -98,11 +116,13 @@ def get_osa_spectrum(analysis_prod,dump_json=False,use_dicosverer=False,config=N
 
     res = q.run_query(query_prod=query_prod)
 
-    data, prod_path, e = q.get_data(res, 'spectrum')
-    spectrum = pf.open(prod_path)
-    print ('prod path',prod_path)
+    print(dir(res))
 
-    return spectrum, e
+    for source_name,spec_attr,rmf_attr,arf_attr in res.extracted_sources:
+        spectrum = pf.open(getattr(res,spec_attr))
+        break # first one for now
+
+    return spectrum, None
 
 def OSA_ISGRI_SPECTRUM():
     E1_keV = Energy('keV', 'E1', value=20.0)
