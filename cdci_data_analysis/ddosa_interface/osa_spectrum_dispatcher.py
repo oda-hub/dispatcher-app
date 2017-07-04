@@ -75,7 +75,6 @@ def do_spectrum_from_single_scw(E1,E2,position,scw):
              'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")'%dict(E1=E1,E2=E2),
              'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
 
-    return QueryProduct(target=target, modules=modules, assume=assume)
 
 def do_spectrum_from_scw_list(E1,E2,position,scw_list=["035200230010.001","035200240010.001"]):
     """
@@ -149,11 +148,13 @@ def get_osa_spectrum(analysis_prod,dump_json=False,use_dicosverer=False,config=N
 
     res = q.run_query(query_prod=query_prod)
 
-    data, prod_path, e = q.get_data(res, 'spectrum')
-    spectrun = pf.getdata(prod_path, ext=14)
-    print ('prod path',prod_path)
+    print(dir(res))
 
-    return spectrun, e
+    for source_name,spec_attr,rmf_attr,arf_attr in res.extracted_sources:
+        spectrum = pf.open(getattr(res,spec_attr))
+        break # first one for now
+
+    return spectrum, None
 
 def OSA_ISGRI_SPECTRUM():
     E1_keV = Energy('keV', 'E1', value=20.0)

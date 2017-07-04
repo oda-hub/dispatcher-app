@@ -48,14 +48,30 @@ def draw_fig(image_array,dummy=False):
 def draw_spectrum(spectrum,dummy=False):
 
 
+    rmf=pf.open('rmf_62bands.fits')
+    src_spectrum=spectrum[8].data
+    E_min=rmf[3].data['E_min']
+    E_max=rmf[3].data['E_max']
 
+    msk=src_spectrum['RATE']>0.
 
-    fig, ax = plt.subplots(figsize=(4, 3))
+    y=src_spectrum['RATE']/(E_max-E_min)
 
-    ax.errorbar(spectrum['CHANNEL'],spectrum['RATE'],yerr=spectrum['STAT_ERR'],fmt='-o')
-    ax.set_xlabel('channel')
-    ax.set_ylabel('rate')
+    x = (E_max + E_min)
+    dx = np.log10(np.e) * (E_max - E_min) / x
+    x = np.log10(x)
 
+    dy=src_spectrum['STAT_ERR']/(E_max-E_min)
+    dy=np.log10(np.e)*dy/y
+    y=np.log10(y)
+
+    fig, ax = plt.subplots(figsize=(4, 2.8))
+
+    ax.set_xlabel('log(E)  keV')
+    ax.set_ylabel('log(counts/s/keV)')
+
+    ax.errorbar(x[msk], y[msk], yerr=dy[msk]*0.5,xerr=dx[msk]*0.5, fmt='o')
+    #print (x,y,dy)
     plugins.connect(fig, plugins.MousePosition(fontsize=14))
 
     return mpld3.fig_to_dict(fig)

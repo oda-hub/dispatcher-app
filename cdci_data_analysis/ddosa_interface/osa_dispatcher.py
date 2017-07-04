@@ -83,16 +83,15 @@ class OsaQuery(object):
 
 
     def run_query(self,query_prod):
-        res= dc.RemoteDDOSA(self.url).query(target=query_prod.target,
-                                       modules=query_prod.modules,
-                                       assume=query_prod.assume)
 
         try:
-            res["result"]
-            print("cached object in", res['cached_path'])
-        except:
+            res= dc.RemoteDDOSA(self.url, self.ddcache_root_local).query(target=query_prod.target,
+                                           modules=query_prod.modules,
+                                           assume=query_prod.assume)
+            print("cached object in", res,res.ddcache_root_local)
+        except dc.WorkerException as e:
 
-            raise RuntimeError('ddosa connection or processing failed')
+            raise RuntimeError('ddosa connection or processing failed',e)
 
         #sprint('res',res)
         return res
