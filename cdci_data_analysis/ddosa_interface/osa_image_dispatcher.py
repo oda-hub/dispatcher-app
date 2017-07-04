@@ -23,6 +23,14 @@ from .osa_dispatcher import    OsaQuery,QueryProduct
 from ..web_display import draw_fig
 from astropy.io import  fits as pf
 
+def do_image_from_single_scw(E1,E2,scw):
+    scwsource_module = "ddosa"
+    target = "ii_skyimage",
+    modules = ["ddosa", "git://ddosadm"],
+    assume = [scwsource_module + '.ScWData(input_scwid="035200230010.001")',
+              'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
+              'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+    return QueryProduct(target=target, modules=modules, assume=assume)
 
 def do_mosaic_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.001"]):
 
@@ -58,6 +66,8 @@ def do_mosaic_from_time_span(E1,E2,T1,T2):
 
 
 
+
+
 def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None):
 
     q=OsaQuery(config=config)
@@ -65,9 +75,16 @@ def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None
     time_range_type = analysis_prod.get_par_by_name('time_group_selector').value
     if time_range_type == 'scw_list':
 
-        query_prod=do_mosaic_from_scw_list(analysis_prod.get_par_by_name('E1').value,
-                                      analysis_prod.get_par_by_name('E2').value,
-                                      analysis_prod.get_par_by_name('scw_list').value)
+        if len(analysis_prod.get_par_by_name('scw_list').value)==1:
+
+            query_prod=do_mosaic_from_scw_list(analysis_prod.get_par_by_name('E1').value,
+                                          analysis_prod.get_par_by_name('E2').value,
+                                          scw=analysis_prod.get_par_by_name('scw_list').value[0])
+
+        else:
+            query_prod = do_mosaic_from_scw_list(analysis_prod.get_par_by_name('E1').value,
+                                                 analysis_prod.get_par_by_name('E2').value,
+                                                 scw_list=analysis_prod.get_par_by_name('scw_list').value)
 
     elif time_range_type == 'time_range_iso':
         query_prod = do_mosaic_from_time_span(analysis_prod.get_par_by_name('E1').value,

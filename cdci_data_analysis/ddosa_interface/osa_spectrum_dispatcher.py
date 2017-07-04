@@ -53,25 +53,70 @@ from astropy.io import  fits as pf
 
 
 
-def do_spectrum_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.001"]):
-    dic_str = str(scw_list[0])
-    target="ii_spectra_extract"
-    modules=["ddosa", "git://ddosadm"]
-    assume=['ddosa.ScWData(input_scwid="%s")'%dic_str,\
-                       'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),\
-                       'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+def do_spectrum_from_single_scw(E1,E2,position,scw):
+    """
+    builds a spectrum for single scw
+
+    * spectrum is built from image with one_bin mode
+    * catalog default catalog is used for the image
+    * ddosa selection is applied to build catalog for spectra
+
+
+    :param E1:
+    :param E2:
+    :param scw:
+    :return:
+    """
+    scw_str = str(scw)
+    scwsource_module = "ddosa"
+    target = "ii_spectra_extract"
+    modules = ["ddosa", "git://ddosadm"]
+    assume = [scwsource_module + '.ScWData(input_scwid="%")'%scw_str,
+             'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")'%dict(E1=E1,E2=E2),
+             'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+
+    return QueryProduct(target=target, modules=modules, assume=assume)
+
+def do_spectrum_from_scw_list(E1,E2,position,scw_list=["035200230010.001","035200240010.001"]):
+    """
+     builds a spectrum for list of scw
+
+    * spectrum is built from image with one_bin mode
+    * catalog default catalog is used for the image
+    * ddosa selection is applied to build catalog for spectra
+
+    :param E1:
+    :param E2:
+    :param scw_list:
+    :return:
+    """
+
+    dic_str = str(scw_list)
+    target = "ISGRISpectraSum"
+    modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
+    assume = ['process_isgri_spectra.ScWSpectraList(input_scwlist=ddosa.IDScWList(use_scwid_list=[%s]))' %dic_str,
+              'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1, E2=E2),
+              'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+
+    #print(assume)
 
     return QueryProduct(target=target, modules=modules, assume=assume)
 
 
-def do_spectrum_from_time_span(E1,E2,T1,T2):
-    target="ii_spectra_extract"
-    modules=["ddosa", "git://ddosadm"]
-    assume=['ddosa.ScWImageList(input_scwlist=rangequery.TimeDirectionScWList(use_coordinates=dict(RA=83,DEC=22,radius=5),\
-        use_timespan=dict(T1=%(T1)s,T2=%(T2)s)),\
-        use_max_pointings=3)'%dict(T1=T1,T2=T2),\
-        'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),\
-        'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+def do_spectrum_from_time_span(E1,E2,T1,T2,position):
+    target="ISGRISpectraSum"
+    modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
+    assume = ['process_isgri_spectra.ScWSpectraList(\
+                         input_scwlist=\
+                         rangequery.TimeDirectionScWList(\
+                          use_coordinates=dict(RA=83,DEC=22,radius=5),\
+                          use_timespan=dict(T1=%(T1)s,T2=%(T2)s)),\
+                          use_max_pointings=50 \
+                          )\
+                      )\
+                  '%dict(T1=T1,T2=T2),
+              'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
+              'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
 
     return QueryProduct(target=target, modules=modules, assume=assume)
 
@@ -84,7 +129,13 @@ def get_osa_spectrum(analysis_prod,dump_json=False,use_dicosverer=False,config=N
 
     if time_range_type == 'scw_list':
 
-        query_prod = do_spectrum_from_scw_list(analysis_prod.get_par_by_name('E1').value,
+        if len(analysis_prod.get_par_by_name('scw_list').value) == 1:
+            query_prod = do_spectrum_from_single_scw(analysis_prod.get_par_by_name('E1').value,
+                                                   analysis_prod.get_par_by_name('E2').value,
+                                                   scw=analysis_prod.get_par_by_name('scw_list').value[0])
+
+        else:
+            query_prod = do_spectrum_from_scw_list(analysis_prod.get_par_by_name('E1').value,
                                       analysis_prod.get_par_by_name('E2').value,
                                       analysis_prod.get_par_by_name('scw_list').value)
 
