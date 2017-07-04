@@ -145,7 +145,7 @@ def get_osa_spectrum(analysis_prod,dump_json=False,use_dicosverer=False,config=N
         if len(analysis_prod.get_par_by_name('scw_list').value) == 1:
             query_prod = do_spectrum_from_single_scw(analysis_prod.get_par_by_name('E1').value,
                                                    analysis_prod.get_par_by_name('E2').value,
-                                                   scw=analysis_prod.get_par_by_name('scw_list').value[0])
+                                                   scw_list=analysis_prod.get_par_by_name('scw_list').value[0])
 
         else:
             query_prod = do_spectrum_from_scw_list(analysis_prod.get_par_by_name('E1').value,

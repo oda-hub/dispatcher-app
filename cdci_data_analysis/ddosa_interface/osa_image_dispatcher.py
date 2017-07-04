@@ -90,7 +90,7 @@ def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None
 
             query_prod=do_mosaic_from_scw_list(analysis_prod.get_par_by_name('E1').value,
                                           analysis_prod.get_par_by_name('E2').value,
-                                          scw=analysis_prod.get_par_by_name('scw_list').value[0])
+                                          scw_list=analysis_prod.get_par_by_name('scw_list').value[0])
 
         else:
             query_prod = do_mosaic_from_scw_list(analysis_prod.get_par_by_name('E1').value,
