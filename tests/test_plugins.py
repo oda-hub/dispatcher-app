@@ -60,3 +60,5 @@ def test_spectrum():
 
     print dir(out_prod)
 
+
+test_image()

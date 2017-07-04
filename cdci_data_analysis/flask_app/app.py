@@ -70,7 +70,7 @@ def run_analysis_test():
             html_fig = draw_dummy()
 
 
-
+        #return out_prod
         return jsonify(html_fig)
 
     return jsonify("invalid method")

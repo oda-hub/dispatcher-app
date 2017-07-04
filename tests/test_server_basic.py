@@ -34,7 +34,7 @@ class DispatcherServer(object):
 
     def start(self):
         #self.process=subprocess.Popen(["python","bin/run_osa_cdci_server.py"]) #,stdout=subprocess.PIPE, stderr=subprocess.STDOUT) # separate process or thread?.. 
-        self.process=subprocess.Popen(["python","bin/run_osa_cdci_server.py"],stdout=subprocess.PIPE, stderr=subprocess.STDOUT) # separate process or thread?.. 
+        self.process=subprocess.Popen(["run_osa_cdci_server.py"],stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True) # separate process or thread?..
 
         print("\n\nfollowing server startup")
 
@@ -66,6 +66,7 @@ def test_urltest():
     with DispatcherServer() as server:
         print server
         c=requests.get(server.url+"/test",params=dict(
+                        image_type="Real",
                         product_type="image",
                         E1=20.,
                         E2=40.,
@@ -73,6 +74,9 @@ def test_urltest():
                         T2="2008-06-01T11:11:11.0",
                     ))
         jdata=c.json()
-
+        print('done')
         print jdata.keys()
         print jdata['data']
+
+
+test_urltest()
