@@ -102,18 +102,30 @@ def do_spectrum_from_scw_list(E1,E2,position,scw_list=["035200230010.001","03520
     return QueryProduct(target=target, modules=modules, assume=assume)
 
 
-def do_spectrum_from_time_span(E1,E2,T1,T2,position):
+def do_spectrum_from_time_span(E1,E2,T1,T2,RA,DEC,radius):
+    """
+     builds a spectrum for a time span
+
+     logic is different from do_spectrum_from_scw_list, we provide postion to selecet scw_list
+
+    :param E1:
+    :param E2:
+    :param T1:
+    :param T2:
+    :param position:
+    :return:
+    """
     target="ISGRISpectraSum"
     modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
     assume = ['process_isgri_spectra.ScWSpectraList(\
                          input_scwlist=\
                          rangequery.TimeDirectionScWList(\
-                          use_coordinates=dict(RA=83,DEC=22,radius=5),\
+                          use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
                           use_timespan=dict(T1=%(T1)s,T2=%(T2)s)),\
                           use_max_pointings=50 \
                           )\
                       )\
-                  '%dict(T1=T1,T2=T2),
+                  '%(dict(RA=RA,DEC=DEC,radius=radius),dict(T1=T1,T2=T2)),
               'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
               'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
 
@@ -125,7 +137,9 @@ def get_osa_spectrum(analysis_prod,dump_json=False,use_dicosverer=False,config=N
     q=OsaQuery(config=config)
 
     time_range_type = analysis_prod.get_par_by_name('time_group_selector').value
-
+    RA = analysis_prod.get_par_by_name('RA').value
+    DEC = analysis_prod.get_par_by_name('DEC').value
+    radiuse=analysis_prod.get_par_by_name('radius').value
     if time_range_type == 'scw_list':
 
         if len(analysis_prod.get_par_by_name('scw_list').value) == 1:

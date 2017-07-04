@@ -24,7 +24,7 @@ def test_image():
 
     prod= OSA_ISGRI_IMAGE()
 
-    parameters=dict(E1=20.,E2=40.,T1="2008-11-11T11:11:11.0",T2="2008-11-11T11:11:11.0")
+    parameters=dict(E1=20.,E2=40.,T1="2008-11-11T11:11:11.0",T2="2008-11-11T11:11:11.0",RA=83,DEC=22,radius=5,scw_list=['035200230010.001'])
 
     for p,v in parameters.items():
         print('set from form',p,v)

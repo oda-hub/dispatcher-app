@@ -224,10 +224,21 @@ class AnalysisProduct(object):
             return l
 
 class BaseProdcut(AnalysisProduct):
-    pass
-
-class Image(AnalysisProduct):
     def __init__(self,parameters_list,**kwargs):
+        RA = AngularPosition('deg', 'FK5', 'RA', 0.)
+        DEC = AngularPosition('deg', 'FK5', 'DEC', 0.)
+
+        if parameters_list is not None:
+            parameters_list.extend([RA,DEC])
+
+        super(BaseProdcut, self).__init__(parameters_list,**kwargs)
+
+
+class Image(BaseProdcut):
+    def __init__(self,parameters_list,**kwargs):
+        radius = AngularDistance('deg', 'radius', 0.)
+        if parameters_list is not None:
+            parameters_list.extend([radius])
         super(Image, self).__init__(parameters_list,**kwargs)
 
 
@@ -237,8 +248,11 @@ class LightCurve(AnalysisProduct):
     pass
 
 
-class Spectrum(AnalysisProduct):
+class Spectrum(BaseProdcut):
     def __init__(self, parameters_list, **kwargs):
+        radius = AngularDistance('deg', 'FK5', 'DEC', 0.)
+        if parameters_list is not None:
+            parameters_list.extend([radius])
         super(Spectrum, self).__init__(parameters_list, **kwargs)
 
 

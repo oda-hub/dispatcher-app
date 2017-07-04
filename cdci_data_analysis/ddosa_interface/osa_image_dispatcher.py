@@ -32,6 +32,10 @@ def do_image_from_single_scw(E1,E2,scw):
               'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
     return QueryProduct(target=target, modules=modules, assume=assume)
 
+
+
+
+
 def do_mosaic_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.001"]):
 
     dic_str=str(scw_list)
@@ -44,17 +48,21 @@ def do_mosaic_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.001
 
     return  QueryProduct(target=target,modules=modules,assume=assume)
 
-def do_mosaic_from_time_span(E1,E2,T1,T2):
+
+
+
+def do_mosaic_from_time_span(E1,E2,T1,T2,RA,DEC,radius):
+
     target="Mosaic"
     modules=["ddosa","git://ddosadm","git://osahk","git://mosaic",'git://rangequery']
     assume=['mosaic.ScWImageList(\
                             input_scwlist=\
                                 rangequery.TimeDirectionScWList(\
-                                    use_coordinates=dict(RA=83,DEC=22,radius=5),\
+                                    use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
                                     use_timespan=dict(T1=%(T1)s,T2=%(T2)s)),\
                                     use_max_pointings=3 \
                             )\
-                            '%dict(T1=T1,T2=T2),
+                            '%(dict(RA=RA,DEC=DEC,radius=radius),dict(T1=T1,T2=T2)),
            'mosaic.Mosaic(use_pixdivide=4)',
            'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
            'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
@@ -73,6 +81,9 @@ def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None
     q=OsaQuery(config=config)
 
     time_range_type = analysis_prod.get_par_by_name('time_group_selector').value
+    RA=analysis_prod.get_par_by_name('RA').value
+    DEC=analysis_prod.get_par_by_name('DEC').value
+
     if time_range_type == 'scw_list':
 
         if len(analysis_prod.get_par_by_name('scw_list').value)==1:

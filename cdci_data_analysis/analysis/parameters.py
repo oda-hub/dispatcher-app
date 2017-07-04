@@ -146,6 +146,8 @@ class Parameter(object):
     def value(self):
         return self._value
 
+
+
     @value.setter
     def value(self,v):
         print ('set',self.name,v,self._allowed_values)
@@ -267,6 +269,43 @@ class Time(Parameter):
         else:
             raise  RuntimeError(name,'units not valid',units)
 
+
+
+
+class AngularPosition(Parameter):
+    def __init__(self, angular_units, reference_system,name, value=None):
+        _allowed_units = ['deg']
+        super(AngularPosition, self).__init__(value=value,
+                                     units=angular_units,
+                                     check_value=self.check_angle_value,
+                                     name=name,
+                                     allowed_units=_allowed_units)
+
+        self.reference_system=reference_system
+        #to improve
+
+    @staticmethod
+    def check_angle_value(value, units=None, name=None):
+        print('check type of ', name, 'value', value, 'type', type(value))
+        pass
+
+
+
+class AngularDistance(Parameter):
+    def __init__(self, angular_units,name, value=None):
+        _allowed_units = ['deg']
+        super(AngularDistance, self).__init__(value=value,
+                                     units=angular_units,
+                                     check_value=self.check_angle_value,
+                                     name=name,
+                                     allowed_units=_allowed_units)
+
+
+
+    @staticmethod
+    def check_angle_value(value, units=None, name=None):
+        print('check type of ', name, 'value', value, 'type', type(value))
+        pass
 
 
 
