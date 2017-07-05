@@ -83,12 +83,12 @@ def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None
     time_range_type = analysis_prod.get_par_by_name('time_group_selector').value
     RA=analysis_prod.get_par_by_name('RA').value
     DEC=analysis_prod.get_par_by_name('DEC').value
-
+    radius=analysis_prod.get_par_by_name('radius').value
     if time_range_type == 'scw_list':
 
         if len(analysis_prod.get_par_by_name('scw_list').value)==1:
 
-            query_prod=do_mosaic_from_scw_list(analysis_prod.get_par_by_name('E1').value,
+            query_prod = do_mosaic_from_scw_list(analysis_prod.get_par_by_name('E1').value,
                                           analysis_prod.get_par_by_name('E2').value,
                                           scw_list=analysis_prod.get_par_by_name('scw_list').value[0])
 
@@ -101,7 +101,10 @@ def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None
         query_prod = do_mosaic_from_time_span(analysis_prod.get_par_by_name('E1').value,
                                        analysis_prod.get_par_by_name('E2').value,
                                        analysis_prod.get_par_by_name('T1').value,
-                                       analysis_prod.get_par_by_name('T2').value)
+                                       analysis_prod.get_par_by_name('T2').value,
+                                       RA,
+                                       DEC,
+                                       radius)
 
     else:
         raise RuntimeError('wrong time format')
