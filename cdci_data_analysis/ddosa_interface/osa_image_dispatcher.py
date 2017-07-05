@@ -25,8 +25,8 @@ from astropy.io import  fits as pf
 
 def do_image_from_single_scw(E1,E2,scw):
     scwsource_module = "ddosa"
-    target = "ii_skyimage",
-    modules = ["ddosa", "git://ddosadm"],
+    target = "ii_skyimage"
+    modules = ["ddosa", "git://ddosadm"]
     assume = [scwsource_module + '.ScWData(input_scwid="035200230010.001")',
               'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
               'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
@@ -88,9 +88,9 @@ def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None
 
         if len(analysis_prod.get_par_by_name('scw_list').value)==1:
 
-            query_prod=do_mosaic_from_scw_list(analysis_prod.get_par_by_name('E1').value,
+            query_prod=do_image_from_single_scw(analysis_prod.get_par_by_name('E1').value,
                                           analysis_prod.get_par_by_name('E2').value,
-                                          scw_list=analysis_prod.get_par_by_name('scw_list').value[0])
+                                          scw=analysis_prod.get_par_by_name('scw_list').value[0])
 
         else:
             query_prod = do_mosaic_from_scw_list(analysis_prod.get_par_by_name('E1').value,
