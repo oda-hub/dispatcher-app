@@ -77,6 +77,28 @@ def test_spectrum_cookbook():
 
 
 
+def tes_fit_spectrum():
+    from xspec import *
+    # PyXspec operations:
+    s = Spectrum("spectrum.fits")
+    s.ignore('1')
+    s.ignore('300.-**')
+    m = Model("po")
+    Fit.query = 'yes'
+    Fit.perform()
+
+    Plot.device = "/xs"
+
+    Plot.xLog = True
+    Plot.yLog = True
+    Plot.setRebin(3., 3)
+    # Plot("data","model","resid")
+    # Plot("data model resid")
+    Plot("data,resid")
+
+    Plot.show()
+
+
 def test_lightcurve_cookbook():
     from cdci_data_analysis.ddosa_interface.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
 
