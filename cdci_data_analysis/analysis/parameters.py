@@ -228,6 +228,22 @@ class Parameter(object):
         #wtform_dict = {'iso': SelectField}
 
 
+
+
+class Name(Parameter):
+    def __init__(self, name_format, name, value=None):
+        _allowed_units = ['str']
+        super(Name,self).__init__(value=value,
+                                  units=name_format,
+                                  check_value=self.check_name_value,
+                                  name=name,
+                                  allowed_units=_allowed_units)
+
+    @staticmethod
+    def check_name_value(value, units=None, name=None):
+        pass
+
+
 class Time(Parameter):
 
     def __init__(self,T_format,name,value=None):

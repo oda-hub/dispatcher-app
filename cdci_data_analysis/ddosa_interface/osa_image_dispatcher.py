@@ -27,7 +27,7 @@ def do_image_from_single_scw(E1,E2,scw):
     scwsource_module = "ddosa"
     target = "ii_skyimage"
     modules = ["ddosa", "git://ddosadm"]
-    assume = [scwsource_module + '.ScWData(input_scwid="035200230010.001")',
+    assume = [scwsource_module + '.ScWData(input_scwid=scw)',
               'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
               'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
     return QueryProduct(target=target, modules=modules, assume=assume)

@@ -109,7 +109,7 @@ class OsaQuery(object):
 
         e = None
         prod_path = None
-        print (data.keys())
+        #print ('product keys',data.keys())
         try:
             v = data[prod_name]
 

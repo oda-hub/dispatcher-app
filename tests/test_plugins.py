@@ -52,7 +52,7 @@ def test_spectrum_cookbook():
     prod= OSA_ISGRI_SPECTRUM()
 
     parameters = dict(E1=20., E2=40., T1="2008-11-11T11:11:11.0", T2="2008-11-11T11:11:11.0", RA=83, DEC=22, radius=5,
-                      scw_list=cookbook_scw_list)
+                      scw_list=cookbook_scw_list,src_name='4U 1700-377')
 
     for p,v in parameters.items():
         print('set from form',p,v)
@@ -61,12 +61,19 @@ def test_spectrum_cookbook():
     prod.set_par_value('time_group_selector','scw_list')
     prod.show_parameters_list()
 
-    out_prod, exception=prod.get_product(config=osaconf)
-
-    print out_prod,exception
+    spectrum, rmf, arf, exception=prod.get_product(config=osaconf)
+    #print ('spectrum',spectrum)
+    #print out_prod,exception
     from astropy.io import fits as pf
     ##pf.writeto('spectrum.fits', out_prod, overwrite=True)
-    print dir(out_prod)
+    #import os
+    #path=os.path.dirname(out_prod)
+    spectrum[1].header['RESPFILE']='rmf.fits'
+    spectrum[1].header['ANCRFILE']='arf.fits'
+    spectrum.writeto('spectrum.fits',overwrite=True)
+    rmf.writeto('rmf.fits',overwrite=True)
+    arf.writeto('arf.fits',overwrite=True)
+    print ('dir prod',dir(spectrum))
 
 
 

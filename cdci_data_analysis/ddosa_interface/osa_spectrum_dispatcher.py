@@ -53,7 +53,7 @@ from astropy.io import  fits as pf
 
 
 
-def do_spectrum_from_single_scw(E1,E2,position,scw):
+def do_spectrum_from_single_scw(E1,E2,scw):
     """
     builds a spectrum for single scw
 
@@ -142,6 +142,7 @@ def get_osa_spectrum(analysis_prod,dump_json=False,use_dicosverer=False,config=N
     RA = analysis_prod.get_par_by_name('RA').value
     DEC = analysis_prod.get_par_by_name('DEC').value
     radius=analysis_prod.get_par_by_name('radius').value
+    src_name=analysis_prod.get_par_by_name('src_name').value
     if time_range_type == 'scw_list':
 
         if len(analysis_prod.get_par_by_name('scw_list').value) == 1:
@@ -167,15 +168,27 @@ def get_osa_spectrum(analysis_prod,dump_json=False,use_dicosverer=False,config=N
 
     res = q.run_query(query_prod=query_prod)
 
-    print(dir(res))
+    #print('res->',dir(res))
 
+    spectrum=None
+    arf=None
+    rmf=None
+    print ('src_name->',src_name)
     for source_name,spec_attr,rmf_attr,arf_attr in res.extracted_sources:
-        spectrum = pf.open(getattr(res,spec_attr))
-        break # first one for now
+        if src_name is not None:
+            print ('-->',source_name,src_name)
+            if source_name==src_name:
+                spectrum = pf.open(getattr(res,spec_attr))
+                rmf =  pf.open(getattr(res,rmf_attr))
+                arf= pf.open(getattr(res,arf_attr))
 
-    return spectrum, None
+
+    return spectrum,rmf,arf, None
 
 def OSA_ISGRI_SPECTRUM():
+    src_name=Name('str','src_name',value='src_name')
+
+
     E1_keV = Energy('keV', 'E1', value=20.0)
     E2_keV = Energy('keV', 'E2', value=40.0)
 
@@ -197,6 +210,7 @@ def OSA_ISGRI_SPECTRUM():
     time_group_selector = time_group.build_selector('time_group_selector')
 
     E_cut = Energy('keV', 'E_cut', value=0.1)
-    parameters_list = [E_range_keV, time_group, time_group_selector, scw_list, E_cut]
+
+    parameters_list = [src_name,E_range_keV, time_group, time_group_selector, scw_list, E_cut]
 
     return Spectrum(parameters_list, get_product_method=get_osa_spectrum,html_draw_method=draw_spectrum)

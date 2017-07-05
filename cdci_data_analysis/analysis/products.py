@@ -43,6 +43,7 @@ class AnalysisProduct(object):
         self._get_product_method=get_product_method
         self._html_draw_method=html_draw_method
 
+
     @property
     def parameters(self):
         return self._parameters_list
@@ -223,6 +224,8 @@ class AnalysisProduct(object):
         else:
             return l
 
+
+
 class BaseProdcut(AnalysisProduct):
     def __init__(self,parameters_list,**kwargs):
         RA = AngularPosition('deg', 'FK5', 'RA', 0.)
@@ -254,8 +257,6 @@ class Spectrum(BaseProdcut):
         if parameters_list is not None:
             parameters_list.extend([radius])
         super(Spectrum, self).__init__(parameters_list, **kwargs)
-
-
 
 
 

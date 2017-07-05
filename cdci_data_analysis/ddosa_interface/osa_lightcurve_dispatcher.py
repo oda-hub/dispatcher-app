@@ -103,11 +103,11 @@ def get_osa_lightcurve(analysis_prod,dump_json=False,use_dicosverer=False,config
 
     print(dir(res))
 
-    for source_name,spec_attr,rmf_attr,arf_attr in res.extracted_sources:
-        spectrum = pf.open(getattr(res,spec_attr))
-        break # first one for now
+    #for source_name,spec_attr,rmf_attr,arf_attr in res.extracted_sources:
+    #    spectrum = pf.open(getattr(res,spec_attr))
+    #    break # first one for now
 
-    return spectrum, None
+    return res, None
 
 def OSA_ISGRI_LIGHTCURVE():
     E1_keV = Energy('keV', 'E1', value=20.0)
@@ -133,4 +133,4 @@ def OSA_ISGRI_LIGHTCURVE():
     E_cut = Energy('keV', 'E_cut', value=0.1)
     parameters_list = [E_range_keV, time_group, time_group_selector, scw_list, E_cut]
 
-    return LightCurve(parameters_list, get_product_method=get_osa_lightcurve,html_draw_method=lambda *a:None)
+    return LightCurve(parameters_list, get_product_method=get_osa_lightcurve, html_draw_method=lambda *a:None)
