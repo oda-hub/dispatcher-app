@@ -9,8 +9,7 @@ import traceback
 from threading import Thread
 from time import sleep
 
-
-
+__this_dir__ = os.path.join(os.path.abspath(os.path.dirname(__file__)))
 
 class DispatcherServer(object):
     def __init__(self):
@@ -33,8 +32,9 @@ class DispatcherServer(object):
                 self.url=url
 
     def start(self):
-        #self.process=subprocess.Popen(["python","bin/run_osa_cdci_server.py"]) #,stdout=subprocess.PIPE, stderr=subprocess.STDOUT) # separate process or thread?.. 
-        self.process=subprocess.Popen(["run_osa_cdci_server.py"],stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True) # separate process or thread?..
+        cmd=["python",__this_dir__+"/../bin/run_osa_cdci_server.py"]
+        print("command:"," ".join(cmd))
+        self.process=subprocess.Popen(cmd,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=False)
 
         print("\n\nfollowing server startup")
 
@@ -43,7 +43,7 @@ class DispatcherServer(object):
 
         while self.url is None:
             time.sleep(0.1)
-        time.sleep(0.2)
+        time.sleep(0.5)
 
         self.url="http://127.0.0.1:5000"
 
