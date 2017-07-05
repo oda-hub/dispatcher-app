@@ -43,11 +43,18 @@ def index():
 def run_analysis_test():
     #print('osa conf', app.config.get('osaconf'), request.method)
     prod_type=request.args.get('product_type')
-    print ('prod_type',prod_type)
+    print ('product_type',prod_type)
+
+    prod=None # this is better then sequence of elif, should be loop too
     if prod_type=='image':
         prod= OSA_ISGRI_IMAGE()
     if prod_type=='spectrum':
         prod = OSA_ISGRI_SPECTRUM()
+    if prod_type == 'spectrum':
+        prod = OSA_ISGRI_LIGHTCURVE()
+    if prod is None:
+        raise Exception("product_type {} not recognized".format(prod_type))
+
 
     #sprod.parameters
     if request.method == 'GET':
