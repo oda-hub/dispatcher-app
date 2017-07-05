@@ -77,7 +77,7 @@ def test_spectrum_cookbook():
 
 
 
-def tes_fit_spectrum():
+def test_fit_spectrum_cookbook():
     from xspec import *
     # PyXspec operations:
     s = Spectrum("spectrum.fits")
