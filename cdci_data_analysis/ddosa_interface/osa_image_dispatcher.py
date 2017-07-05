@@ -88,7 +88,8 @@ def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None
 
         if len(analysis_prod.get_par_by_name('scw_list').value)==1:
 
-            query_prod = do_image_from_single_scw(analysis_prod.get_par_by_name('E1').value,
+
+            query_prod=do_image_from_single_scw(analysis_prod.get_par_by_name('E1').value,
                                           analysis_prod.get_par_by_name('E2').value,
                                           scw=analysis_prod.get_par_by_name('scw_list').value[0])
 
