@@ -5,7 +5,7 @@
 
 from __future__ import absolute_import, division, print_function
 
-from builtins import (bytes, open,str,super, range,
+from builtins import (bytes, open, str, super, range,
                       zip, round, input, int, pow, object, map, zip)
 
 
