@@ -2,7 +2,7 @@
 
 from cdci_data_analysis.configurer import ConfigEnv
 
-osaconf=ConfigEnv("isdc/unsaved_data/savchenk/data/reduced/ddcache","./","localhost",32779,"http://localhost",5000)
+osaconf=ConfigEnv("isdc/unsaved_data/savchenk/data/reduced/ddcache","./","localhost",32778,"http://localhost",5000)
 
     
 
