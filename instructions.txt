@@ -14,3 +14,6 @@ cp .secret-ddosa-client ~
 
 cdciweb01
 testing machine: http://cdciweb01.isdc.unige.ch
+
+To run tests
+example pytest tests/test_plugins.py::test_image -s -v

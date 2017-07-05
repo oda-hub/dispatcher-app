@@ -250,7 +250,7 @@ class LightCurve(AnalysisProduct):
 
 class Spectrum(BaseProdcut):
     def __init__(self, parameters_list, **kwargs):
-        radius = AngularDistance('deg', 'FK5', 'DEC', 0.)
+        radius = AngularDistance('deg', 'radius', 0.)
         if parameters_list is not None:
             parameters_list.extend([radius])
         super(Spectrum, self).__init__(parameters_list, **kwargs)

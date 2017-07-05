@@ -76,7 +76,7 @@ def do_spectrum_from_single_scw(E1,E2,position,scw):
              'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
 
 
-def do_spectrum_from_scw_list(E1,E2,position,scw_list=["035200230010.001","035200240010.001"]):
+def do_spectrum_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.001"]):
     """
      builds a spectrum for list of scw
 
@@ -89,7 +89,7 @@ def do_spectrum_from_scw_list(E1,E2,position,scw_list=["035200230010.001","03520
     :param scw_list:
     :return:
     """
-
+    print('sum spectra from scw_list',scw_list)
     dic_str = str(scw_list)
     target = "ISGRISpectraSum"
     modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
@@ -145,12 +145,12 @@ def get_osa_spectrum(analysis_prod,dump_json=False,use_dicosverer=False,config=N
         if len(analysis_prod.get_par_by_name('scw_list').value) == 1:
             query_prod = do_spectrum_from_single_scw(analysis_prod.get_par_by_name('E1').value,
                                                    analysis_prod.get_par_by_name('E2').value,
-                                                   scw_list=analysis_prod.get_par_by_name('scw_list').value[0])
+                                                    scw=analysis_prod.get_par_by_name('scw_list').value[0])
 
         else:
             query_prod = do_spectrum_from_scw_list(analysis_prod.get_par_by_name('E1').value,
                                       analysis_prod.get_par_by_name('E2').value,
-                                      analysis_prod.get_par_by_name('scw_list').value)
+                                      scw_list=analysis_prod.get_par_by_name('scw_list').value)
 
     elif time_range_type == 'time_range_iso':
         query_prod = do_spectrum_from_time_span( analysis_prod.get_par_by_name('E1').value,

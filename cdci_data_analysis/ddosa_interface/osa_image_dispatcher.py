@@ -37,7 +37,7 @@ def do_image_from_single_scw(E1,E2,scw):
 
 
 def do_mosaic_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.001"]):
-
+    print('mosaic from scw_list', scw_list)
     dic_str=str(scw_list)
     target="Mosaic"
     modules=["ddosa", "git://ddosadm", "git://osahk", "git://mosaic"]
