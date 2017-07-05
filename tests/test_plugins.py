@@ -2,7 +2,7 @@
 from cdci_data_analysis.configurer import ConfigEnv
 osaconf = ConfigEnv.from_conf_file('./conf_env.yml')
 
-cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001']
+cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001'][:2]
 crab_scw_list=["035200230010.001","035200240010.001"]
 
 def test_too_strickt_type_verifications():
