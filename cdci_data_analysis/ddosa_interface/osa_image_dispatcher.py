@@ -121,6 +121,7 @@ def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None
 
 
 def OSA_ISGRI_IMAGE():
+
         E1_keV = Energy('keV', 'E1', value=20.0)
         E2_keV = Energy('keV', 'E2', value=40.0)
 

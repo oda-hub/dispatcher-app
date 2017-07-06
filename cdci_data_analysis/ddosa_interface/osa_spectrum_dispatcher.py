@@ -73,7 +73,8 @@ def do_spectrum_from_single_scw(E1,E2,scw):
     modules = ["ddosa", "git://ddosadm"]
     assume = [scwsource_module + '.ScWData(input_scwid="%s")'%scw_str,
              'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")'%dict(E1=E1,E2=E2),
-             'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+             'ddosa.ImagingConfig(use_SouFit=0,use_DoPart2=1,use_version="soufit0_p2")',
+             'ddosa.CatForSpectraFromImaging(use_minsig=3)',]
 
 
 def do_spectrum_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.001"]):
@@ -93,11 +94,12 @@ def do_spectrum_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.0
     dic_str = str(scw_list)
     target = "ISGRISpectraSum"
     modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
-    assume = ['process_isgri_spectra.ScWSpectraList(input_scwlist=ddosa.IDScWList(use_scwid_list=%s))' %dic_str,
+    assume = ['process_isgri_spectra.ScWSpectraList(input_scwlist=ddosa.IDScWList(use_scwid_list=%s))' % dic_str,
               'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1, E2=E2),
-              'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")',
-              'process_isgri_spectra.ISGRISpectraSum(use_extract_all=True)'
-            ]
+              'process_isgri_spectra.ISGRISpectraSum(use_extract_all=True)',
+              'ddosa.ImagingConfig(use_SouFit=0,use_DoPart2=1,use_version="soufit0_p2")',
+              'ddosa.CatForSpectraFromImaging(use_minsig=3)',
+              ]
 
     #print(assume)
 
@@ -129,7 +131,10 @@ def do_spectrum_from_time_span(E1,E2,T1,T2,RA,DEC,radius):
                       )\
                   '%(dict(RA=RA,DEC=DEC,radius=radius),dict(T1=T1,T2=T2)),
               'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
-              'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+              'process_isgri_spectra.ISGRISpectraSum(use_extract_all=True)',
+              'ddosa.ImagingConfig(use_SouFit=0,use_DoPart2=1,use_version="soufit0_p2")',
+              'ddosa.CatForSpectraFromImaging(use_minsig=3)',
+              ]
 
     return QueryProduct(target=target, modules=modules, assume=assume)
 

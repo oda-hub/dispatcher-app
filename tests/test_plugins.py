@@ -2,7 +2,7 @@
 from cdci_data_analysis.configurer import ConfigEnv
 osaconf = ConfigEnv.from_conf_file('./conf_env.yml')
 
-cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001'][:2]
+cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001']
 crab_scw_list=["035200230010.001","035200240010.001"]
 
 def test_too_strickt_type_verifications():
@@ -44,6 +44,8 @@ def test_mosaic_cookbook():
     assert sum(out_prod.flatten()>0)>100 # some non-zero pixels
 
 def test_mosaic_cookbook_one_scw():
+
+
     from cdci_data_analysis.ddosa_interface.osa_image_dispatcher import OSA_ISGRI_IMAGE
 
     prod= OSA_ISGRI_IMAGE()
@@ -62,10 +64,18 @@ def test_mosaic_cookbook_one_scw():
     print('out_prod', out_prod,exception)
 
     print dir(out_prod)
+
     from astropy.io import fits as pf
-    pf.writeto('mosaic.fits',out_prod,overwrite=True)
+    pf.writeto('mosaic.fits', out_prod, overwrite=True)
     assert sum(out_prod.flatten()>0)>100 # some non-zero pixels
 
+
+def test_plot_mosaic():
+    from astropy.io import fits as pf
+    data= pf.getdata('mosaic.fits')
+    import pylab as plt
+    plt.imshow(data,interpolation='nearest')
+    plt.show()
 
 
 def test_spectrum_cookbook():
@@ -103,9 +113,9 @@ def test_fit_spectrum_cookbook():
     import xspec as xsp
     # PyXspec operations:
     s = xsp.Spectrum("spectrum.fits")
-    s.ignore('**-20.')
-    s.ignore('200.-**')
-    m = xsp.Model("po")
+    s.ignore('**-15.')
+    s.ignore('300.-**')
+    xsp.Model("cutoffpl")
     xsp.Fit.query = 'yes'
     xsp.Fit.perform()
 
@@ -113,7 +123,7 @@ def test_fit_spectrum_cookbook():
 
     xsp.Plot.xLog = True
     xsp.Plot.yLog = True
-    #Plot.setRebin(5., 5)
+    xsp.Plot.setRebin(10., 5)
     xsp.Plot.xAxis='keV'
     # Plot("data","model","resid")
     # Plot("data model resid")
@@ -138,7 +148,7 @@ def test_lightcurve_cookbook():
 
     prod= OSA_ISGRI_LIGHTCURVE()
 
-    parameters = dict(E1=20., E2=40., T1="2008-11-11T11:11:11.0", T2="2008-11-11T11:11:11.0", scw_list=cookbook_scw_list[1:])
+    parameters = dict(E1=20., E2=40., T1="2008-11-11T11:11:11.0", T2="2008-11-11T11:11:11.0", scw_list=cookbook_scw_list[1:2],src_name='4U 0517+17')
 
     for p,v in parameters.items():
         print('set from form',p,v)
@@ -148,6 +158,26 @@ def test_lightcurve_cookbook():
     prod.show_parameters_list()
 
     out_prod, exception=prod.get_product(config=osaconf)
+    if out_prod is None:
+        raise RuntimeError('no light curve produced')
+    print ('out_prod',dir(out_prod))
 
-    out_prod.writeto('lc.fits',overwrite=True)
-    print dir(out_prod)
+    from astropy.io import fits as pf
+    pf.writeto('lc.fits', out_prod, overwrite=True)
+
+
+def test_plot_lc():
+    from astropy.io import fits as pf
+    data= pf.getdata('lc.fits')
+
+
+    import pylab as plt
+    fig, ax = plt.subplots()
+
+    #ax.set_xscale("log", nonposx='clip')
+    #ax.set_yscale("log")
+
+    plt.errorbar(data['TIME'], data['RATE'], yerr=data['ERROR'], fmt='o')
+    ax.set_xlabel('Time ')
+    ax.set_ylabel('Rate ')
+    plt.show()

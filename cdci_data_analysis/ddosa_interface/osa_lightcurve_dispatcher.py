@@ -69,18 +69,46 @@ def do_lightcurve_from_single_scw(image_E1,image_E2,time_bin_seconds=100,scw=[])
     scwsource_module = "ddosa"
     target = "ii_lc_extract"
     modules = ["ddosa", "git://ddosadm"]
-    assume = [scwsource_module + '.ScWData(input_scwid="%s")'%scw_str,
-             'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")'%dict(E1=image_E1,E2=image_E2),
-             'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")',
-             'ddosa.LCTimeBin(use_time_bin_seconds=100)']
+    assume = [scwsource_module + '.ScWData(input_scwid="%s")' % scw_str,
+              'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=image_E1,
+                                                                                                       E2=image_E2),
+              'ddosa.ImagingConfig(use_SouFit=0,use_DoPart2=1,use_version="soufit0_p2")',
+              'ddosa.CatForLC(use_minsig=3)',
+              'ddosa.LCTimeBin(use_time_bin_seconds=100)']
 
     return QueryProduct(target=target, modules=modules, assume=assume)
+
+
+# def do_lightcurve_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.001"],time_bin_seconds=100):
+#     dic_str=str(scw_list)
+#     target =
+#     modules = ["ddosa", "git://ddosadm"]
+#     assume=['',
+#            'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")'%dict(E1=E1,E2=E2),
+#            'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")',
+#            'ddosa.LCTimeBin(use_time_bin_seconds=%d)'%(time_bin_seconds)]
+#
+#     return  QueryProduct(target=target,modules=modules,assume=assume)
+
+
+# def do_lightcurve_from_time_span(E1,E2T,T1,T2,time_bin_seconds=100):
+#     target =
+#     modules = ["ddosa", "git://ddosadm"]
+#     assume=['',
+#            'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")'%dict(E1=E1,E2=E2),
+#            'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")',
+#            'ddosa.LCTimeBin(use_time_bin_seconds=%d)'%(time_bin_seconds)]
+#
+#     return  QueryProduct(target=target,modules=modules,assume=assume)
+
+
 
 def get_osa_lightcurve(analysis_prod,dump_json=False,use_dicosverer=False,config=None):
 
     q=OsaQuery(config=config)
 
     time_range_type = analysis_prod.get_par_by_name('time_group_selector').value
+    src_name = analysis_prod.get_par_by_name('src_name').value
     #RA = analysis_prod.get_par_by_name('RA').value
     #DEC = analysis_prod.get_par_by_name('DEC').value
     #radiuse=analysis_prod.get_par_by_name('radius').value
@@ -102,16 +130,25 @@ def get_osa_lightcurve(analysis_prod,dump_json=False,use_dicosverer=False,config
 
     res = q.run_query(query_prod=query_prod)
 
-    print(dir(res))
+    print('res',res.lightcurve)
 
     #for source_name,spec_attr,rmf_attr,arf_attr in res.extracted_sources:
     #    spectrum = pf.open(getattr(res,spec_attr))
     #    break # first one for now
 
+    hdu_list = pf.open(res.lightcurve)
+    lc_data=None
+    for hdu in hdu_list:
+        if hdu.name=='ISGR-SRC.-LCR':
+            print ('name',hdu.header['NAME'])
+            if hdu.header['NAME']==src_name:
+                lc_data=hdu.data
 
-    return res.lightcurve, None
+
+    return lc_data, None
 
 def OSA_ISGRI_LIGHTCURVE():
+    src_name = Name('str', 'src_name', value='src_name')
     E1_keV = Energy('keV', 'E1', value=20.0)
     E2_keV = Energy('keV', 'E2', value=40.0)
 
@@ -133,6 +170,6 @@ def OSA_ISGRI_LIGHTCURVE():
     time_group_selector = time_group.build_selector('time_group_selector')
 
     E_cut = Energy('keV', 'E_cut', value=0.1)
-    parameters_list = [E_range_keV, time_group, time_group_selector, scw_list, E_cut]
+    parameters_list = [src_name,E_range_keV, time_group, time_group_selector, scw_list, E_cut]
 
     return LightCurve(parameters_list, get_product_method=get_osa_lightcurve, html_draw_method=lambda *a:None)
