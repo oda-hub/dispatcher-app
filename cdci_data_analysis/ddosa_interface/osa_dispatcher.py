@@ -73,7 +73,9 @@ class OsaQuery(object):
                 self.ddcache_root_local = config.dataserver_cache
 
             except Exception as e:
+                print(e)
                 raise RuntimeError("failed to use config ", e)
+
         else:
 
             raise RuntimeError('either you provide use_dicosverer=True or a config object')
@@ -90,7 +92,7 @@ class OsaQuery(object):
                                            assume=query_prod.assume)
             print("cached object in", res,res.ddcache_root_local)
         except dc.WorkerException as e:
-
+            print(e)
             raise RuntimeError('ddosa connection or processing failed',e)
 
         #sprint('res',res)

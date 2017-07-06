@@ -125,11 +125,11 @@ def do_spectrum_from_time_span(E1,E2,T1,T2,RA,DEC,radius):
                          input_scwlist=\
                          rangequery.TimeDirectionScWList(\
                           use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
-                          use_timespan=dict(T1=%(T1)s,T2=%(T2)s)),\
+                          use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
                           use_max_pointings=50 \
                           )\
                       )\
-                  '%(dict(RA=RA,DEC=DEC,radius=radius),dict(T1=T1,T2=T2)),
+                  '%(dict(RA=RA,DEC=DEC,radius=radius,T1=T1,T2=T2)),
               'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
               'process_isgri_spectra.ISGRISpectraSum(use_extract_all=True)',
               'ddosa.ImagingConfig(use_SouFit=0,use_DoPart2=1,use_version="soufit0_p2")',

@@ -3,6 +3,10 @@ from cdci_data_analysis.configurer import ConfigEnv
 osaconf = ConfigEnv.from_conf_file('./conf_env.yml')
 
 cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001']
+T_start='2003-03-15T23:27:40.0'
+T_stop='2003-03-16T00:03:15.0'
+RA=257.815417
+DEC=-41.593417
 crab_scw_list=["035200230010.001","035200240010.001"]
 
 def test_too_strickt_type_verifications():
@@ -25,13 +29,14 @@ def test_mosaic_cookbook():
 
     prod= OSA_ISGRI_IMAGE()
 
-    parameters=dict(E1=20.,E2=40.,T1="2008-04-12T11:11:11.0",T2="2009-04-12T11:11:11.0",RA=83,DEC=22,radius=5,scw_list=cookbook_scw_list)
+    parameters=dict(E1=20.,E2=40.,T1=T_start, T2=T_stop,RA=RA,DEC=DEC,radius=180,scw_list=cookbook_scw_list)
 
     for p,v in parameters.items():
         print('set from form',p,v)
         prod.set_par_value(p, v)
         print('--')
-    prod.set_par_value('time_group_selector','scw_list')
+    #prod.set_par_value('time_group_selector','scw_list')
+    prod.set_par_value('time_group_selector', 'time_range_iso')
     prod.show_parameters_list()
 
     out_prod, exception=prod.get_product(config=osaconf)
@@ -43,20 +48,24 @@ def test_mosaic_cookbook():
     pf.writeto('mosaic.fits',out_prod,overwrite=True)
     assert sum(out_prod.flatten()>0)>100 # some non-zero pixels
 
-def test_mosaic_cookbook_one_scw():
 
+
+
+
+def test_mosaic_cookbook_one_scw():
 
     from cdci_data_analysis.ddosa_interface.osa_image_dispatcher import OSA_ISGRI_IMAGE
 
     prod= OSA_ISGRI_IMAGE()
 
-    parameters=dict(E1=20.,E2=40.,T1="2008-04-12T11:11:11.0",T2="2009-04-12T11:11:11.0",RA=83,DEC=22,radius=5,scw_list=cookbook_scw_list[1:])
+    parameters=dict(E1=20.,E2=40.,T1=T_start,T2=T_stop,RA=RA,DEC=DEC,radius=180,scw_list=cookbook_scw_list[1:])
 
     for p,v in parameters.items():
         print('set from form',p,v)
         prod.set_par_value(p, v)
         print('--')
     prod.set_par_value('time_group_selector','scw_list')
+    #prod.set_par_value('time_group_selector', 'time_range_iso')
     prod.show_parameters_list()
 
     out_prod, exception=prod.get_product(config=osaconf)
@@ -83,14 +92,16 @@ def test_spectrum_cookbook():
 
     prod= OSA_ISGRI_SPECTRUM()
 
-    parameters = dict(E1=20., E2=40., T1="2008-11-11T11:11:11.0", T2="2008-11-11T11:11:11.0", RA=83, DEC=22, radius=5,
+    parameters = dict(E1=20., E2=40., T1=T_start, T2=T_stop, RA=RA, DEC=DEC, radius=180,
                       scw_list=cookbook_scw_list,src_name='4U 1700-377')
 
     for p,v in parameters.items():
         print('set from form',p,v)
         prod.set_par_value(p, v)
         print('--')
-    prod.set_par_value('time_group_selector','scw_list')
+
+    #prod.set_par_value('time_group_selector','scw_list')
+    prod.set_par_value('time_group_selector', 'time_range_iso')
     prod.show_parameters_list()
 
     spectrum, rmf, arf, exception=prod.get_product(config=osaconf)

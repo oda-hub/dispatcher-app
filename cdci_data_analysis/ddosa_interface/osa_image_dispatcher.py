@@ -60,13 +60,16 @@ def do_mosaic_from_time_span(E1,E2,T1,T2,RA,DEC,radius):
                             input_scwlist=\
                                 rangequery.TimeDirectionScWList(\
                                     use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
-                                    use_timespan=dict(T1=%(T1)s,T2=%(T2)s)),\
+                                    use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
                                     use_max_pointings=3 \
-                            )\
-                            '%(dict(RA=RA,DEC=DEC,radius=radius),dict(T1=T1,T2=T2)),
+                               )\
+                                        )\
+                                        '%(dict(RA=RA,DEC=DEC,radius=radius,T1=T1,T2=T2)),
            'mosaic.Mosaic(use_pixdivide=4)',
            'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
            'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+
+
 
     return QueryProduct(target=target, modules=modules, assume=assume)
 
@@ -85,6 +88,7 @@ def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None
     RA=analysis_prod.get_par_by_name('RA').value
     DEC=analysis_prod.get_par_by_name('DEC').value
     radius=analysis_prod.get_par_by_name('radius').value
+    print('radius',radius)
     if time_range_type == 'scw_list':
 
         if len(analysis_prod.get_par_by_name('scw_list').value)==1:
