@@ -71,7 +71,7 @@ def do_spectrum_from_single_scw(E1,E2,scw):
     scwsource_module = "ddosa"
     target = "ii_spectra_extract"
     modules = ["ddosa", "git://ddosadm"]
-    assume = [scwsource_module + '.ScWData(input_scwid="%")'%scw_str,
+    assume = [scwsource_module + '.ScWData(input_scwid="%s")'%scw_str,
              'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")'%dict(E1=E1,E2=E2),
              'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
 

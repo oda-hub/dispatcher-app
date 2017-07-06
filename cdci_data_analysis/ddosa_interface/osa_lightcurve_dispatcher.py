@@ -51,7 +51,7 @@ from ..analysis.products import LightCurve
 from astropy.io import  fits as pf
 
 
-def do_lightcurve_from_single_scw(image_E1,image_E2,time_bin_seconds,scw):
+def do_lightcurve_from_single_scw(image_E1,image_E2,time_bin_seconds=100,scw=[]):
     """
     builds a spectrum for single scw
 
@@ -69,11 +69,12 @@ def do_lightcurve_from_single_scw(image_E1,image_E2,time_bin_seconds,scw):
     scwsource_module = "ddosa"
     target = "ii_lc_extract"
     modules = ["ddosa", "git://ddosadm"]
-    assume = [scwsource_module + '.ScWData(input_scwid="%")'%scw_str,
+    assume = [scwsource_module + '.ScWData(input_scwid="%s")'%scw_str,
              'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")'%dict(E1=image_E1,E2=image_E2),
              'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")',
              'ddosa.LCTimeBin(use_time_bin_seconds=100)']
 
+    return QueryProduct(target=target, modules=modules, assume=assume)
 
 def get_osa_lightcurve(analysis_prod,dump_json=False,use_dicosverer=False,config=None):
 
@@ -88,7 +89,7 @@ def get_osa_lightcurve(analysis_prod,dump_json=False,use_dicosverer=False,config
         if len(analysis_prod.get_par_by_name('scw_list').value) == 1:
             query_prod = do_lightcurve_from_single_scw(analysis_prod.get_par_by_name('E1').value,
                                                      analysis_prod.get_par_by_name('E2').value,
-                                                     scw_list=analysis_prod.get_par_by_name('scw_list').value[0])
+                                                     scw=analysis_prod.get_par_by_name('scw_list').value[0])
         else:
             raise NotImplemented()
 
@@ -107,7 +108,8 @@ def get_osa_lightcurve(analysis_prod,dump_json=False,use_dicosverer=False,config
     #    spectrum = pf.open(getattr(res,spec_attr))
     #    break # first one for now
 
-    return res, None
+
+    return res.lightcurve, None
 
 def OSA_ISGRI_LIGHTCURVE():
     E1_keV = Energy('keV', 'E1', value=20.0)

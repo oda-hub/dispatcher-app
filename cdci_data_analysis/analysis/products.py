@@ -247,8 +247,9 @@ class Image(BaseProdcut):
 
 
 
-class LightCurve(AnalysisProduct):
-    pass
+class LightCurve(BaseProdcut):
+    def __init__(self, parameters_list, **kwargs):
+        super(LightCurve, self).__init__(parameters_list, **kwargs)
 
 
 class Spectrum(BaseProdcut):
