@@ -81,9 +81,12 @@ def do_lightcurve(E1, E2, scwlist_assumption,src_name, extramodules=[]):
     print('-->src_name', src_name)
     target = "lc_pick"
     modules = ["git://ddosa", "git://ddosadm"] + extramodules
-    assume = ['ddosa.lc_pick(use_lcgroups=ddosa.LCGroups(input_scwlist=%s),source_names=["%s"])' %(scwlist_assumption,src_name),
+    assume = ['ddosa.LCGroups(input_scwlist=%s)'%scwlist_assumption,
+              'ddosa.lc_pick(use_source_names=["%s"])'%src_name,
               'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1, E2=E2),
-              'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+              'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0_p2",use_DoPart2=1)',
+              'ddosa.CatForLC(use_minsig=3)',
+              'ddosa.LCTimeBin(use_time_bin_seconds=100)']
 
     return QueryProduct(target=target, modules=modules, assume=assume)
 
@@ -168,7 +171,7 @@ def get_osa_lightcurve(analysis_prod, dump_json=False, use_dicosverer=False, con
 
     res = q.run_query(query_prod=query_prod)
 
-    print('res', res.lightcurve)
+    print('res', str(res.lightcurve))
 
     # for source_name,spec_attr,rmf_attr,arf_attr in res.extracted_sources:
     #    spectrum = pf.open(getattr(res,spec_attr))
