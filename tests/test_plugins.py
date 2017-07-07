@@ -24,19 +24,21 @@ def test_too_strickt_type_verifications():
 
 
 
-def test_mosaic_cookbook():
+def test_mosaic_cookbook(use_scw_list=True):
     from cdci_data_analysis.ddosa_interface.osa_image_dispatcher import OSA_ISGRI_IMAGE
 
     prod= OSA_ISGRI_IMAGE()
 
-    parameters=dict(E1=20.,E2=40.,T1=T_start, T2=T_stop,RA=RA,DEC=DEC,radius=180,scw_list=cookbook_scw_list)
+    parameters=dict(E1=20.,E2=40.,T1=T_start, T2=T_stop,RA=RA,DEC=DEC,radius=25,scw_list=cookbook_scw_list)
 
     for p,v in parameters.items():
         print('set from form',p,v)
         prod.set_par_value(p, v)
         print('--')
-    #prod.set_par_value('time_group_selector','scw_list')
-    prod.set_par_value('time_group_selector', 'time_range_iso')
+    if use_scw_list==True:
+        prod.set_par_value('time_group_selector','scw_list')
+    else:
+        prod.set_par_value('time_group_selector', 'time_range_iso')
     prod.show_parameters_list()
 
     out_prod, exception=prod.get_product(config=osaconf)
@@ -58,7 +60,7 @@ def test_mosaic_cookbook_one_scw():
 
     prod= OSA_ISGRI_IMAGE()
 
-    parameters=dict(E1=20.,E2=40.,T1=T_start,T2=T_stop,RA=RA,DEC=DEC,radius=180,scw_list=cookbook_scw_list[1:])
+    parameters=dict(E1=20.,E2=40.,T1=T_start,T2=T_stop,RA=RA,DEC=DEC,radius=5,scw_list=cookbook_scw_list[1:])
 
     for p,v in parameters.items():
         print('set from form',p,v)
@@ -87,12 +89,12 @@ def test_plot_mosaic():
     plt.show()
 
 
-def test_spectrum_cookbook():
+def test_spectrum_cookbook(use_scw_list=True):
     from cdci_data_analysis.ddosa_interface.osa_spectrum_dispatcher import OSA_ISGRI_SPECTRUM
 
     prod= OSA_ISGRI_SPECTRUM()
 
-    parameters = dict(E1=20., E2=40., T1=T_start, T2=T_stop, RA=RA, DEC=DEC, radius=180,
+    parameters = dict(E1=20., E2=40., T1=T_start, T2=T_stop, RA=RA, DEC=DEC, radius=25,
                       scw_list=cookbook_scw_list,src_name='4U 1700-377')
 
     for p,v in parameters.items():
@@ -100,8 +102,11 @@ def test_spectrum_cookbook():
         prod.set_par_value(p, v)
         print('--')
 
-    #prod.set_par_value('time_group_selector','scw_list')
-    prod.set_par_value('time_group_selector', 'time_range_iso')
+    if use_scw_list==True:
+        prod.set_par_value('time_group_selector','scw_list')
+    else:
+        prod.set_par_value('time_group_selector', 'time_range_iso')
+
     prod.show_parameters_list()
 
     spectrum, rmf, arf, exception=prod.get_product(config=osaconf)
@@ -111,6 +116,8 @@ def test_spectrum_cookbook():
     ##pf.writeto('spectrum.fits', out_prod, overwrite=True)
     #import os
     #path=os.path.dirname(out_prod)
+    if spectrum is None:
+        raise RuntimeError('no light curve produced')
     spectrum[1].header['RESPFILE']='rmf.fits'
     spectrum[1].header['ANCRFILE']='arf.fits'
     spectrum.writeto('spectrum.fits',overwrite=True)
@@ -141,6 +148,8 @@ def test_fit_spectrum_cookbook():
     xsp.Plot("data,delchi")
 
     xsp.Plot.show()
+    import matplotlib
+    matplotlib.use('TkAgg')
 
     import pylab as plt
     fig, ax = plt.subplots()
@@ -154,18 +163,21 @@ def test_fit_spectrum_cookbook():
     ax.set_ylabel('normalize counts  s$^{-1}$ keV$^{-1}$')
     plt.show()
 
-def test_lightcurve_cookbook():
+def test_lightcurve_cookbook(use_scw_list=True):
     from cdci_data_analysis.ddosa_interface.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
 
     prod= OSA_ISGRI_LIGHTCURVE()
 
-    parameters = dict(E1=20., E2=40., T1="2008-11-11T11:11:11.0", T2="2008-11-11T11:11:11.0", scw_list=cookbook_scw_list[1:2],src_name='4U 0517+17')
+    parameters = dict(E1=20., E2=40.,T1=T_start, T2=T_stop, RA=RA, DEC=DEC, radius=25, scw_list=cookbook_scw_list,src_name="4U 1700-377")
 
     for p,v in parameters.items():
         print('set from form',p,v)
         prod.set_par_value(p, v)
         print('--')
-    prod.set_par_value('time_group_selector','scw_list')
+    if use_scw_list == True:
+        prod.set_par_value('time_group_selector', 'scw_list')
+    else:
+        prod.set_par_value('time_group_selector', 'time_range_iso')
     prod.show_parameters_list()
 
     out_prod, exception=prod.get_product(config=osaconf)
@@ -181,7 +193,8 @@ def test_plot_lc():
     from astropy.io import fits as pf
     data= pf.getdata('lc.fits')
 
-
+    import matplotlib
+    matplotlib.use('TkAgg')
     import pylab as plt
     fig, ax = plt.subplots()
 
@@ -192,3 +205,18 @@ def test_plot_lc():
     ax.set_xlabel('Time ')
     ax.set_ylabel('Rate ')
     plt.show()
+
+
+
+def test_full_mosaic():
+    test_mosaic_cookbook()
+    test_mosaic_cookbook(use_scw_list=False)
+
+
+def test_full_spectrum():
+    test_spectrum_cookbook()
+    test_spectrum_cookbook(use_scw_list=False)
+
+def test_full_lc():
+    test_lightcurve_cookbook()
+    test_lightcurve_cookbook(use_scw_list=False)

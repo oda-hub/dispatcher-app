@@ -1,19 +1,19 @@
 """
 Overview
 --------
-   
+
 general info about this module
 
 
 Classes and Inheritance Structure
 ----------------------------------------------
-.. inheritance-diagram:: 
+.. inheritance-diagram::
 
 Summary
 ---------
 .. autosummary::
    list of the module you want
-    
+
 Module API
 ----------
 """
@@ -25,14 +25,12 @@ from builtins import (bytes, str, open, super, range,
 
 __author__ = "Andrea Tramacere"
 
-
-
 # Standard library
 # eg copy
 # absolute import rg:from copy import deepcopy
 
 # Dependencies
-# eg numpy 
+# eg numpy
 # absolute import eg: import numpy as np
 
 # Project
@@ -41,17 +39,16 @@ __author__ = "Andrea Tramacere"
 
 import ddosaclient as dc
 
-
 # Project
 # relative import eg: from .mod import f
 from ..analysis.parameters import *
-from .osa_dispatcher import OsaQuery,QueryProduct
+from .osa_dispatcher import OsaQuery, QueryProduct
 from ..analysis.products import LightCurve
-#from ..web_display import draw_spectrum
-from astropy.io import  fits as pf
+# from ..web_display import draw_spectrum
+from astropy.io import fits as pf
 
 
-def do_lightcurve_from_single_scw(image_E1,image_E2,time_bin_seconds=100,scw=[]):
+def do_lightcurve_from_single_scw(image_E1, image_E2, time_bin_seconds=100, scw=[]):
     """
     builds a spectrum for single scw
 
@@ -79,6 +76,34 @@ def do_lightcurve_from_single_scw(image_E1,image_E2,time_bin_seconds=100,scw=[])
     return QueryProduct(target=target, modules=modules, assume=assume)
 
 
+def do_lightcurve(E1, E2, scwlist_assumption,src_name, extramodules=[]):
+    print('-->lc standard mode from scw_list', scwlist_assumption)
+    print('-->src_name', src_name)
+    target = "lc_pick"
+    modules = ["git://ddosa", "git://ddosadm"] + extramodules
+    assume = ['ddosa.lc_pick(use_lcgroups=ddosa.LCGroups(input_scwlist=%s),source_names=["%s"])' %(scwlist_assumption,src_name),
+              'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1, E2=E2),
+              'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+
+    return QueryProduct(target=target, modules=modules, assume=assume)
+
+
+def do_lc_from_scw_list(E1, E2, src_name,scw_list=[]):
+    print('mosaic standard mode from scw_list', scw_list)
+    dic_str = str(scw_list)
+    return do_lightcurve(E1, E2, 'ddosa.IDScWList(use_scwid_list=%s)' % dic_str,src_name)
+
+
+def do_lc_from_time_span(E1, E2, T1, T2, RA, DEC, radius,src_name):
+    scwlist_assumption = 'rangequery.TimeDirectionScWList(\
+                        use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
+                        use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
+                        use_max_pointings=3)\
+                    ' % (dict(RA=RA, DEC=DEC, radius=radius, T1=T1, T2=T2)),
+
+    return do_lightcurve(E1, E2, scwlist_assumption,src_name, extramodules=['git://rangequery'])
+
+
 # def do_lightcurve_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.001"],time_bin_seconds=100):
 #     dic_str=str(scw_list)
 #     target =
@@ -103,23 +128,36 @@ def do_lightcurve_from_single_scw(image_E1,image_E2,time_bin_seconds=100,scw=[])
 
 
 
-def get_osa_lightcurve(analysis_prod,dump_json=False,use_dicosverer=False,config=None):
-
-    q=OsaQuery(config=config)
+def get_osa_lightcurve(analysis_prod, dump_json=False, use_dicosverer=False, config=None):
+    q = OsaQuery(config=config)
 
     time_range_type = analysis_prod.get_par_by_name('time_group_selector').value
     src_name = analysis_prod.get_par_by_name('src_name').value
-    #RA = analysis_prod.get_par_by_name('RA').value
-    #DEC = analysis_prod.get_par_by_name('DEC').value
-    #radiuse=analysis_prod.get_par_by_name('radius').value
+    RA = analysis_prod.get_par_by_name('RA').value
+    DEC = analysis_prod.get_par_by_name('DEC').value
+    radius = analysis_prod.get_par_by_name('radius').value
+
     if time_range_type == 'scw_list':
 
         if len(analysis_prod.get_par_by_name('scw_list').value) == 1:
             query_prod = do_lightcurve_from_single_scw(analysis_prod.get_par_by_name('E1').value,
-                                                     analysis_prod.get_par_by_name('E2').value,
-                                                     scw=analysis_prod.get_par_by_name('scw_list').value[0])
+                                                       analysis_prod.get_par_by_name('E2').value,
+                                                       scw=analysis_prod.get_par_by_name('scw_list').value[0])
         else:
-            raise NotImplemented()
+            query_prod = do_lc_from_scw_list(analysis_prod.get_par_by_name('E1').value,
+                                                       analysis_prod.get_par_by_name('E2').value,
+                                                       src_name,
+                                                       scw_list=analysis_prod.get_par_by_name('scw_list').value)
+
+    elif time_range_type == 'time_range_iso':
+        query_prod = do_lc_from_time_span(analysis_prod.get_par_by_name('E1').value,
+                                                analysis_prod.get_par_by_name('E2').value,
+                                                analysis_prod.get_par_by_name('T1').value,
+                                                analysis_prod.get_par_by_name('T2').value,
+                                                RA,
+                                                DEC,
+                                                radius,
+                                                src_name)
 
 
     elif time_range_type == 'time_range_iso':
@@ -130,22 +168,22 @@ def get_osa_lightcurve(analysis_prod,dump_json=False,use_dicosverer=False,config
 
     res = q.run_query(query_prod=query_prod)
 
-    print('res',res.lightcurve)
+    print('res', res.lightcurve)
 
-    #for source_name,spec_attr,rmf_attr,arf_attr in res.extracted_sources:
+    # for source_name,spec_attr,rmf_attr,arf_attr in res.extracted_sources:
     #    spectrum = pf.open(getattr(res,spec_attr))
     #    break # first one for now
 
     hdu_list = pf.open(res.lightcurve)
-    lc_data=None
+    lc_data = None
     for hdu in hdu_list:
-        if hdu.name=='ISGR-SRC.-LCR':
-            print ('name',hdu.header['NAME'])
-            if hdu.header['NAME']==src_name:
-                lc_data=hdu.data
-
+        if hdu.name == 'ISGR-SRC.-LCR':
+            print('name', hdu.header['NAME'])
+            if hdu.header['NAME'] == src_name:
+                lc_data = hdu.data
 
     return lc_data, None
+
 
 def OSA_ISGRI_LIGHTCURVE():
     src_name = Name('str', 'src_name', value='src_name')
@@ -170,6 +208,6 @@ def OSA_ISGRI_LIGHTCURVE():
     time_group_selector = time_group.build_selector('time_group_selector')
 
     E_cut = Energy('keV', 'E_cut', value=0.1)
-    parameters_list = [src_name,E_range_keV, time_group, time_group_selector, scw_list, E_cut]
+    parameters_list = [src_name, E_range_keV, time_group, time_group_selector, scw_list, E_cut]
 
-    return LightCurve(parameters_list, get_product_method=get_osa_lightcurve, html_draw_method=lambda *a:None)
+    return LightCurve(parameters_list, get_product_method=get_osa_lightcurve, html_draw_method=lambda *a: None)

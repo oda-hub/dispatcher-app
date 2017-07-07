@@ -19,7 +19,7 @@ from flask import Flask, render_template, request,jsonify
 
 from ..ddosa_interface.osa_image_dispatcher import OSA_ISGRI_IMAGE
 from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
-
+from ..ddosa_interface.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
 
 
 from ..web_display import draw_dummy

@@ -10,7 +10,7 @@ __author__ = "Andrea Tramacere"
 # absolute import rg:from copy import deepcopy
 
 # Dependencies
-# eg numpy 
+# eg numpy
 # absolute import eg: import numpy as np
 
 
@@ -37,45 +37,44 @@ def do_image_from_single_scw(E1,E2,scw):
 
 
 
-def do_mosaic_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.001"]):
-    print('mosaic from scw_list', scw_list)
-    dic_str=str(scw_list)
-    target="Mosaic"
-    modules=["ddosa", "git://ddosadm", "git://osahk", "git://mosaic"]
-    assume=['mosaic.ScWImageList(input_scwlist=ddosa.IDScWList(use_scwid_list=%s))'%dic_str,
-           'mosaic.Mosaic(use_pixdivide=4)',
+#def do_mosaic_alt(E1,E2,extramodules=[]):
+#    print('mosaic from scw_list', scw_list)
+#    dic_str=str(scw_list)
+#    target="Mosaic"
+#    modules=["ddosa", "git://ddosadm", "git://osahk", "git://mosaic"]
+#    assume=['mosaic.ScWImageList(input_scwlist=%s)'%scwlist_assumption,
+#           'mosaic.Mosaic(use_pixdivide=4)',
+#           'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
+#           'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+
+#    return  QueryProduct(target=target,modules=modules,assume=assume)
+
+def do_mosaic(E1,E2,scwlist_assumption,extramodules=[]):
+    print('mosaic standard mode from scw_list', scwlist_assumption)
+    target="mosaic_ii_skyimage"
+    modules=["git://ddosa", "git://ddosadm"]+extramodules
+    assume=['ddosa.ImageGroups(input_scwlist=%s)'%scwlist_assumption,
            'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
            'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+
+
 
     return  QueryProduct(target=target,modules=modules,assume=assume)
 
 
-
+def do_mosaic_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.001"]):
+    print('mosaic standard mode from scw_list', scw_list)
+    dic_str=str(scw_list)
+    return do_mosaic(E1,E2,'ddosa.IDScWList(use_scwid_list=%s)'%dic_str)
 
 def do_mosaic_from_time_span(E1,E2,T1,T2,RA,DEC,radius):
+    scwlist_assumption='rangequery.TimeDirectionScWList(\
+                        use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
+                        use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
+                        use_max_pointings=3)\
+                    '%(dict(RA=RA,DEC=DEC,radius=radius,T1=T1,T2=T2)),
 
-    target="Mosaic"
-    modules=["ddosa","git://ddosadm","git://osahk","git://mosaic",'git://rangequery']
-    assume=['mosaic.ScWImageList(\
-                            input_scwlist=\
-                                rangequery.TimeDirectionScWList(\
-                                    use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
-                                    use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
-                                    use_max_pointings=3 \
-                               )\
-                                        )\
-                                        '%(dict(RA=RA,DEC=DEC,radius=radius,T1=T1,T2=T2)),
-           'mosaic.Mosaic(use_pixdivide=4)',
-           'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
-           'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
-
-
-
-    return QueryProduct(target=target, modules=modules, assume=assume)
-
-
-
-
+    return do_mosaic(E1,E2,scwlist_assumption,extramodules=['git://rangequery'])
 
 
 
