@@ -191,7 +191,7 @@ def test_lightcurve_cookbook(use_scw_list=True):
 
 def test_plot_lc():
     from astropy.io import fits as pf
-    data= pf.getdata('lc.fits',ext=2)
+    data= pf.getdata('lc.fits',ext=1)
 
     import matplotlib
     matplotlib.use('TkAgg')
@@ -219,4 +219,4 @@ def test_full_spectrum():
 
 def test_full_lc():
     test_lightcurve_cookbook()
-    test_lightcurve_cookbook(use_scw_list=False)
+    #test_lightcurve_cookbook(use_scw_list=False)
