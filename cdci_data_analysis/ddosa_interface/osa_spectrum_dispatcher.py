@@ -151,9 +151,10 @@ def get_osa_spectrum(analysis_prod,dump_json=False,use_dicosverer=False,config=N
     if time_range_type == 'scw_list':
 
         if len(analysis_prod.get_par_by_name('scw_list').value) == 1:
-            query_prod = do_spectrum_from_single_scw(analysis_prod.get_par_by_name('E1').value,
+            print('-> single scw')
+            query_prod = do_spectrum_from_scw_list(analysis_prod.get_par_by_name('E1').value,
                                                    analysis_prod.get_par_by_name('E2').value,
-                                                    scw=analysis_prod.get_par_by_name('scw_list').value[0])
+                                                   scw_list=analysis_prod.get_par_by_name('scw_list').value)
 
         else:
             query_prod = do_spectrum_from_scw_list(analysis_prod.get_par_by_name('E1').value,

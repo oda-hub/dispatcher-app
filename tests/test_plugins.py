@@ -2,12 +2,17 @@
 from cdci_data_analysis.configurer import ConfigEnv
 osaconf = ConfigEnv.from_conf_file('./conf_env.yml')
 
+
+crab_scw_list=["035200230010.001","035200240010.001"]
 cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001']
+single_scw_list=['005100410010.001']
+
 T_start='2003-03-15T23:27:40.0'
 T_stop='2003-03-16T00:03:15.0'
+
 RA=257.815417
 DEC=-41.593417
-crab_scw_list=["035200230010.001","035200240010.001"]
+
 
 def test_too_strickt_type_verifications():
     from cdci_data_analysis.ddosa_interface.osa_image_dispatcher import OSA_ISGRI_IMAGE
@@ -50,35 +55,6 @@ def test_mosaic_cookbook(use_scw_list=True):
     pf.writeto('mosaic.fits',out_prod,overwrite=True)
     assert sum(out_prod.flatten()>0)>100 # some non-zero pixels
 
-
-
-
-
-def test_mosaic_cookbook_one_scw():
-
-    from cdci_data_analysis.ddosa_interface.osa_image_dispatcher import OSA_ISGRI_IMAGE
-
-    prod= OSA_ISGRI_IMAGE()
-
-    parameters=dict(E1=20.,E2=40.,T1=T_start,T2=T_stop,RA=RA,DEC=DEC,radius=5,scw_list=cookbook_scw_list[1:])
-
-    for p,v in parameters.items():
-        print('set from form',p,v)
-        prod.set_par_value(p, v)
-        print('--')
-    prod.set_par_value('time_group_selector','scw_list')
-    #prod.set_par_value('time_group_selector', 'time_range_iso')
-    prod.show_parameters_list()
-
-    out_prod, exception=prod.get_product(config=osaconf)
-
-    print('out_prod', out_prod,exception)
-
-    print dir(out_prod)
-
-    from astropy.io import fits as pf
-    pf.writeto('mosaic.fits', out_prod, overwrite=True)
-    assert sum(out_prod.flatten()>0)>100 # some non-zero pixels
 
 
 def test_plot_mosaic():
@@ -210,12 +186,13 @@ def test_plot_lc():
 
 def test_full_mosaic():
     test_mosaic_cookbook()
-    test_mosaic_cookbook(use_scw_list=False)
+    #test_plot_mosaic()
+    #test_mosaic_cookbook(use_scw_list=False)
 
 
 def test_full_spectrum():
     test_spectrum_cookbook()
-    test_spectrum_cookbook(use_scw_list=False)
+    #test_spectrum_cookbook(use_scw_list=False)
 
 def test_full_lc():
     test_lightcurve_cookbook()

@@ -143,9 +143,11 @@ def get_osa_lightcurve(analysis_prod, dump_json=False, use_dicosverer=False, con
     if time_range_type == 'scw_list':
 
         if len(analysis_prod.get_par_by_name('scw_list').value) == 1:
-            query_prod = do_lightcurve_from_single_scw(analysis_prod.get_par_by_name('E1').value,
+            print('-> single scw')
+            query_prod = do_lc_from_scw_list(analysis_prod.get_par_by_name('E1').value,
                                                        analysis_prod.get_par_by_name('E2').value,
-                                                       scw=analysis_prod.get_par_by_name('scw_list').value[0])
+                                                       src_name,
+                                                       scw_list=analysis_prod.get_par_by_name('scw_list').value)
         else:
             query_prod = do_lc_from_scw_list(analysis_prod.get_par_by_name('E1').value,
                                                        analysis_prod.get_par_by_name('E2').value,
