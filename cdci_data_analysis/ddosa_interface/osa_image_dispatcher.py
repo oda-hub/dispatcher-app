@@ -114,10 +114,16 @@ def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None
         raise RuntimeError('wrong time format')
 
 
+
+    catalog=None
+    image=None
+
     res=q.run_query(query_prod=query_prod)
 
     image = pf.getdata(res.skyima, ext=4)
-    return image,None # none?
+    catalog=pf.getdata(res.srclres, ext=1)
+
+    return image,catalog,None # none?
 
 
 

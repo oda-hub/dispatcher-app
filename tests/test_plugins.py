@@ -46,14 +46,15 @@ def test_mosaic_cookbook(use_scw_list=True):
         prod.set_par_value('time_group_selector', 'time_range_iso')
     prod.show_parameters_list()
 
-    out_prod, exception=prod.get_product(config=osaconf)
+    image,catalog, exception=prod.get_product(config=osaconf)
 
-    print('out_prod', out_prod,exception)
+    print('out_prod', image,exception)
 
-    print dir(out_prod)
+    print dir(image)
     from astropy.io import fits as pf
-    pf.writeto('mosaic.fits',out_prod,overwrite=True)
-    assert sum(out_prod.flatten()>0)>100 # some non-zero pixels
+    pf.writeto('mosaic.fits',image,overwrite=True)
+    pf.writeto('mosaic_catalog.fits', catalog, overwrite=True)
+    assert sum(image.flatten()>0)>100 # some non-zero pixels
 
 
 

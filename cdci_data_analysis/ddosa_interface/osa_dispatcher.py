@@ -99,7 +99,7 @@ class OsaQuery(object):
             e.display()
             raise RuntimeError('ddosa connection or processing failed',e)
 
-        #sprint('res',res)
+
         return res
 
     def get_data(self,res,prod_name,json_file=None):
