@@ -46,7 +46,7 @@ def get_meta_data(name=None):
 
 
 @app.route('/meta-data')
-def meta_data_src():
+def meta_data():
     get_meta_data()
 
 
