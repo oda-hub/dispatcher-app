@@ -34,7 +34,7 @@ def get_meta_data(name=None):
     isgri = OSA_ISGRI()
     l=[]
     if name is None:
-         l.append[src_query.print_form_dictionary_list()]
+         l.append[src_query.get_parameters_list_as_json()]
          l.append[isgri.get_parameters_list_as_json()]
 
     if name=='src_query':
