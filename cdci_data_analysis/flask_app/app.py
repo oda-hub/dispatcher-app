@@ -18,6 +18,7 @@ from flask import Flask, render_template, request,jsonify
 
 
 from ..ddosa_interface.osa_isgri import OSA_ISGRI
+from ..analysis.products import *
 from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
 from ..ddosa_interface.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
 
@@ -28,16 +29,41 @@ app = Flask(__name__)
 
 
 
+def get_meta_data(name=None):
+    src_query = SourceQuery('src_query')
+    isgri = OSA_ISGRI()
+
+    if name is None:
+         src_query.print_form_dictionary_list()
+         isgri.get_parameters_list_as_json()
+
+    if name=='src_query':
+        src_query.get_parameters_list_as_json()
+
+    if name=='isgri':
+        isgri.get_parameters_list_as_json()
 
 
-@app.route('/')
-def index():
 
-    im = OSA_ISGRI()
-    im.show_parameters_list()
+@app.route('/meta-data')
+def meta_data_src():
+    get_meta_data()
+
+
+
+@app.route('/meta-data-src')
+def meta_data_src():
+    get_meta_data('src_query')
 
     return
     #return render_template('analysis_display_app.html', form=form,image_html='')
+
+
+@app.route('/meta-data-isgri')
+def meta_data_src():
+    get_meta_data('isgri')
+
+    return
 
 
 @app.route('/test', methods=['POST', 'GET'])

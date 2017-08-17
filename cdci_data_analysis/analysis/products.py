@@ -20,6 +20,8 @@ __author__ = "Andrea Tramacere"
 # Project
 # relative import eg: from .mod import f
 
+import json
+
 from .parameters import *
 
 
@@ -251,6 +253,16 @@ class BaseQuery(object):
 
 
 
+    def get_parameters_list_as_json(self):
+        l=[{'query_name':self.name}]
+
+        for par in self._parameters_list:
+            l.append(par.reprJSON())
+
+
+        return json.dumps(l)
+
+
 
 class SourceQuery(BaseQuery):
     def __init__(self,name):
@@ -444,3 +456,11 @@ class Instrument(object):
             print ('q:',_query.name)
             _query.show_parameters_list()
         print("-------------")
+
+
+    def get_parameters_list_as_json(self):
+        l=[]
+        for _query in self._queries_list:
+            l.append(_query.get_parameters_list_as_json())
+
+        return l

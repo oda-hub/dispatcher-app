@@ -265,7 +265,7 @@ class Parameter(object):
     #     return wtform(label=key, validators=validators, default=default)
 
     def reprJSON(self):
-        return dict(name=self.name, units=self.first, value=self.value)
+        return dict(name=self.name, units=self.units, value=self.value)
 
 
 #class Instrument(Parameter):
