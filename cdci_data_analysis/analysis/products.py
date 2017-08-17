@@ -254,7 +254,7 @@ class BaseQuery(object):
 
 
     def get_parameters_list_as_json(self):
-        l=[{'query_name':self.name}]
+        l=[ {'query_name':self.name}]
 
         for par in self._parameters_list:
             l.append(par.reprJSON())
@@ -325,6 +325,10 @@ class InstrumentQuery(BaseQuery):
 
 
 
+
+
+
+
 class InputProdsQuery(BaseQuery):
     def __init__(self,name, input_prod_list_name,input_prod_list ):
         super(InputProdsQuery, self).__init__(name,[ProdList('names_list', input_prod_list_name, value=input_prod_list)])
@@ -349,6 +353,15 @@ class ProductQuery(BaseQuery):
             return self._html_draw_method(p)
         else:
             return None
+
+    def get_parameters_list_as_json(self):
+        l=[ {'query_name':self.name},{'product_name':self.name}]
+
+        for par in self._parameters_list:
+            l.append(par.reprJSON())
+
+
+        return json.dumps(l)
 
 
 
@@ -459,7 +472,7 @@ class Instrument(object):
 
 
     def get_parameters_list_as_json(self):
-        l=[]
+        l=[{'instrumet':self.name}]
         for _query in self._queries_list:
             l.append(_query.get_parameters_list_as_json())
 
