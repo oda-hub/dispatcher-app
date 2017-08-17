@@ -60,7 +60,7 @@ def meta_data_src():
 
 
 @app.route('/meta-data-isgri')
-def meta_data_src():
+def meta_data_isgri():
     get_meta_data('isgri')
 
     return
