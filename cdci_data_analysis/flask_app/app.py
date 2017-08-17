@@ -32,38 +32,38 @@ app = Flask(__name__)
 def get_meta_data(name=None):
     src_query = SourceQuery('src_query')
     isgri = OSA_ISGRI()
-
+    l=[]
     if name is None:
-         src_query.print_form_dictionary_list()
-         isgri.get_parameters_list_as_json()
+         l.append[src_query.print_form_dictionary_list()]
+         l.append[isgri.get_parameters_list_as_json()]
 
     if name=='src_query':
-        src_query.get_parameters_list_as_json()
+        l=[src_query.get_parameters_list_as_json()]
 
     if name=='isgri':
-        isgri.get_parameters_list_as_json()
+        l=[isgri.get_parameters_list_as_json()]
+
+    return jsonify(l)
 
 
 
 @app.route('/meta-data')
 def meta_data():
-    get_meta_data()
+    return  get_meta_data()
 
 
 
 @app.route('/meta-data-src')
 def meta_data_src():
-    get_meta_data('src_query')
-
-    return
+    return  get_meta_data('src_query')
     #return render_template('analysis_display_app.html', form=form,image_html='')
 
 
 @app.route('/meta-data-isgri')
 def meta_data_isgri():
-    get_meta_data('isgri')
 
-    return
+
+    return get_meta_data('isgri')
 
 
 @app.route('/test', methods=['POST', 'GET'])
