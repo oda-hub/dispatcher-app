@@ -79,36 +79,38 @@ def do_mosaic_from_time_span(E1,E2,T1,T2,RA,DEC,radius):
 
 
 
-def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None):
+def get_osa_image(instrument,dump_json=False,use_dicosverer=False,config=None):
 
     q=OsaQuery(config=config)
 
-    time_range_type = analysis_prod.get_par_by_name('time_group_selector').value
-    RA=analysis_prod.get_par_by_name('RA').value
-    DEC=analysis_prod.get_par_by_name('DEC').value
-    radius=analysis_prod.get_par_by_name('radius').value
-    print('radius',radius)
-    if time_range_type == 'scw_list':
+    time_range_type = instrument.get_par_by_name('time_group_selector').value
+    RA=instrument.get_par_by_name('RA').value
+    DEC=instrument.get_par_by_name('DEC').value
+    radius=instrument.get_par_by_name('radius').value
+    scw_list=instrument.get_par_by_name('scw_list').value
+    print('scw_list',scw_list)
 
-        if len(analysis_prod.get_par_by_name('scw_list').value)==1:
+    if scw_list is not None and scw_list!=[]:
+
+        if len(instrument.get_par_by_name('scw_list').value)==1:
             print('-> single scw')
-            query_prod = do_mosaic_from_scw_list(analysis_prod.get_par_by_name('E1').value,
-                                          analysis_prod.get_par_by_name('E2').value,
-                                          scw_list=analysis_prod.get_par_by_name('scw_list').value)
+            query_prod = do_mosaic_from_scw_list(instrument.get_par_by_name('E1_keV').value,
+                                                 instrument.get_par_by_name('E2_keV').value,
+                                                 scw_list=instrument.get_par_by_name('scw_list').value)
 
         else:
-            query_prod = do_mosaic_from_scw_list(analysis_prod.get_par_by_name('E1').value,
-                                                 analysis_prod.get_par_by_name('E2').value,
-                                                 scw_list=analysis_prod.get_par_by_name('scw_list').value)
+            query_prod = do_mosaic_from_scw_list(instrument.get_par_by_name('E1_keV').value,
+                                                 instrument.get_par_by_name('E2_keV').value,
+                                                 scw_list=instrument.get_par_by_name('scw_list').value)
 
     elif time_range_type == 'time_range_iso':
-        query_prod = do_mosaic_from_time_span(analysis_prod.get_par_by_name('E1').value,
-                                       analysis_prod.get_par_by_name('E2').value,
-                                       analysis_prod.get_par_by_name('T1').value,
-                                       analysis_prod.get_par_by_name('T2').value,
-                                       RA,
-                                       DEC,
-                                       radius)
+        query_prod = do_mosaic_from_time_span(instrument.get_par_by_name('E1_keV').value,
+                                              instrument.get_par_by_name('E2_keV').value,
+                                              instrument.get_par_by_name('T1_mjd').value,
+                                              instrument.get_par_by_name('T2_mjd').value,
+                                              RA,
+                                              DEC,
+                                              radius)
 
     else:
         raise RuntimeError('wrong time format')
@@ -127,39 +129,3 @@ def get_osa_image(analysis_prod,dump_json=False,use_dicosverer=False,config=None
 
 
 
-
-def OSA_ISGRI_IMAGE():
-
-        E1_keV = Energy('keV', 'E1', value=20.0)
-        E2_keV = Energy('keV', 'E2', value=40.0)
-
-        E_range_keV = ParameterRange(E1_keV, E2_keV, 'E_range')
-
-        t1_iso = Time('iso', 'T1', value='2001-12-11T00:00:00.0')
-        t2_iso = Time('iso', 'T2', value='2001-12-11T00:00:00.0')
-
-        t1_mjd = Time('mjd', 'T1_mjd', value=1.0)
-        t2_mjd = Time('mjd', 'T2_mjd', value=1.0)
-
-
-
-        t_range_iso = ParameterRange(t1_iso, t2_iso,'time_range_iso')
-        t_range_mjd = ParameterRange(t1_mjd, t2_mjd,'time_range_mjd')
-
-        scw_list = Time('prod_list', 'scw_list', value=['035200230010.001','035200240010.001'])
-
-
-
-        time_group = ParameterGroup([t_range_iso, t_range_mjd,scw_list],'time_range',selected='scw_list')
-
-        time_group_selector = time_group.build_selector('time_group_selector')
-
-
-        E_cut=Energy('keV','E_cut',value=0.1)
-        parameters_list = [E_range_keV, time_group,time_group_selector,scw_list,E_cut]
-
-
-
-
-
-        return Image(parameters_list,get_product_method=get_osa_image,html_draw_method=draw_fig)

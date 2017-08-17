@@ -39,7 +39,7 @@ import json
 # relative import eg: from .mod import f
 
 import ddosaclient as dc
-
+from ..analysis.products import  *
 
 class QueryProduct(object):
 
@@ -130,5 +130,8 @@ class OsaQuery(object):
 
 
         return data,prod_path,e
+
+
+
 
 

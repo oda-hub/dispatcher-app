@@ -26,11 +26,28 @@ from builtins import (bytes, str, open, super, range,
 __author__ = "Andrea Tramacere"
 
 import  ast
+import decorator
+
 from datetime import datetime, date, time
 
 import  numpy as np
 
+
+@decorator.decorator
+def check_par_list(func,par_list,*args, **kwargs):
+    for par in par_list:
+        if isinstance(par,Parameter):
+            pass
+        else:
+            raise RuntimeError('each parameter in the par_list has to be an instance of Parameters')
+
+        return func(par_list, *args, **kwargs)
+
+
+
+
 class ParameterGroup(object):
+
 
     def __init__(self,par_list,name,exclusive=True,def_selected=None,selected=None):
         self.name=name
@@ -106,6 +123,7 @@ class ParameterGroup(object):
 
 class ParameterRange(object):
 
+
     def __init__(self,p1,p2,name):
         self._check_pars(p1,p2)
         self.name=name
@@ -126,6 +144,33 @@ class ParameterRange(object):
 
     def to_list(self):
         return [self.p1,self.p2]
+
+
+
+class ParameterTuple(object):
+
+
+    def __init__(self,p_list,name):
+        self._check_pars(p_list)
+        self.name=name
+        self.p_list=tuple(p_list)
+
+    def _check_pars(self,p_list):
+        if any( type(x)!=type(p_list[0]) for x in p_list):
+            raise RuntimeError('pars must be of the same time')
+
+        for p in (p_list):
+            try:
+                assert (isinstance(p,Parameter))
+            except:
+                raise RuntimeError('both p1 and p2 must be Parameters objects, found',type(p))
+
+    def to_list(self):
+        return self.p_list
+
+
+
+
 
 
 class Parameter(object):
@@ -245,10 +290,9 @@ class Name(Parameter):
 
 
 class Time(Parameter):
-
     def __init__(self,T_format,name,value=None):
 
-        _allowed_units = ['iso', 'mjd', 'prod_list']
+        _allowed_units = ['iso', 'mjd']
 
         #wtform_dict = {'iso': StringField}
         #wtform_dict['mjd'] = FloatField
@@ -275,61 +319,123 @@ class Time(Parameter):
             except:
                 raise RuntimeError(name,'value is not MJD format : int or float', 'it is ','it is',type(value),value)
 
-        elif units=='prod_list':
+
+
+        else:
+            raise  RuntimeError(name,'units not valid',units)
+
+
+class ProdList(Parameter):
+    def __init__(self,_format,name,value=None):
+
+        _allowed_units = ['names_list']
+
+
+        super(ProdList,self).__init__(value=value,
+                                  units=_format,
+                                  check_value=self.check_list_value,
+                                  name=name,
+                                  allowed_units=_allowed_units)
+                                  #wtform_dict=wtform_dict)
+
+
+    @staticmethod
+    def check_list_value(value,units,name='par'):
+        if units=='names_list':
             try:
                 print(type(value))
                 assert (type(value) == list or type(value) == str  or type(str(value))== str)
             except:
-                raise RuntimeError(name,'value is not product list format : list of strings','it is',type(value),value)
-
+                raise RuntimeError('par:',name,', value is not product list format : list of strings','it is',type(value),value)
         else:
             raise  RuntimeError(name,'units not valid',units)
 
 
 
 
-class AngularPosition(Parameter):
-    def __init__(self, angular_units, reference_system,name, value=None):
+
+
+class Angle(Parameter):
+    def __init__(self, angular_units,name, value=None):
         _allowed_units = ['deg']
-        super(AngularPosition, self).__init__(value=value,
+        super(Angle, self).__init__(value=value,
                                      units=angular_units,
                                      check_value=self.check_angle_value,
                                      name=name,
                                      allowed_units=_allowed_units)
 
-        self.reference_system=reference_system
+        #self.reference_system=reference_system
         #to improve
 
     @staticmethod
     def check_angle_value(value, units=None, name=None):
-        print('check type of ', name, 'value', value, 'type', type(value))
-        pass
+        if units == 'deg':
+            try:
+                assert np.isreal(value)
+            except:
+                raise RuntimeError('par:',name, ', value must be a number, found',type(value))
+        else:
+            raise RuntimeError('par:',name, ', units are not valid', units)
+
+
+# class AngularDistance(Parameter):
+#     def __init__(self, angular_units,name, value=None):
+#         _allowed_units = ['deg']
+#         super(AngularDistance, self).__init__(value=value,
+#                                      units=angular_units,
+#                                      check_value=self.check_angle_value,
+#                                      name=name,
+#                                      allowed_units=_allowed_units)
+#
+#
+#
+#     @staticmethod
+#     def check_angle_value(value, units=None, name=None):
+#         print('check type of ', name, 'value', value, 'type', type(value))
+#         pass
+#
 
 
 
-class AngularDistance(Parameter):
-    def __init__(self, angular_units,name, value=None):
-        _allowed_units = ['deg']
-        super(AngularDistance, self).__init__(value=value,
-                                     units=angular_units,
-                                     check_value=self.check_angle_value,
-                                     name=name,
-                                     allowed_units=_allowed_units)
+class SpectralBoundary(Parameter):
+    def __init__(self,E_units,name,value=None):
+
+        _allowed_units = ['keV','eV','MeV','GeV','TeV','Hz','MHz','GHz']
+
+        #wtform_dict = {'keV': FloatField}
+
+        super(SpectralBoundary, self).__init__(value=value,
+                                   units=E_units,
+                                   check_value=self.check_energy_value,
+                                   name=name,
+                                   allowed_units=_allowed_units)
+                                   #wtform_dict=wtform_dict)
+
 
 
 
     @staticmethod
-    def check_angle_value(value, units=None, name=None):
-        print('check type of ', name, 'value', value, 'type', type(value))
-        pass
+    def check_energy_value(value, units=None,name=None):
+        print('check type of ',name,'value', value, 'type',type(value))
 
 
+        try:
+            value=ast.literal_eval(value)
+        except:
+            pass
+
+        if type(value)==int:
+            pass
+        if type(value)==float:
+            pass
+        else:
+            raise RuntimeError('type of ',name,'not valid',type(value))
 
 
 class Energy(Parameter):
     def __init__(self,E_units,name,value=None):
 
-        _allowed_units = ['keV']
+        _allowed_units = ['keV','eV','MeV','GeV','TeV']
 
         #wtform_dict = {'keV': FloatField}
 
@@ -359,5 +465,3 @@ class Energy(Parameter):
             pass
         else:
             raise RuntimeError('type of ',name,'not valid',type(value))
-
-

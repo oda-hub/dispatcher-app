@@ -7,8 +7,8 @@ crab_scw_list=["035200230010.001","035200240010.001"]
 cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001']
 single_scw_list=['005100410010.001']
 
-T_start='2003-03-15T23:27:40.0'
-T_stop='2003-03-16T00:03:15.0'
+T1_iso='2003-03-15T23:27:40.0'
+T2_iso='2003-03-16T00:03:15.0'
 
 RA=257.815417
 DEC=-41.593417
@@ -30,23 +30,25 @@ def test_too_strickt_type_verifications():
 
 
 def test_mosaic_cookbook(use_scw_list=True):
-    from cdci_data_analysis.ddosa_interface.osa_image_dispatcher import OSA_ISGRI_IMAGE
 
-    prod= OSA_ISGRI_IMAGE()
+    from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
 
-    parameters=dict(E1=20.,E2=40.,T1=T_start, T2=T_stop,RA=RA,DEC=DEC,radius=25,scw_list=cookbook_scw_list)
+    instr= OSA_ISGRI()
 
-    for p,v in parameters.items():
-        print('set from form',p,v)
-        prod.set_par_value(p, v)
-        print('--')
+    parameters_dic=dict(E1_keV=20.,E2_keV=40.,T1_iso=T1_iso, T2_iso=T2_iso,RA=RA,DEC=DEC,radius=25,scw_list=None)
+
+
+    instr.set_pars_from_dic(parameters_dic)
+
     if use_scw_list==True:
-        prod.set_par_value('time_group_selector','scw_list')
+        instr.set_par('scw_list',cookbook_scw_list)
     else:
-        prod.set_par_value('time_group_selector', 'time_range_iso')
-    prod.show_parameters_list()
+        instr.set_par('scw_list', [])
 
-    image,catalog, exception=prod.get_product(config=osaconf)
+    instr.show_parameters_list()
+
+
+    image,catalog,exception=instr.get_analysis_product('isgri_image',config=osaconf)
 
     print('out_prod', image,exception)
 

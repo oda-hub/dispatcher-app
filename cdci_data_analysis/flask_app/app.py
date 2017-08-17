@@ -17,7 +17,7 @@ from builtins import (bytes, open,str,super, range,
 from flask import Flask, render_template, request,jsonify
 
 
-from ..ddosa_interface.osa_image_dispatcher import OSA_ISGRI_IMAGE
+from ..ddosa_interface.osa_isgri import OSA_ISGRI
 from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
 from ..ddosa_interface.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
 
@@ -32,8 +32,9 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    im = OSA_ISGRI_IMAGE()
-    im.parameters
+
+    im = OSA_ISGRI()
+    im.show_parameters_list()
 
     return
     #return render_template('analysis_display_app.html', form=form,image_html='')
@@ -42,35 +43,31 @@ def index():
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
     #print('osa conf', app.config.get('osaconf'), request.method)
+
+    instrument_name=request.args.get('instrument')
     prod_type=request.args.get('product_type')
     print ('product_type',prod_type)
+    print ('instrument', instrument_name)
 
-    prod=None # this is better then sequence of elif, should be loop too
-    if prod_type=='image':
-        prod= OSA_ISGRI_IMAGE()
-    if prod_type=='spectrum':
-        prod = OSA_ISGRI_SPECTRUM()
-    if prod_type == 'spectrum':
-        prod = OSA_ISGRI_LIGHTCURVE()
-    if prod is None:
+
+    instrument=None
+    if instrument_name=='osa_isgri':
+        instrument=OSA_ISGRI()
+
+    if instrument is None:
         raise Exception("product_type {} not recognized".format(prod_type))
 
 
     #sprod.parameters
     if request.method == 'GET':
         print('request', request)
-        par_names=['E1','E2','T1','T2']
+        instrument.set_pars_from_dic(request.args)
 
-        for p in par_names:
-            print('set from form',p,request.args.get(p))
-            prod.set_par_value(p, request.args.get(p))
-            print('--')
-        prod.set_par_value('time_group_selector','scw_list')
-        prod.show_parameters_list()
-        if request.args.get('image_type') == 'Real':
 
-            out_prod, exception=prod.get_product(config=app.config.get('osaconf'))
-            html_fig= prod.get_html_draw(out_prod)
+        if request.args.get('product_type') == 'isgri_image':
+
+            image, catalog, exception = instrument.get_analysis_product('isgri_image', config=app.config.get('osaconf'))
+            html_fig= instrument.get_html_draw(image)
 
         else:
             # print('osa conf',app.config.get('osaconf'))
@@ -78,6 +75,16 @@ def run_analysis_test():
 
 
         #return out_prod
+        res = {}
+        res['image'] = html_fig
+        import numpy as np
+        catalog = np.array([(1, 2., 'Hello'), (2, 3., "World")], dtype=[('foo', 'i4'), ('bar', 'f4'), ('baz', 'S10')])
+        res['catalog'] = catalog.tolist()
+        res['catalog_col_names'] = catalog.dtype.names
+
+        print(html_fig)
+        return jsonify(res)
+
         return jsonify(html_fig)
 
     return jsonify("invalid method")
