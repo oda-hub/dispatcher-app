@@ -95,9 +95,12 @@ def run_analysis_test():
     if request.method == 'GET':
         print('request', request)
         if 'scw_list' in par_dic.keys():
-            par_dic['scw_list']=str(par_dic['scw_list']).split(',').strip()
+            par_dic['scw_list']=str(par_dic['scw_list']).split(',')
+            if par_dic['scw_list']==['']:
+                par_dic['scw_list']= []
 
-            print('scw_list',par_dic['scw_list'])
+
+        print('par_dic',par_dic)
         instrument.set_pars_from_dic(par_dic)
 
 
