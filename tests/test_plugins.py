@@ -29,7 +29,7 @@ def test_too_strickt_type_verifications():
 
 
 
-def test_mosaic_cookbook(use_scw_list=True):
+def test_mosaic_cookbook(use_scw_list=False):
 
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
 
@@ -44,6 +44,7 @@ def test_mosaic_cookbook(use_scw_list=True):
         instr.set_par('scw_list',cookbook_scw_list)
     else:
         instr.set_par('scw_list', [])
+        instr.set_par('time_group_selector','time_range_iso')
 
     instr.show_parameters_list()
 
@@ -54,9 +55,9 @@ def test_mosaic_cookbook(use_scw_list=True):
 
     print dir(image)
     from astropy.io import fits as pf
-    pf.writeto('mosaic.fits',image,overwrite=True)
-    pf.writeto('mosaic_catalog.fits', catalog, overwrite=True)
-    assert sum(image.flatten()>0)>100 # some non-zero pixels
+    image.writeto('mosaic.fits',overwrite=True)
+    catalog.writeto('mosaic_catalog.fits', overwrite=True)
+    assert sum(image.data.flatten()>0)>100 # some non-zero pixels
 
 
 

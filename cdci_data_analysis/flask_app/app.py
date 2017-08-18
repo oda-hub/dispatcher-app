@@ -77,43 +77,59 @@ def run_analysis_test():
 
 
     instrument=None
-    if instrument_name=='osa_isgri':
+    if instrument_name=='ISGRI':
         instrument=OSA_ISGRI()
 
     if instrument is None:
-        raise Exception("product_type {} not recognized".format(prod_type))
+        raise Exception("instrument not recognized".format(instrument_name))
 
 
     #sprod.parameters
+    prod=None
+    par_dic=request.args.to_dict()
+    par_dic.pop('image_type')
+    par_dic.pop('instrument')
+    par_dic.pop('product_type')
+    par_dic.pop('object_name')
+    print (par_dic)
     if request.method == 'GET':
         print('request', request)
-        instrument.set_pars_from_dic(request.args)
+        if 'scw_list' in par_dic.keys():
+            par_dic['scw_list']=str(par_dic['scw_list']).split(',')
+            print('scw_list',par_dic['scw_list'])
+        instrument.set_pars_from_dic(par_dic)
 
 
         if request.args.get('product_type') == 'isgri_image':
 
             image, catalog, exception = instrument.get_analysis_product('isgri_image', config=app.config.get('osaconf'))
-            html_fig= instrument.get_html_draw(image)
+            catalog=np.array(catalog.data)
+            catalog = catalog[['NAME', 'RA_FIN', 'DEC_FIN', 'DETSIG']]
+            catalog=catalog[catalog['DETSIG']>10.0]
+            html_fig= instrument.get_html_draw('isgri_image',image.data,image.header,catalog=catalog)
 
         else:
             # print('osa conf',app.config.get('osaconf'))
             html_fig = draw_dummy()
 
 
-        #return out_prod
-        res = {}
-        res['image'] = html_fig
-        import numpy as np
-        catalog = np.array([(1, 2., 'Hello'), (2, 3., "World")], dtype=[('foo', 'i4'), ('bar', 'f4'), ('baz', 'S10')])
-        res['catalog'] = catalog.tolist()
-        res['catalog_col_names'] = catalog.dtype.names
 
-        print(html_fig)
-        return jsonify(res)
+        prod = {}
+        prod['image'] = html_fig
 
-        return jsonify(html_fig)
 
-    return jsonify("invalid method")
+        prod['catalog'] = catalog.tolist()
+        prod['catalog_col_names'] = catalog.dtype.names
+
+
+
+
+
+    if prod is None:
+        raise Exception("product not recognized".format(prod_type))
+
+
+    return jsonify(prod)
 
 
 def run_app(conf):

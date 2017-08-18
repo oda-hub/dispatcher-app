@@ -37,6 +37,7 @@ __author__ = "Andrea Tramacere"
 # relative import eg: from .mod import f
 
 from ..analysis.products import  *
+from ..web_display import draw_fig
 from .osa_lightcurve_dispatcher import get_osa_lightcurve
 from .osa_image_dispatcher import get_osa_image
 from .osa_spectrum_dispatcher import get_osa_spectrum
@@ -60,7 +61,7 @@ def OSA_ISGRI():
         input_prod_value=None)
 
     light_curve =LightCurve('isgri_lc',None)
-    image=Image('isgri_image',None,get_product_method=get_osa_image)
+    image=Image('isgri_image',None,get_product_method=get_osa_image,html_draw_method=draw_fig)
     spectrum=Spectrum('isgri_spectrum',None,get_product_method=get_osa_spectrum)
 
     return  Instrument('ISGRI',

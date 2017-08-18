@@ -369,6 +369,11 @@ class Angle(Parameter):
 
     @staticmethod
     def check_angle_value(value, units=None, name=None):
+        try:
+            value = ast.literal_eval(value)
+        except:
+            pass
+
         if units == 'deg':
             try:
                 assert np.isreal(value)

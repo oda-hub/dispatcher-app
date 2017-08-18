@@ -348,9 +348,9 @@ class ProductQuery(BaseQuery):
         else:
             return None
 
-    def get_html_draw(self, p):
+    def get_html_draw(self, image,image_header,catalog=None):
         if self._html_draw_method is not None:
-            return self._html_draw_method(p)
+            return self._html_draw_method(image,image_header,catalog=catalog)
         else:
             return None
 
@@ -447,6 +447,9 @@ class Instrument(object):
 
         return self.get_query_by_name(prod_name).get_product(self,config=config)
 
+    def get_html_draw(self, prod_name, image,image_header,catalog=None):
+
+        return self.get_query_by_name(prod_name).get_html_draw( image,image_header,catalog=catalog)
 
     def get_par_by_name(self,par_name):
         p=None

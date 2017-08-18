@@ -106,8 +106,8 @@ def get_osa_image(instrument,dump_json=False,use_dicosverer=False,config=None):
     elif time_range_type == 'time_range_iso':
         query_prod = do_mosaic_from_time_span(instrument.get_par_by_name('E1_keV').value,
                                               instrument.get_par_by_name('E2_keV').value,
-                                              instrument.get_par_by_name('T1_mjd').value,
-                                              instrument.get_par_by_name('T2_mjd').value,
+                                              instrument.get_par_by_name('T1_iso').value,
+                                              instrument.get_par_by_name('T2_iso').value,
                                               RA,
                                               DEC,
                                               radius)
@@ -122,9 +122,9 @@ def get_osa_image(instrument,dump_json=False,use_dicosverer=False,config=None):
 
     res=q.run_query(query_prod=query_prod)
 
-    image = pf.getdata(res.skyima, ext=4)
-    catalog=pf.getdata(res.srclres, ext=1)
-
+    skyima = pf.open(res.skyima)
+    image = skyima[4]
+    catalog = pf.open(res.srclres)[1]
     return image,catalog,None # none?
 
 
