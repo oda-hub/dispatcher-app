@@ -20,8 +20,7 @@ Module API
 
 from __future__ import absolute_import, division, print_function
 
-from builtins import (bytes, str, open, super, range,
-                      zip, round, input, int, pow, object, map, zip)
+from cdci_data_analysis.analysis.instrument import Instrument
 
 __author__ = "Andrea Tramacere"
 
@@ -38,7 +37,6 @@ __author__ = "Andrea Tramacere"
 
 from ..analysis.products import  *
 from ..web_display import draw_fig
-from .osa_lightcurve_dispatcher import get_osa_lightcurve
 from .osa_image_dispatcher import get_osa_image
 from .osa_spectrum_dispatcher import get_osa_spectrum
 
@@ -58,11 +56,15 @@ def OSA_ISGRI():
         E2_units='keV',
         E2_value=40.,
         input_prod_list_name='scw_list',
-        input_prod_value=None)
+        input_prod_value=None,
+        catalog=None,
+        catalog_name='user_catalog')
 
     light_curve =LightCurve('isgri_lc',None)
     image=Image('isgri_image',None,get_product_method=get_osa_image,html_draw_method=draw_fig)
     spectrum=Spectrum('isgri_spectrum',None,get_product_method=get_osa_spectrum)
+
+
 
     return  Instrument('ISGRI',
                        src_query=src_query,

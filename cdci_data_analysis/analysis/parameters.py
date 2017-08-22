@@ -29,6 +29,7 @@ import  ast
 import decorator
 
 from datetime import datetime, date, time
+from .catalog import BasicCatalog
 
 import  numpy as np
 
@@ -330,6 +331,8 @@ class ProdList(Parameter):
 
         _allowed_units = ['names_list']
 
+        if value is None:
+            value=[]
 
         super(ProdList,self).__init__(value=value,
                                   units=_format,
@@ -337,6 +340,50 @@ class ProdList(Parameter):
                                   name=name,
                                   allowed_units=_allowed_units)
                                   #wtform_dict=wtform_dict)
+
+        self._split(value)
+
+
+    def _split(self,str_list):
+        if type(str_list)==list:
+               pass
+        elif type(str_list)==str or type(str(str_list)):
+            if ',' in str_list:
+                str_list= str_list.split(',')
+            else:
+                str_list = str_list.split(' ')
+        else:
+           raise RuntimeError('parameter format is not correct')
+
+        if str_list == ['']:
+            str_list = []
+
+        return str_list
+
+    @property
+    def value(self):
+        if self._value==[''] or self._value is None:
+            return []
+        else:
+            return self._value
+
+    @value.setter
+    def value(self, v):
+        print('set', self.name, v, self._allowed_values)
+        if v is not None:
+            if self.check_value is not None:
+                self.check_value(v, units=self.units, name=self.name)
+            if self._allowed_values is not None:
+                if v not in self._allowed_values:
+                    raise RuntimeError('value', v, 'not allowed, allowed=', self._allowed_values)
+            if v == [''] or v is None or str(v) == '':
+                self._value=['']
+            else:
+                self._value = v
+        else:
+            self._value = ['']
+
+        print ('set to ',self._value)
 
 
     @staticmethod
@@ -470,3 +517,33 @@ class Energy(Parameter):
             pass
         else:
             raise RuntimeError('type of ',name,'not valid',type(value))
+
+
+
+
+
+class UserCatalog(Parameter):
+    def __init__(self, name='catalog',units=None,allowed_units=[],value=None):
+        super(UserCatalog, self).__init__(value=value,
+                                     check_value=self.check_catalog_value,
+                                     name=name,
+                                     allowed_units=allowed_units)
+
+
+        if isinstance(value,BasicCatalog):
+            self._value=value
+
+        if type(value)==str:
+            BasicCatalog.from_fits_file(value)
+
+
+    @staticmethod
+    def check_catalog_value(value, units=None, name=None):
+        print('check type of ', name, 'value', value, 'type', type(value))
+
+
+
+        if isinstance(value,BasicCatalog):
+            pass
+        else:
+            raise RuntimeError('type of ', name, 'is not valid, it is', type(value),'but should be',type(BasicCatalog))

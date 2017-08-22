@@ -29,7 +29,7 @@ def test_too_strickt_type_verifications():
 
 
 
-def test_mosaic_cookbook(use_scw_list=False):
+def test_mosaic_cookbook(use_scw_list=False,use_catalog=True):
 
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
 
@@ -45,6 +45,12 @@ def test_mosaic_cookbook(use_scw_list=False):
     else:
         instr.set_par('scw_list', [])
         instr.set_par('time_group_selector','time_range_iso')
+
+    if use_catalog==True:
+        from cdci_data_analysis.ddosa_interface.osa_catalog import OsaCatalog
+
+        osa_catalog=OsaCatalog.build_from_srclres('osa_catalog.fits')
+        instr.set_par('user_catalog',osa_catalog)
 
     instr.show_parameters_list()
 

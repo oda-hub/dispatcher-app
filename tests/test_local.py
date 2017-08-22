@@ -44,7 +44,7 @@ import requests
 
 from cdci_data_analysis.flask_app.app import run_app
 from cdci_data_analysis.configurer import ConfigEnv
-
+from cdci_data_analysis.ddosa_interface.osa_catalog import build_osa_catalog
 
 
 
@@ -81,3 +81,8 @@ if __name__ == "__main__":
 	#$port = int(os.environ.get("PORT", 5000))
     main(argv=None)
     test_image()
+
+
+def test_osa_catalog():
+
+    catalog=build_osa_catalog('mosaic_catalog.fits')

@@ -2,10 +2,6 @@
 
 from __future__ import absolute_import, division, print_function
 
-from builtins import (bytes, str, open, super, range,
-                      zip, round, input, int, pow, object, map, zip)
-import collections
-
 __author__ = "Andrea Tramacere"
 
 
@@ -305,7 +301,9 @@ class InstrumentQuery(BaseQuery):
                  E2_units,
                  E2_value,
                  input_prod_list_name=None,
-                 input_prod_value=None):
+                 input_prod_value=None,
+                 catalog_name=None,
+                 catalog=None):
 
         radius = Angle(raidus_units, radius_name, radius_value)
 
@@ -317,9 +315,9 @@ class InstrumentQuery(BaseQuery):
 
         input_prod_list= ProdList('names_list', input_prod_list_name, value=input_prod_value)
 
+        catalog=UserCatalog(catalog_name,value=catalog)
 
-        parameters_list=[spec_window,radius,input_prod_list]
-
+        parameters_list=[spec_window,radius,catalog,input_prod_list]
 
         super(InstrumentQuery, self).__init__(name,parameters_list)
 
@@ -383,100 +381,3 @@ class Spectrum(ProductQuery):
 
 
 
-class Instrument(object):
-    def __init__(self,
-                 instr_name,
-                 src_query,
-                 instrumet_query,
-                 product_queries_list=None):
-
-        #name
-        self.name=instr_name
-
-        #src query
-        self.src_query=src_query
-
-
-        #Instrument specific
-        self.instrumet_query=instrumet_query
-
-
-
-        self.product_queries_list=product_queries_list
-
-        self._queries_list=[self.src_query,self.instrumet_query]
-
-
-
-        if product_queries_list is not None and product_queries_list !=[]:
-            self._queries_list.extend(product_queries_list)
-
-        _check_is_base_query(self._queries_list)
-
-
-
-    def _check_names(self):
-        pass
-
-    def set_pars_from_dic(self,par_dic):
-        for p, v in par_dic.items():
-            print('set from form', p, v)
-            self.set_par(p,v)
-            print('--')
-
-    def set_par(self,par_name,value):
-        p=self.get_par_by_name(par_name)
-        p.value=value
-
-
-
-
-    def get_query_by_name(self,prod_name):
-        p=None
-        for _query in self.product_queries_list:
-            if prod_name == _query.name:
-                p  =  _query
-
-        if p is None:
-            raise Warning('parameter', prod_name, 'not found')
-
-        return p
-
-
-    def get_analysis_product(self,prod_name,config=None):
-
-        return self.get_query_by_name(prod_name).get_product(self,config=config)
-
-    def get_html_draw(self, prod_name, image,image_header,catalog=None):
-
-        return self.get_query_by_name(prod_name).get_html_draw( image,image_header,catalog=catalog)
-
-    def get_par_by_name(self,par_name):
-        p=None
-
-        for _query in self._queries_list:
-            if par_name in _query.par_names:
-                p  =  _query.get_par_by_name(par_name)
-
-        if p is None:
-            raise Warning('parameter', par_name, 'not found')
-
-        return p
-
-
-
-    def show_parameters_list(self):
-
-        print ("-------------")
-        for _query in self._queries_list:
-            print ('q:',_query.name)
-            _query.show_parameters_list()
-        print("-------------")
-
-
-    def get_parameters_list_as_json(self):
-        l=[{'instrumet':self.name}]
-        for _query in self._queries_list:
-            l.append(_query.get_parameters_list_as_json())
-
-        return l
