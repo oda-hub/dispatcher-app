@@ -43,10 +43,11 @@ from ..analysis.products import  *
 
 class QueryProduct(object):
 
-    def __init__(self,target=None,modules=[],assume=[]):
+    def __init__(self,target=None,modules=[],assume=[],inject=[]):
         self.target=target
         self.modules=modules
         self.assume=assume
+        self.inject=[]
 
 
 class OsaQuery(object):
@@ -92,7 +93,8 @@ class OsaQuery(object):
         try:
             res= dc.RemoteDDOSA(self.url, self.ddcache_root_local).query(target=query_prod.target,
                                            modules=query_prod.modules,
-                                           assume=query_prod.assume)
+                                           assume=query_prod.assume,
+                                           inject=query_prod.inject)
             print("cached object in", res,res.ddcache_root_local)
         except dc.WorkerException as e:
             print("ERROR->")
