@@ -72,7 +72,7 @@ class OsaCatalog(BasicCatalog):
         self.add_column(data=ERR_RAD, name='ERR_RAD', dtype=np.float)
 
     @classmethod
-    def build_from_srclres(cls,srclres):
+    def build_from_ddosa_srclres(cls, srclres):
         catalog = pf.open(srclres)[1]
         frame = catalog.header['RADECSYS'].lower()
         catalog=catalog.data

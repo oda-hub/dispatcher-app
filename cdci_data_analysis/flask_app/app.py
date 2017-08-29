@@ -18,7 +18,7 @@ from flask import Flask, render_template, request,jsonify
 
 
 from ..ddosa_interface.osa_isgri import OSA_ISGRI
-from ..analysis.products import *
+from ..analysis.queries import *
 from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
 from ..ddosa_interface.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
 
@@ -103,9 +103,12 @@ def run_analysis_test():
         instrument.show_parameters_list()
         if request.args.get('product_type') == 'isgri_image':
 
-            image, catalog, exception = instrument.get_analysis_product('isgri_image', config=app.config.get('osaconf'))
+            prod_list, exception = instrument.get_query_products('isgri_image_query', config=app.config.get('osaconf'))
 
-            html_fig= instrument.get_html_draw('isgri_image',image.data,image.header,catalog=catalog)
+            image = prod_list.get_prod_by_name('isgri_mosaic')
+            catalog = prod_list.get_prod_by_name('mosaic_catalog')
+
+            html_fig= image.get_html_draw(catalog=catalog.catalog)
 
         else:
             # print('osa conf',app.config.get('osaconf'))

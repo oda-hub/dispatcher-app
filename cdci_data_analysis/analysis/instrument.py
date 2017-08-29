@@ -23,7 +23,7 @@ from __future__ import absolute_import, division, print_function
 from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
 
-from cdci_data_analysis.analysis.products import _check_is_base_query
+from cdci_data_analysis.analysis.queries import _check_is_base_query
 
 __author__ = "Andrea Tramacere"
 
@@ -99,9 +99,9 @@ class Instrument(object):
         return p
 
 
-    def get_analysis_product(self,prod_name,config=None):
+    def get_query_products(self, query_name, config=None):
 
-        return self.get_query_by_name(prod_name).get_product(self,config=config)
+        return self.get_query_by_name(query_name).get_products(self, config=config)
 
     def get_html_draw(self, prod_name, image,image_header,catalog=None):
 

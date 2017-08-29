@@ -35,10 +35,16 @@ __author__ = "Andrea Tramacere"
 # Project
 # relative import eg: from .mod import f
 
-from ..analysis.products import  *
-from ..web_display import draw_fig
-from .osa_image_dispatcher import get_osa_image
+from astropy.io import  fits as pf
+
+
+from ..analysis.queries import  *
+from ..analysis.products import *
+from .osa_image_dispatcher import get_osa_image_products
 from .osa_spectrum_dispatcher import get_osa_spectrum
+
+
+
 
 def OSA_ISGRI():
 
@@ -60,9 +66,10 @@ def OSA_ISGRI():
         catalog=None,
         catalog_name='user_catalog')
 
-    light_curve =LightCurve('isgri_lc',None)
-    image=Image('isgri_image',None,get_product_method=get_osa_image,html_draw_method=draw_fig)
-    spectrum=Spectrum('isgri_spectrum',None,get_product_method=get_osa_spectrum)
+    #QueryProducts
+    light_curve =LightCurveQuery('isgri_lc_query', None)
+    image=ImageQuery('isgri_image_query', None, get_products_method=get_osa_image_products)
+    spectrum=SpectrumQuery('isgri_spectrum_query', None, get_products_method=get_osa_spectrum)
 
 
 

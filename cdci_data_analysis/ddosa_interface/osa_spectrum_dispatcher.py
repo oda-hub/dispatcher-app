@@ -46,7 +46,7 @@ import ddosaclient as dc
 # relative import eg: from .mod import f
 from ..analysis.parameters import *
 from .osa_dispatcher import    OsaQuery,QueryProduct
-from ..analysis.products import Spectrum
+from ..analysis.queries import SpectrumQuery
 from ..web_display import draw_spectrum
 from astropy.io import  fits as pf
 
@@ -219,4 +219,4 @@ def OSA_ISGRI_SPECTRUM():
 
     parameters_list = [src_name,E_range_keV, time_group, time_group_selector, scw_list, E_cut]
 
-    return Spectrum(parameters_list, get_product_method=get_osa_spectrum,html_draw_method=draw_spectrum)
+    return SpectrumQuery(parameters_list, get_product_method=get_osa_spectrum, html_draw_method=draw_spectrum)

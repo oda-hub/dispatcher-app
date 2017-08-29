@@ -43,7 +43,7 @@ import ddosaclient as dc
 # relative import eg: from .mod import f
 from ..analysis.parameters import *
 from .osa_dispatcher import OsaQuery, QueryProduct
-from ..analysis.products import LightCurve
+from ..analysis.queries import LightCurveQuery
 # from ..web_display import draw_spectrum
 from astropy.io import fits as pf
 
@@ -215,4 +215,4 @@ def OSA_ISGRI_LIGHTCURVE():
     E_cut = Energy('keV', 'E_cut', value=0.1)
     parameters_list = [src_name, E_range_keV, time_group, time_group_selector, scw_list, E_cut]
 
-    return LightCurve(parameters_list, get_product_method=get_osa_lightcurve, html_draw_method=lambda *a: None)
+    return LightCurveQuery(parameters_list, get_product_method=get_osa_lightcurve, html_draw_method=lambda *a: None)

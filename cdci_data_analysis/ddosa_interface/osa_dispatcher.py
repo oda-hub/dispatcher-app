@@ -39,7 +39,7 @@ import json
 # relative import eg: from .mod import f
 
 import ddosaclient as dc
-from ..analysis.products import  *
+from ..analysis.queries import  *
 
 class QueryProduct(object):
 

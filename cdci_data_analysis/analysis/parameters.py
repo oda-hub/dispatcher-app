@@ -326,7 +326,7 @@ class Time(Parameter):
             raise  RuntimeError(name,'units not valid',units)
 
 
-class ProdList(Parameter):
+class InputProdList(Parameter):
     def __init__(self,_format,name,value=None):
 
         _allowed_units = ['names_list']
@@ -334,11 +334,11 @@ class ProdList(Parameter):
         if value is None:
             value=[]
 
-        super(ProdList,self).__init__(value=value,
-                                  units=_format,
-                                  check_value=self.check_list_value,
-                                  name=name,
-                                  allowed_units=_allowed_units)
+        super(InputProdList, self).__init__(value=value,
+                                            units=_format,
+                                            check_value=self.check_list_value,
+                                            name=name,
+                                            allowed_units=_allowed_units)
                                   #wtform_dict=wtform_dict)
 
         self._split(value)
@@ -534,7 +534,7 @@ class UserCatalog(Parameter):
             self._value=value
 
         if type(value)==str:
-            BasicCatalog.from_fits_file(value)
+            self._value=BasicCatalog.from_fits_file(value)
 
 
     @staticmethod

@@ -49,20 +49,22 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=True):
     if use_catalog==True:
         from cdci_data_analysis.ddosa_interface.osa_catalog import OsaCatalog
 
-        osa_catalog=OsaCatalog.build_from_srclres('osa_catalog.fits')
+        osa_catalog=OsaCatalog.build_from_ddosa_srclres('osa_catalog.fits')
         instr.set_par('user_catalog',osa_catalog)
 
     instr.show_parameters_list()
 
 
-    image,catalog,exception=instr.get_analysis_product('isgri_image',config=osaconf)
+    prod_list,exception=instr.get_query_products('isgri_image_query', config=osaconf)
+
+    image=prod_list.get_prod_by_name('isgri_mosaic')
+    catalog=prod_list.get_prod_by_name('mosaic_catalog')
 
     print('out_prod', image,exception)
 
     print dir(image)
-    from astropy.io import fits as pf
-    image.writeto('mosaic.fits',overwrite=True)
-    catalog.writeto('mosaic_catalog.fits', overwrite=True)
+    image.write('mosaic.fits',overwrite=True)
+    catalog.write('mosaic_catalog.fits', overwrite=True)
     assert sum(image.data.flatten()>0)>100 # some non-zero pixels
 
 
@@ -95,7 +97,7 @@ def test_spectrum_cookbook(use_scw_list=True):
 
     prod.show_parameters_list()
 
-    spectrum, rmf, arf, exception=prod.get_product(config=osaconf)
+    spectrum, rmf, arf, exception=prod.get_products(config=osaconf)
     #print ('spectrum',spectrum)
     #print out_prod,exception
     from astropy.io import fits as pf
@@ -166,7 +168,7 @@ def test_lightcurve_cookbook(use_scw_list=True):
         prod.set_par_value('time_group_selector', 'time_range_iso')
     prod.show_parameters_list()
 
-    out_prod, exception=prod.get_product(config=osaconf)
+    out_prod, exception=prod.get_products(config=osaconf)
     if out_prod is None:
         raise RuntimeError('no light curve produced')
     print ('out_prod',dir(out_prod))

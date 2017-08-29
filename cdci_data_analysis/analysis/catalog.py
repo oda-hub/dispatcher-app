@@ -137,6 +137,9 @@ class BasicCatalog(object):
         return dict(columns_list=[self.table[name].tolist() for name in self.table.colnames], column_names=self.table.colnames,column_descr=self.table.dtype.descr)
 
 
+    def write(self,name,format='fits',overwrite=True):
+        self.table.write(name,format=format,overwrite=overwrite)
+
     @classmethod
     def from_fits_file(cls,file_name):
         return cls.from_table(Table.read(file_name,format='fits'))
