@@ -57,6 +57,20 @@ def do_mosaic(E1,E2,scwlist_assumption,extramodules=[],user_catalog=None):
     if user_catalog is not None:
         print ('user_catalog',user_catalog.ra)
 
+    cat = ['SourceCatalog',
+           {
+               "catalog": [
+                   {
+                       "RA": ra,
+                       "DEC": dec,
+                       "NAME": name,
+                   }
+                   for ra,dec,name in zip(user_catalog.ra,user_catalog.dec,user_catalog.name)
+               ],
+               "version": "v1" # catalog id here; good if user-understandable, but can be computed internally
+           }
+           ]
+
     print('mosaic standard mode from scw_list', scwlist_assumption)
 
     target="mosaic_ii_skyimage"
@@ -66,7 +80,7 @@ def do_mosaic(E1,E2,scwlist_assumption,extramodules=[],user_catalog=None):
            'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
 
 
-    return  QueryProduct(target=target,modules=modules,assume=assume)
+    return  QueryProduct(target=target,modules=modules,assume=assume,inject=[cat])
 
 
 def do_mosaic_from_scw_list(E1,E2,user_catalog=None,scw_list=["035200230010.001","035200240010.001"]):
