@@ -104,9 +104,7 @@ def run_analysis_test():
         if request.args.get('product_type') == 'isgri_image':
 
             image, catalog, exception = instrument.get_analysis_product('isgri_image', config=app.config.get('osaconf'))
-            catalog=np.array(catalog.data)
-            catalog = catalog[['NAME', 'RA_FIN', 'DEC_FIN', 'DETSIG']]
-            catalog=catalog[catalog['DETSIG']>10.0]
+
             html_fig= instrument.get_html_draw('isgri_image',image.data,image.header,catalog=catalog)
 
         else:
@@ -117,10 +115,7 @@ def run_analysis_test():
 
         prod = {}
         prod['image'] = html_fig
-
-
-        prod['catalog'] = catalog.tolist()
-        prod['catalog_col_names'] = catalog.dtype.names
+        prod['catalog'] = catalog.get_dictionary()
 
 
 

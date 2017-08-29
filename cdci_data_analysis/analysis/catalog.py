@@ -40,21 +40,38 @@ from astropy.coordinates import SkyCoord
 from astropy.table import Table,Column
 from astropy.io  import fits as pf
 
+
+
+
 class BasicCatalog(object):
-    def __init__(self,src_names,lon,lat,significance,unit='deg',frame='FK5'):
-        self.sc = SkyCoord(lon,lat,frame=frame, unit=unit)
+    def __init__(self,src_names,lon,lat,significance,unit='deg',frame='FK5',_selected=None):
+
+        self.selected = np.ones(len(src_names), dtype=np.bool)
+
+        if _selected is not None:
+            self.selected = False
+            self.selected[_selected] = True
+
+        self._sc = SkyCoord(lon,lat,frame=frame, unit=unit)
 
         self.lat_name, self.lon_name=self.get_coord_names(self.sc)
 
 
 
-        self.table = Table([src_names, significance, lon, lat], names=['src_names', 'significance', self.lon_name, self.lat_name])
+        self._table = Table([src_names, significance, lon, lat], names=['src_names', 'significance', self.lon_name, self.lat_name])
 
 
         self.table.meta['frame']=frame
         self.table.meta['coord_unit'] = unit
         self.table.meta['lon_name'] = self.lon_name
         self.table.meta['lat_name'] = self.lat_name
+
+
+    def select_all(self):
+        self.selected[::]=True
+
+    def unselect_all(self):
+        self.selected[::]=False
 
     def get_coord_names(self,sc):
         inv_map = {v: k for k, v in sc.representation_component_names.items()}
@@ -64,9 +81,19 @@ class BasicCatalog(object):
 
         return _lat_name,_lon_name
 
+
+    @property
+    def table(self):
+        return self._table[self.selected]
+
+
+    @property
+    def sc(self):
+        return self._sc[self.selected]
+
     @property
     def length(self):
-        return self.table.as_array().shape(0)
+        return self.table.as_array().shape[0]
 
     @property
     def ra(self):
@@ -106,6 +133,8 @@ class BasicCatalog(object):
             data=np.zeros(self.length)
         self.table.add_column(Column(data=data,name=name,dtype=dtype))
 
+    def get_dictionary(self):
+        return dict(columns_list=[self.table[name].tolist() for name in self.table.colnames], column_names=self.table.colnames,column_descr=self.table.dtype.descr)
 
 
     @classmethod
@@ -127,3 +156,5 @@ class BasicCatalog(object):
             raise RuntimeError('Table in fits file is not valid to build Catalog')
 
         return  cat
+
+
