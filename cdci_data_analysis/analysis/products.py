@@ -81,7 +81,7 @@ class ImageProduct(BaseQueryProduct):
 
 
         fig, (ax) = plt.subplots(1, 1, figsize=(4, 3), subplot_kw={'projection': WCS(self.header)})
-        im = ax.imshow(self.image, origin='lower', zorder=1, interpolation='none', aspect='equal')
+        im = ax.imshow(self.data, origin='lower', zorder=1, interpolation='none', aspect='equal')
 
         if catalog is not None:
 
@@ -90,10 +90,15 @@ class ImageProduct(BaseQueryProduct):
 
             w = wcs.WCS(self.header)
             pixcrd = w.wcs_world2pix(np.column_stack((lon, lat)), 1)
-
-            ax.plot(pixcrd[:, 0], pixcrd[:, 1], 'o', mfc='none')
-            for ID in xrange(catalog.size):
-                ax.annotate('%s' % catalog[ID]['NAME'], xy=(pixcrd[:, 0][ID], pixcrd[:, 1][ID]), color='white')
+            
+            msk=~np.isnan(pixcrd[:, 0])
+            ax.plot(pixcrd[:, 0][msk], pixcrd[:, 1][msk], 'o', mfc='none')
+            
+            for ID in xrange(catalog.length):
+                if msk[ID]:
+                    #print ('xy',(pixcrd[:, 0][ID], pixcrd[:, 1][ID]))
+                    ax.annotate('%s' % catalog.name[ID], xy=(pixcrd[:, 0][ID], pixcrd[:, 1][ID]), color='white')
+                            
 
             ax.set_xlabel('RA')
             ax.set_ylabel('DEC')

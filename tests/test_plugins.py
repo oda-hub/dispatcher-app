@@ -29,7 +29,7 @@ def test_too_strickt_type_verifications():
 
 
 
-def test_mosaic_cookbook(use_scw_list=False,use_catalog=False):
+def test_mosaic_cookbook(use_scw_list=True,use_catalog=False):
 
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
 

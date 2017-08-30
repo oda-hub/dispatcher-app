@@ -118,16 +118,16 @@ def run_analysis_test():
 
         prod = {}
         prod['image'] = html_fig
-        prod['catalog'] = catalog.get_dictionary()
+        prod['catalog'] = catalog.catalog.get_dictionary()  
 
-
-
+        image.write('mosaic.fits',overwrite=True)
+        catalog.write('mosaic_catalog.fits', overwrite=True)
 
 
     if prod is None:
         raise Exception("product not recognized".format(prod_type))
 
-
+    print(prod)
     return jsonify(prod)
 
 
