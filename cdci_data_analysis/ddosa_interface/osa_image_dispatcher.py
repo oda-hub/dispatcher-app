@@ -71,19 +71,21 @@ def do_mosaic(E1,E2,scwlist_assumption,extramodules=[],user_catalog=None):
     if user_catalog is not None:
         print ('user_catalog',user_catalog.ra)
 
-    cat = ['SourceCatalog',
-           {
-               "catalog": [
-                   {
-                       "RA": ra,
-                       "DEC": dec,
-                       "NAME": name,
-                   }
-                   for ra,dec,name in zip(user_catalog.ra,user_catalog.dec,user_catalog.name)
-               ],
-               "version": "v1" # catalog id here; good if user-understandable, but can be computed internally
-           }
-           ]
+        cat = ['SourceCatalog',
+               {
+                   "catalog": [
+                       {
+                           "RA": ra,
+                           "DEC": dec,
+                           "NAME": name,
+                       }
+                       for ra,dec,name in zip(user_catalog.ra,user_catalog.dec,user_catalog.name)
+                   ],
+                   "version": "v1" # catalog id here; good if user-understandable, but can be computed internally
+               }
+               ]
+    else:
+        cat=None
 
     print('mosaic standard mode from scw_list', scwlist_assumption)
 
