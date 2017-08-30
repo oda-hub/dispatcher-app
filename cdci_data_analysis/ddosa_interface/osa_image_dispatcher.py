@@ -34,7 +34,7 @@ class IsgriImageProduct(ImageProduct):
     def __init__(self,name,skyima):
         header = skyima.header
         data = skyima.data
-        super(IsgriImageProduct, self).__init__(name,data=data,header=header,parameters_list=None)
+        super(IsgriImageProduct, self).__init__(name,data=data,header=header)
         #check if you need to copy!
 
 

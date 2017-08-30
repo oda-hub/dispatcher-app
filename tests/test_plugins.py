@@ -78,40 +78,30 @@ def test_plot_mosaic():
 
 
 def test_spectrum_cookbook(use_scw_list=True):
-    from cdci_data_analysis.ddosa_interface.osa_spectrum_dispatcher import OSA_ISGRI_SPECTRUM
+    from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
 
-    prod= OSA_ISGRI_SPECTRUM()
+    instr = OSA_ISGRI()
 
-    parameters = dict(E1=20., E2=40., T1=T_start, T2=T_stop, RA=RA, DEC=DEC, radius=25,
+    parameters = dict(E1_keV=20., E2_keV=40., T1_iso=T1_iso, T2_iso=T2_iso, RA=RA, DEC=DEC, radius=25,
                       scw_list=cookbook_scw_list,src_name='4U 1700-377')
 
     for p,v in parameters.items():
         print('set from form',p,v)
-        prod.set_par_value(p, v)
+        instr.set_par(p, v)
         print('--')
 
-    if use_scw_list==True:
-        prod.set_par_value('time_group_selector','scw_list')
+    if use_scw_list == True:
+        instr.set_par('scw_list', cookbook_scw_list)
     else:
-        prod.set_par_value('time_group_selector', 'time_range_iso')
+        instr.set_par('scw_list', [])
+        instr.set_par('time_group_selector', 'time_range_iso')
 
-    prod.show_parameters_list()
+    instr.show_parameters_list()
 
-    spectrum, rmf, arf, exception=prod.get_products(config=osaconf)
-    #print ('spectrum',spectrum)
-    #print out_prod,exception
-    from astropy.io import fits as pf
-    ##pf.writeto('spectrum.fits', out_prod, overwrite=True)
-    #import os
-    #path=os.path.dirname(out_prod)
-    if spectrum is None:
-        raise RuntimeError('no light curve produced')
-    spectrum[1].header['RESPFILE']='rmf.fits'
-    spectrum[1].header['ANCRFILE']='arf.fits'
-    spectrum.writeto('spectrum.fits',overwrite=True)
-    rmf.writeto('rmf.fits',overwrite=True)
-    arf.writeto('arf.fits',overwrite=True)
-    print ('dir prod',dir(spectrum))
+    prod_list, exception=instr.get_query_products('isgri_spectrum_query', config=osaconf)
+
+    spectrum=prod_list.get_prod_by_name('isgri_spectrum')
+
 
 
 

@@ -35,12 +35,17 @@ __author__ = "Andrea Tramacere"
 
 # Project
 # relative import eg: from .mod import f
+import  decorator
 import  numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.table import Table,Column
 from astropy.io  import fits as pf
 
+@decorator.decorator
+def _selector(func,arr,mask):
 
+
+    return func(arr[mask])
 
 
 class BasicCatalog(object):
@@ -56,15 +61,14 @@ class BasicCatalog(object):
 
         self.lat_name, self.lon_name=self.get_coord_names(self.sc)
 
+        meta={'frame':frame}
+        meta['coord_unit']=unit
+        meta['lon_name']=self.lon_name
+        meta['lat_name']=self.lat_name
 
 
-        self._table = Table([src_names, significance, lon, lat], names=['src_names', 'significance', self.lon_name, self.lat_name])
+        self._table = Table([src_names, significance, lon, lat], names=['src_names', 'significance', self.lon_name, self.lat_name],meta=meta)
 
-
-        self.table.meta['frame']=frame
-        self.table.meta['coord_unit'] = unit
-        self.table.meta['lon_name'] = self.lon_name
-        self.table.meta['lat_name'] = self.lat_name
 
 
     def select_all(self):
@@ -97,19 +101,19 @@ class BasicCatalog(object):
 
     @property
     def ra(self):
-        return self.sc.fk5.ra
+        return self.sc.fk5.ra[self.selected]
 
     @property
     def dec(self):
-        return self.sc.fk5.dec
+        return self.sc.fk5.dec[self.selected]
 
     @property
     def l(self):
-        return self.sc.galactic.l
+        return self.sc.galactic.l[self.selected]
 
     @property
     def b(self):
-        return self.sc.galactic.b
+        return self.sc.galactic.b[self.selected]
 
     @property
     def name(self):
@@ -130,15 +134,15 @@ class BasicCatalog(object):
     def add_column(self,data=None,name=None,dtype=None):
 
         if data is None:
-            data=np.zeros(self.length)
-        self.table.add_column(Column(data=data,name=name,dtype=dtype))
+            data=np.zeros(self.table.as_array().shape[0])
+        self._table.add_column(Column(data=data,name=name,dtype=dtype))
 
     def get_dictionary(self):
         return dict(columns_list=[self.table[name].tolist() for name in self.table.colnames], column_names=self.table.colnames,column_descr=self.table.dtype.descr)
 
 
     def write(self,name,format='fits',overwrite=True):
-        self.table.write(name,format=format,overwrite=overwrite)
+        self._table.write(name,format=format,overwrite=overwrite)
 
     @classmethod
     def from_fits_file(cls,file_name):

@@ -262,6 +262,7 @@ class BaseQuery(object):
 
 class SourceQuery(BaseQuery):
     def __init__(self,name):
+        src_name=Name('str','src_name')
         RA = Angle('deg', 'RA', 0.)
         DEC = Angle('deg', 'DEC', 0.)
 
@@ -280,7 +281,7 @@ class SourceQuery(BaseQuery):
         time_group_selector = time_group.build_selector('time_group_selector')
 
 
-        parameters_list=[sky_coords,time_group,time_group_selector]
+        parameters_list=[src_name,sky_coords,time_group,time_group_selector]
 
 
         super(SourceQuery, self).__init__(name,parameters_list)
