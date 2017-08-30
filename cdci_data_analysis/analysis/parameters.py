@@ -382,6 +382,7 @@ class InputProdList(Parameter):
                 self._value = v
         else:
             self._value = ['']
+        self._value=self._split(self._value)
 
         print ('set to ',self._value)
 
