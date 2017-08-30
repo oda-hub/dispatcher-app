@@ -101,7 +101,7 @@ def run_analysis_test():
         instrument.set_pars_from_dic(par_dic)
 
         instrument.show_parameters_list()
-        if request.args.get('product_type') == 'isgri_image':
+        if request.args.get('image_type')  != 'Dummy':
 
             prod_list, exception = instrument.get_query_products('isgri_image_query', config=app.config.get('osaconf'))
 
@@ -114,7 +114,7 @@ def run_analysis_test():
             # print('osa conf',app.config.get('osaconf'))
             html_fig = draw_dummy()
 
-
+            return jsonify(html_fig)
 
         prod = {}
         prod['image'] = html_fig
