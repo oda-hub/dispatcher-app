@@ -116,7 +116,9 @@ def run_analysis_test():
 
             if catalog_selected_objects is not None:
                 instrument.set_par('user_catalog','mosaic_catalog.fits')
-
+                user_catalog=instrument.get_par_by_name('user_catalog').value
+                user_catalog.selected=np.ones(catalog_selected_objects,dtype=bool)
+                    
             prod_list, exception = instrument.get_query_products('isgri_image_query', config=app.config.get('osaconf'))
 
 
