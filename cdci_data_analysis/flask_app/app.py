@@ -92,66 +92,72 @@ def run_analysis_test():
     par_dic.pop('product_type')
     par_dic.pop('object_name')
 
+    print (par_dic)
+    if request.method == 'GET':
+
+        if request.args.get('product_type')=='isgri_image':
+            prod_dictionary=query_isgri_image()
+
+    return jsonify(prod_dictionary)
+
+
+
+
+def query_isgri_image(instrument,par_dic):
+
     if 'catalog_selected_objects' in par_dic.keys():
         catalog_selected_objects = par_dic['catalog_selected_objects']
         par_dic.pop('catalog_selected_objects')
     else:
         catalog_selected_objects = None
 
+    print('request', request)
 
-    print (par_dic)
-    if request.method == 'GET':
-        print('request', request)
+    print('par_dic', par_dic)
+    instrument.set_pars_from_dic(par_dic)
 
+    instrument.show_parameters_list()
+    if request.args.get('image_type') != 'Dummy':
 
-        print('par_dic',par_dic)
-        instrument.set_pars_from_dic(par_dic)
+        if catalog_selected_objects is not None:
+            if instrument.get_par('user_catalog').value is None:
+                instrument.set_par('user_catalog', 'query_catalog.fits')
+            user_catalog = instrument.get_par_by_name('user_catalog').value
+            user_catalog.selected = np.ones(catalog_selected_objects, dtype=bool)
 
-        instrument.show_parameters_list()
-        if request.args.get('image_type')  != 'Dummy':
+        prod_list, exception = instrument.get_query_products('isgri_image_query', config=app.config.get('osaconf'))
 
+        query_image = prod_list.get_prod_by_name('isgri_mosaic')
+        query_catalog = prod_list.get_prod_by_name('mosaic_catalog')
 
+        detection_significance = instrument.get_par_by_name('detection_threshold').value
 
+        if detection_significance is not None:
+            query_catalog.catalog.selected = query_catalog.catalog.table['significance'] > float(detection_significance)
 
+        html_fig = query_image.get_html_draw(catalog=query_catalog.catalog)
 
-            if catalog_selected_objects is not None:
-                instrument.set_par('user_catalog','mosaic_catalog.fits')
-                user_catalog=instrument.get_par_by_name('user_catalog').value
-                user_catalog.selected=np.ones(catalog_selected_objects,dtype=bool)
-                    
-            prod_list, exception = instrument.get_query_products('isgri_image_query', config=app.config.get('osaconf'))
+    else:
+        # print('osa conf',app.config.get('osaconf'))
+        html_fig = draw_dummy()
 
+        return jsonify(html_fig)
 
+    prod = {}
+    prod['image'] = html_fig
+    prod['catalog'] = query_catalog.catalog.get_dictionary()
 
-
-            image = prod_list.get_prod_by_name('isgri_mosaic')
-            query_catalog = prod_list.get_prod_by_name('mosaic_catalog')
-            detection_significance=instrument.get_par_by_name('detection_threshold').value
-            print('->',query_catalog.catalog.length,query_catalog.catalog.significance.shape)
-            query_catalog.catalog.selected=query_catalog.catalog.table['significance']>float(detection_significance)
-
-            html_fig= image.get_html_draw(catalog=query_catalog.catalog)
-
-        else:
-            # print('osa conf',app.config.get('osaconf'))
-            html_fig = draw_dummy()
-
-            return jsonify(html_fig)
-
-        prod = {}
-        prod['image'] = html_fig
-        prod['catalog'] = query_catalog.catalog.get_dictionary()
-
-        image.write('mosaic.fits',overwrite=True)
-        query_catalog.write('mosaic_catalog.fits', overwrite=True)
+    query_image.write('query_mosaic.fits', overwrite=True)
+    query_catalog.write('query_catalog.fits', overwrite=True)
 
 
-    if prod is None:
-        raise Exception("product not recognized".format(prod_type))
+    return prod
 
-    print(prod)
-    return jsonify(prod)
+def query_isgri_spectrum():
+    pass
 
+def query_isgri_ligthcurve():
+    pass
 
 
 def run_app(conf):
