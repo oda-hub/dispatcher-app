@@ -96,7 +96,7 @@ def run_analysis_test():
     if request.method == 'GET':
 
         if request.args.get('product_type')=='isgri_image':
-            prod_dictionary=query_isgri_image()
+            prod_dictionary=query_isgri_image(instrument,par_dic)
 
     return jsonify(prod_dictionary)
 
@@ -104,9 +104,10 @@ def run_analysis_test():
 
 
 def query_isgri_image(instrument,par_dic):
-
+    print ('request.files',request.files)
     if 'catalog_selected_objects' in par_dic.keys():
-        catalog_selected_objects = par_dic['catalog_selected_objects']
+        import numpy as np
+        catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','),dtype=np.int)
         par_dic.pop('catalog_selected_objects')
     else:
         catalog_selected_objects = None
@@ -120,10 +121,22 @@ def query_isgri_image(instrument,par_dic):
     if request.args.get('image_type') != 'Dummy':
 
         if catalog_selected_objects is not None:
-            if instrument.get_par('user_catalog').value is None:
-                instrument.set_par('user_catalog', 'query_catalog.fits')
-            user_catalog = instrument.get_par_by_name('user_catalog').value
-            user_catalog.selected = np.ones(catalog_selected_objects, dtype=bool)
+            #if instrument.get_par_by_name('user_catalog').value is None:
+            #    instrument.set_par('user_catalog', 'query_catalog.fits')
+            
+            from cdci_data_analysis.analysis.catalog import  BasicCatalog
+        
+
+            user_catalog=BasicCatalog.from_fits_file('mosaic_catalog.fits')
+            print('catalog_length', user_catalog.length)
+            instrument.set_par('user_catalog', user_catalog)
+            print('catalog_selected_objects',catalog_selected_objects)
+
+            _sel= np.zeros(user_catalog.length, dtype=bool)
+            _sel[catalog_selected_objects]=True
+            user_catalog.selected = _sel
+
+            print('catalog_length', user_catalog.length)
 
         prod_list, exception = instrument.get_query_products('isgri_image_query', config=app.config.get('osaconf'))
 

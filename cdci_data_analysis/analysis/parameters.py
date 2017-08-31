@@ -565,21 +565,33 @@ class UserCatalog(Parameter):
                                      name=name,
                                      allowed_units=allowed_units)
 
+        
+     
+    
 
-        if isinstance(value,BasicCatalog):
-            self._value=value
+    def read(self):
+        print('self.value',self.value,type(self.value))
+        if isinstance(self.value,BasicCatalog):
+            return self.value
 
-        if type(value)==str:
-            self._value=BasicCatalog.from_fits_file(value)
+        if type(self.value)==str:
+            print('a')
+        return BasicCatalog.from_fits_file(self.value)
 
+       
+       
 
+        
     @staticmethod
     def check_catalog_value(value, units=None, name=None):
-        print('check type of ', name, 'value', value, 'type', type(value))
+        pass
+        #print('check type of ', name, 'value', value, 'type', type(value))
 
 
 
-        if isinstance(value,BasicCatalog):
-            pass
-        else:
-            raise RuntimeError('type of ', name, 'is not valid, it is', type(value),'but should be',type(BasicCatalog))
+        #if isinstance(value,BasicCatalog):
+       #     pass
+       # elif  type(value)==str:
+       #     pass
+       # else:
+       #     raise RuntimeError('type of ', name, 'is not valid, it is', type(value),'but should be',type(BasicCatalog))
