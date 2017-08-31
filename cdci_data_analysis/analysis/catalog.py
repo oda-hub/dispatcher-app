@@ -153,12 +153,12 @@ class BasicCatalog(object):
         try:
             src_names=table['src_names']
             significance=table['significance']
-            frame = table.meta['frame']
-            lon=table[table.meta['lon_name']]
-            lat =table[table.meta['lat_name']]
+            frame = table.meta['FRAME']
+            lon=table[table.meta['LON_NAME']]
+            lat =table[table.meta['LAT_NAME']]
             unit = table.meta['coord_unit']
 
-            cat= cls(src_names,lon,lat,frame,significance,unit=unit,frame=frame)
+            cat= cls(src_names,lon,lat,significance,unit=unit,frame=frame)
         except:
             raise RuntimeError('Table in fits file is not valid to build Catalog')
 

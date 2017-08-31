@@ -383,7 +383,6 @@ class InputProdList(Parameter):
         else:
             self._value = ['']
         self._value=self._split(self._value)
-
         print ('set to ',self._value)
 
 
@@ -520,6 +519,42 @@ class Energy(Parameter):
             raise RuntimeError('type of ',name,'not valid',type(value))
 
 
+
+
+
+class DetectionThreshold(Parameter):
+    def __init__(self,units,name,value=None):
+
+        _allowed_units = ['sigma']
+
+        #wtform_dict = {'keV': FloatField}
+
+        super(DetectionThreshold, self).__init__(value=value,
+                                   units=units,
+                                   check_value=self.check_value,
+                                   name=name,
+                                   allowed_units=_allowed_units)
+                                   #wtform_dict=wtform_dict)
+
+
+
+
+    @staticmethod
+    def check_value(value, units=None,name=None):
+        print('check type of ',name,'value', value, 'type',type(value))
+
+
+        try:
+            value=ast.literal_eval(value)
+        except:
+            pass
+
+        if type(value)==int:
+            pass
+        if type(value)==float:
+            pass
+        else:
+            raise RuntimeError('type of ',name,'not valid',type(value))
 
 
 

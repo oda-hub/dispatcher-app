@@ -336,7 +336,10 @@ class InstrumentQuery(BaseQuery):
 
 
 class ProductQuery(BaseQuery):
-    def __init__(self, name, parameters_list, get_products_method=None, html_draw_method=None, **kwargs):
+    def __init__(self, name, parameters_list=[], get_products_method=None, html_draw_method=None, **kwargs):
+
+
+
         super(ProductQuery, self).__init__(name,parameters_list, **kwargs)
         self._get_product_method = get_products_method
         self._html_draw_method = html_draw_method
@@ -361,6 +364,11 @@ class ProductQuery(BaseQuery):
 
 class ImageQuery(ProductQuery):
     def __init__(self,name,parameters_list,**kwargs):
+        detection_th = DetectionThreshold('sigma', 'detection_threshold', value=0.0)
+        if parameters_list != [] and parameters_list is not None:
+            parameters_list.extend(detection_th)
+        else:
+            parameters_list = [detection_th]
         super(ImageQuery, self).__init__(name, parameters_list, **kwargs)
 
 

@@ -92,6 +92,13 @@ def run_analysis_test():
     par_dic.pop('product_type')
     par_dic.pop('object_name')
 
+    if 'catalog_selected_objects' in par_dic.keys():
+        catalog_selected_objects = par_dic['catalog_selected_objects']
+        par_dic.pop('catalog_selected_objects')
+    else:
+        catalog_selected_objects = None
+
+
     print (par_dic)
     if request.method == 'GET':
         print('request', request)
@@ -103,12 +110,24 @@ def run_analysis_test():
         instrument.show_parameters_list()
         if request.args.get('image_type')  != 'Dummy':
 
+
+
+
+
+            if catalog_selected_objects is not None:
+                instrument.set_par('user_catalog','mosaic_catalog.fits')
+
             prod_list, exception = instrument.get_query_products('isgri_image_query', config=app.config.get('osaconf'))
 
-            image = prod_list.get_prod_by_name('isgri_mosaic')
-            catalog = prod_list.get_prod_by_name('mosaic_catalog')
 
-            html_fig= image.get_html_draw(catalog=catalog.catalog)
+
+
+            image = prod_list.get_prod_by_name('isgri_mosaic')
+            query_catalog = prod_list.get_prod_by_name('mosaic_catalog')
+            detection_significance=instrument.get_par_by_name('detection_threshold')
+            query_catalog.catalog.selected=query_catalog.catalog.significance>float(detection_significance)
+
+            html_fig= image.get_html_draw(catalog=query_catalog.catalog)
 
         else:
             # print('osa conf',app.config.get('osaconf'))
@@ -118,10 +137,10 @@ def run_analysis_test():
 
         prod = {}
         prod['image'] = html_fig
-        prod['catalog'] = catalog.catalog.get_dictionary()  
+        prod['catalog'] = query_catalog.catalog.get_dictionary()
 
         image.write('mosaic.fits',overwrite=True)
-        catalog.write('mosaic_catalog.fits', overwrite=True)
+        query_catalog.write('mosaic_catalog.fits', overwrite=True)
 
 
     if prod is None:
