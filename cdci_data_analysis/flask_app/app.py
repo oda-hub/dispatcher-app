@@ -19,7 +19,7 @@ from flask import Flask, render_template, request,jsonify
 
 from ..ddosa_interface.osa_isgri import OSA_ISGRI
 from ..analysis.queries import *
-from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
+#from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
 from ..ddosa_interface.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
 
 
@@ -126,8 +126,9 @@ def run_analysis_test():
 
             image = prod_list.get_prod_by_name('isgri_mosaic')
             query_catalog = prod_list.get_prod_by_name('mosaic_catalog')
-            detection_significance=instrument.get_par_by_name('detection_threshold')
-            query_catalog.catalog.selected=query_catalog.catalog.significance>float(detection_significance)
+            detection_significance=instrument.get_par_by_name('detection_threshold').value
+            print('->',query_catalog.catalog.length,query_catalog.catalog.significance.shape)
+            query_catalog.catalog.selected=query_catalog.catalog.table['significance']>float(detection_significance)
 
             html_fig= image.get_html_draw(catalog=query_catalog.catalog)
 
@@ -150,6 +151,7 @@ def run_analysis_test():
 
     print(prod)
     return jsonify(prod)
+
 
 
 def run_app(conf):

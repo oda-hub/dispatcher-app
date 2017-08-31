@@ -101,19 +101,19 @@ class BasicCatalog(object):
 
     @property
     def ra(self):
-        return self.sc.fk5.ra[self.selected]
+        return self.sc.fk5.ra
 
     @property
     def dec(self):
-        return self.sc.fk5.dec[self.selected]
+        return self.sc.fk5.dec
 
     @property
     def l(self):
-        return self.sc.galactic.l[self.selected]
+        return self.sc.galactic.l
 
     @property
     def b(self):
-        return self.sc.galactic.b[self.selected]
+        return self.sc.galactic.b
 
     @property
     def name(self):
