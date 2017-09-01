@@ -17,28 +17,13 @@ RA=257.815417
 DEC=-41.593417
 
 
-def test_too_strickt_type_verifications():
-    from cdci_data_analysis.ddosa_interface.osa_image_dispatcher import OSA_ISGRI_IMAGE
-
-    parameters=dict(E1=20,E2=40,T1="2008-11-11T11:11:11.0",T2="2008-11-11T11:11:11.0")
-    
-    prod= OSA_ISGRI_IMAGE()
-    for p,v in parameters.items():
-        print('set from form',p,v)
-        prod.set_par_value(p, v)
-        print('--')
-    prod.set_par_value('time_group_selector','scw_list')
-    prod.show_parameters_list()
-
-
-
-def test_mosaic_cookbook(use_scw_list=True,use_catalog=False):
+def test_instr(use_scw_list=True):
 
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
 
     instr= OSA_ISGRI()
 
-    parameters_dic=dict(E1_keV=20.,E2_keV=40.,T1_iso=T1_iso, T2_iso=T2_iso,RA=RA,DEC=DEC,radius=25,scw_list=None)
+    parameters_dic=dict(E1_keV=20.,E2_keV=40.,T1=T1_iso, T2=T2_iso,RA=RA,DEC=DEC,radius=25,scw_list=None,T_format='isot')
 
 
     instr.set_pars_from_dic(parameters_dic)
@@ -48,6 +33,25 @@ def test_mosaic_cookbook(use_scw_list=True,use_catalog=False):
     else:
         instr.set_par('scw_list', [])
         instr.set_par('time_group_selector','time_range_iso')
+
+
+
+def test_mosaic_cookbook(use_scw_list=False,use_catalog=False):
+
+    from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
+
+    instr= OSA_ISGRI()
+
+    parameters_dic=dict(E1_keV=20.,E2_keV=40.,T1 =T1_iso, T2=T2_iso,RA=RA,DEC=DEC,radius=25,scw_list=None)
+
+
+    instr.set_pars_from_dic(parameters_dic)
+
+    if use_scw_list==True:
+        instr.set_par('scw_list',cookbook_scw_list)
+    else:
+        instr.set_par('scw_list', [])
+        #instr.set_par('time_group_selector','time_range_iso')
 
     if use_catalog==True:
         osa_catalog = OsaCatalog.build_from_dict_list([dict(ra=RA, dec=DEC, name="TEST_SOURCE")])
@@ -90,19 +94,18 @@ def test_spectrum_cookbook(use_scw_list=True,use_catalog=False):
 
     instr = OSA_ISGRI()
 
-    parameters = dict(E1_keV=20., E2_keV=40., T1_iso=T1_iso, T2_iso=T2_iso, RA=RA, DEC=DEC, radius=25,
+    parameters = dict(E1_keV=20., E2_keV=40., T1 =T1_iso, T2 =T2_iso, RA=RA, DEC=DEC, radius=25,
                       scw_list=cookbook_scw_list,src_name='4U 1700-377')
 
-    for p,v in parameters.items():
-        print('set from form',p,v)
-        instr.set_par(p, v)
-        print('--')
+
+    instr.set_pars_from_dic(parameters)
+
 
     if use_scw_list == True:
         instr.set_par('scw_list', cookbook_scw_list)
     else:
         instr.set_par('scw_list', [])
-        instr.set_par('time_group_selector', 'time_range_iso')
+        #instr.set_par('time_group_selector', 'time_range_iso')
 
     if use_catalog==True:
         dra=float(time.strftime("0.%j")) # it's vital to make sure that the test changes with the phase of the moon

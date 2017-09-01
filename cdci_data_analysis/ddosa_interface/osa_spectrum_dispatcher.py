@@ -231,17 +231,17 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
                                                    scw_list=instrument.get_par_by_name('scw_list').value,
                                                    user_catalog=user_catalog)
 
-    elif time_range_type == 'time_range_iso':
+    else:
+        T1_iso = instrument.get_par_by_name('T1')._astropy_time.isot
+        T2_iso = instrument.get_par_by_name('T2')._astropy_time.isot
         query_prod = do_spectrum_from_time_span( instrument.get_par_by_name('E1_keV').value,
                                                  instrument.get_par_by_name('E2_keV').value,
-                                                 instrument.get_par_by_name('T1_iso').value,
-                                                 instrument.get_par_by_name('T2_iso').value,
+                                                 T1_iso,
+                                                 T2_iso,
                                                  RA,
                                                  DEC,
                                                  radius,
                                                  user_catalog=user_catalog)
-    else:
-        raise RuntimeError('wrong time format')
 
     res = q.run_query(query_prod=query_prod)
 

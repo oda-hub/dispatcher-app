@@ -126,7 +126,7 @@ def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,confi
 
     q=OsaQuery(config=config)
 
-    time_range_type = instrument.get_par_by_name('time_group_selector').value
+    #time_range_type = instrument.get_par_by_name('time_group_selector').value
     RA=instrument.get_par_by_name('RA').value
     DEC=instrument.get_par_by_name('DEC').value
     radius=instrument.get_par_by_name('radius').value
@@ -150,18 +150,19 @@ def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,confi
                                                  scw_list=instrument.get_par_by_name('scw_list').value,
                                                  user_catalog=user_catalog)
 
-    elif time_range_type == 'time_range_iso':
+    else:
+        T1_iso=instrument.get_par_by_name('T1')._astropy_time.isot
+        T2_iso=instrument.get_par_by_name('T2')._astropy_time.isot
         query_prod = do_mosaic_from_time_span(instrument.get_par_by_name('E1_keV').value,
                                               instrument.get_par_by_name('E2_keV').value,
-                                              instrument.get_par_by_name('T1_iso').value,
-                                              instrument.get_par_by_name('T2_iso').value,
+                                              T1_iso,
+                                              T2_iso,
                                               RA,
                                               DEC,
                                               radius,
                                               user_catalog=user_catalog)
 
-    else:
-        raise RuntimeError('wrong time format')
+
 
 
     osa_catalog=None

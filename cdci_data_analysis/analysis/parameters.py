@@ -29,6 +29,8 @@ import  ast
 import decorator
 
 from datetime import datetime, date, time
+from astropy.time import Time as astropyTime
+from astropy.coordinates import Angle as astropyAngle
 from .catalog import BasicCatalog
 
 import  numpy as np
@@ -175,7 +177,7 @@ class ParameterTuple(object):
 
 
 class Parameter(object):
-    def __init__(self,name='par',units=None,allowed_units=[],check_value=None,value=None,allowed_values=None):
+    def __init__(self,value=None,units=None,name=None,allowed_units=[],check_value=None,allowed_values=None,units_name=None):
         self.check_value=check_value
 
         self._allowed_units = allowed_units
@@ -183,6 +185,7 @@ class Parameter(object):
         self.name = name
         self.units=units
         self.value = value
+        self.units_name=units_name
         #self._wtform_dict=wtform_dict
 
 
@@ -277,7 +280,7 @@ class Parameter(object):
 
 
 class Name(Parameter):
-    def __init__(self, name_format, name, value=None):
+    def __init__(self,value=None, name_format='str', name=None):
         _allowed_units = ['str']
         super(Name,self).__init__(value=value,
                                   units=name_format,
@@ -291,9 +294,9 @@ class Name(Parameter):
 
 
 class Time(Parameter):
-    def __init__(self,T_format,name,value=None):
+    def __init__(self,value=None,T_format=None,name=None,Time_format_name=None):
 
-        _allowed_units = ['iso', 'mjd']
+        #_allowed_units = astropyTime.FORMATS
 
         #wtform_dict = {'iso': StringField}
         #wtform_dict['mjd'] = FloatField
@@ -301,33 +304,33 @@ class Time(Parameter):
 
         super(Time,self).__init__(value=value,
                                   units=T_format,
-                                  check_value=self.check_time_value,
+                                  units_name=Time_format_name,
                                   name=name,
-                                  allowed_units=_allowed_units)
+                                  allowed_units=None)
                                   #wtform_dict=wtform_dict)
 
 
-    @staticmethod
-    def check_time_value(value,units,name='par'):
-        if units == 'iso':
-            try:
-                c = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%f")
-            except:
-                raise RuntimeError(name,'value is not iso format YYYY-MM-DDThh:mm:ss.sssss','it is',type(value),value)
-        elif units == 'mjd':
-            try:
-                assert (type(value) == int or type(value) == float)
-            except:
-                raise RuntimeError(name,'value is not MJD format : int or float', 'it is ','it is',type(value),value)
+        self._set_time(value,format=T_format)
 
 
+    @property
+    def value(self):
+        return self._astropy_time.value
 
-        else:
-            raise  RuntimeError(name,'units not valid',units)
+    @value.setter
+    def value(self, v):
+        units=self.units
+        self._set_time(v, format=units)
+
+    def _set_time(self,value,format):
+        self._astropy_time = astropyTime(value, format=format)
+        self._value = self._astropy_time.value
+
+
 
 
 class InputProdList(Parameter):
-    def __init__(self,_format,name,value=None):
+    def __init__(self,value=None,_format='names_list',name=None):
 
         _allowed_units = ['names_list']
 
@@ -403,32 +406,31 @@ class InputProdList(Parameter):
 
 
 class Angle(Parameter):
-    def __init__(self, angular_units,name, value=None):
-        _allowed_units = ['deg']
-        super(Angle, self).__init__(value=value,
-                                     units=angular_units,
-                                     check_value=self.check_angle_value,
-                                     name=name,
-                                     allowed_units=_allowed_units)
+        def __init__(self,value=None, units=None,name=None):
 
-        #self.reference_system=reference_system
-        #to improve
+            super(Angle, self).__init__(value=value,
+                                       units=units,
+                                       name=name,
+                                       allowed_units=None)
+            # wtform_dict=wtform_dict)
 
-    @staticmethod
-    def check_angle_value(value, units=None, name=None):
-        try:
-            value = ast.literal_eval(value)
-        except:
-            pass
 
-        if units == 'deg':
-            try:
-                assert np.isreal(value)
-            except:
-                raise RuntimeError('par:',name, ', value must be a number, found',type(value))
-        else:
-            raise RuntimeError('par:',name, ', units are not valid', units)
+            self._set_angle(value, units=units)
 
+        @property
+        def value(self):
+            return self._astropy_angle.value
+
+        @value.setter
+        def value(self, v, units=None):
+            if units is None:
+                units = self.units
+
+            self._set_angle(v, units=units)
+
+        def _set_angle(self, value, units):
+            self._astropy_angle = astropyAngle(value, unit=units)
+            self._value = self._astropy_angle.value
 
 # class AngularDistance(Parameter):
 #     def __init__(self, angular_units,name, value=None):
@@ -450,7 +452,7 @@ class Angle(Parameter):
 
 
 class SpectralBoundary(Parameter):
-    def __init__(self,E_units,name,value=None):
+    def __init__(self,value=None,E_units='keV',name=None):
 
         _allowed_units = ['keV','eV','MeV','GeV','TeV','Hz','MHz','GHz']
 
@@ -485,7 +487,7 @@ class SpectralBoundary(Parameter):
 
 
 class Energy(Parameter):
-    def __init__(self,E_units,name,value=None):
+    def __init__(self,value=None,E_units=None,name=None):
 
         _allowed_units = ['keV','eV','MeV','GeV','TeV']
 
@@ -523,7 +525,7 @@ class Energy(Parameter):
 
 
 class DetectionThreshold(Parameter):
-    def __init__(self,units,name,value=None):
+    def __init__(self,value=None,units='sigma',name=None):
 
         _allowed_units = ['sigma']
 
@@ -559,10 +561,10 @@ class DetectionThreshold(Parameter):
 
 
 class UserCatalog(Parameter):
-    def __init__(self, units, name, value=None):
+    def __init__(self, value=None,name_format='str', name=None):
         _allowed_units = ['str']
         super(UserCatalog,self).__init__(value=value,
-                                  units=units,
+                                  units=name_format,
                                   check_value=self.check_name_value,
                                   name=name,
                                   allowed_units=_allowed_units)

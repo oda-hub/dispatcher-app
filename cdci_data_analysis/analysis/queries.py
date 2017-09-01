@@ -262,26 +262,22 @@ class BaseQuery(object):
 
 class SourceQuery(BaseQuery):
     def __init__(self,name):
-        src_name=Name('str','src_name')
-        RA = Angle('deg', 'RA', 0.)
-        DEC = Angle('deg', 'DEC', 0.)
+        src_name= Name(name_format='str', name='src_name')
+        RA = Angle(value=0.,units='deg', name='RA', )
+        DEC = Angle(value=0.,units='deg', name='DEC')
 
         sky_coords=ParameterTuple([RA,DEC],'sky_coords')
 
-        t1_iso = Time('iso', 'T1_iso', value='2001-12-11T00:00:00.0')
-        t2_iso = Time('iso', 'T2_iso', value='2001-12-11T00:00:00.0')
+        t1 = Time(value='2001-12-11T00:00:00.0',name='T1',Time_format_name='T_format')
+        t2 = Time(value='2001-12-11T00:00:00.0',name='T2',Time_format_name='T_format')
 
-        t1_mjd = Time('mjd', 'T1_mjd', value=1.0)
-        t2_mjd = Time('mjd', 'T2_mjd', value=1.0)
+        t_range = ParameterRange(t1, t2, 'time')
 
-        t_range_iso = ParameterRange(t1_iso, t2_iso, 'time_range_iso')
-        t_range_mjd = ParameterRange(t1_mjd, t2_mjd, 'time_range_mjd')
-
-        time_group = ParameterGroup([t_range_iso, t_range_mjd], 'time_range', selected='t_range_iso')
-        time_group_selector = time_group.build_selector('time_group_selector')
+        #time_group = ParameterGroup([t_range_iso, t_range_mjd], 'time_range', selected='t_range_iso')
+        #time_group_selector = time_group.build_selector('time_group_selector')
 
 
-        parameters_list=[src_name,sky_coords,time_group,time_group_selector]
+        parameters_list=[src_name,sky_coords,t_range]
 
 
         super(SourceQuery, self).__init__(name,parameters_list)
@@ -306,17 +302,17 @@ class InstrumentQuery(BaseQuery):
                  catalog_name=None,
                  catalog=None):
 
-        radius = Angle(raidus_units, radius_name, radius_value)
+        radius = Angle(value=radius_value,units=raidus_units, name=radius_name)
 
 
-        E1_keV = SpectralBoundary(E1_units, E1_name, value=E1_value)
-        E2_keV = SpectralBoundary(E2_units, E2_name, value=E2_value)
+        E1_keV = SpectralBoundary(value=E1_value,E_units=E1_units,name= E1_name)
+        E2_keV = SpectralBoundary(value=E2_value,E_units=E2_units,name= E2_name)
 
         spec_window = ParameterRange(E1_keV, E2_keV, 'spec_window')
 
-        input_prod_list= InputProdList('names_list', input_prod_list_name, value=input_prod_value)
+        input_prod_list= InputProdList(value=input_prod_value,_format='names_list', name=input_prod_list_name, )
 
-        catalog=UserCatalog('str',catalog_name,value=catalog)
+        catalog=UserCatalog(value=catalog,name_format='str',name=catalog_name)
 
         parameters_list=[spec_window,radius,catalog,input_prod_list]
 
@@ -364,7 +360,7 @@ class ProductQuery(BaseQuery):
 
 class ImageQuery(ProductQuery):
     def __init__(self,name,parameters_list,**kwargs):
-        detection_th = DetectionThreshold('sigma', 'detection_threshold', value=0.0)
+        detection_th = DetectionThreshold(value=0.0,units='sigma', name='detection_threshold')
         if parameters_list != [] and parameters_list is not None:
             parameters_list.extend(detection_th)
         else:
