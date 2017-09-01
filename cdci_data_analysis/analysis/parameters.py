@@ -559,39 +559,14 @@ class DetectionThreshold(Parameter):
 
 
 class UserCatalog(Parameter):
-    def __init__(self, name='catalog',units=None,allowed_units=[],value=None):
-        super(UserCatalog, self).__init__(value=value,
-                                     check_value=self.check_catalog_value,
-                                     name=name,
-                                     allowed_units=allowed_units)
+    def __init__(self, units, name, value=None):
+        _allowed_units = ['str']
+        super(UserCatalog,self).__init__(value=value,
+                                  units=units,
+                                  check_value=self.check_name_value,
+                                  name=name,
+                                  allowed_units=_allowed_units)
 
-        
-     
-    
-
-    def read(self):
-        print('self.value',self.value,type(self.value))
-        if isinstance(self.value,BasicCatalog):
-            return self.value
-
-        if type(self.value)==str:
-            print('a')
-        return BasicCatalog.from_fits_file(self.value)
-
-       
-       
-
-        
     @staticmethod
-    def check_catalog_value(value, units=None, name=None):
+    def check_name_value(value, units=None, name=None):
         pass
-        #print('check type of ', name, 'value', value, 'type', type(value))
-
-
-
-        #if isinstance(value,BasicCatalog):
-       #     pass
-       # elif  type(value)==str:
-       #     pass
-       # else:
-       #     raise RuntimeError('type of ', name, 'is not valid, it is', type(value),'but should be',type(BasicCatalog))

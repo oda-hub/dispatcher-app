@@ -61,14 +61,17 @@ class BasicCatalog(object):
 
         self.lat_name, self.lon_name=self.get_coord_names(self.sc)
 
-        meta={'frame':frame}
-        meta['coord_unit']=unit
-        meta['lon_name']=self.lon_name
-        meta['lat_name']=self.lat_name
+        meta={'FRAME':frame}
+        meta['COORD_UNIT']=unit
+        meta['LON_NAME']=self.lon_name
+        meta['LAT_NAME']=self.lat_name
 
 
         self._table = Table([src_names, significance, lon, lat], names=['src_names', 'significance', self.lon_name, self.lat_name],meta=meta)
 
+    def select_IDs(self,ids):
+        self.unselect_all()
+        self.selected[ids]=True
 
 
     def select_all(self):
@@ -156,7 +159,7 @@ class BasicCatalog(object):
             frame = table.meta['FRAME']
             lon=table[table.meta['LON_NAME']]
             lat =table[table.meta['LAT_NAME']]
-            unit = table.meta['coord_unit']
+            unit = table.meta['COORD_UNIT']
 
             cat= cls(src_names,lon,lat,significance,unit=unit,frame=frame)
         except:

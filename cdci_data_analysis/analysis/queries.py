@@ -316,7 +316,7 @@ class InstrumentQuery(BaseQuery):
 
         input_prod_list= InputProdList('names_list', input_prod_list_name, value=input_prod_value)
 
-        catalog=UserCatalog(catalog_name,value=catalog)
+        catalog=UserCatalog('str',catalog_name,value=catalog)
 
         parameters_list=[spec_window,radius,catalog,input_prod_list]
 
