@@ -72,11 +72,29 @@ class OsaCatalog(BasicCatalog):
         self.add_column(data=ERR_RAD, name='ERR_RAD', dtype=np.float)
 
     @classmethod
+    def build_from_dict_list(cls, distlist):
+        frame = "FK5"
+
+        get_key_column=lambda key,default=None: [de.get(key,default) for de in distlist]
+
+        print(get_key_column('name'),cls)
+
+        return cls( get_key_column('name'),
+                    get_key_column('ra'),
+                    get_key_column('dec'),
+                    significance=get_key_column('DETSIG',0),
+                    frame="fk5",
+                    ISGRI_FLAG=get_key_column("ISGRI_FLAG",1),
+                    NEW_SOURCE=get_key_column("NEW_SOURCE",0),
+                    FLAG=get_key_column("FLAG", 1),
+                    ERR_RAD=get_key_column('err_rad',0.01))
+
+    @classmethod
     def build_from_ddosa_srclres(cls, srclres):
         catalog = pf.open(srclres)[1]
         frame = catalog.header['RADECSYS'].lower()
         catalog=catalog.data
-        return cls( catalog['NAME'],
+        return cls( [n.strip() for n in catalog['NAME']],
                     catalog['RA_FIN'],
                     catalog['DEC_FIN'],
                     significance=catalog['DETSIG'],
@@ -84,7 +102,7 @@ class OsaCatalog(BasicCatalog):
                     NEW_SOURCE=catalog['NEW_SOURCE'],
                     ISGRI_FLAG=catalog['ISGRI_FLAG'],
                     FLAG=catalog['FLAG'],
-                    ERR_RAD=catalog['ERR_RAD'])
+                    ERR_RAD=catalog['ERR_RAD'] )
 
 
 

@@ -47,7 +47,7 @@ class QueryProduct(object):
         self.target=target
         self.modules=modules
         self.assume=assume
-        self.inject=[]
+        self.inject=inject
 
 
 class OsaQuery(object):

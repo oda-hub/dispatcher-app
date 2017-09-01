@@ -68,6 +68,7 @@ def do_image_from_single_scw(E1,E2,scw):
 
 def do_mosaic(E1,E2,scwlist_assumption,extramodules=[],user_catalog=None):
 
+    inject=[]
     if user_catalog is not None:
         print ('user_catalog',user_catalog.ra)
 
@@ -75,17 +76,19 @@ def do_mosaic(E1,E2,scwlist_assumption,extramodules=[],user_catalog=None):
                {
                    "catalog": [
                        {
-                           "RA": ra,
-                           "DEC": dec,
-                           "NAME": name,
+                           "RA": float(ra.deg),
+                           "DEC": float(dec.deg),
+                           "NAME": str(name),
                        }
                        for ra,dec,name in zip(user_catalog.ra,user_catalog.dec,user_catalog.name)
                    ],
-                   "version": "v1" # catalog id here; good if user-understandable, but can be computed internally
+                   "version": "v1", # catalog id here; good if user-understandable, but can be computed internally
+                   "autoversion":True,
                }
                ]
-    else:
-        cat=None
+
+        extramodules.append("git://gencat")
+        inject.append(cat)
 
     print('mosaic standard mode from scw_list', scwlist_assumption)
 
@@ -95,8 +98,11 @@ def do_mosaic(E1,E2,scwlist_assumption,extramodules=[],user_catalog=None):
            'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
            'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
 
+    if user_catalog is not None:
+        assume.append("ddosa.mosaic_ii_skyimage(use_ii_NegModels=1)")
 
-    return  QueryProduct(target=target,modules=modules,assume=assume,inject=[cat])
+
+    return  QueryProduct(target=target,modules=modules,assume=assume,inject=inject)
 
 
 def do_mosaic_from_scw_list(E1,E2,user_catalog=None,scw_list=["035200230010.001","035200240010.001"]):
@@ -128,7 +134,7 @@ def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,confi
     user_catalog=instrument.get_par_by_name('user_catalog').value
 
     print('scw_list',scw_list)
-    print('user_catalog',user_catalog)
+
     if scw_list is not None and scw_list!=[]:
 
         if len(instrument.get_par_by_name('scw_list').value)==1:

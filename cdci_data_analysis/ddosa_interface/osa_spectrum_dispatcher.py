@@ -39,8 +39,6 @@ __author__ = "Andrea Tramacere"
 # relative import eg: from .mod import f
 
 
-import ddosaclient as dc
-
 
 # Project
 # relative import eg: from .mod import f
@@ -74,10 +72,12 @@ class IsgriSpectrumProduct(SpectrumProduct):
                 print('-->', source_name, src_name)
                 if source_name == src_name:
                     spectrum = pf.open(getattr(res, spec_attr))[1]
+                    arf_filename= getattr(res, arf_attr)
+                    rmf_filename = getattr(res, rmf_attr)
                     data=spectrum.data
                     header=spectrum.header
 
-        spec= cls(name=name,data=data,header=header,rmf_file=rmf_attr,arf_file=arf_attr)
+        spec= cls(name=name,data=data,header=header,rmf_file=rmf_filename,arf_file=arf_filename)
 
         spec.set_arf_file(arf_kw='ANCRFILE',out_arf_file='arf.fits')
         spec.set_rmf_file(rmf_kw='RESPFILE',out_rmf_file='rmf.fits')
@@ -173,6 +173,7 @@ def do_spectrum_from_time_span(E1,E2,T1,T2,RA,DEC,radius,user_catalog=None):
 
 
 def do_spectrum(target,modules,assume,user_catalog=None):
+    inject=[]
     if user_catalog is not None:
         print ('user_catalog',user_catalog.ra)
 
@@ -180,19 +181,23 @@ def do_spectrum(target,modules,assume,user_catalog=None):
                {
                    "catalog": [
                        {
-                           "RA": ra,
-                           "DEC": dec,
+                           "RA": float(ra.deg),
+                           "DEC": float(dec.deg),
                            "NAME": name,
                        }
                        for ra,dec,name in zip(user_catalog.ra,user_catalog.dec,user_catalog.name)
                    ],
-                   "version": "v1" # catalog id here; good if user-understandable, but can be computed internally
+                   "version": "v2", # catalog id here; good if user-understandable, but can be computed internally
+                   "autoversion": True, # this will complement the version with some hash of the data
+                                      # consider the above version now to be the version of the version generation
                }
                ]
-    else:
-        cat=None
+        inject.append(cat)
 
-    return QueryProduct(target=target, modules=modules, assume=assume,inject=[cat])
+        modules.append("git://gencat")
+#        assume.append("ddosa.ii_spectra_extract(input_cat=gencat.CatForSpectra)")
+
+    return QueryProduct(target=target, modules=modules, assume=assume,inject=inject)
 
 
 def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None):
