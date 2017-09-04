@@ -78,21 +78,20 @@ class Instrument(object):
         print(par_dic.keys())
         for _query in self._queries_list:
             for par in _query._parameters_list:
-
-                par_name=par.name
-                units_name=par.units_name
-                #print(par_name,units_name)
-                v=None
-                u=None
-                if par_name  in par_dic.keys():
-                    v=par_dic[par_name]
-                if units_name in  par_dic.keys():
-                    if units_name is not None:
-                        u=par_dic[units_name]
-                print('setting par:', par_name,'to val=',v,'and units',units_name,'to',u)
-                if u is not None:
-                    par.units=u
-                par.value=v
+                par.set_from_form(par_dic)
+                #par_name=par.name
+                #units_name=par.units_name
+                #v=None
+                #u=None
+                #if par_name  in par_dic.keys():
+                #    v=par_dic[par_name]
+                #if units_name in  par_dic.keys():
+                #    if units_name is not None:
+                #        u=par_dic[units_name]
+                #print('setting par:', par_name,'to val=',v,'and units',units_name,'to',u)
+                #if u is not None:
+                #    par.units=u
+                #par.value=v
 
 
         #for p, v in par_dic.items():

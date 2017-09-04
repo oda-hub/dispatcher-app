@@ -225,10 +225,34 @@ class Parameter(object):
         self._units=units
 
     def set_from_form(self,form):
-        if self.name in form.keys:
-            self.value=form[self.name]
-        else:
-            print('par %s not present in form'%self.name)
+        par_name = self.name
+        units_name = self.units_name
+        # print(par_name,units_name)
+        v = None
+        u = None
+
+
+
+        if units_name is not None:
+            if units_name in form.keys():
+               u = form[units_name]
+        if par_name in form.keys():
+            v=form[par_name]
+
+        self.set_par(value=v,units=u)
+
+        print('setting par:', par_name, 'to val=', self.value, 'and units', units_name, 'to', self.units )
+
+
+
+    def set_par(self,value,units=None):
+        if units is not None:
+            self.units=units
+        self.value=value
+
+
+
+
 
     def get_form(self,wtform_cls,key,validators,defaults):
          return   wtform_cls('key', validators=validators, default=defaults)
