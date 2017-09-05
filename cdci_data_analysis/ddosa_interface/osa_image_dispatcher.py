@@ -66,9 +66,14 @@ def do_image_from_single_scw(E1,E2,scw):
 
 
 
-def do_mosaic(E1,E2,scwlist_assumption,extramodules=[],user_catalog=None):
+def do_mosaic(E1,E2,scwlist_assumption,extramodules=None,user_catalog=None):
 
     inject=[]
+    print ('extramodules',extramodules)
+    print ('user_catalog',user_catalog)
+    if extramodules is None:
+        extramodules=[]
+
     if user_catalog is not None:
         print ('user_catalog',user_catalog.ra)
 
@@ -89,7 +94,7 @@ def do_mosaic(E1,E2,scwlist_assumption,extramodules=[],user_catalog=None):
 
         extramodules.append("git://gencat")
         inject.append(cat)
-
+    print ('extramodules',extramodules)
     print('mosaic standard mode from scw_list', scwlist_assumption)
 
     target="mosaic_ii_skyimage"
@@ -117,7 +122,7 @@ def do_mosaic_from_time_span(E1,E2,T1,T2,RA,DEC,radius,user_catalog=None):
                         use_max_pointings=3)\
                     '%(dict(RA=RA,DEC=DEC,radius=radius,T1=T1,T2=T2)),
 
-    return do_mosaic(E1,E2,scwlist_assumption,extramodules=['git://rangequery'],user_catalog=user_catalog)
+    return do_mosaic(E1,E2,scwlist_assumption,user_catalog=user_catalog)
 
 
 

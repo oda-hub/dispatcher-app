@@ -343,12 +343,20 @@ class Time(Parameter):
 
     @value.setter
     def value(self, v):
+      
         units=self.units
         self._set_time(v, format=units)
 
     def _set_time(self,value,format):
+       
+        try:
+            value=ast.literal_eval(value)
+        except:
+            pass
+        
         self._astropy_time = astropyTime(value, format=format)
-        self._value = self._astropy_time.value
+        
+        self._value =value
 
 
 

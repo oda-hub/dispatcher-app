@@ -67,7 +67,7 @@ class BasicCatalog(object):
         meta['LAT_NAME']=self.lat_name
 
 
-        self._table = Table([src_names, significance, lon, lat], names=['src_names', 'significance', self.lon_name, self.lat_name],meta=meta)
+        self._table = Table([np.arange(len(src_names)),src_names, significance, lon, lat], names=['meta_ID','src_names', 'significance', self.lon_name, self.lat_name],meta=meta,masked=True)
 
     def select_IDs(self,ids):
         self.unselect_all()
@@ -141,7 +141,19 @@ class BasicCatalog(object):
         self._table.add_column(Column(data=data,name=name,dtype=dtype))
 
     def get_dictionary(self):
-        return dict(columns_list=[self.table[name].tolist() for name in self.table.colnames], column_names=self.table.colnames,column_descr=self.table.dtype.descr)
+        print('in table',self.table)
+        #for col in self._table.columns.values():
+        #    try:
+        #        col.mask = np.isnan(col)
+        #        col[col.mask]=-99
+        #    except:
+        #        pass
+
+        columns_lists=[self.table[name].tolist() for name in self.table.colnames]
+        for ID,_col in enumerate(columns_lists):
+            columns_lists[ID] = [x if str(x)!='nan' else None for x in _col]
+        print ('new table',columns_lists)
+        return dict(columns_list=columns_lists, column_names=self.table.colnames,column_descr=self.table.dtype.descr)
 
 
     def write(self,name,format='fits',overwrite=True):

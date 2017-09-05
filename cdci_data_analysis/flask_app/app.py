@@ -12,7 +12,8 @@ from builtins import (bytes, open, str, super, range,
                       zip, round, input, int, pow, object, map, zip)
 
 from flask import Flask, render_template, request, jsonify
-
+from flask.json import JSONEncoder
+import  simplejson
 from ..ddosa_interface.osa_isgri import OSA_ISGRI
 from ..analysis.queries import *
 # from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
@@ -59,8 +60,9 @@ def meta_data_isgri():
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
     # print('osa conf', app.config.get('osaconf'), request.method)
-
-    instrument_name = request.args.get('instrument')
+    print(request.args)
+    #instrument_name = request.args.get('instrument')
+    instrument_name='ISGRI'
     prod_type = request.args.get('product_type')
     print('product_type', prod_type)
     print('instrument', instrument_name)
@@ -76,7 +78,7 @@ def run_analysis_test():
     prod = None
     par_dic = request.args.to_dict()
     par_dic.pop('image_type')
-    par_dic.pop('instrument')
+    #par_dic.pop('instrument')
     par_dic.pop('product_type')
     par_dic.pop('object_name')
 
@@ -112,7 +114,7 @@ def query_isgri_image(instrument, par_dic):
 
             from cdci_data_analysis.analysis.catalog import BasicCatalog
 
-            user_catalog = BasicCatalog.from_fits_file('mosaic_catalog.fits')
+            user_catalog = BasicCatalog.from_fits_file('query_catalog.fits')
             print('catalog_length', user_catalog.length)
             instrument.set_par('user_catalog', user_catalog)
             print('catalog_selected_objects', catalog_selected_objects)
@@ -120,7 +122,7 @@ def query_isgri_image(instrument, par_dic):
             _sel = np.zeros(user_catalog.length, dtype=bool)
             _sel[catalog_selected_objects] = True
             user_catalog.selected = _sel
-
+            print('catalog selected',user_catalog.table)
             print('catalog_length', user_catalog.length)
 
         prod_list, exception = instrument.get_query_products('isgri_image_query', config=app.config.get('osaconf'))
@@ -141,15 +143,16 @@ def query_isgri_image(instrument, par_dic):
 
         return jsonify(html_fig)
 
+    print ('--> query was ok')
     prod = {}
     prod['image'] = html_fig
     prod['catalog'] = query_catalog.catalog.get_dictionary()
 
     query_image.write('query_mosaic.fits', overwrite=True)
     query_catalog.write('query_catalog.fits', overwrite=True)
-
+    
+    print ('--> send prog')
     return prod
-
 
 def query_isgri_spectrum():
     pass
