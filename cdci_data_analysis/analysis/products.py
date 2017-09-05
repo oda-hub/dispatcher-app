@@ -211,6 +211,50 @@ class SpectrumProduct(BaseQueryProduct):
     def write(self,name,overwrite=True):
         pf.writeto(self.file_name, data=self.data, header=self.header,overwrite=overwrite)
 
+    def get_html_draw(self, catalog=None, plot=False):
+        import xspec as xsp
+        # PyXspec operations:
+        s = xsp.Spectrum(self.file_name)
+        s.ignore('**-15.')
+        s.ignore('300.-**')
+        xsp.Model("cutoffpl")
+        xsp.Fit.query = 'yes'
+        xsp.Fit.perform()
+
+        xsp.Plot.device = "/xs"
+
+        xsp.Plot.xLog = True
+        xsp.Plot.yLog = True
+        xsp.Plot.setRebin(10., 5)
+        xsp.Plot.xAxis = 'keV'
+        # Plot("data","model","resid")
+        # Plot("data model resid")
+        xsp.Plot("data,delchi")
+
+        if plot == True:
+            xsp.Plot.show()
+
+        import matplotlib
+        matplotlib.use('TkAgg')
+
+        import pylab as plt
+        fig, ax = plt.subplots()
+
+        ax.set_xscale("log", nonposx='clip')
+        ax.set_yscale("log")
+
+        plt.errorbar(xsp.Plot.x(), xsp.Plot.y(), xerr=xsp.Plot.xErr(), yerr=xsp.Plot.yErr(), fmt='o')
+        plt.step(xsp.Plot.x(), xsp.Plot.model(), where='mid')
+        ax.set_xlabel('Energy (keV)')
+        ax.set_ylabel('normalize counts  s$^{-1}$ keV$^{-1}$')
+
+        if plot == True:
+            plt.show()
+
+        plugins.connect(fig, plugins.MousePosition(fontsize=14))
+
+        return mpld3.fig_to_dict(fig)
+
 
 
 class CatalogProduct(BaseQueryProduct):

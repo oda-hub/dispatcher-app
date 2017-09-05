@@ -89,6 +89,8 @@ def test_plot_mosaic():
     plt.show()
 
 
+
+
 def test_spectrum_cookbook(use_scw_list=True,use_catalog=False):
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
 
@@ -122,12 +124,16 @@ def test_spectrum_cookbook(use_scw_list=True,use_catalog=False):
 
     prod_list, exception=instr.get_query_products('isgri_spectrum_query', config=osaconf)
 
-    spectrum=prod_list.get_prod_by_name('isgri_spectrum')
-    spectrum.write('spectrum.fits')
+    query_spectrum=prod_list.get_prod_by_name('isgri_spectrum')
+    query_spectrum.write('spectrum.fits')
+
+    print('spetrum written')
+
+    html_fig = query_spectrum.get_html_draw(plot=True)
 
     if use_catalog==True:
         print("input catalog:",osa_catalog.name)
-        assert spectrum.header['NAME']==parameters['src_name']
+        assert query_spectrum.header['NAME']==parameters['src_name']
         #TODO: we could also extract other sources really, and assert if the result is consistent with input.
         #TODO: (for better test coverage)
 
@@ -222,7 +228,7 @@ def test_full_mosaic():
 
 
 def test_full_spectrum():
-    test_spectrum_cookbook()
+    #test_spectrum_cookbook()
     test_spectrum_cookbook(use_catalog=True)
     #test_spectrum_cookbook(use_scw_list=False)
 

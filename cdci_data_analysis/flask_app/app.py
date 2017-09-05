@@ -11,6 +11,8 @@ from __future__ import absolute_import, division, print_function
 from builtins import (bytes, open, str, super, range,
                       zip, round, input, int, pow, object, map, zip)
 
+import numpy as np
+
 from flask import Flask, render_template, request, jsonify
 from flask.json import JSONEncoder
 import  simplejson
@@ -59,9 +61,7 @@ def meta_data_isgri():
 
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
-    # print('osa conf', app.config.get('osaconf'), request.method)
-    print(request.args)
-    #instrument_name = request.args.get('instrument')
+
     instrument_name='ISGRI'
     prod_type = request.args.get('product_type')
     print('product_type', prod_type)
@@ -74,56 +74,60 @@ def run_analysis_test():
     if instrument is None:
         raise Exception("instrument not recognized".format(instrument_name))
 
-    # sprod.parameters
-    prod = None
+    prod_dictionary = None
     par_dic = request.args.to_dict()
     par_dic.pop('image_type')
-    #par_dic.pop('instrument')
+
     par_dic.pop('product_type')
     par_dic.pop('object_name')
 
-    print(par_dic)
+    print('par_dic', par_dic)
+    print('request', request)
+
     if request.method == 'GET':
+
+
+        instrument.set_pars_from_dic(par_dic)
+        instrument.show_parameters_list()
+        set_catalog(instrument, par_dic)
 
         if request.args.get('product_type') == 'isgri_image':
             prod_dictionary = query_isgri_image(instrument, par_dic)
 
+
+        if request.args.get('product_type') == 'isgri_spectrum':
+            prod_dictionary=query_isgri_spectrum(instrument, par_dic)
+
     return jsonify(prod_dictionary)
 
 
-def query_isgri_image(instrument, par_dic):
-    print('request.files', request.files)
+
+def set_catalog(instrument,par_dic):
     if 'catalog_selected_objects' in par_dic.keys():
-        import numpy as np
+
         catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)
         par_dic.pop('catalog_selected_objects')
     else:
         catalog_selected_objects = None
 
-    print('request', request)
+    if catalog_selected_objects is not None:
+        from cdci_data_analysis.analysis.catalog import BasicCatalog
 
-    print('par_dic', par_dic)
-    instrument.set_pars_from_dic(par_dic)
+        user_catalog = BasicCatalog.from_fits_file('query_catalog.fits')
+        print('catalog_length', user_catalog.length)
+        instrument.set_par('user_catalog', user_catalog)
+        print('catalog_selected_objects', catalog_selected_objects)
 
-    instrument.show_parameters_list()
+        _sel = np.zeros(user_catalog.length, dtype=bool)
+        _sel[catalog_selected_objects] = True
+        user_catalog.selected = _sel
+        print('catalog selected', user_catalog.table)
+        print('catalog_length', user_catalog.length)
+
+
+
+def query_isgri_image(instrument):
     if request.args.get('image_type') != 'Dummy':
-
-        if catalog_selected_objects is not None:
-            # if instrument.get_par_by_name('user_catalog').value is None:
-            #    instrument.set_par('user_catalog', 'query_catalog.fits')
-
-            from cdci_data_analysis.analysis.catalog import BasicCatalog
-
-            user_catalog = BasicCatalog.from_fits_file('query_catalog.fits')
-            print('catalog_length', user_catalog.length)
-            instrument.set_par('user_catalog', user_catalog)
-            print('catalog_selected_objects', catalog_selected_objects)
-
-            _sel = np.zeros(user_catalog.length, dtype=bool)
-            _sel[catalog_selected_objects] = True
-            user_catalog.selected = _sel
-            print('catalog selected',user_catalog.table)
-            print('catalog_length', user_catalog.length)
 
         prod_list, exception = instrument.get_query_products('isgri_image_query', config=app.config.get('osaconf'))
 
@@ -147,15 +151,25 @@ def query_isgri_image(instrument, par_dic):
     prod = {}
     prod['image'] = html_fig
     prod['catalog'] = query_catalog.catalog.get_dictionary()
-
     query_image.write('query_mosaic.fits', overwrite=True)
     query_catalog.write('query_catalog.fits', overwrite=True)
-    
     print ('--> send prog')
+
     return prod
 
-def query_isgri_spectrum():
-    pass
+def query_isgri_spectrum(instrument):
+
+    prod_list, exception = instrument.get_query_products('isgri_spectrum_query', config=app.config.get('osaconf'))
+    query_spectrum = prod_list.get_prod_by_name('isgri_spectrum')
+
+
+    print('--> query was ok')
+    prod = {}
+    query_spectrum.write('query_spectrum.fits', overwrite=True)
+    print('--> send prog')
+    return prod
+
+
 
 
 def query_isgri_ligthcurve():

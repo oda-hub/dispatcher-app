@@ -207,7 +207,6 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
 
 
 
-    time_range_type = instrument.get_par_by_name('time_group_selector').value
     RA = instrument.get_par_by_name('RA').value
     DEC = instrument.get_par_by_name('DEC').value
     radius = instrument.get_par_by_name('radius').value
@@ -245,6 +244,7 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
 
     res = q.run_query(query_prod=query_prod)
 
+    #print ('==> res',res.source_results)
     spectrum=IsgriSpectrumProduct.build_from_ddosa_res('isgri_spectrum',res,src_name)
 
     prod_list = QueryProductList(prod_list=[spectrum])
