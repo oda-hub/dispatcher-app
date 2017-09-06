@@ -67,6 +67,8 @@ class IsgriSpectrumProduct(SpectrumProduct):
         data = None
         header=None
         print('src_name->', src_name)
+
+
         for source_name, spec_attr, rmf_attr, arf_attr in res.extracted_sources:
             if src_name is not None:
                 print('-->', source_name, src_name)

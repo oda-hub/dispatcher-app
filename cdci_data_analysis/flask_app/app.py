@@ -79,7 +79,7 @@ def run_analysis_test():
     par_dic.pop('image_type')
 
     par_dic.pop('product_type')
-    par_dic.pop('object_name')
+    #par_dic.pop('object_name')
 
     print('par_dic', par_dic)
     print('request', request)
@@ -92,11 +92,11 @@ def run_analysis_test():
         set_catalog(instrument, par_dic)
 
         if request.args.get('product_type') == 'isgri_image':
-            prod_dictionary = query_isgri_image(instrument, par_dic)
+            prod_dictionary = query_isgri_image(instrument)
 
 
         if request.args.get('product_type') == 'isgri_spectrum':
-            prod_dictionary=query_isgri_spectrum(instrument, par_dic)
+            prod_dictionary=query_isgri_spectrum(instrument)
 
     return jsonify(prod_dictionary)
 
