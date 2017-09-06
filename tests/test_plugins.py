@@ -208,7 +208,8 @@ def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False):
         raise RuntimeError('no light curve produced')
     print ('out_prod',dir(query_lc))
     query_lc.write('lc.fits')
-
+    html_fig= query_lc.get_html_draw(plot=True)
+    print ('html_fig',html_fig)
 
 def test_plot_lc():
     from astropy.io import fits as pf

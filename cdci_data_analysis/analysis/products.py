@@ -134,7 +134,7 @@ class LightCurveProduct(BaseQueryProduct):
 
     def get_html_draw(self, plot=False):
         from astropy.io import fits as pf
-        data= pf.getdata(self.data,ext=1)
+        data= pf.getdata(self.file_name,ext=1)
 
         import matplotlib
         matplotlib.use('TkAgg')
@@ -147,8 +147,10 @@ class LightCurveProduct(BaseQueryProduct):
         plt.errorbar(data['TIME'], data['RATE'], yerr=data['ERROR'], fmt='o')
         ax.set_xlabel('Time ')
         ax.set_ylabel('Rate ')
+
         if plot == True:
             plt.show()
+
         plugins.connect(fig, plugins.MousePosition(fontsize=14))
 
         return mpld3.fig_to_dict(fig)

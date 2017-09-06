@@ -98,6 +98,9 @@ def run_analysis_test():
         if request.args.get('product_type') == 'isgri_spectrum':
             prod_dictionary=query_isgri_spectrum(instrument)
 
+        if request.args.get('product_type') == 'isgri_lc':
+            prod_dictionary=query_isgri_light_curve(instrument)
+
     return jsonify(prod_dictionary)
 
 
@@ -176,7 +179,6 @@ def query_isgri_light_curve(instrument):
 
 
     prod_list, exception = instrument.get_query_products('isgri_lc_query', config=app.config.get('osaconf'))
-
     query_lc = prod_list.get_prod_by_name('isgri_lc')
 
     html_fig = query_lc.get_html_draw()
