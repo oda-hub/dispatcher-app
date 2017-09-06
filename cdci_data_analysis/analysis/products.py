@@ -116,9 +116,21 @@ class ImageProduct(BaseQueryProduct):
 
 
 class LightCurveProduct(BaseQueryProduct):
-    def __init__(self,name, **kwargs):
-        super(LightCurveProduct, self).__init__(name, **kwargs)
+    def __init__(self,name,
+                      data,
+                      header,
+                      file_name='lc.fits',
+                      **kwargs):
+        self.name = name
+        self.data = data
+        self.header = header
+        self.file_name = file_name
 
+
+        super(LightCurveProduct, self).__init__(name,**kwargs)
+
+    def write(self, name, overwrite=True):
+        pf.writeto(self.file_name, data=self.data, header=self.header, overwrite=overwrite)
 
 class SpectrumProduct(BaseQueryProduct):
     def __init__(self, name,

@@ -42,7 +42,7 @@ from ..analysis.queries import  *
 from ..analysis.products import *
 from .osa_image_dispatcher import get_osa_image_products
 from .osa_spectrum_dispatcher import get_osa_spectrum
-
+from .osa_lightcurve_dispatcher import get_osa_lightcurve
 
 
 
@@ -67,7 +67,7 @@ def OSA_ISGRI():
         catalog_name='user_catalog')
 
     #QueryProducts
-    light_curve =LightCurveQuery('isgri_lc_query', None)
+    light_curve =LightCurveQuery('isgri_lc_query',None, get_products_method=get_osa_lightcurve)
     image=ImageQuery('isgri_image_query', None, get_products_method=get_osa_image_products)
     spectrum=SpectrumQuery('isgri_spectrum_query', None, get_products_method=get_osa_spectrum)
 

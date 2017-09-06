@@ -175,30 +175,39 @@ def test_fit_spectrum_cookbook():
     ax.set_ylabel('normalize counts  s$^{-1}$ keV$^{-1}$')
     plt.show()
 
-def test_lightcurve_cookbook(use_scw_list=True):
-    from cdci_data_analysis.ddosa_interface.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
+def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False):
+    from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
 
-    prod= OSA_ISGRI_LIGHTCURVE()
 
-    parameters = dict(E1=20., E2=40.,T1=T_start, T2=T_stop, RA=RA, DEC=DEC, radius=25, scw_list=cookbook_scw_list,src_name="4U 1700-377")
+    instr = OSA_ISGRI()
 
-    for p,v in parameters.items():
-        print('set from form',p,v)
-        prod.set_par_value(p, v)
-        print('--')
-    if use_scw_list == True:
-        prod.set_par_value('time_group_selector', 'scw_list')
-    else:
-        prod.set_par_value('time_group_selector', 'time_range_iso')
-    prod.show_parameters_list()
+    parameters = dict(E1_keV=20., E2_keV=40., T1=T1_iso, T2=T2_iso, RA=RA, DEC=DEC, radius=25,
+                      scw_list=cookbook_scw_list, src_name='4U 1700-377')
 
-    out_prod, exception=prod.get_products(config=osaconf)
-    if out_prod is None:
+    instr.set_pars_from_dic(parameters)
+
+    if use_catalog==True:
+        dra=float(time.strftime("0.%j")) # it's vital to make sure that the test changes with the phase of the moon
+        ddec = float(time.strftime("0.%H%M%S"))
+
+        dsrc_name="RD_%.6lg_%.6lg"%(RA+dra,DEC+ddec) # non-astronomical, fix
+        osa_catalog = OsaCatalog.build_from_dict_list([
+            dict(ra=RA, dec=DEC, name=parameters['src_name']),
+            dict(ra=RA+dra, dec=DEC+ddec, name=dsrc_name)
+        ])
+        instr.set_par('user_catalog', osa_catalog)
+
+    instr.show_parameters_list()
+
+    prod_list, exception=instr.get_query_products('isgri_lc_query', config=osaconf)
+
+    query_lc = prod_list.get_prod_by_name('isgri_lc')
+
+
+    if query_lc is None:
         raise RuntimeError('no light curve produced')
-    print ('out_prod',dir(out_prod))
-
-    from astropy.io import fits as pf
-    pf.writeto('lc.fits', out_prod, overwrite=True)
+    print ('out_prod',dir(query_lc))
+    query_lc.write('lc.fits')
 
 
 def test_plot_lc():
