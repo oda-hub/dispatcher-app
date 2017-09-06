@@ -172,8 +172,23 @@ def query_isgri_spectrum(instrument):
 
 
 
-def query_isgri_ligthcurve():
-    pass
+def query_isgri_light_curve(instrument):
+
+
+    prod_list, exception = instrument.get_query_products('isgri_lc_query', config=app.config.get('osaconf'))
+
+    query_lc = prod_list.get_prod_by_name('isgri_lc')
+
+    html_fig = query_lc.get_html_draw()
+
+
+    print ('--> query was ok')
+    prod = {}
+    prod['image'] = html_fig
+    query_lc.write('query_lc.fits', overwrite=True)
+    print ('--> send prog')
+
+    return prod
 
 
 def run_app(conf):

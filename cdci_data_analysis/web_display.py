@@ -100,6 +100,9 @@ def draw_spectrum(spectrum,dummy=False):
     return mpld3.fig_to_dict(fig)
 
 
+
+
+
 def draw_dummy(dummy=True):
 
 
