@@ -73,12 +73,25 @@ class BaseQueryProduct(object):
 
 
 class ImageProduct(BaseQueryProduct):
-    def __init__(self,name,data,header,**kwargs):
+    def __init__(self,name,data,header,file_name='image.fits',**kwargs):
         self.name=name
         self.data=data
         self.header=header
+        self.file_name = file_name
         super(ImageProduct, self).__init__(name, **kwargs)
 
+    @classmethod
+    def from_fits_file(cls,file_name,prod_name,ext=None):
+        hdu = pf.open(file_name, ext=ext)[0]
+        data = hdu.data
+        header = hdu.header
+
+        return  cls(name=prod_name, data=data, header=header,file_name=file_name)
+
+    def write(self,name=None,overwrite=True):
+        if name is None:
+            name=self.file_name
+        pf.writeto(name, data=self.data, header=self.header,overwrite=overwrite)
 
     def get_html_draw(self, catalog=None,plot=False):
 
@@ -129,8 +142,17 @@ class LightCurveProduct(BaseQueryProduct):
 
         super(LightCurveProduct, self).__init__(name,**kwargs)
 
-    def write(self, name, overwrite=True):
-        pf.writeto(self.file_name, data=self.data, header=self.header, overwrite=overwrite)
+    @classmethod
+    def from_fits_file(cls, file_name, prod_name, ext=None):
+        hdu = pf.open(file_name, ext=ext)[0]
+        data = hdu.data
+        header = hdu.header
+        return cls(name=prod_name, data=data, header=header, file_name=file_name)
+
+    def write(self, name=None, overwrite=True):
+        if name is None:
+            name = self.file_name
+        pf.writeto(name, data=self.data, header=self.header, overwrite=overwrite)
 
     def get_html_draw(self, plot=False):
         from astropy.io import fits as pf
@@ -243,9 +265,19 @@ class SpectrumProduct(BaseQueryProduct):
 
                 self.header[rmf_kw]=self.in_arf_file_path
 
+    @classmethod
+    def from_fits_file(cls, file_name, prod_name, ext=None):
+        hdu = pf.open(file_name, ext=ext)[0]
+        data = hdu.data
+        header = hdu.header
 
-    def write(self,name,overwrite=True):
-        pf.writeto(self.file_name, data=self.data, header=self.header,overwrite=overwrite)
+        return cls(name=prod_name, data=data, header=header, file_name=file_name)
+
+    def write(self,name=None,overwrite=True):
+        if name is None:
+            name=self.file_name
+        pf.writeto(name, data=self.data, header=self.header,overwrite=overwrite)
+
 
     def get_html_draw(self, catalog=None, plot=False):
         import xspec as xsp

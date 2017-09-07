@@ -39,9 +39,6 @@ class IsgriImageProduct(ImageProduct):
 
 
 
-    def write(self,name,overwrite=True):
-        pf.writeto(name,self.data,header=self.header,overwrite=overwrite)
-
 
 
     @classmethod

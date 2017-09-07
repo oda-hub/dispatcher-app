@@ -19,7 +19,7 @@ import  simplejson
 from ..ddosa_interface.osa_isgri import OSA_ISGRI
 from ..analysis.queries import *
 # from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
-from ..ddosa_interface.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
+#from ..ddosa_interface.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
 
 from ..web_display import draw_dummy
 
@@ -76,7 +76,7 @@ def run_analysis_test():
 
     prod_dictionary = None
     par_dic = request.args.to_dict()
-    par_dic.pop('image_type')
+    par_dic.pop('query_type')
 
     par_dic.pop('product_type')
     #par_dic.pop('object_name')
@@ -130,45 +130,59 @@ def set_catalog(instrument,par_dic):
 
 
 def query_isgri_image(instrument):
-    if request.args.get('image_type') != 'Dummy':
+    detection_significance = instrument.get_par_by_name('detection_threshold').value
+
+
+
+    if request.args.get('query_type') != 'Dummy':
 
         prod_list, exception = instrument.get_query_products('isgri_image_query', config=app.config.get('osaconf'))
 
         query_image = prod_list.get_prod_by_name('isgri_mosaic')
         query_catalog = prod_list.get_prod_by_name('mosaic_catalog')
 
-        detection_significance = instrument.get_par_by_name('detection_threshold').value
-
         if detection_significance is not None:
             query_catalog.catalog.selected = query_catalog.catalog.table['significance'] > float(detection_significance)
 
-        html_fig = query_image.get_html_draw(catalog=query_catalog.catalog)
 
+        print('--> query was ok')
+        query_image.write('query_mosaic.fits', overwrite=True)
+        query_catalog.write('query_catalog.fits', overwrite=True)
+        catalog=query_catalog.catalog
     else:
-        # print('osa conf',app.config.get('osaconf'))
-        html_fig = draw_dummy()
+        print('DUMMY')
+        from ..analysis.products import ImageProduct
+        from ..analysis.catalog import BasicCatalog
 
-        return jsonify(html_fig)
+        query_image = ImageProduct.from_fits_file('dummy_prods/query_mosaic.fits','dummy',ext=1)
+        catalog = BasicCatalog.from_fits_file('dummy_prods/query_catalog.fits')
 
-    print ('--> query was ok')
+        if detection_significance is not None:
+            catalog.selected = catalog.table['significance'] > float(detection_significance)
+
+    html_fig = query_image.get_html_draw(catalog=catalog)
     prod = {}
     prod['image'] = html_fig
-    prod['catalog'] = query_catalog.catalog.get_dictionary()
-    query_image.write('query_mosaic.fits', overwrite=True)
-    query_catalog.write('query_catalog.fits', overwrite=True)
+    prod['catalog'] = catalog.get_dictionary()
+
     print ('--> send prog')
 
     return prod
 
 def query_isgri_spectrum(instrument):
+    if request.args.get('query_type') != 'Dummy':
+        prod_list, exception = instrument.get_query_products('isgri_spectrum_query', config=app.config.get('osaconf'))
+        query_spectrum = prod_list.get_prod_by_name('isgri_spectrum')
+        query_spectrum.write(name='query_spectrum.fits', overwrite=True)
+        print('--> query was ok')
+    else:
+        from ..analysis.products import SpectrumProduct
+        query_spectrum=SpectrumProduct.from_fits_file('dummy_prods/query_spectrum.fits','dummy',ext=1)
 
-    prod_list, exception = instrument.get_query_products('isgri_spectrum_query', config=app.config.get('osaconf'))
-    query_spectrum = prod_list.get_prod_by_name('isgri_spectrum')
+    html_fig = query_spectrum.get_html_draw(plot=False)
 
-
-    print('--> query was ok')
     prod = {}
-    query_spectrum.write('query_spectrum.fits', overwrite=True)
+    prod['image'] = html_fig
     print('--> send prog')
     return prod
 
@@ -177,17 +191,22 @@ def query_isgri_spectrum(instrument):
 
 def query_isgri_light_curve(instrument):
 
-
-    prod_list, exception = instrument.get_query_products('isgri_lc_query', config=app.config.get('osaconf'))
-    query_lc = prod_list.get_prod_by_name('isgri_lc')
+    if request.args.get('query_type') != 'Dummy':
+        prod_list, exception = instrument.get_query_products('isgri_lc_query', config=app.config.get('osaconf'))
+        query_lc = prod_list.get_prod_by_name('isgri_lc')
+        query_lc.write('query_lc.fits', overwrite=True)
+        print('--> query was ok')
+    else:
+        from ..analysis.products import LightCurveProduct
+        query_lc=LightCurveProduct.from_fits_file('dummy_prods/query_lc.fits','dummy',ext=1)
 
     html_fig = query_lc.get_html_draw()
 
 
-    print ('--> query was ok')
+
     prod = {}
     prod['image'] = html_fig
-    query_lc.write('query_lc.fits', overwrite=True)
+
     print ('--> send prog')
 
     return prod

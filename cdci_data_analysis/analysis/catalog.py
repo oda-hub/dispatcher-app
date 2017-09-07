@@ -49,7 +49,7 @@ def _selector(func,arr,mask):
 
 
 class BasicCatalog(object):
-    def __init__(self,src_names,lon,lat,significance,unit='deg',frame='FK5',_selected=None):
+    def __init__(self,src_names,lon,lat,significance,unit='deg',frame='FK5',_selected=None,_table=None):
 
         self.selected = np.ones(len(src_names), dtype=np.bool)
 
@@ -66,8 +66,10 @@ class BasicCatalog(object):
         meta['LON_NAME']=self.lon_name
         meta['LAT_NAME']=self.lat_name
 
-
-        self._table = Table([np.arange(len(src_names)),src_names, significance, lon, lat], names=['meta_ID','src_names', 'significance', self.lon_name, self.lat_name],meta=meta,masked=True)
+        if _table is None:
+            self._table = Table([np.arange(len(src_names)),src_names, significance, lon, lat], names=['meta_ID','src_names', 'significance', self.lon_name, self.lat_name],meta=meta,masked=True)
+        else:
+            self._table=Table(_table.as_array(),names=_table.colnames,meta=meta,masked=True)
 
     def select_IDs(self,ids):
         self.unselect_all()
@@ -172,8 +174,8 @@ class BasicCatalog(object):
             lon=table[table.meta['LON_NAME']]
             lat =table[table.meta['LAT_NAME']]
             unit = table.meta['COORD_UNIT']
-
-            cat= cls(src_names,lon,lat,significance,unit=unit,frame=frame)
+            print('OK')
+            cat= cls(src_names,lon,lat,significance,_table=table,unit=unit,frame=frame)
         except:
             raise RuntimeError('Table in fits file is not valid to build Catalog')
 
