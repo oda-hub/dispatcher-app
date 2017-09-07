@@ -116,7 +116,11 @@ def set_catalog(instrument,par_dic):
     if catalog_selected_objects is not None:
         from cdci_data_analysis.analysis.catalog import BasicCatalog
 
-        user_catalog = BasicCatalog.from_fits_file('query_catalog.fits')
+        if request.args.get('query_type') != 'Dummy':
+            user_catalog = BasicCatalog.from_fits_file('query_catalog.fits')
+        else:
+            user_catalog = BasicCatalog.from_fits_file('')
+
         print('catalog_length', user_catalog.length)
         instrument.set_par('user_catalog', user_catalog)
         print('catalog_selected_objects', catalog_selected_objects)
@@ -154,7 +158,7 @@ def query_isgri_image(instrument):
 
 
     if detection_significance is not None:
-        query_catalog.catalog.selected = query_catalog.catalog.table['significance'] > float(detection_significance)
+        query_catalog.catalog.selected = query_catalog.catalog._table['significance'] > float(detection_significance)
 
 
 

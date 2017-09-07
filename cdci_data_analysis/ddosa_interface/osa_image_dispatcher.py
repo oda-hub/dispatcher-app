@@ -192,6 +192,8 @@ def get_osa_image_dummy_products(instrument,config):
     catalog = CatalogProduct('mosaic_catalog',catalog=BasicCatalog.from_fits_file('%s/query_catalog.fits'%dummy_cache))
 
     if user_catalog is not None:
+        print ('setting from user catalog')
+        print (user_catalog.length,catalog.catalog.length)
         catalog.catalog.selected=user_catalog.selected
 
     prod_list = QueryProductList(prod_list=[image, catalog])
