@@ -102,7 +102,7 @@ class BasicCatalog(object):
 
     @property
     def length(self):
-        return self.table.as_array().shape[0]
+        return self._table.as_array().shape[0]
 
     @property
     def ra(self):

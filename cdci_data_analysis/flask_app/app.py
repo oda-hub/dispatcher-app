@@ -121,10 +121,11 @@ def set_catalog(instrument,par_dic):
         instrument.set_par('user_catalog', user_catalog)
         print('catalog_selected_objects', catalog_selected_objects)
 
-        _sel = np.zeros(user_catalog.length, dtype=bool)
-        _sel[catalog_selected_objects] = True
-        user_catalog.selected = _sel
-        print('catalog selected', user_catalog.table)
+        #_sel = np.zeros(user_catalog.length, dtype=bool)
+        #_sel[catalog_selected_objects] = True
+        #user_catalog.selected = _sel
+        user_catalog.select_IDs(catalog_selected_objects)
+        print('catalog selected\n',user_catalog.table)
         print('catalog_length', user_catalog.length)
 
 

@@ -109,11 +109,11 @@ class ImageProduct(BaseQueryProduct):
             
             msk=~np.isnan(pixcrd[:, 0])
             ax.plot(pixcrd[:, 0][msk], pixcrd[:, 1][msk], 'o', mfc='none')
-            
-            for ID in xrange(catalog.length):
+
+            for ID, (x, y) in enumerate(pixcrd):
                 if msk[ID]:
                     #print ('xy',(pixcrd[:, 0][ID], pixcrd[:, 1][ID]))
-                    ax.annotate('%s' % catalog.name[ID], xy=(pixcrd[:, 0][ID], pixcrd[:, 1][ID]), color='white')
+                    ax.annotate('%s' % catalog.name[ID], xy=(x,y), color='white')
                             
 
             ax.set_xlabel('RA')
