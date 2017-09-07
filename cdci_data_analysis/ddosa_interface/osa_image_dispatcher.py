@@ -180,13 +180,19 @@ def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,confi
     return prod_list,None
 
 
-def get_osa_image_dummy_products(config):
+def get_osa_image_dummy_products(instrument,config):
     from ..analysis.products import ImageProduct
     from ..analysis.catalog import BasicCatalog
     dummy_cache=config.dummy_cache
 
+    user_catalog = instrument.get_par_by_name('user_catalog').value
+
+
     image = ImageProduct.from_fits_file('%s/query_mosaic.fits'%dummy_cache, 'isgri_mosaic', ext=1)
     catalog = CatalogProduct('mosaic_catalog',catalog=BasicCatalog.from_fits_file('%s/query_catalog.fits'%dummy_cache))
+
+    if user_catalog is not None:
+        catalog.catalog.selected=user_catalog.selected
 
     prod_list = QueryProductList(prod_list=[image, catalog])
 

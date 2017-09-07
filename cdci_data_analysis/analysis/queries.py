@@ -349,7 +349,7 @@ class ProductQuery(BaseQuery):
 
     def get_dummy_products(self,instrument, config=None):
         if self._get_dummy_products_method is not None:
-            return self._get_dummy_products_method(config)
+            return self._get_dummy_products_method(instrument,config)
         else:
             return None
 

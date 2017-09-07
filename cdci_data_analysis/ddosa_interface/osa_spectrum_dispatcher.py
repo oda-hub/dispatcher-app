@@ -254,7 +254,7 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
 
     return prod_list, None
 
-def get_osa_spectrum_dummy_products(config):
+def get_osa_spectrum_dummy_products(instrument,config):
     from ..analysis.products import SpectrumProduct
     dummy_cache = config.dummy_cache
     query_spectrum = SpectrumProduct.from_fits_file('%s/query_spectrum.fits'%dummy_cache, 'isgri_spectrum', ext=1)

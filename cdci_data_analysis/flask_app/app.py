@@ -109,7 +109,7 @@ def set_catalog(instrument,par_dic):
     if 'catalog_selected_objects' in par_dic.keys():
 
         catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)
-        par_dic.pop('catalog_selected_objects')
+        #par_dic.pop('catalog_selected_objects')
     else:
         catalog_selected_objects = None
 
@@ -129,6 +129,7 @@ def set_catalog(instrument,par_dic):
 
 
 
+
 def query_isgri_image(instrument):
     detection_significance = instrument.get_par_by_name('detection_threshold').value
 
@@ -138,14 +139,24 @@ def query_isgri_image(instrument):
 
         prod_list, exception = instrument.get_query_products('isgri_image_query', config=app.config.get('osaconf'))
 
+
     else:
         prod_list, exception=instrument.get_query_dummy_products('isgri_image_query', config=app.config.get('osaconf'))
+
+
+
 
     query_image = prod_list.get_prod_by_name('isgri_mosaic')
     query_catalog = prod_list.get_prod_by_name('mosaic_catalog')
 
+
+
+
     if detection_significance is not None:
         query_catalog.catalog.selected = query_catalog.catalog.table['significance'] > float(detection_significance)
+
+
+
 
 
     print('--> query was ok')
