@@ -156,7 +156,7 @@ def query_isgri_image(instrument):
 
 
     if detection_significance is not None:
-        query_catalog.catalog.selected = query_catalog.catalog._table['significance'] > float(detection_significance)
+        query_catalog.catalog.selected = np.logical_and(query_catalog.catalog._table['significance'] > float(detection_significance),query_catalog.catalog.selected)
 
 
 
