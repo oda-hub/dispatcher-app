@@ -332,19 +332,27 @@ class InstrumentQuery(BaseQuery):
 
 
 class ProductQuery(BaseQuery):
-    def __init__(self, name, parameters_list=[], get_products_method=None, html_draw_method=None, **kwargs):
+    def __init__(self, name, parameters_list=[], get_products_method=None, html_draw_method=None, get_dummy_products_method=None, **kwargs):
 
 
 
         super(ProductQuery, self).__init__(name,parameters_list, **kwargs)
         self._get_product_method = get_products_method
         self._html_draw_method = html_draw_method
+        self._get_dummy_products_method=get_dummy_products_method
 
     def get_products(self, instrument, config=None):
         if self._get_product_method is not None:
             return self._get_product_method(instrument,config=config)
         else:
             return None
+
+    def get_dummy_products(self,instrument, config=None):
+        if self._get_dummy_products_method is not None:
+            return self._get_dummy_products_method(config)
+        else:
+            return None
+
 
     def get_parameters_list_as_json(self):
         l=[ {'query_name':self.name},{'product_name':self.name}]

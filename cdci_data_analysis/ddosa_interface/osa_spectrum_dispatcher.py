@@ -254,3 +254,13 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
 
     return prod_list, None
 
+def get_osa_spectrum_dummy_products(config):
+    from ..analysis.products import SpectrumProduct
+    dummy_cache = config.dummy_cache
+    query_spectrum = SpectrumProduct.from_fits_file('%s/query_spectrum.fits'%dummy_cache, 'isgri_spectrum', ext=1)
+    query_spectrum.set_arf_file(arf_kw='ANCRFILE', out_arf_file='arf.fits',in_arf_file='%s/arf.fits'%dummy_cache)
+    query_spectrum.set_rmf_file(rmf_kw='RESPFILE', out_rmf_file='rmf.fits',in_rmf_file='%s/rmf.fits'%dummy_cache)
+    prod_list = QueryProductList(prod_list=[query_spectrum])
+
+    return prod_list, None
+

@@ -37,9 +37,10 @@ __author__ = "Andrea Tramacere"
 
 class ConfigEnv(object):
 
-	def __init__(self,local_cache,ddcache_root,data_server_url,data_server_port,dispatcher_url,dispatcher_port):
+	def __init__(self,local_cache,ddcache_root,dummy_cache,data_server_url,data_server_port,dispatcher_url,dispatcher_port):
 		self.local_cache=os.path.abspath(local_cache)
 		self.ddcache_root=ddcache_root
+		self.dummy_cache=dummy_cache
 		self.data_server_url=data_server_url
 		self.data_server_port=data_server_port
 		self.dispatcher_url=dispatcher_url
@@ -59,6 +60,7 @@ class ConfigEnv(object):
 
 		return ConfigEnv(local_cache=cfg['local_cache'],
 						 ddcache_root=cfg['ddcache_root'],
+						 dummy_cache=cfg['dummy_cache'],
 						 data_server_url=cfg['data_server_url'],
 						 data_server_port=cfg['data_server_port'],
 						 dispatcher_url=cfg['dispatcher_url'],

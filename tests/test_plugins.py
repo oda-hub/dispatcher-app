@@ -36,7 +36,7 @@ def test_instr(use_scw_list=True):
 
 
 
-def test_mosaic_cookbook(use_scw_list=False,use_catalog=False):
+def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,use_dummy_prods=False):
 
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
 
@@ -60,8 +60,10 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False):
 
     instr.show_parameters_list()
 
-
-    prod_list,exception=instr.get_query_products('isgri_image_query', config=osaconf)
+    if use_dummy_prods==True:
+        prod_list,exception=instr.get_query_dummy_products('isgri_image_query', config=osaconf)
+    else:
+        prod_list, exception = instr.get_query_products('isgri_image_query', config=osaconf)
 
     image=prod_list.get_prod_by_name('isgri_mosaic')
     catalog_product=prod_list.get_prod_by_name('mosaic_catalog')
@@ -73,13 +75,15 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False):
     catalog_product.write('mosaic_catalog.fits', overwrite=True)
     assert sum(image.data.flatten()>0)>100 # some non-zero pixels
 
-    assert isinstance(catalog_product.catalog,OsaCatalog)
+    if use_dummy_prods == False:
+        assert isinstance(catalog_product.catalog,OsaCatalog)
 
     if use_catalog==True:
         print("input catalog:",osa_catalog.name)
         print("output catalog:", catalog_product.catalog.name)
-        assert len([name for name in catalog_product.catalog.name if "NEW" not in name])==len(osa_catalog.name)
-        assert catalog_product.catalog.name[0]==osa_catalog.name[0]
+        if use_dummy_prods == False:
+            assert len([name for name in catalog_product.catalog.name if "NEW" not in name])==len(osa_catalog.name)
+            assert catalog_product.catalog.name[0]==osa_catalog.name[0]
 
 def test_plot_mosaic():
     from astropy.io import fits as pf
@@ -91,7 +95,7 @@ def test_plot_mosaic():
 
 
 
-def test_spectrum_cookbook(use_scw_list=True,use_catalog=False):
+def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods=False):
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
 
     instr = OSA_ISGRI()
@@ -122,7 +126,10 @@ def test_spectrum_cookbook(use_scw_list=True,use_catalog=False):
 
     instr.show_parameters_list()
 
-    prod_list, exception=instr.get_query_products('isgri_spectrum_query', config=osaconf)
+    if use_dummy_prods == True:
+        prod_list, exception = instr.get_query_dummy_products('isgri_spectrum_query', config=osaconf)
+    else:
+        prod_list, exception=instr.get_query_products('isgri_spectrum_query', config=osaconf)
 
     query_spectrum=prod_list.get_prod_by_name('isgri_spectrum')
     query_spectrum.write('spectrum.fits')
@@ -175,7 +182,7 @@ def test_fit_spectrum_cookbook():
     ax.set_ylabel('normalize counts  s$^{-1}$ keV$^{-1}$')
     plt.show()
 
-def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False):
+def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods=False):
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
 
 
@@ -199,7 +206,10 @@ def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False):
 
     instr.show_parameters_list()
 
-    prod_list, exception=instr.get_query_products('isgri_lc_query', config=osaconf)
+    if use_dummy_prods == True:
+        prod_list, exception = instr.get_query_dummy_products('isgri_lc_query', config=osaconf)
+    else:
+        prod_list, exception=instr.get_query_products('isgri_lc_query', config=osaconf)
 
     query_lc = prod_list.get_prod_by_name('isgri_lc')
 
@@ -231,17 +241,17 @@ def test_plot_lc():
 
 
 def test_full_mosaic():
-    test_mosaic_cookbook()
-    test_mosaic_cookbook(use_catalog=True)
+    #test_mosaic_cookbook()
+    test_mosaic_cookbook(use_catalog=True,use_dummy_prods=True)
     #test_plot_mosaic()
     #test_mosaic_cookbook(use_scw_list=False)
 
 
 def test_full_spectrum():
     #test_spectrum_cookbook()
-    test_spectrum_cookbook(use_catalog=True)
+    test_spectrum_cookbook(use_catalog=True,use_dummy_prods=True)
     #test_spectrum_cookbook(use_scw_list=False)
 
 def test_full_lc():
-    test_lightcurve_cookbook()
+    test_lightcurve_cookbook(use_dummy_prods=True)
     #test_lightcurve_cookbook(use_scw_list=False)

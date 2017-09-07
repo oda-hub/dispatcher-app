@@ -188,29 +188,11 @@ def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=No
     return prod_list, None
 
 
-# def OSA_ISGRI_LIGHTCURVE():
-#     src_name = Name('str', 'src_name', value='src_name')
-#     E1_keV = Energy('keV', 'E1', value=20.0)
-#     E2_keV = Energy('keV', 'E2', value=40.0)
-#
-#     E_range_keV = ParameterRange(E1_keV, E2_keV, 'E_range')
-#
-#     t1_iso = Time('iso', 'T1', value='2001-12-11T00:00:00.0')
-#     t2_iso = Time('iso', 'T2', value='2001-12-11T00:00:00.0')
-#
-#     t1_mjd = Time('mjd', 'T1_mjd', value=1.0)
-#     t2_mjd = Time('mjd', 'T2_mjd', value=1.0)
-#
-#     t_range_iso = ParameterRange(t1_iso, t2_iso, 'time_range_iso')
-#     t_range_mjd = ParameterRange(t1_mjd, t2_mjd, 'time_range_mjd')
-#
-#     scw_list = Time('prod_list', 'scw_list', value=['035200230010.001', '035200240010.001'])
-#
-#     time_group = ParameterGroup([t_range_iso, t_range_mjd, scw_list], 'time_range', selected='scw_list')
-#
-#     time_group_selector = time_group.build_selector('time_group_selector')
-#
-#     E_cut = Energy('keV', 'E_cut', value=0.1)
-#     parameters_list = [src_name, E_range_keV, time_group, time_group_selector, scw_list, E_cut]
-#
-#     return LightCurveQuery(parameters_list, get_product_method=get_osa_lightcurve, html_draw_method=lambda *a: None)
+def get_osa_lightcurve_dummy_products(config):
+    from ..analysis.products import LightCurveProduct
+    dummy_cache = config.dummy_cache
+    query_lc = LightCurveProduct.from_fits_file('%s/query_lc.fits'%dummy_cache, 'isgri_lc', ext=1)
+
+    prod_list = QueryProductList(prod_list=[query_lc])
+
+    return prod_list, None
