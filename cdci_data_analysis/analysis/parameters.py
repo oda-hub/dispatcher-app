@@ -206,7 +206,11 @@ class Parameter(object):
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
                     raise RuntimeError('value',v,'not allowed, allowed=',self._allowed_values)
-            self._value=v
+            print('set->',self.name,v,type(v))
+            if type(v)==str or type(v)== unicode:
+                self._value=v.strip()
+            else:
+                self._value = v
         else:
             self._value=None
 

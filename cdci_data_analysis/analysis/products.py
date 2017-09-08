@@ -290,7 +290,8 @@ class SpectrumProduct(BaseQueryProduct):
         xsp.Fit.query = 'yes'
         xsp.Fit.perform()
 
-        xsp.Plot.device = "/xs"
+        if plot == True:
+            xsp.Plot.device = "/xs"
 
         xsp.Plot.xLog = True
         xsp.Plot.yLog = True
@@ -330,7 +331,9 @@ class SpectrumProduct(BaseQueryProduct):
         ax.set_ylabel('normalize counts  s$^{-1}$ keV$^{-1}$')
         #ax.set_xscale("log", nonposx='clip')
         #ax.set_yscale("log")
-
+        xsp.AllModels.clear()
+        xsp.AllData.clear()
+        xsp.AllChains.clear()
         if plot == True:
             plt.show()
 
