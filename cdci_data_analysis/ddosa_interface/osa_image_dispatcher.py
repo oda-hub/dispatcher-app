@@ -119,7 +119,7 @@ def do_mosaic_from_time_span(E1,E2,T1,T2,RA,DEC,radius,user_catalog=None):
                         use_max_pointings=3)\
                     '%(dict(RA=RA,DEC=DEC,radius=radius,T1=T1,T2=T2)),
 
-    return do_mosaic(E1,E2,scwlist_assumption,user_catalog=user_catalog)
+    return do_mosaic(E1,E2,scwlist_assumption,user_catalog=user_catalog,extramodules=['git://rangequery'])
 
 
 
@@ -188,7 +188,7 @@ def get_osa_image_dummy_products(instrument,config):
     user_catalog = instrument.get_par_by_name('user_catalog').value
 
 
-    image = ImageProduct.from_fits_file('%s/query_mosaic.fits'%dummy_cache, 'isgri_mosaic', ext=1)
+    image = ImageProduct.from_fits_file('%s/query_mosaic.fits'%dummy_cache, 'isgri_mosaic', ext=0)
     catalog = CatalogProduct('mosaic_catalog',catalog=BasicCatalog.from_fits_file('%s/query_catalog.fits'%dummy_cache))
 
     if user_catalog is not None:

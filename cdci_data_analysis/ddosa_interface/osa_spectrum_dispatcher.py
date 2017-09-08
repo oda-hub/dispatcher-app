@@ -52,17 +52,17 @@ from astropy.io import  fits as pf
 
 class IsgriSpectrumProduct(SpectrumProduct):
 
-    def __init__(self,name,data,header, rmf_file=None, arf_file=None):
+    def __init__(self,name,file_name,data,header, rmf_file=None, arf_file=None):
 
 
 
-        super(IsgriSpectrumProduct, self).__init__(name,data,header,in_rmf_file=rmf_file,in_arf_file=arf_file)
+        super(IsgriSpectrumProduct, self).__init__(name,data,header,file_name,in_rmf_file=rmf_file,in_arf_file=arf_file)
         #check if you need to copy!
 
 
 
     @classmethod
-    def build_from_ddosa_res(cls,name,res,src_name='ciccio'):
+    def build_from_ddosa_res(cls,name,file_name,res,src_name='ciccio'):
 
         data = None
         header=None
@@ -71,15 +71,17 @@ class IsgriSpectrumProduct(SpectrumProduct):
 
         for source_name, spec_attr, rmf_attr, arf_attr in res.extracted_sources:
             if src_name is not None:
-                print('-->', source_name, src_name)
+                print('-->', source_name, '-->user', src_name)
                 if source_name == src_name:
+                    print('matched -->', source_name, src_name)
+                    print('file-->',getattr(res, spec_attr),spec_attr)
                     spectrum = pf.open(getattr(res, spec_attr))[1]
                     arf_filename= getattr(res, arf_attr)
                     rmf_filename = getattr(res, rmf_attr)
                     data=spectrum.data
                     header=spectrum.header
 
-        spec= cls(name=name,data=data,header=header,rmf_file=rmf_filename,arf_file=arf_filename)
+        spec= cls(name=name,file_name=file_name,data=data,header=header,rmf_file=rmf_filename,arf_file=arf_filename)
 
         spec.set_arf_file(arf_kw='ANCRFILE',out_arf_file='arf.fits')
         spec.set_rmf_file(rmf_kw='RESPFILE',out_rmf_file='rmf.fits')
@@ -247,7 +249,7 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
     res = q.run_query(query_prod=query_prod)
 
     #print ('==> res',res.source_results)
-    spectrum=IsgriSpectrumProduct.build_from_ddosa_res('isgri_spectrum',res,src_name)
+    spectrum=IsgriSpectrumProduct.build_from_ddosa_res('isgri_spectrum','query_spectrum.fits',res,src_name)
 
     prod_list = QueryProductList(prod_list=[spectrum])
 

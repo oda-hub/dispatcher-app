@@ -81,8 +81,8 @@ class ImageProduct(BaseQueryProduct):
         super(ImageProduct, self).__init__(name, **kwargs)
 
     @classmethod
-    def from_fits_file(cls,file_name,prod_name,ext=None):
-        hdu = pf.open(file_name, ext=ext)[0]
+    def from_fits_file(cls,file_name,prod_name,ext=0):
+        hdu = pf.open(file_name)[ext]
         data = hdu.data
         header = hdu.header
 
@@ -143,8 +143,8 @@ class LightCurveProduct(BaseQueryProduct):
         super(LightCurveProduct, self).__init__(name,**kwargs)
 
     @classmethod
-    def from_fits_file(cls, file_name, prod_name, ext=None):
-        hdu = pf.open(file_name, ext=ext)[0]
+    def from_fits_file(cls, file_name, prod_name, ext=0):
+        hdu = pf.open(file_name)[ext]
         data = hdu.data
         header = hdu.header
         return cls(name=prod_name, data=data, header=header, file_name=file_name)
@@ -182,7 +182,7 @@ class SpectrumProduct(BaseQueryProduct):
     def __init__(self, name,
                  data,
                  header,
-                 file_name='spectrum.fits',
+                 file_name,
                  arf_kw=None,
                  rmf_kw=None,
                  out_arf_file='arf.fits',
@@ -266,8 +266,8 @@ class SpectrumProduct(BaseQueryProduct):
                 self.header[rmf_kw]=self.in_arf_file_path
 
     @classmethod
-    def from_fits_file(cls, file_name, prod_name, ext=None):
-        hdu = pf.open(file_name, ext=ext)[0]
+    def from_fits_file(cls, file_name, prod_name, ext=0):
+        hdu = pf.open(file_name)[ext]
         data = hdu.data
         header = hdu.header
 
@@ -282,6 +282,7 @@ class SpectrumProduct(BaseQueryProduct):
     def get_html_draw(self, catalog=None, plot=False):
         import xspec as xsp
         # PyXspec operations:
+        print('plotting->,',self.file_name)
         s = xsp.Spectrum(self.file_name)
         s.ignore('**-15.')
         s.ignore('300.-**')
@@ -308,13 +309,27 @@ class SpectrumProduct(BaseQueryProduct):
         import pylab as plt
         fig, ax = plt.subplots()
 
-        ax.set_xscale("log", nonposx='clip')
-        ax.set_yscale("log")
+        x=np.array(xsp.Plot.x())
+        y=np.array(xsp.Plot.y())
+        dx=np.array(xsp.Plot.xErr())
+        dy=np.array(xsp.Plot.yErr())
+        mx=x>0
+        my=y>0
+        msk=np.logical_and(mx,my)
 
-        plt.errorbar(xsp.Plot.x(), xsp.Plot.y(), xerr=xsp.Plot.xErr(), yerr=xsp.Plot.yErr(), fmt='o')
-        plt.step(xsp.Plot.x(), xsp.Plot.model(), where='mid')
+
+        ldx=0.434*dx/x
+        ldy=0.434*dy/y
+
+        y_model=np.array(xsp.Plot.model())
+
+        plt.errorbar(np.log10(x[msk]), np.log10(y[msk]), xerr=ldx[msk], yerr=ldy[msk], fmt='o')
+        plt.step(np.log10(x[msk]), np.log10(y_model[msk]), where='mid')
+
         ax.set_xlabel('Energy (keV)')
         ax.set_ylabel('normalize counts  s$^{-1}$ keV$^{-1}$')
+        #ax.set_xscale("log", nonposx='clip')
+        #ax.set_yscale("log")
 
         if plot == True:
             plt.show()
