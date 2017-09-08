@@ -101,11 +101,16 @@ def do_lightcurve_from_single_scw(image_E1, image_E2, time_bin_seconds=100, scw=
     return QueryProduct(target=target, modules=modules, assume=assume)
 
 
-def do_lightcurve(E1, E2, scwlist_assumption,src_name, extramodules=[]):
+def do_lightcurve(E1, E2, scwlist_assumption,src_name, extramodules=None,user_catalog=None):
     print('-->lc standard mode from scw_list', scwlist_assumption)
     print('-->src_name', src_name)
     target = "lc_pick"
-    modules = ["git://ddosa", "git://ddosadm"] + extramodules
+
+    modules = ["git://ddosa", "git://ddosadm"]
+    if extramodules is not None:
+        modules += extramodules
+
+
     assume = ['ddosa.LCGroups(input_scwlist=%s)'%scwlist_assumption,
               'ddosa.lc_pick(use_source_names=["%s"])'%src_name,
               'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1, E2=E2),
@@ -113,23 +118,48 @@ def do_lightcurve(E1, E2, scwlist_assumption,src_name, extramodules=[]):
               'ddosa.CatForLC(use_minsig=3)',
               'ddosa.LCTimeBin(use_time_bin_seconds=100)']
 
-    return QueryProduct(target=target, modules=modules, assume=assume)
+    inject = []
+    if user_catalog is not None:
+        print('user_catalog', user_catalog.ra)
+
+        cat = ['SourceCatalog',
+               {
+                   "catalog": [
+                       {
+                           "RA": float(ra.deg),
+                           "DEC": float(dec.deg),
+                           "NAME": name,
+                       }
+                       for ra, dec, name in zip(user_catalog.ra, user_catalog.dec, user_catalog.name)
+                       ],
+                   "version": "v2",  # catalog id here; good if user-understandable, but can be computed internally
+                   "autoversion": True,  # this will complement the version with some hash of the data
+                   # consider the above version now to be the version of the version generation
+               }
+               ]
+        inject.append(cat)
+
+        modules.append("git://gencat")
+
+    return QueryProduct(target=target, modules=modules, assume=assume, inject=inject)
 
 
 def do_lc_from_scw_list(E1, E2, src_name,scw_list=None,user_catalog=None):
     print('mosaic standard mode from scw_list', scw_list)
     dic_str = str(scw_list)
-    return do_lightcurve(E1, E2, 'ddosa.IDScWList(use_scwid_list=%s)' % dic_str,src_name)
+    return do_lightcurve(E1, E2, 'ddosa.IDScWList(use_scwid_list=%s)' % dic_str, src_name, user_catalog=user_catalog)
 
 
 def do_lc_from_time_span(E1, E2, T1, T2, RA, DEC, radius,src_name,user_catalog=None):
+    print('mosaic standard mode from time span')
     scwlist_assumption = 'rangequery.TimeDirectionScWList(\
                         use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
                         use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
                         use_max_pointings=3)\
                     ' % (dict(RA=RA, DEC=DEC, radius=radius, T1=T1, T2=T2)),
 
-    return do_lightcurve(E1, E2, scwlist_assumption,src_name, extramodules=['git://rangequery'])
+    return do_lightcurve(E1, E2, scwlist_assumption, src_name, extramodules=['git://rangequery'],
+                         user_catalog=user_catalog)
 
 
 

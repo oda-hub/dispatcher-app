@@ -71,8 +71,8 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,use_dummy_prods=Fa
     print('out_prod', image,exception)
 
     print dir(image)
-    image.write('mosaic.fits',overwrite=True)
-    catalog_product.write('mosaic_catalog.fits', overwrite=True)
+    image.write('test_mosaic.fits',overwrite=True)
+    catalog_product.write('test_mosaic_catalog.fits', overwrite=True)
     assert sum(image.data.flatten()>0)>100 # some non-zero pixels
 
     if use_dummy_prods == False:
@@ -132,11 +132,11 @@ def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods=F
         prod_list, exception=instr.get_query_products('isgri_spectrum_query', config=osaconf)
 
     query_spectrum=prod_list.get_prod_by_name('isgri_spectrum')
-    query_spectrum.write('spectrum.fits')
+    query_spectrum.write('test_spectrum.fits')
 
     print('spetrum written')
 
-    html_fig = query_spectrum.get_html_draw(plot=True)
+    #html_fig = query_spectrum.get_html_draw(plot=True)
 
     if use_catalog==True:
         print("input catalog:",osa_catalog.name)
@@ -193,6 +193,11 @@ def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods
 
     instr.set_pars_from_dic(parameters)
 
+    if use_scw_list == True:
+        instr.set_par('scw_list', cookbook_scw_list)
+    else:
+        instr.set_par('scw_list', [])
+
     if use_catalog==True:
         dra=float(time.strftime("0.%j")) # it's vital to make sure that the test changes with the phase of the moon
         ddec = float(time.strftime("0.%H%M%S"))
@@ -217,7 +222,7 @@ def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods
     if query_lc is None:
         raise RuntimeError('no light curve produced')
     print ('out_prod',dir(query_lc))
-    query_lc.write('lc.fits')
+    query_lc.write('test_lc.fits')
     html_fig= query_lc.get_html_draw(plot=True)
     print ('html_fig',html_fig)
 
@@ -241,17 +246,20 @@ def test_plot_lc():
 
 
 def test_full_mosaic():
-    #test_mosaic_cookbook()
-    test_mosaic_cookbook(use_catalog=True,use_dummy_prods=True)
-    #test_plot_mosaic()
-    #test_mosaic_cookbook(use_scw_list=False)
+    test_mosaic_cookbook(use_catalog=True,use_scw_list=False)
+    test_mosaic_cookbook(use_catalog=True, use_scw_list=True)
+    test_mosaic_cookbook(use_catalog=False, use_scw_list=False)
+    test_mosaic_cookbook(use_catalog=False, use_scw_list=True)
 
 
 def test_full_spectrum():
-    #test_spectrum_cookbook()
-    test_spectrum_cookbook(use_catalog=True,use_dummy_prods=True)
-    #test_spectrum_cookbook(use_scw_list=False)
+    #test_spectrum_cookbook(use_catalog=True, use_scw_list=False)
+    #test_spectrum_cookbook(use_catalog=True, use_scw_list=True)
+    #test_spectrum_cookbook(use_catalog=False, use_scw_list=False)
+    test_spectrum_cookbook(use_catalog=False, use_scw_list=True)
 
 def test_full_lc():
-    test_lightcurve_cookbook(use_dummy_prods=True)
-    #test_lightcurve_cookbook(use_scw_list=False)
+    test_lightcurve_cookbook(use_catalog=True, use_scw_list=False)
+    test_lightcurve_cookbook(use_catalog=True, use_scw_list=True)
+    test_lightcurve_cookbook(use_catalog=False, use_scw_list=False)
+    test_lightcurve_cookbook(use_catalog=False, use_scw_list=True)

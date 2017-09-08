@@ -73,8 +73,10 @@ class IsgriSpectrumProduct(SpectrumProduct):
             if src_name is not None:
                 print('-->', source_name, '-->user', src_name)
                 if source_name == src_name:
-                    print('matched -->', source_name, src_name)
-                    print('file-->',getattr(res, spec_attr),spec_attr)
+                    print('matched source-->', source_name, src_name)
+                    print('spec file-->',getattr(res, spec_attr),spec_attr)
+                    print('arf file-->', getattr(res, arf_attr), arf_attr)
+                    print('rmf file-->', getattr(res, rmf_attr), rmf_attr)
                     spectrum = pf.open(getattr(res, spec_attr))[1]
                     arf_filename= getattr(res, arf_attr)
                     rmf_filename = getattr(res, rmf_attr)
