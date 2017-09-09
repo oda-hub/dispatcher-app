@@ -330,7 +330,7 @@ class SpectrumProduct(BaseQueryProduct):
 
         ax1.errorbar(np.log10(x[msk]), np.log10(y[msk]), xerr=ldx[msk], yerr=ldy[msk], fmt='o')
         ax1.step(np.log10(x[msk]), np.log10(y_model[msk]), where='mid')
-
+        ax1.set_ylim(np.log10(y[msk]).min()-ldy.max(),ax1.get_ylim()[1])
         # ax1.set_xlabel('log (Energy (keV))')
         ax1.set_ylabel('log (normalize counts/s/keV)')
         # ax1.set_ylim(-3,1)
