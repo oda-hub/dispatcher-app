@@ -304,36 +304,45 @@ class SpectrumProduct(BaseQueryProduct):
         if plot == True:
             xsp.Plot.show()
 
-        import matplotlib
-        matplotlib.use('TkAgg')
+        import matplotlib.pyplot as plt
+        import matplotlib.gridspec as gridspec
+        gs = gridspec.GridSpec(2, 1, height_ratios=[4, 1])
 
-        import pylab as plt
-        fig, ax = plt.subplots()
+        fig = plt.figure()
+        ax1 = fig.add_subplot(gs[0])
+        ax2 = fig.add_subplot(gs[1])
 
-        x=np.array(xsp.Plot.x())
-        y=np.array(xsp.Plot.y())
-        dx=np.array(xsp.Plot.xErr())
-        dy=np.array(xsp.Plot.yErr())
-        mx=x>0
-        my=y>0
-        msk=np.logical_and(mx,my)
+        # fig.subplots_adjust(left=0.05, right=0.95, bottom=0.05, top=0.95,
+        #                    hspace=0.1, wspace=0.1)
 
+        x = np.array(xsp.Plot.x())
+        y = np.array(xsp.Plot.y())
+        dx = np.array(xsp.Plot.xErr())
+        dy = np.array(xsp.Plot.yErr())
+        mx = x > 0
+        my = y > 0
+        msk = np.logical_and(mx, my)
 
-        ldx=0.434*dx/x
-        ldy=0.434*dy/y
+        ldx = 0.434 * dx / x
+        ldy = 0.434 * dy / y
 
-        y_model=np.array(xsp.Plot.model())
+        y_model = np.array(xsp.Plot.model())
 
-        plt.errorbar(np.log10(x[msk]), np.log10(y[msk]), xerr=ldx[msk], yerr=ldy[msk], fmt='o')
-        plt.step(np.log10(x[msk]), np.log10(y_model[msk]), where='mid')
+        ax1.errorbar(np.log10(x[msk]), np.log10(y[msk]), xerr=ldx[msk], yerr=ldy[msk], fmt='o')
+        ax1.step(np.log10(x[msk]), np.log10(y_model[msk]), where='mid')
 
-        ax.set_xlabel('Energy (keV)')
-        ax.set_ylabel('normalize counts  s$^{-1}$ keV$^{-1}$')
-        #ax.set_xscale("log", nonposx='clip')
-        #ax.set_yscale("log")
+        # ax1.set_xlabel('log (Energy (keV))')
+        ax1.set_ylabel('log (normalize counts/s/keV)')
+        # ax1.set_ylim(-3,1)
+        ax2.errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=1., xerr=0., fmt='o')
+        ax2.plot(ax1.get_xlim(), [0., 0.], '--')
+        ax2.set_xlim(ax1.get_xlim())
+        ax2.set_ylabel('(data-model)/error')
+        ax2.set_xlabel('log (Energy) (keV)')
         xsp.AllModels.clear()
         xsp.AllData.clear()
         xsp.AllChains.clear()
+
         if plot == True:
             plt.show()
 
