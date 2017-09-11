@@ -325,16 +325,32 @@ class SpectrumProduct(BaseQueryProduct):
         s = xsp.Spectrum(file_path)
         s.ignore('**-15.')
         s.ignore('300.-**')
-        xsp.Model("cutoffpl")
+
+        model_name='cutoffpl'
+
+        m = xsp.Model(model_name)
         xsp.Fit.query = 'yes'
         xsp.Fit.perform()
+
+        fit_str='Exposure %f (s)\n'%s.exposure
+        fit_str+='fit pars\n'
+        fit_str+='========================================================================\n'
+        fit_model = getattr(m, model_name)
+        for name in fit_model.parameterNames:
+            p=getattr(fit_model,name)
+            fit_str+='%s %f +/- %f\n '%(p.name,p.values[0],p.sigma)
+        fit_str += '________________________________________________________________________\n'
+
+        fit_str+='dof '+ '%d'%xsp.Fit.dof+'\n'
+
+        fit_str+='Chi-squared '+ '%f'%xsp.Fit.statistic
 
         if plot == True:
             xsp.Plot.device = "/xs"
 
         xsp.Plot.xLog = True
         xsp.Plot.yLog = True
-        xsp.Plot.setRebin(10., 5)
+        xsp.Plot.setRebin(10., 10)
         xsp.Plot.xAxis = 'keV'
         # Plot("data","model","resid")
         # Plot("data model resid")
@@ -378,6 +394,9 @@ class SpectrumProduct(BaseQueryProduct):
         ax2.set_xlim(ax1.get_xlim())
         ax2.set_ylabel('(data-model)/error')
         ax2.set_xlabel('log (Energy) (keV)')
+
+
+
         xsp.AllModels.clear()
         xsp.AllData.clear()
         xsp.AllChains.clear()
@@ -387,8 +406,10 @@ class SpectrumProduct(BaseQueryProduct):
 
         plugins.connect(fig, plugins.MousePosition(fontsize=14))
 
-        return mpld3.fig_to_dict(fig)
+        dict= mpld3.fig_to_dict(fig)
+        dict['text']=fit_str
 
+        return dict
 
 
 class CatalogProduct(BaseQueryProduct):
