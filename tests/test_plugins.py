@@ -127,20 +127,29 @@ def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods=F
     instr.show_parameters_list()
 
     if use_dummy_prods == True:
-        prod_list, exception = instr.get_query_dummy_products('isgri_spectrum_query', config=osaconf)
+        query_spectra_list, exception = instr.get_query_dummy_products('isgri_spectrum_query', config=osaconf)
     else:
-        prod_list, exception=instr.get_query_products('isgri_spectrum_query', config=osaconf)
+        query_spectra_list, exception=instr.get_query_products('isgri_spectrum_query', config=osaconf)
 
-    query_spectrum=prod_list.get_prod_by_name('isgri_spectrum')
-    query_spectrum.write('test_spectrum.fits')
+
+    for query_spec in query_spectra_list.prod_list:
+        query_spec.write()
 
     print('spetrum written')
 
-    #html_fig = query_spectrum.get_html_draw(plot=True)
+    prod = {}
+    _names=[]
+    _figs=[]
+    for query_spec in query_spectra_list.prod_list:
+        _figs.append(query_spec.get_html_draw(plot=False))
+        _names.append(query_spec.name)
+
+    prod['spectrum_name'] = _names
+    prod['spectrum_figure'] = _figs
 
     if use_catalog==True:
         print("input catalog:",osa_catalog.name)
-        assert query_spectrum.header['NAME']==parameters['src_name']
+        #assert _names.header['NAME']==parameters['src_name']
         #TODO: we could also extract other sources really, and assert if the result is consistent with input.
         #TODO: (for better test coverage)
 

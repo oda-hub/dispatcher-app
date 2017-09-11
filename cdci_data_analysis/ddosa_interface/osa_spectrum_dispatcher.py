@@ -42,53 +42,74 @@ __author__ = "Andrea Tramacere"
 
 # Project
 # relative import eg: from .mod import f
+
+from astropy.io import  fits as pf
+from pathlib import Path
 from ..analysis.parameters import *
 from .osa_dispatcher import    OsaQuery,QueryProduct
 from ..analysis.queries import SpectrumQuery
 from ..web_display import draw_spectrum
 from ..analysis.products import SpectrumProduct,QueryProductList
-from astropy.io import  fits as pf
 
 
 class IsgriSpectrumProduct(SpectrumProduct):
 
-    def __init__(self,name,file_name,data,header, rmf_file=None, arf_file=None):
+    def __init__(self,name,file_name,data,header, rmf_file=None, arf_file=None,prod_prefix=None,out_dir=None):
+        super(IsgriSpectrumProduct, self).__init__(name,
+                                                   data,
+                                                   header,
+                                                   file_name,
+                                                   in_rmf_file=rmf_file,
+                                                   in_arf_file=arf_file,
+                                                   name_prefix=prod_prefix,
+                                                   file_dir=out_dir)
 
-
-
-        super(IsgriSpectrumProduct, self).__init__(name,data,header,file_name,in_rmf_file=rmf_file,in_arf_file=arf_file)
         #check if you need to copy!
 
 
 
     @classmethod
-    def build_from_ddosa_res(cls,name,file_name,res,src_name='ciccio'):
+    def build_list_from_ddosa_res(cls,res,prod_prefix=None,out_dir=None):
 
         data = None
         header=None
-        print('src_name->', src_name)
 
 
+        spec_list=[]
         for source_name, spec_attr, rmf_attr, arf_attr in res.extracted_sources:
-            if src_name is not None:
-                print('-->', source_name, '-->user', src_name)
-                if source_name == src_name:
-                    print('matched source-->', source_name, src_name)
-                    print('spec file-->',getattr(res, spec_attr),spec_attr)
-                    print('arf file-->', getattr(res, arf_attr), arf_attr)
-                    print('rmf file-->', getattr(res, rmf_attr), rmf_attr)
-                    spectrum = pf.open(getattr(res, spec_attr))[1]
-                    arf_filename= getattr(res, arf_attr)
-                    rmf_filename = getattr(res, rmf_attr)
-                    data=spectrum.data
-                    header=spectrum.header
 
-        spec= cls(name=name,file_name=file_name,data=data,header=header,rmf_file=rmf_filename,arf_file=arf_filename)
+            print('spec file-->',getattr(res, spec_attr),spec_attr)
+            print('arf file-->', getattr(res, arf_attr), arf_attr)
+            print('rmf file-->', getattr(res, rmf_attr), rmf_attr)
+            spectrum = pf.open(getattr(res, spec_attr))[1]
+            arf_filename= getattr(res, arf_attr)
+            rmf_filename = getattr(res, rmf_attr)
 
-        spec.set_arf_file(arf_kw='ANCRFILE',out_arf_file='arf.fits')
-        spec.set_rmf_file(rmf_kw='RESPFILE',out_rmf_file='rmf.fits')
+            data=spectrum.data
+            header=spectrum.header
 
-        return spec
+            file_name=prod_prefix+'_'+Path(getattr(res, spec_attr)).resolve().stem
+            print ('out spec file_name',file_name)
+            out_arf_file=prod_prefix+'_'+Path(getattr(res, arf_attr)).name
+            print('out arf file_name', out_arf_file)
+            out_rmf_file=prod_prefix+'_'+Path(getattr(res, rmf_attr)).name
+            print('out rmf file_name', out_rmf_file)
+
+            name=source_name
+
+            spec= cls(name=name,
+                      file_name=file_name,
+                      data=data,
+                      header=header,
+                      rmf_file=rmf_filename,
+                      arf_file=arf_filename,
+                      out_dir=out_dir)
+
+            spec.set_arf_file(arf_kw='ANCRFILE',out_arf_file=out_arf_file)
+            spec.set_rmf_file(rmf_kw='RESPFILE',out_rmf_file=out_rmf_file)
+            spec_list.append(spec)
+
+        return spec_list
 
 # def do_spectrum_from_single_scw(E1,E2,scw):
 #     """
@@ -206,7 +227,7 @@ def do_spectrum(target,modules,assume,user_catalog=None):
     return QueryProduct(target=target, modules=modules, assume=assume,inject=inject)
 
 
-def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None):
+def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
 
     q=OsaQuery(config=config)
 
@@ -251,20 +272,51 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
     res = q.run_query(query_prod=query_prod)
 
     #print ('==> res',res.source_results)
-    spectrum=IsgriSpectrumProduct.build_from_ddosa_res('isgri_spectrum','query_spectrum.fits',res,src_name)
+    spectrum_list=IsgriSpectrumProduct.build_list_from_ddosa_res(res,
+                                                                 out_dir=out_dir,
+                                                                 prod_prefix='query_spectrum')
 
-    prod_list = QueryProductList(prod_list=[spectrum])
+    #print('spectrum_list',spectrum_list)
+    prod_list = QueryProductList(prod_list=spectrum_list)
 
-
-    return prod_list, None
-
-def get_osa_spectrum_dummy_products(instrument,config):
-    from ..analysis.products import SpectrumProduct
-    dummy_cache = config.dummy_cache
-    query_spectrum = SpectrumProduct.from_fits_file('%s/query_spectrum.fits'%dummy_cache, 'isgri_spectrum', ext=1)
-    query_spectrum.set_arf_file(arf_kw='ANCRFILE', out_arf_file='arf.fits',in_arf_file='%s/arf.fits'%dummy_cache)
-    query_spectrum.set_rmf_file(rmf_kw='RESPFILE', out_rmf_file='rmf.fits',in_rmf_file='%s/rmf.fits'%dummy_cache)
-    prod_list = QueryProductList(prod_list=[query_spectrum])
 
     return prod_list, None
+
+def get_osa_spectrum_dummy_products(instrument,config,root_file_name='query_spectrum'):
+    import glob
+
+    spec_files=glob.glob(config.dummy_cache+'/*spec*.fits')
+    arf_files=glob.glob(config.dummy_cache+'/*arf*.fits')
+    rmf_files=glob.glob(config.dummy_cache+'/*rmf*.fits')
+
+    spec_list = []
+    for spec_file, rmf_file, arf_file in zip(spec_files,arf_files,rmf_files):
+        print('spec file-->', spec_file)
+        print('arf file-->', rmf_file)
+        print('rmf file-->', arf_file)
+
+        spectrum_filename = Path(spec_file).name
+        arf_filename = Path(arf_file).name
+        rmf_filename = Path(rmf_file).name
+
+        #data = spectrum.data
+        #header = spectrum.header
+
+        out_spec_file_name = root_file_name + '_' + Path(spec_file).name
+        print('out spec file_name', out_spec_file_name)
+        out_arf_file = root_file_name + '_' + arf_file
+        out_rmf_file = root_file_name + '_' + rmf_file
+
+        spec = SpectrumProduct.from_fits_file(spectrum_filename,'isgri_spectrum',ext=1,file_name=out_spec_file_name)
+
+        spec.set_arf_file(arf_kw='ANCRFILE', out_arf_file=out_arf_file,in_arf_file=arf_filename)
+        spec.set_rmf_file(rmf_kw='RESPFILE', out_rmf_file=out_rmf_file,in_rmf_file=rmf_filename)
+        spec_list.append(spec)
+
+    prod_list = QueryProductList(prod_list=spec_list)
+
+    return prod_list,None
+
+
+
 

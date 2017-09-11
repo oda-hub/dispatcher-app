@@ -18,6 +18,7 @@ __author__ = "Andrea Tramacere"
 
 import json
 
+from pathlib import Path
 
 from astropy import wcs
 from astropy.wcs import WCS
@@ -36,6 +37,29 @@ import mpld3
 from mpld3 import plugins
 
 from .parameters import *
+
+
+class QueryFilePath(object):
+    def __init__(self,file_name,file_dir='./',name_prefix=None):
+        if name_prefix is not None:
+            file_name=name_prefix+'_'+file_name
+
+        if file_dir is None:
+            file_dir='./'
+
+        self.file_path = Path(file_dir, file_name)
+
+    def get_file_path(self,file_name=None,file_dir=None):
+        if file_name is  None and file_dir is None:
+            file_path=self.file_path
+        elif file_name is  None and file_dir is not None:
+            file_path= QueryFilePath(file_dir, self.self.file_path.name)
+        elif  file_name is not  None and file_dir is  None:
+            file_path =  self.file_path.with_name(file_name)
+        else:
+            file_path= self.file_path
+
+        return str(file_path)
 
 
 class QueryProductList(object):
@@ -59,9 +83,16 @@ class QueryProductList(object):
 class BaseQueryProduct(object):
 
 
-    def __init__(self,name):
+    def __init__(self,name,file_name=None,file_dir='./',name_prefix=None):
         self.name=name
+        if file_name is not None:
 
+            print ('set file phat')
+            print ('workig dir',file_dir)
+            print ('file name',file_name)
+            print ('name_prefix',name_prefix)
+            self.file_path=QueryFilePath(file_name,file_dir=file_dir,name_prefix=name_prefix)
+            print('file_path set to',self.file_path.get_file_path())
 
     def write(self):
         pass
@@ -78,7 +109,7 @@ class ImageProduct(BaseQueryProduct):
         self.data=data
         self.header=header
         self.file_name = file_name
-        super(ImageProduct, self).__init__(name, **kwargs)
+        super(ImageProduct, self).__init__(name,file_name=file_name, **kwargs)
 
     @classmethod
     def from_fits_file(cls,file_name,prod_name,ext=0):
@@ -88,10 +119,10 @@ class ImageProduct(BaseQueryProduct):
 
         return  cls(name=prod_name, data=data, header=header,file_name=file_name)
 
-    def write(self,name=None,overwrite=True):
-        if name is None:
-            name=self.file_name
-        pf.writeto(name, data=self.data, header=self.header,overwrite=overwrite)
+    def write(self,file_name=None,overwrite=True,file_dir=None):
+
+        file_path=self.file_path.get_file_path(file_name=file_name,file_dir=file_dir)
+        pf.writeto( file_path   , data=self.data, header=self.header,overwrite=overwrite)
 
     def get_html_draw(self, catalog=None,plot=False):
 
@@ -140,7 +171,7 @@ class LightCurveProduct(BaseQueryProduct):
         self.file_name = file_name
 
 
-        super(LightCurveProduct, self).__init__(name,**kwargs)
+        super(LightCurveProduct, self).__init__(name,file_name=file_name,**kwargs)
 
     @classmethod
     def from_fits_file(cls, file_name, prod_name, ext=0):
@@ -149,14 +180,13 @@ class LightCurveProduct(BaseQueryProduct):
         header = hdu.header
         return cls(name=prod_name, data=data, header=header, file_name=file_name)
 
-    def write(self, name=None, overwrite=True):
-        if name is None:
-            name = self.file_name
-        pf.writeto(name, data=self.data, header=self.header, overwrite=overwrite)
+    def write(self, file_name=None, overwrite=True,file_dir=None):
+        file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
+        pf.writeto(file_path, data=self.data, header=self.header, overwrite=overwrite)
 
     def get_html_draw(self, plot=False):
         from astropy.io import fits as pf
-        data= pf.getdata(self.file_name,ext=1)
+        data= pf.getdata(self.file_path.get_file_path(),ext=1)
 
         import matplotlib
         matplotlib.use('TkAgg')
@@ -185,9 +215,9 @@ class SpectrumProduct(BaseQueryProduct):
                  file_name,
                  arf_kw=None,
                  rmf_kw=None,
-                 out_arf_file='arf.fits',
+                 out_arf_file=None,
                  in_arf_file=None,
-                 out_rmf_file='rmf.fits',
+                 out_rmf_file=None,
                  in_rmf_file=None,
                  **kwargs):
 
@@ -212,7 +242,7 @@ class SpectrumProduct(BaseQueryProduct):
         self.set_rmf_file()
 
 
-        super(SpectrumProduct, self).__init__(name, **kwargs)
+        super(SpectrumProduct, self).__init__(name,file_name=file_name, **kwargs)
 
     def set_arf_file(self, in_arf_file=None,arf_kw=None, out_arf_file=None, overwrite=True):
         if in_arf_file is None:
@@ -233,11 +263,14 @@ class SpectrumProduct(BaseQueryProduct):
 
         if out_arf_file is not None and in_arf_file is not None:
             pf.open(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
+            print('arf written to', out_arf_file)
             if arf_kw is not None  and self.header is not None:
                 self.header[arf_kw] = out_arf_file
+                print('set arf kw to', self.header[arf_kw])
         else:
             if arf_kw is not None and self.header is not None:
                 self.header[arf_kw]=self.in_arf_file_path
+                print('set arf kw to', self.header[arf_kw])
 
     def set_rmf_file(self, in_rmf_file=None,rmf_kw=None, out_rmf_file=None, overwrite=True):
         if in_rmf_file is None:
@@ -258,32 +291,38 @@ class SpectrumProduct(BaseQueryProduct):
 
         if out_rmf_file is not None and in_rmf_file is not None:
             pf.open(in_rmf_file).writeto(out_rmf_file, overwrite=overwrite)
+            print('rmf written to', out_rmf_file)
             if rmf_kw is not None  and self.header is not None:
                 self.header[rmf_kw] = out_rmf_file
+                print('set rmf kw to', self.header[rmf_kw])
         else:
             if rmf_kw is not None and self.header is not None:
 
-                self.header[rmf_kw]=self.in_arf_file_path
+                self.header[rmf_kw]=self.in_rmf_file
+                print('set rmf kw to',self.header[rmf_kw])
+
+
 
     @classmethod
-    def from_fits_file(cls, file_name, prod_name, ext=0):
+    def from_fits_file(cls, file_name, prod_name, ext=0,arf_file_name=None,rmf_file_name=None):
         hdu = pf.open(file_name)[ext]
         data = hdu.data
         header = hdu.header
 
         return cls(name=prod_name, data=data, header=header, file_name=file_name)
 
-    def write(self,name=None,overwrite=True):
-        if name is None:
-            name=self.file_name
-        pf.writeto(name, data=self.data, header=self.header,overwrite=overwrite)
+    def write(self,file_name=None,overwrite=True,file_dir=None):
+        file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
+
+        pf.writeto(file_path, data=self.data, header=self.header,overwrite=overwrite)
 
 
     def get_html_draw(self, catalog=None, plot=False):
         import xspec as xsp
         # PyXspec operations:
-        print('plotting->,',self.file_name)
-        s = xsp.Spectrum(self.file_name)
+        file_path=self.file_path.get_file_path()
+        print('plotting->,',file_path)
+        s = xsp.Spectrum(file_path)
         s.ignore('**-15.')
         s.ignore('300.-**')
         xsp.Model("cutoffpl")
@@ -358,5 +397,6 @@ class CatalogProduct(BaseQueryProduct):
         super(CatalogProduct, self).__init__(name, **kwargs)
 
 
-    def write(self,name,overwrite=True,format='fits'):
-        self.catalog.write(name,overwrite=overwrite,format=format)
+    def write(self,file_name,overwrite=True,format='fits',file_dir=None):
+        file_path = self.file_pathg.get_file_path(file_name=file_name, file_dir=file_dir)
+        self.catalog.write(file_path,overwrite=overwrite,format=format)

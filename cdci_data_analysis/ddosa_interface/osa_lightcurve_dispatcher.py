@@ -48,16 +48,26 @@ from ..analysis.products import LightCurveProduct,QueryProductList
 from astropy.io import fits as pf
 
 class IsgriLigthtCurve(LightCurveProduct):
-    def __init__(self,name,data,header):
+    def __init__(self,name,file_name,data,header,prod_prefix=None,out_dir=None):
 
 
-        super(IsgriLigthtCurve, self).__init__(name,data,header)
-        #check if you need to copy!
+        super(IsgriLigthtCurve, self).__init__(name,
+                                               data,
+                                               header,
+                                               file_name=file_name,
+                                               name_prefix=prod_prefix,
+                                               file_dir=out_dir)
 
 
 
     @classmethod
-    def build_from_ddosa_res(cls,name,res,src_name='ciccio'):
+    def build_from_ddosa_res(cls,
+                             name,
+                             file_name,
+                             res,
+                             src_name='ciccio',
+                             prod_prefix = None,
+                             out_dir = None):
 
         hdu_list = pf.open(res.lightcurve)
         data = None
@@ -69,9 +79,9 @@ class IsgriLigthtCurve(LightCurveProduct):
                     data = hdu.data
                     header = hdu.header
 
-        spec = cls(name=name, data=data, header=header)
+        lc = cls(name=name, data=data, header=header,file_name=file_name,out_dir=out_dir,prod_prefix=prod_prefix)
 
-        return spec
+        return lc
 
 def do_lightcurve_from_single_scw(image_E1, image_E2, time_bin_seconds=100, scw=[]):
     """
@@ -163,7 +173,7 @@ def do_lc_from_time_span(E1, E2, T1, T2, RA, DEC, radius,src_name,user_catalog=N
 
 
 
-def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=None):
+def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
     q = OsaQuery(config=config)
 
     RA = instrument.get_par_by_name('RA').value
@@ -211,7 +221,11 @@ def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=No
 
     print('res', str(res.lightcurve))
 
-    lc = IsgriLigthtCurve.build_from_ddosa_res('isgri_lc',res,src_name=src_name)
+    lc = IsgriLigthtCurve.build_from_ddosa_res('isgri_lc','query_lc.fits',
+                                               res,
+                                               src_name=src_name,
+                                               prod_prefix=prod_prefix,
+                                               out_dir=out_dir)
 
     prod_list = QueryProductList(prod_list=[lc])
 

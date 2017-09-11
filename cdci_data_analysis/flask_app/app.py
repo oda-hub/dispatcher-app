@@ -177,20 +177,25 @@ def query_isgri_image(instrument):
 
 def query_isgri_spectrum(instrument):
     if request.args.get('query_type') != 'Dummy':
-        prod_list, exception = instrument.get_query_products('isgri_spectrum_query', config=app.config.get('osaconf'))
+        query_spectra_list, exception = instrument.get_query_products('isgri_spectrum_query', config=app.config.get('osaconf'))
     else:
-        prod_list, exception = instrument.get_query_dummy_products('isgri_spectrum_query', config=app.config.get('osaconf'))
+        query_spectra_list, exception = instrument.get_query_dummy_products('isgri_spectrum_query', config=app.config.get('osaconf'))
 
 
-    query_spectrum = prod_list.get_prod_by_name('isgri_spectrum')
-    query_spectrum.write(name='query_spectrum.fits', overwrite=True)
+    for query_spec in query_spectra_list.prod_list:
+        query_spec.write()
+
     print('--> query was ok')
 
-
-    html_fig = query_spectrum.get_html_draw(plot=False)
-
     prod = {}
-    prod['image'] = html_fig
+    _names=[]
+    _figs=[]
+    for query_spec in query_spectra_list.prod_list:
+        _figs.append( query_spec.get_html_draw(plot=False))
+        _names.append(query_spec.name)
+
+    prod['spectrum_name'] = _names
+    prod['spectrum_figure']=_figs
     print('--> send prog')
     return prod
 
