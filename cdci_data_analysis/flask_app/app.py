@@ -67,19 +67,19 @@ def meta_data_isgri():
 
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
-    print (session)
-    session_id=str(uuid4())
+    #print (session)
+    #session_id=str(uuid4())
 
     # Try to set the cookie
     #if s.setSession():
 
-    if request.cookies.get('sessiod_ID') is None:
+    #if request.cookies.get('sessiod_ID') is None:
 
-        resp = make_response(redirect('/test'))
-        print ('write session ID')
-        resp.set_cookie('sessiod_ID', session_id)
+    #   resp = make_response(redirect('/test'))
+    #    print ('write session ID')
+    #    resp.set_cookie('sessiod_ID', session_id)
 
-    print ('session ID',session_id)
+    #print ('session ID',session_id)
     instrument_name='ISGRI'
     prod_type = request.args.get('product_type')
     print('product_type', prod_type)
