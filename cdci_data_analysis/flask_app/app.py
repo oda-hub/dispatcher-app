@@ -14,6 +14,8 @@ from builtins import (bytes, open, str, super, range,
 import numpy as np
 
 from flask import Flask, render_template, request, jsonify
+from flask import Session,session,redirect
+from flask import make_response
 from flask.json import JSONEncoder
 import  simplejson
 from ..ddosa_interface.osa_isgri import OSA_ISGRI
@@ -25,6 +27,7 @@ from ..web_display import draw_dummy
 
 app = Flask(__name__)
 
+app.secret_key('dhxw\x8f\x05y\x8f\xa2\x13\xb9\xcc\xd6\xc6Z\xc2\x01I\xb3\x91\x9aV\x16\xc2')
 
 def get_meta_data(name=None):
     src_query = SourceQuery('src_query')
@@ -61,7 +64,16 @@ def meta_data_isgri():
 
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
+    # Set the session
+    #s = Session()
+    session_id = session.get('session_id')
 
+    # Try to set the cookie
+    #if s.setSession():
+    resp = redirect('/')
+    resp.set_cookie('sessiod_ID', session_id)
+
+    print ('session ID')
     instrument_name='ISGRI'
     prod_type = request.args.get('product_type')
     print('product_type', prod_type)
