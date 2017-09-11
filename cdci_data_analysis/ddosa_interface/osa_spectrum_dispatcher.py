@@ -282,40 +282,49 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
 
     return prod_list, None
 
-def get_osa_spectrum_dummy_products(instrument,config,root_file_name='query_spectrum'):
+def get_osa_spectrum_dummy_products(instrument,config,out_dir='./'):
     import glob
-
-    spec_files=glob.glob(config.dummy_cache+'/*spec*.fits')
-    arf_files=glob.glob(config.dummy_cache+'/*arf*.fits')
-    rmf_files=glob.glob(config.dummy_cache+'/*rmf*.fits')
-
+    print ('config.dummy_cache',config.dummy_cache)
+    spec_files=glob.glob(config.dummy_cache+'/query_spectrum_isgri_sum*.fits')
+    arf_files=glob.glob(config.dummy_cache+'/query_spectrum_arf_sum*.fits.gz')
+    rmf_files=glob.glob(config.dummy_cache+'/query_spectrum_rmf_sum*.fits.gz')
+    print(spec_files,arf_files,rmf_files)
     spec_list = []
-    for spec_file, rmf_file, arf_file in zip(spec_files,arf_files,rmf_files):
+    for spec_file, rmf_file, arf_file in zip(spec_files,rmf_files,arf_files):
         print('spec file-->', spec_file)
-        print('arf file-->', rmf_file)
-        print('rmf file-->', arf_file)
+        print('arf file-->', arf_file)
+        print('rmf file-->', rmf_file)
+        spectrum = pf.open(spec_file)[1]
+        arf_filename = arf_file
+        rmf_filename = rmf_file
 
-        spectrum_filename = Path(spec_file).name
-        arf_filename = Path(arf_file).name
-        rmf_filename = Path(rmf_file).name
+        data = spectrum.data
+        header = spectrum.header
 
-        #data = spectrum.data
-        #header = spectrum.header
+        file_name =  Path(spec_file).name
+        print('out spec file_name', file_name)
+        out_arf_file = Path(arf_file).name
+        print('out arf file_name', out_arf_file)
+        out_rmf_file = Path(rmf_file).name
+        print('out rmf file_name', out_rmf_file)
 
-        out_spec_file_name = root_file_name + '_' + Path(spec_file).name
-        print('out spec file_name', out_spec_file_name)
-        out_arf_file = root_file_name + '_' + arf_file
-        out_rmf_file = root_file_name + '_' + rmf_file
+        name = header['NAME']
 
-        spec = SpectrumProduct.from_fits_file(spectrum_filename,'isgri_spectrum',ext=1,file_name=out_spec_file_name)
+        spec = IsgriSpectrumProduct(name=name,
+                   file_name=file_name,
+                   data=data,
+                   header=header,
+                   rmf_file=rmf_filename,
+                   arf_file=arf_filename,
+                   out_dir=out_dir)
 
-        spec.set_arf_file(arf_kw='ANCRFILE', out_arf_file=out_arf_file,in_arf_file=arf_filename)
-        spec.set_rmf_file(rmf_kw='RESPFILE', out_rmf_file=out_rmf_file,in_rmf_file=rmf_filename)
+        spec.set_arf_file(arf_kw='ANCRFILE', out_arf_file=out_arf_file)
+        spec.set_rmf_file(rmf_kw='RESPFILE', out_rmf_file=out_rmf_file)
         spec_list.append(spec)
 
     prod_list = QueryProductList(prod_list=spec_list)
 
-    return prod_list,None
+    return prod_list, None
 
 
 
