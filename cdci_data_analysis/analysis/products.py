@@ -392,11 +392,11 @@ class SpectrumProduct(BaseQueryProduct):
 
 
 class CatalogProduct(BaseQueryProduct):
-    def __init__(self, name,catalog, **kwargs):
+    def __init__(self, name,catalog,file_name='catalog.fif', **kwargs):
         self.catalog=catalog
-        super(CatalogProduct, self).__init__(name, **kwargs)
+        super(CatalogProduct, self).__init__(name,file_name=file_name, **kwargs)
 
 
-    def write(self,file_name,overwrite=True,format='fits',file_dir=None):
-        file_path = self.file_pathg.get_file_path(file_name=file_name, file_dir=file_dir)
+    def write(self,file_name=None,overwrite=True,format='fits',file_dir=None):
+        file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
         self.catalog.write(file_path,overwrite=overwrite,format=format)

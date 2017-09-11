@@ -31,10 +31,10 @@ from astropy.io import  fits as pf
 
 class IsgriImageProduct(ImageProduct):
 
-    def __init__(self,name,skyima,out_dir=None,prod_prefix=None):
+    def __init__(self,name,file_name,skyima,out_dir=None,prod_prefix=None):
         header = skyima.header
         data = skyima.data
-        super(IsgriImageProduct, self).__init__(name,data=data,header=header,name_prefix=prod_prefix,file_dir=out_dir)
+        super(IsgriImageProduct, self).__init__(name,data=data,header=header,name_prefix=prod_prefix,file_dir=out_dir,file_name=file_name)
         #check if you need to copy!
 
 
@@ -42,9 +42,9 @@ class IsgriImageProduct(ImageProduct):
 
 
     @classmethod
-    def build_from_ddosa_skyima(cls,name,skyima,out_dir=None,prod_prefix=None):
+    def build_from_ddosa_skyima(cls,name,file_name,skyima,out_dir=None,prod_prefix=None):
         skyima = pf.open(skyima)
-        return  cls(name,skyima=skyima[4],out_dir=out_dir,prod_prefix=prod_prefix)
+        return  cls(name,skyima=skyima[4],out_dir=out_dir,prod_prefix=prod_prefix,file_name=file_name)
 
 
 def do_image_from_single_scw(E1,E2,scw):
@@ -172,8 +172,8 @@ def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,confi
 
     res=q.run_query(query_prod=query_prod)
 
-    image=IsgriImageProduct.build_from_ddosa_skyima('isgri_mosaic',res.skyima,out_dir=out_dir,prod_prefix=prod_prefix)
-    osa_catalog=CatalogProduct('mosaic_catalog',catalog=OsaCatalog.build_from_ddosa_srclres(res.srclres),prod_prefix=prod_prefix)
+    image=IsgriImageProduct.build_from_ddosa_skyima('isgri_mosaic','query_mosaic.fits',res.skyima,out_dir=out_dir,prod_prefix=prod_prefix)
+    osa_catalog=CatalogProduct('mosaic_catalog',catalog=OsaCatalog.build_from_ddosa_srclres(res.srclres),file_name='query_catalog.fits',name_prefix=prod_prefix)
 
     prod_list=QueryProductList(prod_list=[image,osa_catalog])
 

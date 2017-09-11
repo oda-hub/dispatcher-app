@@ -71,8 +71,8 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,use_dummy_prods=Fa
     print('out_prod', image,exception)
 
     print dir(image)
-    image.write('test_mosaic.fits',overwrite=True)
-    catalog_product.write('test_mosaic_catalog.fits', overwrite=True)
+    image.write(overwrite=True)
+    catalog_product.write(overwrite=True)
     assert sum(image.data.flatten()>0)>100 # some non-zero pixels
 
     if use_dummy_prods == False:
@@ -231,7 +231,7 @@ def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods
     if query_lc is None:
         raise RuntimeError('no light curve produced')
     print ('out_prod',dir(query_lc))
-    query_lc.write('test_lc.fits')
+    query_lc.write()
     html_fig= query_lc.get_html_draw(plot=True)
     print ('html_fig',html_fig)
 
@@ -255,10 +255,10 @@ def test_plot_lc():
 
 
 def test_full_mosaic():
-    test_mosaic_cookbook(use_catalog=True,use_scw_list=False)
+    #test_mosaic_cookbook(use_catalog=True,use_scw_list=False)
     test_mosaic_cookbook(use_catalog=True, use_scw_list=True)
-    test_mosaic_cookbook(use_catalog=False, use_scw_list=False)
-    test_mosaic_cookbook(use_catalog=False, use_scw_list=True)
+    #test_mosaic_cookbook(use_catalog=False, use_scw_list=False)
+    #test_mosaic_cookbook(use_catalog=False, use_scw_list=True)
 
 
 def test_full_spectrum():
@@ -268,7 +268,7 @@ def test_full_spectrum():
     test_spectrum_cookbook(use_catalog=False, use_scw_list=True,use_dummy_prods=True)
 
 def test_full_lc():
-    test_lightcurve_cookbook(use_catalog=True, use_scw_list=False)
+    #test_lightcurve_cookbook(use_catalog=True, use_scw_list=False)
     test_lightcurve_cookbook(use_catalog=True, use_scw_list=True)
-    test_lightcurve_cookbook(use_catalog=False, use_scw_list=False)
-    test_lightcurve_cookbook(use_catalog=False, use_scw_list=True)
+    #test_lightcurve_cookbook(use_catalog=False, use_scw_list=False)
+    #test_lightcurve_cookbook(use_catalog=False, use_scw_list=True)

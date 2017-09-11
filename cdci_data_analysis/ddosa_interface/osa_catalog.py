@@ -90,7 +90,7 @@ class OsaCatalog(BasicCatalog):
                     ERR_RAD=get_key_column('err_rad',0.01))
 
     @classmethod
-    def build_from_ddosa_srclres(cls, srclres):
+    def build_from_ddosa_srclres(cls, srclres,prod_prefix=None):
         catalog = pf.open(srclres)[1]
         frame = catalog.header['RADECSYS'].lower()
         catalog=catalog.data

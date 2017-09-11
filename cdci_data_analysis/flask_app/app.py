@@ -65,16 +65,22 @@ def meta_data_isgri():
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
     # Set the session
-    #s = Session()
-    app.secret_key('dhxw\x8f\x05y\x8f\xa2\x13\xb9\xcc\xd6\xc6Z\xc2\x01I\xb3\x91\x9aV\x16\xc2')
-    session_id = session.get('session_id')
+    #as = Session()
+    #app.secret_key('dhxw\x8f\x05y\x8f\xa2\x13\xb9\xcc\xd6\xc6Z\xc2\x01I\xb3\x91\x9aV\x16\xc2')
+    import os
+
+    session_id = 'dhxw\x8f\x05y\x8f\xa2\x13\xb9\xcc\xd6\xc6Z\xc2\x01I\xb3\x91\x9aV\x16\xc2'
 
     # Try to set the cookie
     #if s.setSession():
-    resp = redirect('/')
-    resp.set_cookie('sessiod_ID', session_id)
 
-    print ('session ID')
+    if request.cookies.get('sessiod_ID') is None:
+
+        resp = make_response(redirect('/test'))
+        print ('write session ID')
+        resp.set_cookie('sessiod_ID', session_id)
+
+    print ('session ID',session_id)
     instrument_name='ISGRI'
     prod_type = request.args.get('product_type')
     print('product_type', prod_type)
