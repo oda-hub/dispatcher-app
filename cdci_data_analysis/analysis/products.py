@@ -406,10 +406,11 @@ class SpectrumProduct(BaseQueryProduct):
 
         plugins.connect(fig, plugins.MousePosition(fontsize=14))
 
-        dict= mpld3.fig_to_dict(fig)
-        dict['text']=fit_str
+        res_dict={}
+        res_dict['image']= mpld3.fig_to_dict(fig)
+        res_dict['text']=fit_str
 
-        return dict
+        return res_dict
 
 
 class CatalogProduct(BaseQueryProduct):
