@@ -27,7 +27,7 @@ from ..web_display import draw_dummy
 
 app = Flask(__name__)
 
-app.secret_key('dhxw\x8f\x05y\x8f\xa2\x13\xb9\xcc\xd6\xc6Z\xc2\x01I\xb3\x91\x9aV\x16\xc2')
+
 
 def get_meta_data(name=None):
     src_query = SourceQuery('src_query')
@@ -66,6 +66,7 @@ def meta_data_isgri():
 def run_analysis_test():
     # Set the session
     #s = Session()
+    app.secret_key('dhxw\x8f\x05y\x8f\xa2\x13\xb9\xcc\xd6\xc6Z\xc2\x01I\xb3\x91\x9aV\x16\xc2')
     session_id = session.get('session_id')
 
     # Try to set the cookie
