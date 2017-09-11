@@ -14,12 +14,15 @@ from builtins import (bytes, open, str, super, range,
 import numpy as np
 
 from flask import Flask, render_template, request, jsonify
-from flask import Session,session,redirect
+from flask import Flask, session, redirect, url_for, escape, request
 from flask import make_response
 from flask.json import JSONEncoder
 import  simplejson
 from ..ddosa_interface.osa_isgri import OSA_ISGRI
 from ..analysis.queries import *
+
+from uuid import uuid4
+
 # from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
 #from ..ddosa_interface.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
 
@@ -64,12 +67,8 @@ def meta_data_isgri():
 
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
-    # Set the session
-    #as = Session()
-    #app.secret_key('dhxw\x8f\x05y\x8f\xa2\x13\xb9\xcc\xd6\xc6Z\xc2\x01I\xb3\x91\x9aV\x16\xc2')
-    import os
-
-    session_id = 'dhxw\x8f\x05y\x8f\xa2\x13\xb9\xcc\xd6\xc6Z\xc2\x01I\xb3\x91\x9aV\x16\xc2'
+    print (session)
+    session_id=str(uuid4())
 
     # Try to set the cookie
     #if s.setSession():
