@@ -132,7 +132,7 @@ def run_analysis_test():
 
         instrument.set_pars_from_dic(par_dic)
         instrument.show_parameters_list()
-        set_catalog(instrument, par_dic)
+        set_catalog(instrument, par_dic,scratch_dir=scratch_dir)
 
         if request.args.get('product_type') == 'isgri_image':
             prod_dictionary = query_isgri_image(instrument,scratch_dir=scratch_dir)
