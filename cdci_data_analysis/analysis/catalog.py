@@ -142,7 +142,7 @@ class BasicCatalog(object):
             data=np.zeros(self.table.as_array().shape[0])
         self._table.add_column(Column(data=data,name=name,dtype=dtype))
 
-    def get_dictionary(self):
+    def get_dictionary(self ):
         print('in table',self.table)
         #for col in self._table.columns.values():
         #    try:
