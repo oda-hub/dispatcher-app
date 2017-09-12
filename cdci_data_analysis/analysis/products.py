@@ -357,7 +357,7 @@ class SpectrumProduct(BaseQueryProduct):
 
         fit_model = getattr(m, model_name)
 
-        header_str = 'Model %s\n' % (getattr(m, model_name))
+        header_str = 'Model %s\n' % (model_name)
         header_str += 'Fit report\n'
         _name=[]
         _val=[]
