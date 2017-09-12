@@ -353,7 +353,7 @@ class SpectrumProduct(BaseQueryProduct):
         footer_str ='dof '+ '%d'%xsp.Fit.dof+'\n'
 
         footer_str +='Chi-squared '+ '%f\n'%xsp.Fit.statistic
-        footer_str +='Chi-squared red' + '%f\n' % xsp.Fit.statistic/xsp.Fit.dof
+        footer_str +='Chi-squared red %f\n'%(xsp.Fit.statistic/xsp.Fit.dof)
 
         if plot == True:
             xsp.Plot.device = "/xs"
