@@ -340,8 +340,8 @@ class SpectrumProduct(BaseQueryProduct):
         print('res',self.rmf_file)
         print('arf',self.arf_file)
         s = xsp.Spectrum(file_path)
-        s.response = self.rmf_file
-        s.response.arf=self.arf_file
+        s.response = str(self.rmf_file)
+        s.response.arf=str(self.arf_file)
 
         s.ignore('**-15.')
         s.ignore('300.-**')
