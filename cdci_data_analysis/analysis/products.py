@@ -236,6 +236,8 @@ class SpectrumProduct(BaseQueryProduct):
         self.arf_kw=arf_kw
         self.rmf_kw = rmf_kw
 
+        self.rmf_file=None
+        self.arf_file=None
 
 
         self.set_arf_file()
@@ -260,10 +262,11 @@ class SpectrumProduct(BaseQueryProduct):
         else:
             self.out_arf_file=out_arf_file
 
-
+        self.header[arf_kw] = 'NONE'
         if out_arf_file is not None and in_arf_file is not None:
             pf.open(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
             print('arf written to', out_arf_file)
+            self.r
             if arf_kw is not None  and self.header is not None:
                 self.header[arf_kw] = out_arf_file
                 print('set arf kw to', self.header[arf_kw])
@@ -271,6 +274,9 @@ class SpectrumProduct(BaseQueryProduct):
             if arf_kw is not None and self.header is not None:
                 self.header[arf_kw]=self.in_arf_file_path
                 print('set arf kw to', self.header[arf_kw])
+
+        self.arf_file=out_arf_file
+
 
     def set_rmf_file(self, in_rmf_file=None,rmf_kw=None, out_rmf_file=None, overwrite=True):
         if in_rmf_file is None:
@@ -288,19 +294,21 @@ class SpectrumProduct(BaseQueryProduct):
         else:
             self.out_rmf_file=out_rmf_file
 
-
+        self.header[rmf_kw] = 'NONE'
         if out_rmf_file is not None and in_rmf_file is not None:
             pf.open(in_rmf_file).writeto(out_rmf_file, overwrite=overwrite)
             print('rmf written to', out_rmf_file)
             if rmf_kw is not None  and self.header is not None:
                 self.header[rmf_kw] = out_rmf_file
                 print('set rmf kw to', self.header[rmf_kw])
+
         else:
             if rmf_kw is not None and self.header is not None:
 
                 self.header[rmf_kw]=self.in_rmf_file
                 print('set rmf kw to',self.header[rmf_kw])
 
+        self.rmf_file = out_rmf_file
 
 
     @classmethod
@@ -321,8 +329,13 @@ class SpectrumProduct(BaseQueryProduct):
         import xspec as xsp
         # PyXspec operations:
         file_path=self.file_path.get_file_path()
-        print('plotting->,',file_path)
+        print('fitting->,',file_path)
+        print('res',self.rmf_file)
+        print('arf',self.arf_file)
         s = xsp.Spectrum(file_path)
+        s.response = self.rmf_file
+        s.response.arf=self.arf_file
+
         s.ignore('**-15.')
         s.ignore('300.-**')
 

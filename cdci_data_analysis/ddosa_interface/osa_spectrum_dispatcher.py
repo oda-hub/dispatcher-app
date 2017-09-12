@@ -110,8 +110,8 @@ class IsgriSpectrumProduct(SpectrumProduct):
                       arf_file=arf_filename,
                       out_dir=out_dir)
 
-            spec.set_arf_file(arf_kw='ANCRFILE',out_arf_file=out_arf_file)
-            spec.set_rmf_file(rmf_kw='RESPFILE',out_rmf_file=out_rmf_file)
+            spec.set_arf_file(out_arf_file=out_arf_file)
+            spec.set_rmf_file(out_rmf_file=out_rmf_file)
             spec_list.append(spec)
 
         return spec_list
@@ -315,7 +315,7 @@ def get_osa_spectrum_dummy_products(instrument,config,out_dir='./'):
         out_arf_file = str(Path(out_dir,out_arf_file))
         print('out arf file_name', out_arf_file)
         out_rmf_file = Path(rmf_filename).name
-        out_rmf_file = str(Path(out_dir,out_rmf_file))
+        out_rmf_file = str(Path(out_dir,out_rmf_file)).strip()
         print('out rmf file_name', out_rmf_file)
 
         name = header['NAME']
@@ -328,8 +328,8 @@ def get_osa_spectrum_dummy_products(instrument,config,out_dir='./'):
                    arf_file=arf_filename,
                    out_dir=out_dir)
 
-        spec.set_arf_file(arf_kw='ANCRFILE', out_arf_file=out_arf_file)
-        spec.set_rmf_file(rmf_kw='RESPFILE', out_rmf_file=out_rmf_file)
+        spec.set_arf_file(out_arf_file=out_arf_file)
+        spec.set_rmf_file(out_rmf_file=out_rmf_file)
         spec_list.append(spec)
 
     prod_list = QueryProductList(prod_list=spec_list)

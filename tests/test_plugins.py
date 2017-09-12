@@ -265,7 +265,7 @@ def test_full_spectrum():
     #test_spectrum_cookbook(use_catalog=True, use_scw_list=False)
     #test_spectrum_cookbook(use_catalog=True, use_scw_list=True)
     #test_spectrum_cookbook(use_catalog=False, use_scw_list=False)
-    test_spectrum_cookbook(use_catalog=False, use_scw_list=True,use_dummy_prods=True,out_dir='test_scratch')
+    test_spectrum_cookbook(use_catalog=False, use_scw_list=True,use_dummy_prods=True,out_dir='TokmKerOEu2YmtHs450dIFnPytW9mBtF-seM5eFDkNg')
 
 def test_full_lc():
     #test_lightcurve_cookbook(use_catalog=True, use_scw_list=False)
