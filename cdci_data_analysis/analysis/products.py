@@ -368,7 +368,7 @@ class SpectrumProduct(BaseQueryProduct):
             p=getattr(fit_model,name)
             _name.append(p.name)
             _val.append('%5.5f'%p.values[0])
-            _unit.append(p.unit)
+            _unit.append(' %s'%p.unit)
             _err.append('%5.5f'%p.sigma)
 
         fit_table=dict(columns_list=[_name,_val,_unit,_err], column_names=colnames)
