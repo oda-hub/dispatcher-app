@@ -232,10 +232,14 @@ def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=No
     return prod_list, None
 
 
-def get_osa_lightcurve_dummy_products(instrument,config):
+def get_osa_lightcurve_dummy_products(instrument,config,out_dir='./'):
     from ..analysis.products import LightCurveProduct
     dummy_cache = config.dummy_cache
-    query_lc = LightCurveProduct.from_fits_file('%s/query_lc.fits'%dummy_cache, 'isgri_lc', ext=1)
+    query_lc = LightCurveProduct.from_fits_file(inf_file='%s/query_lc.fits'%dummy_cache,
+                                                out_file_name='query_lc.fits',
+                                                prod_name='isgri_lc',
+                                                ext=1,
+                                                file_dir=out_dir)
 
     prod_list = QueryProductList(prod_list=[query_lc])
 

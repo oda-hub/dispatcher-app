@@ -173,14 +173,14 @@ def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,confi
     res=q.run_query(query_prod=query_prod)
 
     image=IsgriImageProduct.build_from_ddosa_skyima('isgri_mosaic','query_mosaic.fits',res.skyima,out_dir=out_dir,prod_prefix=prod_prefix)
-    osa_catalog=CatalogProduct('mosaic_catalog',catalog=OsaCatalog.build_from_ddosa_srclres(res.srclres),file_name='query_catalog.fits',name_prefix=prod_prefix)
+    osa_catalog=CatalogProduct('mosaic_catalog',catalog=OsaCatalog.build_from_ddosa_srclres(res.srclres),file_name='query_catalog.fits',name_prefix=prod_prefix,file_dir=out_dir)
 
     prod_list=QueryProductList(prod_list=[image,osa_catalog])
 
     return prod_list,None
 
 
-def get_osa_image_dummy_products(instrument,config):
+def get_osa_image_dummy_products(instrument,config,out_dir='./'):
     from ..analysis.products import ImageProduct
     from ..analysis.catalog import BasicCatalog
     dummy_cache=config.dummy_cache
@@ -188,8 +188,16 @@ def get_osa_image_dummy_products(instrument,config):
     user_catalog = instrument.get_par_by_name('user_catalog').value
 
 
-    image = ImageProduct.from_fits_file('%s/query_mosaic.fits'%dummy_cache, 'isgri_mosaic', ext=0)
-    catalog = CatalogProduct('mosaic_catalog',catalog=BasicCatalog.from_fits_file('%s/query_catalog.fits'%dummy_cache))
+    image = ImageProduct.from_fits_file(in_file='%s/query_mosaic.fits'%dummy_cache,
+                                        out_file_name='query_mosaic.fits',
+                                        prod_name='isgri_mosaic',
+                                        ext=0,
+                                        file_dir=out_dir)
+
+    catalog = CatalogProduct(name='mosaic_catalog',
+                             catalog=BasicCatalog.from_fits_file('%s/query_catalog.fits'%dummy_cache),
+                             file_name='query_catalog.fits',
+                             file_dir = out_dir)
 
     if user_catalog is not None:
         print ('setting from user catalog')

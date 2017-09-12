@@ -112,12 +112,12 @@ class ImageProduct(BaseQueryProduct):
         super(ImageProduct, self).__init__(name,file_name=file_name, **kwargs)
 
     @classmethod
-    def from_fits_file(cls,file_name,prod_name,ext=0):
-        hdu = pf.open(file_name)[ext]
+    def from_fits_file(cls,in_file,out_file_name,prod_name,ext=0,**kwargs):
+        hdu = pf.open(in_file)[ext]
         data = hdu.data
         header = hdu.header
 
-        return  cls(name=prod_name, data=data, header=header,file_name=file_name)
+        return  cls(name=prod_name, data=data, header=header,file_name=out_file_name,**kwargs)
 
     def write(self,file_name=None,overwrite=True,file_dir=None):
 
@@ -174,11 +174,11 @@ class LightCurveProduct(BaseQueryProduct):
         super(LightCurveProduct, self).__init__(name,file_name=file_name,**kwargs)
 
     @classmethod
-    def from_fits_file(cls, file_name, prod_name, ext=0):
-        hdu = pf.open(file_name)[ext]
+    def from_fits_file(cls, inf_file,out_file_name, prod_name, ext=0,**kwargs):
+        hdu = pf.open(inf_file)[ext]
         data = hdu.data
         header = hdu.header
-        return cls(name=prod_name, data=data, header=header, file_name=file_name)
+        return cls(name=prod_name, data=data, header=header, file_name=out_file_name,**kwargs)
 
     def write(self, file_name=None, overwrite=True,file_dir=None):
         file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
@@ -332,18 +332,28 @@ class SpectrumProduct(BaseQueryProduct):
         xsp.Fit.query = 'yes'
         xsp.Fit.perform()
 
-        fit_str='Exposure %f (s)\n'%s.exposure
-        fit_str+='fit pars\n'
-        fit_str+='========================================================================\n'
+        header_str='Exposure %f (s)\n'%s.exposure
+        header_str+='fit pars\n'
+
         fit_model = getattr(m, model_name)
+        _name=[]
+        _val=[]
+        _unit=[]
+        _err=[]
+        colnames=['par name','value','units','error']
         for name in fit_model.parameterNames:
             p=getattr(fit_model,name)
-            fit_str+='%s %f +/- %f\n '%(p.name,p.values[0],p.sigma)
-        fit_str += '________________________________________________________________________\n'
+            _name.append(p.name)
+            _val.append(p.values[0])
+            _unit.append(p.unit)
+            _err.append(p.sigma)
 
-        fit_str+='dof '+ '%d'%xsp.Fit.dof+'\n'
+        fit_table=dict(columns_list=[_name,_val,_unit,_err], column_names=colnames)
 
-        fit_str+='Chi-squared '+ '%f'%xsp.Fit.statistic
+        footer_str ='dof '+ '%d'%xsp.Fit.dof+'\n'
+
+        footer_str +='Chi-squared '+ '%f\n'%xsp.Fit.statistic
+        footer_str +='Chi-squared red' + '%f\n' % xsp.Fit.statistic/xsp.Fit.dof
 
         if plot == True:
             xsp.Plot.device = "/xs"
@@ -409,13 +419,15 @@ class SpectrumProduct(BaseQueryProduct):
 
         res_dict={}
         res_dict['image']= mpld3.fig_to_dict(fig)
-        res_dict['text']=fit_str
+        res_dict['header_text']=header_str
+        res_dict['table_text'] = fit_table
+        res_dict['footer_text'] = footer_str
 
         return res_dict
 
 
 class CatalogProduct(BaseQueryProduct):
-    def __init__(self, name,catalog,file_name='catalog.fif', **kwargs):
+    def __init__(self, name,catalog,file_name='catalog.fits', **kwargs):
         self.catalog=catalog
         super(CatalogProduct, self).__init__(name,file_name=file_name, **kwargs)
 

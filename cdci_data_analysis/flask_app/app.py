@@ -85,6 +85,9 @@ def run_analysis_test():
     print('product_type', prod_type)
     print('instrument', instrument_name)
 
+
+    print('=>session_id<='),request.args.get('session_id')
+
     instrument = None
     if instrument_name == 'ISGRI':
         instrument = OSA_ISGRI()

@@ -76,6 +76,9 @@ class IsgriSpectrumProduct(SpectrumProduct):
 
 
         spec_list=[]
+
+        if out_dir is None:
+            out_dir='./'
         for source_name, spec_attr, rmf_attr, arf_attr in res.extracted_sources:
 
             print('spec file-->',getattr(res, spec_attr),spec_attr)
@@ -91,8 +94,10 @@ class IsgriSpectrumProduct(SpectrumProduct):
             file_name=prod_prefix+'_'+Path(getattr(res, spec_attr)).resolve().stem
             print ('out spec file_name',file_name)
             out_arf_file=prod_prefix+'_'+Path(getattr(res, arf_attr)).name
+            out_arf_file=str(Path(out_dir,out_arf_file))
             print('out arf file_name', out_arf_file)
-            out_rmf_file=prod_prefix+'_'+Path(getattr(res, rmf_attr)).name
+            out_rmf_file=prod_prefix+'_'+Path(out_dir,getattr(res, rmf_attr)).name
+            out_rmf_file = str(Path(out_dir, out_rmf_file))
             print('out rmf file_name', out_rmf_file)
 
             name=source_name
@@ -285,6 +290,8 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
 def get_osa_spectrum_dummy_products(instrument,config,out_dir='./'):
     import glob
     print ('config.dummy_cache',config.dummy_cache)
+    print ('out_dir',
+           )
     spec_files=glob.glob(config.dummy_cache+'/query_spectrum_isgri_sum*.fits')
     arf_files=glob.glob(config.dummy_cache+'/query_spectrum_arf_sum*.fits.gz')
     rmf_files=glob.glob(config.dummy_cache+'/query_spectrum_rmf_sum*.fits.gz')
@@ -303,9 +310,11 @@ def get_osa_spectrum_dummy_products(instrument,config,out_dir='./'):
 
         file_name =  Path(spec_file).name
         print('out spec file_name', file_name)
-        out_arf_file = Path(arf_file).name
+        out_arf_file=Path(arf_file).name
+        out_arf_file = str(Path(out_dir,out_arf_file))
         print('out arf file_name', out_arf_file)
         out_rmf_file = Path(rmf_file).name
+        out_rmf_file = str(Path(out_dir,out_rmf_file))
         print('out rmf file_name', out_rmf_file)
 
         name = header['NAME']

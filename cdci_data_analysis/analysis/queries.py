@@ -341,15 +341,15 @@ class ProductQuery(BaseQuery):
         self._html_draw_method = html_draw_method
         self._get_dummy_products_method=get_dummy_products_method
 
-    def get_products(self, instrument, config=None):
+    def get_products(self, instrument, config=None,**kwargs):
         if self._get_product_method is not None:
-            return self._get_product_method(instrument,config=config)
+            return self._get_product_method(instrument,config=config,**kwargs)
         else:
             return None
 
-    def get_dummy_products(self,instrument, config=None):
+    def get_dummy_products(self,instrument, config=None,**kwargs):
         if self._get_dummy_products_method is not None:
-            return self._get_dummy_products_method(instrument,config)
+            return self._get_dummy_products_method(instrument,config,**kwargs)
         else:
             return None
 

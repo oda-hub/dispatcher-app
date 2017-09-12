@@ -36,7 +36,7 @@ def test_instr(use_scw_list=True):
 
 
 
-def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,use_dummy_prods=False):
+def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,use_dummy_prods=False,out_dir=None):
 
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
 
@@ -61,9 +61,9 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,use_dummy_prods=Fa
     instr.show_parameters_list()
 
     if use_dummy_prods==True:
-        prod_list,exception=instr.get_query_dummy_products('isgri_image_query', config=osaconf)
+        prod_list,exception=instr.get_query_dummy_products('isgri_image_query', config=osaconf,out_dir=out_dir)
     else:
-        prod_list, exception = instr.get_query_products('isgri_image_query', config=osaconf)
+        prod_list, exception = instr.get_query_products('isgri_image_query', config=osaconf,out_dir=out_dir)
 
     image=prod_list.get_prod_by_name('isgri_mosaic')
     catalog_product=prod_list.get_prod_by_name('mosaic_catalog')
@@ -95,7 +95,7 @@ def test_plot_mosaic():
 
 
 
-def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods=False):
+def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods=False,out_dir=None):
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
 
     instr = OSA_ISGRI()
@@ -127,9 +127,9 @@ def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods=F
     instr.show_parameters_list()
 
     if use_dummy_prods == True:
-        query_spectra_list, exception = instr.get_query_dummy_products('isgri_spectrum_query', config=osaconf)
+        query_spectra_list, exception = instr.get_query_dummy_products('isgri_spectrum_query', config=osaconf,out_dir=out_dir)
     else:
-        query_spectra_list, exception=instr.get_query_products('isgri_spectrum_query', config=osaconf)
+        query_spectra_list, exception=instr.get_query_products('isgri_spectrum_query', config=osaconf,out_dir=out_dir)
 
 
     for query_spec in query_spectra_list.prod_list:
@@ -191,7 +191,7 @@ def test_fit_spectrum_cookbook():
     ax.set_ylabel('normalize counts  s$^{-1}$ keV$^{-1}$')
     plt.show()
 
-def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods=False):
+def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods=False,out_dir=None):
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
 
 
@@ -221,9 +221,9 @@ def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods
     instr.show_parameters_list()
 
     if use_dummy_prods == True:
-        prod_list, exception = instr.get_query_dummy_products('isgri_lc_query', config=osaconf)
+        prod_list, exception = instr.get_query_dummy_products('isgri_lc_query', config=osaconf,out_dir=out_dir)
     else:
-        prod_list, exception=instr.get_query_products('isgri_lc_query', config=osaconf)
+        prod_list, exception=instr.get_query_products('isgri_lc_query', config=osaconf,out_dir=out_dir)
 
     query_lc = prod_list.get_prod_by_name('isgri_lc')
 
@@ -256,7 +256,7 @@ def test_plot_lc():
 
 def test_full_mosaic():
     #test_mosaic_cookbook(use_catalog=True,use_scw_list=False)
-    test_mosaic_cookbook(use_catalog=True, use_scw_list=True)
+    test_mosaic_cookbook(use_catalog=True, use_scw_list=True,out_dir='test_scratch',use_dummy_prods=True)
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=False)
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=True)
 
@@ -265,10 +265,10 @@ def test_full_spectrum():
     #test_spectrum_cookbook(use_catalog=True, use_scw_list=False)
     #test_spectrum_cookbook(use_catalog=True, use_scw_list=True)
     #test_spectrum_cookbook(use_catalog=False, use_scw_list=False)
-    test_spectrum_cookbook(use_catalog=False, use_scw_list=True,use_dummy_prods=True)
+    test_spectrum_cookbook(use_catalog=False, use_scw_list=True,use_dummy_prods=True,out_dir='test_scratch')
 
 def test_full_lc():
     #test_lightcurve_cookbook(use_catalog=True, use_scw_list=False)
-    test_lightcurve_cookbook(use_catalog=True, use_scw_list=True)
+    test_lightcurve_cookbook(use_catalog=True, use_scw_list=True,out_dir='test_scratch',use_dummy_prods=True)
     #test_lightcurve_cookbook(use_catalog=False, use_scw_list=False)
     #test_lightcurve_cookbook(use_catalog=False, use_scw_list=True)

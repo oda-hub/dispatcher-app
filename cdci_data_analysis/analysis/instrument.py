@@ -118,13 +118,12 @@ class Instrument(object):
         return p
 
 
-    def get_query_products(self, query_name, config=None):
+    def get_query_products(self, query_name, config=None,out_dir=None):
+        return self.get_query_by_name(query_name).get_products(self, config=config,out_dir=out_dir)
 
-        return self.get_query_by_name(query_name).get_products(self, config=config)
+    def get_query_dummy_products(self, query_name, config=None,out_dir=None):
 
-    def get_query_dummy_products(self, query_name, config=None):
-
-        return self.get_query_by_name(query_name).get_dummy_products(self, config=config)
+        return self.get_query_by_name(query_name).get_dummy_products(self, config=config,out_dir=out_dir)
 
     def get_html_draw(self, prod_name, image,image_header,catalog=None):
 
