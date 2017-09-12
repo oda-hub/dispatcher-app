@@ -337,11 +337,11 @@ class SpectrumProduct(BaseQueryProduct):
         # PyXspec operations:
         file_path=self.file_path.get_file_path()
         print('fitting->,',file_path)
-        print('res',self.rmf_file,type(self.rmf_file).encode('utf-8'))
-        print('arf',self.arf_file,type(self.arf_file).encode('utf-8'))
+        print('res',self.rmf_file,type(self.rmf_file.encode('utf-8')))
+        print('arf',self.arf_file,type(self.arf_file.encode('utf-8')))
         s = xsp.Spectrum(file_path)
-        s.response = str(self.rmf_file)
-        s.response.arf=str(self.arf_file)
+        s.response = self.rmf_file.encode('utf-8')
+        s.response.arf=self.arf_file.encode('utf-8')
 
         s.ignore('**-15.')
         s.ignore('300.-**')
