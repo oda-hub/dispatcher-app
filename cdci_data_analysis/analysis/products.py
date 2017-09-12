@@ -353,8 +353,7 @@ class SpectrumProduct(BaseQueryProduct):
         xsp.Fit.perform()
 
         header_str='Exposure %f (s)\n'%(s.exposure)
-        header_str += 'Fit report\n'
-        header_str += 'Model %s\n' % (model_name)
+        header_str +='Fit report for model %s\n' % (model_name)
 
         fit_model = getattr(m, model_name)
 
