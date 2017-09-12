@@ -353,9 +353,12 @@ class SpectrumProduct(BaseQueryProduct):
         xsp.Fit.perform()
 
         header_str='Exposure %f (s)\n'%s.exposure
-        header_str+='fit pars\n'
+
 
         fit_model = getattr(m, model_name)
+
+        header_str = 'Model %s\n' % (getattr(m, model_name))
+        header_str += 'Fit report\n'
         _name=[]
         _val=[]
         _unit=[]
@@ -364,16 +367,16 @@ class SpectrumProduct(BaseQueryProduct):
         for name in fit_model.parameterNames:
             p=getattr(fit_model,name)
             _name.append(p.name)
-            _val.append(p.values[0])
+            _val.append('%5.5f'%p.values[0])
             _unit.append(p.unit)
-            _err.append(p.sigma)
+            _err.append('%5.5f'%p.sigma)
 
         fit_table=dict(columns_list=[_name,_val,_unit,_err], column_names=colnames)
 
         footer_str ='dof '+ '%d'%xsp.Fit.dof+'\n'
 
-        footer_str +='Chi-squared '+ '%f\n'%xsp.Fit.statistic
-        footer_str +='Chi-squared red %f\n'%(xsp.Fit.statistic/xsp.Fit.dof)
+        footer_str +='Chi-squared '+ '%5.5f\n'%xsp.Fit.statistic
+        footer_str +='Chi-squared red. %5.5f\n'%(xsp.Fit.statistic/xsp.Fit.dof)
 
         if plot == True:
             xsp.Plot.device = "/xs"
