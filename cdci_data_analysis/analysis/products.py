@@ -247,6 +247,7 @@ class SpectrumProduct(BaseQueryProduct):
         super(SpectrumProduct, self).__init__(name,file_name=file_name, **kwargs)
 
     def set_arf_file(self, in_arf_file=None,arf_kw=None, out_arf_file=None, overwrite=True):
+
         if in_arf_file is None:
             in_arf_file=self.in_arf_file
         else:
@@ -262,18 +263,21 @@ class SpectrumProduct(BaseQueryProduct):
         else:
             self.out_arf_file=out_arf_file
 
-        self.header[arf_kw] = 'NONE'
+        if self.header is not None and arf_kw is not None:
+            print("kw -->",arf_kw)
+            print("-->", self.header[arf_kw])
+            self.header[arf_kw] = 'NONE'
         if out_arf_file is not None and in_arf_file is not None:
             pf.open(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
             print('arf written to', out_arf_file)
-            self.r
-            if arf_kw is not None  and self.header is not None:
-                self.header[arf_kw] = out_arf_file
-                print('set arf kw to', self.header[arf_kw])
-        else:
-            if arf_kw is not None and self.header is not None:
-                self.header[arf_kw]=self.in_arf_file_path
-                print('set arf kw to', self.header[arf_kw])
+
+            #if arf_kw is not None  and self.header is not None:
+            #    self.header[arf_kw] = out_arf_file
+            #    print('set arf kw to', self.header[arf_kw])
+        #else:
+            #if arf_kw is not None and self.header is not None:
+            #    self.header[arf_kw]=self.in_arf_file_path
+            #    print('set arf kw to', self.header[arf_kw])
 
         self.arf_file=out_arf_file
 
@@ -294,19 +298,22 @@ class SpectrumProduct(BaseQueryProduct):
         else:
             self.out_rmf_file=out_rmf_file
 
-        self.header[rmf_kw] = 'NONE'
+        if self.header is not None and rmf_kw is not None:
+            print("kw -->", rmf_kw)
+            print ("-->", self.header[rmf_kw] )
+            self.header[rmf_kw] = 'NONE'
         if out_rmf_file is not None and in_rmf_file is not None:
             pf.open(in_rmf_file).writeto(out_rmf_file, overwrite=overwrite)
             print('rmf written to', out_rmf_file)
-            if rmf_kw is not None  and self.header is not None:
-                self.header[rmf_kw] = out_rmf_file
-                print('set rmf kw to', self.header[rmf_kw])
+            #if rmf_kw is not None  and self.header is not None:
+            #    self.header[rmf_kw] = out_rmf_file
+            #    print('set rmf kw to', self.header[rmf_kw])
 
-        else:
-            if rmf_kw is not None and self.header is not None:
+        #else:
+        #    if rmf_kw is not None and self.header is not None:
 
-                self.header[rmf_kw]=self.in_rmf_file
-                print('set rmf kw to',self.header[rmf_kw])
+        #        self.header[rmf_kw]=self.in_rmf_file
+        #        print('set rmf kw to',self.header[rmf_kw])
 
         self.rmf_file = out_rmf_file
 
