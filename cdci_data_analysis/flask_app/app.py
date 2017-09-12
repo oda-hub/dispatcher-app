@@ -31,6 +31,9 @@ from ..web_display import draw_dummy
 app = Flask(__name__)
 
 
+def set_session(session_id):
+    pass
+
 
 def get_meta_data(name=None):
     src_query = SourceQuery('src_query')
