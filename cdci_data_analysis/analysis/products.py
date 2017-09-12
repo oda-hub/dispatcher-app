@@ -352,13 +352,12 @@ class SpectrumProduct(BaseQueryProduct):
         xsp.Fit.query = 'yes'
         xsp.Fit.perform()
 
-        header_str='Exposure %f (s)\n'%s.exposure
-
+        header_str='Exposure %f (s)\n'%(s.exposure)
+        header_str += 'Fit report\n'
+        header_str += 'Model %s\n' % (model_name)
 
         fit_model = getattr(m, model_name)
 
-        header_str = 'Model %s\n' % (model_name)
-        header_str += 'Fit report\n'
         _name=[]
         _val=[]
         _unit=[]
@@ -368,7 +367,7 @@ class SpectrumProduct(BaseQueryProduct):
             p=getattr(fit_model,name)
             _name.append(p.name)
             _val.append('%5.5f'%p.values[0])
-            _unit.append(' %s'%p.unit)
+            _unit.append('%s'%p.unit)
             _err.append('%5.5f'%p.sigma)
 
         fit_table=dict(columns_list=[_name,_val,_unit,_err], column_names=colnames)
