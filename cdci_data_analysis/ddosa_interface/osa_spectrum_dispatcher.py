@@ -288,6 +288,8 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
     return prod_list, None
 
 def get_osa_spectrum_dummy_products(instrument,config,out_dir='./'):
+    if out_dir is None:
+        out_dir = './'
     import glob
     print ('config.dummy_cache',config.dummy_cache)
     print ('out_dir',out_dir)
