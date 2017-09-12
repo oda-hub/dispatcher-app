@@ -48,8 +48,9 @@ def make_dir(out_dir):
 def set_session(session_id):
     wd='./'
     if session_id is not None:
-        make_dir(session_id)
-        wd= session_id
+        wd = 'scratch_'+session_id
+        make_dir(wd)
+
     return wd
 
 def get_meta_data(name=None):
