@@ -290,15 +290,20 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
 def get_osa_spectrum_dummy_products(instrument,config,out_dir='./'):
     if out_dir is None:
         out_dir = './'
-    import glob
+    import glob,os
     print ('config.dummy_cache',config.dummy_cache)
     print ('out_dir',out_dir)
     spec_files=glob.glob(config.dummy_cache+'/query_spectrum_isgri_sum*.fits')
-    arf_files=glob.glob(config.dummy_cache+'/query_spectrum_arf_sum*.fits.gz')
-    rmf_files=glob.glob(config.dummy_cache+'/query_spectrum_rmf_sum*.fits.gz')
-    print(spec_files,arf_files,rmf_files)
+
+    print(spec_files)
     spec_list = []
-    for spec_file, rmf_file, arf_file in zip(spec_files,rmf_files,arf_files):
+    for spec_file in spec_files:
+        src_name=os.path.basename(spec_file)
+        src_name=src_name.replace('query_spectrum_isgri_sum_','')
+        src_name=src_name.replace('.fits','')
+        print ('->',src_name)
+        arf_file=glob.glob(config.dummy_cache+'/query_spectrum_arf_sum*%s*.fits.gz'%src_name)[0]
+        rmf_file=glob.glob(config.dummy_cache+'/query_spectrum_rmf_sum*%s*.fits.gz'%src_name)[0]
         print('spec file-->', spec_file)
         print('arf file-->', arf_file)
         print('rmf file-->', rmf_file)
