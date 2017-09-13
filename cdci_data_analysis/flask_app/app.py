@@ -116,25 +116,13 @@ def prepare_download(file_list,file_name):
 
     return tmp_dir,file_name
 
-@app.route("/download_spectra",methods=['POST', 'GET'])
-def download_spectra():
-    spec_file=request.args.get('spec_file')
-    arf_file=request.args.get('arf_file')
-    rmf_file = request.args.get('rmf_file')
-    print('download spec file',spec_file)
-    print('download arf file', arf_file)
-    print('download rmf file', rmf_file)
-    tmp_dir,tar_file=prepare_download([spec_file,arf_file,rmf_file],'spectra.tar.gz')
-    print ('tmp_dir,tar_file',tmp_dir,tar_file)
-    try:
-        return send_from_directory(directory=tmp_dir, filename=tar_file,attachment_filename=tar_file,as_attachment=True)
-    except Exception as e:
-        return str(e)
 
 
 @app.route("/download_products",methods=['POST', 'GET'])
 def download_products():
+    print('in url file_list',request.args.get('file_list'))
     file_list=request.args.get('file_list').split(',')
+    print('used file_list',file_list)
     file_name=request.args.get('file_name')
 
     tmp_dir,target_file=prepare_download(file_list,file_name)
@@ -146,16 +134,7 @@ def download_products():
 
 
 
-@app.route("/download_lc",methods=['POST', 'GET'])
-def download_lc():
-    lc_file=request.args.get('lc_file')
-    print('download lc_file', lc_file)
-    tmp_dir,tar_file=prepare_download([lc_file],'light_curve.gz')
-    print ('tmp_dir, tar_file',tmp_dir,tar_file)
-    try:
-        return send_from_directory(directory=tmp_dir, filename=tar_file,attachment_filename=tar_file,as_attachment=True)
-    except Exception as e:
-        return str(e)
+
 
 
 

@@ -138,25 +138,27 @@ def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods=F
     print('spetrum written')
 
     prod = {}
-    _names=[]
-    _figs=[]
+    _names = []
+    _figs = []
     _spec_path = []
-
-
-
     for query_spec in query_spectra_list.prod_list:
-        #_figs.append( query_spec.get_html_draw(plot=False))
+        #_figs.append(query_spec.get_html_draw(plot=False))
         _names.append(query_spec.name)
-        d_spec={}
-        d_spec['sepc_file']=query_spec.file_path.get_file_path()
-        d_spec['arf_file']=query_spec.arf_file.encode('utf-8')
-        d_spec['rmf_file']=query_spec.rmf_file.encode('utf-8')
-        _spec_path.append(d_spec)
+        _source_spec = []
+        _source_spec.append(query_spec.file_path.get_file_path())
+        _source_spec.append(query_spec.arf_file.encode('utf-8'))
+        _source_spec.append(query_spec.rmf_file.encode('utf-8'))
 
-        print (d_spec)
+        _spec_path.append(_source_spec)
 
     prod['spectrum_name'] = _names
     prod['spectrum_figure'] = _figs
+    prod['file_path'] = _spec_path
+    prod['file_name'] = 'spectra.tar.gz'
+    print('--> send prog')
+
+    for l in prod['file_path']:
+        print ('paths',l)
 
     if use_catalog==True:
         print("input catalog:",osa_catalog.name)
