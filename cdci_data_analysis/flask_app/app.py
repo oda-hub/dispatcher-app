@@ -13,16 +13,14 @@ from builtins import (bytes, open, str, super, range,
 
 import numpy as np
 import os
-from flask import Flask, render_template, request, jsonify,send_from_directory
-from flask import Flask, session, redirect, url_for, escape, request
-from flask import make_response
-from flask.json import JSONEncoder
-import  simplejson
+from flask import jsonify,send_from_directory
+from flask import Flask, request
 from pathlib import Path
 from ..ddosa_interface.osa_isgri import OSA_ISGRI
 from ..analysis.queries import *
 import  tempfile
 import tarfile
+import gzip
 from uuid import uuid4
 
 # from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
@@ -88,36 +86,79 @@ def meta_data_isgri():
 
 
 
-def make_tar(spec_file,arf_file,rmf_file):
-    tmp_dir=tempfile.mkdtemp('download', dir='./')
-    print ('using tmp dir',tmp_dir)
-    make_dir(tmp_dir)
+def prepare_download(file_list,file_name):
+    if hasattr(file_list,'__iter__'):
+        print('file_list is iterable')
+    else:
+        file_list=[file_list]
 
-    tar = tarfile.open("%s/spectra.tar"%tmp_dir, "w")
-    for name in [spec_file,arf_file,rmf_file]:
-        print ('add to tar',name)
-        if name is not None:
-            tar.add(name)
-    tar.close()
-    return tmp_dir,'spectra.tar'
+    tmp_dir=tempfile.mkdtemp(prefix='download_', dir='./')
+    print ('using tmp dir',tmp_dir)
+
+    file_path=os.path.join(tmp_dir,file_name)
+    print('writing to file path', file_path)
+
+    if len(file_list)>1:
+        print ('preparing tar')
+        tar = tarfile.open("%s"%(file_path), "w:gz")
+        for name in file_list:
+            print ('add to tar',name)
+            if name is not None:
+                tar.add(name)
+        tar.close()
+    else:
+        print('single fits file')
+        in_data = open(file_list[0], "rb").read()
+        with gzip.open(file_path, 'wb') as f:
+            f.write(in_data)
+
+    tmp_dir = os.path.abspath(tmp_dir)
+
+    return tmp_dir,file_name
 
 @app.route("/download_spectra",methods=['POST', 'GET'])
-def download_spectra ():
+def download_spectra():
     spec_file=request.args.get('spec_file')
     arf_file=request.args.get('arf_file')
     rmf_file = request.args.get('rmf_file')
     print('download spec file',spec_file)
     print('download arf file', arf_file)
     print('download rmf file', rmf_file)
-    root_dir = os.path.abspath('./')
-    tmp_dir,tar_file=make_tar(spec_file,arf_file,rmf_file)
-    tmp_dir=os.path.relpath(tmp_dir)
-    tmp_dir=os.path.join(root_dir, tmp_dir)
+    tmp_dir,tar_file=prepare_download([spec_file,arf_file,rmf_file],'spectra.tar.gz')
     print ('tmp_dir,tar_file',tmp_dir,tar_file)
     try:
-        return send_from_directory(directory=tmp_dir, filename=tar_file,attachment_filename='spectra.tar',as_attachment=True)
+        return send_from_directory(directory=tmp_dir, filename=tar_file,attachment_filename=tar_file,as_attachment=True)
     except Exception as e:
         return str(e)
+
+
+@app.route("/download_products",methods=['POST', 'GET'])
+def download_products():
+    file_list=request.args.get('file_list').split(',')
+    file_name=request.args.get('file_name')
+
+    tmp_dir,target_file=prepare_download(file_list,file_name)
+    print ('tmp_dir,target_file',tmp_dir,target_file)
+    try:
+        return send_from_directory(directory=tmp_dir, filename=target_file,attachment_filename=target_file,as_attachment=True)
+    except Exception as e:
+        return str(e)
+
+
+
+@app.route("/download_lc",methods=['POST', 'GET'])
+def download_lc():
+    lc_file=request.args.get('lc_file')
+    print('download lc_file', lc_file)
+    tmp_dir,tar_file=prepare_download([lc_file],'light_curve.gz')
+    print ('tmp_dir, tar_file',tmp_dir,tar_file)
+    try:
+        return send_from_directory(directory=tmp_dir, filename=tar_file,attachment_filename=tar_file,as_attachment=True)
+    except Exception as e:
+        return str(e)
+
+
+
 
 
 @app.route('/test', methods=['POST', 'GET'])
@@ -187,7 +228,6 @@ def set_catalog(instrument,par_dic,scratch_dir='./'):
     if 'catalog_selected_objects' in par_dic.keys():
 
         catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)
-        #par_dic.pop('catalog_selected_objects')
     else:
         catalog_selected_objects = None
 
@@ -203,9 +243,7 @@ def set_catalog(instrument,par_dic,scratch_dir='./'):
         instrument.set_par('user_catalog', user_catalog)
         print('catalog_selected_objects', catalog_selected_objects)
 
-        #_sel = np.zeros(user_catalog.length, dtype=bool)
-        #_sel[catalog_selected_objects] = True
-        #user_catalog.selected = _sel
+
         user_catalog.select_IDs(catalog_selected_objects)
         print('catalog selected\n',user_catalog.table)
         print('catalog_length', user_catalog.length)
@@ -252,7 +290,8 @@ def query_isgri_image(instrument,scratch_dir='./'):
     prod = {}
     prod['image'] = html_fig
     prod['catalog'] = query_catalog.catalog.get_dictionary()
-
+    prod['file_path'] = query_image.file_path.get_file_path()
+    prod['file_name'] = 'image.gz'
     print ('--> send prog')
 
     return prod
@@ -276,16 +315,18 @@ def query_isgri_spectrum(instrument,scratch_dir='./'):
     for query_spec in query_spectra_list.prod_list:
         _figs.append( query_spec.get_html_draw(plot=False))
         _names.append(query_spec.name)
-        d_spec={}
-        d_spec['sepc_file']=query_spec.file_path.get_file_path()
-        d_spec['arf_file']=query_spec.arf_file.encode('utf-8')
-        d_spec['rmf_file']=query_spec.rmf_file.encode('utf-8')
-        _spec_path.append(d_spec)
+        _source_spec=[]
+        _source_spec.append(query_spec.file_path.get_file_path())
+        _source_spec.append(query_spec.arf_file.encode('utf-8'))
+        _source_spec.append(query_spec.rmf_file.encode('utf-8'))
+
+        _spec_path.append(_source_spec)
 
 
     prod['spectrum_name'] = _names
     prod['spectrum_figure']=_figs
-    prod['spectra_path']=_spec_path
+    prod['file_path']=_spec_path
+    prod['file_name'] = 'spectra.tar.gz'
     print('--> send prog')
     return prod
 
@@ -310,7 +351,8 @@ def query_isgri_light_curve(instrument,scratch_dir='./'):
 
     prod = {}
     prod['image'] = html_fig
-
+    prod['file_path'] =query_lc.file_path.get_file_path()
+    prod['file_name'] = 'light_curve.fits.gz'
     print ('--> send prog')
 
     return prod
