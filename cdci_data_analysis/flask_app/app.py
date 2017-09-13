@@ -13,7 +13,7 @@ from builtins import (bytes, open, str, super, range,
 
 import numpy as np
 import os
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify,send_from_directory
 from flask import Flask, session, redirect, url_for, escape, request
 from flask import make_response
 from flask.json import JSONEncoder
@@ -21,7 +21,8 @@ import  simplejson
 from pathlib import Path
 from ..ddosa_interface.osa_isgri import OSA_ISGRI
 from ..analysis.queries import *
-
+import  tempfile
+import tarfile
 from uuid import uuid4
 
 # from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
@@ -85,6 +86,34 @@ def meta_data_src():
 def meta_data_isgri():
     return get_meta_data('isgri')
 
+
+
+def make_tar(spec_file,arf_file,rmf_file):
+    tmp_dir=tempfile.mkdtemp('download', dir='./')
+    print ('using tmp dir',tmp_dir)
+    make_dir(tmp_dir)
+
+    tar = tarfile.open("%d/spectra.tar"%tmp_dir, "w")
+    for name in [spec_file,arf_file,rmf_file]:
+        print ('add to tar',name)
+        if name is not None:
+            tar.add(name)
+    tar.close()
+    return tmp_dir,'spectra.tar'
+
+@app.route("/download_spectra",methods=['POST', 'GET'])
+def download_spectra ():
+    spec_file=request.args.get('spec_file')
+    arf_file=request.args.get('arf_file')
+    rmf_file = request.args.get('rmf_file')
+    print('download spec file',spec_file)
+    print('download arf file', arf_file)
+    print('download rmf file', rmf_file)
+    tmp_dir,tar_file=tar_file=make_tar(spec_file,arf_file,rmf_file)
+    try:
+        send_from_directory(tmp_dir, tar_file, as_attachment=True)
+    except Exception as e:
+        print (e)
 
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
@@ -238,12 +267,20 @@ def query_isgri_spectrum(instrument,scratch_dir='./'):
     prod = {}
     _names=[]
     _figs=[]
+    _spec_path=[]
     for query_spec in query_spectra_list.prod_list:
         _figs.append( query_spec.get_html_draw(plot=False))
         _names.append(query_spec.name)
+        d_spec={}
+        d_spec['sepc_file']=query_spec.file_path.get_file_path()
+        d_spec['arf_file']=query_spec.arf_file.encode('utf-8')
+        d_spec['rmf_file']=query_spec.rmf_file.encode('utf-8')
+        _spec_path.append(d_spec)
+
 
     prod['spectrum_name'] = _names
     prod['spectrum_figure']=_figs
+    prod['spectra_path']=_spec_path
     print('--> send prog')
     return prod
 

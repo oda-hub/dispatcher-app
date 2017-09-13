@@ -140,9 +140,20 @@ def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods=F
     prod = {}
     _names=[]
     _figs=[]
+    _spec_path = []
+
+
+
     for query_spec in query_spectra_list.prod_list:
-        _figs.append(query_spec.get_html_draw(plot=False))
+        #_figs.append( query_spec.get_html_draw(plot=False))
         _names.append(query_spec.name)
+        d_spec={}
+        d_spec['sepc_file']=query_spec.file_path.get_file_path()
+        d_spec['arf_file']=query_spec.arf_file.encode('utf-8')
+        d_spec['rmf_file']=query_spec.rmf_file.encode('utf-8')
+        _spec_path.append(d_spec)
+
+        print (d_spec)
 
     prod['spectrum_name'] = _names
     prod['spectrum_figure'] = _figs
@@ -265,7 +276,7 @@ def test_full_spectrum():
     #test_spectrum_cookbook(use_catalog=True, use_scw_list=False)
     #test_spectrum_cookbook(use_catalog=True, use_scw_list=True)
     #test_spectrum_cookbook(use_catalog=False, use_scw_list=False)
-    test_spectrum_cookbook(use_catalog=False, use_scw_list=True,use_dummy_prods=True,out_dir='TokmKerOEu2YmtHs450dIFnPytW9mBtF-seM5eFDkNg')
+    test_spectrum_cookbook(use_catalog=False, use_scw_list=True,use_dummy_prods=True,out_dir='test_scratch')
 
 def test_full_lc():
     #test_lightcurve_cookbook(use_catalog=True, use_scw_list=False)
