@@ -92,6 +92,8 @@ class IsgriSpectrumProduct(SpectrumProduct):
             header=spectrum.header
 
             file_name=prod_prefix+'_'+Path(getattr(res, spec_attr)).resolve().stem
+            file_name = file_name.replace('+', 'p')
+            file_name = file_name.replace('-', 'm')
             print ('out spec file_name',file_name)
             out_arf_file=prod_prefix+'_'+Path(getattr(res, arf_attr)).name
             out_arf_file=str(Path(out_dir,out_arf_file))
@@ -314,7 +316,8 @@ def get_osa_spectrum_dummy_products(instrument,config,out_dir='./'):
         data = spectrum.data
         header = spectrum.header
 
-        file_name =  Path(spec_file).name
+        file_name =  Path(spec_file).name.replace('+','p')
+        file_name = file_name.replace('-', 'm')
         print('out spec file_name', file_name)
         out_arf_file=Path(arf_filename).name
         out_arf_file = str(Path(out_dir,out_arf_file))
