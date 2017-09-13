@@ -111,8 +111,8 @@ def download_spectra ():
     print('download rmf file', rmf_file)
     tmp_dir,tar_file=make_tar(spec_file,arf_file,rmf_file)
     print ('tmp_dir,tar_file',tmp_dir,tar_file)
-    ob= send_from_directory(tmp_dir, tar_file)
-    print ('ob',ob)
+    ob= send_from_directory(directory=tmp_dir, filename=tar_file)
+    #print ('ob',ob)
     return  ob
 
 @app.route('/test', methods=['POST', 'GET'])
