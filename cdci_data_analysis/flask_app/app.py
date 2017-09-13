@@ -93,7 +93,7 @@ def make_tar(spec_file,arf_file,rmf_file):
     print ('using tmp dir',tmp_dir)
     make_dir(tmp_dir)
 
-    tar = tarfile.open("%d/spectra.tar"%tmp_dir, "w")
+    tar = tarfile.open("%s/spectra.tar"%tmp_dir, "w")
     for name in [spec_file,arf_file,rmf_file]:
         print ('add to tar',name)
         if name is not None:
