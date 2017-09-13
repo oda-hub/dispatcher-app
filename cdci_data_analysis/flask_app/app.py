@@ -300,7 +300,7 @@ def query_isgri_spectrum(instrument,scratch_dir='./'):
         _source_spec.append(query_spec.rmf_file.encode('utf-8'))
 
         _spec_path.append(_source_spec)
-
+        print ('_source_spec',_source_spec)
 
     prod['spectrum_name'] = _names
     prod['spectrum_figure']=_figs
