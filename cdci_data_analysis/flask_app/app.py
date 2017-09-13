@@ -110,6 +110,7 @@ def download_spectra ():
     print('download arf file', arf_file)
     print('download rmf file', rmf_file)
     tmp_dir,tar_file=tar_file=make_tar(spec_file,arf_file,rmf_file)
+    print ('tmp_dir,tar_file',tmp_dir,tar_file)
     send_from_directory(tmp_dir, tar_file)
 
 
