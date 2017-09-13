@@ -89,7 +89,7 @@ def meta_data_isgri():
 
 
 def make_tar(spec_file,arf_file,rmf_file):
-    tmp_dir=tempfile.mkdtemp('download', dir='./')
+    tmp_dir=tempfile.mkdtemp('download')
     print ('using tmp dir',tmp_dir)
     make_dir(tmp_dir)
 
