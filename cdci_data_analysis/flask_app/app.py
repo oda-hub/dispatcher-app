@@ -110,8 +110,8 @@ def download_spectra ():
     print('download arf file', arf_file)
     print('download rmf file', rmf_file)
     tmp_dir,tar_file=make_tar(spec_file,arf_file,rmf_file)
-    print ('rel dir',os.path.relpath('tmp_dir'))
-    print ('tmp_dir,tar_file',os.path.relpath('tmp_dir'),tar_file)
+    print ('rel dir',os.path.relpath(tmp_dir))
+    print ('tmp_dir,tar_file',os.path.relpath(tmp_dir),tar_file)
     try:
         return send_from_directory(directory=tmp_dir, filename=tar_file,attachment_filename='spectra.tar')
     except Exception as e:
