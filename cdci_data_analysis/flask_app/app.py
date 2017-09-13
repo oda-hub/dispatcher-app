@@ -306,6 +306,10 @@ def query_isgri_spectrum(instrument,scratch_dir='./'):
     prod['spectrum_figure']=_figs
     prod['file_path']=_spec_path
     prod['file_name'] = 'spectra.tar.gz'
+    for l in prod['file_path']:
+        print ('paths',l)
+
+
     print('--> send prog')
     return prod
 
