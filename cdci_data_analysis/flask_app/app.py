@@ -109,8 +109,9 @@ def download_spectra ():
     print('download spec file',spec_file)
     print('download arf file', arf_file)
     print('download rmf file', rmf_file)
+    root_dir = os.path.dirname(os.getcwd())
     tmp_dir,tar_file=make_tar(spec_file,arf_file,rmf_file)
-    tmp_dir=os.path.relpath(tmp_dir)
+    tmp_dir=os.path.join(root_dir, tmp_dir)
     print ('tmp_dir,tar_file',tmp_dir,tar_file,)
     try:
         return send_from_directory(directory=tmp_dir, filename=tar_file)
