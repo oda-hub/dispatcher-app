@@ -115,7 +115,7 @@ def download_spectra ():
     tmp_dir=os.path.join(root_dir, tmp_dir)
     print ('tmp_dir,tar_file',tmp_dir,tar_file)
     try:
-        return send_from_directory(directory=tmp_dir, filename=tar_file)
+        return send_from_directory(directory=tmp_dir, filename=tar_file,attachment_filename='spectra.tar')
     except Exception as e:
         return str(e)
 
