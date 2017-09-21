@@ -34,6 +34,7 @@ from ..web_display import draw_dummy
 app = Flask(__name__)
 
 def set_session_logger(scratch_dir):
+    print ('setting log file to',scratch_dir,'session.log')
     logging.basicConfig(filename=os.path.join(scratch_dir,'session.log'),
                         level=logging.DEBUG,
                         filemode='w',
