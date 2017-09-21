@@ -42,7 +42,6 @@ def set_session_logger(scratch_dir):
     for hdlr in log.handlers[:]:  # remove all old handlers
         log.removeHandler(hdlr)
     log.addHandler(fileh)  # set the new handler
-    #print (se)
     print ('logfile set to dir=',scratch_dir,' with name=session.log')
     #logging.basicConfig(filename=os.path.join(scratch_dir,'session.log'),
     #                    level=logging.DEBUG,

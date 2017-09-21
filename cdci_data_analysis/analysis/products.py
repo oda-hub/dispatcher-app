@@ -478,14 +478,21 @@ class SpectrumProduct(BaseQueryProduct):
         y = np.array(xsp.Plot.y())
         dx = np.array(xsp.Plot.xErr())
         dy = np.array(xsp.Plot.yErr())
-        mx = x > 0
-        my = y > 0
+
+        mx = x > 0.
+        my = y > 0.
+
         msk = np.logical_and(mx, my)
+        msk=  np.logical_and(msk,dy>0.)
+
+
 
         ldx = 0.434 * dx / x
         ldy = 0.434 * dy / y
 
         y_model = np.array(xsp.Plot.model())
+
+        msk = np.logical_and(msk, y_model > 0.)
 
         ax1.errorbar(np.log10(x[msk]), np.log10(y[msk]), xerr=ldx[msk], yerr=ldy[msk], fmt='o')
         ax1.step(np.log10(x[msk]), np.log10(y_model[msk]), where='mid')
