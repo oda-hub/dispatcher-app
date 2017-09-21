@@ -210,10 +210,9 @@ def run_analysis_test():
 
         product_type=request.args.get('product_type')
 
-
-        prod_dictionary = instrument.run_query(instrument,
-                                               product_type,
-                                               scratch_dir,
+        print('product_type',product_type)
+        prod_dictionary = instrument.run_query(product_type,
+                                               out_dir=scratch_dir,
                                                config=app.config.get('osaconf'),
                                                query_type=query_type)
 
