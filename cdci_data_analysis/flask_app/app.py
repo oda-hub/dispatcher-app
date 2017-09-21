@@ -194,10 +194,10 @@ def run_analysis_test():
     print('request', request)
 
 
-    query_dictionary={}
-    query_dictionary['isgri_image']='isgri_image_query'
-    query_dictionary['isgri_spectrum'] = 'isgri_spectrum_query'
-    query_dictionary['isgri_lc'] = 'isgri_lc_query'
+    #query_dictionary={}
+    #query_dictionary['isgri_image']='isgri_image_query'
+    #query_dictionary['isgri_spectrum'] = 'isgri_spectrum_query'
+    #query_dictionary['isgri_lc'] = 'isgri_lc_query'
 
     if request.method == 'GET':
 
@@ -206,7 +206,7 @@ def run_analysis_test():
         instrument.show_parameters_list()
         instrument.set_catalog(par_dic,scratch_dir=scratch_dir)
 
-        query_type=query_dictionary[request.args.get('query_type')]
+        query_type=request.args.get('query_type')
 
         product_type=request.args.get('product_type')
 
