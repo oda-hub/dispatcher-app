@@ -40,6 +40,8 @@ def set_session_logger(scratch_dir):
                         filemode='w',
                         format='%(asctime)s %(message)s')
 
+    return  logging.getLogger(__name__)
+
 def make_dir(out_dir):
 
 
@@ -59,9 +61,9 @@ def set_session(session_id):
         wd = 'scratch_'+session_id
 
     make_dir(wd)
-    set_session_logger(wd)
+    logger=set_session_logger(wd)
 
-    return wd
+    return wd,logger
 
 def get_meta_data(name=None):
     src_query = SourceQuery('src_query')
@@ -157,7 +159,7 @@ def run_analysis_test():
     instrument_name='ISGRI'
 
 
-    scratch_dir=set_session(request.args.get('session_id'))
+    scratch_dir,logger=set_session(request.args.get('session_id'))
 
     logger.info('============================================================')
     logger.info('=>session_id<=%s' % request.args.get('session_id'))
