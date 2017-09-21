@@ -34,11 +34,20 @@ from ..web_display import draw_dummy
 app = Flask(__name__)
 
 def set_session_logger(scratch_dir):
-    print ('setting log file to',scratch_dir,'session.log')
-    logging.basicConfig(filename=os.path.join(scratch_dir,'session.log'),
-                        level=logging.DEBUG,
-                        filemode='w',
-                        format='%(asctime)s %(message)s')
+    fileh = logging.FileHandler(os.path.join(scratch_dir,'session.log'), 'a')
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fileh.setFormatter(formatter)
+
+    log = logging.getLogger()  # root logger
+    for hdlr in log.handlers[:]:  # remove all old handlers
+        log.removeHandler(hdlr)
+    log.addHandler(fileh)  # set the new handler
+
+    #print ('setting log file to',scratch_dir,'session.log')
+    #logging.basicConfig(filename=os.path.join(scratch_dir,'session.log'),
+    #                    level=logging.DEBUG,
+    #                    filemode='w',
+    #                    format='%(asctime)s %(message)s')
 
     return  logging.getLogger(__name__)
 
