@@ -223,6 +223,7 @@ class LightCurveProduct(BaseQueryProduct):
         exposure*=86400
         footer_str='Exposure %5.5f (s) \n'%exposure
         if p is not None:
+            footer_str +='\n'
             footer_str += 'Constant fit\n'
             footer_str += 'flux level %5.5f\n'%p[0]
             footer_str += 'dof ' + '%d' % dof + '\n'
@@ -231,11 +232,13 @@ class LightCurveProduct(BaseQueryProduct):
         poly_deg=1
         p, chisq, chisq_red, dof = self.do_linear_fit( x, y, dy, poly_deg,'linear fit')
         if p is not None:
+            footer_str += '\n'
             footer_str += 'Linear fit\n'
             footer_str += 'slope %5.5f\n'%p[0]
             footer_str += 'dof ' + '%d' % dof + '\n'
             footer_str += 'Chi-squared red. %5.5f\n' % chisq_red
 
+        ax.legend(loc='best')
 
         if plot == True:
             plt.show()
