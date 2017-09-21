@@ -194,10 +194,10 @@ def run_analysis_test():
     print('request', request)
 
 
-    #query_dictionary={}
-    #query_dictionary['isgri_image']='isgri_image_query'
-    #query_dictionary['isgri_spectrum'] = 'isgri_spectrum_query'
-    #query_dictionary['isgri_lc'] = 'isgri_lc_query'
+    query_dictionary={}
+    query_dictionary['isgri_image']='isgri_image_query'
+    query_dictionary['isgri_spectrum'] = 'isgri_spectrum_query'
+    query_dictionary['isgri_lc'] = 'isgri_lc_query'
 
     if request.method == 'GET':
 
@@ -210,8 +210,8 @@ def run_analysis_test():
 
         product_type=request.args.get('product_type')
 
-        print('product_type',product_type)
-        prod_dictionary = instrument.run_query(product_type,
+        print('product_type',product_type,query_dictionary[product_type])
+        prod_dictionary = instrument.run_query(query_dictionary[product_type],
                                                out_dir=scratch_dir,
                                                config=app.config.get('osaconf'),
                                                query_type=query_type)
