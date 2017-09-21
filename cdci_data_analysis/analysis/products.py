@@ -494,18 +494,19 @@ class SpectrumProduct(BaseQueryProduct):
 
         msk = np.logical_and(msk, y_model > 0.)
 
-        ax1.errorbar(np.log10(x[msk]), np.log10(y[msk]), xerr=ldx[msk], yerr=ldy[msk], fmt='o')
-        ax1.step(np.log10(x[msk]), np.log10(y_model[msk]), where='mid')
+        if msk.sum()>0:
+            ax1.errorbar(np.log10(x[msk]), np.log10(y[msk]), xerr=ldx[msk], yerr=ldy[msk], fmt='o')
+            ax1.step(np.log10(x[msk]), np.log10(y_model[msk]), where='mid')
 
-        # ax1.set_xlabel('log (Energy (keV))')
-        ax1.set_ylabel('log (normalize counts/s/keV)')
-        # ax1.set_ylim(-3,1)
-        ax2.errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=1., xerr=0., fmt='o')
-        ax2.plot(ax1.get_xlim(), [0., 0.], '--')
-        ax1.set_ylim(np.log10(y[msk]).min() - 0.5, np.log10(y[msk]).max() + 0.5)
-        ax2.set_xlim(ax1.get_xlim())
-        ax2.set_ylabel('(data-model)/error')
-        ax2.set_xlabel('log (Energy) (keV)')
+            # ax1.set_xlabel('log (Energy (keV))')
+            ax1.set_ylabel('log (normalize counts/s/keV)')
+            # ax1.set_ylim(-3,1)
+            ax2.errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=1., xerr=0., fmt='o')
+            ax2.plot(ax1.get_xlim(), [0., 0.], '--')
+            ax1.set_ylim(np.log10(y[msk]).min() - 0.5, np.log10(y[msk]).max() + 0.5)
+            ax2.set_xlim(ax1.get_xlim())
+            ax2.set_ylabel('(data-model)/error')
+            ax2.set_xlabel('log (Energy) (keV)')
 
 
 
