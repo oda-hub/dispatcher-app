@@ -152,27 +152,16 @@ def download_products():
 
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
-    #print (session)
-    #session_id=str(uuid4())
 
-    # Try to set the cookie
-    #if s.setSession():
-
-    #if request.cookies.get('sessiod_ID') is None:
-
-    #   resp = make_response(redirect('/test'))
-    #    print ('write session ID')
-    #    resp.set_cookie('sessiod_ID', session_id)
-
-    #print ('session ID',session_id)
     instrument_name='ISGRI'
-    prod_type = request.args.get('product_type')
-    logger.info('product_type', prod_type)
-    logger.info('instrument', instrument_name)
 
-    logger.info('=>session_id<='),request.args.get('session_id')
 
     scratch_dir=set_session(request.args.get('session_id'))
+
+    logger.info('============================================================')
+    logger.info('=>session_id<=%s' % request.args.get('session_id'))
+
+
 
     instrument = None
     if instrument_name == 'ISGRI':
@@ -210,11 +199,21 @@ def run_analysis_test():
 
         product_type=request.args.get('product_type')
 
+        logger.info('product_type %s \n'%product_type)
+        logger.info('query_type %s \n' % query_type)
+        logger.info('instrument %s\n'%instrument_name)
+        logger.info('parameters dictionary \n')
+        for key in par_dic.kyes():
+            log_str='parameters dictionary, key='+key+' value='+str(par_dic[key])+'\n'
+            logger.info(log_str)
+
         print('product_type',product_type,query_dictionary[product_type])
         prod_dictionary = instrument.run_query(query_dictionary[product_type],
                                                out_dir=scratch_dir,
                                                config=app.config.get('osaconf'),
                                                query_type=query_type)
+
+    logger.info('============================================================')
 
     return jsonify(prod_dictionary)
 

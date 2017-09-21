@@ -253,7 +253,7 @@ class LightCurveProduct(BaseQueryProduct):
         res_dict['footer_text'] = footer_str
 
 
-        return mpld3.fig_to_dict(fig)
+        return res_dict
 
     def do_linear_fit(self,x,y,dy,poly_deg,label):
         p=None
