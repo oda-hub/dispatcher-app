@@ -1,3 +1,7 @@
+from __future__ import print_function
+import  logging
+
+logger = logging.getLogger(__name__)
 
 from cdci_data_analysis.configurer import ConfigEnv
 osaconf = ConfigEnv.from_conf_file('./conf_env.yml')
@@ -36,15 +40,16 @@ def test_instr(use_scw_list=True):
 
 
 
-def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,use_dummy_prods=False,out_dir=None):
+def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,query_type='Real',out_dir='./'):
 
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
-
+    from cdci_data_analysis.flask_app.app import set_session_logger
     instr= OSA_ISGRI()
-
+    set_session_logger(out_dir)
     parameters_dic=dict(E1_keV=20.,E2_keV=40.,T1 =T1_iso, T2=T2_iso,RA=RA,DEC=DEC,radius=25,scw_list=None)
 
-
+    logger.info('parameters dictionary')
+    logger.info(parameters_dic)
     instr.set_pars_from_dic(parameters_dic)
 
     if use_scw_list==True:
@@ -60,30 +65,10 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,use_dummy_prods=Fa
 
     instr.show_parameters_list()
 
-    if use_dummy_prods==True:
-        prod_list,exception=instr.get_query_dummy_products('isgri_image_query', config=osaconf,out_dir=out_dir)
-    else:
-        prod_list, exception = instr.get_query_products('isgri_image_query', config=osaconf,out_dir=out_dir)
+    prod_dictionary = instr.run_query('isgri_image_query', config=osaconf, out_dir=out_dir, query_type=query_type)
 
-    image=prod_list.get_prod_by_name('isgri_mosaic')
-    catalog_product=prod_list.get_prod_by_name('mosaic_catalog')
+    print ('prod_dictionary',prod_dictionary)
 
-    print('out_prod', image,exception)
-
-    print dir(image)
-    image.write(overwrite=True)
-    catalog_product.write(overwrite=True)
-    assert sum(image.data.flatten()>0)>100 # some non-zero pixels
-
-    if use_dummy_prods == False:
-        assert isinstance(catalog_product.catalog,OsaCatalog)
-
-    if use_catalog==True:
-        print("input catalog:",osa_catalog.name)
-        print("output catalog:", catalog_product.catalog.name)
-        if use_dummy_prods == False:
-            assert len([name for name in catalog_product.catalog.name if "NEW" not in name])==len(osa_catalog.name)
-            assert catalog_product.catalog.name[0]==osa_catalog.name[0]
 
 def test_plot_mosaic():
     from astropy.io import fits as pf
@@ -95,14 +80,17 @@ def test_plot_mosaic():
 
 
 
-def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods=False,out_dir=None):
+def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,query_type='Real',out_dir=None):
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
+    from cdci_data_analysis.flask_app.app import set_session_logger
 
     instr = OSA_ISGRI()
-
+    set_session_logger(out_dir)
     parameters = dict(E1_keV=20., E2_keV=40., T1 =T1_iso, T2 =T2_iso, RA=RA, DEC=DEC, radius=25,
                       scw_list=cookbook_scw_list,src_name='4U 1700-377')
 
+    logger.info('parameters dictionary')
+    logger.info(parameters)
 
     instr.set_pars_from_dic(parameters)
 
@@ -126,39 +114,10 @@ def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods=F
 
     instr.show_parameters_list()
 
-    if use_dummy_prods == True:
-        query_spectra_list, exception = instr.get_query_dummy_products('isgri_spectrum_query', config=osaconf,out_dir=out_dir)
-    else:
-        query_spectra_list, exception=instr.get_query_products('isgri_spectrum_query', config=osaconf,out_dir=out_dir)
+    prod_dictionary = instr.run_query('isgri_spectrum_query',config=osaconf,out_dir=out_dir,query_type=query_type)
 
+    print ('prod_dictionary',prod_dictionary)
 
-    for query_spec in query_spectra_list.prod_list:
-        query_spec.write()
-
-    print('spetrum written')
-
-    prod = {}
-    _names = []
-    _figs = []
-    _spec_path = []
-    for query_spec in query_spectra_list.prod_list:
-        #_figs.append(query_spec.get_html_draw(plot=False))
-        _names.append(query_spec.name)
-        _source_spec = []
-        _source_spec.append(query_spec.file_path.get_file_path())
-        _source_spec.append(query_spec.arf_file.encode('utf-8'))
-        _source_spec.append(query_spec.rmf_file.encode('utf-8'))
-
-        _spec_path.append(_source_spec)
-
-    prod['spectrum_name'] = _names
-    prod['spectrum_figure'] = _figs
-    prod['file_path'] = _spec_path
-    prod['file_name'] = 'spectra.tar.gz'
-    print('--> send prog')
-
-    for l in prod['file_path']:
-        print ('paths',l)
 
     if use_catalog==True:
         print("input catalog:",osa_catalog.name)
@@ -204,16 +163,23 @@ def test_fit_spectrum_cookbook():
     ax.set_ylabel('normalize counts  s$^{-1}$ keV$^{-1}$')
     plt.show()
 
-def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods=False,out_dir=None):
+def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,query_type='Real',out_dir=None):
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
-
+    from cdci_data_analysis.flask_app.app import set_session_logger
+    set_session_logger(out_dir)
 
     instr = OSA_ISGRI()
-
+    src_name = '4U 1700-377'
     parameters = dict(E1_keV=20., E2_keV=40., T1=T1_iso, T2=T2_iso, RA=RA, DEC=DEC, radius=25,
-                      scw_list=cookbook_scw_list, src_name='4U 1700-377')
+                      scw_list=cookbook_scw_list, src_name=src_name,time_bin=0.1,time_bin_format='jd')
+
+    logger.info('parameters dictionary')
+    logger.info(parameters)
+
 
     instr.set_pars_from_dic(parameters)
+
+    logger.info(instr.get_parameters_list_as_json()  )
 
     if use_scw_list == True:
         instr.set_par('scw_list', cookbook_scw_list)
@@ -233,20 +199,11 @@ def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,use_dummy_prods
 
     instr.show_parameters_list()
 
-    if use_dummy_prods == True:
-        prod_list, exception = instr.get_query_dummy_products('isgri_lc_query', config=osaconf,out_dir=out_dir)
-    else:
-        prod_list, exception=instr.get_query_products('isgri_lc_query', config=osaconf,out_dir=out_dir)
+    prod_dictionary = instr.run_query('isgri_lc_query', config=osaconf, out_dir=out_dir, query_type=query_type)
 
-    query_lc = prod_list.get_prod_by_name('isgri_lc')
+    instr.get_query_by_name('isgri_lc_query').get_prod_by_name('isgri_lc').get_html_draw(plot=True)
 
-
-    if query_lc is None:
-        raise RuntimeError('no light curve produced')
-    print ('out_prod',dir(query_lc))
-    query_lc.write()
-    html_fig= query_lc.get_html_draw(plot=True)
-    print ('html_fig',html_fig)
+    print (prod_dictionary)
 
 def test_plot_lc():
     from astropy.io import fits as pf
@@ -269,7 +226,7 @@ def test_plot_lc():
 
 def test_full_mosaic():
     #test_mosaic_cookbook(use_catalog=True,use_scw_list=False)
-    test_mosaic_cookbook(use_catalog=True, use_scw_list=True,out_dir='test_scratch',use_dummy_prods=True)
+    test_mosaic_cookbook(use_catalog=True, use_scw_list=True,out_dir='test_scratch',query_type='Real')
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=False)
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=True)
 
@@ -278,10 +235,12 @@ def test_full_spectrum():
     #test_spectrum_cookbook(use_catalog=True, use_scw_list=False)
     #test_spectrum_cookbook(use_catalog=True, use_scw_list=True)
     #test_spectrum_cookbook(use_catalog=False, use_scw_list=False)
-    test_spectrum_cookbook(use_catalog=False, use_scw_list=True,use_dummy_prods=True,out_dir='test_scratch')
+    test_spectrum_cookbook(use_catalog=False, use_scw_list=True,query_type='Real',out_dir='test_scratch')
 
 def test_full_lc():
     #test_lightcurve_cookbook(use_catalog=True, use_scw_list=False)
-    test_lightcurve_cookbook(use_catalog=True, use_scw_list=True,out_dir='test_scratch',use_dummy_prods=True)
+    test_lightcurve_cookbook(use_catalog=True, use_scw_list=True,out_dir='test_scratch',query_type='Real')
     #test_lightcurve_cookbook(use_catalog=False, use_scw_list=False)
     #test_lightcurve_cookbook(use_catalog=False, use_scw_list=True)
+
+

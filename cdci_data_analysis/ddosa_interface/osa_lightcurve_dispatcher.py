@@ -41,6 +41,8 @@ import ddosaclient as dc
 
 # Project
 # relative import eg: from .mod import f
+import  numpy as np
+
 from ..analysis.parameters import *
 from .osa_dispatcher import OsaQuery, QueryProduct
 from ..analysis.queries import LightCurveQuery
@@ -111,7 +113,7 @@ def do_lightcurve_from_single_scw(image_E1, image_E2, time_bin_seconds=100, scw=
     return QueryProduct(target=target, modules=modules, assume=assume)
 
 
-def do_lightcurve(E1, E2, scwlist_assumption,src_name, extramodules=None,user_catalog=None):
+def do_lightcurve(E1, E2, scwlist_assumption,src_name, extramodules=None,user_catalog=None,delta_t=1000.):
     print('-->lc standard mode from scw_list', scwlist_assumption)
     print('-->src_name', src_name)
     target = "lc_pick"
@@ -126,7 +128,7 @@ def do_lightcurve(E1, E2, scwlist_assumption,src_name, extramodules=None,user_ca
               'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1, E2=E2),
               'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0_p2",use_DoPart2=1)',
               'ddosa.CatForLC(use_minsig=3)',
-              'ddosa.LCTimeBin(use_time_bin_seconds=100)']
+              'ddosa.LCTimeBin(use_time_bin_seconds=%f)'%delta_t]
 
     inject = []
     if user_catalog is not None:
@@ -154,22 +156,22 @@ def do_lightcurve(E1, E2, scwlist_assumption,src_name, extramodules=None,user_ca
     return QueryProduct(target=target, modules=modules, assume=assume, inject=inject)
 
 
-def do_lc_from_scw_list(E1, E2, src_name,scw_list=None,user_catalog=None):
+def do_lc_from_scw_list(E1, E2, src_name,scw_list=None,user_catalog=None,delta_t=1000.):
     print('mosaic standard mode from scw_list', scw_list)
     dic_str = str(scw_list)
-    return do_lightcurve(E1, E2, 'ddosa.IDScWList(use_scwid_list=%s)' % dic_str, src_name, user_catalog=user_catalog)
+    return do_lightcurve(E1, E2, 'ddosa.IDScWList(use_scwid_list=%s)' % dic_str, src_name, user_catalog=user_catalog,delta_t=delta_t)
 
 
-def do_lc_from_time_span(E1, E2, T1, T2, RA, DEC, radius,src_name,user_catalog=None):
+def do_lc_from_time_span(E1, E2, T1, T2, RA, DEC, radius,src_name,user_catalog=None,delta_t=1000):
     print('mosaic standard mode from time span')
     scwlist_assumption = 'rangequery.TimeDirectionScWList(\
                         use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
                         use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
-                        use_max_pointings=3)\
+                        use_max_pointings=50)\
                     ' % (dict(RA=RA, DEC=DEC, radius=radius, T1=T1, T2=T2)),
 
     return do_lightcurve(E1, E2, scwlist_assumption, src_name, extramodules=['git://rangequery'],
-                         user_catalog=user_catalog)
+                         user_catalog=user_catalog,delta_t=delta_t)
 
 
 
@@ -183,7 +185,8 @@ def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=No
     user_catalog = instrument.get_par_by_name('user_catalog').value
 
     src_name = instrument.get_par_by_name('src_name').value
-
+    delta_t = instrument.get_par_by_name('time_bin')._astropy_time_delta.sec
+    print('delta_t is sec', delta_t)
     if scw_list is not None and scw_list != []:
 
         if len(instrument.get_par_by_name('scw_list').value) == 1:
@@ -192,12 +195,14 @@ def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=No
             query_prod = do_lc_from_scw_list(instrument.get_par_by_name('E1_keV').value,
                                          instrument.get_par_by_name('E2_keV').value,
                                          src_name,
+                                         delta_t=delta_t,
                                          scw_list=scw_list,
                                          user_catalog=user_catalog)
         else:
             query_prod = do_lc_from_scw_list(instrument.get_par_by_name('E1_keV').value,
                                          instrument.get_par_by_name('E2_keV').value,
                                          src_name,
+                                         delta_t=delta_t,
                                          scw_list=scw_list,
                                          user_catalog=user_catalog)
 
@@ -212,12 +217,13 @@ def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=No
                                                  DEC,
                                                  radius,
                                                  src_name,
+                                                 delta_t=delta_t,
                                                  user_catalog=user_catalog)
 
 
 
 
-    res = q.run_query(query_prod=query_prod)
+    res= q.run_query(query_prod=query_prod)
 
     print('res', str(res.lightcurve))
 
@@ -229,18 +235,41 @@ def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=No
 
     prod_list = QueryProductList(prod_list=[lc])
 
-    return prod_list, None
+    return prod_list
 
 
-def get_osa_lightcurve_dummy_products(instrument,config,out_dir='./'):
+def get_osa_lightcurve_dummy_products(instrument,config,out_dir='./',src_name=None):
     from ..analysis.products import LightCurveProduct
     dummy_cache = config.dummy_cache
+    delta_t = instrument.get_par_by_name('time_bin')._astropy_time_delta.sec
+    print('delta_t is sec', delta_t)
     query_lc = LightCurveProduct.from_fits_file(inf_file='%s/query_lc.fits'%dummy_cache,
                                                 out_file_name='query_lc.fits',
                                                 prod_name='isgri_lc',
                                                 ext=1,
                                                 file_dir=out_dir)
+    print('name', query_lc.header['NAME'])
+
+    if src_name is not None:
+        if query_lc.header['NAME'] !=src_name:
+            query_lc.data=None
 
     prod_list = QueryProductList(prod_list=[query_lc])
 
-    return prod_list, None
+    return prod_list
+
+
+
+def process_osa_lc_products(instrument,prod_list):
+    query_lc = prod_list.get_prod_by_name('isgri_lc')
+
+    prod_dictionary = {}
+    #if query_lc is not None and query_lc.data is not None:
+    query_lc.write(overwrite=True)
+    html_fig = query_lc.get_html_draw()
+    prod_dictionary['image'] = html_fig
+    prod_dictionary['file_path'] = query_lc.file_path.get_file_path()
+    prod_dictionary['file_name'] = 'light_curve.fits.gz'
+    print('--> send prog')
+
+    return prod_dictionary

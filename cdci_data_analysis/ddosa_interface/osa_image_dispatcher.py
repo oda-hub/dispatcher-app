@@ -116,7 +116,7 @@ def do_mosaic_from_time_span(E1,E2,T1,T2,RA,DEC,radius,user_catalog=None):
     scwlist_assumption='rangequery.TimeDirectionScWList(\
                         use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
                         use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
-                        use_max_pointings=3)\
+                        use_max_pointings=50)\
                     '%(dict(RA=RA,DEC=DEC,radius=radius,T1=T1,T2=T2)),
 
     return do_mosaic(E1,E2,scwlist_assumption,user_catalog=user_catalog,extramodules=['git://rangequery'])
@@ -167,23 +167,29 @@ def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,confi
 
 
 
-    osa_catalog=None
-    image=None
+    #osa_catalog=None
+    #image=None
 
     res=q.run_query(query_prod=query_prod)
+
 
     image=IsgriImageProduct.build_from_ddosa_skyima('isgri_mosaic','query_mosaic.fits',res.skyima,out_dir=out_dir,prod_prefix=prod_prefix)
     osa_catalog=CatalogProduct('mosaic_catalog',catalog=OsaCatalog.build_from_ddosa_srclres(res.srclres),file_name='query_catalog.fits',name_prefix=prod_prefix,file_dir=out_dir)
 
     prod_list=QueryProductList(prod_list=[image,osa_catalog])
 
-    return prod_list,None
+    return prod_list
 
 
 def get_osa_image_dummy_products(instrument,config,out_dir='./'):
     from ..analysis.products import ImageProduct
     from ..analysis.catalog import BasicCatalog
     dummy_cache=config.dummy_cache
+
+    failed=False
+    image=None
+    catalog=None
+
 
     user_catalog = instrument.get_par_by_name('user_catalog').value
 
@@ -199,11 +205,42 @@ def get_osa_image_dummy_products(instrument,config,out_dir='./'):
                              file_name='query_catalog.fits',
                              file_dir = out_dir)
 
+
+
     if user_catalog is not None:
-        print ('setting from user catalog')
+        print ('setting from user catalog',user_catalog,catalog)
         print (user_catalog.length,catalog.catalog.length)
         catalog.catalog.selected=user_catalog.selected
 
     prod_list = QueryProductList(prod_list=[image, catalog])
+    return prod_list
 
-    return prod_list, None
+
+
+def process_osa_image_products(instrument,prod_list):
+
+    query_image = prod_list.get_prod_by_name('isgri_mosaic')
+    query_catalog = prod_list.get_prod_by_name('mosaic_catalog')
+    detection_significance = instrument.get_par_by_name('detection_threshold').value
+
+    if detection_significance is not None:
+        query_catalog.catalog.selected = np.logical_and(
+            query_catalog.catalog._table['significance'] > float(detection_significance),
+            query_catalog.catalog.selected)
+
+    print('--> query was ok')
+    # file_path = Path(scratch_dir, 'query_mosaic.fits')
+    query_image.write(overwrite=True)
+    # file_path = Path(scratch_dir, 'query_catalog.fits')
+    query_catalog.write(overwrite=True)
+
+    html_fig = query_image.get_html_draw(catalog=query_catalog.catalog)
+
+    prod_dictionary = {}
+
+    prod_dictionary['image'] = html_fig
+    prod_dictionary['catalog'] = query_catalog.catalog.get_dictionary()
+    prod_dictionary['file_path'] = query_image.file_path.get_file_path()
+    prod_dictionary['file_name'] = 'image.gz'
+
+    return prod_dictionary

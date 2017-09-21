@@ -16,12 +16,23 @@ __author__ = "Andrea Tramacere"
 # Project
 # relative import eg: from .mod import f
 
-import json
 
+import  logging
+
+logger = logging.getLogger(__name__)
+
+import json
+import traceback
+import sys
 from .parameters import *
 
 
-
+def view_traceback():
+    ex_type, ex, tb = sys.exc_info()
+    print('tb =====>')
+    traceback.print_tb(tb)
+    print('   <=====')
+    del tb
 
 
 @decorator.decorator
@@ -332,7 +343,14 @@ class InstrumentQuery(BaseQuery):
 
 
 class ProductQuery(BaseQuery):
-    def __init__(self, name, parameters_list=[], get_products_method=None, html_draw_method=None, get_dummy_products_method=None, **kwargs):
+    def __init__(self,
+                 name,
+                 parameters_list=[],
+                 get_products_method=None,
+                 html_draw_method=None,
+                 get_dummy_products_method=None,
+                 process_product_method=None,
+                 **kwargs):
 
 
 
@@ -340,6 +358,8 @@ class ProductQuery(BaseQuery):
         self._get_product_method = get_products_method
         self._html_draw_method = html_draw_method
         self._get_dummy_products_method=get_dummy_products_method
+        self._process_product_method=process_product_method
+        self.query_prod_list=None
 
     def get_products(self, instrument, config=None,**kwargs):
         if self._get_product_method is not None:
@@ -365,6 +385,74 @@ class ProductQuery(BaseQuery):
 
 
 
+    def process_product(self,instrument,query_prod_list, config=None,**kwargs):
+        product_dictionary={}
+        if self._process_product_method is not None and query_prod_list is not None:
+            product_dictionary= self._process_product_method(instrument,query_prod_list,**kwargs)
+        return product_dictionary
+
+    def finalize_query(self,product_dictionary,data_server_query_status,prod_process_status):
+
+        error_message=''
+        status=0
+        if data_server_query_status!=0:
+            error_message+='error: data_server_query failed,'
+            status+=1
+        if prod_process_status!=0:
+            error_message+='error: prod_process_query failed,'
+            status+=1
+
+        product_dictionary['error_message']=error_message
+        product_dictionary['status']=status
+
+        return product_dictionary
+
+
+    def get_prod_by_name(self,name):
+        return self.query_prod_list.get_prod_by_name(name)
+
+    def run_query(self,instrument,scratch_dir,query_type='Real', config=None,**kwargs):
+
+        data_server_query_status=0
+        #query_prod_list=None
+        try:
+            if query_type != 'Dummy':
+                self.query_prod_list = self.get_products(instrument,
+                                                    config=config,
+                                                    out_dir=scratch_dir)
+            else:
+                self.query_prod_list = self.get_dummy_products(instrument,
+                                                          config=config,
+                                                          out_dir=scratch_dir)
+        except Exception as e:
+            print("prod_query failed, Error:", e)
+            print('!!! >>>Exception<<<', e)
+            data_server_query_status=1
+            view_traceback()
+            logger.exception(e)
+            #logger.exception(view_traceback())
+            raise Exception(e)
+        print ('data server query status',data_server_query_status)
+        prod_process_status=0
+
+        product_dictionary={}
+        try:
+            product_dictionary=self.process_product(instrument, self.query_prod_list)
+
+        except Exception as e:
+
+            print('!!! >>>Exception<<<', e)
+            print("prod_process failed, Error:", e)
+            prod_process_status=1
+            view_traceback()
+            logger.exception(e)
+            #logger.exception(view_traceback())
+            raise Exception(e)
+        print('prod_process_status', prod_process_status)
+
+        return self.finalize_query(product_dictionary,data_server_query_status,prod_process_status)
+
+
 
 class ImageQuery(ProductQuery):
     def __init__(self,name,parameters_list,**kwargs):
@@ -378,6 +466,12 @@ class ImageQuery(ProductQuery):
 
 class LightCurveQuery(ProductQuery):
     def __init__(self,name,parameters_list, **kwargs):
+
+        time_bin=TimeDelta(value=1000., name='time_bin', delta_T_format_name='time_bin_format')
+        if parameters_list != [] and parameters_list is not None:
+            parameters_list.extend(time_bin)
+        else:
+            parameters_list = [time_bin]
         super(LightCurveQuery, self).__init__(name, parameters_list, **kwargs)
 
 

@@ -30,6 +30,8 @@ import decorator
 
 from datetime import datetime, date, time
 from astropy.time import Time as astropyTime
+from astropy.time import TimeDelta as astropyTimeDelta
+
 from astropy.coordinates import Angle as astropyAngle
 from .catalog import BasicCatalog
 
@@ -231,10 +233,9 @@ class Parameter(object):
     def set_from_form(self,form):
         par_name = self.name
         units_name = self.units_name
-        # print(par_name,units_name)
         v = None
         u = None
-
+        in_dictionary=False
 
 
         if units_name is not None:
@@ -242,11 +243,14 @@ class Parameter(object):
                u = form[units_name]
         if par_name in form.keys():
             v=form[par_name]
+            in_dictionary=True
 
-        self.set_par(value=v,units=u)
+        if in_dictionary is True:
+            self.set_par(value=v,units=u)
 
-        print('setting par:', par_name, 'to val=', self.value, 'and units', units_name, 'to', self.units )
-
+            print('setting par:', par_name, 'to val=', self.value, 'and units', units_name, 'to', self.units )
+        else:
+            print('setting par:', par_name, 'not in dictionary')
 
 
     def set_par(self,value,units=None):
@@ -363,7 +367,46 @@ class Time(Parameter):
         self._value =value
 
 
+class TimeDelta(Parameter):
+    def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None):
 
+        # _allowed_units = astropyTime.FORMATS
+
+        # wtform_dict = {'iso': StringField}
+        # wtform_dict['mjd'] = FloatField
+        # wtform_dict['prod_list'] = TextAreaField
+
+        super(TimeDelta, self).__init__(value=value,
+                                   units=delta_T_format,
+                                   units_name=delta_T_format_name,
+                                   name=name,
+                                   allowed_units=None)
+        # wtform_dict=wtform_dict)
+
+
+        self._set_time(value, format=delta_T_format)
+
+    @property
+    def value(self):
+        return self._astropy_time_delta.value
+
+    @value.setter
+    def value(self, v):
+
+        units = self.units
+        self._set_time(v, format=units)
+
+    def _set_time(self, value, format):
+
+        try:
+            value = ast.literal_eval(value)
+        except:
+            pass
+
+        print ('value',value)
+        self._astropy_time_delta = astropyTimeDelta(value, format=format)
+
+        self._value = value
 
 class InputProdList(Parameter):
     def __init__(self,value=None,_format='names_list',name=None):

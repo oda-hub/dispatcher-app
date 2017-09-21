@@ -40,9 +40,9 @@ from astropy.io import  fits as pf
 
 from ..analysis.queries import  *
 from ..analysis.products import *
-from .osa_image_dispatcher import get_osa_image_products,get_osa_image_dummy_products
-from .osa_spectrum_dispatcher import get_osa_spectrum,get_osa_spectrum_dummy_products
-from .osa_lightcurve_dispatcher import get_osa_lightcurve,get_osa_lightcurve_dummy_products
+from .osa_image_dispatcher import get_osa_image_products,get_osa_image_dummy_products,process_osa_image_products
+from .osa_spectrum_dispatcher import get_osa_spectrum,get_osa_spectrum_dummy_products,process_osa_spectrum_products
+from .osa_lightcurve_dispatcher import get_osa_lightcurve,get_osa_lightcurve_dummy_products,process_osa_lc_products
 
 
 
@@ -67,9 +67,22 @@ def OSA_ISGRI():
         catalog_name='user_catalog')
 
     #QueryProducts
-    light_curve =LightCurveQuery('isgri_lc_query',None, get_products_method=get_osa_lightcurve,get_dummy_products_method=get_osa_lightcurve_dummy_products)
-    image=ImageQuery('isgri_image_query', None, get_products_method=get_osa_image_products,get_dummy_products_method=get_osa_image_dummy_products)
-    spectrum=SpectrumQuery('isgri_spectrum_query', None, get_products_method=get_osa_spectrum,get_dummy_products_method=get_osa_spectrum_dummy_products)
+    light_curve =LightCurveQuery('isgri_lc_query',
+                                 None,
+                                 get_products_method=get_osa_lightcurve,
+                                 get_dummy_products_method=get_osa_lightcurve_dummy_products,
+                                 process_product_method=process_osa_lc_products)
+
+    image=ImageQuery('isgri_image_query',
+                     None,
+                     get_products_method=get_osa_image_products,
+                     get_dummy_products_method=get_osa_image_dummy_products,
+                     process_product_method=process_osa_image_products)
+
+    spectrum=SpectrumQuery('isgri_spectrum_query', None,
+                           get_products_method=get_osa_spectrum,
+                           get_dummy_products_method=get_osa_spectrum_dummy_products,
+                           process_product_method=process_osa_spectrum_products)
 
 
 

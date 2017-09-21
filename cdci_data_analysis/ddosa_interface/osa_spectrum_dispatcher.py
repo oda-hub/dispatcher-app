@@ -276,9 +276,8 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
                                                  radius,
                                                  user_catalog=user_catalog)
 
-    res = q.run_query(query_prod=query_prod)
+    res=q.run_query(query_prod=query_prod)
 
-    #print ('==> res',res.source_results)
     spectrum_list=IsgriSpectrumProduct.build_list_from_ddosa_res(res,
                                                                  out_dir=out_dir,
                                                                  prod_prefix='query_spectrum')
@@ -287,9 +286,11 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
     prod_list = QueryProductList(prod_list=spectrum_list)
 
 
-    return prod_list, None
+    return prod_list
 
 def get_osa_spectrum_dummy_products(instrument,config,out_dir='./'):
+
+
     if out_dir is None:
         out_dir = './'
     import glob,os
@@ -339,10 +340,43 @@ def get_osa_spectrum_dummy_products(instrument,config,out_dir='./'):
         spec.set_rmf_file(rmf_kw='RESPFILE', out_rmf_file=out_rmf_file.strip())
         spec_list.append(spec)
 
+
+
+
+
     prod_list = QueryProductList(prod_list=spec_list)
 
-    return prod_list, None
+    return prod_list
 
 
 
+def process_osa_spectrum_products(instrument,prod_list):
+    for query_spec in prod_list.prod_list:
+        query_spec.write()
 
+
+    prod_dictionary = {}
+    _names=[]
+    _figs=[]
+    _spec_path=[]
+    for query_spec in prod_list.prod_list:
+        _figs.append( query_spec.get_html_draw(plot=False))
+        _names.append(query_spec.name)
+        _source_spec=[]
+        _source_spec.append(query_spec.file_path.get_file_path())
+        _source_spec.append(query_spec.arf_file.encode('utf-8'))
+        _source_spec.append(query_spec.rmf_file.encode('utf-8'))
+
+        _spec_path.append(_source_spec)
+        print ('_source_spec',_source_spec)
+
+    prod_dictionary['spectrum_name'] = _names
+    prod_dictionary['spectrum_figure']=_figs
+    prod_dictionary['file_path']=_spec_path
+    prod_dictionary['file_name'] = 'spectra.tar.gz'
+    for l in prod_dictionary['file_path']:
+        print ('paths',l)
+
+
+    print('--> send prog')
+    return prod_dictionary

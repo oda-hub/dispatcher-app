@@ -23,6 +23,12 @@ from __future__ import absolute_import, division, print_function
 from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
 
+import  logging
+
+logger = logging.getLogger(__name__)
+
+import  numpy as np
+
 from cdci_data_analysis.analysis.queries import _check_is_base_query
 
 __author__ = "Andrea Tramacere"
@@ -117,13 +123,15 @@ class Instrument(object):
 
         return p
 
+    def run_query(self,query_name,config=None,out_dir=None,query_type='Real',**kwargs):
+        return self.get_query_by_name(query_name).run_query(self,out_dir,query_type=query_type,config=config)
 
     def get_query_products(self, query_name, config=None,out_dir=None):
         return self.get_query_by_name(query_name).get_products(self, config=config,out_dir=out_dir)
 
-    def get_query_dummy_products(self, query_name, config=None,out_dir=None):
+    def get_query_dummy_products(self, query_name, config=None,out_dir=None,**kwargs):
 
-        return self.get_query_by_name(query_name).get_dummy_products(self, config=config,out_dir=out_dir)
+        return self.get_query_by_name(query_name).get_dummy_products(self, config=config,out_dir=out_dir,**kwargs)
 
     def get_html_draw(self, prod_name, image,image_header,catalog=None):
 
@@ -158,3 +166,25 @@ class Instrument(object):
             l.append(_query.get_parameters_list_as_json())
 
         return l
+
+    def set_catalog(self, par_dic, scratch_dir='./'):
+        if 'catalog_selected_objects' in par_dic.keys():
+
+            catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)
+        else:
+            catalog_selected_objects = None
+
+        if catalog_selected_objects is not None:
+            from cdci_data_analysis.analysis.catalog import BasicCatalog
+
+            file_path = Path(scratch_dir, 'query_catalog.fits')
+            print('using catalog', file_path)
+            user_catalog = BasicCatalog.from_fits_file(file_path)
+
+            print('catalog_length', user_catalog.length)
+            self.set_par('user_catalog', user_catalog)
+            print('catalog_selected_objects', catalog_selected_objects)
+
+            user_catalog.select_IDs(catalog_selected_objects)
+            print('catalog selected\n', user_catalog.table)
+            print('catalog_length', user_catalog.length)

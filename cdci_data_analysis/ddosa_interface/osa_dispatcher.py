@@ -40,6 +40,15 @@ import json
 
 import ddosaclient as dc
 from ..analysis.queries import  *
+import sys
+import traceback
+
+
+def view_traceback():
+    ex_type, ex, tb = sys.exc_info()
+    traceback.print_tb(tb)
+    del tb
+
 
 class QueryProduct(object):
 
@@ -98,40 +107,13 @@ class OsaQuery(object):
             print("cached object in", res,res.ddcache_root_local)
         except dc.WorkerException as e:
             print("ERROR->")
-            e.display()
-            raise RuntimeError('ddosa connection or processing failed',e)
+            print('!!! >>>Exception<<<', e)
+            view_traceback()
 
+            raise RuntimeWarning('ddosa connection or processing failed',e)
 
         return res
 
-    def get_data(self,res,prod_name,json_file=None):
-        data = ast.literal_eval(str(res['data']))
-
-        if json_file is not None:
-            with open(json_file, 'wb') as outfile:
-                json.dump(data, outfile, sort_keys=True, indent=4, separators=(',', ': '))
-
-            print("jsonifiable data dumped to ",json_file)
-
-
-
-        e = None
-        prod_path = None
-        #print ('product keys',data.keys())
-        try:
-            v = data[prod_name]
-
-        except Exception as e:
-            print("Error ", e)
-            prod_path = None
-
-        if e is None:
-            prod_path = (res['cached_path'][0].replace("data/ddcache", self.ddcache_root_local) + "/" + v[1]).replace(
-                "//",
-                "/") + ".gz"
-
-
-        return data,prod_path,e
 
 
 

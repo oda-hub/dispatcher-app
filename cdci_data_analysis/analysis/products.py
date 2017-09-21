@@ -74,8 +74,9 @@ class QueryProductList(object):
     def get_prod_by_name(self,name):
         prod=None
         for prod1 in self._prod_list:
-            if prod1.name==name:
-                prod=prod1
+            if hasattr(prod1,'name'):
+                if prod1.name==name:
+                    prod=prod1
         if prod is None:
             raise  Warning('product',name,'not found')
         return prod
@@ -156,7 +157,13 @@ class ImageProduct(BaseQueryProduct):
 
         plugins.connect(fig, plugins.MousePosition(fontsize=14))
 
-        return mpld3.fig_to_dict(fig)
+        res_dict = {}
+        res_dict['image'] = mpld3.fig_to_dict(fig)
+        res_dict['header_text'] = ''
+        res_dict['table_text'] = ''
+        res_dict['footer_text'] = ''
+
+        return res_dict
 
 
 class LightCurveProduct(BaseQueryProduct):
@@ -186,26 +193,89 @@ class LightCurveProduct(BaseQueryProduct):
 
     def get_html_draw(self, plot=False):
         from astropy.io import fits as pf
-        data= pf.getdata(self.file_path.get_file_path(),ext=1)
+        hdul = pf.open(self.file_path.get_file_path())
+
+        data = hdul[1].data
+        header = hdul[1].header
 
         import matplotlib
         matplotlib.use('TkAgg')
         import pylab as plt
         fig, ax = plt.subplots()
+        x = data['TIME']
+        y = data['RATE']
+        dy = data['ERROR']
+        mjdref = header['mjdref'] + np.int(x.min())
 
-        #ax.set_xscale("log", nonposx='clip')
-        #ax.set_yscale("log")
+        x = x - np.int(x.min())
+        plt.errorbar(x, y, yerr=dy, fmt='o')
+        ax.set_xlabel('MJD-%d  (days)' % mjdref)
+        ax.set_ylabel('Rate  (cts/s)')
 
-        plt.errorbar(data['TIME'], data['RATE'], yerr=data['ERROR'], fmt='o')
-        ax.set_xlabel('Time ')
-        ax.set_ylabel('Rate ')
+        slope = None
+        normalized_slope = None
+        chisq_red = None
+        poly_deg = 0
+        footer_str=''
+        p, chisq, chisq_red, dof=self.do_linear_fit( x, y, dy, poly_deg,'constant fit')
+
+        exposure=header['TIMEDEL']*data['FRACEXP'].sum()
+        exposure*=86400
+        footer_str='Exposure %5.5f (s) \n'%exposure
+        if p is not None:
+            footer_str += 'Constant fit'
+            footer_str += 'flux level %5.5f\n'%p[0]
+            footer_str += 'dof ' + '%d' % dof + '\n'
+            footer_str += 'Chi-squared red. %5.5f\n' % chisq_red
+
+        poly_deg=1
+        p, chisq, chisq_red, dof = self.do_linear_fit( x, y, dy, poly_deg,'linear fit')
+        if p is not None:
+            footer_str += 'Linear fit'
+            footer_str += 'slope %5.5f\n'%p[0]
+            footer_str += 'dof ' + '%d' % dof + '\n'
+            footer_str += 'Chi-squared red. %5.5f\n' % chisq_red
+
 
         if plot == True:
             plt.show()
 
+
         plugins.connect(fig, plugins.MousePosition(fontsize=14))
 
+
+
+
+        res_dict = {}
+        res_dict['image'] = mpld3.fig_to_dict(fig)
+        res_dict['header_text'] = ''
+        res_dict['table_text'] =  ''
+        res_dict['footer_text'] = footer_str
+
+
         return mpld3.fig_to_dict(fig)
+
+    def do_linear_fit(self,x,y,dy,poly_deg,label):
+        p=None
+        chisq=None
+        chisq_red=None
+        dof=None
+
+        if y.size > poly_deg + 1:
+            p = np.polyfit(x, y, poly_deg)
+
+            x_grid = np.linspace(x.min(), x.max(), 100)
+            lin_fit = np.poly1d(p)
+
+            chisq = (lin_fit(x) - y) ** 2 / dy ** 2
+            dof = y.size - (poly_deg + 1)
+            chisq_red = chisq.sum() / float(dof)
+            plt.plot(x_grid, lin_fit(x_grid), '--',label=label)
+
+
+
+
+        return p,chisq,chisq_red,dof
 
 
 class SpectrumProduct(BaseQueryProduct):

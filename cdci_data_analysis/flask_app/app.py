@@ -21,7 +21,10 @@ from ..analysis.queries import *
 import  tempfile
 import tarfile
 import gzip
-from uuid import uuid4
+import logging
+import sys
+
+
 
 # from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
 #from ..ddosa_interface.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
@@ -30,6 +33,11 @@ from ..web_display import draw_dummy
 
 app = Flask(__name__)
 
+def set_session_logger(scratch_dir):
+    logging.basicConfig(filename=os.path.join(scratch_dir,'session.log'),
+                        level=logging.DEBUG,
+                        filemode='w',
+                        format='%(asctime)s %(message)s')
 
 def make_dir(out_dir):
 
@@ -45,10 +53,12 @@ def make_dir(out_dir):
 
 
 def set_session(session_id):
-    wd='./'
+    wd='./scratch'
     if session_id is not None:
         wd = 'scratch_'+session_id
-        make_dir(wd)
+
+    make_dir(wd)
+    set_session_logger(wd)
 
     return wd
 
@@ -157,11 +167,10 @@ def run_analysis_test():
     #print ('session ID',session_id)
     instrument_name='ISGRI'
     prod_type = request.args.get('product_type')
-    print('product_type', prod_type)
-    print('instrument', instrument_name)
+    logger.info('product_type', prod_type)
+    logger.info('instrument', instrument_name)
 
-
-    print('=>session_id<='),request.args.get('session_id')
+    logger.info('=>session_id<='),request.args.get('session_id')
 
     scratch_dir=set_session(request.args.get('session_id'))
 
@@ -172,173 +181,55 @@ def run_analysis_test():
     if instrument is None:
         raise Exception("instrument not recognized".format(instrument_name))
 
+
+    logger.info(request.args.to_dict())
+
     prod_dictionary = None
     par_dic = request.args.to_dict()
     par_dic.pop('query_type')
-
     par_dic.pop('product_type')
     #par_dic.pop('object_name')
 
     print('par_dic', par_dic)
     print('request', request)
 
+
+    query_dictionary={}
+    query_dictionary['isgri_image']='isgri_image_query'
+    query_dictionary['isgri_spectrum'] = 'isgri_spectrum_query'
+    query_dictionary['isgri_lc'] = 'isgri_lc_query'
+
     if request.method == 'GET':
 
 
         instrument.set_pars_from_dic(par_dic)
         instrument.show_parameters_list()
-        set_catalog(instrument, par_dic,scratch_dir=scratch_dir)
+        instrument.set_catalog(par_dic,scratch_dir=scratch_dir)
 
-        if request.args.get('product_type') == 'isgri_image':
-            prod_dictionary = query_isgri_image(instrument,scratch_dir=scratch_dir)
+        query_type=query_dictionary[request.args.get('query_type')]
+
+        product_type=request.args.get('product_type')
 
 
-        if request.args.get('product_type') == 'isgri_spectrum':
-            prod_dictionary=query_isgri_spectrum(instrument,scratch_dir=scratch_dir)
-
-        if request.args.get('product_type') == 'isgri_lc':
-            prod_dictionary=query_isgri_light_curve(instrument,scratch_dir=scratch_dir)
+        prod_dictionary = instrument.run_query(instrument,
+                                               product_type,
+                                               scratch_dir,
+                                               config=app.config.get('osaconf'),
+                                               query_type=query_type)
 
     return jsonify(prod_dictionary)
 
 
 
-def set_catalog(instrument,par_dic,scratch_dir='./'):
-    if 'catalog_selected_objects' in par_dic.keys():
-
-        catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)
-    else:
-        catalog_selected_objects = None
-
-    if catalog_selected_objects is not None:
-        from cdci_data_analysis.analysis.catalog import BasicCatalog
-
-        file_path=Path(scratch_dir,'query_catalog.fits')
-        print('using catalog',file_path)
-        user_catalog = BasicCatalog.from_fits_file(file_path)
-
-
-        print('catalog_length', user_catalog.length)
-        instrument.set_par('user_catalog', user_catalog)
-        print('catalog_selected_objects', catalog_selected_objects)
-
-
-        user_catalog.select_IDs(catalog_selected_objects)
-        print('catalog selected\n',user_catalog.table)
-        print('catalog_length', user_catalog.length)
-
-
-
-
-def query_isgri_image(instrument,scratch_dir='./'):
-    detection_significance = instrument.get_par_by_name('detection_threshold').value
-
-
-
-    if request.args.get('query_type') != 'Dummy':
-
-        prod_list, exception = instrument.get_query_products('isgri_image_query', config=app.config.get('osaconf'),out_dir=scratch_dir)
-
-
-    else:
-        prod_list, exception=instrument.get_query_dummy_products('isgri_image_query', config=app.config.get('osaconf'),out_dir=scratch_dir)
-
-
-
-
-    query_image = prod_list.get_prod_by_name('isgri_mosaic')
-    query_catalog = prod_list.get_prod_by_name('mosaic_catalog')
-
-
-
-
-    if detection_significance is not None:
-        query_catalog.catalog.selected = np.logical_and(query_catalog.catalog._table['significance'] > float(detection_significance),query_catalog.catalog.selected)
 
 
 
 
 
-    print('--> query was ok')
-    #file_path = Path(scratch_dir, 'query_mosaic.fits')
-    query_image.write(overwrite=True)
-    #file_path = Path(scratch_dir, 'query_catalog.fits')
-    query_catalog.write(overwrite=True)
-
-    html_fig = query_image.get_html_draw(catalog=query_catalog.catalog)
-    prod = {}
-    prod['image'] = html_fig
-    prod['catalog'] = query_catalog.catalog.get_dictionary()
-    prod['file_path'] = query_image.file_path.get_file_path()
-    prod['file_name'] = 'image.gz'
-    print ('--> send prog')
-
-    return prod
-
-def query_isgri_spectrum(instrument,scratch_dir='./'):
-    if request.args.get('query_type') != 'Dummy':
-        query_spectra_list, exception = instrument.get_query_products('isgri_spectrum_query', config=app.config.get('osaconf'),out_dir=scratch_dir)
-    else:
-        query_spectra_list, exception = instrument.get_query_dummy_products('isgri_spectrum_query', config=app.config.get('osaconf'),out_dir=scratch_dir)
-
-
-    for query_spec in query_spectra_list.prod_list:
-        query_spec.write()
-
-    print('--> query was ok')
-
-    prod = {}
-    _names=[]
-    _figs=[]
-    _spec_path=[]
-    for query_spec in query_spectra_list.prod_list:
-        _figs.append( query_spec.get_html_draw(plot=False))
-        _names.append(query_spec.name)
-        _source_spec=[]
-        _source_spec.append(query_spec.file_path.get_file_path())
-        _source_spec.append(query_spec.arf_file.encode('utf-8'))
-        _source_spec.append(query_spec.rmf_file.encode('utf-8'))
-
-        _spec_path.append(_source_spec)
-        print ('_source_spec',_source_spec)
-
-    prod['spectrum_name'] = _names
-    prod['spectrum_figure']=_figs
-    prod['file_path']=_spec_path
-    prod['file_name'] = 'spectra.tar.gz'
-    for l in prod['file_path']:
-        print ('paths',l)
-
-
-    print('--> send prog')
-    return prod
 
 
 
 
-def query_isgri_light_curve(instrument,scratch_dir='./'):
-
-    if request.args.get('query_type') != 'Dummy':
-        prod_list, exception = instrument.get_query_products('isgri_lc_query', config=app.config.get('osaconf'),out_dir=scratch_dir)
-    else:
-        prod_list, exception = instrument.get_query_dummy_products('isgri_lc_query', config=app.config.get('osaconf'),out_dir=scratch_dir)
-
-
-    query_lc = prod_list.get_prod_by_name('isgri_lc')
-    query_lc.write(overwrite=True)
-
-
-    html_fig = query_lc.get_html_draw()
-
-
-
-    prod = {}
-    prod['image'] = html_fig
-    prod['file_path'] =query_lc.file_path.get_file_path()
-    prod['file_name'] = 'light_curve.fits.gz'
-    print ('--> send prog')
-
-    return prod
 
 
 def run_app(conf):
