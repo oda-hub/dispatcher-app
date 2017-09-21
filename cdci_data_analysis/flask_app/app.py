@@ -203,7 +203,7 @@ def run_analysis_test():
         logger.info('query_type %s \n' % query_type)
         logger.info('instrument %s\n'%instrument_name)
         logger.info('parameters dictionary \n')
-        for key in par_dic.kyes():
+        for key in par_dic.keys():
             log_str='parameters dictionary, key='+key+' value='+str(par_dic[key])+'\n'
             logger.info(log_str)
 
