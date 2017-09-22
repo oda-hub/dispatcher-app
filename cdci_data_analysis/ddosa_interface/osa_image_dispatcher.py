@@ -242,5 +242,6 @@ def process_osa_image_products(instrument,prod_list):
     prod_dictionary['catalog'] = query_catalog.catalog.get_dictionary()
     prod_dictionary['file_path'] = query_image.file_path.get_file_path()
     prod_dictionary['file_name'] = 'image.gz'
+    prod_dictionary['prod_process_maessage'] = ''
 
     return prod_dictionary

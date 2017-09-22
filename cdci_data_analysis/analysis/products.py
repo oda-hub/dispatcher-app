@@ -171,12 +171,13 @@ class LightCurveProduct(BaseQueryProduct):
                       data,
                       header,
                       file_name='lc.fits',
+                      src_name=None,
                       **kwargs):
         self.name = name
         self.data = data
         self.header = header
         self.file_name = file_name
-
+        self.src_name=src_name
 
         super(LightCurveProduct, self).__init__(name,file_name=file_name,**kwargs)
 

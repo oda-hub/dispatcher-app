@@ -50,7 +50,7 @@ from ..analysis.products import LightCurveProduct,QueryProductList
 from astropy.io import fits as pf
 
 class IsgriLigthtCurve(LightCurveProduct):
-    def __init__(self,name,file_name,data,header,prod_prefix=None,out_dir=None):
+    def __init__(self,name,file_name,data,header,prod_prefix=None,out_dir=None,src_name=None):
 
 
         super(IsgriLigthtCurve, self).__init__(name,
@@ -58,7 +58,8 @@ class IsgriLigthtCurve(LightCurveProduct):
                                                header,
                                                file_name=file_name,
                                                name_prefix=prod_prefix,
-                                               file_dir=out_dir)
+                                               file_dir=out_dir,
+                                               src_name=src_name)
 
 
 
@@ -74,6 +75,7 @@ class IsgriLigthtCurve(LightCurveProduct):
         hdu_list = pf.open(res.lightcurve)
         data = None
         header=None
+
         for hdu in hdu_list:
             if hdu.name == 'ISGR-SRC.-LCR':
                 print('name', hdu.header['NAME'])
@@ -81,7 +83,7 @@ class IsgriLigthtCurve(LightCurveProduct):
                     data = hdu.data
                     header = hdu.header
 
-        lc = cls(name=name, data=data, header=header,file_name=file_name,out_dir=out_dir,prod_prefix=prod_prefix)
+            lc = cls(name=name, data=data, header=header,file_name=file_name,out_dir=out_dir,prod_prefix=prod_prefix,src_name=src_name)
 
         return lc
 
@@ -238,7 +240,8 @@ def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=No
     return prod_list
 
 
-def get_osa_lightcurve_dummy_products(instrument,config,out_dir='./',src_name=None):
+def get_osa_lightcurve_dummy_products(instrument,config,out_dir='./'):
+    src_name = instrument.get_par_by_name('src_name').value
     from ..analysis.products import LightCurveProduct
     dummy_cache = config.dummy_cache
     delta_t = instrument.get_par_by_name('time_bin')._astropy_time_delta.sec
@@ -265,11 +268,21 @@ def process_osa_lc_products(instrument,prod_list):
 
     prod_dictionary = {}
     #if query_lc is not None and query_lc.data is not None:
+
+
     query_lc.write(overwrite=True)
-    html_fig = query_lc.get_html_draw()
-    prod_dictionary['image'] = html_fig
-    prod_dictionary['file_path'] = query_lc.file_path.get_file_path()
-    prod_dictionary['file_name'] = 'light_curve.fits.gz'
+
+    if query_lc.data is not None:
+        html_fig = query_lc.get_html_draw()
+        prod_dictionary['image'] = html_fig
+        prod_dictionary['file_path'] = query_lc.file_path.get_file_path()
+        prod_dictionary['file_name'] = 'light_curve.fits.gz'
+        prod_dictionary['prod_process_maessage'] = ''
+    else:
+        prod_dictionary['image'] = None
+        prod_dictionary['file_path'] = ''
+        prod_dictionary['file_name'] = ''
+        prod_dictionary['prod_process_maessage'] = 'no light curve produced for name %s',query_lc.src_name
     print('--> send prog')
 
     return prod_dictionary

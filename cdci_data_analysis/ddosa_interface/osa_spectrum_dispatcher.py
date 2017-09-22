@@ -374,6 +374,7 @@ def process_osa_spectrum_products(instrument,prod_list):
     prod_dictionary['spectrum_figure']=_figs
     prod_dictionary['file_path']=_spec_path
     prod_dictionary['file_name'] = 'spectra.tar.gz'
+    prod_dictionary['prod_process_maessage']=''
     for l in prod_dictionary['file_path']:
         print ('paths',l)
 

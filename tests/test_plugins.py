@@ -169,7 +169,7 @@ def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,query_type='Rea
     set_session_logger(out_dir)
 
     instr = OSA_ISGRI()
-    src_name = '4U 1700-377'
+    src_name = '4U==1700-377'
     parameters = dict(E1_keV=20., E2_keV=40., T1=T1_iso, T2=T2_iso, RA=RA, DEC=DEC, radius=25,
                       scw_list=cookbook_scw_list, src_name=src_name,time_bin=0.1,time_bin_format='jd')
 
@@ -201,7 +201,7 @@ def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,query_type='Rea
 
     prod_dictionary = instr.run_query('isgri_lc_query', config=osaconf, out_dir=out_dir, query_type=query_type)
 
-    instr.get_query_by_name('isgri_lc_query').get_prod_by_name('isgri_lc').get_html_draw(plot=True)
+    #instr.get_query_by_name('isgri_lc_query').get_prod_by_name('isgri_lc').get_html_draw(plot=True)
 
     print (prod_dictionary)
 

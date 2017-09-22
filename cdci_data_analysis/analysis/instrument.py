@@ -31,8 +31,10 @@ import  logging
 logger = logging.getLogger(__name__)
 
 import  numpy as np
+from astropy.table import Table
 
 from cdci_data_analysis.analysis.queries import _check_is_base_query
+from .catalog import BasicCatalog
 
 __author__ = "Andrea Tramacere"
 
@@ -177,6 +179,10 @@ class Instrument(object):
         else:
             catalog_selected_objects = None
 
+        if 'selected_catalog' in par_dic.keys():
+            print('==> selecetd catalog',par_dic['selected_catalog'])
+
+
         if catalog_selected_objects is not None:
             from cdci_data_analysis.analysis.catalog import BasicCatalog
 
@@ -191,3 +197,17 @@ class Instrument(object):
             user_catalog.select_IDs(catalog_selected_objects)
             print('catalog selected\n', user_catalog.table)
             print('catalog_length', user_catalog.length)
+
+
+
+def build_catalog(cat_dic):
+    t = Table(cat_dic['cat_column_list'], names=cat_dic['cat_column_names'])
+    src_names = t['src_names']
+    significance = t['significance']
+    lon = t[cat_dic['cat_lon_name']]
+    lat = t[cat_dic['cat_lat_name']]
+
+    frame = cat_dic['cat_frame']
+    unit =cat_dic['cat_coord_units']
+
+    return BasicCatalog(src_names, lon, lat, significance, _table=t, unit=unit, frame=frame)

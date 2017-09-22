@@ -151,11 +151,20 @@ class BasicCatalog(object):
         #    except:
         #        pass
 
-        columns_lists=[self.table[name].tolist() for name in self.table.colnames]
-        for ID,_col in enumerate(columns_lists):
-            columns_lists[ID] = [x if str(x)!='nan' else None for x in _col]
-        print ('new table',columns_lists)
-        return dict(columns_list=columns_lists, column_names=self.table.colnames,column_descr=self.table.dtype.descr)
+        column_lists=[self.table[name].tolist() for name in self.table.colnames]
+        for ID,_col in enumerate(column_lists):
+            column_lists[ID] = [x if str(x)!='nan' else None for x in _col]
+        print ('new table',column_lists)
+
+        return dict(cat_frame=self.table.meta['FRAME'],
+                    cat_coord_units=self.table.meta['COORD_UNIT'],
+                    cat_column_list=column_lists,
+                    cat_column_names=self.table.colnames,
+                    cat_column_descr=self.table.dtype.descr,
+                    cat_lat_name=self.lat_name,
+                    cat_lon_name=self.lon_name)
+
+
 
 
     def write(self,name,format='fits',overwrite=True):
@@ -174,7 +183,6 @@ class BasicCatalog(object):
             lon=table[table.meta['LON_NAME']]
             lat =table[table.meta['LAT_NAME']]
             unit = table.meta['COORD_UNIT']
-            print('OK')
             cat= cls(src_names,lon,lat,significance,_table=table,unit=unit,frame=frame)
         except:
             raise RuntimeError('Table in fits file is not valid to build Catalog')
