@@ -162,7 +162,7 @@ class ImageProduct(BaseQueryProduct):
         res_dict['header_text'] = ''
         res_dict['table_text'] = ''
         res_dict['footer_text'] = ''
-
+        plt.close(fig)
         return res_dict
 
 
@@ -256,7 +256,7 @@ class LightCurveProduct(BaseQueryProduct):
         res_dict['table_text'] =  ''
         res_dict['footer_text'] = footer_str
 
-
+        plt.close(fig)
         return res_dict
 
     def do_linear_fit(self,x,y,dy,poly_deg,label):
@@ -525,6 +525,8 @@ class SpectrumProduct(BaseQueryProduct):
         res_dict['header_text']=header_str
         res_dict['table_text'] = fit_table
         res_dict['footer_text'] = footer_str
+
+        plt.close(fig)
 
         return res_dict
 

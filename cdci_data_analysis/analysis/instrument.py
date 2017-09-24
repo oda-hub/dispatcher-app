@@ -173,6 +173,8 @@ class Instrument(object):
         return l
 
     def set_catalog(self, par_dic, scratch_dir='./'):
+        print('---------------------------------------------')
+        print('set catalog')
         if 'catalog_selected_objects' in par_dic.keys():
 
             catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)
@@ -197,7 +199,7 @@ class Instrument(object):
             user_catalog.select_IDs(catalog_selected_objects)
             print('catalog selected\n', user_catalog.table)
             print('catalog_length', user_catalog.length)
-
+        print('---------------------------------------------')
 
 
 def build_catalog(cat_dic):
