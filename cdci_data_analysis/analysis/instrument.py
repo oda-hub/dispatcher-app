@@ -25,7 +25,7 @@ from builtins import (bytes, str, open, super, range,
 
 
 from pathlib import Path
-
+import json
 import  logging
 
 logger = logging.getLogger(__name__)
@@ -183,7 +183,7 @@ class Instrument(object):
 
         if 'selected_catalog' in par_dic.keys():
             print('==> selecetd catalog',type(par_dic['selected_catalog']))
-
+            print('==> selecetd catalog', type(json.loads(par_dic['selected_catalog'])))
 
         if catalog_selected_objects is not None:
             user_catalog=build_catalog(par_dic['selected_catalog'])
