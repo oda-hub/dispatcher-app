@@ -211,8 +211,8 @@ def build_catalog(cat_dic):
     t = Table(cat_dic['cat_column_list'], names=cat_dic['cat_column_names'])
     src_names = t['src_names']
     significance = t['significance']
-    lon = t[cat_dic['cat_lon_name']]
-    lat = t[cat_dic['cat_lat_name']]
+    lon = np.array(t[cat_dic['cat_lon_name']],dtype=np.float)
+    lat = np.array(t[cat_dic['cat_lat_name']],dtype=np.float)
 
     frame = cat_dic['cat_frame']
     unit =cat_dic['cat_coord_units']
