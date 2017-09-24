@@ -182,14 +182,14 @@ class Instrument(object):
             catalog_selected_objects = None
 
         if 'selected_catalog' in par_dic.keys():
-            print('==> selecetd catalog',type(par_dic['selected_catalog']))
-            print('==> selecetd catalog', type(json.loads(par_dic['selected_catalog'])))
+            catalog_dic=json.loads(par_dic['selected_catalog'])
+            print('==> selecetd catalog', catalog_dic)
 
-        if catalog_selected_objects is not None:
-            user_catalog=build_catalog(par_dic['selected_catalog'])
-            self.set_par('user_catalog', user_catalog)
-            for ra, dec, name in zip(user_catalog.ra, user_catalog.dec, user_catalog.name):
-                print(name,ra,dec)
+            if catalog_selected_objects is not None:
+                user_catalog=build_catalog(catalog_dic)
+                self.set_par('user_catalog', user_catalog)
+                for ra, dec, name in zip(user_catalog.ra, user_catalog.dec, user_catalog.name):
+                    print(name,ra,dec)
             #from cdci_data_analysis.analysis.catalog import BasicCatalog
 
             #file_path = Path(scratch_dir, 'query_catalog.fits')
