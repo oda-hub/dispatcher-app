@@ -182,7 +182,7 @@ class Instrument(object):
             catalog_selected_objects = None
 
         if 'selected_catalog' in par_dic.keys():
-            print('==> selecetd catalog',par_dic['selected_catalog'])
+            print('==> selecetd catalog',type(par_dic['selected_catalog']))
 
 
         if catalog_selected_objects is not None:
