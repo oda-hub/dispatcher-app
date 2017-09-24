@@ -186,19 +186,23 @@ class Instrument(object):
 
 
         if catalog_selected_objects is not None:
-            from cdci_data_analysis.analysis.catalog import BasicCatalog
-
-            file_path = Path(scratch_dir, 'query_catalog.fits')
-            print('using catalog', file_path)
-            user_catalog = BasicCatalog.from_fits_file(file_path)
-
-            print('catalog_length', user_catalog.length)
+            user_catalog=build_catalog(par_dic['selected_catalog'])
             self.set_par('user_catalog', user_catalog)
-            print('catalog_selected_objects', catalog_selected_objects)
+            for ra, dec, name in zip(user_catalog.ra, user_catalog.dec, user_catalog.name):
+                print(name,ra,dec)
+            #from cdci_data_analysis.analysis.catalog import BasicCatalog
 
-            user_catalog.select_IDs(catalog_selected_objects)
-            print('catalog selected\n', user_catalog.table)
-            print('catalog_length', user_catalog.length)
+            #file_path = Path(scratch_dir, 'query_catalog.fits')
+            #print('using catalog', file_path)
+            #user_catalog = BasicCatalog.from_fits_file(file_path)
+
+            #print('catalog_length', user_catalog.length)
+            #self.set_par('user_catalog', user_catalog)
+            #print('catalog_selected_objects', catalog_selected_objects)
+
+            #user_catalog.select_IDs(catalog_selected_objects)
+            #print('catalog selected\n', user_catalog.table)
+            #print('catalog_length', user_catalog.length)
         print('---------------------------------------------')
 
 
