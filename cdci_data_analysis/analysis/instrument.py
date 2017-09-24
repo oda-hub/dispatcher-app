@@ -208,13 +208,15 @@ class Instrument(object):
 
 
 def build_catalog(cat_dic):
+    from astropy import units as u
+    from astropy.coordinates import Angle, Latitude, Longitude
     t = Table(cat_dic['cat_column_list'], names=cat_dic['cat_column_names'])
     src_names = t['src_names']
     significance = t['significance']
-    lon = np.array(t[cat_dic['cat_lon_name']],dtype=np.float)
-    lat = np.array(t[cat_dic['cat_lat_name']],dtype=np.float)
+    lon =Longitude(t[cat_dic['cat_lon_name']],unit=u.deg)
+    lat = Latitude(t[cat_dic['cat_lat_name']],unit=u.deg)
 
     frame = cat_dic['cat_frame']
     unit =cat_dic['cat_coord_units']
-
+    print (unit,lon,lat)
     return BasicCatalog(src_names, lon, lat, significance, _table=t, unit=unit, frame=frame)
