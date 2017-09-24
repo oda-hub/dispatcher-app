@@ -188,6 +188,7 @@ class Instrument(object):
             if catalog_selected_objects is not None:
                 user_catalog=build_catalog(catalog_dic)
                 self.set_par('user_catalog', user_catalog)
+                print (user_catalog.table)
                 for ra, dec, name in zip(user_catalog.ra, user_catalog.dec, user_catalog.name):
                     print(name,ra,dec)
             #from cdci_data_analysis.analysis.catalog import BasicCatalog
