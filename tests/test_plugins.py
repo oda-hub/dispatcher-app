@@ -226,7 +226,7 @@ def test_plot_lc():
 
 def test_full_mosaic():
     #test_mosaic_cookbook(use_catalog=True,use_scw_list=False)
-    test_mosaic_cookbook(use_catalog=True, use_scw_list=True,out_dir='test_scratch',query_type='Real')
+    test_mosaic_cookbook(use_catalog=True, use_scw_list=True,out_dir='test_scratch',query_type='Dummy')
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=False)
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=True)
 

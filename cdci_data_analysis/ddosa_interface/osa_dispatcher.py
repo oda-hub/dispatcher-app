@@ -74,7 +74,7 @@ class OsaQuery(object):
 
 
             except Exception as e:
-                raise RuntimeError("failed to read from docker", e)
+                raise RuntimeWarning("failed to read from docker", e)
 
         elif config is not None:
             try:
@@ -87,11 +87,11 @@ class OsaQuery(object):
 
                 print ("ERROR->")
                 e.display()
-                raise RuntimeError("failed to use config ", e)
+                raise RuntimeWarning("failed to use config ", e)
 
         else:
 
-            raise RuntimeError('either you provide use_dicosverer=True or a config object')
+            raise RuntimeWarning('either you provide use_dicosverer=True or a config object')
 
         print("url:", self.url)
         print("ddcache_root:",  self.ddcache_root_local)
