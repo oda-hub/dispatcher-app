@@ -209,8 +209,10 @@ def get_osa_image_dummy_products(instrument,config,out_dir='./'):
 
     if user_catalog is not None:
         print ('setting from user catalog',user_catalog,catalog)
-        print (user_catalog.length,catalog.catalog.length)
-        catalog.catalog.selected=user_catalog.selected
+        #print (user_catalog.length,catalog.catalog.length)
+        #print('setting from user catalog', user_catalog, catalog)
+        #catalog.catalog.selected=user_catalog.selected
+        catalog=user_catalog
 
     prod_list = QueryProductList(prod_list=[image, catalog])
     return prod_list

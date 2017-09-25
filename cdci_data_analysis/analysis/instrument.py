@@ -191,9 +191,11 @@ class Instrument(object):
 
                 user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
                 self.set_par('user_catalog', user_catalog)
+                print('==> selecetd catalog')
                 print (user_catalog.table)
-                for ra, dec, name in zip(user_catalog.ra, user_catalog.dec, user_catalog.name):
-                    print(name,ra,dec)
+                #for ra, dec, name in zip(user_catalog.ra, user_catalog.dec, user_catalog.name):
+                #    print(name,ra,dec)
+
             #from cdci_data_analysis.analysis.catalog import BasicCatalog
 
             #file_path = Path(scratch_dir, 'query_catalog.fits')
@@ -228,10 +230,10 @@ def build_catalog(cat_dic,catalog_selected_objects=None):
     if catalog_selected_objects is not None:
         meta_ids = user_catalog._table['meta_ID']
         for ID,cat_ID in enumerate(meta_ids):
-            print ("ID,cat_id",ID,cat_ID,catalog_selected_objects)
+            #print ("ID,cat_id",ID,cat_ID,catalog_selected_objects)
             if cat_ID in catalog_selected_objects:
                 user_catalog.select_IDs(ID)
-                print('selected')
+                #print('selected')
 
 
     return user_catalog
