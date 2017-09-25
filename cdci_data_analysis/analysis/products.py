@@ -440,7 +440,7 @@ class SpectrumProduct(BaseQueryProduct):
             fit_model = getattr(m, model_name)
             for name in fit_model.parameterNames:
                 p=getattr(fit_model,name)
-                _name.append(p.name)
+                _name.append('%s %s'%(model_name,p.name))
                 _val.append('%5.5f'%p.values[0])
                 _unit.append('%s'%p.unit)
                 _err.append('%5.5f'%p.sigma)
