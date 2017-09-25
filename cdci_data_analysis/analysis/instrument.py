@@ -184,6 +184,7 @@ class Instrument(object):
         if 'selected_catalog' in par_dic.keys():
             catalog_dic=json.loads(par_dic['selected_catalog'])
             print('==> selecetd catalog', catalog_dic)
+            print('==> catalog_selected_objects', catalog_selected_objects)
 
             if catalog_selected_objects is not None:
                 user_catalog=build_catalog(catalog_dic)
