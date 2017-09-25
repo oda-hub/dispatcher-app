@@ -477,6 +477,14 @@ class LightCurveQuery(ProductQuery):
 
 class SpectrumQuery(ProductQuery):
     def __init__(self, name,parameters_list, **kwargs):
+
+        xspec_model =Name(name_format='str', name='xspec_model',value='powerlaw')
+        if parameters_list != [] and parameters_list is not None:
+            parameters_list.extend(xspec_model)
+        else:
+            parameters_list = [xspec_model]
+
+
         super(SpectrumQuery, self).__init__(name, parameters_list, **kwargs)
 
 

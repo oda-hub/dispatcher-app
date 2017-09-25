@@ -231,10 +231,10 @@ def build_catalog(cat_dic,catalog_selected_objects=None):
         meta_ids = user_catalog._table['meta_ID']
         IDs=[]
         for ID,cat_ID in enumerate(meta_ids):
-            print ("ID,cat_id",ID,cat_ID,catalog_selected_objects)
+            #print ("ID,cat_id",ID,cat_ID,catalog_selected_objects)
             if cat_ID in catalog_selected_objects:
                 IDs.append(ID)
-                print('selected')
+                #print('selected')
 
             user_catalog.select_IDs(IDs)
 

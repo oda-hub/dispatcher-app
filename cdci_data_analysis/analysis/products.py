@@ -406,7 +406,7 @@ class SpectrumProduct(BaseQueryProduct):
         pf.writeto(file_path, data=self.data, header=self.header,overwrite=overwrite)
 
 
-    def get_html_draw(self, catalog=None, plot=False):
+    def get_html_draw(self, catalog=None, plot=False,xsepc_model='powerlaw'):
         import xspec as xsp
         # PyXspec operations:
         file_path=self.file_path.get_file_path()
@@ -420,7 +420,7 @@ class SpectrumProduct(BaseQueryProduct):
         s.ignore('**-15.')
         s.ignore('300.-**')
 
-        model_name='cutoffpl'
+        model_name=xsepc_model
 
         m = xsp.Model(model_name)
         xsp.Fit.query = 'yes'
