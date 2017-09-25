@@ -138,9 +138,9 @@ class Instrument(object):
 
         return self.get_query_by_name(query_name).get_dummy_products(self, config=config,out_dir=out_dir,**kwargs)
 
-    def get_html_draw(self, prod_name, image,image_header,catalog=None):
+    def get_html_draw(self, prod_name, image,image_header,catalog=None,**kwargs):
 
-        return self.get_query_by_name(prod_name).get_html_draw( image,image_header,catalog=catalog)
+        return self.get_query_by_name(prod_name).get_html_draw( image,image_header,catalog=catalog,**kwargs)
 
     def get_par_by_name(self,par_name):
         p=None

@@ -87,7 +87,7 @@ def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,query_type='Real'
     instr = OSA_ISGRI()
     set_session_logger(out_dir)
     parameters = dict(E1_keV=20., E2_keV=40., T1 =T1_iso, T2 =T2_iso, RA=RA, DEC=DEC, radius=25,
-                      scw_list=cookbook_scw_list,src_name='4U 1700-377')
+                      scw_list=cookbook_scw_list,src_name='4U 1700-377',xspec_model='powerlaw')
 
     logger.info('parameters dictionary')
     logger.info(parameters)
@@ -235,7 +235,7 @@ def test_full_spectrum():
     #test_spectrum_cookbook(use_catalog=True, use_scw_list=False)
     #test_spectrum_cookbook(use_catalog=True, use_scw_list=True)
     #test_spectrum_cookbook(use_catalog=False, use_scw_list=False)
-    test_spectrum_cookbook(use_catalog=False, use_scw_list=True,query_type='Real',out_dir='test_scratch')
+    test_spectrum_cookbook(use_catalog=False, use_scw_list=True,query_type='Dummy',out_dir='test_scratch')
 
 def test_full_lc():
     #test_lightcurve_cookbook(use_catalog=True, use_scw_list=False)

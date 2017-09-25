@@ -360,7 +360,8 @@ def process_osa_spectrum_products(instrument,prod_list):
     _figs=[]
     _spec_path=[]
     for query_spec in prod_list.prod_list:
-        _figs.append( query_spec.get_html_draw(plot=False,xspec_model=instrument.get_par_by_name('xspec_model')))
+        print('xspec model',instrument.get_par_by_name('xspec_model').value)
+        _figs.append( query_spec.get_html_draw(plot=False,xspec_model=instrument.get_par_by_name('xspec_model').value))
         _names.append(query_spec.name)
         _source_spec=[]
         _source_spec.append(query_spec.file_path.get_file_path())
@@ -368,7 +369,7 @@ def process_osa_spectrum_products(instrument,prod_list):
         _source_spec.append(query_spec.rmf_file.encode('utf-8'))
 
         _spec_path.append(_source_spec)
-        print ('_source_spec,model',_source_spec,instrument.get_par_by_name('xspec_model'))
+        print ('_source_spec',_source_spec)
 
     prod_dictionary['spectrum_name'] = _names
     prod_dictionary['spectrum_figure']=_figs
