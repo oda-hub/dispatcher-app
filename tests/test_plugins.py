@@ -66,8 +66,8 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,query_type='Real',
     instr.show_parameters_list()
 
     prod_dictionary = instr.run_query('isgri_image_query', config=osaconf, out_dir=out_dir, query_type=query_type)
-
-    print ('prod_dictionary',prod_dictionary)
+    instr.get_query_by_name('isgri_image_query').get_prod_by_name('isgri_mosaic').get_html_draw(plot=True)
+    #print ('prod_dictionary',prod_dictionary)
 
 
 def test_plot_mosaic():
@@ -116,7 +116,7 @@ def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,query_type='Real'
 
     prod_dictionary = instr.run_query('isgri_spectrum_query',config=osaconf,out_dir=out_dir,query_type=query_type)
 
-    print ('prod_dictionary',prod_dictionary)
+    #print ('prod_dictionary',prod_dictionary)
 
 
     if use_catalog==True:
@@ -226,7 +226,7 @@ def test_plot_lc():
 
 def test_full_mosaic():
     #test_mosaic_cookbook(use_catalog=True,use_scw_list=False)
-    test_mosaic_cookbook(use_catalog=True, use_scw_list=True,out_dir='test_scratch',query_type='Dummy')
+    test_mosaic_cookbook(use_catalog=False, use_scw_list=True,out_dir='test_scratch',query_type='Dummy')
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=False)
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=True)
 

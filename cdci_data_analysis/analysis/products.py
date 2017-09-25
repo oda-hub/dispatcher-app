@@ -129,7 +129,14 @@ class ImageProduct(BaseQueryProduct):
 
 
         fig, (ax) = plt.subplots(1, 1, figsize=(4, 3), subplot_kw={'projection': WCS(self.header)})
-        im = ax.imshow(self.data, origin='lower', zorder=1, interpolation='none', aspect='equal')
+        im = ax.imshow(self.data,
+                       origin='lower',
+                       zorder=1,
+                       interpolation='none',
+                       aspect='equal',
+                       cmap=plt.get_cmap('jet'),
+                       vmin = self.data.min(),
+                       vmax = self.data.max())
 
         if catalog is not None:
 
@@ -152,10 +159,12 @@ class ImageProduct(BaseQueryProduct):
             ax.set_ylabel('DEC')
 
         fig.colorbar(im, ax=ax)
-        if plot == True:
-            plt.show()
+
 
         plugins.connect(fig, plugins.MousePosition(fontsize=14))
+        if plot == True:
+            print ('plot',plot)
+            mpld3.show()
 
         res_dict = {}
         res_dict['image'] = mpld3.fig_to_dict(fig)
