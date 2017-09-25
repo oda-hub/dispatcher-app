@@ -187,6 +187,8 @@ class Instrument(object):
             print('==> catalog_selected_objects', catalog_selected_objects)
 
             if catalog_selected_objects is not None:
+
+
                 user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
                 self.set_par('user_catalog', user_catalog)
                 print (user_catalog.table)
@@ -224,6 +226,10 @@ def build_catalog(cat_dic,catalog_selected_objects=None):
     user_catalog =BasicCatalog(src_names, lon, lat, significance, _table=t, unit=unit, frame=frame)
 
     if catalog_selected_objects is not None:
+        meta_ids = user_catalog._table['meta_ID']
+        for ID,cat_id in enumerate(meta_ids):
+            if cat_id in catalog_selected_objects:
+                user_catalog.select_IDs(ID)
 
         user_catalog.select_IDs(catalog_selected_objects)
 
