@@ -430,22 +430,23 @@ class SpectrumProduct(BaseQueryProduct):
         header_str +='Fit report for model %s' % (model_name)
 
 
-
+        _comp=[]
         _name=[]
         _val=[]
         _unit=[]
         _err=[]
-        colnames=['par name','value','units','error']
+        colnames=['component','par name','value','units','error']
         for model_name in m.componentNames:
             fit_model = getattr(m, model_name)
             for name in fit_model.parameterNames:
                 p=getattr(fit_model,name)
-                _name.append('%s %s'%(model_name,p.name))
+                _comp.append('%s' % (model_name))
+                _name.append('%s'%(p.name))
                 _val.append('%5.5f'%p.values[0])
                 _unit.append('%s'%p.unit)
                 _err.append('%5.5f'%p.sigma)
 
-        fit_table=dict(columns_list=[_name,_val,_unit,_err], column_names=colnames)
+        fit_table=dict(columns_list=[_comp,_name,_val,_unit,_err], column_names=colnames)
 
         footer_str ='dof '+ '%d'%xsp.Fit.dof+'\n'
 
