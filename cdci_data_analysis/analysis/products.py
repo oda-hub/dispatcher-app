@@ -135,8 +135,8 @@ class ImageProduct(BaseQueryProduct):
                        interpolation='none',
                        aspect='equal',
                        cmap=plt.get_cmap('jet'),
-                       vmin = self.data.min(),
-                       vmax = self.data.max()/10.)
+                       vmin = self.data.max(),
+                       vmax = self.data.max())
 
         if catalog is not None:
 
