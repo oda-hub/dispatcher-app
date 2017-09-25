@@ -232,6 +232,6 @@ def build_catalog(cat_dic,catalog_selected_objects=None):
             if cat_ID in catalog_selected_objects:
                 user_catalog.select_IDs(ID)
                 print('selected')
-        user_catalog.select_IDs(catalog_selected_objects)
+
 
     return user_catalog
