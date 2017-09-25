@@ -125,8 +125,13 @@ class ImageProduct(BaseQueryProduct):
         file_path=self.file_path.get_file_path(file_name=file_name,file_dir=file_dir)
         pf.writeto( file_path   , data=self.data, header=self.header,overwrite=overwrite)
 
-    def get_html_draw(self, catalog=None,plot=False):
+    def get_html_draw(self, catalog=None,plot=False,vmin=None,vmax=None):
 
+        if vmin is None:
+            vmin=self.data.min()
+
+        if vmax is None:
+            vmax=self.data.max()
 
         fig, (ax) = plt.subplots(1, 1, figsize=(4, 3), subplot_kw={'projection': WCS(self.header)})
         im = ax.imshow(self.data,
@@ -135,8 +140,8 @@ class ImageProduct(BaseQueryProduct):
                        interpolation='none',
                        aspect='equal',
                        cmap=plt.get_cmap('jet'),
-                       vmin = self.data.max(),
-                       vmax = self.data.max())
+                       vmin = vmax,
+                       vmax = vmax)
 
         if catalog is not None:
 
