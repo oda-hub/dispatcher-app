@@ -224,9 +224,11 @@ def process_osa_image_products(instrument,prod_list):
     detection_significance = instrument.get_par_by_name('detection_threshold').value
 
     if detection_significance is not None:
-        query_catalog.catalog.selected = np.logical_and(
-            query_catalog.catalog._table['significance'] > float(detection_significance),
-            query_catalog.catalog.selected)
+        #query_catalog.catalog.selected = np.logical_and(
+        #    query_catalog.catalog._table['significance'] > float(detection_significance),
+        #    query_catalog.catalog.selected)
+        query_catalog.catalog.selected= query_catalog.catalog._table['significance'] > float(detection_significance)
+
 
     print('--> query was ok')
     # file_path = Path(scratch_dir, 'query_mosaic.fits')
