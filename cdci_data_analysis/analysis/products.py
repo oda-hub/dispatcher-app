@@ -429,19 +429,21 @@ class SpectrumProduct(BaseQueryProduct):
         header_str='Exposure %f (s)\n'%(s.exposure)
         header_str +='Fit report for model %s' % (model_name)
 
-        fit_model = getattr(m, model_name)
+
 
         _name=[]
         _val=[]
         _unit=[]
         _err=[]
         colnames=['par name','value','units','error']
-        for name in fit_model.parameterNames:
-            p=getattr(fit_model,name)
-            _name.append(p.name)
-            _val.append('%5.5f'%p.values[0])
-            _unit.append('%s'%p.unit)
-            _err.append('%5.5f'%p.sigma)
+        for model_name in m.componentNames:
+            fit_model = getattr(m, model_name)
+            for name in fit_model.parameterNames:
+                p=getattr(fit_model,name)
+                _name.append(p.name)
+                _val.append('%5.5f'%p.values[0])
+                _unit.append('%s'%p.unit)
+                _err.append('%5.5f'%p.sigma)
 
         fit_table=dict(columns_list=[_name,_val,_unit,_err], column_names=colnames)
 
