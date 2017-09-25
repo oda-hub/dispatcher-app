@@ -110,7 +110,7 @@ class OsaQuery(object):
             print('!!! >>>Exception<<<', e)
             view_traceback()
 
-            raise RuntimeWarning('ddosa connection or processing failed',e)
+            raise Exception(e)
 
         return res
 
