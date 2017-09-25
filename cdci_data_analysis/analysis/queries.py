@@ -431,7 +431,7 @@ class ProductQuery(BaseQuery):
             view_traceback()
             logger.exception(e)
             #logger.exception(view_traceback())
-            raise Exception(e)
+            #raise Exception(e)
         print ('data server query status',data_server_query_status)
         prod_process_status=0
 
@@ -447,7 +447,7 @@ class ProductQuery(BaseQuery):
             view_traceback()
             logger.exception(e)
             #logger.exception(view_traceback())
-            raise Exception(e)
+            #raise Exception(e)
         print('prod_process_status', prod_process_status)
 
         return self.finalize_query(product_dictionary,data_server_query_status,prod_process_status)
