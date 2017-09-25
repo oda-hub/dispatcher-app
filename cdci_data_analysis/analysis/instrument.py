@@ -187,7 +187,7 @@ class Instrument(object):
             print('==> catalog_selected_objects', catalog_selected_objects)
 
             if catalog_selected_objects is not None:
-                user_catalog=build_catalog(catalog_dic)
+                user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
                 self.set_par('user_catalog', user_catalog)
                 print (user_catalog.table)
                 for ra, dec, name in zip(user_catalog.ra, user_catalog.dec, user_catalog.name):
@@ -208,7 +208,7 @@ class Instrument(object):
         print('---------------------------------------------')
 
 
-def build_catalog(cat_dic):
+def build_catalog(cat_dic,catalog_selected_objects=None):
     from astropy import units as u
     from astropy.coordinates import Angle, Latitude, Longitude
     t = Table(cat_dic['cat_column_list'], names=cat_dic['cat_column_names'])
@@ -220,4 +220,11 @@ def build_catalog(cat_dic):
     frame = cat_dic['cat_frame']
     unit =cat_dic['cat_coord_units']
     print (unit,lon,lat)
-    return BasicCatalog(src_names, lon, lat, significance, _table=t, unit=unit, frame=frame)
+
+    user_catalog =BasicCatalog(src_names, lon, lat, significance, _table=t, unit=unit, frame=frame)
+
+    if catalog_selected_objects is not None:
+
+        user_catalog.select_IDs(catalog_selected_objects)
+
+    return user_catalog
