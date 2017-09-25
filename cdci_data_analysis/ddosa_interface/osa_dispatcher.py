@@ -44,6 +44,7 @@ import sys
 import traceback
 
 
+
 def view_traceback():
     ex_type, ex, tb = sys.exc_info()
     traceback.print_tb(tb)
@@ -74,7 +75,7 @@ class OsaQuery(object):
 
 
             except Exception as e:
-                raise RuntimeWarning("failed to read from docker", e)
+                raise RuntimeError("failed to read from docker", e)
 
         elif config is not None:
             try:
@@ -87,11 +88,11 @@ class OsaQuery(object):
 
                 print ("ERROR->")
                 e.display()
-                raise RuntimeWarning("failed to use config ", e)
+                raise RuntimeError("failed to use config ", e)
 
         else:
 
-            raise RuntimeWarning('either you provide use_dicosverer=True or a config object')
+            raise RuntimeError('either you provide use_dicosverer=True or a config object')
 
         print("url:", self.url)
         print("ddcache_root:",  self.ddcache_root_local)
@@ -107,10 +108,8 @@ class OsaQuery(object):
             print("cached object in", res,res.ddcache_root_local)
         except dc.WorkerException as e:
             print("ERROR->")
-            print('!!! >>>Exception<<<', e)
-            view_traceback()
-
-            raise Exception(e)
+            e.display()
+            raise RuntimeWarning('ddosa connection or processing failed',e)
 
         return res
 
