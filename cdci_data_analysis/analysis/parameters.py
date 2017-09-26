@@ -371,6 +371,8 @@ class Float(Parameter):
             if type(value)==float:
                 pass
             else:
+                print (type(value)==int)
+                print(type(value) == float)
                 raise RuntimeError('type of ',name,'not valid',type(value))
 
 
