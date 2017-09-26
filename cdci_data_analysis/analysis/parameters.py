@@ -362,17 +362,15 @@ class Float(Parameter):
             pass
         else:
             try:
-                value=ast.literal_eval(value)
+              value=ast.literal_eval(value)
             except:
                 pass
-
+            value=np.float(value)
             if type(value)==int:
                 pass
             if type(value)==float:
                 pass
             else:
-                print (type(value)==int)
-                print(type(value) == float)
                 raise RuntimeError('type of ',name,'not valid',type(value))
 
 

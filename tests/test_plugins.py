@@ -46,7 +46,8 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,query_type='Real',
     from cdci_data_analysis.flask_app.app import set_session_logger
     instr= OSA_ISGRI()
     logger=set_session_logger(out_dir)
-    parameters_dic=dict(E1_keV=20.,E2_keV=40.,T1 =T1_iso, T2=T2_iso,RA=RA,DEC=DEC,radius=25,scw_list=None)
+    parameters_dic=dict(E1_keV=20.,E2_keV=40.,T1 =T1_iso, T2=T2_iso,RA=RA,DEC=DEC,radius=25,scw_list=None,
+                        image_scale_min=1)
 
     logger.info('parameters dictionary')
     logger.info(parameters_dic)
