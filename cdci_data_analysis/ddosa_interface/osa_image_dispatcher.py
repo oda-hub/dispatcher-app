@@ -239,7 +239,9 @@ def process_osa_image_products(instrument,prod_list):
     # file_path = Path(scratch_dir, 'query_catalog.fits')
     query_catalog.write(overwrite=True)
 
-    html_fig = query_image.get_html_draw(catalog=query_catalog.catalog)
+    html_fig = query_image.get_html_draw(catalog=query_catalog.catalog,
+                                         vmin=instrument.get_par_by_name('image_scale_min').value,
+                                         vmax=instrument.get_par_by_name('image_scale_max').value)
 
     prod_dictionary = {}
 

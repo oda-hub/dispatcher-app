@@ -497,9 +497,13 @@ class ImageQuery(ProductQuery):
     def __init__(self,name,parameters_list,**kwargs):
         detection_th = DetectionThreshold(value=0.0,units='sigma', name='detection_threshold')
         if parameters_list != [] and parameters_list is not None:
-            parameters_list.extend(detection_th)
+            parameters_list.append(detection_th)
         else:
             parameters_list = [detection_th]
+
+        image_scale_min=Float(value=None,name='image_scale_min')
+        image_scale_max = Float(value=None, name='image_scale_max')
+        parameters_list.extend([image_scale_min, image_scale_max])
         super(ImageQuery, self).__init__(name, parameters_list, **kwargs)
 
 
@@ -508,7 +512,7 @@ class LightCurveQuery(ProductQuery):
 
         time_bin=TimeDelta(value=1000., name='time_bin', delta_T_format_name='time_bin_format')
         if parameters_list != [] and parameters_list is not None:
-            parameters_list.extend(time_bin)
+            parameters_list.append(time_bin)
         else:
             parameters_list = [time_bin]
         super(LightCurveQuery, self).__init__(name, parameters_list, **kwargs)
@@ -519,7 +523,7 @@ class SpectrumQuery(ProductQuery):
 
         xspec_model =Name(name_format='str', name='xspec_model',value='powerlaw')
         if parameters_list != [] and parameters_list is not None:
-            parameters_list.extend(xspec_model)
+            parameters_list.append(xspec_model)
         else:
             parameters_list = [xspec_model]
 

@@ -126,7 +126,7 @@ class ImageProduct(BaseQueryProduct):
         pf.writeto( file_path   , data=self.data, header=self.header,overwrite=overwrite)
 
     def get_html_draw(self, catalog=None,plot=False,vmin=None,vmax=None):
-
+        #print('vmin,vmax',vmin,vmax)
         if vmin is None:
             vmin=self.data.min()
 
@@ -175,7 +175,7 @@ class ImageProduct(BaseQueryProduct):
         res_dict['image'] = mpld3.fig_to_dict(fig)
         res_dict['header_text'] = ''
         res_dict['table_text'] = ''
-        res_dict['footer_text'] = ''
+        res_dict['footer_text'] = 'clorscale for nomalzied significance\nmax significance %4.4fs'%self.data.max()
         plt.close(fig)
         return res_dict
 
