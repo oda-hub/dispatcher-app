@@ -55,7 +55,8 @@ class Instrument(object):
                  src_query,
                  instrumet_query,
                  catalog=None,
-                 product_queries_list=None):
+                 product_queries_list=None,
+                 data_server_query_class=None):
 
         #name
         self.name=instr_name
@@ -74,6 +75,7 @@ class Instrument(object):
         self._queries_list=[self.src_query,self.instrumet_query]
 
 
+        self.data_server_query_class=data_server_query_class
 
         if product_queries_list is not None and product_queries_list !=[]:
             self._queries_list.extend(product_queries_list)
@@ -127,6 +129,11 @@ class Instrument(object):
             raise Warning('parameter', prod_name, 'not found')
 
         return p
+
+    def test_communication(self,config):
+        if self.data_server_query_class is not None:
+            return self.data_server_query_class(config=config).test_connection()
+
 
     def run_query(self,query_name,config=None,out_dir=None,query_type='Real',**kwargs):
         return self.get_query_by_name(query_name).run_query(self,out_dir,query_type=query_type,config=config)

@@ -45,7 +45,7 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,query_type='Real',
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
     from cdci_data_analysis.flask_app.app import set_session_logger
     instr= OSA_ISGRI()
-    set_session_logger(out_dir)
+    logger=set_session_logger(out_dir)
     parameters_dic=dict(E1_keV=20.,E2_keV=40.,T1 =T1_iso, T2=T2_iso,RA=RA,DEC=DEC,radius=25,scw_list=None)
 
     logger.info('parameters dictionary')
@@ -65,10 +65,10 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,query_type='Real',
 
     instr.show_parameters_list()
 
-    prod_dictionary = instr.run_query('isgri_image_query', config=osaconf, out_dir=out_dir, query_type=query_type)
-    instr.get_query_by_name('isgri_image_query').get_prod_by_name('isgri_mosaic').get_html_draw(plot=True)
-    #print ('prod_dictionary',prod_dictionary)
-
+    prod_dictionary = instr.run_query('isgri_image_query', config=osaconf, out_dir=out_dir, query_type=query_type,logger=logger)
+    #instr.get_query_by_name('isgri_image_query').get_prod_by_name('isgri_mosaic').get_html_draw(plot=False)
+    print ('error message',prod_dictionary['error_message'])
+    print ('satus',prod_dictionary['status'])
 
 def test_plot_mosaic():
     from astropy.io import fits as pf
@@ -226,7 +226,7 @@ def test_plot_lc():
 
 def test_full_mosaic():
     #test_mosaic_cookbook(use_catalog=True,use_scw_list=False)
-    test_mosaic_cookbook(use_catalog=False, use_scw_list=True,out_dir='test_scratch',query_type='Dummy')
+    test_mosaic_cookbook(use_catalog=False, use_scw_list=True,out_dir='test_scratch',query_type='Real')
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=False)
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=True)
 

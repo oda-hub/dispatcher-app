@@ -43,7 +43,7 @@ from ..analysis.products import *
 from .osa_image_dispatcher import get_osa_image_products,get_osa_image_dummy_products,process_osa_image_products
 from .osa_spectrum_dispatcher import get_osa_spectrum,get_osa_spectrum_dummy_products,process_osa_spectrum_products
 from .osa_lightcurve_dispatcher import get_osa_lightcurve,get_osa_lightcurve_dummy_products,process_osa_lc_products
-
+from .osa_dispatcher import OsaQuery
 
 
 def OSA_ISGRI():
@@ -89,4 +89,5 @@ def OSA_ISGRI():
     return  Instrument('ISGRI',
                        src_query=src_query,
                        instrumet_query=instr_query,
-                       product_queries_list=[image,spectrum,light_curve])
+                       product_queries_list=[image,spectrum,light_curve],
+                       data_server_query_class=OsaQuery)

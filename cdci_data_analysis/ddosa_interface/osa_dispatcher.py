@@ -42,7 +42,7 @@ import ddosaclient as dc
 from ..analysis.queries import  *
 import sys
 import traceback
-
+import pytest
 
 
 def view_traceback():
@@ -63,14 +63,14 @@ class QueryProduct(object):
 class OsaQuery(object):
 
     def __init__(self,config=None,use_dicosverer=False):
-
+        print('--> building class OsaQyery')
         if use_dicosverer == True:
             try:
                 c = discover_docker.DDOSAWorkerContainer()
 
                 self.url = c.url
                 self.ddcache_root_local = c.ddcache_root
-                print("managed to read from docker:")
+                print("===>managed to read from docker:")
 
 
 
@@ -95,8 +95,22 @@ class OsaQuery(object):
             raise RuntimeError('either you provide use_dicosverer=True or a config object')
 
         print("url:", self.url)
-        print("ddcache_root:",  self.ddcache_root_local)
+        print("ddcache_root:", self.ddcache_root_local)
+        print('--> done')
 
+
+    def test_connection(self):
+        print ('--> start test connection')
+        remote = dc.RemoteDDOSA(self.url,self.ddcache_root_local)
+
+
+        product = remote.query(target="ii_spectra_extract",
+                               modules=["ddosa", "git://ddosadm"],
+                               assume=["ddosa" + '.ScWData(input_scwid="035200230010.001")',
+                                       'ddosa.ImageBins(use_ebins=[(20,40)],use_version="onebin_20_40")',
+                                       'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")'])
+
+        print('--> end test connection')
 
     def run_query(self,query_prod):
 

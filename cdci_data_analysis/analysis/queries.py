@@ -19,7 +19,6 @@ __author__ = "Andrea Tramacere"
 
 import  logging
 
-logger = logging.getLogger(__name__)
 
 import json
 import traceback
@@ -391,7 +390,7 @@ class ProductQuery(BaseQuery):
             product_dictionary= self._process_product_method(instrument,query_prod_list,**kwargs)
         return product_dictionary
 
-    def finalize_query(self,product_dictionary,data_server_query_status,prod_process_status):
+    def finalize_query(self,product_dictionary,data_server_query_status,prod_process_status,data_server_communication_status):
 
         error_message=''
         status=0
@@ -401,6 +400,9 @@ class ProductQuery(BaseQuery):
         if prod_process_status!=0:
             error_message+='error: prod_process_query failed,'
             status+=1
+        if data_server_communication_status!=0:
+            error_message += 'error: data server communication failed,'
+            status += 1
 
         product_dictionary['error_message']=error_message
         product_dictionary['status']=status
@@ -411,10 +413,38 @@ class ProductQuery(BaseQuery):
     def get_prod_by_name(self,name):
         return self.query_prod_list.get_prod_by_name(name)
 
-    def run_query(self,instrument,scratch_dir,query_type='Real', config=None,**kwargs):
+    def run_query(self,instrument,scratch_dir,query_type='Real', config=None,logger=None):
+        if logger is None:
+            logger = logging.getLogger(__name__)
+
+        data_server_communication_status=0
+        msg_str='--> start communication test'
+        print(msg_str)
+        logger.info(msg_str)
+        try:
+
+            if query_type != 'Dummy':
+                instrument.test_communication( config)
+        except Exception as e:
+            print("server_communication failed, Error:", e)
+            print('!!! >>>Exception<<<', e)
+            data_server_communication_status = 1
+            view_traceback()
+            logger.exception(e)
+            # logger.exception(view_traceback())
+            # raise Exception(e)
+
+        msg_str='==>data server communication %d\n'%data_server_communication_status
+        msg_str+='--> end communication test'
+
+        logger.info(msg_str)
+
+
 
         data_server_query_status=0
-        #query_prod_list=None
+        msg_str = '--> start prodcut query'
+        print(msg_str)
+        logger.info(msg_str)
         try:
             if query_type != 'Dummy':
                 self.query_prod_list = self.get_products(instrument,
@@ -432,10 +462,17 @@ class ProductQuery(BaseQuery):
             logger.exception(e)
             #logger.exception(view_traceback())
             #raise Exception(e)
-        print ('data server query status',data_server_query_status)
-        prod_process_status=0
+        msg_str = '==>data_server_query_status %d\n' % data_server_query_status
+        msg_str += '--> end product test'
 
+        logger.info(msg_str)
+
+        prod_process_status=0
         product_dictionary={}
+        msg_str = '--> start prodcut process'
+        print(msg_str)
+        logger.info(msg_str)
+
         try:
             product_dictionary=self.process_product(instrument, self.query_prod_list)
 
@@ -448,9 +485,11 @@ class ProductQuery(BaseQuery):
             logger.exception(e)
             #logger.exception(view_traceback())
             #raise Exception(e)
-        print('prod_process_status', prod_process_status)
+        msg_str = '==>prod_process_status %d\n' % prod_process_status
+        msg_str += '--> end product process'
+        logger.info(msg_str)
 
-        return self.finalize_query(product_dictionary,data_server_query_status,prod_process_status)
+        return self.finalize_query(product_dictionary,data_server_query_status,prod_process_status,data_server_communication_status)
 
 
 
