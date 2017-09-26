@@ -347,8 +347,8 @@ class Float(Parameter):
 
     @value.setter
     def value(self, v):
-        if v is not None:
-            self.check_float_value(v)
+        if v is not None and v!='':
+            self.check_float_value(v,name=self.name)
             self._v = np.float(v)
 
         else:
@@ -358,7 +358,7 @@ class Float(Parameter):
     @staticmethod
     def check_float_value(value, units=None,name=None):
         print('check type of ',name,'value', value, 'type',type(value))
-        if value is None:
+        if value is None or value=='':
             pass
         else:
             try:
