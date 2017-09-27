@@ -56,7 +56,7 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,query_type='Real',
     instr.set_pars_from_dic(parameters_dic)
 
     if use_scw_list==True:
-        instr.set_par('scw_list',cookbook_scw_list)
+        instr.set_par('scw_list',['117900330010.00'])
     else:
         instr.set_par('scw_list', [])
         #instr.set_par('time_group_selector','time_range_iso')

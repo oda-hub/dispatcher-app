@@ -149,15 +149,16 @@ class ImageProduct(BaseQueryProduct):
             lat = catalog.dec
 
             w = wcs.WCS(self.header)
-            pixcrd = w.wcs_world2pix(np.column_stack((lon, lat)), 1)
-            
-            msk=~np.isnan(pixcrd[:, 0])
-            ax.plot(pixcrd[:, 0][msk], pixcrd[:, 1][msk], 'o', mfc='none')
+            if len(lat)>0.:
+                pixcrd = w.wcs_world2pix(np.column_stack((lon, lat)), 1)
 
-            for ID, (x, y) in enumerate(pixcrd):
-                if msk[ID]:
-                    #print ('xy',(pixcrd[:, 0][ID], pixcrd[:, 1][ID]))
-                    ax.annotate('%s' % catalog.name[ID], xy=(x,y), color='white')
+                msk=~np.isnan(pixcrd[:, 0])
+                ax.plot(pixcrd[:, 0][msk], pixcrd[:, 1][msk], 'o', mfc='none')
+
+                for ID, (x, y) in enumerate(pixcrd):
+                    if msk[ID]:
+                        #print ('xy',(pixcrd[:, 0][ID], pixcrd[:, 1][ID]))
+                        ax.annotate('%s' % catalog.name[ID], xy=(x,y), color='white')
                             
 
             ax.set_xlabel('RA')
@@ -175,7 +176,7 @@ class ImageProduct(BaseQueryProduct):
         res_dict['image'] = mpld3.fig_to_dict(fig)
         res_dict['header_text'] = ''
         res_dict['table_text'] = ''
-        res_dict['footer_text'] = 'clorscale for nomalzied significance\nmax significance %4.4fs'%self.data.max()
+        res_dict['footer_text'] = 'clorscale for nomalzied significance\nmax significance %4.4fs'%vmax
         plt.close(fig)
         return res_dict
 
