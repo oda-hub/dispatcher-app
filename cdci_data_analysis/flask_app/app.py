@@ -46,8 +46,6 @@ def set_session_logger(scratch_dir):
     logger.setLevel(logging.INFO)
     print ('logfile set to dir=',scratch_dir,' with name=session.log')
 
-    logger.info('============================================================================')
-    logger.info('logger for session')
 
     return logger
 
@@ -170,6 +168,7 @@ def run_analysis_test():
 
     scratch_dir,logger=set_session(request.args.get('session_id'))
 
+    logger.info('')
     logger.info('============================================================')
     logger.info('=>session_id<=%s' % request.args.get('session_id'))
 
@@ -216,7 +215,7 @@ def run_analysis_test():
         logger.info('instrument %s\n'%instrument_name)
         logger.info('parameters dictionary \n')
         for key in par_dic.keys():
-            log_str='parameters dictionary, key='+key+' value='+str(par_dic[key])+'\n'
+            log_str='parameters dictionary, key='+key+' value='+str(par_dic[key])
             logger.info(log_str)
 
         print('product_type',product_type,query_dictionary[product_type])
@@ -227,6 +226,7 @@ def run_analysis_test():
                                                logger=logger)
 
     logger.info('============================================================')
+    logger.info('')
 
     return jsonify(prod_dictionary)
 
