@@ -176,7 +176,8 @@ class ImageProduct(BaseQueryProduct):
         res_dict['image'] = mpld3.fig_to_dict(fig)
         res_dict['header_text'] = ''
         res_dict['table_text'] = ''
-        res_dict['footer_text'] = 'clorscale for nomalzied significance\nmax significance %4.4fs'%vmax
+        res_dict['footer_text'] = 'colorscale for normalzied significance\nmax significance=%.2f, min significance=%.2f'%(vmax,vmin)
+
         plt.close(fig)
         return res_dict
 
