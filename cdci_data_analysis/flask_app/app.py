@@ -210,10 +210,10 @@ def run_analysis_test():
 
         product_type=request.args.get('product_type')
 
-        logger.info('product_type %s \n'%product_type)
-        logger.info('query_type %s \n' % query_type)
-        logger.info('instrument %s\n'%instrument_name)
-        logger.info('parameters dictionary \n')
+        logger.info('product_type %s'%product_type)
+        logger.info('query_type %s ' % query_type)
+        logger.info('instrument %s'%instrument_name)
+        logger.info('parameters dictionary')
         for key in par_dic.keys():
             log_str='parameters dictionary, key='+key+' value='+str(par_dic[key])
             logger.info(log_str)
