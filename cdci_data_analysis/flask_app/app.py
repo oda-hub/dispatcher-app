@@ -223,7 +223,8 @@ def run_analysis_test():
         prod_dictionary = instrument.run_query(query_dictionary[product_type],
                                                out_dir=scratch_dir,
                                                config=app.config.get('osaconf'),
-                                               query_type=query_type)
+                                               query_type=query_type,
+                                               logger=logger)
 
     logger.info('============================================================')
 
