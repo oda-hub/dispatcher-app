@@ -44,13 +44,15 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,query_type='Real',
 
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
     from cdci_data_analysis.flask_app.app import set_session_logger
-    instr= OSA_ISGRI()
+
+    print ('Logger')
     logger=set_session_logger(out_dir)
     parameters_dic=dict(E1_keV=20.,E2_keV=40.,T1 =T1_iso, T2=T2_iso,RA=RA,DEC=DEC,radius=25,scw_list=None,
                         image_scale_min=1)
-
+    instr = OSA_ISGRI()
     logger.info('parameters dictionary')
     logger.info(parameters_dic)
+    logger.info(instr.show_parameters_list())
     instr.set_pars_from_dic(parameters_dic)
 
     if use_scw_list==True:

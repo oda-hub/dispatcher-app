@@ -422,6 +422,9 @@ class SpectrumProduct(BaseQueryProduct):
 
     def get_html_draw(self, catalog=None, plot=False,xspec_model='powerlaw'):
         import xspec as xsp
+        xsp.AllModels.clear()
+        xsp.AllData.clear()
+        xsp.AllChains.clear()
         # PyXspec operations:
         file_path=self.file_path.get_file_path()
         print('fitting->,',file_path)

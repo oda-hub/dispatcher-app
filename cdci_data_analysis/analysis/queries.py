@@ -403,7 +403,9 @@ class ProductQuery(BaseQuery):
         if data_server_communication_status!=0:
             error_message += 'error: data server communication failed,'
             status += 1
-
+        if data_server_communication_status!=0:
+            error_message += 'error: data server was busy,'
+            status += 1
         product_dictionary['error_message']=error_message
         product_dictionary['status']=status
 
@@ -414,17 +416,19 @@ class ProductQuery(BaseQuery):
         return self.query_prod_list.get_prod_by_name(name)
 
     def run_query(self,instrument,scratch_dir,query_type='Real', config=None,logger=None):
+        print ('logger')
         if logger is None:
             logger = logging.getLogger(__name__)
 
         data_server_communication_status=0
-        msg_str='--> start communication test'
+        msg_str='--> start dataserver communication test'
         print(msg_str)
         logger.info(msg_str)
+        status=''
         try:
 
             if query_type != 'Dummy':
-                instrument.test_communication( config)
+                status=instrument.test_communication( config)
         except Exception as e:
             print("server_communication failed, Error:", e)
             print('!!! >>>Exception<<<', e)
@@ -435,11 +439,32 @@ class ProductQuery(BaseQuery):
             # raise Exception(e)
 
         msg_str='==>data server communication %d\n'%data_server_communication_status
-        msg_str+='--> end communication test'
-
+        msg_str+='--> end dataserver communication test'
         logger.info(msg_str)
 
 
+        msg_str = '--> start data server isbusy query'
+        print(msg_str)
+        logger.info(msg_str)
+        data_server_busy_status=0
+        if status=='busy':
+
+            try:
+                status=instrument.test_busy(config)
+            except Exception as e:
+                data_server_busy_status = 1
+                print("data server  bust, Error:", e)
+                print('!!! >>>Exception<<<', e)
+                data_server_busy_status = 1
+                view_traceback()
+                logger.exception(e)
+            msg_str = '==>data_server_busy_status %d\n' % data_server_busy_status
+            msg_str += '--> end product test'
+
+            logger.info(msg_str)
+
+        if status!='busy' and data_server_communication_status>0:
+            data_server_communication_status=0
 
         data_server_query_status=0
         msg_str = '--> start prodcut query'

@@ -143,7 +143,7 @@ class BasicCatalog(object):
         self._table.add_column(Column(data=data,name=name,dtype=dtype))
 
     def get_dictionary(self ):
-        print('in table',self.table)
+        #print('in table',self.table)
         #for col in self._table.columns.values():
         #    try:
         #        col.mask = np.isnan(col)
@@ -154,7 +154,7 @@ class BasicCatalog(object):
         column_lists=[self.table[name].tolist() for name in self.table.colnames]
         for ID,_col in enumerate(column_lists):
             column_lists[ID] = [x if str(x)!='nan' else None for x in _col]
-        print ('new table',column_lists)
+        #print ('new table',column_lists)
 
         return dict(cat_frame=self.table.meta['FRAME'],
                     cat_coord_units=self.table.meta['COORD_UNIT'],

@@ -134,6 +134,9 @@ class Instrument(object):
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config).test_connection()
 
+    def test_busy(self, config):
+        if self.data_server_query_class is not None:
+            return self.data_server_query_class(config=config).test_busy()
 
     def run_query(self,query_name,config=None,out_dir=None,query_type='Real',**kwargs):
         return self.get_query_by_name(query_name).run_query(self,out_dir,query_type=query_type,config=config)
@@ -230,7 +233,7 @@ def build_catalog(cat_dic,catalog_selected_objects=None):
 
     frame = cat_dic['cat_frame']
     unit =cat_dic['cat_coord_units']
-    print (unit,lon,lat)
+    #print (unit,lon,lat)
 
     user_catalog =BasicCatalog(src_names, lon, lat, significance, _table=t, unit=unit, frame=frame)
 
