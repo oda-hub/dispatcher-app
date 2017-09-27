@@ -56,7 +56,7 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,query_type='Real',
     instr.set_pars_from_dic(parameters_dic)
 
     if use_scw_list==True:
-        instr.set_par('scw_list',['117900330010.00'])
+        instr.set_par('scw_list',cookbook_scw_list)
     else:
         instr.set_par('scw_list', [])
         #instr.set_par('time_group_selector','time_range_iso')
@@ -174,7 +174,7 @@ def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,query_type='Rea
     instr = OSA_ISGRI()
     src_name = '4U==1700-377'
     parameters = dict(E1_keV=20., E2_keV=40., T1=T1_iso, T2=T2_iso, RA=RA, DEC=DEC, radius=25,
-                      scw_list=cookbook_scw_list, src_name=src_name,time_bin=0.1,time_bin_format='jd')
+                      scw_list=cookbook_scw_list, src_name=src_name,time_bin=100,time_bin_format='sec')
 
     logger.info('parameters dictionary')
     logger.info(parameters)
@@ -238,7 +238,7 @@ def test_full_spectrum():
     #test_spectrum_cookbook(use_catalog=True, use_scw_list=False)
     #test_spectrum_cookbook(use_catalog=True, use_scw_list=True)
     #test_spectrum_cookbook(use_catalog=False, use_scw_list=False)
-    test_spectrum_cookbook(use_catalog=False, use_scw_list=True,query_type='Dummy',out_dir='test_scratch')
+    test_spectrum_cookbook(use_catalog=False, use_scw_list=True,query_type='Real',out_dir='test_scratch')
 
 def test_full_lc():
     #test_lightcurve_cookbook(use_catalog=True, use_scw_list=False)

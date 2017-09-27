@@ -390,7 +390,7 @@ class ProductQuery(BaseQuery):
             product_dictionary= self._process_product_method(instrument,query_prod_list,**kwargs)
         return product_dictionary
 
-    def finalize_query(self,product_dictionary,data_server_query_status,prod_process_status,data_server_communication_status):
+    def finalize_query(self,product_dictionary,data_server_query_status,prod_process_status,data_server_communication_status,data_server_busy_status):
 
         error_message=''
         status=0
@@ -403,7 +403,7 @@ class ProductQuery(BaseQuery):
         if data_server_communication_status!=0:
             error_message += 'error: data server communication failed,'
             status += 1
-        if data_server_communication_status!=0:
+        if data_server_busy_status!=0:
             error_message += 'error: data server was busy,'
             status += 1
         product_dictionary['error_message']=error_message
@@ -420,6 +420,7 @@ class ProductQuery(BaseQuery):
         if logger is None:
             logger = logging.getLogger(__name__)
 
+        #communication
         data_server_communication_status=0
         msg_str='--> start dataserver communication test'
         print(msg_str)
@@ -438,12 +439,12 @@ class ProductQuery(BaseQuery):
             # logger.exception(view_traceback())
             # raise Exception(e)
 
-        msg_str='==>data server communication %d\n'%data_server_communication_status
+        msg_str='--> data server communication status %d\n'%data_server_communication_status
         msg_str+='--> end dataserver communication test'
         logger.info(msg_str)
 
-
-        msg_str = '--> start data server isbusy query'
+        #busy
+        msg_str = '--> start data server is busy query'
         print(msg_str)
         logger.info(msg_str)
         data_server_busy_status=0
@@ -451,21 +452,22 @@ class ProductQuery(BaseQuery):
 
             try:
                 status=instrument.test_busy(config)
+                data_server_busy_status = 0
             except Exception as e:
-                data_server_busy_status = 1
                 print("data server  bust, Error:", e)
                 print('!!! >>>Exception<<<', e)
                 data_server_busy_status = 1
                 view_traceback()
                 logger.exception(e)
-            msg_str = '==>data_server_busy_status %d\n' % data_server_busy_status
-            msg_str += '--> end product test'
+            msg_str = '-->data_server_busy_status %d\n' % data_server_busy_status
+            msg_str += '--> end data server is busy query test'
 
             logger.info(msg_str)
 
-        if status!='busy' and data_server_communication_status>0:
+        if data_server_busy_status==0 and data_server_communication_status>0:
             data_server_communication_status=0
 
+        #query
         data_server_query_status=0
         msg_str = '--> start prodcut query'
         print(msg_str)
@@ -487,8 +489,8 @@ class ProductQuery(BaseQuery):
             logger.exception(e)
             #logger.exception(view_traceback())
             #raise Exception(e)
-        msg_str = '==>data_server_query_status %d\n' % data_server_query_status
-        msg_str += '--> end product test'
+        msg_str = '--> data_server_query_status %d\n' % data_server_query_status
+        msg_str += '--> end product query '
 
         logger.info(msg_str)
 
@@ -513,8 +515,14 @@ class ProductQuery(BaseQuery):
         msg_str = '==>prod_process_status %d\n' % prod_process_status
         msg_str += '--> end product process'
         logger.info(msg_str)
-
-        return self.finalize_query(product_dictionary,data_server_query_status,prod_process_status,data_server_communication_status)
+        msg_str='status %s\n'%status
+        msg_str+='data_server_query_status %d\n'%data_server_query_status
+        msg_str +='prod_process_status %d\n'%prod_process_status
+        msg_str +='data_server_communication_status %d\n'%data_server_communication_status
+        msg_str +='data_server_busy_status %d\n'%data_server_busy_status
+        print (msg_str)
+        logger.info(msg_str)
+        return self.finalize_query(product_dictionary,data_server_query_status,prod_process_status,data_server_communication_status,data_server_busy_status)
 
 
 
