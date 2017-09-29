@@ -37,29 +37,64 @@ import json
 
 # Project
 # relative import eg: from .mod import f
-
 import ddosaclient as dc
+import  simple_logger
+from ..analysis.queries import  *
+import sys
+import traceback
+import time
+
+import os
+from contextlib import contextmanager
+
+# @contextmanager
+# def silence_stdout():
+#     new_target = open(os.devnull, "w")
+#     old_target, sys.stdout = sys.stdout, new_target
+#     try:
+#         yield new_target
+#     finally:
+#         sys.stdout = old_target
+#
+#
+#
+# def redirect_out(path):
+#     #print "Redirecting stdout"
+#     sys.stdout.flush() # <--- important when redirecting to files
+#     newstdout = os.dup(1)
+#     devnull = os.open('%s/SED.log'%path, os.O_CREAT)
+#     os.dup2(devnull, 1)
+#     os.close(devnull)
+#     sys.stdout = os.fdopen(newstdout, 'w')
+
+def view_traceback():
+    ex_type, ex, tb = sys.exc_info()
+    traceback.print_tb(tb)
+    del tb
 
 
 class QueryProduct(object):
 
-    def __init__(self,target=None,modules=[],assume=[]):
+    def __init__(self,target=None,modules=[],assume=[],inject=[]):
         self.target=target
         self.modules=modules
         self.assume=assume
+        self.inject=inject
 
 
 class OsaQuery(object):
 
     def __init__(self,config=None,use_dicosverer=False):
-
+        print('--> building class OsaQyery')
+        simple_logger.log()
+        simple_logger.logger.setLevel(logging.ERROR)
         if use_dicosverer == True:
             try:
                 c = discover_docker.DDOSAWorkerContainer()
 
                 self.url = c.url
                 self.ddcache_root_local = c.ddcache_root
-                print("managed to read from docker:")
+                print("===>managed to read from docker:")
 
 
 
@@ -84,51 +119,87 @@ class OsaQuery(object):
             raise RuntimeError('either you provide use_dicosverer=True or a config object')
 
         print("url:", self.url)
-        print("ddcache_root:",  self.ddcache_root_local)
+        print("ddcache_root:", self.ddcache_root_local)
+        print('--> done')
 
+
+    def test_connection(self):
+        print ('--> start test connection')
+        #with silence_stdout():
+
+        remote = dc.RemoteDDOSA(self.url,self.ddcache_root_local)
+
+        status=''
+        try:
+            #with silence_stdout()\
+            simple_logger.log()
+            simple_logger.logger.setLevel(logging.ERROR)
+            product = remote.query(target="ii_spectra_extract",
+                                   modules=["ddosa", "git://ddosadm"],
+                                   assume=["ddosa" + '.ScWData(input_scwid="035200230010.001")',
+                                           'ddosa.ImageBins(use_ebins=[(20,40)],use_version="onebin_20_40")',
+                                           'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")'])
+
+        except dc.WorkerException as e:
+            content = json.loads(e.content)
+
+            status = content['result']['status']
+            print('e=> server connection status', status)
+
+        #status = product['result']['status']
+        #print('product=>', product)
+        print('--> end test connection')
+
+        return status
+
+    def test_busy(self,max_trial=25,sleep_s=1):
+        print ('--> start test busy')
+        simple_logger.log()
+        simple_logger.logger.setLevel(logging.ERROR)
+        remote = dc.RemoteDDOSA(self.url,self.ddcache_root_local)
+        status=''
+        time.sleep(sleep_s)
+        for i in range(max_trial):
+            time.sleep(sleep_s)
+            try:
+                #with silence_stdout():
+                r = remote.poke()
+                print('remote poke ok')
+                status=''
+                break
+            except dc.WorkerException as e:
+
+                content=json.loads(e.content)
+
+                status= content['result']['status']
+                print('e=>', i, status)
+
+        if status=='busy':
+            print ('server is busy')
+            raise Exception
+
+        print('--> end test busy')
 
     def run_query(self,query_prod):
 
         try:
+            #redirect_out('./')
+            #with silence_stdout():
+            simple_logger.logger.setLevel(logging.ERROR)
             res= dc.RemoteDDOSA(self.url, self.ddcache_root_local).query(target=query_prod.target,
-                                           modules=query_prod.modules,
-                                           assume=query_prod.assume)
+                                                   modules=query_prod.modules,
+                                                   assume=query_prod.assume,
+                                                   inject=query_prod.inject)
             print("cached object in", res,res.ddcache_root_local)
         except dc.WorkerException as e:
             print("ERROR->")
             e.display()
-            raise RuntimeError('ddosa connection or processing failed',e)
-
+            raise RuntimeWarning('ddosa connection or processing failed',e)
 
         return res
 
-    def get_data(self,res,prod_name,json_file=None):
-        data = ast.literal_eval(str(res['data']))
-
-        if json_file is not None:
-            with open(json_file, 'wb') as outfile:
-                json.dump(data, outfile, sort_keys=True, indent=4, separators=(',', ': '))
-
-            print("jsonifiable data dumped to ",json_file)
 
 
 
-        e = None
-        prod_path = None
-        #print ('product keys',data.keys())
-        try:
-            v = data[prod_name]
-
-        except Exception as e:
-            print("Error ", e)
-            prod_path = None
-
-        if e is None:
-            prod_path = (res['cached_path'][0].replace("data/ddcache", self.ddcache_root_local) + "/" + v[1]).replace(
-                "//",
-                "/") + ".gz"
-
-
-        return data,prod_path,e
 
 

@@ -32,14 +32,37 @@ from mpld3 import plugins
 import  numpy as np
 from astropy.io import  fits as pf
 
-def draw_fig(image_array,dummy=False):
+def draw_fig(image_array,image_header,catalog=None,plot=False):
+    from astropy import wcs
+    from astropy.wcs import WCS
+
+    from astropy import units as u
+    import astropy.coordinates as coord
 
 
-    fig, ax = plt.subplots(figsize=(4, 3))
+    fig, (ax) = plt.subplots(1, 1, figsize=(4, 3), subplot_kw={'projection': WCS(image_header)})
+    im = ax.imshow(image_array, origin='lower', zorder=1, interpolation='none', aspect='equal')
 
-    im = ax.imshow(image_array,origin='lower', zorder=1, interpolation='none',aspect='equal')
+    if catalog is not None:
+
+
+        lon = coord.Angle(catalog['RA_FIN'] * u.deg)
+        lat = coord.Angle(catalog['DEC_FIN'] * u.deg)
+
+        w = wcs.WCS(image_header)
+        pixcrd = w.wcs_world2pix(np.column_stack((lon, lat)), 1)
+
+        ax.plot(pixcrd[:, 0], pixcrd[:, 1], 'o', mfc='none')
+        for ID in xrange(catalog.size):
+            ax.annotate('%s' % catalog[ID]['NAME'], xy=(pixcrd[:, 0][ID], pixcrd[:, 1][ID]),color='white')
+
+        ax.set_xlabel('RA')
+        ax.set_ylabel('DEC')
+
+
     fig.colorbar(im, ax=ax)
-
+    if plot==True:
+        plt.show()
 
     plugins.connect(fig, plugins.MousePosition(fontsize=14))
 
@@ -75,6 +98,9 @@ def draw_spectrum(spectrum,dummy=False):
     plugins.connect(fig, plugins.MousePosition(fontsize=14))
 
     return mpld3.fig_to_dict(fig)
+
+
+
 
 
 def draw_dummy(dummy=True):

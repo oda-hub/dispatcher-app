@@ -3,6 +3,8 @@
 mkdir isdc
 sshfs nx:/ ./isdc
 
+
+
 #tunnel to intgccn01 machine
 ssh -t -L 32778:localhost:32778 nx ssh -t -L 32778:localhost:32778 tramacer@intggcn01.isdc.unige.ch
 
@@ -15,6 +17,10 @@ cp .secret-ddosa-client ~
 cdciweb01
 testing machine: http://cdciweb01.isdc.unige.ch
 
-To run tests example in run_test directory:
+To test URL on a local server:
+http://127.0.0.1:5000/ + url string eg:
+http://127.0.0.1:5000/test?object_name=&RA=257.815417&DEC=-41.593417&T1_iso=2003-03-15T23%3A27%3A40.0&T2_iso=2003-03-16T00%3A03%3A15.0&time_group_selector=time_range_iso&radius=25&scw_list=005100410010.001%2C005100420010.001%2C005100430010.001%2C005100440010.001%2C005100450010.001&E1_keV=20.0&E2_keV=40.0&image_type=Real&product_type=isgri_image&instrument=ISGRI
 
+
+To run tests example in run_test directory:
 pytest ../tests/test_plugins.py::test_image -s -v

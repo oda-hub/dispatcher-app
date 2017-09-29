@@ -24,14 +24,17 @@ from cdci_data_analysis.configurer import ConfigEnv
 def main(argv=None):
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-conf_file', type=str, default=None)
+	parser.add_argument('-threaded', action='store_true')
+	parser.add_argument('-debug', action='store_true')
 
 	args = parser.parse_args()
 
 	conf_file = args.conf_file
 
 	conf = ConfigEnv.from_conf_file(conf_file)
-
-	run_app(conf)
+	threaded=args.threaded
+	debug=args.debug
+	run_app(conf,debug=debug,threaded=threaded)
 
 
 if __name__ == "__main__":

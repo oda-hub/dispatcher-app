@@ -1,62 +1,77 @@
-  
+from __future__ import print_function
+import  logging
+
+logger = logging.getLogger(__name__)
+
 from cdci_data_analysis.configurer import ConfigEnv
 osaconf = ConfigEnv.from_conf_file('./conf_env.yml')
 
+import time
+
+from cdci_data_analysis.ddosa_interface.osa_catalog import OsaCatalog
 
 crab_scw_list=["035200230010.001","035200240010.001"]
-cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001']
+cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001'][:2]
 single_scw_list=['005100410010.001']
 
-T_start='2003-03-15T23:27:40.0'
-T_stop='2003-03-16T00:03:15.0'
+T1_iso='2003-03-15T23:27:40.0'
+T2_iso='2003-03-16T00:03:15.0'
 
 RA=257.815417
 DEC=-41.593417
 
 
-def test_too_strickt_type_verifications():
-    from cdci_data_analysis.ddosa_interface.osa_image_dispatcher import OSA_ISGRI_IMAGE
+def test_instr(use_scw_list=True):
 
-    parameters=dict(E1=20,E2=40,T1="2008-11-11T11:11:11.0",T2="2008-11-11T11:11:11.0")
-    
-    prod= OSA_ISGRI_IMAGE()
-    for p,v in parameters.items():
-        print('set from form',p,v)
-        prod.set_par_value(p, v)
-        print('--')
-    prod.set_par_value('time_group_selector','scw_list')
-    prod.show_parameters_list()
+    from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
+
+    instr= OSA_ISGRI()
+
+    parameters_dic=dict(E1_keV=20.,E2_keV=40.,T1=T1_iso, T2=T2_iso,RA=RA,DEC=DEC,radius=25,scw_list=None,T_format='isot')
 
 
+    instr.set_pars_from_dic(parameters_dic)
 
-def test_mosaic_cookbook(use_scw_list=True):
-    from cdci_data_analysis.ddosa_interface.osa_image_dispatcher import OSA_ISGRI_IMAGE
-
-    prod= OSA_ISGRI_IMAGE()
-
-    parameters=dict(E1=20.,E2=40.,T1=T_start, T2=T_stop,RA=RA,DEC=DEC,radius=25,scw_list=cookbook_scw_list)
-
-    for p,v in parameters.items():
-        print('set from form',p,v)
-        prod.set_par_value(p, v)
-        print('--')
     if use_scw_list==True:
-        prod.set_par_value('time_group_selector','scw_list')
+        instr.set_par('scw_list',cookbook_scw_list)
     else:
-        prod.set_par_value('time_group_selector', 'time_range_iso')
-    prod.show_parameters_list()
-
-    image,catalog, exception=prod.get_product(config=osaconf)
-
-    print('out_prod', image,exception)
-
-    print dir(image)
-    from astropy.io import fits as pf
-    pf.writeto('mosaic.fits',image,overwrite=True)
-    pf.writeto('mosaic_catalog.fits', catalog, overwrite=True)
-    assert sum(image.flatten()>0)>100 # some non-zero pixels
+        instr.set_par('scw_list', [])
+        instr.set_par('time_group_selector','time_range_iso')
 
 
+
+def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,query_type='Real',out_dir='./'):
+
+    from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
+    from cdci_data_analysis.flask_app.app import set_session_logger
+
+    print ('Logger')
+    logger=set_session_logger(out_dir)
+    parameters_dic=dict(E1_keV=20.,E2_keV=40.,T1 =T1_iso, T2=T2_iso,RA=RA,DEC=DEC,radius=25,scw_list=None,
+                        image_scale_min=1)
+    instr = OSA_ISGRI()
+    logger.info('parameters dictionary')
+    logger.info(parameters_dic)
+    logger.info(instr.show_parameters_list())
+    instr.set_pars_from_dic(parameters_dic)
+
+    if use_scw_list==True:
+        instr.set_par('scw_list',cookbook_scw_list)
+    else:
+        instr.set_par('scw_list', [])
+        #instr.set_par('time_group_selector','time_range_iso')
+
+    if use_catalog==True:
+        osa_catalog = OsaCatalog.build_from_dict_list([dict(ra=RA, dec=DEC, name="TEST_SOURCE")])
+
+        instr.set_par('user_catalog',osa_catalog)
+
+    instr.show_parameters_list()
+
+    prod_dictionary = instr.run_query('isgri_image_query', config=osaconf, out_dir=out_dir, query_type=query_type,logger=logger)
+    instr.get_query_by_name('isgri_image_query').get_prod_by_name('isgri_mosaic').get_html_draw(plot=True)
+    print ('error message',prod_dictionary['error_message'])
+    print ('satus',prod_dictionary['status'])
 
 def test_plot_mosaic():
     from astropy.io import fits as pf
@@ -66,41 +81,52 @@ def test_plot_mosaic():
     plt.show()
 
 
-def test_spectrum_cookbook(use_scw_list=True):
-    from cdci_data_analysis.ddosa_interface.osa_spectrum_dispatcher import OSA_ISGRI_SPECTRUM
 
-    prod= OSA_ISGRI_SPECTRUM()
 
-    parameters = dict(E1=20., E2=40., T1=T_start, T2=T_stop, RA=RA, DEC=DEC, radius=25,
-                      scw_list=cookbook_scw_list,src_name='4U 1700-377')
+def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,query_type='Real',out_dir=None):
+    from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
+    from cdci_data_analysis.flask_app.app import set_session_logger
 
-    for p,v in parameters.items():
-        print('set from form',p,v)
-        prod.set_par_value(p, v)
-        print('--')
+    instr = OSA_ISGRI()
+    set_session_logger(out_dir)
+    parameters = dict(E1_keV=20., E2_keV=40., T1 =T1_iso, T2 =T2_iso, RA=RA, DEC=DEC, radius=25,
+                      scw_list=cookbook_scw_list,src_name='4U 1700-377',xspec_model='powerlaw')
 
-    if use_scw_list==True:
-        prod.set_par_value('time_group_selector','scw_list')
+    logger.info('parameters dictionary')
+    logger.info(parameters)
+
+    instr.set_pars_from_dic(parameters)
+
+
+    if use_scw_list == True:
+        instr.set_par('scw_list', cookbook_scw_list)
     else:
-        prod.set_par_value('time_group_selector', 'time_range_iso')
+        instr.set_par('scw_list', [])
+        #instr.set_par('time_group_selector', 'time_range_iso')
 
-    prod.show_parameters_list()
+    if use_catalog==True:
+        dra=float(time.strftime("0.%j")) # it's vital to make sure that the test changes with the phase of the moon
+        ddec = float(time.strftime("0.%H%M%S"))
 
-    spectrum, rmf, arf, exception=prod.get_product(config=osaconf)
-    #print ('spectrum',spectrum)
-    #print out_prod,exception
-    from astropy.io import fits as pf
-    ##pf.writeto('spectrum.fits', out_prod, overwrite=True)
-    #import os
-    #path=os.path.dirname(out_prod)
-    if spectrum is None:
-        raise RuntimeError('no light curve produced')
-    spectrum[1].header['RESPFILE']='rmf.fits'
-    spectrum[1].header['ANCRFILE']='arf.fits'
-    spectrum.writeto('spectrum.fits',overwrite=True)
-    rmf.writeto('rmf.fits',overwrite=True)
-    arf.writeto('arf.fits',overwrite=True)
-    print ('dir prod',dir(spectrum))
+        dsrc_name="RD_%.6lg_%.6lg"%(RA+dra,DEC+ddec) # non-astronomical, fix
+        osa_catalog = OsaCatalog.build_from_dict_list([
+            dict(ra=RA, dec=DEC, name=parameters['src_name']),
+            dict(ra=RA+dra, dec=DEC+ddec, name=dsrc_name)
+        ])
+        instr.set_par('user_catalog', osa_catalog)
+
+    instr.show_parameters_list()
+
+    prod_dictionary = instr.run_query('isgri_spectrum_query',config=osaconf,out_dir=out_dir,query_type=query_type)
+
+    #print ('prod_dictionary',prod_dictionary)
+
+
+    if use_catalog==True:
+        print("input catalog:",osa_catalog.name)
+        #assert _names.header['NAME']==parameters['src_name']
+        #TODO: we could also extract other sources really, and assert if the result is consistent with input.
+        #TODO: (for better test coverage)
 
 
 
@@ -140,31 +166,47 @@ def test_fit_spectrum_cookbook():
     ax.set_ylabel('normalize counts  s$^{-1}$ keV$^{-1}$')
     plt.show()
 
-def test_lightcurve_cookbook(use_scw_list=True):
-    from cdci_data_analysis.ddosa_interface.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
+def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,query_type='Real',out_dir=None):
+    from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
+    from cdci_data_analysis.flask_app.app import set_session_logger
+    set_session_logger(out_dir)
 
-    prod= OSA_ISGRI_LIGHTCURVE()
+    instr = OSA_ISGRI()
+    src_name = '4U==1700-377'
+    parameters = dict(E1_keV=20., E2_keV=40., T1=T1_iso, T2=T2_iso, RA=RA, DEC=DEC, radius=25,
+                      scw_list=cookbook_scw_list, src_name=src_name,time_bin=100,time_bin_format='sec')
 
-    parameters = dict(E1=20., E2=40.,T1=T_start, T2=T_stop, RA=RA, DEC=DEC, radius=25, scw_list=cookbook_scw_list,src_name="4U 1700-377")
+    logger.info('parameters dictionary')
+    logger.info(parameters)
 
-    for p,v in parameters.items():
-        print('set from form',p,v)
-        prod.set_par_value(p, v)
-        print('--')
+
+    instr.set_pars_from_dic(parameters)
+
+    logger.info(instr.get_parameters_list_as_json()  )
+
     if use_scw_list == True:
-        prod.set_par_value('time_group_selector', 'scw_list')
+        instr.set_par('scw_list', cookbook_scw_list)
     else:
-        prod.set_par_value('time_group_selector', 'time_range_iso')
-    prod.show_parameters_list()
+        instr.set_par('scw_list', [])
 
-    out_prod, exception=prod.get_product(config=osaconf)
-    if out_prod is None:
-        raise RuntimeError('no light curve produced')
-    print ('out_prod',dir(out_prod))
+    if use_catalog==True:
+        dra=float(time.strftime("0.%j")) # it's vital to make sure that the test changes with the phase of the moon
+        ddec = float(time.strftime("0.%H%M%S"))
 
-    from astropy.io import fits as pf
-    pf.writeto('lc.fits', out_prod, overwrite=True)
+        dsrc_name="RD_%.6lg_%.6lg"%(RA+dra,DEC+ddec) # non-astronomical, fix
+        osa_catalog = OsaCatalog.build_from_dict_list([
+            dict(ra=RA, dec=DEC, name=parameters['src_name']),
+            dict(ra=RA+dra, dec=DEC+ddec, name=dsrc_name)
+        ])
+        instr.set_par('user_catalog', osa_catalog)
 
+    instr.show_parameters_list()
+
+    prod_dictionary = instr.run_query('isgri_lc_query', config=osaconf, out_dir=out_dir, query_type=query_type)
+
+    #instr.get_query_by_name('isgri_lc_query').get_prod_by_name('isgri_lc').get_html_draw(plot=True)
+
+    print (prod_dictionary)
 
 def test_plot_lc():
     from astropy.io import fits as pf
@@ -186,15 +228,22 @@ def test_plot_lc():
 
 
 def test_full_mosaic():
-    test_mosaic_cookbook()
-    #test_plot_mosaic()
-    #test_mosaic_cookbook(use_scw_list=False)
+    #test_mosaic_cookbook(use_catalog=True,use_scw_list=False)
+    test_mosaic_cookbook(use_catalog=False, use_scw_list=True,out_dir='test_scratch',query_type='Real')
+    #test_mosaic_cookbook(use_catalog=False, use_scw_list=False)
+    #test_mosaic_cookbook(use_catalog=False, use_scw_list=True)
 
 
 def test_full_spectrum():
-    test_spectrum_cookbook()
-    #test_spectrum_cookbook(use_scw_list=False)
+    #test_spectrum_cookbook(use_catalog=True, use_scw_list=False)
+    #test_spectrum_cookbook(use_catalog=True, use_scw_list=True)
+    #test_spectrum_cookbook(use_catalog=False, use_scw_list=False)
+    test_spectrum_cookbook(use_catalog=False, use_scw_list=True,query_type='Real',out_dir='test_scratch')
 
 def test_full_lc():
-    test_lightcurve_cookbook()
-    #test_lightcurve_cookbook(use_scw_list=False)
+    #test_lightcurve_cookbook(use_catalog=True, use_scw_list=False)
+    test_lightcurve_cookbook(use_catalog=True, use_scw_list=True,out_dir='test_scratch',query_type='Real')
+    #test_lightcurve_cookbook(use_catalog=False, use_scw_list=False)
+    #test_lightcurve_cookbook(use_catalog=False, use_scw_list=True)
+
+

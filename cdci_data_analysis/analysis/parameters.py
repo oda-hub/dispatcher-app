@@ -26,11 +26,33 @@ from builtins import (bytes, str, open, super, range,
 __author__ = "Andrea Tramacere"
 
 import  ast
+import decorator
+
 from datetime import datetime, date, time
+from astropy.time import Time as astropyTime
+from astropy.time import TimeDelta as astropyTimeDelta
+
+from astropy.coordinates import Angle as astropyAngle
+from .catalog import BasicCatalog
 
 import  numpy as np
 
+
+@decorator.decorator
+def check_par_list(func,par_list,*args, **kwargs):
+    for par in par_list:
+        if isinstance(par,Parameter):
+            pass
+        else:
+            raise RuntimeError('each parameter in the par_list has to be an instance of Parameters')
+
+        return func(par_list, *args, **kwargs)
+
+
+
+
 class ParameterGroup(object):
+
 
     def __init__(self,par_list,name,exclusive=True,def_selected=None,selected=None):
         self.name=name
@@ -106,6 +128,7 @@ class ParameterGroup(object):
 
 class ParameterRange(object):
 
+
     def __init__(self,p1,p2,name):
         self._check_pars(p1,p2)
         self.name=name
@@ -128,8 +151,35 @@ class ParameterRange(object):
         return [self.p1,self.p2]
 
 
+
+class ParameterTuple(object):
+
+
+    def __init__(self,p_list,name):
+        self._check_pars(p_list)
+        self.name=name
+        self.p_list=tuple(p_list)
+
+    def _check_pars(self,p_list):
+        if any( type(x)!=type(p_list[0]) for x in p_list):
+            raise RuntimeError('pars must be of the same time')
+
+        for p in (p_list):
+            try:
+                assert (isinstance(p,Parameter))
+            except:
+                raise RuntimeError('both p1 and p2 must be Parameters objects, found',type(p))
+
+    def to_list(self):
+        return self.p_list
+
+
+
+
+
+
 class Parameter(object):
-    def __init__(self,name='par',units=None,allowed_units=[],check_value=None,value=None,allowed_values=None):
+    def __init__(self,value=None,units=None,name=None,allowed_units=[],check_value=None,allowed_values=None,units_name=None):
         self.check_value=check_value
 
         self._allowed_units = allowed_units
@@ -137,6 +187,7 @@ class Parameter(object):
         self.name = name
         self.units=units
         self.value = value
+        self.units_name=units_name
         #self._wtform_dict=wtform_dict
 
 
@@ -157,7 +208,11 @@ class Parameter(object):
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
                     raise RuntimeError('value',v,'not allowed, allowed=',self._allowed_values)
-            self._value=v
+            print('set->',self.name,v,type(v))
+            if type(v)==str or type(v)== unicode:
+                self._value=v.strip()
+            else:
+                self._value = v
         else:
             self._value=None
 
@@ -176,10 +231,36 @@ class Parameter(object):
         self._units=units
 
     def set_from_form(self,form):
-        if self.name in form.keys:
-            self.value=form[self.name]
+        par_name = self.name
+        units_name = self.units_name
+        v = None
+        u = None
+        in_dictionary=False
+
+
+        if units_name is not None:
+            if units_name in form.keys():
+               u = form[units_name]
+        if par_name in form.keys():
+            v=form[par_name]
+            in_dictionary=True
+
+        if in_dictionary is True:
+            self.set_par(value=v,units=u)
+
+            print('setting par:', par_name, 'to val=', self.value, 'and units', units_name, 'to', self.units )
         else:
-            print('par %s not present in form'%self.name)
+            print('setting par:', par_name, 'not in dictionary')
+
+
+    def set_par(self,value,units=None):
+        if units is not None:
+            self.units=units
+        self.value=value
+
+
+
+
 
     def get_form(self,wtform_cls,key,validators,defaults):
          return   wtform_cls('key', validators=validators, default=defaults)
@@ -220,7 +301,7 @@ class Parameter(object):
     #     return wtform(label=key, validators=validators, default=default)
 
     def reprJSON(self):
-        return dict(name=self.name, units=self.first, value=self.value)
+        return dict(name=self.name, units=self.units, value=self.value)
 
 
 #class Instrument(Parameter):
@@ -231,7 +312,7 @@ class Parameter(object):
 
 
 class Name(Parameter):
-    def __init__(self, name_format, name, value=None):
+    def __init__(self,value=None, name_format='str', name=None):
         _allowed_units = ['str']
         super(Name,self).__init__(value=value,
                                   units=name_format,
@@ -244,11 +325,61 @@ class Name(Parameter):
         pass
 
 
+class Float(Parameter):
+    def __init__(self,value=None,units=None,name=None):
+
+        _allowed_units = None
+
+        #wtform_dict = {'keV': FloatField}
+
+        super(Float, self).__init__(value=value,
+                                   units=units,
+                                   check_value=self.check_float_value,
+                                   name=name,
+                                   allowed_units=_allowed_units)
+                                   #wtform_dict=wtform_dict)
+
+        self.value=value
+
+    @property
+    def value(self):
+        return self._v
+
+    @value.setter
+    def value(self, v):
+        if v is not None and v!='':
+            self.check_float_value(v,name=self.name)
+            self._v = np.float(v)
+
+        else:
+            self._v=None
+
+
+    @staticmethod
+    def check_float_value(value, units=None,name=None):
+        print('check type of ',name,'value', value, 'type',type(value))
+        if value is None or value=='':
+            pass
+        else:
+            try:
+              value=ast.literal_eval(value)
+            except:
+                pass
+            value=np.float(value)
+            if type(value)==int:
+                pass
+            if type(value)==float:
+                pass
+            else:
+                raise RuntimeError('type of ',name,'not valid',type(value))
+
+
+
+
 class Time(Parameter):
+    def __init__(self,value=None,T_format=None,name=None,Time_format_name=None):
 
-    def __init__(self,T_format,name,value=None):
-
-        _allowed_units = ['iso', 'mjd', 'prod_list']
+        #_allowed_units = astropyTime.FORMATS
 
         #wtform_dict = {'iso': StringField}
         #wtform_dict['mjd'] = FloatField
@@ -256,80 +387,239 @@ class Time(Parameter):
 
         super(Time,self).__init__(value=value,
                                   units=T_format,
-                                  check_value=self.check_time_value,
+                                  units_name=Time_format_name,
                                   name=name,
-                                  allowed_units=_allowed_units)
+                                  allowed_units=None)
                                   #wtform_dict=wtform_dict)
 
 
-    @staticmethod
-    def check_time_value(value,units,name='par'):
-        if units == 'iso':
-            try:
-                c = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%f")
-            except:
-                raise RuntimeError(name,'value is not iso format YYYY-MM-DDThh:mm:ss.sssss','it is',type(value),value)
-        elif units == 'mjd':
-            try:
-                assert (type(value) == int or type(value) == float)
-            except:
-                raise RuntimeError(name,'value is not MJD format : int or float', 'it is ','it is',type(value),value)
+        self._set_time(value,format=T_format)
 
-        elif units=='prod_list':
+
+    @property
+    def value(self):
+        return self._astropy_time.value
+
+    @value.setter
+    def value(self, v):
+      
+        units=self.units
+        self._set_time(v, format=units)
+
+    def _set_time(self,value,format):
+       
+        try:
+            value=ast.literal_eval(value)
+        except:
+            pass
+        
+        self._astropy_time = astropyTime(value, format=format)
+        
+        self._value =value
+
+
+class TimeDelta(Parameter):
+    def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None):
+
+        # _allowed_units = astropyTime.FORMATS
+
+        # wtform_dict = {'iso': StringField}
+        # wtform_dict['mjd'] = FloatField
+        # wtform_dict['prod_list'] = TextAreaField
+
+        super(TimeDelta, self).__init__(value=value,
+                                   units=delta_T_format,
+                                   units_name=delta_T_format_name,
+                                   name=name,
+                                   allowed_units=None)
+        # wtform_dict=wtform_dict)
+
+
+        self._set_time(value, format=delta_T_format)
+
+    @property
+    def value(self):
+        return self._astropy_time_delta.value
+
+    @value.setter
+    def value(self, v):
+
+        units = self.units
+        self._set_time(v, format=units)
+
+    def _set_time(self, value, format):
+
+        try:
+            value = ast.literal_eval(value)
+        except:
+            pass
+
+        print ('value',value)
+        self._astropy_time_delta = astropyTimeDelta(value, format=format)
+
+        self._value = value
+
+class InputProdList(Parameter):
+    def __init__(self,value=None,_format='names_list',name=None):
+
+        _allowed_units = ['names_list']
+
+        if value is None:
+            value=[]
+
+        super(InputProdList, self).__init__(value=value,
+                                            units=_format,
+                                            check_value=self.check_list_value,
+                                            name=name,
+                                            allowed_units=_allowed_units)
+                                  #wtform_dict=wtform_dict)
+
+        self._split(value)
+
+
+    def _split(self,str_list):
+        if type(str_list)==list:
+               pass
+        elif type(str_list)==str or type(str(str_list)):
+            if ',' in str_list:
+                str_list= str_list.split(',')
+            else:
+                str_list = str_list.split(' ')
+        else:
+           raise RuntimeError('parameter format is not correct')
+
+        if str_list == ['']:
+            str_list = []
+
+        return str_list
+
+    @property
+    def value(self):
+        if self._value==[''] or self._value is None:
+            return []
+        else:
+            return self._value
+
+    @value.setter
+    def value(self, v):
+        print('set', self.name, v, self._allowed_values)
+        if v is not None:
+            if self.check_value is not None:
+                self.check_value(v, units=self.units, name=self.name)
+            if self._allowed_values is not None:
+                if v not in self._allowed_values:
+                    raise RuntimeError('value', v, 'not allowed, allowed=', self._allowed_values)
+            if v == [''] or v is None or str(v) == '':
+                self._value=['']
+            else:
+                self._value = v
+        else:
+            self._value = ['']
+        self._value=self._split(self._value)
+        print ('set to ',self._value)
+
+
+    @staticmethod
+    def check_list_value(value,units,name='par'):
+        if units=='names_list':
             try:
                 print(type(value))
                 assert (type(value) == list or type(value) == str  or type(str(value))== str)
             except:
-                raise RuntimeError(name,'value is not product list format : list of strings','it is',type(value),value)
-
+                raise RuntimeError('par:',name,', value is not product list format : list of strings','it is',type(value),value)
         else:
             raise  RuntimeError(name,'units not valid',units)
 
 
 
 
-class AngularPosition(Parameter):
-    def __init__(self, angular_units, reference_system,name, value=None):
-        _allowed_units = ['deg']
-        super(AngularPosition, self).__init__(value=value,
-                                     units=angular_units,
-                                     check_value=self.check_angle_value,
-                                     name=name,
-                                     allowed_units=_allowed_units)
 
-        self.reference_system=reference_system
-        #to improve
+
+class Angle(Parameter):
+        def __init__(self,value=None, units=None,name=None):
+
+            super(Angle, self).__init__(value=value,
+                                       units=units,
+                                       name=name,
+                                       allowed_units=None)
+            # wtform_dict=wtform_dict)
+
+
+            self._set_angle(value, units=units)
+
+        @property
+        def value(self):
+            return self._astropy_angle.value
+
+        @value.setter
+        def value(self, v, units=None):
+            if units is None:
+                units = self.units
+
+            self._set_angle(v, units=units)
+
+        def _set_angle(self, value, units):
+            self._astropy_angle = astropyAngle(value, unit=units)
+            self._value = self._astropy_angle.value
+
+# class AngularDistance(Parameter):
+#     def __init__(self, angular_units,name, value=None):
+#         _allowed_units = ['deg']
+#         super(AngularDistance, self).__init__(value=value,
+#                                      units=angular_units,
+#                                      check_value=self.check_angle_value,
+#                                      name=name,
+#                                      allowed_units=_allowed_units)
+#
+#
+#
+#     @staticmethod
+#     def check_angle_value(value, units=None, name=None):
+#         print('check type of ', name, 'value', value, 'type', type(value))
+#         pass
+#
+
+
+
+class SpectralBoundary(Parameter):
+    def __init__(self,value=None,E_units='keV',name=None):
+
+        _allowed_units = ['keV','eV','MeV','GeV','TeV','Hz','MHz','GHz']
+
+        #wtform_dict = {'keV': FloatField}
+
+        super(SpectralBoundary, self).__init__(value=value,
+                                   units=E_units,
+                                   check_value=self.check_energy_value,
+                                   name=name,
+                                   allowed_units=_allowed_units)
+                                   #wtform_dict=wtform_dict)
+
+
+
 
     @staticmethod
-    def check_angle_value(value, units=None, name=None):
-        print('check type of ', name, 'value', value, 'type', type(value))
-        pass
+    def check_energy_value(value, units=None,name=None):
+        print('check type of ',name,'value', value, 'type',type(value))
 
 
+        try:
+            value=ast.literal_eval(value)
+        except:
+            pass
 
-class AngularDistance(Parameter):
-    def __init__(self, angular_units,name, value=None):
-        _allowed_units = ['deg']
-        super(AngularDistance, self).__init__(value=value,
-                                     units=angular_units,
-                                     check_value=self.check_angle_value,
-                                     name=name,
-                                     allowed_units=_allowed_units)
-
-
-
-    @staticmethod
-    def check_angle_value(value, units=None, name=None):
-        print('check type of ', name, 'value', value, 'type', type(value))
-        pass
-
-
+        if type(value)==int:
+            pass
+        if type(value)==float:
+            pass
+        else:
+            raise RuntimeError('type of ',name,'not valid',type(value))
 
 
 class Energy(Parameter):
-    def __init__(self,E_units,name,value=None):
+    def __init__(self,value=None,E_units=None,name=None):
 
-        _allowed_units = ['keV']
+        _allowed_units = ['keV','eV','MeV','GeV','TeV']
 
         #wtform_dict = {'keV': FloatField}
 
@@ -361,3 +651,54 @@ class Energy(Parameter):
             raise RuntimeError('type of ',name,'not valid',type(value))
 
 
+
+
+
+class DetectionThreshold(Parameter):
+    def __init__(self,value=None,units='sigma',name=None):
+
+        _allowed_units = ['sigma']
+
+        #wtform_dict = {'keV': FloatField}
+
+        super(DetectionThreshold, self).__init__(value=value,
+                                   units=units,
+                                   check_value=self.check_value,
+                                   name=name,
+                                   allowed_units=_allowed_units)
+                                   #wtform_dict=wtform_dict)
+
+
+
+
+    @staticmethod
+    def check_value(value, units=None,name=None):
+        print('check type of ',name,'value', value, 'type',type(value))
+
+
+        try:
+            value=ast.literal_eval(value)
+        except:
+            pass
+
+        if type(value)==int:
+            pass
+        if type(value)==float:
+            pass
+        else:
+            raise RuntimeError('type of ',name,'not valid',type(value))
+
+
+
+class UserCatalog(Parameter):
+    def __init__(self, value=None,name_format='str', name=None):
+        _allowed_units = ['str']
+        super(UserCatalog,self).__init__(value=value,
+                                  units=name_format,
+                                  check_value=self.check_name_value,
+                                  name=name,
+                                  allowed_units=_allowed_units)
+
+    @staticmethod
+    def check_name_value(value, units=None, name=None):
+        pass
