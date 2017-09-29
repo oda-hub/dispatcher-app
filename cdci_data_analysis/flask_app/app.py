@@ -243,7 +243,7 @@ def run_analysis_test():
 
 
 
-def run_app(conf):
+def run_app(conf,debug=False,threaded=False):
     app.config['osaconf'] = conf
-    app.run(host=conf.dispatcher_url, port=conf.dispatcher_port, debug=True,threaded=True)
+    app.run(host=conf.dispatcher_url, port=conf.dispatcher_port, debug=debug,threaded=threaded)
 
