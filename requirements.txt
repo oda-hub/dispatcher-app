@@ -5,3 +5,4 @@ mpld3
 flask
 astropy
 pathlib
+gunicorn
