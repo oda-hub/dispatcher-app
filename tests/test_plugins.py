@@ -69,7 +69,7 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,query_type='Real',
     instr.show_parameters_list()
 
     prod_dictionary = instr.run_query('isgri_image_query', config=osaconf, out_dir=out_dir, query_type=query_type,logger=logger)
-    #instr.get_query_by_name('isgri_image_query').get_prod_by_name('isgri_mosaic').get_html_draw(plot=False)
+    instr.get_query_by_name('isgri_image_query').get_prod_by_name('isgri_mosaic').get_html_draw(plot=True)
     print ('error message',prod_dictionary['error_message'])
     print ('satus',prod_dictionary['status'])
 
