@@ -22,6 +22,7 @@ import  tempfile
 import tarfile
 import gzip
 import logging
+import threading
 import sys
 
 
@@ -104,7 +105,17 @@ def meta_data_src():
 def meta_data_isgri():
     return get_meta_data('isgri')
 
+@app.route("/test_sleep")
+def test_sleep():
 
+    import time
+    time.sleep(10)
+    return "<h1 style='color:blue'>Hello There!</h1>"
+
+
+@app.route("/test_soon")
+def test_soon():
+    return "<h1 style='color:blue'>Hello There!</h1>"
 
 def prepare_download(file_list,file_name):
     if hasattr(file_list,'__iter__'):
@@ -233,12 +244,22 @@ def run_analysis_test():
 
 
 
+def run_app_threaded(conf,debug=False):
+    threaded_server=threading.Thread(target=run_app,args=(conf),kwargs={'debug':debug})
+    try:
+        # Start the server
+        threaded_server.start()
+    except Exception as ex:
+        print('flask thread failed',ex.message)
+    finally:
 
+        # Stop all running threads
+        threaded_server._Thread__stop()
+        product_dictionary={}
+        product_dictionary['error_message'] = 'flask thread failed'
+        product_dictionary['status'] = '-1'
 
-
-
-
-
+        return jsonify(product_dictionary)
 
 
 
@@ -247,3 +268,6 @@ def run_app(conf,debug=False,threaded=False):
     app.config['osaconf'] = conf
     app.run(host=conf.dispatcher_url, port=conf.dispatcher_port, debug=debug,threaded=threaded)
 
+
+if __name__ == "__main__":
+    run_app()
