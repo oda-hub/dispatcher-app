@@ -249,7 +249,7 @@ def run_app_threaded(conf,debug=False):
     try:
         # Start the server
         threaded_server.start()
-    except Exception, ex:
+    except Exception as ex:
         print('flask thread failed',ex.message)
     finally:
 
