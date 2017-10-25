@@ -45,6 +45,7 @@ __author__ = "Andrea Tramacere"
 
 from astropy.io import  fits as pf
 from pathlib import Path
+import os
 from ..analysis.parameters import *
 from .osa_dispatcher import    OsaQuery,QueryProduct
 from ..analysis.queries import SpectrumQuery
@@ -367,9 +368,9 @@ def process_osa_spectrum_products(instrument,prod_list):
         #_figs.append( query_spec.get_html_draw(plot=False,xspec_model=instrument.get_par_by_name('xspec_model').value))
         _names.append(query_spec.name)
         _source_spec=[]
-        _pf_path.append(query_spec.file_path.get_file_path())
-        _arf_path.append(query_spec.arf_file.encode('utf-8'))
-        _rmf_path.append(query_spec.rmf_file.encode('utf-8'))
+        _pf_path.append(str(os.path.basename(query_spec.file_path.get_file_path())))
+        _arf_path.append(Path(query_spec.arf_file.encode('utf-8')).name)
+        _rmf_path.append(Path(query_spec.rmf_file.encode('utf-8')).name)
 
         _source_spec.append(query_spec.file_path.get_file_path())
         _source_spec.append(query_spec.arf_file.encode('utf-8'))

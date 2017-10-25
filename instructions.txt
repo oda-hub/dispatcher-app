@@ -32,4 +32,24 @@ pytest ../tests/test_plugins.py::test_image -s -v
 #ssh tunnel on testing machine
 ssh -D 8123 -f -C -q -N tramacer@isdc-nx01.isdc.unige.ch
 
+#XSPEC python
+#login to cdciweb01
+#run always on cdciweb01 machine!
 
+bash
+heainint
+
+Xspec python install
+include: python-config --cflags
+lib:     python-config --ldflags
+
+in heasoft-<ver>/Xspec/BUILD_DIR/hmakerc
+
+PYTHON_INC="-I/home/isdc/tramacer/anaconda2/include/python2.7"
+PYTHON_LIB="-lpython2.7"
+
+
+cd /path/to/heasoft-<ver>/Xspec/src/XSUser/Python/xspec
+hmake clean
+hmake
+hmake install
