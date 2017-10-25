@@ -159,11 +159,14 @@ def test_sleep():
 def test_soon():
     return "<h1 style='color:blue'>Hello There!</h1>"
 
-def prepare_download(file_list,file_name):
+def prepare_download(file_list,file_name,scratch_dir):
     if hasattr(file_list,'__iter__'):
         print('file_list is iterable')
     else:
         file_list=[file_list]
+
+    for ID,f in enumerate(file_list):
+        file_list[ID]=os.path.join(scratch_dir+'/',f)
 
     tmp_dir=tempfile.mkdtemp(prefix='download_', dir='./')
     print ('using tmp dir',tmp_dir)
@@ -194,11 +197,13 @@ def prepare_download(file_list,file_name):
 @app.route("/download_products",methods=['POST', 'GET'])
 def download_products():
     print('in url file_list',request.args.get('file_list'))
+    scratch_dir, logger = set_session(request.args.get('session_id'))
+
     file_list=request.args.get('file_list').split(',')
     print('used file_list',file_list)
     file_name=request.args.get('file_name')
 
-    tmp_dir,target_file=prepare_download(file_list,file_name)
+    tmp_dir,target_file=prepare_download(file_list,file_name,scratch_dir)
     print ('tmp_dir,target_file',tmp_dir,target_file)
     try:
         return send_from_directory(directory=tmp_dir, filename=target_file,attachment_filename=target_file,as_attachment=True)

@@ -381,7 +381,7 @@ def process_osa_spectrum_products(instrument,prod_list):
 
     prod_dictionary['spectrum_name'] = _names
     #prod_dictionary['spectrum_figure']=_figs
-    prod_dictionary['files_path']=_files_path
+    #prod_dictionary['files_path']=_files_path
     prod_dictionary['ph_file_path'] = _pf_path
     prod_dictionary['arf_file_path'] = _arf_path
     prod_dictionary['rmf_file_path'] = _rmf_path
