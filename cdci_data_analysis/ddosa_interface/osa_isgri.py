@@ -84,10 +84,10 @@ def OSA_ISGRI():
                            get_dummy_products_method=get_osa_spectrum_dummy_products,
                            process_product_method=process_osa_spectrum_products)
 
-
+    xspec_fit = SpectralFitQuery('spectral_fit_query', None)
 
     return  Instrument('ISGRI',
                        src_query=src_query,
                        instrumet_query=instr_query,
-                       product_queries_list=[image,spectrum,light_curve],
+                       product_queries_list=[image,spectrum,light_curve,xspec_fit],
                        data_server_query_class=OsaQuery)

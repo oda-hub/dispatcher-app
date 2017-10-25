@@ -357,27 +357,37 @@ def process_osa_spectrum_products(instrument,prod_list):
 
     prod_dictionary = {}
     _names=[]
-    _figs=[]
-    _spec_path=[]
+    #_figs=[]
+    _files_path=[]
+    _pf_path=[]
+    _arf_path = []
+    _rmf_path = []
     for query_spec in prod_list.prod_list:
-        print('xspec model',instrument.get_par_by_name('xspec_model').value)
-        _figs.append( query_spec.get_html_draw(plot=False,xspec_model=instrument.get_par_by_name('xspec_model').value))
+        #print('xspec model',instrument.get_par_by_name('xspec_model').value)
+        #_figs.append( query_spec.get_html_draw(plot=False,xspec_model=instrument.get_par_by_name('xspec_model').value))
         _names.append(query_spec.name)
         _source_spec=[]
+        _pf_path.append(query_spec.file_path.get_file_path())
+        _arf_path.append(query_spec.arf_file.encode('utf-8'))
+        _rmf_path.append(query_spec.rmf_file.encode('utf-8'))
+
         _source_spec.append(query_spec.file_path.get_file_path())
         _source_spec.append(query_spec.arf_file.encode('utf-8'))
         _source_spec.append(query_spec.rmf_file.encode('utf-8'))
 
-        _spec_path.append(_source_spec)
-        print ('_source_spec',_source_spec)
+        _files_path.append(_source_spec)
+        #print ('_source_spec',_source_spec)
 
     prod_dictionary['spectrum_name'] = _names
-    prod_dictionary['spectrum_figure']=_figs
-    prod_dictionary['file_path']=_spec_path
+    #prod_dictionary['spectrum_figure']=_figs
+    prod_dictionary['files_path']=_files_path
+    prod_dictionary['ph_file_path'] = _pf_path
+    prod_dictionary['arf_file_path'] = _arf_path
+    prod_dictionary['rmf_file_path'] = _rmf_path
     prod_dictionary['file_name'] = 'spectra.tar.gz'
     prod_dictionary['prod_process_maessage']=''
-    for l in prod_dictionary['file_path']:
-        print ('paths',l)
+    #for l in prod_dictionary['file_path']:
+    #    print ('paths',l)
 
 
     print('--> send prog')

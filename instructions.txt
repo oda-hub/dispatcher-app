@@ -9,13 +9,17 @@ sshfs nx:/ ./isdc
 ssh -t -L 32778:localhost:32778 nx ssh -t -L 32778:localhost:32778 tramacer@intggcn01.isdc.unige.ch
 
 #on login machine
-ssh -t -L 32778:localhost:32778 tramacer@intggcn01.isdc.unige.ch
+-) ssh -t -L 32778:localhost:32778 tramacer@intggcn01.isdc.unige.ch
+-) swithc to bash
+-) heainit
 
 #on every machine
 cp .secret-ddosa-client ~
 
 cdciweb01
 testing machine: http://cdciweb01.isdc.unige.ch
+                 http://cdciweb01.isdc.unige.ch/cdci/online-data-analysis
+
 
 To test URL on a local server:
 http://127.0.0.1:5000/ + url string eg:
@@ -24,3 +28,8 @@ http://127.0.0.1:5000/test?object_name=&RA=257.815417&DEC=-41.593417&T1_iso=2003
 
 To run tests example in run_test directory:
 pytest ../tests/test_plugins.py::test_image -s -v
+
+#ssh tunnel on testing machine
+ssh -D 8123 -f -C -q -N tramacer@isdc-nx01.isdc.unige.ch
+
+
