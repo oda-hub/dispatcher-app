@@ -554,20 +554,27 @@ class PostProcessProductQuery(ProductQuery):
             product_dictionary= self._process_product_method(instrument,query_prod_list,**kwargs)
         return product_dictionary
 
-    def finalize_query(self,product_dictionary,get_product_status,prod_process_status):
+    def finalize_query(self,product_dictionary,
+                       get_product_status,
+                       prod_process_status,
+                       get_product_message='',
+                       prod_process_message=''):
 
         error_message=''
         status=0
+        debug_message=''
         if get_product_status!=0:
             error_message+='error: get_product_status failed,'
             status+=1
+            error_message+=' '+get_product_message
+
         if prod_process_status!=0:
             error_message+='error: prod_process_query failed,'
             status+=1
+            error_message+=' '+prod_process_message
 
         product_dictionary['error_message']=error_message
         product_dictionary['status']=status
-
         return product_dictionary
 
     def run_query(self,instrument,scratch_dir,query_type='Real', config=None,logger=None):
@@ -575,9 +582,11 @@ class PostProcessProductQuery(ProductQuery):
         if logger is None:
             logger = logging.getLogger(__name__)
 
+        product_dictionary = {}
 
-        #query
+        #get prdudct
         get_product_status=0
+        get_product_message=''
         msg_str = '--> start get products'
         print(msg_str)
         logger.info(msg_str)
@@ -599,13 +608,15 @@ class PostProcessProductQuery(ProductQuery):
             logger.exception(e)
             #logger.exception(view_traceback())
             #raise Exception(e)
+            get_product_message=e.message
         msg_str = '--> get_product_status %d\n' % get_product_status
         msg_str += '--> end  get product query '
 
         logger.info(msg_str)
 
+        #process product
         prod_process_status=0
-        product_dictionary={}
+        prod_process_message = ''
         msg_str = '--> start prodcut process'
         print(msg_str)
         logger.info(msg_str)
@@ -621,6 +632,7 @@ class PostProcessProductQuery(ProductQuery):
             prod_process_status=1
             view_traceback()
             logger.exception(e)
+            prod_process_message=e.message
             #logger.exception(view_traceback())
             #raise Exception(e)
         msg_str = '==>prod_process_status %d\n' % prod_process_status
@@ -630,7 +642,11 @@ class PostProcessProductQuery(ProductQuery):
         msg_str +='prod_process_status %d\n'%prod_process_status
         print (msg_str)
         logger.info(msg_str)
-        return self.finalize_query(product_dictionary,get_product_status,prod_process_status)
+        return self.finalize_query(product_dictionary,
+                                   get_product_status,
+                                   prod_process_status,
+                                   get_product_message=get_product_message,
+                                   prod_process_message=prod_process_message)
 
 
 
