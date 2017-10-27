@@ -240,11 +240,12 @@ def upload_file(name,scratch_dir):
 
 
         filename = secure_filename(file.filename)
-        print('secure_file_name',secure_filename())
-        file.save(os.path.join(scratch_dir, filename))
+        print('secure_file_name',filename)
+        file_path=os.path.join(scratch_dir, filename)
+        file.save(file_path)
         #return redirect(url_for('uploaded_file',
         #                        filename=filename))
-        return filename
+        return file_path
 
 def get_args(request):
     if request.method == 'GET':
@@ -327,8 +328,8 @@ def run_analysis_test():
     if request.method == 'POST':
         prod_dictionary={}
         try:
-            cat_filename = upload_file('user_catalog', scratch_dir)
-            par_dic['user_catalog'] = cat_filename
+            cat_file_path = upload_file('user_catalog', scratch_dir)
+            par_dic['user_catalog'] = cat_file_path
         except Exception as e:
             prod_dictionary['error_message'] = 'failed to upload catalog'
             prod_dictionary['status'] = '1'
