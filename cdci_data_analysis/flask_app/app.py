@@ -20,7 +20,7 @@ import os
 from flask import jsonify,send_from_directory
 from flask import Flask, request
 from pathlib import Path
-#from flask_restful import reqparse
+from flask_restful import reqparse
 
 from ..ddosa_interface.osa_isgri import OSA_ISGRI
 from ..analysis.queries import *
@@ -220,11 +220,11 @@ def download_products():
 
 
 
-#def parse_arg_from_requests(arg, **kwargs):
+#def get_args(arg, **kwargs):
 #    parse = reqparse.RequestParser()
 #    parse.add_argument(arg, **kwargs)
 #    args = parse.parse_args()
-#    return args[arg]
+#    return args
 
 
 def get_args(request):
@@ -232,7 +232,7 @@ def get_args(request):
         args=request.args
     if request.method == 'POST':
         args = request.form
-
+    print ('args',args)
     return args
 
 @app.route('/test', methods=['POST', 'GET'])
@@ -241,6 +241,7 @@ def run_analysis_test():
     instrument_name='ISGRI'
 
     args=get_args(request)
+    print ('args',args)
 
 
     scratch_dir,logger=set_session(args.get('session_id'))
