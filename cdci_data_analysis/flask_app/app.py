@@ -241,6 +241,7 @@ def run_analysis_test():
     instrument_name='ISGRI'
 
     args=get_args(request)
+    print ('method',request.method)
     print ('args',args)
 
 
