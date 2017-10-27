@@ -226,6 +226,26 @@ def download_products():
 #    args = parse.parse_args()
 #    return args
 
+def upload_catalog():
+
+    if 'file' not in request.files:
+        flash('No file part')
+        return
+
+    file = request.files['file']
+    print ( request.files)
+    # if user does not select file, browser also
+    # submit a empty part without filename
+    if file.filename == '':
+        flash('No selected file')
+        return redirect(request.url)
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        print(file.filename)
+        #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        #return redirect(url_for('uploaded_file',
+        #                        filename=filename))
+
 
 def get_args(request):
     if request.method == 'GET':
@@ -264,6 +284,9 @@ def run_analysis_test():
     logger.info(args.to_dict())
 
     prod_dictionary = None
+    if request.method == 'POST':
+        upload_catalog()
+
     par_dic = args.to_dict()
     par_dic.pop('query_type')
     par_dic.pop('product_type')
