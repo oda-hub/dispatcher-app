@@ -20,6 +20,8 @@ import os
 from flask import jsonify,send_from_directory
 from flask import Flask, request
 from pathlib import Path
+from flask_restful import reqparse
+
 from ..ddosa_interface.osa_isgri import OSA_ISGRI
 from ..analysis.queries import *
 import  tempfile
@@ -196,12 +198,14 @@ def prepare_download(file_list,file_name,scratch_dir):
 
 @app.route("/download_products",methods=['POST', 'GET'])
 def download_products():
-    print('in url file_list',request.args.get('file_list'))
-    scratch_dir, logger = set_session(request.args.get('session_id'))
+    args = get_args(request)
 
-    file_list=request.args.get('file_list').split(',')
+    print('in url file_list',args.get('file_list'))
+    scratch_dir, logger = set_session(args.get('session_id'))
+
+    file_list=args.get('file_list').split(',')
     print('used file_list',file_list)
-    file_name=request.args.get('file_name')
+    file_name=args.get('file_name')
 
     tmp_dir,target_file=prepare_download(file_list,file_name,scratch_dir)
     print ('tmp_dir,target_file',tmp_dir,target_file)
@@ -216,19 +220,34 @@ def download_products():
 
 
 
+def parse_arg_from_requests(arg, **kwargs):
+    parse = reqparse.RequestParser()
+    parse.add_argument(arg, **kwargs)
+    args = parse.parse_args()
+    return args[arg]
 
+
+def get_args(request):
+    if request.method == 'GET':
+        args=request.args
+    if request.method == 'POST':
+        args = request.form
+
+    return args
 
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
 
     instrument_name='ISGRI'
 
+    args=get_args(request)
 
-    scratch_dir,logger=set_session(request.args.get('session_id'))
+
+    scratch_dir,logger=set_session(args.get('session_id'))
 
     logger.info('')
     logger.info('============================================================')
-    logger.info('=>session_id<=%s' % request.args.get('session_id'))
+    logger.info('=>session_id<=%s' % args.get('session_id'))
 
 
 
@@ -240,16 +259,16 @@ def run_analysis_test():
         raise Exception("instrument not recognized".format(instrument_name))
 
 
-    logger.info(request.args.to_dict())
+    logger.info(args.to_dict())
 
     prod_dictionary = None
-    par_dic = request.args.to_dict()
+    par_dic = args.to_dict()
     par_dic.pop('query_type')
     par_dic.pop('product_type')
     #par_dic.pop('object_name')
 
     print('par_dic', par_dic)
-    print('request', request)
+    #print('request', request)
 
 
     query_dictionary={}
@@ -258,31 +277,31 @@ def run_analysis_test():
     query_dictionary['isgri_lc'] = 'isgri_lc_query'
     query_dictionary['spectral_fit'] = 'spectral_fit_query'
 
-    if request.method == 'GET':
+    #if request.method == 'GET':
 
 
-        instrument.set_pars_from_dic(par_dic)
-        instrument.show_parameters_list()
-        instrument.set_catalog(par_dic,scratch_dir=scratch_dir)
+    instrument.set_pars_from_dic(par_dic)
+    instrument.show_parameters_list()
+    instrument.set_catalog(par_dic,scratch_dir=scratch_dir)
 
-        query_type=request.args.get('query_type')
+    query_type=args.get('query_type')
 
-        product_type=request.args.get('product_type')
+    product_type=args.get('product_type')
 
-        logger.info('product_type %s'%product_type)
-        logger.info('query_type %s ' % query_type)
-        logger.info('instrument %s'%instrument_name)
-        logger.info('parameters dictionary')
-        for key in par_dic.keys():
-            log_str='parameters dictionary, key='+key+' value='+str(par_dic[key])
-            logger.info(log_str)
+    logger.info('product_type %s'%product_type)
+    logger.info('query_type %s ' % query_type)
+    logger.info('instrument %s'%instrument_name)
+    logger.info('parameters dictionary')
+    for key in par_dic.keys():
+        log_str='parameters dictionary, key='+key+' value='+str(par_dic[key])
+        logger.info(log_str)
 
-        print('product_type',product_type,query_dictionary[product_type])
-        prod_dictionary = instrument.run_query(query_dictionary[product_type],
-                                               out_dir=scratch_dir,
-                                               config=app.config.get('osaconf'),
-                                               query_type=query_type,
-                                               logger=logger)
+    print('product_type',product_type,query_dictionary[product_type])
+    prod_dictionary = instrument.run_query(query_dictionary[product_type],
+                                           out_dir=scratch_dir,
+                                           config=app.config.get('osaconf'),
+                                           query_type=query_type,
+                                           logger=logger)
 
     logger.info('============================================================')
     logger.info('')
