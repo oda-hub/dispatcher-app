@@ -226,9 +226,9 @@ def download_products():
 #    args = parse.parse_args()
 #    return args
 
-def upload_catalog():
+def upload_catalog(name):
 
-    if 'file' not in request.files:
+    if name not in request.files:
         flash('No file part')
         return
 
@@ -285,7 +285,7 @@ def run_analysis_test():
 
     prod_dictionary = None
     if request.method == 'POST':
-        upload_catalog()
+        upload_catalog('user_catalog')
 
     par_dic = args.to_dict()
     par_dic.pop('query_type')
