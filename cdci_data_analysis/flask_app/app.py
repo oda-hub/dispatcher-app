@@ -236,13 +236,14 @@ def upload_file(name,scratch_dir):
         # if user does not select file, browser also
         # submit a empty part without filename
         if file.filename == '' or file.filename is None:
-            return
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            print('secure_file_name',secure_filename())
-            file.save(os.path.join(scratch_dir, filename))
-            #return redirect(url_for('uploaded_file',
-            #                        filename=filename))
+            return None
+
+
+        filename = secure_filename(file.filename)
+        print('secure_file_name',secure_filename())
+        file.save(os.path.join(scratch_dir, filename))
+        #return redirect(url_for('uploaded_file',
+        #                        filename=filename))
         return filename
 
 def get_args(request):
