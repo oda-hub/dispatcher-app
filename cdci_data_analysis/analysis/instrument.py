@@ -184,7 +184,7 @@ class Instrument(object):
 
     def set_catalog(self, par_dic, scratch_dir='./'):
         print('---------------------------------------------')
-        print('set catalog')
+        print('set catalog',par_dic['user_catalog'])
 
         if par_dic['user_catalog'] is not None:
             user_catalog_file=par_dic['user_catalog']
