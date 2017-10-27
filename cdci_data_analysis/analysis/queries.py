@@ -24,7 +24,7 @@ import json
 import traceback
 import sys
 from .parameters import *
-
+from .products import SpectralFitProduct
 
 def view_traceback():
     ex_type, ex, tb = sys.exc_info()
@@ -526,6 +526,130 @@ class ProductQuery(BaseQuery):
 
 
 
+
+
+
+class PostProcessProductQuery(ProductQuery):
+    def __init__(self,
+                 name,
+                 parameters_list=[],
+                 get_products_method=None,
+                 html_draw_method=None,
+                 get_dummy_products_method=None,
+                 process_product_method=None,
+                 **kwargs):
+
+        super(PostProcessProductQuery, self).__init__(name, parameters_list, **kwargs)
+        self._get_product_method = get_products_method
+        self._html_draw_method = html_draw_method
+        self._get_dummy_products_method = get_dummy_products_method
+        self._process_product_method = process_product_method
+        self.query_prod_list = None
+
+
+
+    def process_product(self,instrument,query_prod_list, config=None,**kwargs):
+        product_dictionary={}
+        if self._process_product_method is not None and query_prod_list is not None:
+            product_dictionary= self._process_product_method(instrument,query_prod_list,**kwargs)
+        return product_dictionary
+
+    def finalize_query(self,product_dictionary,
+                       get_product_status,
+                       prod_process_status,
+                       get_product_message='',
+                       prod_process_message=''):
+
+        error_message=''
+        status=0
+        debug_message=''
+        if get_product_status!=0:
+            error_message+='error: get_product_status failed,'
+            status+=1
+            error_message+=' '+get_product_message
+
+        if prod_process_status!=0:
+            error_message+='error: prod_process_query failed,'
+            status+=1
+            error_message+=' '+prod_process_message
+
+        product_dictionary['error_message']=error_message
+        product_dictionary['status']=status
+        return product_dictionary
+
+    def run_query(self,instrument,scratch_dir,query_type='Real', config=None,logger=None):
+        #print ('logger',scratch_dir)
+        if logger is None:
+            logger = logging.getLogger(__name__)
+
+        product_dictionary = {}
+
+        #get prdudct
+        get_product_status=0
+        get_product_message=''
+        msg_str = '--> start get products'
+        print(msg_str)
+        logger.info(msg_str)
+        try:
+            if query_type != 'Dummy':
+                self.query_prod_list = self.get_products(instrument,
+                                                    config=config,
+                                                    out_dir=scratch_dir)
+            else:
+
+                self.query_prod_list = self.get_dummy_products(instrument,
+                                                          config=config,
+                                                          out_dir=scratch_dir)
+        except Exception as e:
+            print("get products failed, Error:", e)
+            print('!!! >>>Exception<<<', e)
+            get_product_status=1
+            view_traceback()
+            logger.exception(e)
+            #logger.exception(view_traceback())
+            #raise Exception(e)
+            get_product_message=e.message
+        msg_str = '--> get_product_status %d\n' % get_product_status
+        msg_str += '--> end  get product query '
+
+        logger.info(msg_str)
+
+        #process product
+        prod_process_status=0
+        prod_process_message = ''
+        msg_str = '--> start prodcut process'
+        print(msg_str)
+        logger.info(msg_str)
+
+        try:
+            print ('ciccio',self.process_product)
+            product_dictionary=self.process_product(instrument,out_dir=scratch_dir)
+
+        except Exception as e:
+
+            print('!!! >>>Exception<<<', e)
+            print("prod_process failed, Error:", e)
+            prod_process_status=1
+            view_traceback()
+            logger.exception(e)
+            prod_process_message=e.message
+            #logger.exception(view_traceback())
+            #raise Exception(e)
+        msg_str = '==>prod_process_status %d\n' % prod_process_status
+        msg_str += '--> end product process'
+        logger.info(msg_str)
+        msg_str+='get_product_status %d\n'%get_product_status
+        msg_str +='prod_process_status %d\n'%prod_process_status
+        print (msg_str)
+        logger.info(msg_str)
+        return self.finalize_query(product_dictionary,
+                                   get_product_status,
+                                   prod_process_status,
+                                   get_product_message=get_product_message,
+                                   prod_process_message=prod_process_message)
+
+
+
 class ImageQuery(ProductQuery):
     def __init__(self,name,parameters_list,**kwargs):
         detection_th = DetectionThreshold(value=0.0,units='sigma', name='detection_threshold')
@@ -554,15 +678,46 @@ class LightCurveQuery(ProductQuery):
 class SpectrumQuery(ProductQuery):
     def __init__(self, name,parameters_list, **kwargs):
 
-        xspec_model =Name(name_format='str', name='xspec_model',value='powerlaw')
-        if parameters_list != [] and parameters_list is not None:
-            parameters_list.append(xspec_model)
-        else:
-            parameters_list = [xspec_model]
+        #xspec_model =Name(name_format='str', name='xspec_model',value='powerlaw')
+        #if parameters_list != [] and parameters_list is not None:
+        #    parameters_list.append(xspec_model)
+        #else:
+        #    parameters_list = [xspec_model]
 
 
         super(SpectrumQuery, self).__init__(name, parameters_list, **kwargs)
 
 
 
+
+class SpectralFitQuery(PostProcessProductQuery):
+    def __init__(self, name,parameters_list, **kwargs):
+
+        xspec_model =Name(name_format='str', name='xspec_model',value='powerlaw')
+        ph_file = Name(name_format='str', name='ph_file', value='')
+        rmf_file = Name(name_format='str', name='rmf_file', value='')
+        arf_file = Name(name_format='str', name='arf_file', value='')
+
+        p_list=[xspec_model,ph_file,arf_file,rmf_file]
+        if parameters_list != [] and parameters_list is not None:
+            parameters_list.extend(p_list)
+        else:
+            parameters_list = p_list[::]
+
+
+        super(SpectralFitQuery, self).__init__(name,
+                                               parameters_list,
+                                               #get_products_method=None,
+                                               #get_dummy_products_method=None,
+                                               **kwargs)
+
+
+    def process_product(self,instrument,out_dir=None):
+        src_name = instrument.get_par_by_name('src_name').value
+
+        ph_file=instrument.get_par_by_name('ph_file').value
+        rmf_file=instrument.get_par_by_name('rmf_file').value
+        arf_file=instrument.get_par_by_name('arf_file').value
+        print ('out_dir',out_dir)
+        return SpectralFitProduct('spectral_fit',ph_file,arf_file,rmf_file,file_dir=out_dir).run_fit(xspec_model=instrument.get_par_by_name('xspec_model').value)
 

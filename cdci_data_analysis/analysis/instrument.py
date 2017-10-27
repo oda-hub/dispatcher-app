@@ -126,7 +126,7 @@ class Instrument(object):
                 p  =  _query
 
         if p is None:
-            raise Warning('parameter', prod_name, 'not found')
+            raise Warning('query', prod_name, 'not found')
 
         return p
 

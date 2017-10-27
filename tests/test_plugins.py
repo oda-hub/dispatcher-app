@@ -1,4 +1,9 @@
 from __future__ import print_function
+from builtins import (bytes, str, open, super, range,
+                      zip, round, input, int, pow, object, map, zip)
+
+
+
 import  logging
 
 logger = logging.getLogger(__name__)
@@ -119,7 +124,6 @@ def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,query_type='Real'
 
     prod_dictionary = instr.run_query('isgri_spectrum_query',config=osaconf,out_dir=out_dir,query_type=query_type)
 
-    #print ('prod_dictionary',prod_dictionary)
 
 
     if use_catalog==True:
@@ -128,43 +132,58 @@ def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,query_type='Real'
         #TODO: we could also extract other sources really, and assert if the result is consistent with input.
         #TODO: (for better test coverage)
 
+    for k in prod_dictionary.keys():
+        print(k,':', prod_dictionary[k])
+        print ('\n')
 
 
-def test_fit_spectrum_cookbook():
-    import xspec as xsp
-    # PyXspec operations:
-    s = xsp.Spectrum("spectrum.fits")
-    s.ignore('**-15.')
-    s.ignore('300.-**')
-    xsp.Model("cutoffpl")
-    xsp.Fit.query = 'yes'
-    xsp.Fit.perform()
+def test_fit_spectrum_cookbook(use_catalog=False,query_type='Real',out_dir=None):
+    from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
+    from cdci_data_analysis.flask_app.app import set_session_logger
 
-    xsp.Plot.device = "/xs"
+    instr = OSA_ISGRI()
+    print ('out_dir',out_dir)
+    set_session_logger(out_dir)
+    parameters = dict(E1_keV=20., E2_keV=40., T1 =T1_iso, T2 =T2_iso, RA=RA, DEC=DEC, radius=25,
+                      scw_list=cookbook_scw_list,src_name='4U 1700-377',xspec_model='powerlaw',
+                      ph_file='query_spectrum_isgri_sum_1E_1740.7-2942.fits',
+                      arf_file='query_spectrum_arf_sum_1E_1740.7-2942.fits.gz',
+                      rmf_file='query_spectrum_rmf_sum_1E_1740.7-2942.fits.gz')
 
-    xsp.Plot.xLog = True
-    xsp.Plot.yLog = True
-    xsp.Plot.setRebin(10., 5)
-    xsp.Plot.xAxis='keV'
-    # Plot("data","model","resid")
-    # Plot("data model resid")
-    xsp.Plot("data,delchi")
+    logger.info('parameters dictionary')
+    logger.info(parameters)
 
-    xsp.Plot.show()
-    import matplotlib
-    matplotlib.use('TkAgg')
+    instr.set_pars_from_dic(parameters)
 
-    import pylab as plt
-    fig, ax = plt.subplots()
 
-    ax.set_xscale("log", nonposx='clip')
-    ax.set_yscale("log")
 
-    plt.errorbar(xsp.Plot.x(), xsp.Plot.y(), xerr=xsp.Plot.xErr(), yerr=xsp.Plot.yErr(), fmt='o')
-    plt.step(xsp.Plot.x(), xsp.Plot.model(),where='mid')
-    ax.set_xlabel('Energy (keV)')
-    ax.set_ylabel('normalize counts  s$^{-1}$ keV$^{-1}$')
-    plt.show()
+
+    if use_catalog==True:
+        dra=float(time.strftime("0.%j")) # it's vital to make sure that the test changes with the phase of the moon
+        ddec = float(time.strftime("0.%H%M%S"))
+
+        dsrc_name="RD_%.6lg_%.6lg"%(RA+dra,DEC+ddec) # non-astronomical, fix
+        osa_catalog = OsaCatalog.build_from_dict_list([
+            dict(ra=RA, dec=DEC, name=parameters['src_name']),
+            dict(ra=RA+dra, dec=DEC+ddec, name=dsrc_name)
+        ])
+        instr.set_par('user_catalog', osa_catalog)
+
+    instr.show_parameters_list()
+
+    prod_dictionary = instr.run_query('spectral_fit_query',config=osaconf,out_dir=out_dir,query_type=query_type)
+
+
+
+    if use_catalog==True:
+        print("input catalog:",osa_catalog.name)
+        #assert _names.header['NAME']==parameters['src_name']
+        #TODO: we could also extract other sources really, and assert if the result is consistent with input.
+        #TODO: (for better test coverage)
+
+    for k in prod_dictionary.keys():
+        print(k,':', prod_dictionary[k])
+        print ('\n')
 
 def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,query_type='Real',out_dir=None):
     from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
@@ -206,7 +225,7 @@ def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,query_type='Rea
 
     #instr.get_query_by_name('isgri_lc_query').get_prod_by_name('isgri_lc').get_html_draw(plot=True)
 
-    print (prod_dictionary)
+
 
 def test_plot_lc():
     from astropy.io import fits as pf
@@ -238,7 +257,10 @@ def test_full_spectrum():
     #test_spectrum_cookbook(use_catalog=True, use_scw_list=False)
     #test_spectrum_cookbook(use_catalog=True, use_scw_list=True)
     #test_spectrum_cookbook(use_catalog=False, use_scw_list=False)
-    test_spectrum_cookbook(use_catalog=False, use_scw_list=True,query_type='Real',out_dir='test_scratch')
+    test_spectrum_cookbook(use_catalog=False, use_scw_list=True,query_type='Dummy',out_dir='test_scratch')
+
+def test_full_fit_spectrum():
+    test_fit_spectrum_cookbook(use_catalog=False,query_type='Dummy',out_dir='test_scratch')
 
 def test_full_lc():
     #test_lightcurve_cookbook(use_catalog=True, use_scw_list=False)
