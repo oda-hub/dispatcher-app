@@ -39,7 +39,7 @@ import sys
 from ..web_display import draw_dummy
 
 UPLOAD_FOLDER = '/path/to/the/uploads'
-ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
+ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -226,26 +226,24 @@ def download_products():
 #    args = parse.parse_args()
 #    return args
 
-def upload_catalog(name):
+def upload_file(name,scratch_dir):
     print(request.files)
     if name not in request.files:
-        flash('No file part')
         return
-
-    file = request.files['file']
-    print ( request.files)
-    # if user does not select file, browser also
-    # submit a empty part without filename
-    if file.filename == '':
-        flash('No selected file')
-        return redirect(request.url)
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        print(file.filename)
-        #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        #return redirect(url_for('uploaded_file',
-        #                        filename=filename))
-
+    else:
+        file = request.files[name]
+        print ( 'type file',type(file))
+        # if user does not select file, browser also
+        # submit a empty part without filename
+        if file.filename == '' or file.filename is None:
+            return
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            print('secure_file_name')
+            file.save(os.path.join(scratch_dir, filename))
+            #return redirect(url_for('uploaded_file',
+            #                        filename=filename))
+        return filename
 
 def get_args(request):
     if request.method == 'GET':
@@ -284,8 +282,7 @@ def run_analysis_test():
     logger.info(args.to_dict())
 
     prod_dictionary = None
-    if request.method == 'POST':
-        upload_catalog('user_catalog')
+
 
     par_dic = args.to_dict()
     par_dic.pop('query_type')
@@ -307,7 +304,8 @@ def run_analysis_test():
 
     instrument.set_pars_from_dic(par_dic)
     instrument.show_parameters_list()
-    instrument.set_catalog(par_dic,scratch_dir=scratch_dir)
+
+
 
     query_type=args.get('query_type')
 
@@ -317,16 +315,39 @@ def run_analysis_test():
     logger.info('query_type %s ' % query_type)
     logger.info('instrument %s'%instrument_name)
     logger.info('parameters dictionary')
+
     for key in par_dic.keys():
         log_str='parameters dictionary, key='+key+' value='+str(par_dic[key])
         logger.info(log_str)
 
     print('product_type',product_type,query_dictionary[product_type])
-    prod_dictionary = instrument.run_query(query_dictionary[product_type],
-                                           out_dir=scratch_dir,
-                                           config=app.config.get('osaconf'),
-                                           query_type=query_type,
-                                           logger=logger)
+
+    #move the catalog setting to some preprocessing stage
+    if request.method == 'POST':
+        prod_dictionary={}
+        try:
+            cat_filename = upload_file('user_catalog', scratch_dir)
+            par_dic['user_catalog'] = cat_filename
+        except Exception as e:
+            prod_dictionary['error_message'] = 'failed to upload catalog'
+            prod_dictionary['status'] = '1'
+            logger.exception(e.message)
+
+    try:
+        instrument.set_catalog(par_dic, scratch_dir=scratch_dir)
+    except Exception as e:
+        prod_dictionary['error_message'] = 'catalog file is not valid'
+        prod_dictionary['status'] = '1'
+        logger.exception(e.message)
+
+
+
+    if prod_dictionary=={}:
+        prod_dictionary = instrument.run_query(query_dictionary[product_type],
+                                               out_dir=scratch_dir,
+                                               config=app.config.get('osaconf'),
+                                               query_type=query_type,
+                                               logger=logger)
 
     logger.info('============================================================')
     logger.info('')

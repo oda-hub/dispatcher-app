@@ -185,24 +185,34 @@ class Instrument(object):
     def set_catalog(self, par_dic, scratch_dir='./'):
         print('---------------------------------------------')
         print('set catalog')
-        if 'catalog_selected_objects' in par_dic.keys():
 
-            catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)
+        if par_dic['user_catalog'] is not None:
+            user_catalog_file=par_dic['user_catalog']
+
+            self.set_par('user_catalog', build_user_catalog(user_catalog_file))
+            #print('==> selecetd catalog')
+            #print(user_catalog.table)
+            print('==> user catalog done')
+
         else:
-            catalog_selected_objects = None
+            if 'catalog_selected_objects' in par_dic.keys():
 
-        if 'selected_catalog' in par_dic.keys():
-            catalog_dic=json.loads(par_dic['selected_catalog'])
-            print('==> selecetd catalog', catalog_dic)
-            print('==> catalog_selected_objects', catalog_selected_objects)
+                catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)
+            else:
+                catalog_selected_objects = None
 
-            if catalog_selected_objects is not None:
+            if 'selected_catalog' in par_dic.keys():
+                catalog_dic=json.loads(par_dic['selected_catalog'])
+                print('==> selecetd catalog', catalog_dic)
+                print('==> catalog_selected_objects', catalog_selected_objects)
+
+                if catalog_selected_objects is not None:
 
 
-                user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
-                self.set_par('user_catalog', user_catalog)
-                print('==> selecetd catalog')
-                print (user_catalog.table)
+                    user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
+                    self.set_par('user_catalog', user_catalog)
+                    print('==> selecetd catalog')
+                    print (user_catalog.table)
                 #for ra, dec, name in zip(user_catalog.ra, user_catalog.dec, user_catalog.name):
                 #    print(name,ra,dec)
 
@@ -220,6 +230,10 @@ class Instrument(object):
             #print('catalog selected\n', user_catalog.table)
             #print('catalog_length', user_catalog.length)
         print('---------------------------------------------')
+
+
+def build_user_catalog(user_catalog_file):
+    return BasicCatalog.from_fits_file(user_catalog_file)
 
 
 def build_catalog(cat_dic,catalog_selected_objects=None):
