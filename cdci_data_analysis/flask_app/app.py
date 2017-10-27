@@ -239,7 +239,7 @@ def upload_file(name,scratch_dir):
             return
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            print('secure_file_name')
+            print('secure_file_name',secure_filename())
             file.save(os.path.join(scratch_dir, filename))
             #return redirect(url_for('uploaded_file',
             #                        filename=filename))
@@ -338,6 +338,7 @@ def run_analysis_test():
     except Exception as e:
         prod_dictionary['error_message'] = 'catalog file is not valid'
         prod_dictionary['status'] = '1'
+        print(e.message)
         logger.exception(e.message)
 
 
