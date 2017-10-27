@@ -227,7 +227,7 @@ def download_products():
 #    return args
 
 def upload_catalog(name):
-
+    print(request.files)
     if name not in request.files:
         flash('No file part')
         return
