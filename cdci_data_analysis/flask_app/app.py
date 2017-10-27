@@ -20,7 +20,7 @@ import os
 from flask import jsonify,send_from_directory
 from flask import Flask, request
 from pathlib import Path
-from flask_restful import reqparse
+#from flask_restful import reqparse
 
 from ..ddosa_interface.osa_isgri import OSA_ISGRI
 from ..analysis.queries import *
@@ -220,11 +220,11 @@ def download_products():
 
 
 
-def parse_arg_from_requests(arg, **kwargs):
-    parse = reqparse.RequestParser()
-    parse.add_argument(arg, **kwargs)
-    args = parse.parse_args()
-    return args[arg]
+#def parse_arg_from_requests(arg, **kwargs):
+#    parse = reqparse.RequestParser()
+#    parse.add_argument(arg, **kwargs)
+#    args = parse.parse_args()
+#    return args[arg]
 
 
 def get_args(request):
