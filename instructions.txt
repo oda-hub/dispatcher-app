@@ -1,9 +1,8 @@
 #mount isdc using fuse
 #on laptop
+#in home
 mkdir isdc
 sshfs nx:/ ./isdc
-
-
 
 #tunnel to intgccn01 machine
 ssh -t -L 32778:localhost:32778 nx ssh -t -L 32778:localhost:32778 tramacer@intggcn01.isdc.unige.ch
