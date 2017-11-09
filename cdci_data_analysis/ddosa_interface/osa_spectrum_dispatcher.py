@@ -50,7 +50,7 @@ from ..analysis.parameters import *
 from .osa_dispatcher import    OsaQuery,QueryProduct
 from ..analysis.queries import SpectrumQuery
 from ..web_display import draw_spectrum
-from ..analysis.products import SpectrumProduct,QueryProductList
+from ..analysis.products import SpectrumProduct,QueryProductList,QueryOutput
 
 
 class IsgriSpectrumProduct(SpectrumProduct):
@@ -173,7 +173,7 @@ def do_spectrum_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.0
     return do_spectrum(target, modules, assume, user_catalog=user_catalog)
 
 
-def do_spectrum_from_time_span(E1,E2,T1,T2,RA,DEC,radius,user_catalog=None):
+def do_spectrum_from_time_span(E1,E2,T1,T2,RA,DEC,radius,use_max_pointings,user_catalog=None):
     """
      builds a spectrum for a time span
 
@@ -193,10 +193,10 @@ def do_spectrum_from_time_span(E1,E2,T1,T2,RA,DEC,radius,user_catalog=None):
                          rangequery.TimeDirectionScWList(\
                           use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
                           use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
-                          use_max_pointings=50 \
+                          use_max_pointings=%(use_max_pointings)d \
                           )\
                       )\
-                  '%(dict(RA=RA,DEC=DEC,radius=radius,T1=T1,T2=T2)),
+                  '%(dict(RA=RA,DEC=DEC,radius=radius,T1=T1,T2=T2,use_max_pointings=use_max_pointings)),
               'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
               'process_isgri_spectra.ISGRISpectraSum(use_extract_all=True)',
               'ddosa.ImagingConfig(use_SouFit=0,use_DoPart2=1,use_version="soufit0_p2")',
@@ -247,7 +247,7 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
     radius = instrument.get_par_by_name('radius').value
     scw_list = instrument.get_par_by_name('scw_list').value
     user_catalog = instrument.get_par_by_name('user_catalog').value
-
+    use_max_pointings = instrument.max_pointings
     src_name = instrument.get_par_by_name('src_name').value
 
     if scw_list is not None and scw_list != []:
@@ -275,6 +275,7 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
                                                  RA,
                                                  DEC,
                                                  radius,
+                                                 use_max_pointings,
                                                  user_catalog=user_catalog)
 
     res=q.run_query(query_prod=query_prod)
@@ -356,7 +357,7 @@ def process_osa_spectrum_products(instrument,prod_list):
         query_spec.write()
 
 
-    prod_dictionary = {}
+    #prod_dictionary = {}
     _names=[]
     #_figs=[]
     _files_path=[]
@@ -379,17 +380,16 @@ def process_osa_spectrum_products(instrument,prod_list):
         _files_path.append(_source_spec)
         #print ('_source_spec',_source_spec)
 
-    prod_dictionary['spectrum_name'] = _names
-    #prod_dictionary['spectrum_figure']=_figs
-    #prod_dictionary['files_path']=_files_path
-    prod_dictionary['ph_file_path'] = _pf_path
-    prod_dictionary['arf_file_path'] = _arf_path
-    prod_dictionary['rmf_file_path'] = _rmf_path
-    prod_dictionary['file_name'] = 'spectra.tar.gz'
-    prod_dictionary['prod_process_maessage']=''
-    #for l in prod_dictionary['file_path']:
-    #    print ('paths',l)
+    query_out = QueryOutput()
+
+    query_out.prod_dictionary['spectrum_name'] = _names
+
+    query_out.prod_dictionary['ph_file_path'] = _pf_path
+    query_out.prod_dictionary['arf_file_path'] = _arf_path
+    query_out.prod_dictionary['rmf_file_path'] = _rmf_path
+    query_out.prod_dictionary['file_name'] = 'spectra.tar.gz'
+    query_out.prod_dictionary['prod_process_maessage']=''
 
 
     print('--> send prog')
-    return prod_dictionary
+    return query_out

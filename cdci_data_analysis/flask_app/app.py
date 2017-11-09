@@ -92,12 +92,18 @@ def make_dir(out_dir):
 
 class InstrumentQueryBackEnd(object):
 
-    def __init__(self,instrument_name):
+    def __init__(self,instrument_name,par_dic=None,config=None):
         self.instrument_name=instrument_name
-        self.set_args(request)
-        self.set_scratch_dir(self.args.get('session_id'))
+
+        if par_dic is None:
+            self.set_args(request)
+        else:
+            self.par_dic = par_dic
+
+        self.set_scratch_dir(self.par_dic['session_id'])
         self.set_session_logger(self.scratch_dir)
         self.set_instrument(instrument_name)
+        self.config=config
 
     def set_instrument(self,instrument_name):
         if instrument_name == 'ISGRI':
@@ -126,7 +132,8 @@ class InstrumentQueryBackEnd(object):
             args = request.args
         if request.method == 'POST':
             args = request.form
-        print('args', args)
+        self.par_dic = args.to_dict()
+        print('par_dic', self.par_dic)
 
         self.args=args
 
@@ -188,7 +195,9 @@ class InstrumentQueryBackEnd(object):
             return str(e)
 
     def upload_file(self,name, scratch_dir):
-        print(request.files)
+        print('upload  file')
+        print('name', name)
+        print('request.files ',request.files)
         if name not in request.files:
             return None
         else:
@@ -200,6 +209,7 @@ class InstrumentQueryBackEnd(object):
                 return None
 
             filename = secure_filename(file.filename)
+            print('scratch_dir',scratch_dir)
             print('secure_file_name', filename)
             file_path = os.path.join(scratch_dir, filename)
             file.save(file_path)
@@ -224,10 +234,13 @@ class InstrumentQueryBackEnd(object):
         return jsonify(l)
 
 
-    def run_query(self):
-        par_dic = self.args.to_dict()
-        par_dic.pop('query_type')
-        par_dic.pop('product_type')
+    def run_query(self,off_line=False):
+
+        query_type = self.par_dic['query_type']
+        product_type = self.par_dic['product_type']
+
+        self.par_dic.pop('query_type')
+        self.par_dic.pop('product_type')
 
         #prod_dictionary = self.instrument.set_pars_from_from(par_dic)
 
@@ -235,34 +248,43 @@ class InstrumentQueryBackEnd(object):
 
 
 
-        query_type = self.args.get('query_type')
-        product_type = self.args.get('product_type')
+
 
         self.logger.info('product_type %s' % product_type)
         self.logger.info('query_type %s ' % query_type)
         self.logger.info('instrument %s' % self.instrument_name)
         self.logger.info('parameters dictionary')
 
-        for key in par_dic.keys():
-            log_str = 'parameters dictionary, key=' + key + ' value=' + str(par_dic[key])
+        for key in self.par_dic.keys():
+            log_str = 'parameters dictionary, key=' + key + ' value=' + str(self.par_dic[key])
             self.logger.info(log_str)
 
-        prod_dictionary = self.instrument.run_query(product_type,
-                                                    par_dic,
-                                                    request,
-                                                    self,
-                                                    out_dir=self.scratch_dir,
-                                                    config=app.config.get('osaconf'),
-                                                    query_type=query_type,
-                                                    logger=self.logger)
+        if self.config is None:
+            config = app.config.get('osaconf')
+        else:
+            config=self.config
+
+        query_out = self.instrument.run_query(product_type,
+                                                self.par_dic,
+                                                request,
+                                                self,
+                                                out_dir=self.scratch_dir,
+                                                config=config,
+                                                query_type=query_type,
+                                                logger=self.logger)
 
         self.logger.info('============================================================')
         self.logger.info('')
 
-        return jsonify(prod_dictionary)
+        if off_line==False:
+            try:
+                return jsonify(query_out.prod_dictionary,query_out.status_dictionary)
+            except Exception as e:
+                query_out.set_status(1,error_message='failied json serialization',debug_message=e.message)
 
 
-
+        else:
+            return query_out
 
 
 

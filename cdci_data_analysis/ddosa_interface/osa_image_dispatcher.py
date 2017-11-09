@@ -21,7 +21,7 @@ from ..analysis.queries import ImageQuery
 from ..analysis.parameters import *
 from .osa_catalog import  OsaCatalog
 from .osa_dispatcher import    OsaQuery,QueryProduct
-from ..analysis.products import QueryProductList,CatalogProduct,ImageProduct
+from ..analysis.products import QueryProductList,CatalogProduct,ImageProduct,QueryOutput
 
 from ..web_display import draw_fig
 from astropy.io import  fits as pf
@@ -72,7 +72,7 @@ def do_mosaic(E1,E2,scwlist_assumption,extramodules=None,user_catalog=None):
         extramodules=[]
 
     if user_catalog is not None:
-        print ('user_catalog',user_catalog.ra)
+        #print ('user_catalog',user_catalog.ra)
 
         cat = ['SourceCatalog',
                {
@@ -112,16 +112,14 @@ def do_mosaic_from_scw_list(E1,E2,user_catalog=None,scw_list=["035200230010.001"
     dic_str=str(scw_list)
     return do_mosaic(E1,E2,'ddosa.IDScWList(use_scwid_list=%s)'%dic_str,user_catalog=user_catalog)
 
-def do_mosaic_from_time_span(E1,E2,T1,T2,RA,DEC,radius,user_catalog=None):
+def do_mosaic_from_time_span(E1,E2,T1,T2,RA,DEC,radius,use_max_pointings,user_catalog=None):
     scwlist_assumption='rangequery.TimeDirectionScWList(\
                         use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
                         use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
-                        use_max_pointings=50)\
-                    '%(dict(RA=RA,DEC=DEC,radius=radius,T1=T1,T2=T2)),
+                        use_max_pointings=%(use_max_pointings)d)\
+                    '%(dict(RA=RA,DEC=DEC,radius=radius,T1=T1,T2=T2,use_max_pointings=use_max_pointings))
 
     return do_mosaic(E1,E2,scwlist_assumption,user_catalog=user_catalog,extramodules=['git://rangequery'])
-
-
 
 
 def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
@@ -134,13 +132,13 @@ def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,confi
     radius=instrument.get_par_by_name('radius').value
     scw_list=instrument.get_par_by_name('scw_list').value
     user_catalog=instrument.get_par_by_name('user_catalog').value
+    use_max_pointings=instrument.max_pointings
 
-    print('scw_list',scw_list)
-
+    #print ('-->scw_list',scw_list)
     if scw_list is not None and scw_list!=[]:
 
         if len(instrument.get_par_by_name('scw_list').value)==1:
-            print('-> single scw')
+            #print('-> single scw')
             query_prod = do_mosaic_from_scw_list(instrument.get_par_by_name('E1_keV').value,
                                                  instrument.get_par_by_name('E2_keV').value,
                                                  scw_list=instrument.get_par_by_name('scw_list').value,
@@ -155,6 +153,7 @@ def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,confi
     else:
         T1_iso=instrument.get_par_by_name('T1')._astropy_time.isot
         T2_iso=instrument.get_par_by_name('T2')._astropy_time.isot
+
         query_prod = do_mosaic_from_time_span(instrument.get_par_by_name('E1_keV').value,
                                               instrument.get_par_by_name('E2_keV').value,
                                               T1_iso,
@@ -162,6 +161,7 @@ def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,confi
                                               RA,
                                               DEC,
                                               radius,
+                                              use_max_pointings,
                                               user_catalog=user_catalog)
 
 
@@ -243,12 +243,12 @@ def process_osa_image_products(instrument,prod_list):
                                          vmin=instrument.get_par_by_name('image_scale_min').value,
                                          vmax=instrument.get_par_by_name('image_scale_max').value)
 
-    prod_dictionary = {}
+    query_out=QueryOutput()
 
-    prod_dictionary['image'] = html_fig
-    prod_dictionary['catalog'] = query_catalog.catalog.get_dictionary()
-    prod_dictionary['file_path'] = query_image.file_path.get_file_path()
-    prod_dictionary['file_name'] = 'image.gz'
-    prod_dictionary['prod_process_maessage'] = ''
+    query_out.prod_dictionary['image'] = html_fig
+    query_out.prod_dictionary['catalog'] = query_catalog.catalog.get_dictionary()
+    query_out.prod_dictionary['file_path'] = query_image.file_path.get_file_path()
+    query_out.prod_dictionary['file_name'] = 'image.gz'
+    query_out.prod_dictionary['prod_process_maessage'] = ''
 
-    return prod_dictionary
+    return query_out

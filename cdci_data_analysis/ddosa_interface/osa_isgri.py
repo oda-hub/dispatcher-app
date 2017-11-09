@@ -46,6 +46,9 @@ from .osa_lightcurve_dispatcher import get_osa_lightcurve,get_osa_lightcurve_dum
 from .osa_dispatcher import OsaQuery
 
 
+
+
+
 def OSA_ISGRI():
 
     src_query=SourceQuery('src_query')
@@ -66,7 +69,10 @@ def OSA_ISGRI():
         catalog=None,
         catalog_name='user_catalog')
 
-    #QueryProducts
+
+
+
+
     light_curve =LightCurveQuery('isgri_lc_query',
                                  None,
                                  get_products_method=get_osa_lightcurve,
@@ -84,6 +90,9 @@ def OSA_ISGRI():
                            get_dummy_products_method=get_osa_spectrum_dummy_products,
                            process_product_method=process_osa_spectrum_products)
 
+
+
+
     xspec_fit = SpectralFitQuery('spectral_fit_query', None)
 
     query_dictionary={}
@@ -95,6 +104,8 @@ def OSA_ISGRI():
     return  Instrument('ISGRI',
                        src_query=src_query,
                        instrumet_query=instr_query,
+                       #input_product_query=input_data,
                        product_queries_list=[image,spectrum,light_curve,xspec_fit],
                        data_server_query_class=OsaQuery,
-                       query_dictionary=query_dictionary)
+                       query_dictionary=query_dictionary,
+                       max_pointings=50)

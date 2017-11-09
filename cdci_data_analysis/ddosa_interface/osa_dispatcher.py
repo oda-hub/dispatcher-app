@@ -73,6 +73,7 @@ def view_traceback():
     del tb
 
 
+
 class QueryProduct(object):
 
     def __init__(self,target=None,modules=[],assume=[],inject=[]):
@@ -151,6 +152,48 @@ class OsaQuery(object):
         print('--> end test connection')
 
         return status
+
+    def test_has_input_products(self,instrument):
+        print('--> start has input_products')
+        RA = instrument.get_par_by_name('RA').value
+        DEC = instrument.get_par_by_name('DEC').value
+        radius = instrument.get_par_by_name('radius').value
+        scw_list = instrument.get_par_by_name('scw_list').value
+        #print('scw_list', scw_list)
+
+        if scw_list is not None and scw_list != []:
+            return scw_list
+
+        else:
+            T1_iso = instrument.get_par_by_name('T1')._astropy_time.isot
+            T2_iso = instrument.get_par_by_name('T2')._astropy_time.isot
+
+
+
+            target = "ReportScWList"
+            modules = ["git://ddosa", "git://ddosadm"] + ['git://rangequery']
+            assume = ['rangequery.ReportScWList(\
+                                      input_scwlist=\
+                                      rangequery.TimeDirectionScWList(\
+                                    use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
+                                    use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
+                                    use_max_pointings=50))' % (dict(RA=RA, DEC=DEC, radius=radius, T1=T1_iso, T2=T2_iso))]
+
+
+            remote = dc.RemoteDDOSA(self.url, self.ddcache_root_local)
+
+            try:
+                product = remote.query(target=target,modules=modules,assume=assume)
+                return product.scwidlist
+
+            except dc.WorkerException as e:
+                content = json.loads(e.content)
+
+                status = content['result']['status']
+                print('e=> server connection status', status)
+
+                return None
+
 
     def test_busy(self,max_trial=25,sleep_s=1):
         print ('--> start test busy')

@@ -143,18 +143,11 @@ class BasicCatalog(object):
         self._table.add_column(Column(data=data,name=name,dtype=dtype))
 
     def get_dictionary(self ):
-        #print('in table',self.table)
-        #for col in self._table.columns.values():
-        #    try:
-        #        col.mask = np.isnan(col)
-        #        col[col.mask]=-99
-        #    except:
-        #        pass
+
 
         column_lists=[self.table[name].tolist() for name in self.table.colnames]
         for ID,_col in enumerate(column_lists):
             column_lists[ID] = [x if str(x)!='nan' else None for x in _col]
-        #print ('new table',column_lists)
 
         return dict(cat_frame=self.table.meta['FRAME'],
                     cat_coord_units=self.table.meta['COORD_UNIT'],
@@ -171,8 +164,27 @@ class BasicCatalog(object):
         self._table.write(name,format=format,overwrite=overwrite)
 
     @classmethod
+    def from_ecsv_file(cls, file_name):
+        return cls.from_table(Table.read(file_name, format='ascii.ecsv'))
+
+
+    @classmethod
     def from_fits_file(cls,file_name):
         return cls.from_table(Table.read(file_name,format='fits'))
+
+    @classmethod
+    def from_file(cls,file_name):
+        format_list=['ascii.ecsv','fits']
+        cat=None
+        for f in format_list:
+            try:
+                cat= cls.from_table(Table.read(file_name,format=f))
+            except:
+                pass
+
+        if cat is None:
+            raise RuntimeError('file format for catalog not valid')
+        return cat
 
     @classmethod
     def from_table(cls,table):

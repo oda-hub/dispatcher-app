@@ -46,7 +46,7 @@ import  numpy as np
 from ..analysis.parameters import *
 from .osa_dispatcher import OsaQuery, QueryProduct
 from ..analysis.queries import LightCurveQuery
-from ..analysis.products import LightCurveProduct,QueryProductList
+from ..analysis.products import LightCurveProduct,QueryProductList,QueryOutput
 from astropy.io import fits as pf
 
 class IsgriLigthtCurve(LightCurveProduct):
@@ -164,13 +164,13 @@ def do_lc_from_scw_list(E1, E2, src_name,scw_list=None,user_catalog=None,delta_t
     return do_lightcurve(E1, E2, 'ddosa.IDScWList(use_scwid_list=%s)' % dic_str, src_name, user_catalog=user_catalog,delta_t=delta_t)
 
 
-def do_lc_from_time_span(E1, E2, T1, T2, RA, DEC, radius,src_name,user_catalog=None,delta_t=1000):
+def do_lc_from_time_span(E1, E2, T1, T2, RA, DEC, radius,src_name,use_max_pointings,user_catalog=None,delta_t=1000):
     print('mosaic standard mode from time span')
     scwlist_assumption = 'rangequery.TimeDirectionScWList(\
                         use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
                         use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
-                        use_max_pointings=50)\
-                    ' % (dict(RA=RA, DEC=DEC, radius=radius, T1=T1, T2=T2)),
+                        use_max_pointings=%(use_max_pointings)d)\
+                    ' % (dict(RA=RA, DEC=DEC, radius=radius, T1=T1, T2=T2,use_max_pointings=use_max_pointings)),
 
     return do_lightcurve(E1, E2, scwlist_assumption, src_name, extramodules=['git://rangequery'],
                          user_catalog=user_catalog,delta_t=delta_t)
@@ -185,7 +185,7 @@ def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=No
     radius = instrument.get_par_by_name('radius').value
     scw_list = instrument.get_par_by_name('scw_list').value
     user_catalog = instrument.get_par_by_name('user_catalog').value
-
+    use_max_pointings = instrument.max_pointings
     src_name = instrument.get_par_by_name('src_name').value
     delta_t = instrument.get_par_by_name('time_bin')._astropy_time_delta.sec
     print('delta_t is sec', delta_t)
@@ -219,6 +219,7 @@ def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=No
                                                  DEC,
                                                  radius,
                                                  src_name,
+                                                 use_max_pointings,
                                                  delta_t=delta_t,
                                                  user_catalog=user_catalog)
 
@@ -272,17 +273,19 @@ def process_osa_lc_products(instrument,prod_list):
 
     query_lc.write(overwrite=True)
 
+    query_out = QueryOutput()
+
     if query_lc.data is not None:
         html_fig = query_lc.get_html_draw()
-        prod_dictionary['image'] = html_fig
-        prod_dictionary['file_path'] = query_lc.file_path.get_file_path()
-        prod_dictionary['file_name'] = 'light_curve.fits.gz'
-        prod_dictionary['prod_process_maessage'] = ''
+        query_out.prod_dictionary['image'] = html_fig
+        query_out.prod_dictionary['file_path'] = query_lc.file_path.get_file_path()
+        query_out.prod_dictionary['file_name'] = 'light_curve.fits.gz'
+        query_out.prod_dictionary['prod_process_maessage'] = ''
     else:
-        prod_dictionary['image'] = None
-        prod_dictionary['file_path'] = ''
-        prod_dictionary['file_name'] = ''
-        prod_dictionary['prod_process_maessage'] = 'no light curve produced for name %s',query_lc.src_name
+        query_out.prod_dictionary['image'] = None
+        query_out.prod_dictionary['file_path'] = ''
+        query_out.prod_dictionary['file_name'] = ''
+        query_out.prod_dictionary['prod_process_maessage'] = 'no light curve produced for name %s',query_lc.src_name
     print('--> send prog')
 
-    return prod_dictionary
+    return query_out
