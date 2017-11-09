@@ -558,26 +558,25 @@ class ProductQuery(BaseQuery):
         return query_out
 
 
-    def process_product(self,instrument,query_prod_list, config=None,out_dir=None,**kwargs):
+    def process_product(self,instrument,query_prod_list, config=None,**kwargs):
         query_out = QueryOutput()
         if self._process_product_method is not None and query_prod_list is not None:
-            query_out= self._process_product_method(instrument,query_prod_list,out_dir=out_dir,**kwargs)
+            query_out= self._process_product_method(instrument,query_prod_list,**kwargs)
         return query_out
 
-    def process_query_product(self,instrument,query_type='Real',logger=None,config=None,scratch_dir=None,**kwargs):
+    def process_query_product(self,instrument,query_type='Real',logger=None,config=None,**kwargs):
         status = 0
         message = ''
         debug_message = ''
 
         msg_str = '--> start prodcut processing'
-        print ('-->scratch_dir',scratch_dir)
         print(msg_str)
         logger.info(msg_str)
 
         query_out = QueryOutput()
 
         try:
-            query_out=self.process_product(instrument, self.query_prod_list,out_dir=scratch_dir,**kwargs)
+            query_out=self.process_product(instrument, self.query_prod_list,**kwargs)
 
         except Exception as e:
 
@@ -614,7 +613,7 @@ class ProductQuery(BaseQuery):
             query_out = self.get_query_products(instrument, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
 
         if query_out.status_dictionary['status'] == 0:
-            query_out = self.process_query_product(instrument, logger=logger, config=config,scratch_dir=scratch_dir)
+            query_out = self.process_query_product(instrument, logger=logger, config=config)
 
 
         if input_prod_list is not None:
@@ -651,6 +650,37 @@ class PostProcessProductQuery(ProductQuery):
         query_out = QueryOutput()
         if self._process_product_method is not None and query_prod_list is not None:
             query_out= self._process_product_method(instrument,query_prod_list,**kwargs)
+        return query_out
+
+    def process_query_product(self,instrument,query_type='Real',logger=None,config=None,scratch_dir=None,**kwargs):
+        status = 0
+        message = ''
+        debug_message = ''
+
+        msg_str = '--> start prodcut processing'
+        print(msg_str)
+        logger.info(msg_str)
+
+        query_out = QueryOutput()
+
+        try:
+            query_out=self.process_product(instrument, self.query_prod_list,out_dir=scratch_dir,**kwargs)
+
+        except Exception as e:
+
+            print('!!! >>>Exception<<<', e)
+            print("prod_process failed, Error:", e)
+            view_traceback()
+            logger.exception(e)
+            status=1
+            message='product processig failed'
+            debug_message = e.message
+
+        msg_str = '==>prod_process_status %d\n' % status
+        msg_str += '--> end product process'
+        logger.info(msg_str)
+
+        query_out.set_status(status, message, debug_message=debug_message)
         return query_out
 
 
