@@ -13,7 +13,7 @@ __author__ = "Andrea Tramacere"
 # eg numpy
 # absolute import eg: import numpy as np
 
-
+import  os
 
 # Project
 # relative import eg: from .mod import f
@@ -247,7 +247,7 @@ def process_osa_image_products(instrument,prod_list):
 
     query_out.prod_dictionary['image'] = html_fig
     query_out.prod_dictionary['catalog'] = query_catalog.catalog.get_dictionary()
-    query_out.prod_dictionary['file_path'] = query_image.file_path.get_file_path()
+    query_out.prod_dictionary['file_path'] = str(os.path.basename(query_image.file_path.get_file_path()))
     query_out.prod_dictionary['file_name'] = 'image.gz'
     query_out.prod_dictionary['prod_process_maessage'] = ''
 
