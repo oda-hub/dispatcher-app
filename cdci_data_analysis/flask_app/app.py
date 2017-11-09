@@ -100,7 +100,11 @@ class InstrumentQueryBackEnd(object):
         else:
             self.par_dic = par_dic
 
-        self.set_scratch_dir(self.par_dic['session_id'])
+        if 'session_id' in self.par_dic.keys():
+            session_id=self.par_dic['session_id']
+        else:
+            session_id=None
+        self.set_scratch_dir(session_id)
         self.set_session_logger(self.scratch_dir)
         self.set_instrument(instrument_name)
         self.config=config

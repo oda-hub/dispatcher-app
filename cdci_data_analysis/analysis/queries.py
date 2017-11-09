@@ -665,7 +665,7 @@ class PostProcessProductQuery(ProductQuery):
         query_out = QueryOutput()
 
         try:
-            query_out=self.process_product(instrument, self.query_prod_list,out_dir=scratch_dir,**kwargs)
+            query_out=self.process_product(instrument,out_dir=scratch_dir,**kwargs)
 
         except Exception as e:
 
@@ -689,8 +689,8 @@ class PostProcessProductQuery(ProductQuery):
     def run_query(self,instrument,scratch_dir,query_type='Real', config=None,logger=None):
 
         #query_out = self.get_query_products(instrument, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
-
         #if query_out.status_dictionary['status'] == 0:
+
         query_out = self.process_query_product(instrument, logger=logger, config=config,scratch_dir=scratch_dir)
 
         return query_out
