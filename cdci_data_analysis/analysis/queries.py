@@ -659,6 +659,7 @@ class PostProcessProductQuery(ProductQuery):
 
         msg_str = '--> start prodcut processing'
         print(msg_str)
+        print ('kwargs',kwargs)
         logger.info(msg_str)
 
         query_out = QueryOutput()
