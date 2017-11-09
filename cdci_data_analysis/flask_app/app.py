@@ -149,14 +149,17 @@ class InstrumentQueryBackEnd(object):
         make_dir(wd)
         self.scratch_dir=wd
 
-    def prepare_download(self,file_list, file_name, scratch_dir):
+    def prepare_download(self,file_list, file_name, scratch_dir=None):
         if hasattr(file_list, '__iter__'):
             print('file_list is iterable')
         else:
             file_list = [file_list]
 
         for ID, f in enumerate(file_list):
-            file_list[ID] = os.path.join(scratch_dir + '/', f)
+            if scratch_dir is not None:
+                file_list[ID] = os.path.join(scratch_dir + '/', f)
+            else:
+                file_list[ID]=f
 
         tmp_dir = tempfile.mkdtemp(prefix='download_', dir='./')
         print('using tmp dir', tmp_dir)
