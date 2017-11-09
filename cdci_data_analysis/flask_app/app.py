@@ -327,7 +327,8 @@ def meta_data_isgri():
 
 @app.route("/download_products",methods=['POST', 'GET'])
 def download_products():
-    query = InstrumentQueryBackEnd()
+    instrument_name = 'ISGRI'
+    query = InstrumentQueryBackEnd(instrument_name=instrument_name)
     return query.download_products()
 
 
