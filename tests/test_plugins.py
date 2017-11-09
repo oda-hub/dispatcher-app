@@ -99,7 +99,7 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,query_type='Real',
 
         query.instrument.show_parameters_list()
         print ('request',request.method)
-        query_out=query.run_query(off_line=True)
+        query_out=query.run_query(off_line=False)
         #print(query_out.prod_dictionary)
         print('\n\n\n')
 
