@@ -100,11 +100,7 @@ class InstrumentQueryBackEnd(object):
         else:
             self.par_dic = par_dic
 
-        if 'session_id' in self.par_dic.keys():
-            session_id=self.par_dic['session_id']
-        else:
-            session_id=None
-        self.set_scratch_dir(session_id)
+        self.set_scratch_dir(self.par_dic['session_id'])
         self.set_session_logger(self.scratch_dir)
         self.set_instrument(instrument_name)
         self.config=config
@@ -149,17 +145,14 @@ class InstrumentQueryBackEnd(object):
         make_dir(wd)
         self.scratch_dir=wd
 
-    def prepare_download(self,file_list, file_name, scratch_dir=None):
+    def prepare_download(self,file_list, file_name, scratch_dir):
         if hasattr(file_list, '__iter__'):
             print('file_list is iterable')
         else:
             file_list = [file_list]
 
         for ID, f in enumerate(file_list):
-            if scratch_dir is not None:
-                file_list[ID] = os.path.join(scratch_dir + '/', f)
-            else:
-                file_list[ID]=f
+            file_list[ID] = os.path.join(scratch_dir + '/', f)
 
         tmp_dir = tempfile.mkdtemp(prefix='download_', dir='./')
         print('using tmp dir', tmp_dir)
