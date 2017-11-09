@@ -558,25 +558,26 @@ class ProductQuery(BaseQuery):
         return query_out
 
 
-    def process_product(self,instrument,query_prod_list, config=None,**kwargs):
+    def process_product(self,instrument,query_prod_list, config=None,out_dir=None,**kwargs):
         query_out = QueryOutput()
         if self._process_product_method is not None and query_prod_list is not None:
-            query_out= self._process_product_method(instrument,query_prod_list,**kwargs)
+            query_out= self._process_product_method(instrument,query_prod_list,out_dir=out_dir,**kwargs)
         return query_out
 
-    def process_query_product(self,instrument,query_type='Real',logger=None,config=None,**kwargs):
+    def process_query_product(self,instrument,query_type='Real',logger=None,config=None,scratch_dir=None,**kwargs):
         status = 0
         message = ''
         debug_message = ''
 
         msg_str = '--> start prodcut processing'
+        print ('-->scratch_dir',scratch_dir)
         print(msg_str)
         logger.info(msg_str)
 
         query_out = QueryOutput()
 
         try:
-            query_out=self.process_product(instrument, self.query_prod_list,**kwargs)
+            query_out=self.process_product(instrument, self.query_prod_list,out_dir=scratch_dir,**kwargs)
 
         except Exception as e:
 
@@ -613,7 +614,7 @@ class ProductQuery(BaseQuery):
             query_out = self.get_query_products(instrument, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
 
         if query_out.status_dictionary['status'] == 0:
-            query_out = self.process_query_product(instrument, logger=logger, config=config)
+            query_out = self.process_query_product(instrument, logger=logger, config=config,scratch_dir=scratch_dir)
 
 
         if input_prod_list is not None:
@@ -659,7 +660,7 @@ class PostProcessProductQuery(ProductQuery):
         #query_out = self.get_query_products(instrument, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
 
         #if query_out.status_dictionary['status'] == 0:
-        query_out = self.process_query_product(instrument, logger=logger, config=config,out_dir=scratch_dir)
+        query_out = self.process_query_product(instrument, logger=logger, config=config,scratch_dir=scratch_dir)
 
         return query_out
 
@@ -736,6 +737,7 @@ class SpectralFitQuery(PostProcessProductQuery):
 
 
     def process_product(self,instrument,out_dir=None):
+        print ('out dir',out_dir)
         src_name = instrument.get_par_by_name('src_name').value
 
         ph_file=instrument.get_par_by_name('ph_file').value
