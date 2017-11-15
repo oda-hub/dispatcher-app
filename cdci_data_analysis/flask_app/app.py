@@ -285,7 +285,7 @@ class InstrumentQueryBackEnd(object):
                 print('exit_status',out_dict['exit_status'])
                 return jsonify(out_dict)
             except Exception as e:
-                query_out.set_status(1,error_message='failied json serialization',debug_message=e.message)
+                query_out.set_status(1,error_message='failied json serialization',debug_message=str(e.message))
                 out_dict['exit_status'] = query_out.status_dictionary
                 return jsonify(out_dict)
 

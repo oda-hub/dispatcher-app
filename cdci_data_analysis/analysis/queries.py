@@ -434,7 +434,7 @@ class ProductQuery(BaseQuery):
         logger.info(msg_str)
 
         query_out=QueryOutput()
-        query_out.set_status(status, message, debug_message=debug_message)
+        query_out.set_status(status, message, debug_message=str(debug_message))
 
         return query_out,communication_status
 
@@ -469,7 +469,7 @@ class ProductQuery(BaseQuery):
             logger.info(msg_str)
 
         query_out = QueryOutput()
-        query_out.set_status(status, message, debug_message=debug_message)
+        query_out.set_status(status, message, debug_message=str(debug_message))
 
         return query_out,communication_status
 
@@ -515,7 +515,7 @@ class ProductQuery(BaseQuery):
         query_out = QueryOutput()
 
         query_out.set_products(['input_prod_list','len_prod_list'],[input_prod_list,len(input_prod_list)])
-        query_out.set_status(status, message, debug_message=debug_message)
+        query_out.set_status(status, message, debug_message=str(debug_message))
 
 
         return query_out
@@ -553,7 +553,7 @@ class ProductQuery(BaseQuery):
 
         query_out = QueryOutput()
 
-        query_out.set_status(status, message, debug_message=debug_message)
+        query_out.set_status(status, message, debug_message=str(debug_message))
 
         return query_out
 
@@ -592,7 +592,7 @@ class ProductQuery(BaseQuery):
         msg_str += '--> end product process'
         logger.info(msg_str)
 
-        query_out.set_status(status, message, debug_message=debug_message)
+        query_out.set_status(status, message, debug_message=str(debug_message))
         return query_out
 
 
@@ -681,7 +681,7 @@ class PostProcessProductQuery(ProductQuery):
         msg_str += '--> end product process'
         logger.info(msg_str)
 
-        query_out.set_status(status, message, debug_message=debug_message)
+        query_out.set_status(status, message, debug_message=str(debug_message))
         return query_out
 
 

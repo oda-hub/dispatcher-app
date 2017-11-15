@@ -222,7 +222,7 @@ class Instrument(object):
             debug_message = e.message
             logger.exception(e.message)
 
-        q.set_status(status,error_message,debug_message)
+        q.set_status(status,error_message,str(debug_message))
         print('---------------------------------------------')
         return q
 
@@ -272,7 +272,7 @@ class Instrument(object):
                 logger.exception(debug_message)
 
         self.set_pars_from_dic(par_dic)
-        q.set_status(status, error_message, debug_message)
+        q.set_status(status, error_message, str(debug_message))
         print('---------------------------------------------')
         return q
 
@@ -330,7 +330,7 @@ class Instrument(object):
             logger.exception(e.message)
 
         self.set_pars_from_dic(par_dic)
-        q.set_status(status, error_message, debug_message)
+        q.set_status(status, error_message, str(debug_message))
         print('---------------------------------------------')
         return q
 

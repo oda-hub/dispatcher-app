@@ -103,7 +103,18 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,query_type='Real',
 
         #print(query_out.prod_dictionary)
         print('\n\n\n')
+        from flask import jsonify, send_from_directory
 
+        out_dict={}
+        out_dict['products'] = query_out.prod_dictionary
+        out_dict['exit_status'] = query_out.status_dictionary
+        print( 'A',query_out.prod_dictionary,query_out.status_dictionary)
+        print( 'B',query_out.prod_dictionary,query_out.status_dictionary)
+        return jsonify(out_dict['exit_status'])
+        print('exit_status', out_dict['exit_status'])
+
+
+        print('status', query_out.prod_dictionary)
         print('status',query_out.status_dictionary['status'])
         print('error_message',query_out.status_dictionary['error_message'])
         print('debug_message',query_out.status_dictionary['debug_message'])
