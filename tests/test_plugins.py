@@ -99,14 +99,15 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,query_type='Real',
 
         query.instrument.show_parameters_list()
         print ('request',request.method)
-        query_out=query.run_query(off_line=False)
+        query_out=query.run_query(off_line=True)
+
         #print(query_out.prod_dictionary)
         print('\n\n\n')
 
         print('status',query_out.status_dictionary['status'])
         print('error_message',query_out.status_dictionary['error_message'])
         print('debug_message',query_out.status_dictionary['debug_message'])
-        print('scw_list', query_out.prod_dictionary['input_prod_list'])
+        #print('scw_list', query_out.prod_dictionary['input_prod_list'])
         assert query_out.status_dictionary['status']==0
 
 
