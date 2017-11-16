@@ -134,7 +134,6 @@ def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,confi
     user_catalog=instrument.get_par_by_name('user_catalog').value
     use_max_pointings=instrument.max_pointings
 
-    #print ('-->scw_list',scw_list)
     if scw_list is not None and scw_list!=[]:
 
         if len(instrument.get_par_by_name('scw_list').value)==1:
