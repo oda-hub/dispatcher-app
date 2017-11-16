@@ -73,7 +73,7 @@ def test_mosaic_cookbook(instrument_name='ISGRI',use_scw_list=False,use_catalog=
     else:
         cat_dict=None
 
-    parameters_dic=dict(E1_keV=20.,E2_keV=40.,T1=T1_iso, T2=T2_iso,RA=RA,DEC=DEC,radius=25,scw_list=scw_list,
+    parameters_dic=dict(E1_keV=20.,E2_keV=40,T1=T1_iso, T2=T2_iso,RA=RA,DEC=DEC,radius=25,scw_list=scw_list,
                         image_scale_min=1,session_id='test',query_type=query_type,product_type='isgri_image',
                         detection_threshold=5.0,user_catalog_dictionary=None)
     data_cat_fits = dict(
@@ -129,7 +129,7 @@ def test_spectrum_cookbook(use_scw_list=True,use_catalog=False,query_type='Real'
 
     instr = OSA_ISGRI()
     set_session_logger(out_dir)
-    parameters = dict(E1_keV=20., E2_keV=40., T1 =T1_iso, T2 =T2_iso, RA=RA, DEC=DEC, radius=25,
+    parameters = dict(E1_keV=20., E2_keV=40, T1 =T1_iso, T2 =T2_iso, RA=RA, DEC=DEC, radius=25,
                       scw_list=cookbook_scw_list,src_name='4U 1700-377',xspec_model='powerlaw')
 
     logger.info('parameters dictionary')
@@ -283,7 +283,7 @@ def test_plot_lc():
 
 def test_full_mosaic():
     #test_mosaic_cookbook(use_catalog=True,use_scw_list=False)
-    test_mosaic_cookbook(use_catalog=True, use_scw_list=False,out_dir='test_scratch',query_type='Real')
+    test_mosaic_cookbook(use_catalog=True, use_scw_list=False,out_dir='test_scratch',query_type='Dummy')
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=False)
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=True)
 
