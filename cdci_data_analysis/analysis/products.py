@@ -77,8 +77,8 @@ class QueryOutput(object):
        
 
         self.status_dictionary['status']=status
-        self.status_dictionary['error_message']=error_message
-        self.status_dictionary['debug_message']=debug_message
+        self.status_dictionary['error_message']=str(error_message)
+        self.status_dictionary['debug_message']=str(debug_message)
 
     
 class QueryProductList(object):
