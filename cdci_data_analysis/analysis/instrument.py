@@ -23,18 +23,21 @@ from __future__ import absolute_import, division, print_function
 from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
 
+from werkzeug.utils import secure_filename
 
 from pathlib import Path
 import json
 import  logging
-
-logger = logging.getLogger(__name__)
+import  re
+#logger = logging.getLogger(__name__)
 
 import  numpy as np
 from astropy.table import Table
 
 from cdci_data_analysis.analysis.queries import _check_is_base_query
 from .catalog import BasicCatalog
+from .products import  QueryOutput
+import  os
 
 __author__ = "Andrea Tramacere"
 
@@ -54,9 +57,12 @@ class Instrument(object):
                  instr_name,
                  src_query,
                  instrumet_query,
+                 input_product_query=None,
                  catalog=None,
                  product_queries_list=None,
-                 data_server_query_class=None):
+                 data_server_query_class=None,
+                 query_dictionary={},
+                 max_pointings=None):
 
         #name
         self.name=instr_name
@@ -82,35 +88,22 @@ class Instrument(object):
 
         _check_is_base_query(self._queries_list)
 
+        self.input_product_query=input_product_query
 
+        self.query_dictionary = query_dictionary
+
+        self.max_pointings=max_pointings
 
     def _check_names(self):
         pass
 
+
+
     def set_pars_from_dic(self,par_dic):
-        print(par_dic.keys())
+        #print(par_dic.keys())
         for _query in self._queries_list:
             for par in _query._parameters_list:
                 par.set_from_form(par_dic)
-                #par_name=par.name
-                #units_name=par.units_name
-                #v=None
-                #u=None
-                #if par_name  in par_dic.keys():
-                #    v=par_dic[par_name]
-                #if units_name in  par_dic.keys():
-                #    if units_name is not None:
-                #        u=par_dic[units_name]
-                #print('setting par:', par_name,'to val=',v,'and units',units_name,'to',u)
-                #if u is not None:
-                #    par.units=u
-                #par.value=v
-
-
-        #for p, v in par_dic.items():
-        #    print('set from form', p, v)
-        #    self.set_par(p,v)
-        #    print('--')
 
     def set_par(self,par_name,value):
         p=self.get_par_by_name(par_name)
@@ -138,15 +131,41 @@ class Instrument(object):
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config).test_busy()
 
-    def run_query(self,query_name,config=None,out_dir=None,query_type='Real',**kwargs):
-        return self.get_query_by_name(query_name).run_query(self,out_dir,query_type=query_type,config=config)
+    def test_has_input_products(self, config,instrument):
+        if self.data_server_query_class is not None:
+            return self.data_server_query_class(config=config).test_has_input_products(instrument)
 
-    def get_query_products(self, query_name, config=None,out_dir=None):
-        return self.get_query_by_name(query_name).get_products(self, config=config,out_dir=out_dir)
+    def run_query(self,product_type,par_dic,request,back_end_query,config=None,out_dir=None,query_type='Real',logger=None,**kwargs):
 
-    def get_query_dummy_products(self, query_name, config=None,out_dir=None,**kwargs):
+        #prod_dictionary={}
 
-        return self.get_query_by_name(query_name).get_dummy_products(self, config=config,out_dir=out_dir,**kwargs)
+        if logger is None:
+            logger = logging.getLogger(__name__)
+
+        #set pars
+
+        query_out=self.set_pars_from_form(par_dic)
+        self.show_parameters_list()
+
+        #set catalog
+        if query_out.status_dictionary['status']==0:
+            query_out=self.set_catalog_from_fronted(par_dic, request,back_end_query,logger)
+
+        #set input products
+        if query_out.status_dictionary['status'] == 0:
+            query_out=self.set_input_products_from_fronted(par_dic, request,back_end_query,logger)
+
+        if query_out.status_dictionary['status'] == 0:
+            query_name=self.query_dictionary[product_type]
+            query_out=self.get_query_by_name(query_name).run_query(self,out_dir,query_type=query_type,config=config,logger=logger)
+
+
+
+
+
+        return query_out
+
+
 
     def get_html_draw(self, prod_name, image,image_header,catalog=None,**kwargs):
 
@@ -182,44 +201,180 @@ class Instrument(object):
 
         return l
 
-    def set_catalog(self, par_dic, scratch_dir='./'):
-        print('---------------------------------------------')
-        print('set catalog')
-        if 'catalog_selected_objects' in par_dic.keys():
 
-            catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)
+
+
+    def set_pars_from_form(self,par_dic,logger=None):
+        print('---------------------------------------------')
+        print('setting form paramters')
+        q=QueryOutput()
+        status=0
+        error_message=''
+        debug_message=''
+        if logger is None:
+            logger = logging.getLogger(__name__)
+
+        try:
+            self.set_pars_from_dic(par_dic)
+        except Exception as e:
+            status=1
+            error_message= 'error in form parameter'
+            debug_message = e.message
+            logger.exception(e.message)
+
+        q.set_status(status,error_message,str(debug_message))
+        print('---------------------------------------------')
+        return q
+
+
+    def set_input_products_from_fronted(self,par_dic,request,back_end_query,logger=None):
+        print('---------------------------------------------')
+        print('setting user input prods')
+        input_prod_list_name = self.instrumet_query.input_prod_list_name
+        q = QueryOutput()
+        status = 0
+        error_message = ''
+        debug_message = ''
+        input_file_path=None
+
+        if logger is None:
+            logger = logging.getLogger(__name__)
+
+        if request.method == 'POST':
+            try:
+                input_file_path = back_end_query.upload_file('user_scw_list_file', back_end_query.scratch_dir)
+
+
+            except Exception as e:
+                error_message = 'failed to upload %s'%self.input_prod_name
+                status = 1
+                debug_message = e.message
+                logger.exception(e.message)
+
+            try:
+                has_input=self.set_input_products(par_dic,input_file_path,input_prod_list_name)
+            except Exception as e :
+                error_message = 'scw_list file is not valid'
+                status = 1
+                debug_message = e.message
+                logger.exception(e.message)
+
+            print ('has input',has_input)
+            try:
+                if has_input==True:
+                    pass
+                else:
+                    raise RuntimeError
+            except:
+                error_message = 'No scw_list from file accepted'
+                status = 1
+                debug_message = 'no valid scw in the scwlist file'
+                logger.exception(debug_message)
+
+        self.set_pars_from_dic(par_dic)
+        q.set_status(status, error_message, str(debug_message))
+        print('---------------------------------------------')
+        return q
+
+
+
+
+
+
+    def set_input_products(self, par_dic, input_file_path,input_prod_list_name):
+        template = re.compile(r'^(\d{12}).(\d{3})$')
+        if input_file_path is None:
+            return True
         else:
-            catalog_selected_objects = None
+            with open(input_file_path) as f:
+                lines = f.readlines()
 
-        if 'selected_catalog' in par_dic.keys():
-            catalog_dic=json.loads(par_dic['selected_catalog'])
-            print('==> selecetd catalog', catalog_dic)
-            print('==> catalog_selected_objects', catalog_selected_objects)
-
-            if catalog_selected_objects is not None:
+            acceptList = [item.strip() for item in lines if template.match(item)]
+            par_dic[input_prod_list_name]=acceptList
+            print ("--> accepted scws",acceptList,len(acceptList))
+            return len(acceptList)>=1
 
 
-                user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
-                self.set_par('user_catalog', user_catalog)
-                print('==> selecetd catalog')
-                print (user_catalog.table)
-                #for ra, dec, name in zip(user_catalog.ra, user_catalog.dec, user_catalog.name):
-                #    print(name,ra,dec)
-
-            #from cdci_data_analysis.analysis.catalog import BasicCatalog
-
-            #file_path = Path(scratch_dir, 'query_catalog.fits')
-            #print('using catalog', file_path)
-            #user_catalog = BasicCatalog.from_fits_file(file_path)
-
-            #print('catalog_length', user_catalog.length)
-            #self.set_par('user_catalog', user_catalog)
-            #print('catalog_selected_objects', catalog_selected_objects)
-
-            #user_catalog.select_IDs(catalog_selected_objects)
-            #print('catalog selected\n', user_catalog.table)
-            #print('catalog_length', user_catalog.length)
+    def set_catalog_from_fronted(self,par_dic,request,back_end_query,logger=None):
         print('---------------------------------------------')
+        print('setting user catalog')
+        q = QueryOutput()
+        status = 0
+        error_message = ''
+        debug_message = ''
+
+        if logger is None:
+            logger = logging.getLogger(__name__)
+
+        cat_file_path=None
+        if request.method == 'POST':
+
+            try:
+                cat_file_path = back_end_query.upload_file('user_catalog_file', back_end_query.scratch_dir)
+                par_dic['user_catalog_file'] = cat_file_path
+                print('set_catalog_from_fronted,request.method', request.method, par_dic['user_catalog_file'],cat_file_path)
+            except Exception as e:
+                error_message = 'failed to upload catalog'
+                status = 1
+                debug_message=e.message
+                logger.exception(e.message)
+
+        try:
+            self.set_catalog(par_dic, scratch_dir=back_end_query.scratch_dir)
+
+        except Exception as e:
+            error_message = 'catalog file is not valid'
+            status = 1
+            debug_message = e.message
+            print(e.message)
+            logger.exception(e.message)
+
+        self.set_pars_from_dic(par_dic)
+        q.set_status(status, error_message, str(debug_message))
+        print('---------------------------------------------')
+        return q
+
+    def set_catalog(self, par_dic, scratch_dir='./'):
+
+
+        user_catalog_file=None
+        if 'user_catalog_file' in par_dic.keys():
+            user_catalog_file = par_dic['user_catalog_file']
+            print("--> user_catalog_file ",user_catalog_file)
+
+        elif 'user_catalog_dictionary'in par_dic.keys():
+            self.set_par('user_catalog',build_catalog(par_dic['user_catalog_dictionary']))
+            print("--> user_catalog_dictionary ", par_dic['user_catalog_dictionary'])
+
+        if user_catalog_file is not None:
+            self.set_par('user_catalog', load_user_catalog(user_catalog_file))
+            print('==> user catalog done, using file',user_catalog_file)
+
+        else:
+            if 'catalog_selected_objects' in par_dic.keys():
+
+                catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)
+            else:
+                catalog_selected_objects = None
+
+            if 'selected_catalog' in par_dic.keys():
+                catalog_dic=json.loads(par_dic['selected_catalog'])
+                print('==> selecetd catalog', catalog_dic)
+                print('==> catalog_selected_objects', catalog_selected_objects)
+
+                if catalog_selected_objects is not None:
+
+
+                    user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
+                    self.set_par('user_catalog', user_catalog)
+                    print('==> selecetd catalog')
+                    print (user_catalog.table)
+
+
+
+
+def load_user_catalog(user_catalog_file):
+    return BasicCatalog.from_file(user_catalog_file)
 
 
 def build_catalog(cat_dic,catalog_selected_objects=None):

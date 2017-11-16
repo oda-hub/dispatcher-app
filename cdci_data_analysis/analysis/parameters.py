@@ -556,11 +556,16 @@ class Angle(Parameter):
             if units is None:
                 units = self.units
 
+
+
             self._set_angle(v, units=units)
 
         def _set_angle(self, value, units):
-            self._astropy_angle = astropyAngle(value, unit=units)
-            self._value = self._astropy_angle.value
+            if value=='' or value is None:
+                pass
+            else:
+                self._astropy_angle = astropyAngle(value, unit=units)
+                self._value = self._astropy_angle.value
 
 # class AngularDistance(Parameter):
 #     def __init__(self, angular_units,name, value=None):

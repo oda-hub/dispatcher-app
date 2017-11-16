@@ -1,9 +1,8 @@
 #mount isdc using fuse
 #on laptop
+#in home
 mkdir isdc
 sshfs nx:/ ./isdc
-
-
 
 #tunnel to intgccn01 machine
 ssh -t -L 32778:localhost:32778 nx ssh -t -L 32778:localhost:32778 tramacer@intggcn01.isdc.unige.ch
@@ -12,7 +11,7 @@ ssh -t -L 32778:localhost:32778 nx ssh -t -L 32778:localhost:32778 tramacer@intg
 -) ssh -t -L 32778:localhost:32778 tramacer@intggcn01.isdc.unige.ch
 -) swithc to bash
 -) heainit
-
+-) to run test:
 #on every machine
 cp .secret-ddosa-client ~
 

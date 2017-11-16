@@ -62,6 +62,25 @@ class QueryFilePath(object):
         return str(file_path)
 
 
+
+class QueryOutput(object):
+    def  __init__(self):
+        self.prod_dictionary={}
+        self.status_dictionary={}
+   
+    
+    def set_products(self,keys,values):
+        for k,v in zip(keys,values):
+            self.prod_dictionary[k] =v
+    
+    def set_status(self,status,error_message='',debug_message=''):
+       
+
+        self.status_dictionary['status']=status
+        self.status_dictionary['error_message']=error_message
+        self.status_dictionary['debug_message']=debug_message
+
+    
 class QueryProductList(object):
 
     def __init__(self,prod_list):
