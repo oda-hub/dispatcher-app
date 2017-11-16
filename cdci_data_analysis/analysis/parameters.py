@@ -366,12 +366,12 @@ class Float(Parameter):
             except:
                 pass
             value=np.float(value)
-            if type(value)==int:
+            if type(value) == int or type(value) == np.int:
                 pass
-            if type(value)==float:
+            elif type(value) == float or type(value) == np.float:
                 pass
             else:
-                raise RuntimeError('type of ',name,'not valid',type(value))
+                raise RuntimeError('type of ', name, 'not valid', type(value))
 
 
 
@@ -613,9 +613,9 @@ class SpectralBoundary(Parameter):
         except:
             pass
 
-        if type(value)==int:
+        if type(value)==int or type(value)==np.int:
             pass
-        if type(value)==float:
+        elif type(value)==float or type(value)==np.float:
             pass
         else:
             raise RuntimeError('type of ',name,'not valid',type(value))
@@ -648,9 +648,9 @@ class Energy(Parameter):
         except:
             pass
 
-        if type(value)==int:
+        if type(value)==int or type(value)==np.int:
             pass
-        if type(value)==float:
+        elif type(value)==float or type(value)==np.float:
             pass
         else:
             raise RuntimeError('type of ',name,'not valid',type(value))
@@ -686,9 +686,9 @@ class DetectionThreshold(Parameter):
         except:
             pass
 
-        if type(value)==int:
+        if type(value)==int or type(value)==np.int:
             pass
-        if type(value)==float:
+        elif type(value)==float or type(value)==np.float:
             pass
         else:
             raise RuntimeError('type of ',name,'not valid',type(value))
