@@ -101,7 +101,7 @@ def OSA_JEMX():
     #query_dictionary['isgri_lc'] = 'isgri_lc_query'
     #query_dictionary['spectral_fit'] = 'spectral_fit_query'
 
-    return  Instrument('ISGRI',
+    return  Instrument('JEMX',
                        src_query=src_query,
                        instrumet_query=instr_query,
                        #input_product_query=input_data,

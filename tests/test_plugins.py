@@ -52,7 +52,7 @@ def test_instr(use_scw_list=True):
 
 
 
-def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,query_type='Real',out_dir='./'):
+def test_mosaic_cookbook(instrument_name='ISGRI',use_scw_list=False,use_catalog=False,query_type='Real',out_dir='./'):
 
 
     testapp = flask.Flask(__name__)
@@ -91,7 +91,6 @@ def test_mosaic_cookbook(use_scw_list=False,use_catalog=False,query_type='Real',
 
     with testapp.test_request_context( method='POST',content_type='multipart/form-data',data=None):
 
-        instrument_name = 'ISGRI'
         query = InstrumentQueryBackEnd(instrument_name=instrument_name,par_dic=parameters_dic,config=osaconf)
 
 

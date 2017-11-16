@@ -1,18 +1,24 @@
-#mount isdc using fuse
-#on laptop
-#in home
-mkdir isdc
-sshfs nx:/ ./isdc
+
 
 #On Mac
-#tunnel to intgccn01 machine
-ssh -t -L 32778:localhost:32778 nx ssh -t -L 32778:localhost:32778 tramacer@intggcn01.isdc.unige.ch
+-)mount isdc using fuse
+  PATH is the local_cache directory from conf_env.yml
+
+  mkdir PATH
+  sshfs nx:/ PATH
+
+-)tunnel to intgccn01 machine
+ ssh -t -L 32778:localhost:32778 nx ssh -t -L 32778:localhost:32778 tramacer@intggcn01.isdc.unige.ch
 
 #On login machine
 -) ssh -t -L 32778:localhost:32778 tramacer@intggcn01.isdc.unige.ch
 -) swithc to bash
 -) heainit
--) to run test: source activate cdci_test
+-) to use the test environmet: source activate cdci_test
+-) to run the server
+   a)run_osa_cdci_server.py -conf_file conf_env.yml
+   OR
+   b))run_osa_cdci_server.py -conf_file conf_env.yml -use_gunicorn
 
 #on every machine
 cp .secret-ddosa-client ~
