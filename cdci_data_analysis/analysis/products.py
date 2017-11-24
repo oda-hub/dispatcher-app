@@ -1,5 +1,4 @@
 
-
 from __future__ import absolute_import, division, print_function
 
 __author__ = "Andrea Tramacere"
@@ -606,7 +605,8 @@ class SpectralFitProduct(BaseQueryProduct):
 
         s.ignore('**-15.')
         s.ignore('300.-**')
-
+        s.ignore('bad')
+        
         model_name=xspec_model
 
         m = xsp.Model(model_name)
