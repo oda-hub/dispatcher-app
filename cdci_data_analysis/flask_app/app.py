@@ -25,6 +25,7 @@ from flask.views import View
 #from flask_restful import reqparse
 
 from ..ddosa_interface.osa_isgri import OSA_ISGRI
+from ..ddosa_interface.osa_jemx import OSA_JEMX
 from ..analysis.queries import *
 import  tempfile
 import tarfile
@@ -108,6 +109,8 @@ class InstrumentQueryBackEnd(object):
     def set_instrument(self,instrument_name):
         if instrument_name == 'ISGRI':
             self.instrument = OSA_ISGRI()
+        elif instrument_name=='JEMX':
+            self.instrument=OSA_JEMX()
 
         if self.instrument is None:
             raise Exception("instrument not recognized".format(instrument_name))

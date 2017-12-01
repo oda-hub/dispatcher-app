@@ -79,7 +79,7 @@ def OSA_JEMX():
     #                              get_dummy_products_method=get_osa_lightcurve_dummy_products,
     #                              process_product_method=process_osa_lc_products)
 
-    image=ImageQuery('isgri_image_query',
+    image=ImageQuery('jemx_image_query',
                      None,
                      get_products_method=get_osa_image_products,
                      get_dummy_products_method=get_osa_image_dummy_products,

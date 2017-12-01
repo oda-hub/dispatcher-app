@@ -73,8 +73,15 @@ def test_mosaic_cookbook(instrument_name='ISGRI',use_scw_list=False,use_catalog=
     else:
         cat_dict=None
 
+    if instrument_name=='ISGRI':
+        product_type='isgri_image'
+    elif instrument_name=='JEMX':
+        product_type='jemx_image'
+    else:
+        raise RuntimeError('instrumet %s'%instrument_name, 'not supported')
+
     parameters_dic=dict(E1_keV=20.,E2_keV=40,T1=T1_iso, T2=T2_iso,RA=RA,DEC=DEC,radius=25,scw_list=scw_list,
-                        image_scale_min=1,session_id='test',query_type=query_type,product_type='isgri_image',
+                        image_scale_min=1,session_id='test',query_type=query_type,product_type=product_type,
                         detection_threshold=5.0,user_catalog_dictionary=None)
     data_cat_fits = dict(
         user_catalog_file=(open("dummy_prods/query_catalog.fits", "rb", buffering=0), "query_user_catalog"),
@@ -306,6 +313,6 @@ def test_full_lc():
 
 def test_mosaic_jemx():
     #test_mosaic_cookbook(use_catalog=True,use_scw_list=False)
-    test_mosaic_cookbook(instrument_name="JEMX1",use_catalog=True, use_scw_list=False,out_dir='test_scratch',query_type='Dummy')
+    test_mosaic_cookbook(instrument_name="JEMX",use_catalog=True, use_scw_list=False,out_dir='test_scratch',query_type='Real')
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=False)
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=True)
