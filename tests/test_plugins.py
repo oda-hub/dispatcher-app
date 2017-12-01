@@ -117,6 +117,7 @@ def test_mosaic_cookbook(instrument_name='ISGRI',use_scw_list=False,use_catalog=
         print('error_message',query_out.status_dictionary['error_message'])
         print('debug_message',query_out.status_dictionary['debug_message'])
         #print('scw_list', query_out.prod_dictionary['input_prod_list'])
+        print(query_out.status_dictionary)
         assert query_out.status_dictionary['status']==0
 
 

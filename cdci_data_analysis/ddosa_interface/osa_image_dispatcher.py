@@ -105,12 +105,16 @@ def do_mosaic(instr_name,E1,E2,scwlist_assumption,extramodules=None,user_catalog
             assume.append("ddosa.mosaic_ii_skyimage(use_ii_NegModels=1)")
 
     elif  instr_name=='JEMX':
-        target = "mosaic_jemx"
 
-        modules = ["git://ddosa", "git://ddosadm", "git://ddjemx", 'git://rangequery'] + extramodules,
+        target = "mosaic_osa"
+        modules = ["git://ddosa", "git://ddosadm", "git://ddjemx", "git://rangequery"] + extramodules
+        assume = ['ddjemx.JMXImageGroups(input_scwlist=%s)' % scwlist_assumption,
+                  'ddjemx.JEnergyBins(use_bins=[(%(E1)s,%(E2)s)])' % dict(E1=E1, E2=E2)]
 
-        assume = ['ddosa.JMXScWImageList(input_scwlist=%s)' % scwlist_assumption,
-                  'ddosa.JEnergyBins(use_bins=[(%(E1)s,%(E2)s)])' % dict(E1=E1, E2=E2)]
+        #target = "mosaic_jemx"
+        #modules = ["git://ddosa", "git://ddosadm", "git://ddjemx", "git://rangequery"] + extramodules
+        #assume = ['ddjemx.JMXScWImageList(input_scwlist=%s)' % scwlist_assumption,
+        #          'ddjemx.JEnergyBins(use_bins=[(%(E1)s,%(E2)s)])' % dict(E1=E1, E2=E2)]
 
         if user_catalog is not None:
             raise RuntimeError("jemx catalog not implemented")
