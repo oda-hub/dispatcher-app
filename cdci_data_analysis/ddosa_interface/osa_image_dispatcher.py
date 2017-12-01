@@ -105,13 +105,17 @@ def do_mosaic(instr_name,E1,E2,scwlist_assumption,extramodules=None,user_catalog
             assume.append("ddosa.mosaic_ii_skyimage(use_ii_NegModels=1)")
 
     elif  instr_name=='JEMX':
-        # TODO: Placeholder for Volodymyr
-        target = "mosaic_ii_skyimage"
-        modules = ["git://ddosa", "git://ddosadm"] + extramodules
-        assume = ['ddosa.ImageGroups(input_scwlist=%s)' % scwlist_assumption,
-                  'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,
-                                                                                                           E2=E2),
-                  'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+        target = "mosaic_jemx"
+
+        modules = ["git://ddosa", "git://ddosadm", "git://ddjemx", 'git://rangequery'] + extramodules,
+
+        assume = ['ddosa.JMXScWImageList(input_scwlist=%s)' % scwlist_assumption,
+                  'ddosa.JEnergyBins(use_bins=[(%(E1)s,%(E2)s)])' % dict(E1=E1, E2=E2)]
+
+        if user_catalog is not None:
+            raise RuntimeError("jemx catalog not implemented")
+            #assume.append("ddosa.mosaic_ii_skyimage(use_ii_NegModels=1)")
+
     else:
         # TODO: add allowed_instrument_list in the configuration and check on that before!
         raise RuntimeError('Instrumet %s not implemented'%instr_name)

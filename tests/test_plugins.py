@@ -304,3 +304,8 @@ def test_full_lc():
     #test_lightcurve_cookbook(use_catalog=False, use_scw_list=True)
 
 
+def test_mosaic_jemx():
+    #test_mosaic_cookbook(use_catalog=True,use_scw_list=False)
+    test_mosaic_cookbook(instrument_name="JEMX1",use_catalog=True, use_scw_list=False,out_dir='test_scratch',query_type='Dummy')
+    #test_mosaic_cookbook(use_catalog=False, use_scw_list=False)
+    #test_mosaic_cookbook(use_catalog=False, use_scw_list=True)
