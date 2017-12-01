@@ -606,6 +606,7 @@ class SpectralFitProduct(BaseQueryProduct):
 
         s.ignore('**-15.')
         s.ignore('300.-**')
+        xsp.AllData.ignore('bad')
 
         model_name=xspec_model
 
