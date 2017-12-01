@@ -317,7 +317,7 @@ class LightCurveProduct(BaseQueryProduct):
         return p,chisq,chisq_red,dof
 
 
-class SpectrumProduct(BaseQueryProduct):
+class   SpectrumProduct(BaseQueryProduct):
     def __init__(self, name,
                  data,
                  header,
