@@ -15,7 +15,8 @@ import time
 from flask import Flask, request
 import flask
 
-from cdci_data_analysis.ddosa_interface.osa_catalog import OsaCatalog
+from cdci_data_analysis.ddosa_interface.osa_catalog import OsaIsgriCatalog,OsaJemxCatalog
+
 
 from cdci_data_analysis.flask_app.app import InstrumentQueryBackEnd
 

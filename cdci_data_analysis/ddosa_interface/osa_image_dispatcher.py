@@ -19,7 +19,7 @@ import  os
 # relative import eg: from .mod import f
 from ..analysis.queries import ImageQuery
 from ..analysis.parameters import *
-from .osa_catalog import  OsaCatalog
+from .osa_catalog import  OsaIsgriCatalog,OsaJemxCatalog
 from .osa_dispatcher import    OsaQuery,QueryProduct
 from ..analysis.products import QueryProductList,CatalogProduct,ImageProduct,QueryOutput
 
@@ -29,12 +29,12 @@ from astropy.io import  fits as pf
 
 
 
-class IsgriImageProduct(ImageProduct):
+class OsaImageProduct(ImageProduct):
 
     def __init__(self,name,file_name,skyima,out_dir=None,prod_prefix=None):
         header = skyima.header
         data = skyima.data
-        super(IsgriImageProduct, self).__init__(name,data=data,header=header,name_prefix=prod_prefix,file_dir=out_dir,file_name=file_name)
+        super(OsaImageProduct, self).__init__(name,data=data,header=header,name_prefix=prod_prefix,file_dir=out_dir,file_name=file_name)
         #check if you need to copy!
 
 
@@ -196,9 +196,19 @@ def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,confi
 
     res=q.run_query(query_prod=query_prod)
 
+    if instrument.name == 'ISGRI':
+        image=OsaImageProduct.build_from_ddosa_skyima('mosaic_image','isgri_query_mosaic.fits',res.skyima,out_dir=out_dir,prod_prefix=prod_prefix)
+        osa_catalog=CatalogProduct('mosaic_catalog',catalog=OsaIsgriCatalog.build_from_ddosa_srclres(res.srclres),file_name='query_catalog.fits',name_prefix=prod_prefix,file_dir=out_dir)
 
-    image=IsgriImageProduct.build_from_ddosa_skyima('isgri_mosaic','isgri_query_mosaic.fits',res.skyima,out_dir=out_dir,prod_prefix=prod_prefix)
-    osa_catalog=CatalogProduct('mosaic_catalog',catalog=OsaCatalog.build_from_ddosa_srclres(res.srclres),file_name='query_catalog.fits',name_prefix=prod_prefix,file_dir=out_dir)
+    elif instrument.name == 'JEMX':
+        image = OsaImageProduct.build_from_ddosa_skyima('mosaic_image', 'jemx_query_mosaic.fits', res.skyima,
+                                                          out_dir=out_dir, prod_prefix=prod_prefix)
+        osa_catalog = CatalogProduct('mosaic_catalog', catalog=OsaJemxCatalog.build_from_ddosa_srclres(res.srclres),
+                                     file_name='query_catalog.fits', name_prefix=prod_prefix, file_dir=out_dir)
+
+    else:
+        # TODO: add allowed_instrument_list in the configuration and check on that before!
+        raise RuntimeError('Instrumet %s not implemented'%instrument.name)
 
     prod_list=QueryProductList(prod_list=[image,osa_catalog])
 
@@ -246,7 +256,7 @@ def get_osa_image_dummy_products(instrument,config,out_dir='./'):
 
 def process_osa_image_products(instrument,prod_list):
 
-    query_image = prod_list.get_prod_by_name('isgri_mosaic')
+    query_image = prod_list.get_prod_by_name('mosaic_image')
     query_catalog = prod_list.get_prod_by_name('mosaic_catalog')
     detection_significance = instrument.get_par_by_name('detection_threshold').value
 

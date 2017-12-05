@@ -19,6 +19,7 @@ import numpy as np
 import os
 from flask import jsonify,send_from_directory
 from flask import Flask, request
+from flask import render_template
 from flask.views import View
 
 #from pathlib import Path
@@ -343,6 +344,10 @@ def run_analysis_test():
     instrument_name='ISGRI'
     query=InstrumentQueryBackEnd(instrument_name=instrument_name)
     return query.run_query()
+
+
+
+
 
 
 def run_app(conf,debug=False,threaded=False):
