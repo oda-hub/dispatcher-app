@@ -103,7 +103,7 @@ class InstrumentQueryBackEnd(object):
             self.par_dic = par_dic
 
         if instrument_name is None:
-            instrument_name = self.par_dic['instrumet']
+            instrument_name = self.par_dic['instrument']
 
 
         self.set_scratch_dir(self.par_dic['session_id'])
