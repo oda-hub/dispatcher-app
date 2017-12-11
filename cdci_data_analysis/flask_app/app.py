@@ -102,6 +102,10 @@ class InstrumentQueryBackEnd(object):
         else:
             self.par_dic = par_dic
 
+        if instrument_name is None:
+            instrument_name = self.par_dic['instrumet']
+
+
         self.set_scratch_dir(self.par_dic['session_id'])
         self.set_session_logger(self.scratch_dir)
         self.set_instrument(instrument_name)
@@ -245,7 +249,8 @@ class InstrumentQueryBackEnd(object):
 
         self.par_dic.pop('query_type')
         self.par_dic.pop('product_type')
-
+        if self.par_dic.has_key('instrumet'):
+            self.par_dic.pop('instrumet')
         #prod_dictionary = self.instrument.set_pars_from_from(par_dic)
 
         #if prod_dictionary['status'] == 0:
@@ -341,8 +346,8 @@ def download_products():
 
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
-    instrument_name='ISGRI'
-    query=InstrumentQueryBackEnd(instrument_name=instrument_name)
+    #instrument_name='ISGRI'
+    query=InstrumentQueryBackEnd()
     return query.run_query()
 
 
