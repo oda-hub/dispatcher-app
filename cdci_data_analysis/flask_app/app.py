@@ -113,12 +113,12 @@ class InstrumentQueryBackEnd(object):
         self.config=config
 
     def set_instrument(self,instrument_name):
-        if instrument_name == 'ISGRI':
+        if instrument_name == 'isgri':
             self.instrument = OSA_ISGRI()
-        elif instrument_name=='JEMX':
+        elif instrument_name=='jemx':
             self.instrument=OSA_JEMX()
 
-        if self.instrument is None:
+        else:
             raise Exception("instrument not recognized".format(instrument_name))
 
     def set_session_logger(self,scratch_dir):
