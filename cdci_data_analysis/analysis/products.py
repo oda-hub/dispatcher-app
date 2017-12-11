@@ -18,6 +18,7 @@ __author__ = "Andrea Tramacere"
 
 import json
 
+
 from pathlib import Path
 
 from astropy import wcs
@@ -169,7 +170,7 @@ class ImageProduct(BaseQueryProduct):
 
             w = wcs.WCS(self.header)
             if len(lat)>0.:
-                pixcrd = w.wcs_world2pix(np.column_stack((lon, lat)), 1)
+                pixcrd = w.wcs_world2pix(np.column_stack((lon, lat)), 0)
 
                 msk=~np.isnan(pixcrd[:, 0])
                 ax.plot(pixcrd[:, 0][msk], pixcrd[:, 1][msk], 'o', mfc='none')
@@ -178,11 +179,11 @@ class ImageProduct(BaseQueryProduct):
                     if msk[ID]:
                         #print ('xy',(pixcrd[:, 0][ID], pixcrd[:, 1][ID]))
                         ax.annotate('%s' % catalog.name[ID], xy=(x,y), color='white')
-                            
 
-            ax.set_xlabel('RA')
-            ax.set_ylabel('DEC')
 
+        ax.set_xlabel('RA')
+        ax.set_ylabel('DEC')
+        ax.grid(True, color='white')
         fig.colorbar(im, ax=ax)
 
 
@@ -190,9 +191,8 @@ class ImageProduct(BaseQueryProduct):
         if plot == True:
             print ('plot',plot)
             mpld3.show()
-
         res_dict = {}
-        res_dict['image'] = mpld3.fig_to_dict(fig)
+        res_dict['image'] =  mpld3.fig_to_dict(fig)
         res_dict['header_text'] = ''
         res_dict['table_text'] = ''
         res_dict['footer_text'] = 'colorscale for normalzied significance\nmax significance=%.2f, min significance=%.2f'%(vmax,vmin)

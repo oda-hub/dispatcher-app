@@ -13,6 +13,7 @@ osaconf = ConfigEnv.from_conf_file('./conf_env.yml')
 
 import time
 from flask import Flask, request
+from flask import jsonify
 import flask
 
 from cdci_data_analysis.ddosa_interface.osa_catalog import OsaIsgriCatalog,OsaJemxCatalog
@@ -120,6 +121,8 @@ def test_mosaic_cookbook(instrument_name='ISGRI',use_scw_list=False,use_catalog=
         #print('scw_list', query_out.prod_dictionary['input_prod_list'])
         print(query_out.status_dictionary)
         assert query_out.status_dictionary['status']==0
+        from cdci_data_analysis.analysis.products import ImageProduct
+        ImageProduct.from_fits_file('./scratch_test/jemx_query_mosaic.fits', '', '', ext=0).get_html_draw(plot=True)
 
 
 def test_plot_mosaic():
@@ -315,6 +318,6 @@ def test_full_lc():
 
 def test_mosaic_jemx():
     #test_mosaic_cookbook(use_catalog=True,use_scw_list=False)
-    test_mosaic_cookbook(instrument_name="JEMX",use_catalog=True, use_scw_list=False,out_dir='test_scratch',query_type='Real')
+    test_mosaic_cookbook(instrument_name="JEMX",use_catalog=True, use_scw_list=False,out_dir='test_scratch',query_type='False')
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=False)
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=True)

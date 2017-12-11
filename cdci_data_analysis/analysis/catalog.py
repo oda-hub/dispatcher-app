@@ -159,6 +159,18 @@ class BasicCatalog(object):
 
 
 
+    def write_ds9_region(self,name):
+        ra=self.sc.fk5.ra
+        dec=self.sc.fk5.dec
+
+
+        with open(name,'w') as f:
+            for r,d in zip(ra,dec):
+
+                s=u'''fk5; point %f %f #point = x \n'''%(r.deg,d.deg)
+                f.write(s)
+
+
 
     def write(self,name,format='fits',overwrite=True):
         self._table.write(name,format=format,overwrite=overwrite)

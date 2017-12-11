@@ -230,7 +230,7 @@ def get_osa_image_dummy_products(instrument,config,out_dir='./'):
 
     image = ImageProduct.from_fits_file(in_file='%s/isgri_query_mosaic.fits'%dummy_cache,
                                         out_file_name='isgri_query_mosaic.fits',
-                                        prod_name='isgri_mosaic',
+                                        prod_name='mosaic_image',
                                         ext=0,
                                         file_dir=out_dir)
 
