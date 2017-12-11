@@ -8,4 +8,3 @@ astropy
 pathlib
 gunicorn
 flask_restful
-pywcsgrid2
