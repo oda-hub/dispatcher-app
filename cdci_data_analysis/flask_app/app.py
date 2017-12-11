@@ -104,11 +104,12 @@ class InstrumentQueryBackEnd(object):
 
         if instrument_name is None:
             self.instrument_name = self.par_dic['instrument']
-
+        else:
+            self.instrument_name = instrument_name
 
         self.set_scratch_dir(self.par_dic['session_id'])
         self.set_session_logger(self.scratch_dir)
-        self.set_instrument(instrument_name)
+        self.set_instrument(self.instrument_name)
         self.config=config
 
     def set_instrument(self,instrument_name):
