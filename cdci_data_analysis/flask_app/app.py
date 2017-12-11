@@ -94,8 +94,8 @@ def make_dir(out_dir):
 
 class InstrumentQueryBackEnd(object):
 
-    def __init__(self,instrument_name,par_dic=None,config=None):
-        self.instrument_name=instrument_name
+    def __init__(self,instrument_name=None,par_dic=None,config=None):
+        #self.instrument_name=instrument_name
 
         if par_dic is None:
             self.set_args(request)
