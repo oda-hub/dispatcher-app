@@ -2,7 +2,7 @@ future
 numpy
 pyyaml
 simplejson
-mpld3
+mpld3==0.3
 flask
 astropy
 pathlib

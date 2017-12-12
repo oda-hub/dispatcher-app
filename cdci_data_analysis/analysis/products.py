@@ -183,7 +183,7 @@ class ImageProduct(BaseQueryProduct):
 
         ax.set_xlabel('RA')
         ax.set_ylabel('DEC')
-        #ax.grid(True, color='white')
+        ax.grid(True, color='white')
         fig.colorbar(im, ax=ax)
 
 
