@@ -147,11 +147,12 @@ class ImageProduct(BaseQueryProduct):
 
     def get_html_draw(self, catalog=None,plot=False,vmin=None,vmax=None):
         #print('vmin,vmax',vmin,vmax)
+        msk=~np.isnan(self.data)
         if vmin is None:
-            vmin=self.data.min()
+            vmin=self.data[msk].min()
 
         if vmax is None:
-            vmax=self.data.max()
+            vmax=self.data[msk].max()
 
         fig, (ax) = plt.subplots(1, 1, figsize=(4, 3), subplot_kw={'projection': WCS(self.header)})
         im = ax.imshow(self.data,

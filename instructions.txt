@@ -76,7 +76,7 @@ To run tests example in run_test directory:
 pytest ../tests/test_plugins.py::test_image -s -v
 
 #ssh tunnel on testing machine
-ssh -D 8123 -f -C -q -N tramacer@isdc-nx01.isdc.unige.ch
+ssh -C -D 8080 tramacer@isdc-nx01.isdc.unige.ch
 
 #XSPEC python
 #login to cdciweb01
@@ -106,7 +106,7 @@ To run tests example in run_test directory:
 pytest ../tests/test_plugins.py::test_image -s -v
 
 #ssh tunnel on testing machine
-ssh -D 8123 -f -C -q -N tramacer@isdc-nx01.isdc.unige.ch
+ssh -C -D 8080 tramacer@isdc-nx01.isdc.unige.ch
 
 #XSPEC python
 #login to cdciweb01
