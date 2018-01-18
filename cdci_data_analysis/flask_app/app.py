@@ -28,6 +28,9 @@ from flask.views import View
 from ..ddosa_interface.osa_isgri import OSA_ISGRI
 from ..ddosa_interface.osa_jemx import OSA_JEMX
 from ..analysis.queries import *
+
+from .mock_data_server import mock_request
+from .mock_data_server import mock_chek_job_status
 import  tempfile
 import tarfile
 import gzip
@@ -107,17 +110,30 @@ class InstrumentQueryBackEnd(object):
         else:
             self.instrument_name = instrument_name
 
-        self.set_scratch_dir(self.par_dic['session_id'])
+        job_status = self.par_dic['job_status']
+
+        self.job_id=None
+        if job_status=='new':
+            self.generate_job_id()
+        else:
+            self.job_id=self.par_dic['job_id']
+
+        self.set_scratch_dir(self.par_dic['session_id'],job_id=self.job_id)
         self.set_session_logger(self.scratch_dir)
         self.set_instrument(self.instrument_name)
         self.config=config
+
+
+    def generate_job_id(self):
+        self.job_id='JOB0'
 
     def set_instrument(self,instrument_name):
         if instrument_name == 'isgri':
             self.instrument = OSA_ISGRI()
         elif instrument_name=='jemx':
             self.instrument=OSA_JEMX()
-
+        elif instrument_name=='mock':
+            self.instrument='mock'
         else:
             raise Exception("instrument not recognized".format(instrument_name))
 
@@ -146,10 +162,14 @@ class InstrumentQueryBackEnd(object):
 
         self.args=args
 
-    def set_scratch_dir(self,session_id):
-        wd = './scratch'
+    def set_scratch_dir(self,session_id,job_id=None):
+        wd = 'scratch'
         if session_id is not None:
-            wd = 'scratch_' + session_id
+            wd += '_' + session_id
+
+
+        if job_id is not None:
+            wd +='_'+job_id
 
         make_dir(wd)
         self.scratch_dir=wd
@@ -243,13 +263,107 @@ class InstrumentQueryBackEnd(object):
         return jsonify(l)
 
 
+
+    def run_call_back(self):
+        job_id = self.par_dic['job_id']
+        session_ID=self.par_dic['session_ID']
+        job_status = self.par_dic['job_status']
+        self.update_job_status()
+
+
+    def update_job_status(self):
+        #write to scratch status
+        pass
+
+    def check_job_status(self):
+        #read status from scratch file status
+        pass
+
+    def run_query_mock(self, off_line=False):
+
+
+        # JOBID=PID+RAND
+
+
+        job_status = self.par_dic['job_status']
+        session_id=self.par_dic['session_id']
+
+
+        if self.par_dic.has_key('instrumet'):
+            self.par_dic.pop('instrumet')
+        # prod_dictionary = self.instrument.set_pars_from_from(par_dic)
+
+        # if prod_dictionary['status'] == 0:
+
+
+        self.logger.info('instrument %s' % self.instrument_name)
+        self.logger.info('parameters dictionary')
+
+        for key in self.par_dic.keys():
+            log_str = 'parameters dictionary, key=' + key + ' value=' + str(self.par_dic[key])
+            self.logger.info(log_str)
+
+        if self.config is None:
+            config = app.config.get('osaconf')
+        else:
+            config = self.config
+
+        if job_status == 'new':
+
+            print ('--> id,session,dir',self.job_id,session_id,self.scratch_dir)
+
+            job_status =mock_request(self.job_id,session_id,self.scratch_dir)
+
+            out_dict = {}
+            out_dict['products'] = ''
+            out_dict['exit_status'] = ''
+            out_dict['job_status'] = job_status['status']
+            out_dict['job_fraction'] = job_status['fraction']
+
+        if job_status == 'done':
+            out_dict = {}
+            out_dict['products'] = 'HELLO WORD'
+            out_dict['exit_status'] = '0'
+            out_dict['job_status'] = 'done'
+            out_dict['job_fraction'] = '1.0'
+
+
+        else:
+            job_status = mock_chek_job_status(job_id=self.job_id, session_id=session_id,scratch_dir=self.scratch_dir)
+
+            out_dict = {}
+            out_dict['products'] = ''
+            out_dict['exit_status'] = ''
+            out_dict['job_status'] = job_status['status']
+            out_dict['job_fraction'] = job_status['fraction']
+
+
+
+
+
+        self.logger.info('============================================================')
+        self.logger.info('')
+
+        print ('-->',job_status)
+
+        if off_line == False:
+            return jsonify(out_dict)
+        else:
+            return out_dict
+
+
+
+
     def run_query(self,off_line=False):
 
         query_type = self.par_dic['query_type']
         product_type = self.par_dic['product_type']
 
-        self.par_dic.pop('query_type')
-        self.par_dic.pop('product_type')
+        #JOBID=PID+RAND
+        job_status=self.par_dic['job_status']
+
+
+
         if self.par_dic.has_key('instrumet'):
             self.par_dic.pop('instrumet')
         #prod_dictionary = self.instrument.set_pars_from_from(par_dic)
@@ -274,14 +388,31 @@ class InstrumentQueryBackEnd(object):
         else:
             config=self.config
 
-        query_out = self.instrument.run_query(product_type,
-                                                self.par_dic,
-                                                request,
-                                                self,
-                                                out_dir=self.scratch_dir,
-                                                config=config,
-                                                query_type=query_type,
-                                                logger=self.logger)
+        if job_status=='new' or job_status=='done':
+            query_out = self.instrument.run_query(product_type,
+                                                    self.par_dic,
+                                                    request,
+                                                    self,
+                                                    out_dir=self.scratch_dir,
+                                                    config=config,
+                                                    query_type=query_type,
+                                                    logger=self.logger)
+        else:
+            job_status=self.check_job_status(job_id=self.job_id,job_status=job_status)
+
+            out_dict = {}
+            out_dict['products'] = ''
+            out_dict['exit_status'] = ''
+            out_dict['job_status'] = job_status
+            self.logger.info('============================================================')
+            self.logger.info('')
+            return jsonify(out_dict)
+
+
+
+
+
+
 
 
         self.logger.info('============================================================')
@@ -295,7 +426,7 @@ class InstrumentQueryBackEnd(object):
                 print('exit_status',out_dict['exit_status'])
                 return jsonify(out_dict)
             except Exception as e:
-                query_out.set_status(1,error_message='failied json serialization',debug_message=str(e.message))
+                query_out.set_status(1,error_message='failed json serialization',debug_message=str(e.message))
                 out_dict['exit_status'] = query_out.status_dictionary
                 return jsonify(out_dict)
 
@@ -307,7 +438,6 @@ class InstrumentQueryBackEnd(object):
 
 @app.route("/test_sleep")
 def test_sleep():
-
     import time
     time.sleep(10)
     return "<h1 style='color:blue'>Hello There!</h1>"
@@ -352,6 +482,18 @@ def run_analysis_test():
     return query.run_query()
 
 
+@app.route('/test_mock', methods=['POST', 'GET'])
+def test_mock():
+    #instrument_name='ISGRI'
+    query=InstrumentQueryBackEnd()
+    return query.run_query_mock()
+
+
+@app.route('/call_back', methods=['POST', 'GET'])
+def call_back_analysis_test():
+    #instrument_name='ISGRI'
+    query=InstrumentQueryBackEnd()
+    return query.run_call_back()
 
 
 

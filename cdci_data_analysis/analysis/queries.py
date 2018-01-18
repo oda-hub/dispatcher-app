@@ -600,6 +600,9 @@ class ProductQuery(BaseQuery):
 
     def run_query(self,instrument,scratch_dir,query_type='Real', config=None,logger=None):
         input_prod_list=None
+
+
+
         query_out,communication_status = self.test_communication(instrument,query_type=query_type,logger=logger,config=config)
 
         if query_out.status_dictionary['status']==0:
@@ -609,8 +612,16 @@ class ProductQuery(BaseQuery):
             query_out=self.test_has_products(instrument,query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
             input_prod_list=query_out.prod_dictionary['input_prod_list']
 
+
+
+
         if query_out.status_dictionary['status'] == 0:
             query_out = self.get_query_products(instrument, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
+
+        # TODO: add check if is asynch
+        # TODO: the asynch status will be in the qery_out class
+        # TODO: if asynch and running return proper query_out
+        # TODO: if asynch and done proceed
 
         if query_out.status_dictionary['status'] == 0:
             query_out = self.process_query_product(instrument, logger=logger, config=config)

@@ -321,3 +321,67 @@ def test_mosaic_jemx():
     test_mosaic_cookbook(instrument_name="JEMX",use_catalog=True, use_scw_list=False,out_dir='test_scratch',query_type='False')
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=False)
     #test_mosaic_cookbook(use_catalog=False, use_scw_list=True)
+
+
+
+def test_asynch_request():
+    testapp = flask.Flask(__name__)
+
+
+    parameters_dic = dict(job_status='new',job_id=None,session_id='asynch_session')
+
+    with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=None):
+
+        query = InstrumentQueryBackEnd(instrument_name='mock', par_dic=parameters_dic, config=osaconf)
+
+        print('request', request.method)
+        query_out = query.run_query_mock(off_line=True)
+
+
+        print('\n\n\n')
+
+        print('query_out',query_out)
+
+        #import time
+        #time.sleep(5)
+
+def test_asynch_check():
+    testapp = flask.Flask(__name__)
+    parameters_dic = dict(job_status='submitted', job_id='JOB0', session_id='asynch_session')
+
+    with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=None):
+        query = InstrumentQueryBackEnd(instrument_name='mock', par_dic=parameters_dic, config=osaconf)
+
+        print('request', request.method)
+        query_out = query.run_query_mock(off_line=True)
+
+        print('\n\n\n')
+
+        print('query_out',  query_out['job_status'])
+
+    return   query_out['job_status']
+
+
+def test_final_query():
+    testapp = flask.Flask(__name__)
+    parameters_dic = dict(job_status='done', job_id='JOB0', session_id='asynch_session')
+
+    with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=None):
+        query = InstrumentQueryBackEnd(instrument_name='mock', par_dic=parameters_dic, config=osaconf)
+
+        print('request', request.method)
+        query_out = query.run_query_mock(off_line=True)
+
+        print('\n\n\n')
+
+        print('query_out',  query_out['job_status'])
+
+    return   query_out['job_status']
+
+def test_asynch_full():
+    test_asynch_request()
+
+    while test_asynch_check()!='done':
+        time.sleep(1)
+
+    test_final_query()

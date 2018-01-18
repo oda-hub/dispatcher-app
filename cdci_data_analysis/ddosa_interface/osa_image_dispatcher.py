@@ -196,6 +196,8 @@ def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,confi
 
     res=q.run_query(query_prod=query_prod)
 
+    # TODO: add if res is asynch return empty prod list
+    # TODO:
     if instrument.name == 'ISGRI':
         image=OsaImageProduct.build_from_ddosa_skyima('mosaic_image','isgri_query_mosaic.fits',res.skyima,out_dir=out_dir,prod_prefix=prod_prefix)
         osa_catalog=CatalogProduct('mosaic_catalog',catalog=OsaIsgriCatalog.build_from_ddosa_srclres(res.srclres),file_name='query_catalog.fits',name_prefix=prod_prefix,file_dir=out_dir)
