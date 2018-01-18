@@ -17,6 +17,9 @@ from werkzeug.utils import secure_filename
 
 import numpy as np
 import os
+import random
+import string
+
 from flask import jsonify,send_from_directory
 from flask import Flask, request
 from flask import render_template
@@ -125,7 +128,7 @@ class InstrumentQueryBackEnd(object):
 
 
     def generate_job_id(self):
-        self.job_id='JOB0'
+        self.job_id=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
 
     def set_instrument(self,instrument_name):
         if instrument_name == 'isgri':
