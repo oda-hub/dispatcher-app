@@ -324,6 +324,7 @@ class InstrumentQueryBackEnd(object):
             out_dict['job_status'] = job_status['status']
             out_dict['job_fraction'] = job_status['fraction']
 
+
         if job_status == 'done':
             print('Job Done --> id,session,dir', self.job_id, session_id, self.scratch_dir)
 
@@ -356,6 +357,7 @@ class InstrumentQueryBackEnd(object):
         print ('query doen with job status-->',job_status)
 
         if off_line == False:
+            print('out', out_dict)
             return jsonify(out_dict)
         else:
             return out_dict
