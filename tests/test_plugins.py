@@ -328,7 +328,7 @@ def test_asynch_request():
     testapp = flask.Flask(__name__)
 
 
-    parameters_dic = dict(job_status='new',job_id=None,session_id='asynch_session')
+    parameters_dic = dict(job_status='new',job_id=None,session_id=str('asynch_session'))
 
     with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=None):
 
@@ -340,13 +340,13 @@ def test_asynch_request():
 
         print('\n\n\n')
 
-        print('query_out',query_out)
+        print('query_out:submission', query_out)
 
-        return query.job_id
+        return query_out['job_id'] ,query_out['job_status']
 
-def test_asynch_check(job_id):
+def test_asynch_check(job_id,job_status):
     testapp = flask.Flask(__name__)
-    parameters_dic = dict(job_status='submitted', job_id=job_id, session_id='asynch_session')
+    parameters_dic = dict(job_status=job_status, job_id=job_id, session_id='asynch_session')
 
     with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=None):
         query = InstrumentQueryBackEnd(instrument_name='mock', par_dic=parameters_dic, config=osaconf)
@@ -356,7 +356,7 @@ def test_asynch_check(job_id):
 
         print('\n\n\n')
 
-        print('query_out',  query_out['job_status'])
+        print('query_out: check', query_out )
 
     return   query_out['job_status']
 
@@ -373,16 +373,18 @@ def test_final_query(job_id,job_status):
 
         print('\n\n\n')
 
-        print('query_out',  query_out['job_status'])
+        print('query_out: finale', query_out)
 
     return   query_out['products']
 
 def test_asynch_full():
-    job_id=test_asynch_request()
+    job_id,job_status=test_asynch_request()
 
-    while test_asynch_check(job_id)!='done':
+    job_status=test_asynch_check(job_id,job_status)
+    while job_status!='done':
+        job_status=test_asynch_check(job_id,job_status)
         time.sleep(1)
 
-    prod=test_final_query(job_id,'done')
+    prod=test_final_query(job_id,job_status)
 
     print ('products',prod)

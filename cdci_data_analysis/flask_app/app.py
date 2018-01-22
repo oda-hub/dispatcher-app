@@ -128,7 +128,7 @@ class InstrumentQueryBackEnd(object):
 
 
     def generate_job_id(self):
-        self.job_id=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+        self.job_id=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
 
     def set_instrument(self,instrument_name):
         if instrument_name == 'isgri':
@@ -313,30 +313,36 @@ class InstrumentQueryBackEnd(object):
 
         if job_status == 'new':
 
-            print ('--> id,session,dir',self.job_id,session_id,self.scratch_dir)
+            print ('New Job --> id,session,dir',self.job_id,session_id,self.scratch_dir)
 
-            job_status =mock_request(self.job_id,session_id,self.scratch_dir)
+            job_status =mock_request(session_id,self.job_id,self.scratch_dir)
 
             out_dict = {}
             out_dict['products'] = ''
             out_dict['exit_status'] = ''
+            out_dict['job_id'] = self.job_id
             out_dict['job_status'] = job_status['status']
             out_dict['job_fraction'] = job_status['fraction']
 
         if job_status == 'done':
+            print('Job Done --> id,session,dir', self.job_id, session_id, self.scratch_dir)
+
             out_dict = {}
-            out_dict['products'] = 'HELLO WORD'
-            out_dict['exit_status'] = '0'
+            out_dict['products'] = 'HELLO WORLD'
+            out_dict['exit_status'] = 0
+            out_dict['job_id'] = self.job_id
             out_dict['job_status'] = 'done'
             out_dict['job_fraction'] = '1.0'
 
 
-        else:
+        if job_status=='submitted' or  job_status=='unacessible':
+            print('Job Check --> id,session,dir', self.job_id, session_id, self.scratch_dir)
             job_status = mock_chek_job_status(job_id=self.job_id, session_id=session_id,scratch_dir=self.scratch_dir)
 
             out_dict = {}
             out_dict['products'] = ''
             out_dict['exit_status'] = ''
+            out_dict['job_id'] = self.job_id
             out_dict['job_status'] = job_status['status']
             out_dict['job_fraction'] = job_status['fraction']
 
@@ -347,7 +353,7 @@ class InstrumentQueryBackEnd(object):
         self.logger.info('============================================================')
         self.logger.info('')
 
-        print ('-->',job_status)
+        print ('query doen with job status-->',job_status)
 
         if off_line == False:
             return jsonify(out_dict)
