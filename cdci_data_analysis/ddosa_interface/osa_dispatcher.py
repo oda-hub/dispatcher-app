@@ -241,8 +241,8 @@ class OsaQuery(object):
             res= dc.RemoteDDOSA(self.url, self.ddcache_root_local).query(target=query_prod.target,
                                                    modules=query_prod.modules,
                                                    assume=query_prod.assume,
-                                                   inject=query_prod.inject,
-                                                   prompt_delegate=prompt_delegate)
+                                                   inject=query_prod.inject,)
+                                                   #prompt_delegate=prompt_delegate)
 
 
 
