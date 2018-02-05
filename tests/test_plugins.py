@@ -367,7 +367,7 @@ def test_asynch_request(parameters_dic,query_status,job_id=None):
 
 
 def test_asynch_full():
-    parameters_dic=test_asynch_mosaic()
+    parameters_dic=test_asynch_spectrum()
 
 
     query_out=test_asynch_request(parameters_dic,'new')
