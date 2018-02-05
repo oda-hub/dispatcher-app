@@ -47,7 +47,7 @@ class QueryFilePath(object):
 
         if file_dir is None:
             file_dir='./'
-
+        print ('file_dir,file_name',type(file_dir),type(file_name))
         self.file_path = Path(file_dir, file_name)
 
     def get_file_path(self,file_name=None,file_dir=None):
@@ -68,7 +68,7 @@ class QueryOutput(object):
     def  __init__(self):
         self.prod_dictionary={}
         self.status_dictionary={}
-   
+
     
     def set_products(self,keys,values):
         for k,v in zip(keys,values):
@@ -84,8 +84,9 @@ class QueryOutput(object):
     
 class QueryProductList(object):
 
-    def __init__(self,prod_list):
+    def __init__(self,prod_list,job=None):
         self._prod_list=prod_list
+        self.job=job
 
     @property
     def prod_list(self):

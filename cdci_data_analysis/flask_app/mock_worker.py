@@ -23,7 +23,7 @@ __author__ = "Andrea Tramacere"
 
 import argparse
 import time
-import yaml
+import json
 
 def run(job_id,session_id,scratch_dir,N):
     job_status = {}
@@ -38,13 +38,17 @@ def run(job_id,session_id,scratch_dir,N):
         time.sleep(1)
         job_status['fraction'] = float(i) / (N)
         with open(f_path, 'w') as outfile:
-            yaml.dump(job_status, outfile, default_flow_style=True, encoding=('utf-8'))
+            my_json_str = json.dumps(job_status,encoding='utf-8')
+            # if isinstance(my_json_str, str):
+            outfile.write(u'%s' % my_json_str)
     #
     job_status['status'] = 'done'
 
     print ('writing job status',job_status)
     with open(f_path, 'w') as outfile:
-        yaml.dump(job_status, outfile, default_flow_style=True,encoding=('utf-8'))
+        my_json_str = json.dumps(job_status,encoding='utf-8')
+        # if isinstance(my_json_str, str):
+        outfile.write(u'%s' % my_json_str)
 
 
 def main(argv=None):

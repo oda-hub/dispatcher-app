@@ -21,7 +21,7 @@ import random
 import string
 
 from flask import jsonify,send_from_directory
-from flask import Flask, request
+from flask import Flask, request,url_for
 from flask import render_template
 from flask.views import View
 
@@ -31,13 +31,15 @@ from flask.views import View
 from ..ddosa_interface.osa_isgri import OSA_ISGRI
 from ..ddosa_interface.osa_jemx import OSA_JEMX
 from ..analysis.queries import *
+from ..analysis.job_manager import Job
 
-from .mock_data_server import mock_request
+from .mock_data_server import mock_query
 from .mock_data_server import mock_chek_job_status
 import  tempfile
 import tarfile
 import gzip
 import logging
+import socket
 import threading
 import sys
 
@@ -100,7 +102,7 @@ def make_dir(out_dir):
 
 class InstrumentQueryBackEnd(object):
 
-    def __init__(self,instrument_name=None,par_dic=None,config=None):
+    def __init__(self,instrument_name=None,par_dic=None,config=None,data_server_call_back=False):
         #self.instrument_name=instrument_name
 
         if par_dic is None:
@@ -113,22 +115,40 @@ class InstrumentQueryBackEnd(object):
         else:
             self.instrument_name = instrument_name
 
-        job_status = self.par_dic['job_status']
 
-        self.job_id=None
-        if job_status=='new':
-            self.generate_job_id()
+
+        if data_server_call_back is True:
+            self.job_id = self.par_dic['job_id']
+
         else:
-            self.job_id=self.par_dic['job_id']
+            query_status = self.par_dic['query_status']
+            self.job_id = None
+            if query_status == 'new':
+                self.generate_job_id()
+            else:
+                self.job_id = self.par_dic['job_id']
 
         self.set_scratch_dir(self.par_dic['session_id'],job_id=self.job_id)
+
         self.set_session_logger(self.scratch_dir)
-        self.set_instrument(self.instrument_name)
+
+        if data_server_call_back is False:
+            self.set_instrument(self.instrument_name)
+
         self.config=config
 
 
     def generate_job_id(self):
-        self.job_id=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+        #self.job_id=str(u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16)))
+        number = '0123456789'
+        alpha = 'abcdefghijklmnopqrstuvwxyz'
+        ID = ''
+        for i in range(0, 16, 2):
+            ID += random.choice(number)
+            ID += random.choice(alpha)
+        self.job_id='1234'
+        print ('------->str check',type(self.job_id),self.job_id)
+
 
     def set_instrument(self,instrument_name):
         if instrument_name == 'isgri':
@@ -155,6 +175,10 @@ class InstrumentQueryBackEnd(object):
 
         self.logger=logger
 
+
+    def get_current_ip(self):
+        return  socket.gethostbyname(socket.gethostname())
+
     def set_args(self,request):
         if request.method == 'GET':
             args = request.args
@@ -166,6 +190,7 @@ class InstrumentQueryBackEnd(object):
         self.args=args
 
     def set_scratch_dir(self,session_id,job_id=None):
+        print('SETSCRATCH  ---->', session_id,type(session_id),job_id,type(job_id))
         wd = 'scratch'
         if session_id is not None:
             wd += '_' + session_id
@@ -267,20 +292,26 @@ class InstrumentQueryBackEnd(object):
 
 
 
-    def run_call_back(self):
-        job_id = self.par_dic['job_id']
-        session_ID=self.par_dic['session_ID']
-        job_status = self.par_dic['job_status']
-        self.update_job_status()
+    def run_call_back(self,status_kw_name='action'):
+
+        if self.config is None:
+            config = app.config.get('osaconf')
+        else:
+            config = self.config
+
+        job = Job(work_dir=self.scratch_dir,
+                  server_url=self.get_current_ip(),
+                  server_port=config.dispatcher_port,
+                  callback_handle='call_back',
+                  session_id=self.par_dic['session_id'],
+                  job_id=self.par_dic['job_id'])
 
 
-    def update_job_status(self):
-        #write to scratch status
-        pass
+        status=self.par_dic[status_kw_name]
+        print ('-----> set status to ',status)
+        job.write_dataserver_status(work_dir=self.scratch_dir,status_dictionary_value=status)
 
-    def check_job_status(self):
-        #read status from scratch file status
-        pass
+        return status
 
     def run_query_mock(self, off_line=False):
 
@@ -311,45 +342,7 @@ class InstrumentQueryBackEnd(object):
         else:
             config = self.config
 
-        if job_status == 'new':
-
-            print ('New Job --> id,session,dir',self.job_id,session_id,self.scratch_dir)
-
-            job_status =mock_request(session_id,self.job_id,self.scratch_dir)
-
-            out_dict = {}
-            out_dict['products'] = ''
-            out_dict['exit_status'] = ''
-            out_dict['job_id'] = self.job_id
-            out_dict['job_status'] = job_status['status']
-            out_dict['job_fraction'] = job_status['fraction']
-
-
-        if job_status == 'done':
-            print('Job Done --> id,session,dir', self.job_id, session_id, self.scratch_dir)
-
-            out_dict = {}
-            out_dict['products'] = 'HELLO WORLD'
-            out_dict['exit_status'] = 0
-            out_dict['job_id'] = self.job_id
-            out_dict['job_status'] = 'done'
-            out_dict['job_fraction'] = '1.0'
-
-
-        if job_status=='submitted' or  job_status=='unacessible':
-            print('Job Check --> id,session,dir', self.job_id, session_id, self.scratch_dir)
-            job_status = mock_chek_job_status(job_id=self.job_id, session_id=session_id,scratch_dir=self.scratch_dir)
-
-            out_dict = {}
-            out_dict['products'] = ''
-            out_dict['exit_status'] = ''
-            out_dict['job_id'] = self.job_id
-            out_dict['job_status'] = job_status['status']
-            out_dict['job_fraction'] = job_status['fraction']
-
-
-
-
+        out_dict=mock_query(self.par_dic,session_id,self.job_id,self.scratch_dir)
 
         self.logger.info('============================================================')
         self.logger.info('')
@@ -358,10 +351,12 @@ class InstrumentQueryBackEnd(object):
 
         if off_line == False:
             print('out', out_dict)
-            return jsonify(out_dict)
+            response= jsonify(out_dict)
         else:
-            return out_dict
+            response= out_dict
 
+
+        return response
 
 
 
@@ -371,7 +366,7 @@ class InstrumentQueryBackEnd(object):
         product_type = self.par_dic['product_type']
 
         #JOBID=PID+RAND
-        job_status=self.par_dic['job_status']
+        query_status=self.par_dic['query_status']
 
 
 
@@ -379,7 +374,6 @@ class InstrumentQueryBackEnd(object):
             self.par_dic.pop('instrumet')
         #prod_dictionary = self.instrument.set_pars_from_from(par_dic)
 
-        #if prod_dictionary['status'] == 0:
 
 
 
@@ -399,25 +393,72 @@ class InstrumentQueryBackEnd(object):
         else:
             config=self.config
 
-        if job_status=='new' or job_status=='done':
+        print('conf', config.dispatcher_port)
+
+        job = Job(work_dir=self.scratch_dir,
+                  server_url=self.get_current_ip(),
+                  server_port=config.dispatcher_port,
+                  callback_handle='call_back',
+                  session_id=self.par_dic['session_id'],
+                  job_id=self.job_id)
+
+        job_monitor=job.monitor
+
+        print ('-----------------> query status  old',query_status )
+
+        if query_status=='new' or query_status=='ready':
             query_out = self.instrument.run_query(product_type,
                                                     self.par_dic,
                                                     request,
                                                     self,
+                                                    job,
                                                     out_dir=self.scratch_dir,
                                                     config=config,
                                                     query_type=query_type,
                                                     logger=self.logger)
-        else:
-            job_status=self.check_job_status(job_id=self.job_id,job_status=job_status)
+
+
+            print('-----------------> query status job (after query)', job.status)
+            if query_out.status_dictionary['status']==0:
+                if job.status!='done':
+                    job.set_submitted()
+                    query_new_status = 'progress'
+                else:
+                    query_new_status = 'done'
+            else:
+                query_new_status = 'failed'
+
+            print('-----------------> query status new', query_new_status)
+
+        elif query_status=='progress' or query_status=='unaccessible':
+
+            job_monitor = job.get_dataserver_status(work_dir=self.scratch_dir)
+            print('-----------------> query status job (from data server)', job_monitor['status'])
+            if job_monitor['status']=='done':
+                query_new_status='ready'
+            else:
+                query_new_status=job_monitor['status']
+
+            print('-----------------> query status new', query_new_status)
 
             out_dict = {}
+            out_dict['job_monitor'] = job_monitor
+            out_dict['query_status'] = query_new_status
             out_dict['products'] = ''
-            out_dict['exit_status'] = ''
-            out_dict['job_status'] = job_status
-            self.logger.info('============================================================')
-            self.logger.info('')
-            return jsonify(out_dict)
+            out_dict['exit_status'] = 0
+            return out_dict
+
+        elif query_status=='failed':
+            #TODO: here we shoudl rusubmit query to get exception from ddosa
+            out_dict = {}
+            query_new_status='failed'
+            out_dict['job_monitor'] = job_monitor
+            out_dict['query_status'] = query_new_status
+            out_dict['products'] = ''
+            out_dict['exit_status'] = -1
+            print('-----------------> query status new', query_new_status)
+            return out_dict
+
 
 
 
@@ -429,22 +470,27 @@ class InstrumentQueryBackEnd(object):
         self.logger.info('============================================================')
         self.logger.info('')
 
-        if off_line==False:
+        out_dict = {}
+        out_dict['query_status']=query_new_status
+        out_dict['products'] = query_out.prod_dictionary
+        out_dict['exit_status'] = query_out.status_dictionary
+        print('exit_status', out_dict['exit_status'])
+
+        #if no_job_class_found == False:
+        out_dict['job_monitor'] = job_monitor
+        #else:
+        #    out_dict['job_monitor']= 'not found'
+        #    query_out.set_status(1, error_message='job monitor not found in query_out', )
+
+        if off_line == True:
+            return out_dict
+        else:
             try:
-                out_dict={}
-                out_dict['products']=query_out.prod_dictionary
-                out_dict['exit_status'] = query_out.status_dictionary
-                print('exit_status',out_dict['exit_status'])
                 return jsonify(out_dict)
             except Exception as e:
                 query_out.set_status(1,error_message='failed json serialization',debug_message=str(e.message))
                 out_dict['exit_status'] = query_out.status_dictionary
                 return jsonify(out_dict)
-
-        else:
-            return query_out
-
-
 
 
 @app.route("/test_sleep")
@@ -501,10 +547,13 @@ def test_mock():
 
 
 @app.route('/call_back', methods=['POST', 'GET'])
-def call_back_analysis_test():
+def dataserver_call_back():
     #instrument_name='ISGRI'
-    query=InstrumentQueryBackEnd()
-    return query.run_call_back()
+    print('===========================> dataserver_call_back')
+    query=InstrumentQueryBackEnd(instrument_name='mock',data_server_call_back=True)
+    query.run_call_back()
+    print('===========================>\n\n\n')
+    return jsonify({})
 
 
 

@@ -22,7 +22,7 @@ from ..analysis.parameters import *
 from .osa_catalog import  OsaIsgriCatalog,OsaJemxCatalog
 from .osa_dispatcher import    OsaQuery,QueryProduct
 from ..analysis.products import QueryProductList,CatalogProduct,ImageProduct,QueryOutput
-
+from ..analysis.job_manager import Job
 from ..web_display import draw_fig
 from astropy.io import  fits as pf
 
@@ -99,7 +99,8 @@ def do_mosaic(instr_name,E1,E2,scwlist_assumption,extramodules=None,user_catalog
         modules=["git://ddosa", "git://ddosadm"]+extramodules
         assume=['ddosa.ImageGroups(input_scwlist=%s)'%scwlist_assumption,
                'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
-               'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")']
+               'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")',]
+#               'ddosa.mosaic_ii_skyimage(use_cached=False)']
 
         if user_catalog is not None:
             assume.append("ddosa.mosaic_ii_skyimage(use_ii_NegModels=1)")
@@ -144,7 +145,7 @@ def do_mosaic_from_time_span(instr_name,E1,E2,T1,T2,RA,DEC,radius,use_max_pointi
     return do_mosaic(instr_name,E1,E2,scwlist_assumption,user_catalog=user_catalog,extramodules=['git://rangequery'])
 
 
-def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
+def get_osa_image_products(instrument,job,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
 
     q=OsaQuery(config=config)
 
@@ -194,25 +195,30 @@ def get_osa_image_products(instrument,dump_json=False,use_dicosverer=False,confi
     #osa_catalog=None
     #image=None
 
-    res=q.run_query(query_prod=query_prod)
 
-    # TODO: add if res is asynch return empty prod list
-    # TODO:
-    if instrument.name == 'ISGRI':
-        image=OsaImageProduct.build_from_ddosa_skyima('mosaic_image','isgri_query_mosaic.fits',res.skyima,out_dir=out_dir,prod_prefix=prod_prefix)
-        osa_catalog=CatalogProduct('mosaic_catalog',catalog=OsaIsgriCatalog.build_from_ddosa_srclres(res.srclres),file_name='query_catalog.fits',name_prefix=prod_prefix,file_dir=out_dir)
+    res=q.run_query(query_prod=query_prod,job=job)
 
-    elif instrument.name == 'JEMX':
-        image = OsaImageProduct.build_from_ddosa_skyima('mosaic_image', 'jemx_query_mosaic.fits', res.skyima,
-                                                          out_dir=out_dir, prod_prefix=prod_prefix)
-        osa_catalog = CatalogProduct('mosaic_catalog', catalog=OsaJemxCatalog.build_from_ddosa_srclres(res.srclres),
-                                     file_name='query_catalog.fits', name_prefix=prod_prefix, file_dir=out_dir)
-
+    if job.status!='done':
+        prod_list = QueryProductList(prod_list=[],job=job)
+        return prod_list
     else:
-        # TODO: add allowed_instrument_list in the configuration and check on that before!
-        raise RuntimeError('Instrumet %s not implemented'%instrument.name)
 
-    prod_list=QueryProductList(prod_list=[image,osa_catalog])
+        if instrument.name == 'ISGRI':
+            print ('OSA IMAGE DISP -----> out ditr',type(out_dir))
+            image=OsaImageProduct.build_from_ddosa_skyima('mosaic_image','isgri_query_mosaic.fits',res.skyima,out_dir=out_dir,prod_prefix=prod_prefix)
+            osa_catalog=CatalogProduct('mosaic_catalog',catalog=OsaIsgriCatalog.build_from_ddosa_srclres(res.srclres),file_name='query_catalog.fits',name_prefix=prod_prefix,file_dir=out_dir)
+
+        elif instrument.name == 'JEMX':
+            image = OsaImageProduct.build_from_ddosa_skyima('mosaic_image', 'jemx_query_mosaic.fits', res.skyima,
+                                                              out_dir=out_dir, prod_prefix=prod_prefix)
+            osa_catalog = CatalogProduct('mosaic_catalog', catalog=OsaJemxCatalog.build_from_ddosa_srclres(res.srclres),
+                                         file_name='query_catalog.fits', name_prefix=prod_prefix, file_dir=out_dir)
+
+        else:
+            # TODO: add allowed_instrument_list in the configuration and check on that before!
+            raise RuntimeError('Instrumet %s not implemented'%instrument.name)
+
+        prod_list=QueryProductList(prod_list=[image,osa_catalog],job=job)
 
     return prod_list
 

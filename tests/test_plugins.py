@@ -25,7 +25,8 @@ from cdci_data_analysis.flask_app.app import InstrumentQueryBackEnd
 
 
 crab_scw_list=["035200230010.001","035200240010.001"]
-cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001'][:2]
+cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001']
+asynch_scw_list=["010200100010.001"]
 single_scw_list=['005100410010.001']
 
 T1_iso='2003-03-15T23:27:40.0'
@@ -54,7 +55,7 @@ def test_instr(use_scw_list=True):
 
 
 
-def test_mosaic_cookbook(instrument_name='ISGRI',use_scw_list=False,use_catalog=False,query_type='Real',out_dir='./'):
+def test_mosaic_cookbook(instrument_name='isgri',use_scw_list=False,use_catalog=False,query_type='Real',out_dir='./'):
 
 
     testapp = flask.Flask(__name__)
@@ -75,9 +76,9 @@ def test_mosaic_cookbook(instrument_name='ISGRI',use_scw_list=False,use_catalog=
     else:
         cat_dict=None
 
-    if instrument_name=='ISGRI':
+    if instrument_name=='isgri':
         product_type='isgri_image'
-    elif instrument_name=='JEMX':
+    elif instrument_name=='jemx':
         product_type='jemx_image'
     else:
         raise RuntimeError('instrumet %s'%instrument_name, 'not supported')
@@ -85,6 +86,7 @@ def test_mosaic_cookbook(instrument_name='ISGRI',use_scw_list=False,use_catalog=
     parameters_dic=dict(E1_keV=20.,E2_keV=40,T1=T1_iso, T2=T2_iso,RA=RA,DEC=DEC,radius=25,scw_list=scw_list,
                         image_scale_min=1,session_id='test',query_type=query_type,product_type=product_type,
                         detection_threshold=5.0,user_catalog_dictionary=None)
+
     data_cat_fits = dict(
         user_catalog_file=(open("dummy_prods/query_catalog.fits", "rb", buffering=0), "query_user_catalog"),
     )
@@ -324,67 +326,81 @@ def test_mosaic_jemx():
 
 
 
-def test_asynch_request():
+def test_asynch_mosaic():
+    parameters_dic = dict(E1_keV=20., E2_keV=40, T1=T1_iso, T2=T2_iso, RA=RA, DEC=DEC, radius=25,
+                          scw_list=asynch_scw_list,
+                          image_scale_min=1, session_id='test', query_type='Real', product_type='isgri_image',
+                          detection_threshold=5.0, user_catalog_dictionary=None)
+
+    return parameters_dic
+
+
+def test_asynch_spectrum():
+    parameters_dic = dict(E1_keV=20., E2_keV=40, T1 =T1_iso, T2 =T2_iso, RA=RA, DEC=DEC, radius=25,query_type='Real',
+                      scw_list=cookbook_scw_list,src_name='4U 1700-377', session_id='test',product_type='isgri_spectrum')
+
+    return parameters_dic
+
+
+def test_asynch_request(parameters_dic,query_status,job_id=None):
     testapp = flask.Flask(__name__)
 
 
-    parameters_dic = dict(job_status='new',job_id=None,session_id=str('asynch_session'))
+    parameters_dic['query_status'] = query_status
+    parameters_dic['session_id'] = 'asynch_session'
+    parameters_dic['job_id']=job_id
+
 
     with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=None):
-
-        query = InstrumentQueryBackEnd(instrument_name='mock', par_dic=parameters_dic, config=osaconf)
+        query = InstrumentQueryBackEnd(instrument_name='isgri', par_dic=parameters_dic, config=osaconf)
 
         print('request', request.method)
-        query_out = query.run_query_mock(off_line=True)
-
+        query_out = query.run_query(off_line=True)
 
         print('\n\n\n')
 
-        print('query_out:submission', query_out)
+        print('query_out:job_monitor', query_out['job_monitor'])
 
-        return query_out['job_id'] ,query_out['job_status']
-
-def test_asynch_check(job_id,job_status):
-    testapp = flask.Flask(__name__)
-    parameters_dic = dict(job_status=job_status, job_id=job_id, session_id='asynch_session')
-
-    with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=None):
-        query = InstrumentQueryBackEnd(instrument_name='mock', par_dic=parameters_dic, config=osaconf)
-
-        print('request', request.method)
-        query_out = query.run_query_mock(off_line=True)
-
-        print('\n\n\n')
-
-        print('query_out: check', query_out )
-
-    return   query_out['job_status']
+    return query_out
 
 
-def test_final_query(job_id,job_status):
-    testapp = flask.Flask(__name__)
-    parameters_dic = dict(job_status=job_status, job_id=job_id, session_id='asynch_session')
 
-    with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=None):
-        query = InstrumentQueryBackEnd(instrument_name='mock', par_dic=parameters_dic, config=osaconf)
-
-        print('request', request.method)
-        query_out = query.run_query_mock(off_line=True)
-
-        print('\n\n\n')
-
-        print('query_out: finale', query_out)
-
-    return   query_out['products']
 
 def test_asynch_full():
-    job_id,job_status=test_asynch_request()
+    parameters_dic=test_asynch_mosaic()
 
-    job_status=test_asynch_check(job_id,job_status)
-    while job_status!='done':
-        job_status=test_asynch_check(job_id,job_status)
-        time.sleep(1)
 
-    prod=test_final_query(job_id,job_status)
+    query_out=test_asynch_request(parameters_dic,'new')
+    query_status=query_out['query_status']
+    job_id=query_out['job_monitor']['job_id']
+    if query_status!='failed':
+        pass
+    else:
+        raise Exception('query failed')
 
-    print ('products',prod)
+
+    while query_status!='done' and query_status!='failed':
+        query_out = test_asynch_request(parameters_dic,query_status,job_id=job_id)
+        query_status = query_out['query_status']
+        job_id = query_out['job_monitor']['job_id']
+        time.sleep(10)
+
+    if query_status != 'failed':
+        pass
+    else:
+        raise Exception('query failed')
+
+    print ('job_id',job_id)
+    print('query_status', query_status)
+    #query_out=test_final_query(job_id,query_status)
+
+    if query_status != 'failed':
+        pass
+    else:
+        raise Exception('query failed')
+
+    print('query_out', query_out)
+
+    #from cdci_data_analysis.analysis.products import ImageProduct
+    #ImageProduct.from_fits_file('./scratch_test/jemx_query_mosaic.fits', '', '', ext=0).get_html_draw(plot=True)
+

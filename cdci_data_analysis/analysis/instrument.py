@@ -135,7 +135,7 @@ class Instrument(object):
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config).test_has_input_products(instrument)
 
-    def run_query(self,product_type,par_dic,request,back_end_query,config=None,out_dir=None,query_type='Real',logger=None,**kwargs):
+    def run_query(self,product_type,par_dic,request,back_end_query,job,config=None,out_dir=None,query_type='Real',logger=None,**kwargs):
 
         #prod_dictionary={}
 
@@ -157,7 +157,7 @@ class Instrument(object):
 
         if query_out.status_dictionary['status'] == 0:
             query_name=self.query_dictionary[product_type]
-            query_out=self.get_query_by_name(query_name).run_query(self,out_dir,query_type=query_type,config=config,logger=logger)
+            query_out=self.get_query_by_name(query_name).run_query(self,out_dir,job,query_type=query_type,config=config,logger=logger)
 
 
 

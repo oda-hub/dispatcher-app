@@ -25,6 +25,7 @@ import traceback
 import sys
 from .parameters import *
 from .products import SpectralFitProduct,QueryOutput
+from ..analysis.job_manager import Job
 
 def view_traceback():
     ex_type, ex, tb = sys.exc_info()
@@ -360,10 +361,12 @@ class ProductQuery(BaseQuery):
         self._get_dummy_products_method=get_dummy_products_method
         self._process_product_method=process_product_method
         self.query_prod_list=None
+        self.job=None
 
-    def get_products(self, instrument, config=None,**kwargs):
+
+    def get_products(self, instrument, job=None,config=None,**kwargs):
         if self._get_product_method is not None:
-            return self._get_product_method(instrument,config=config,**kwargs)
+            return self._get_product_method(instrument,config=config,job=job,**kwargs)
         else:
             return None
 
@@ -520,7 +523,7 @@ class ProductQuery(BaseQuery):
 
         return query_out
 
-    def get_query_products(self,instrument,query_type='Real',logger=None,config=None,scratch_dir=None):
+    def get_query_products(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None):
         # query
         status=0
         message=''
@@ -532,11 +535,14 @@ class ProductQuery(BaseQuery):
             if query_type != 'Dummy':
                 self.query_prod_list = self.get_products(instrument,
                                                          config=config,
-                                                         out_dir=scratch_dir)
+                                                         out_dir=scratch_dir,
+                                                         job=job)
             else:
                 self.query_prod_list = self.get_dummy_products(instrument,
                                                                config=config,
                                                                out_dir=scratch_dir)
+                job.set_done()
+
         except Exception as e:
             print("prod_query failed, Error:", e)
             print('!!! >>>Exception<<<', e)
@@ -598,7 +604,7 @@ class ProductQuery(BaseQuery):
 
 
 
-    def run_query(self,instrument,scratch_dir,query_type='Real', config=None,logger=None):
+    def run_query(self,instrument,scratch_dir,job,query_type='Real', config=None,logger=None):
         input_prod_list=None
 
 
@@ -616,19 +622,25 @@ class ProductQuery(BaseQuery):
 
 
         if query_out.status_dictionary['status'] == 0:
-            query_out = self.get_query_products(instrument, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
-
-        # TODO: add check if is asynch
-        # TODO: the asynch status will be in the qery_out class
-        # TODO: if asynch and running return proper query_out
-        # TODO: if asynch and done proceed
+            query_out = self.get_query_products(instrument,job, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
 
         if query_out.status_dictionary['status'] == 0:
-            query_out = self.process_query_product(instrument, logger=logger, config=config)
+            if job.status!='done':
 
 
-        if input_prod_list is not None:
-            query_out.prod_dictionary['input_prod_list']=input_prod_list
+                query_out.prod_dictionary = {}
+                # TODO: add check if is asynch
+                # TODO: the asynch status will be in the qery_out class
+                # TODO: if asynch and running return proper query_out
+                # TODO: if asynch and done proceed
+
+            else:
+                if query_out.status_dictionary['status'] == 0:
+                    query_out = self.process_query_product(instrument, logger=logger, config=config)
+
+
+                if input_prod_list is not None:
+                    query_out.prod_dictionary['input_prod_list']=input_prod_list
 
         return query_out
 

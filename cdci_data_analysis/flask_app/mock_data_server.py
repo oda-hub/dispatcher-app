@@ -36,6 +36,7 @@ __author__ = "Andrea Tramacere"
 # Project
 # relative import eg: from .mod import f
 import yaml
+import json
 
 
 import threading
@@ -79,21 +80,53 @@ def spawn(N,job_id,session_id,scratch_dir):
     print("command:", " ".join(cmd))
 
     os.system(" ".join(cmd))
-    #subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
-def mock_request(session_id,job_id,scratch_dir):
 
-    #thread = MyThread()
-    #thread.daemon = True
-    #thread.session_id=session_id
-    #thread.job_id=job_id
-    #thread.scratch_dir=scratch_dir
-    #thread.N=20
-    #thread.start()
 
+def mock_query(par_dic,session_id,job_id,scratch_dir):
+
+    job_status = par_dic['job_status']
+    session_id = par_dic['session_id']
+    products=''
+
+    if job_status == 'new':
+        print('New Job --> id,session,dir',job_id, session_id, scratch_dir)
+
+        job_status = submit_new_job(par_dic,session_id,job_id,scratch_dir)
+
+
+    if job_status == 'submitted' or job_status == 'unacessible':
+        print('Job Check --> id,session,dir', job_id, session_id, scratch_dir)
+        job_status = mock_chek_job_status(job_id=job_id, session_id=session_id, scratch_dir=scratch_dir)
+
+
+    if job_status == 'done':
+        print('Job Done --> id,session,dir', job_id, session_id, scratch_dir)
+        job_status = mock_chek_job_status(job_id=job_id, session_id=session_id, scratch_dir=scratch_dir)
+        products = 'HELLO WORLD'
+
+
+    return build_response(job_id,job_status,products=products)
+
+def build_response(job_id,job_status,products='',exit_status=''):
+    out_dict = {}
+    out_dict['products'] = ''
+    out_dict['exit_status'] = ''
+    out_dict['job_id'] =job_id
+    out_dict['job_status'] = job_status['status']
+    out_dict['job_fraction'] = job_status['fraction']
+    return out_dict
+
+def submit_new_job(par_dic,job_id,session_id,scratch_dir):
     spawn(20, job_id, session_id, scratch_dir)
     job_status = {}
     job_status['status'] = 'submitted'
     job_status['fraction'] = ''
+    f_path=scratch_dir+'/'+'query.yaml'
+    with open(f_path, 'w') as outfile:
+        my_json_str=json.dumps(par_dic,encoding='utf-8')
+        #if isinstance(my_json_str, str):
+        outfile.write(u'%s'%my_json_str)
+
     return job_status
 
 
@@ -102,7 +135,7 @@ def mock_chek_job_status(job_id,session_id,scratch_dir):
     print ('f_path',f_path)
     try:
         with open(f_path, 'r') as outfile:
-            job_status=yaml.load(outfile)
+            job_status=json.load(outfile,encoding='utf-8')
         print ('-->',job_status)
     except:
         job_status = {}

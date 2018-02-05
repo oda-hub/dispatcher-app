@@ -201,14 +201,14 @@ class Parameter(object):
 
     @value.setter
     def value(self,v):
-        print ('set',self.name,v,self._allowed_values)
+        #print ('set',self.name,v,self._allowed_values)
         if v is not None:
             if self.check_value is not None:
                 self.check_value(v, units=self.units,name=self.name)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
                     raise RuntimeError('value',v,'not allowed, allowed=',self._allowed_values)
-            print('set->',self.name,v,type(v))
+            #print('set->',self.name,v,type(v))
             if type(v)==str or type(v)== unicode:
                 self._value=v.strip()
             else:
@@ -248,7 +248,7 @@ class Parameter(object):
         if in_dictionary is True:
             self.set_par(value=v,units=u)
 
-            print('setting par:', par_name, 'to val=', self.value, 'and units', units_name, 'to', self.units )
+            #print('setting par:', par_name, 'to val=', self.value, 'and units', units_name, 'to', self.units )
         else:
             print('setting par:', par_name, 'not in dictionary')
 
@@ -454,7 +454,7 @@ class TimeDelta(Parameter):
         except:
             pass
 
-        print ('value',value)
+        #print ('value',value)
         self._astropy_time_delta = astropyTimeDelta(value, format=format)
 
         self._value = value
@@ -502,7 +502,7 @@ class InputProdList(Parameter):
 
     @value.setter
     def value(self, v):
-        print('set', self.name, v, self._allowed_values)
+        #print('set', self.name, v, self._allowed_values)
         if v is not None:
             if self.check_value is not None:
                 self.check_value(v, units=self.units, name=self.name)
@@ -516,14 +516,14 @@ class InputProdList(Parameter):
         else:
             self._value = ['']
         self._value=self._split(self._value)
-        print ('set to ',self._value)
+        #print ('set to ',self._value)
 
 
     @staticmethod
     def check_list_value(value,units,name='par'):
         if units=='names_list':
             try:
-                print(type(value))
+                #print(type(value))
                 assert (type(value) == list or type(value) == str  or type(str(value))== str)
             except:
                 raise RuntimeError('par:',name,', value is not product list format : list of strings','it is',type(value),value)
@@ -605,7 +605,7 @@ class SpectralBoundary(Parameter):
 
     @staticmethod
     def check_energy_value(value, units=None,name=None):
-        print('check type of ',name,'value', value, 'type',type(value))
+        #print('check type of ',name,'value', value, 'type',type(value))
 
 
         try:
@@ -640,7 +640,7 @@ class Energy(Parameter):
 
     @staticmethod
     def check_energy_value(value, units=None,name=None):
-        print('check type of ',name,'value', value, 'type',type(value))
+        #print('check type of ',name,'value', value, 'type',type(value))
 
 
         try:
@@ -678,7 +678,7 @@ class DetectionThreshold(Parameter):
 
     @staticmethod
     def check_value(value, units=None,name=None):
-        print('check type of ',name,'value', value, 'type',type(value))
+        #print('check type of ',name,'value', value, 'type',type(value))
 
 
         try:

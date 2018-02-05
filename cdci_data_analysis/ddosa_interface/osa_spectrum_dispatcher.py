@@ -250,7 +250,7 @@ def do_spectrum(instr_name,target,modules,assume,user_catalog=None):
     return QueryProduct(target=target, modules=modules, assume=assume,inject=inject)
 
 
-def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
+def get_osa_spectrum(instrument,job,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
 
     q=OsaQuery(config=config)
 
@@ -296,11 +296,16 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
                                                 use_max_pointings,
                                                 user_catalog=user_catalog)
 
-    res=q.run_query(query_prod=query_prod)
 
-    spectrum_list=IsgriSpectrumProduct.build_list_from_ddosa_res(res,
-                                                                 out_dir=out_dir,
-                                                                 prod_prefix='query_spectrum')
+    res = q.run_query(query_prod=query_prod, job=job,prompt_delegate=False)
+    if job.status != 'done':
+        prod_list = QueryProductList(prod_list=[], job=job)
+        return prod_list
+    else:
+
+        spectrum_list=IsgriSpectrumProduct.build_list_from_ddosa_res(res,
+                                                                     out_dir=out_dir,
+                                                                     prod_prefix='query_spectrum')
 
     #print('spectrum_list',spectrum_list)
     prod_list = QueryProductList(prod_list=spectrum_list)

@@ -40,6 +40,7 @@ import json
 import ddosaclient as dc
 import  simple_logger
 from ..analysis.queries import  *
+from ..analysis.job_manager import  Job
 import sys
 import traceback
 import time
@@ -223,21 +224,42 @@ class OsaQuery(object):
 
         print('--> end test busy')
 
-    def run_query(self,query_prod):
-
+    def run_query(self,query_prod,job,prompt_delegate=True):
+        res = None
         try:
             #redirect_out('./')
             #with silence_stdout():
             simple_logger.logger.setLevel(logging.ERROR)
+
+            if isinstance(job,Job):
+                pass
+            else:
+                raise RuntimeError('job object not passed')
+
+
             res= dc.RemoteDDOSA(self.url, self.ddcache_root_local).query(target=query_prod.target,
                                                    modules=query_prod.modules,
                                                    assume=query_prod.assume,
-                                                   inject=query_prod.inject)
+                                                   inject=query_prod.inject,
+                                                   prompt_delegate=prompt_delegate,
+                                                   callback=job.get_call_back_url())
+
+            print ('url for call_back',job.get_call_back_url())
             print("cached object in", res,res.ddcache_root_local)
+            job.set_done()
         except dc.WorkerException as e:
+
+            job.set_done()
             print("ERROR->")
             e.display()
             raise RuntimeWarning('ddosa connection or processing failed',e)
+
+        except dc.AnalysisDelegatedException as e:
+
+            if isinstance(job,Job):
+                pass
+            else:
+                raise RuntimeError('job object not passed')
 
         return res
 
