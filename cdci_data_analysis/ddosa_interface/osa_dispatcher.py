@@ -238,17 +238,14 @@ class OsaQuery(object):
 
             print ('call_back_url',job.get_call_back_url())
 
-            #res= dc.RemoteDDOSA(self.url, self.ddcache_root_local).query(target=query_prod.target,
-            #                                       modules=query_prod.modules,
-            #                                       assume=query_prod.assume,
-            #                                       inject=query_prod.inject,)
-            #                                       #prompt_delegate=prompt_delegate)
+            res= dc.RemoteDDOSA(self.url, self.ddcache_root_local).query(target=query_prod.target,
+                                                   modules=query_prod.modules,
+                                                   assume=query_prod.assume,
+                                                   inject=query_prod.inject,)
+                                                   #prompt_delegate=prompt_delegate)
 
-            res = dc.RemoteDDOSA(self.url, self.ddcache_root_local).query(target="ii_spectra_extract",
-                  modules=["ddosa", "git://ddosadm"],
-                  assume=['ddosa.ScWData(input_scwid="035200230010.001")',
-                          'ddosa.ImageBins(use_ebins=[(20,40)],use_version="onebin_20_40")',
-                          'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")'])
+
+
 
             print ('url for call_back',job.get_call_back_url())
             print("cached object in", res,res.ddcache_root_local)
