@@ -26,7 +26,7 @@ from cdci_data_analysis.flask_app.app import InstrumentQueryBackEnd
 
 crab_scw_list=["035200230010.001","035200240010.001"]
 cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001']
-asynch_scw_list=["010200100010.001"]
+asynch_scw_list=['005100410010.001']
 single_scw_list=['005100410010.001']
 
 T1_iso='2003-03-15T23:27:40.0'
