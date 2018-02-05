@@ -297,7 +297,7 @@ def get_osa_spectrum(instrument,job,dump_json=False,use_dicosverer=False,config=
                                                 user_catalog=user_catalog)
 
 
-    res = q.run_query(query_prod=query_prod, job=job,prompt_delegate=False)
+    res = q.run_query(query_prod=query_prod, job=job,prompt_delegate=True)
     if job.status != 'done':
         prod_list = QueryProductList(prod_list=[], job=job)
         return prod_list
