@@ -242,8 +242,7 @@ class OsaQuery(object):
                                                    modules=query_prod.modules,
                                                    assume=query_prod.assume,
                                                    inject=query_prod.inject,
-                                                   prompt_delegate=prompt_delegate,
-                                                   callback=job.get_call_back_url())
+                                                   prompt_delegate=prompt_delegate)
 
 
 
