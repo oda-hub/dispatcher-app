@@ -196,6 +196,7 @@ def do_spectrum_from_time_span(instr_name,E1,E2,T1,T2,RA,DEC,radius,use_max_poin
 
     if instr_name == 'ISGRI':
         target="ISGRISpectraSum"
+
         #modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
 
         modules = ["ddosa", "git://ddosadm", "git://useresponse/cd7855bf7", "git://process_isgri_spectra/2200bfd",
