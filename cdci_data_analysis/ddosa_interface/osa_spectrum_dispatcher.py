@@ -160,7 +160,10 @@ def do_spectrum_from_scw_list(instr_name,E1,E2,scw_list=["035200230010.001","035
     dic_str = str(scw_list)
     if instr_name == 'ISGRI':
         target = "ISGRISpectraSum"
-        modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
+        #modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
+
+        modules = ["ddosa", "git://ddosadm", "git://useresponse/cd7855bf7", "git://process_isgri_spectra/2200bfd",
+                   "git://rangequery"]
 
         assume = ['process_isgri_spectra.ScWSpectraList(input_scwlist=ddosa.IDScWList(use_scwid_list=%s))' % dic_str,
                   'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1, E2=E2),
@@ -193,7 +196,11 @@ def do_spectrum_from_time_span(instr_name,E1,E2,T1,T2,RA,DEC,radius,use_max_poin
 
     if instr_name == 'ISGRI':
         target="ISGRISpectraSum"
-        modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
+        #modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
+
+        modules = ["ddosa", "git://ddosadm", "git://useresponse/cd7855bf7", "git://process_isgri_spectra/2200bfd",
+                   "git://rangequery"]
+
         assume = ['process_isgri_spectra.ScWSpectraList(\
                              input_scwlist=\
                              rangequery.TimeDirectionScWList(\
@@ -212,7 +219,7 @@ def do_spectrum_from_time_span(instr_name,E1,E2,T1,T2,RA,DEC,radius,use_max_poin
     elif instr_name == 'JEMX':
         pass
     else:
-        pass
+        raise RuntimeError('Instrumet %s not implemented' % instr_name)
 
     return  do_spectrum(instr_name,target,modules,assume,user_catalog=user_catalog)
 
@@ -296,7 +303,7 @@ def get_osa_spectrum(instrument,job,dump_json=False,use_dicosverer=False,config=
                                                 use_max_pointings,
                                                 user_catalog=user_catalog)
 
-
+    print('====>instrument.name', instrument.name)
     res = q.run_query(query_prod=query_prod, job=job,prompt_delegate=True)
     if job.status != 'done':
         prod_list = QueryProductList(prod_list=[], job=job)
@@ -306,6 +313,7 @@ def get_osa_spectrum(instrument,job,dump_json=False,use_dicosverer=False,config=
         spectrum_list=IsgriSpectrumProduct.build_list_from_ddosa_res(res,
                                                                      out_dir=out_dir,
                                                                      prod_prefix='query_spectrum')
+
 
     #print('spectrum_list',spectrum_list)
     prod_list = QueryProductList(prod_list=spectrum_list)

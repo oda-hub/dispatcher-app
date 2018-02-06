@@ -26,7 +26,7 @@ from cdci_data_analysis.flask_app.app import InstrumentQueryBackEnd
 
 crab_scw_list=["035200230010.001","035200240010.001"]
 cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001']
-asynch_scw_list=['005100410010.001']
+asynch_scw_list=['066600400010.001']
 single_scw_list=['005100410010.001']
 
 T1_iso='2003-03-15T23:27:40.0'
@@ -337,7 +337,7 @@ def test_asynch_mosaic():
 
 def test_asynch_spectrum():
     parameters_dic = dict(E1_keV=20., E2_keV=40, T1 =T1_iso, T2 =T2_iso, RA=RA, DEC=DEC, radius=25,query_type='Real',
-                      scw_list=cookbook_scw_list,src_name='4U 1700-377', session_id='test',product_type='isgri_spectrum')
+                      scw_list=asynch_scw_list,src_name='4U 1700-377', session_id='test',product_type='isgri_spectrum')
 
     return parameters_dic
 
