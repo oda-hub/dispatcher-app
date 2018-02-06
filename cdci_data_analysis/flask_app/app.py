@@ -141,12 +141,12 @@ class InstrumentQueryBackEnd(object):
     def generate_job_id(self):
         #self.job_id=str(u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16)))
         number = '0123456789'
-        alpha = 'abcdefghijklmnopqrstuvwxyz'
+        alpha = 'abcdefghijklmnopqrstuvwxyz'.capitalize()
         ID = ''
         for i in range(0, 16, 2):
             ID += random.choice(number)
             ID += random.choice(alpha)
-        self.job_id='1234'
+        self.job_id=ID
         print ('------->str check',type(self.job_id),self.job_id)
 
 
