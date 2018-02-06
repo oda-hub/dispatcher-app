@@ -160,7 +160,7 @@ def do_spectrum_from_scw_list(instr_name,E1,E2,scw_list=["035200230010.001","035
     dic_str = str(scw_list)
     if instr_name == 'ISGRI':
         target = "ISGRISpectraSum"
-        modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
+        modules = ["ddosa", "git://ddosadm", "git://useresponse/cd7855bf7","git://process_isgri_spectra/2200bfd", "git://rangequery"]
 
         assume = ['process_isgri_spectra.ScWSpectraList(input_scwlist=ddosa.IDScWList(use_scwid_list=%s))' % dic_str,
                   'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1, E2=E2),
@@ -193,7 +193,7 @@ def do_spectrum_from_time_span(instr_name,E1,E2,T1,T2,RA,DEC,radius,use_max_poin
 
     if instr_name == 'ISGRI':
         target="ISGRISpectraSum"
-        modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
+        modules = ["ddosa", "git://ddosadm", "git://useresponse/cd7855bf7","git://process_isgri_spectra/2200bfd", "git://rangequery"]
         assume = ['process_isgri_spectra.ScWSpectraList(\
                              input_scwlist=\
                              rangequery.TimeDirectionScWList(\
