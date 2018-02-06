@@ -26,8 +26,8 @@ from cdci_data_analysis.flask_app.app import InstrumentQueryBackEnd
 
 crab_scw_list=["035200230010.001","035200240010.001"]
 cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001']
-asynch_scw_list=['066600400010.001']
-single_scw_list=['005100410010.001']
+asynch_scw_list=['035200230010.001']
+single_scw_list=['035200230010.001']
 
 T1_iso='2003-03-15T23:27:40.0'
 T2_iso='2003-03-16T00:03:15.0'
@@ -367,7 +367,7 @@ def test_asynch_request(parameters_dic,query_status,job_id=None):
 
 
 def test_asynch_full():
-    parameters_dic=test_asynch_spectrum()
+    parameters_dic=test_asynch_mosaic()
 
 
     query_out=test_asynch_request(parameters_dic,'new')
