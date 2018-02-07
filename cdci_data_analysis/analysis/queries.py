@@ -364,9 +364,9 @@ class ProductQuery(BaseQuery):
         self.job=None
 
 
-    def get_products(self, instrument, job=None,config=None,**kwargs):
+    def get_products(self, instrument,prompt_delegate, job=None,config=None,**kwargs):
         if self._get_product_method is not None:
-            return self._get_product_method(instrument,config=config,job=job,**kwargs)
+            return self._get_product_method(instrument,prompt_delegate=prompt_delegate,config=config,job=job,**kwargs)
         else:
             return None
 
@@ -523,7 +523,7 @@ class ProductQuery(BaseQuery):
 
         return query_out
 
-    def get_query_products(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None):
+    def get_query_products(self,instrument,job,prompt_delegate,query_type='Real',logger=None,config=None,scratch_dir=None):
         # query
         status=0
         message=''
@@ -534,6 +534,7 @@ class ProductQuery(BaseQuery):
         try:
             if query_type != 'Dummy':
                 self.query_prod_list = self.get_products(instrument,
+                                                         prompt_delegate,
                                                          config=config,
                                                          out_dir=scratch_dir,
                                                          job=job)
@@ -604,7 +605,7 @@ class ProductQuery(BaseQuery):
 
 
 
-    def run_query(self,instrument,scratch_dir,job,query_type='Real', config=None,logger=None):
+    def run_query(self,instrument,scratch_dir,job,prompt_delegate,query_type='Real', config=None,logger=None):
         input_prod_list=None
 
 
@@ -622,7 +623,7 @@ class ProductQuery(BaseQuery):
 
 
         if query_out.status_dictionary['status'] == 0:
-            query_out = self.get_query_products(instrument,job, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
+            query_out = self.get_query_products(instrument,job,prompt_delegate, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
 
         if query_out.status_dictionary['status'] == 0:
             if job.status!='done':
@@ -709,12 +710,17 @@ class PostProcessProductQuery(ProductQuery):
 
 
 
-    def run_query(self,instrument,scratch_dir,query_type='Real', config=None,logger=None):
+    def run_query(self,instrument,scratch_dir,job,query_type='Real', config=None,logger=None):
 
         #query_out = self.get_query_products(instrument, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
         #if query_out.status_dictionary['status'] == 0:
 
+
         query_out = self.process_query_product(instrument, logger=logger, config=config,scratch_dir=scratch_dir)
+        if query_out.status_dictionary['status'] == 0:
+            job.set_done()
+        else:
+            job.set_failed()
 
         return query_out
 

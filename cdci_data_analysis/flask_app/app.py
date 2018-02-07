@@ -102,11 +102,11 @@ def make_dir(out_dir):
 
 class InstrumentQueryBackEnd(object):
 
-    def __init__(self,instrument_name=None,par_dic=None,config=None,data_server_call_back=False):
+    def __init__(self,instrument_name=None,par_dic=None,config=None,data_server_call_back=False,verbose=False):
         #self.instrument_name=instrument_name
 
         if par_dic is None:
-            self.set_args(request)
+            self.set_args(request,verbose=verbose)
         else:
             self.par_dic = par_dic
 
@@ -128,9 +128,9 @@ class InstrumentQueryBackEnd(object):
             else:
                 self.job_id = self.par_dic['job_id']
 
-        self.set_scratch_dir(self.par_dic['session_id'],job_id=self.job_id)
+        self.set_scratch_dir(self.par_dic['session_id'],job_id=self.job_id,verbose=verbose)
 
-        self.set_session_logger(self.scratch_dir)
+        self.set_session_logger(self.scratch_dir,verbose=verbose)
 
         if data_server_call_back is False:
             self.set_instrument(self.instrument_name)
@@ -147,7 +147,7 @@ class InstrumentQueryBackEnd(object):
             ID += random.choice(number)
             ID += random.choice(alpha)
         self.job_id=ID
-        print ('------->str check',type(self.job_id),self.job_id)
+        #print ('------->str check',type(self.job_id),self.job_id)
 
 
     def set_instrument(self,instrument_name):
@@ -160,7 +160,7 @@ class InstrumentQueryBackEnd(object):
         else:
             raise Exception("instrument not recognized".format(instrument_name))
 
-    def set_session_logger(self,scratch_dir):
+    def set_session_logger(self,scratch_dir,verbose=False):
         logger = logging.getLogger(__name__)
         fileh = logging.FileHandler(os.path.join(scratch_dir, 'session.log'), 'a')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -171,7 +171,8 @@ class InstrumentQueryBackEnd(object):
             log.removeHandler(hdlr)
         log.addHandler(fileh)  # set the new handler
         logger.setLevel(logging.INFO)
-        print('logfile set to dir=', scratch_dir, ' with name=session.log')
+        if verbose==True:
+            print('logfile set to dir=', scratch_dir, ' with name=session.log')
 
         self.logger=logger
 
@@ -179,19 +180,23 @@ class InstrumentQueryBackEnd(object):
     def get_current_ip(self):
         return  socket.gethostbyname(socket.gethostname())
 
-    def set_args(self,request):
+    def set_args(self,request,verbose=False):
         if request.method == 'GET':
             args = request.args
         if request.method == 'POST':
             args = request.form
         self.par_dic = args.to_dict()
-        print('par_dic', self.par_dic)
+        if verbose == True:
+            print('par_dic', self.par_dic)
 
         self.args=args
 
-    def set_scratch_dir(self,session_id,job_id=None):
-        print('SETSCRATCH  ---->', session_id,type(session_id),job_id,type(job_id))
+    def set_scratch_dir(self,session_id,job_id=None,verbose=False):
+        if verbose==True:
+            print('SETSCRATCH  ---->', session_id,type(session_id),job_id,type(job_id))
+
         wd = 'scratch'
+
         if session_id is not None:
             wd += '_' + session_id
 
@@ -362,6 +367,7 @@ class InstrumentQueryBackEnd(object):
 
     def run_query(self,off_line=False):
 
+        print ('==============================> run query <==============================')
         query_type = self.par_dic['query_type']
         product_type = self.par_dic['product_type']
 
@@ -404,21 +410,30 @@ class InstrumentQueryBackEnd(object):
 
         job_monitor=job.monitor
 
-        print ('-----------------> query status  old',query_status )
+        print('-----------------> query status  old is: ',query_status )
 
+        print('-----------------> job status before query:', job.status)
         if query_status=='new' or query_status=='ready':
+            if query_status=='new':
+                prompt_delegate=True
+            else:
+                prompt_delegate=True
+
+            print ('*** prompt_delegate',prompt_delegate)
             query_out = self.instrument.run_query(product_type,
                                                     self.par_dic,
                                                     request,
                                                     self,
                                                     job,
+                                                    prompt_delegate,
                                                     out_dir=self.scratch_dir,
                                                     config=config,
                                                     query_type=query_type,
-                                                    logger=self.logger)
+                                                    logger=self.logger,
+                                                        verbose=False)
 
 
-            print('-----------------> query status job (after query)', job.status)
+            print('-----------------> job status after query:', job.status)
             if query_out.status_dictionary['status']==0:
                 if job.status!='done':
                     job.set_submitted()
@@ -433,19 +448,21 @@ class InstrumentQueryBackEnd(object):
         elif query_status=='progress' or query_status=='unaccessible':
 
             job_monitor = job.get_dataserver_status(work_dir=self.scratch_dir)
-            print('-----------------> query status job (from data server)', job_monitor['status'])
+            print('-----------------> job status from data server', job_monitor['status'])
             if job_monitor['status']=='done':
                 query_new_status='ready'
             else:
                 query_new_status=job_monitor['status']
 
-            print('-----------------> query status new', query_new_status)
+            print('-----------------> query status new:', query_new_status)
 
             out_dict = {}
             out_dict['job_monitor'] = job_monitor
             out_dict['query_status'] = query_new_status
             out_dict['products'] = ''
             out_dict['exit_status'] = 0
+            print('query_out:job_monitor', job_monitor)
+            print('==============================> query done <==============================')
             return out_dict
 
         elif query_status=='failed':
@@ -456,7 +473,9 @@ class InstrumentQueryBackEnd(object):
             out_dict['query_status'] = query_new_status
             out_dict['products'] = ''
             out_dict['exit_status'] = -1
-            print('-----------------> query status new', query_new_status)
+            print('query_out:job_monitor', job_monitor)
+            print('==============================> query done <==============================')
+            print('-----------------> query status new:', query_new_status)
             return out_dict
 
 
@@ -481,7 +500,8 @@ class InstrumentQueryBackEnd(object):
         #else:
         #    out_dict['job_monitor']= 'not found'
         #    query_out.set_status(1, error_message='job monitor not found in query_out', )
-
+        print('query_out:job_monitor', job_monitor)
+        print('==============================> query done <==============================')
         if off_line == True:
             return out_dict
         else:

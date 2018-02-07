@@ -156,7 +156,7 @@ def do_spectrum_from_scw_list(instr_name,E1,E2,scw_list=["035200230010.001","035
     :param scw_list:
     :return:
     """
-    print('sum spectra from scw_list',scw_list)
+    #print('sum spectra from scw_list',scw_list)
     dic_str = str(scw_list)
     if instr_name == 'ISGRI':
         target = "ISGRISpectraSum"
@@ -258,7 +258,7 @@ def do_spectrum(instr_name,target,modules,assume,user_catalog=None):
     return QueryProduct(target=target, modules=modules, assume=assume,inject=inject)
 
 
-def get_osa_spectrum(instrument,job,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
+def get_osa_spectrum(instrument,job,prompt_delegate,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
 
     q=OsaQuery(config=config)
 
@@ -304,8 +304,8 @@ def get_osa_spectrum(instrument,job,dump_json=False,use_dicosverer=False,config=
                                                 use_max_pointings,
                                                 user_catalog=user_catalog)
 
-    print('====>instrument.name', instrument.name)
-    res = q.run_query(query_prod=query_prod, job=job,prompt_delegate=True)
+    #print('====>instrument.name', instrument.name)
+    res = q.run_query(query_prod=query_prod, job=job,prompt_delegate=prompt_delegate)
     if job.status != 'done':
         prod_list = QueryProductList(prod_list=[], job=job)
         return prod_list

@@ -73,17 +73,20 @@ class Job(object):
     def set_done(self):
         self._set_status('done')
 
+    def set_failed(self):
+        self._set_status('failed')
+
     def set_unaccessible(self):
         self._set_status('unaccessible')
 
 
     def get_dataserver_status(self,work_dir):
         f_path = self._set_file_name(work_dir)
-        print('f_path', f_path)
+        #print('f_path', f_path)
         try:
             with open(f_path, 'r') as infile:
                 self.monitor = json.load(infile, encoding='utf-8')
-            print('JOB MANAGER CHECK-->', self.monitor)
+            #print('JOB MANAGER CHECK-->', self.monitor)
         except Exception as e:
             self.set_unaccessible()
 
@@ -98,7 +101,7 @@ class Job(object):
         else:
             self.monitor['status']=status_dictionary_value
 
-        print('writing job status to job_monitor', self.monitor['status'])
+        #print('writing job status to job_monitor', self.monitor['status'])
         with open(f_path, 'w') as outfile:
             my_json_str = json.dumps(self.monitor, encoding='utf-8')
             # if isinstance(my_json_str, str):

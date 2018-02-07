@@ -230,7 +230,7 @@ class Parameter(object):
 
         self._units=units
 
-    def set_from_form(self,form):
+    def set_from_form(self,form,verbose=False):
         par_name = self.name
         units_name = self.units_name
         v = None
@@ -250,7 +250,8 @@ class Parameter(object):
 
             #print('setting par:', par_name, 'to val=', self.value, 'and units', units_name, 'to', self.units )
         else:
-            print('setting par:', par_name, 'not in dictionary')
+            if verbose is True:
+                print('setting par:', par_name, 'not in dictionary')
 
 
     def set_par(self,value,units=None):
@@ -357,7 +358,7 @@ class Float(Parameter):
 
     @staticmethod
     def check_float_value(value, units=None,name=None):
-        print('check type of ',name,'value', value, 'type',type(value))
+        #print('check type of ',name,'value', value, 'type',type(value))
         if value is None or value=='':
             pass
         else:

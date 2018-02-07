@@ -236,7 +236,10 @@ class OsaQuery(object):
             else:
                 raise RuntimeError('job object not passed')
 
-            print ('call_back_url',job.get_call_back_url())
+            #print('--osa disp--')
+            #print('call_back_url',job.get_call_back_url())
+            #print('*** prompt_delegate', prompt_delegate)
+
 
             res= dc.RemoteDDOSA(self.url, self.ddcache_root_local).query(target=query_prod.target,
                                                     modules=query_prod.modules,
@@ -247,12 +250,13 @@ class OsaQuery(object):
 
 
 
-            print ('url for call_back',job.get_call_back_url())
-            print("cached object in", res,res.ddcache_root_local)
+            #print ('url for call_back',job.get_call_back_url())
+            #print("cached object in", res,res.ddcache_root_local)
+            #print('--osa disp--')
             job.set_done()
         except dc.WorkerException as e:
 
-            job.set_done()
+            job.set_failed()
             print("ERROR->")
             print (type(e),e)
             print ("e.message",e.message)

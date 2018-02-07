@@ -91,8 +91,8 @@ def do_mosaic(instr_name,E1,E2,scwlist_assumption,extramodules=None,user_catalog
 
         extramodules.append("git://gencat")
         inject.append(cat)
-    print ('extramodules',extramodules)
-    print('mosaic standard mode from scw_list', scwlist_assumption)
+    #print ('extramodules',extramodules)
+    #print('mosaic standard mode from scw_list', scwlist_assumption)
 
     if instr_name=='ISGRI':
         target="mosaic_ii_skyimage"
@@ -131,7 +131,7 @@ def do_mosaic(instr_name,E1,E2,scwlist_assumption,extramodules=None,user_catalog
 
 
 def do_mosaic_from_scw_list(instr_name,E1,E2,user_catalog=None,scw_list=["035200230010.001","035200240010.001"]):
-    print('mosaic standard mode from scw_list', scw_list)
+    #print('mosaic standard mode from scw_list', scw_list)
     dic_str=str(scw_list)
     return do_mosaic(instr_name,E1,E2,'ddosa.IDScWList(use_scwid_list=%s)'%dic_str,user_catalog=user_catalog)
 
@@ -145,7 +145,7 @@ def do_mosaic_from_time_span(instr_name,E1,E2,T1,T2,RA,DEC,radius,use_max_pointi
     return do_mosaic(instr_name,E1,E2,scwlist_assumption,user_catalog=user_catalog,extramodules=['git://rangequery'])
 
 
-def get_osa_image_products(instrument,job,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
+def get_osa_image_products(instrument,job,prompt_delegate,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
 
     q=OsaQuery(config=config)
 
@@ -196,7 +196,7 @@ def get_osa_image_products(instrument,job,dump_json=False,use_dicosverer=False,c
     #image=None
 
 
-    res=q.run_query(query_prod=query_prod,job=job)
+    res=q.run_query(query_prod=query_prod,job=job,prompt_delegate=prompt_delegate)
 
     if job.status!='done':
         prod_list = QueryProductList(prod_list=[],job=job)
@@ -204,7 +204,7 @@ def get_osa_image_products(instrument,job,dump_json=False,use_dicosverer=False,c
     else:
 
         if instrument.name == 'ISGRI':
-            print ('OSA IMAGE DISP -----> out ditr',type(out_dir))
+            #print ('OSA IMAGE DISP -----> out ditr',type(out_dir))
             image=OsaImageProduct.build_from_ddosa_skyima('mosaic_image','isgri_query_mosaic.fits',res.skyima,out_dir=out_dir,prod_prefix=prod_prefix)
             osa_catalog=CatalogProduct('mosaic_catalog',catalog=OsaIsgriCatalog.build_from_ddosa_srclres(res.srclres),file_name='query_catalog.fits',name_prefix=prod_prefix,file_dir=out_dir)
 
