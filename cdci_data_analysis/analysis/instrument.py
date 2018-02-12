@@ -169,6 +169,7 @@ class Instrument(object):
 
 
         if query_out.status_dictionary['status'] == 0:
+            #print('--->CICCIO',self.query_dictionary)
             query_name=self.query_dictionary[product_type]
             query_out=self.get_query_by_name(query_name).run_query(self,out_dir,job,prompt_delegate,query_type=query_type,config=config,logger=logger)
 

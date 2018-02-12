@@ -32,7 +32,7 @@ from ..ddosa_interface.osa_isgri import OSA_ISGRI
 from ..ddosa_interface.osa_jemx import OSA_JEMX
 from ..analysis.queries import *
 from ..analysis.job_manager import Job
-
+from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
 from .mock_data_server import mock_chek_job_status
 import  tempfile
@@ -82,17 +82,17 @@ app = Flask(__name__)
 
 
 
-def make_dir(out_dir):
+#def make_dir(out_dir):
 
 
-    if os.path.isdir(out_dir):
-        return
-    else:
-        if os.path.isfile(out_dir):
-            raise RuntimeError("a file with the same name of dir already exists")
-            #raise RuntimeError, "a file with the same name of dir=%s, exists"%out_dir
-        else:
-            os.mkdir(out_dir)
+#    if os.path.isdir(out_dir):
+#        return
+#    else:
+#        if os.path.isfile(out_dir):
+#            raise RuntimeError("a file with the same name of dir already exists")
+#            #raise RuntimeError, "a file with the same name of dir=%s, exists"%out_dir
+#        else:
+#            os.mkdir(out_dir)
 
 
 
@@ -139,14 +139,14 @@ class InstrumentQueryBackEnd(object):
 
 
     def generate_job_id(self):
-        #self.job_id=str(u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16)))
-        number = '0123456789'
-        alpha = 'abcdefghijklmnopqrstuvwxyz'.capitalize()
-        ID = ''
-        for i in range(0, 16, 2):
-            ID += random.choice(number)
-            ID += random.choice(alpha)
-        self.job_id=ID
+        self.job_id=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+        #number = '0123456789'
+        #alpha = 'abcdefghijklmnopqrstuvwxyz'.capitalize()
+        #ID = ''
+        #for i in range(0, 16, 2):
+        #    ID += random.choice(number)
+        #    ID += random.choice(alpha)
+        #self.job_id=ID
         #print ('------->str check',type(self.job_id),self.job_id)
 
 
@@ -204,8 +204,10 @@ class InstrumentQueryBackEnd(object):
         if job_id is not None:
             wd +='_'+job_id
 
-        make_dir(wd)
-        self.scratch_dir=wd
+        wd=FilePath(file_dir=wd)
+        wd.mkdir()
+        self.scratch_dir=wd.path
+
 
     def prepare_download(self,file_list, file_name, scratch_dir):
         if hasattr(file_list, '__iter__'):
@@ -314,7 +316,7 @@ class InstrumentQueryBackEnd(object):
 
         status=self.par_dic[status_kw_name]
         print ('-----> set status to ',status)
-        job.write_dataserver_status(work_dir=self.scratch_dir,status_dictionary_value=status)
+        job.write_dataserver_status(status_dictionary_value=status,full_dict=self.par_dic)
 
         return status
 
@@ -413,6 +415,9 @@ class InstrumentQueryBackEnd(object):
         print('-----------------> query status  old is: ',query_status )
 
         print('-----------------> job status before query:', job.status)
+
+        out_dict=None
+
         if query_status=='new' or query_status=='ready':
             if query_status=='new':
                 prompt_delegate=True
@@ -447,7 +452,7 @@ class InstrumentQueryBackEnd(object):
 
         elif query_status=='progress' or query_status=='unaccessible':
 
-            job_monitor = job.get_dataserver_status(work_dir=self.scratch_dir)
+            job_monitor = job.get_dataserver_status()
             print('-----------------> job status from data server', job_monitor['status'])
             if job_monitor['status']=='done':
                 query_new_status='ready'
@@ -463,7 +468,7 @@ class InstrumentQueryBackEnd(object):
             out_dict['exit_status'] = 0
             print('query_out:job_monitor', job_monitor)
             print('==============================> query done <==============================')
-            return out_dict
+
 
         elif query_status=='failed':
             #TODO: here we shoudl rusubmit query to get exception from ddosa
@@ -476,9 +481,17 @@ class InstrumentQueryBackEnd(object):
             print('query_out:job_monitor', job_monitor)
             print('==============================> query done <==============================')
             print('-----------------> query status new:', query_new_status)
-            return out_dict
 
-
+        else:
+            out_dict = {}
+            query_new_status = 'uknown'
+            out_dict['job_monitor'] = job_monitor
+            out_dict['query_status'] = query_new_status
+            out_dict['products'] = ''
+            out_dict['exit_status'] = -1
+            print('query_out:job_monitor', job_monitor)
+            print('==============================> query done <==============================')
+            print('-----------------> query status new:', query_new_status)
 
 
 
@@ -489,19 +502,22 @@ class InstrumentQueryBackEnd(object):
         self.logger.info('============================================================')
         self.logger.info('')
 
-        out_dict = {}
-        out_dict['query_status']=query_new_status
-        out_dict['products'] = query_out.prod_dictionary
-        out_dict['exit_status'] = query_out.status_dictionary
-        print('exit_status', out_dict['exit_status'])
 
-        #if no_job_class_found == False:
-        out_dict['job_monitor'] = job_monitor
-        #else:
-        #    out_dict['job_monitor']= 'not found'
-        #    query_out.set_status(1, error_message='job monitor not found in query_out', )
-        print('query_out:job_monitor', job_monitor)
-        print('==============================> query done <==============================')
+        if out_dict is None:
+            out_dict = {}
+            out_dict['query_status']=query_new_status
+            out_dict['products'] = query_out.prod_dictionary
+            out_dict['exit_status'] = query_out.status_dictionary
+            print('exit_status', out_dict['exit_status'])
+
+            #if no_job_class_found == False:
+            out_dict['job_monitor'] = job_monitor
+            #else:
+            #    out_dict['job_monitor']= 'not found'
+            #    query_out.set_status(1, error_message='job monitor not found in query_out', )
+            print('query_out:job_monitor', job_monitor)
+            print('==============================> query done <==============================')
+
         if off_line == True:
             return out_dict
         else:

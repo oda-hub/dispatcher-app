@@ -38,17 +38,17 @@ import json
 # Project
 # relative import eg: from .mod import f
 
-
+from ..analysis.io_helper import FilePath
 
 class Job(object):
 
-    def __init__(self,work_dir,server_url,server_port,callback_handle,file_mame='job_monitor.json',job_id=None,session_id=None,status='unaccessible'):
+    def __init__(self,work_dir,server_url,server_port,callback_handle,file_name='job_monitor.json',job_id=None,session_id=None,status='unaccessible'):
         self.monitor={}
         self.callback_handle=callback_handle
         self.server_url=server_url
         self.server_port=server_port
-        self.file_mame=file_mame
-        self.work_dir=work_dir
+        self._set_file_path(file_name=file_name,work_dir=work_dir)
+        #print ("ciccio",self._file_path.path, self._file_path.name,self._file_path.dir_name)
         self.job_id=job_id
         self.session_id=session_id
         self.status=status
@@ -60,8 +60,20 @@ class Job(object):
         self.monitor['status']=self.status
 
 
-    def _set_file_name(self,work_dir):
-        return self.work_dir + '/' + self.file_mame
+    def _set_file_path(self,file_name,work_dir):
+        self._file_path=FilePath(file_dir=work_dir,file_name=file_name)
+
+    @property
+    def file_path(self):
+        return self._file_path.path
+
+    @property
+    def file_name(self):
+        return self._file_path.name
+
+    @property
+    def dir_name(self):
+        return self._file_path.dir_name
 
     def _set_status(self,job_status):
         self.monitor['status']=job_status
@@ -80,11 +92,10 @@ class Job(object):
         self._set_status('unaccessible')
 
 
-    def get_dataserver_status(self,work_dir):
-        f_path = self._set_file_name(work_dir)
-        #print('f_path', f_path)
+    def get_dataserver_status(self,):
         try:
-            with open(f_path, 'r') as infile:
+            with open(self.file_path, 'r') as infile:
+                #print("=====> reading  from ", self.file_path)
                 self.monitor = json.load(infile, encoding='utf-8')
             #print('JOB MANAGER CHECK-->', self.monitor)
         except Exception as e:
@@ -92,9 +103,8 @@ class Job(object):
 
         return  self.monitor
 
-    def write_dataserver_status(self,work_dir,status_dictionary_value=None):
-        f_path = self._set_file_name(work_dir)
-        # TODO: add chekc of current and on file job_id and session_id
+    def write_dataserver_status(self,status_dictionary_value=None,full_dict=None):
+        # TODO: add check of current and on file job_id and session_id
 
         if status_dictionary_value is None:
             pass
@@ -102,7 +112,11 @@ class Job(object):
             self.monitor['status']=status_dictionary_value
 
         #print('writing job status to job_monitor', self.monitor['status'])
-        with open(f_path, 'w') as outfile:
+        if full_dict is not None:
+            self.monitor['full_report_dict']=full_dict
+
+        with open(self.file_path, 'w')  as outfile:
+            #print ("=====> writing to ",self.file_path)
             my_json_str = json.dumps(self.monitor, encoding='utf-8')
             # if isinstance(my_json_str, str):
             outfile.write(u'%s' % my_json_str)
@@ -113,7 +127,7 @@ class Job(object):
         url=u'http://%s:%s/%s?'%(self.server_url,self.server_port,self.callback_handle)
         url+=u'session_id=%s&'%self.session_id
         url += u'job_id=%s&' % self.job_id
-        url += u'work_dir=%s&' % self.work_dir
-        url += u'file_mame=%s' % self.file_mame
-
+        url += u'work_dir=%s&' % self.dir_name
+        url += u'file_mame=%s' % self.file_name
+        #print ('-------------> url call back',url)
         return url

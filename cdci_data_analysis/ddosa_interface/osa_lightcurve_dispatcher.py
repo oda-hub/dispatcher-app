@@ -178,7 +178,7 @@ def do_lc_from_time_span(E1, E2, T1, T2, RA, DEC, radius,src_name,use_max_pointi
 
 
 
-def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
+def get_osa_lightcurve(instrument,job,prompt_delegate,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
     q = OsaQuery(config=config)
 
     RA = instrument.get_par_by_name('RA').value
@@ -224,18 +224,29 @@ def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=No
                                                  delta_t=delta_t,
                                                  user_catalog=user_catalog)
 
+    res = q.run_query(query_prod=query_prod, job=job, prompt_delegate=prompt_delegate)
+    if job.status != 'done':
+        prod_list = QueryProductList(prod_list=[], job=job)
+        return prod_list
+    else:
+
+        lc = IsgriLigthtCurve.build_from_ddosa_res('isgri_lc', 'query_lc.fits',
+                                                   res,
+                                                   src_name=src_name,
+                                                   prod_prefix=prod_prefix,
+                                                   out_dir=out_dir)
 
 
 
-    res= q.run_query(query_prod=query_prod)
+    #res= q.run_query(query_prod=query_prod)
 
-    print('res', str(res.lightcurve))
+    #print('res', str(res.lightcurve))
 
-    lc = IsgriLigthtCurve.build_from_ddosa_res('isgri_lc','query_lc.fits',
-                                               res,
-                                               src_name=src_name,
-                                               prod_prefix=prod_prefix,
-                                               out_dir=out_dir)
+    #lc = IsgriLigthtCurve.build_from_ddosa_res('isgri_lc','query_lc.fits',
+    #                                           res,
+    #                                           src_name=src_name,
+    #                                           prod_prefix=prod_prefix,
+    #                                           out_dir=out_dir)
 
     prod_list = QueryProductList(prod_list=[lc])
 

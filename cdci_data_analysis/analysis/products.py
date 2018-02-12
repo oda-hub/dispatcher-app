@@ -2,6 +2,9 @@
 
 from __future__ import absolute_import, division, print_function
 
+from builtins import (bytes, str, open, super, range,
+                      zip, round, input, int, pow, object, map, zip)
+
 __author__ = "Andrea Tramacere"
 
 
@@ -38,29 +41,9 @@ import mpld3
 from mpld3 import plugins
 
 from .parameters import *
+from .io_helper import FilePath
 
 
-class QueryFilePath(object):
-    def __init__(self,file_name,file_dir='./',name_prefix=None):
-        if name_prefix is not None:
-            file_name=name_prefix+'_'+file_name
-
-        if file_dir is None:
-            file_dir='./'
-        print ('file_dir,file_name',type(file_dir),type(file_name))
-        self.file_path = Path(file_dir, file_name)
-
-    def get_file_path(self,file_name=None,file_dir=None):
-        if file_name is  None and file_dir is None:
-            file_path=self.file_path
-        elif file_name is  None and file_dir is not None:
-            file_path= QueryFilePath(file_dir, self.self.file_path.name)
-        elif  file_name is not  None and file_dir is  None:
-            file_path =  self.file_path.with_name(file_name)
-        else:
-            file_path= self.file_path
-
-        return str(file_path)
 
 
 
@@ -113,7 +96,7 @@ class BaseQueryProduct(object):
             print ('workig dir',file_dir)
             print ('file name',file_name)
             print ('name_prefix',name_prefix)
-            self.file_path=QueryFilePath(file_name,file_dir=file_dir,name_prefix=name_prefix)
+            self.file_path=FilePath(file_name=file_name, file_dir=file_dir, name_prefix=name_prefix)
             print('file_path set to',self.file_path.get_file_path())
 
     def write(self):
@@ -143,7 +126,9 @@ class ImageProduct(BaseQueryProduct):
 
     def write(self,file_name=None,overwrite=True,file_dir=None):
 
-        file_path=self.file_path.get_file_path(file_name=file_name,file_dir=file_dir)
+        # TODO: this should be file_path = self.file_path.path-> DONE AND PASSED
+        file_path = self.file_path.path
+        #file_path=self.file_path.get_file_path(file_name=file_name,file_dir=file_dir)
         pf.writeto( file_path   , data=self.data, header=self.header,overwrite=overwrite)
 
     def get_html_draw(self, catalog=None,plot=False,vmin=None,vmax=None):
@@ -584,9 +569,9 @@ class SpectralFitProduct(BaseQueryProduct):
 
 
         super(SpectralFitProduct, self).__init__(name, **kwargs)
-        self.rmf_file = QueryFilePath(file_name=rmf_file, file_dir=file_dir).get_file_path()
-        self.arf_file = QueryFilePath(file_name=arf_file, file_dir=file_dir).get_file_path()
-        self.spec_file = QueryFilePath(file_name=spec_file, file_dir=file_dir).get_file_path()
+        self.rmf_file = FilePath(file_name=rmf_file, file_dir=file_dir).get_file_path()
+        self.arf_file = FilePath(file_name=arf_file, file_dir=file_dir).get_file_path()
+        self.spec_file = FilePath(file_name=spec_file, file_dir=file_dir).get_file_path()
 
 
 
@@ -731,5 +716,6 @@ class CatalogProduct(BaseQueryProduct):
 
 
     def write(self,file_name=None,overwrite=True,format='fits',file_dir=None):
+        #TODO: this should be file_path = self.file_path.path
         file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
         self.catalog.write(file_path,overwrite=overwrite,format=format)

@@ -26,8 +26,8 @@ from cdci_data_analysis.flask_app.app import InstrumentQueryBackEnd
 
 crab_scw_list=["035200230010.001","035200240010.001"]
 cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001']
-asynch_scw_list=['030400530010.001']
-single_scw_list=['035200230010.001']
+asynch_scw_list=['004000030030.001']
+asynch_scw_list=['035200230010.001']
 
 
 
@@ -178,7 +178,7 @@ def build_upload_data(data_type):
     return data
 
 
-def set_mosaic_query(instrument_name='isgri',
+def set_mosaic_query(instrument_name,
                      scw_list=None,
                      user_catalog=False,
                      query_type='Real',
@@ -226,7 +226,7 @@ def set_mosaic_query(instrument_name='isgri',
 
 
 
-def set_spectrum_query(instrument_name='isgri',
+def set_spectrum_query(instrument_name,
                      scw_list=None,
                      user_catalog=False,
                      query_type='Real',
@@ -272,12 +272,59 @@ def set_spectrum_query(instrument_name='isgri',
 
 
 
+def set_lc_query(instrument_name,
+                     src_name='Crab',
+                     time_bin=500,
+                     user_catalog=False,
+                     time_bin_format='sec',
+                     scw_list=None,
+                     query_type='Real',
+                     upload_data=None,
+                     T1_iso='2003-02-08T23:17:56.0',
+                     T2_iso='2003-02-09T01:48:00.0',
+                     RA_user_cat=[205.09872436523438],
+                     Dec_user_cat=[83.6317138671875],
+                     session_id='test',
+                     detection_threshold=5.0,
+                     radius=25,
+                     E1_keV=20.,
+                     E2_keV=40.):
+
+
+    if instrument_name == 'isgri':
+        product_type = 'isgri_lc'
+    elif instrument_name == 'jemx':
+        product_type = 'jemx_lc'
+    else:
+        raise RuntimeError('instrumet %s' % instrument_name, 'not supported')
+
+    if scw_list==None:
+        scw_list=cookbook_scw_list
+
+    if user_catalog == True:
+        cat_dict=build_user_catalog(RA_user_cat,Dec_user_cat)
+    else:
+        cat_dict=None
+
+
+
+    parameters_dic=dict(E1_keV=E1_keV,E2_keV=E2_keV,T1=T1_iso, T2=T2_iso,RA=RA_user_cat[0],DEC=RA_user_cat[0],radius=radius,scw_list=scw_list,
+                        image_scale_min=1,session_id=session_id,query_type=query_type,product_type=product_type,
+                        detection_threshold=detection_threshold,src_name=src_name,time_bin=time_bin,time_bin_format=time_bin_format,user_catalog_dictionary=cat_dict)
+
+    if upload_data is not None:
+        data=build_upload_data(upload_data)
+    else:
+        data=None
+
+    return parameters_dic,data
 
 
 
 
 
-def test_synch_request(parameters_dic,query_status='new',job_id=None,upload_data=None):
+
+def test_synch_request(parameters_dic,instrument_name,query_status='new',job_id=None,upload_data=None):
     testapp = flask.Flask(__name__)
 
     parameters_dic['query_status'] = query_status
@@ -285,7 +332,7 @@ def test_synch_request(parameters_dic,query_status='new',job_id=None,upload_data
     parameters_dic['job_id'] = job_id
 
     with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=upload_data):
-        query = InstrumentQueryBackEnd(instrument_name='isgri', par_dic=parameters_dic, config=osaconf)
+        query = InstrumentQueryBackEnd(instrument_name=instrument_name, par_dic=parameters_dic, config=osaconf)
 
         print('request', request.method)
         query_out = query.run_query(off_line=True)
@@ -295,7 +342,7 @@ def test_synch_request(parameters_dic,query_status='new',job_id=None,upload_data
         print('query_out:job_monitor', query_out)
 
 
-def test_asynch_request(parameters_dic,query_status,job_id=None,upload_data=None):
+def test_asynch_request(parameters_dic,instrument_name,query_status,job_id=None,upload_data=None):
     testapp = flask.Flask(__name__)
 
     parameters_dic['query_status'] = query_status
@@ -304,7 +351,7 @@ def test_asynch_request(parameters_dic,query_status,job_id=None,upload_data=None
 
 
     with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=upload_data):
-        query = InstrumentQueryBackEnd(instrument_name='isgri', par_dic=parameters_dic, config=osaconf)
+        query = InstrumentQueryBackEnd(instrument_name=instrument_name, par_dic=parameters_dic, config=osaconf)
 
         print('\n')
         query_out = query.run_query(off_line=True)
@@ -319,10 +366,11 @@ def test_asynch_request(parameters_dic,query_status,job_id=None,upload_data=None
 
 
 def test_asynch_full():
-    parameters_dic,upload_data=set_mosaic_query(scw_list=asynch_scw_list,RA_user_cat=[80.63168334960938],Dec_user_cat=[20.01494598388672],user_catalog=True,upload_data=None)
+    instrument_name='isgri'
+    parameters_dic,upload_data=set_mosaic_query(instrument_name=instrument_name,scw_list=asynch_scw_list,RA_user_cat=[80.63168334960938],Dec_user_cat=[20.01494598388672],user_catalog=False,upload_data=None)
 
 
-    query_out=test_asynch_request(parameters_dic,query_status='new',upload_data=None)
+    query_out=test_asynch_request(parameters_dic,instrument_name,query_status='new',upload_data=None)
     query_status=query_out['query_status']
     job_id=query_out['job_monitor']['job_id']
     if query_status!='failed':
@@ -333,7 +381,7 @@ def test_asynch_full():
 
 
     while query_status!='done' and query_status!='failed':
-        query_out = test_asynch_request(parameters_dic,query_status,job_id=job_id,upload_data=None)
+        query_out = test_asynch_request(parameters_dic,instrument_name,query_status,job_id=job_id,upload_data=None)
         query_status = query_out['query_status']
         job_id = query_out['job_monitor']['job_id']
         time.sleep(5)
