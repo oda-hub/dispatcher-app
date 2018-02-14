@@ -400,26 +400,26 @@ def process_osa_spectrum_products(instrument,prod_list):
         # print('xspec model',instrument.get_par_by_name('xspec_model').value)
         #_figs.append( query_spec.get_html_draw(plot=False,xspec_model=instrument.get_par_by_name('xspec_model').value))
         _names.append(query_spec.name)
-        _source_spec=[]
-        _pf_path.append(str(os.path.basename(query_spec.file_path.get_file_path())))
-        _arf_path.append(str(os.path.basename(query_spec.arf_file)))
-        _rmf_path.append(str(os.path.basename(query_spec.rmf_file)))
+        #_source_spec=[]
+        _pf_path.append(str(query_spec.file_path.name))
+        _arf_path.append(str(query_spec.arf_file.name))
+        _rmf_path.append(str(query_spec.rmf_file.name))
 
-        _source_spec.append(query_spec.file_path.get_file_path())
-        _source_spec.append(query_spec.arf_file.encode('utf-8'))
-        _source_spec.append(query_spec.rmf_file.encode('utf-8'))
+        #_source_spec.append(query_spec.file_path.get_file_path())
+        #_source_spec.append(query_spec.arf_file.encode('utf-8'))
+        #_source_spec.append(query_spec.rmf_file.encode('utf-8'))
 
-        _files_path.append(_source_spec)
+        #_files_path.append(_source_spec)
         #print ('_source_spec',_source_spec)
 
     query_out = QueryOutput()
 
     query_out.prod_dictionary['spectrum_name'] = _names
 
-    query_out.prod_dictionary['ph_file_path'] = _pf_path
-    query_out.prod_dictionary['arf_file_path'] = _arf_path
-    query_out.prod_dictionary['rmf_file_path'] = _rmf_path
-    query_out.prod_dictionary['file_name'] = 'spectra.tar.gz'
+    query_out.prod_dictionary['ph_file_name'] = _pf_path
+    query_out.prod_dictionary['arf_file_name'] = _arf_path
+    query_out.prod_dictionary['rmf_file_name'] = _rmf_path
+    query_out.prod_dictionary['download_file_name'] = 'spectra.tar.gz'
     query_out.prod_dictionary['prod_process_maessage']=''
 
 

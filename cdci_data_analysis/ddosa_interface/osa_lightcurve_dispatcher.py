@@ -290,13 +290,13 @@ def process_osa_lc_products(instrument,prod_list):
     if query_lc.data is not None:
         html_fig = query_lc.get_html_draw()
         query_out.prod_dictionary['image'] = html_fig
-        query_out.prod_dictionary['file_path'] =  str(os.path.basename(query_lc.file_path.get_file_path()))
-        query_out.prod_dictionary['file_name'] = 'light_curve.fits.gz'
+        query_out.prod_dictionary['file_name'] =  str(query_lc.file_path.name)
+        query_out.prod_dictionary['download_file_name'] = 'light_curve.fits.gz'
         query_out.prod_dictionary['prod_process_maessage'] = ''
     else:
         query_out.prod_dictionary['image'] = None
-        query_out.prod_dictionary['file_path'] = ''
         query_out.prod_dictionary['file_name'] = ''
+        query_out.prod_dictionary['download_file_name'] = ''
         query_out.prod_dictionary['prod_process_maessage'] = 'no light curve produced for name %s',query_lc.src_name
     print('--> send prog')
 

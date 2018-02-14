@@ -291,8 +291,8 @@ def process_osa_image_products(instrument,prod_list):
     query_out.prod_dictionary['catalog'] = query_catalog.catalog.get_dictionary()
     #TODO: use query_image.file_path.path -> DONE AND PASSED
     #print ("########## TESTING TODO: use query_image.file_path.path ", query_image.file_path.path)
-    query_out.prod_dictionary['file_path'] = query_image.file_path.path
-    query_out.prod_dictionary['file_name'] = 'image.gz'
+    query_out.prod_dictionary['file_name'] = str(query_image.file_path.path)
+    query_out.prod_dictionary['download_file_name'] = 'image.gz'
     query_out.prod_dictionary['prod_process_maessage'] = ''
 
     return query_out
