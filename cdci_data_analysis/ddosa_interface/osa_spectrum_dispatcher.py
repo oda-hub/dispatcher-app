@@ -402,8 +402,8 @@ def process_osa_spectrum_products(instrument,prod_list):
         _names.append(query_spec.name)
         #_source_spec=[]
         _pf_path.append(str(query_spec.file_path.name))
-        _arf_path.append(str(query_spec.arf_file.name))
-        _rmf_path.append(str(query_spec.rmf_file.name))
+        _arf_path.append(str(query_spec.arf_file_path.name))
+        _rmf_path.append(str(query_spec.rmf_file_path.name))
 
         #_source_spec.append(query_spec.file_path.get_file_path())
         #_source_spec.append(query_spec.arf_file.encode('utf-8'))

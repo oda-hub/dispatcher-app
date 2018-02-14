@@ -375,6 +375,7 @@ class   SpectrumProduct(BaseQueryProduct):
             #    self.header[arf_kw]=self.in_arf_file_path
             #    print('set arf kw to', self.header[arf_kw])
 
+        self.arf_file_path=FilePath(file_name=out_arf_file)
         self.arf_file=out_arf_file
 
 
@@ -411,6 +412,7 @@ class   SpectrumProduct(BaseQueryProduct):
         #        self.header[rmf_kw]=self.in_rmf_file
         #        print('set rmf kw to',self.header[rmf_kw])
 
+        self.rmf_file_path = FilePath(file_name=out_rmf_file)
         self.rmf_file = out_rmf_file
 
 
