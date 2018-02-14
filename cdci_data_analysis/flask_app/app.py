@@ -150,11 +150,12 @@ class InstrumentQueryBackEnd(object):
             query_out.set_status(status, message, debug_message=str(debug_message))
 
             out_dict = {}
+            out_dict['message']=message
             out_dict['query_status'] = -1
             out_dict['debug_message'] = debug_message
             out_dict['exit_status'] = query_out.status_dictionary
 
-        return jsonify(out_dict)
+            return jsonify(out_dict)
 
 
 
