@@ -813,9 +813,9 @@ class SpectralFitQuery(PostProcessProductQuery):
         print ('out dir',out_dir)
         src_name = instrument.get_par_by_name('src_name').value
 
-        ph_file=instrument.get_par_by_name('ph_file').value
-        rmf_file=instrument.get_par_by_name('rmf_file').value
-        arf_file=instrument.get_par_by_name('arf_file').value
+        ph_file=instrument.get_par_by_name('ph_file_name').value
+        rmf_file=instrument.get_par_by_name('rmf_file_name').value
+        arf_file=instrument.get_par_by_name('arf_file_name').value
         self.check_file_exist([ph_file,rmf_file,arf_file],out_dir=out_dir)
 
         query_out = QueryOutput()
