@@ -34,6 +34,7 @@ from ..analysis.queries import *
 from ..analysis.job_manager import Job
 from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
+from ..analysis.products import QueryOutput
 from .mock_data_server import mock_chek_job_status
 import  tempfile
 import tarfile
@@ -105,37 +106,56 @@ class InstrumentQueryBackEnd(object):
     def __init__(self,instrument_name=None,par_dic=None,config=None,data_server_call_back=False,verbose=False):
         #self.instrument_name=instrument_name
 
-        if par_dic is None:
-            self.set_args(request,verbose=verbose)
-        else:
-            self.par_dic = par_dic
 
-        if instrument_name is None:
-            self.instrument_name = self.par_dic['instrument']
-        else:
-            self.instrument_name = instrument_name
-
-
-
-        if data_server_call_back is True:
-            self.job_id = self.par_dic['job_id']
-
-        else:
-            query_status = self.par_dic['query_status']
-            self.job_id = None
-            if query_status == 'new':
-                self.generate_job_id()
+        try:
+            if par_dic is None:
+                self.set_args(request,verbose=verbose)
             else:
+                self.par_dic = par_dic
+
+            if instrument_name is None:
+                self.instrument_name = self.par_dic['instrument']
+            else:
+                self.instrument_name = instrument_name
+
+
+
+            if data_server_call_back is True:
                 self.job_id = self.par_dic['job_id']
 
-        self.set_scratch_dir(self.par_dic['session_id'],job_id=self.job_id,verbose=verbose)
+            else:
+                query_status = self.par_dic['query_status']
+                self.job_id = None
+                if query_status == 'new':
+                    self.generate_job_id()
+                else:
+                    self.job_id = self.par_dic['job_id']
 
-        self.set_session_logger(self.scratch_dir,verbose=verbose)
+            self.set_scratch_dir(self.par_dic['session_id'],job_id=self.job_id,verbose=verbose)
 
-        if data_server_call_back is False:
-            self.set_instrument(self.instrument_name)
+            self.set_session_logger(self.scratch_dir,verbose=verbose)
 
-        self.config=config
+            if data_server_call_back is False:
+                self.set_instrument(self.instrument_name)
+
+            self.config=config
+
+        except Exception as e:
+
+            status = -1
+            message = 'failed InstrumentQueryBackEnd constructor '
+            debug_message = e.message
+
+            query_out = QueryOutput()
+            query_out.set_status(status, message, debug_message=str(debug_message))
+
+            out_dict = {}
+            out_dict['query_status'] = -1
+            out_dict['debug_message'] = debug_message
+            out_dict['exit_status'] = query_out.status_dictionary
+
+        return jsonify(out_dict)
+
 
 
     def generate_job_id(self):
@@ -563,8 +583,8 @@ def meta_data_isgri():
 
 @app.route("/download_products",methods=['POST', 'GET'])
 def download_products():
-    instrument_name = 'ISGRI'
-    query = InstrumentQueryBackEnd(instrument_name=instrument_name)
+    #instrument_name = 'ISGRI'
+    query = InstrumentQueryBackEnd()
     return query.download_products()
 
 

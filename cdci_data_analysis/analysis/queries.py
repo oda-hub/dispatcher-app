@@ -31,6 +31,7 @@ import sys
 from .parameters import *
 from .products import SpectralFitProduct,QueryOutput
 from ..analysis.job_manager import Job
+from .io_helper import FilePath
 
 def view_traceback():
     ex_type, ex, tb = sys.exc_info()
@@ -674,6 +675,13 @@ class PostProcessProductQuery(ProductQuery):
         self.query_prod_list = None
 
 
+    def check_file_exist(self,files_list):
+        for f in   files_list:
+            file_path = FilePath(f)
+            if file_path.exists()==True:
+                pass
+            else:
+                raise  RuntimeError('file %s does not exist'%f)
 
     def process_product(self,instrument,query_prod_list, config=None,**kwargs):
         query_out = QueryOutput()
@@ -715,7 +723,7 @@ class PostProcessProductQuery(ProductQuery):
 
 
 
-    def run_query(self,instrument,scratch_dir,job,query_type='Real', config=None,logger=None):
+    def run_query(self,instrument,scratch_dir,job,prompt_delegate,query_type='Real', config=None,logger=None):
 
         #query_out = self.get_query_products(instrument, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
         #if query_out.status_dictionary['status'] == 0:
@@ -808,6 +816,7 @@ class SpectralFitQuery(PostProcessProductQuery):
         ph_file=instrument.get_par_by_name('ph_file').value
         rmf_file=instrument.get_par_by_name('rmf_file').value
         arf_file=instrument.get_par_by_name('arf_file').value
+        self.check_file_exist([ph_file,rmf_file,arf_file])
 
         query_out = QueryOutput()
         query_out.prod_dictionary['image'] = SpectralFitProduct('spectral_fit',ph_file,arf_file,rmf_file,file_dir=out_dir).run_fit(xspec_model=instrument.get_par_by_name('xspec_model').value)

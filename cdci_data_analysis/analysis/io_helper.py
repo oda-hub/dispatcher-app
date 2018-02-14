@@ -93,6 +93,10 @@ class FilePath(object):
     def is_dir(self):
         return self._file_path.is_dir()
 
+
+    def exists(self):
+        return self._file_path.exists()
+
     def mkdir(self,exist_ok=True):
 
         if exist_ok == True:
