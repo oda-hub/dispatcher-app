@@ -98,10 +98,10 @@ class IsgriSpectrumProduct(SpectrumProduct):
             print ('out spec file_name',file_name)
             out_arf_file=prod_prefix+'_'+Path(getattr(res, arf_attr)).name
             out_arf_file=str(Path(out_dir,out_arf_file))
-            print('out arf file_name', out_arf_file)
+            print('out arf file_path', out_arf_file)
             out_rmf_file=prod_prefix+'_'+Path(out_dir,getattr(res, rmf_attr)).name
             out_rmf_file = str(Path(out_dir, out_rmf_file))
-            print('out rmf file_name', out_rmf_file)
+            print('out rmf file_path', out_rmf_file)
 
             name=source_name
 

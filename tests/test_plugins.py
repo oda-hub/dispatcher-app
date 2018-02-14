@@ -367,7 +367,7 @@ def test_asynch_request(parameters_dic,instrument_name,query_status,job_id=None,
 
 def test_asynch_full():
     instrument_name='isgri'
-    parameters_dic,upload_data=set_spectrum_query(instrument_name=instrument_name,scw_list=asynch_scw_list,RA_user_cat=[80.63168334960938],Dec_user_cat=[20.01494598388672],user_catalog=False,upload_data=None,query_type='Dummy')
+    parameters_dic,upload_data=set_lc_query(instrument_name=instrument_name,scw_list=asynch_scw_list,RA_user_cat=[80.63168334960938],Dec_user_cat=[20.01494598388672],user_catalog=False,upload_data=None,query_type='Dummy')
 
 
     query_out=test_asynch_request(parameters_dic,instrument_name,query_status='new',upload_data=None)
