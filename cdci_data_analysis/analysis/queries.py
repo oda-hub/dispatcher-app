@@ -791,9 +791,9 @@ class SpectralFitQuery(PostProcessProductQuery):
     def __init__(self, name,parameters_list, **kwargs):
 
         xspec_model =Name(name_format='str', name='xspec_model',value='powerlaw')
-        ph_file = Name(name_format='str', name='ph_file', value='')
-        rmf_file = Name(name_format='str', name='rmf_file', value='')
-        arf_file = Name(name_format='str', name='arf_file', value='')
+        ph_file = Name(name_format='str', name='ph_file_name', value='')
+        rmf_file = Name(name_format='str', name='rmf_file_name', value='')
+        arf_file = Name(name_format='str', name='arf_file_name', value='')
 
         p_list=[xspec_model,ph_file,arf_file,rmf_file]
         if parameters_list != [] and parameters_list is not None:
