@@ -269,7 +269,7 @@ class InstrumentQueryBackEnd(object):
 
         file_list = self.args.get('file_list').split(',')
         print('used file_list', file_list)
-        file_name = self.args.get('file_name')
+        file_name = self.args.get('download_file_name')
 
         tmp_dir, target_file = self.prepare_download(file_list, file_name, self.scratch_dir)
         print('tmp_dir,target_file', tmp_dir, target_file)
