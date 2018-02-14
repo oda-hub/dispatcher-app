@@ -675,9 +675,9 @@ class PostProcessProductQuery(ProductQuery):
         self.query_prod_list = None
 
 
-    def check_file_exist(self,files_list):
+    def check_file_exist(self,files_list,out_dir=None):
         for f in   files_list:
-            file_path = FilePath(f)
+            file_path = FilePath(file_name=f,file_dir=out_dir)
             if file_path.exists()==True:
                 pass
             else:
@@ -816,7 +816,7 @@ class SpectralFitQuery(PostProcessProductQuery):
         ph_file=instrument.get_par_by_name('ph_file').value
         rmf_file=instrument.get_par_by_name('rmf_file').value
         arf_file=instrument.get_par_by_name('arf_file').value
-        self.check_file_exist([ph_file,rmf_file,arf_file])
+        self.check_file_exist([ph_file,rmf_file,arf_file],out_dir=out_dir)
 
         query_out = QueryOutput()
         query_out.prod_dictionary['image'] = SpectralFitProduct('spectral_fit',ph_file,arf_file,rmf_file,file_dir=out_dir).run_fit(xspec_model=instrument.get_par_by_name('xspec_model').value)
