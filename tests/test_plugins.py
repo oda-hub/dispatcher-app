@@ -305,7 +305,7 @@ def set_spectral_fit_query(instrument_name,
         cat_dict = None
 
     parameters_dic = dict(E1_keV=E1_keV, E2_keV=E2_keV, T1=T1_iso, T2=T2_iso, RA=RA_user_cat[0], DEC=RA_user_cat[0],
-                          radius=radius, scw_list=scw_list,src_name=src_name,job_id=job_id,
+                          radius=radius, scw_list=scw_list,src_name=src_name,job_id=job_id,query_status='ready',
                           image_scale_min=1, session_id=session_id, query_type=query_type, product_type=product_type,
                           detection_threshold=detection_threshold, user_catalog_dictionary=cat_dict)
 
