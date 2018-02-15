@@ -816,7 +816,7 @@ class SpectralFitQuery(PostProcessProductQuery):
 
 
     def process_product(self,instrument,job,out_dir=None):
-        #print ('out dir',out_dir)
+        print ('out dir',out_dir)
         src_name = instrument.get_par_by_name('src_name').value
 
         ph_file=instrument.get_par_by_name('ph_file_name').value
