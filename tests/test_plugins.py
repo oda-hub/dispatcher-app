@@ -290,9 +290,9 @@ def set_spectral_fit_query(instrument_name,
                      E2_keV=40.):
 
     if instrument_name == 'isgri':
-        product_type = 'isgri_spectrum'
+        product_type = 'spectral_fit'
     elif instrument_name == 'jemx':
-        product_type = 'jemx_spectrum'
+        product_type = 'spectral_fit'
     else:
         raise RuntimeError('instrumet %s' % instrument_name, 'not supported')
 
