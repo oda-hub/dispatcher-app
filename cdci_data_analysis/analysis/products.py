@@ -571,9 +571,9 @@ class SpectralFitProduct(BaseQueryProduct):
 
 
         super(SpectralFitProduct, self).__init__(name, **kwargs)
-        self.rmf_file = FilePath(file_name=rmf_file, file_dir=file_dir).get_file_path()
-        self.arf_file = FilePath(file_name=arf_file, file_dir=file_dir).get_file_path()
-        self.spec_file = FilePath(file_name=spec_file, file_dir=file_dir).get_file_path()
+        self.rmf_file = FilePath(file_name=rmf_file, file_dir=file_dir).path
+        self.arf_file = FilePath(file_name=arf_file, file_dir=file_dir).path
+        self.spec_file = FilePath(file_name=spec_file, file_dir=file_dir).path
 
 
 
