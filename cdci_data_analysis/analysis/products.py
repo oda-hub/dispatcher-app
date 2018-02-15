@@ -23,6 +23,7 @@ import json
 
 
 from pathlib import Path
+import xspec as xsp
 
 from astropy import wcs
 from astropy.wcs import WCS
@@ -216,7 +217,7 @@ class LightCurveProduct(BaseQueryProduct):
         pf.writeto(file_path, data=self.data, header=self.header, overwrite=overwrite)
 
     def get_html_draw(self, plot=False):
-        from astropy.io import fits as pf
+        #from astropy.io import fits as pf
         #print ('loading -->',self.file_path.path)
         hdul = pf.open(self.file_path.path)
 
@@ -224,7 +225,7 @@ class LightCurveProduct(BaseQueryProduct):
         header = hdul[1].header
 
         import matplotlib
-        matplotlib.use('TkAgg')
+        #matplotlib.use('TkAgg')
         import pylab as plt
         fig, ax = plt.subplots()
         x = data['TIME']
@@ -582,7 +583,7 @@ class SpectralFitProduct(BaseQueryProduct):
 
 
     def run_fit(self, plot=False,xspec_model='powerlaw'):
-        import xspec as xsp
+
         xsp.AllModels.clear()
         xsp.AllData.clear()
         xsp.AllChains.clear()
