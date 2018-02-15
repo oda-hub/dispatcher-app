@@ -97,7 +97,7 @@ class BaseQueryProduct(object):
             print ('file name',file_name)
             print ('name_prefix',name_prefix)
             self.file_path=FilePath(file_name=file_name, file_dir=file_dir, name_prefix=name_prefix)
-            print('file_path set to',self.file_path.get_file_path())
+            print('file_path set to',self.file_path.path)
 
     def write(self):
         pass
@@ -211,12 +211,14 @@ class LightCurveProduct(BaseQueryProduct):
         return cls(name=prod_name, data=data, header=header, file_name=out_file_name,**kwargs)
 
     def write(self, file_name=None, overwrite=True,file_dir=None):
+        #print('writing catalog file to->',)
         file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
         pf.writeto(file_path, data=self.data, header=self.header, overwrite=overwrite)
 
     def get_html_draw(self, plot=False):
         from astropy.io import fits as pf
-        hdul = pf.open(self.file_path.get_file_path())
+        #print ('loading -->',self.file_path.path)
+        hdul = pf.open(self.file_path.path)
 
         data = hdul[1].data
         header = hdul[1].header
