@@ -272,10 +272,9 @@ def set_spectrum_query(instrument_name,
 
 
 def set_spectral_fit_query(instrument_name,
+                     job_id,
                      src_name='4U 1700-377',
-
                      user_catalog=False,
-
                      scw_list=None,
                      query_type='Real',
                      upload_data=None,
@@ -284,6 +283,7 @@ def set_spectral_fit_query(instrument_name,
                      RA_user_cat=[205.09872436523438],
                      Dec_user_cat=[83.6317138671875],
                      session_id='test',
+
                      detection_threshold=5.0,
                      radius=25,
                      E1_keV=20.,
@@ -305,13 +305,14 @@ def set_spectral_fit_query(instrument_name,
         cat_dict = None
 
     parameters_dic = dict(E1_keV=E1_keV, E2_keV=E2_keV, T1=T1_iso, T2=T2_iso, RA=RA_user_cat[0], DEC=RA_user_cat[0],
-                          radius=radius, scw_list=scw_list,src_name=src_name,
+                          radius=radius, scw_list=scw_list,src_name=src_name,job_id=job_id,
                           image_scale_min=1, session_id=session_id, query_type=query_type, product_type=product_type,
                           detection_threshold=detection_threshold, user_catalog_dictionary=cat_dict)
 
     parameters_dic['xspec_model']='powerlaw'
-    parameters_dic['ph_file'] = 'query_spectrum_isgri_sum_1E_1740.7-2942.fits'
-    parameters_dic['rmf_file'] = 'query_spectrum_rmf_sum_1E_1740.7-2942.fits.gz' \
+    parameters_dic['ph_file_name'] = 'query_spectrum_isgri_sum_1E_1740.7-2942.fits'
+    parameters_dic['rmf_file_name'] = 'query_spectrum_rmf_sum_1E_1740.7-2942.fits.gz'
+    parameters_dic['arf_file_name'] = 'query_spectrum_arf_sum_1E_1740.7-2942.fits.gz'
 
 
     if upload_data is not None:
@@ -416,7 +417,14 @@ def test_asynch_request(parameters_dic,instrument_name,query_status,job_id=None,
 
 def test_asynch_full():
     instrument_name='isgri'
-    parameters_dic,upload_data=set_spectrum_query(instrument_name=instrument_name,scw_list=asynch_scw_list,RA_user_cat=[80.63168334960938],Dec_user_cat=[20.01494598388672],user_catalog=False,upload_data=None,query_type='Dummy')
+    #parameters_dic,upload_data=set_spectrum_query(instrument_name=instrument_name,scw_list=asynch_scw_list,RA_user_cat=[80.63168334960938],Dec_user_cat=[20.01494598388672],user_catalog=False,upload_data=None,query_type='Dummy')
+    parameters_dic,upload_data=set_spectral_fit_query(nstrument_name=instrument_name,
+                                                      job_id='',
+                                                      scw_list=asynch_scw_list,
+                                                      RA_user_cat=[80.63168334960938],
+                                                      Dec_user_cat=[20.01494598388672],
+                                                      user_catalog=False,upload_data=None,
+                                                      query_type='Dummy')
 
 
     query_out=test_asynch_request(parameters_dic,instrument_name,query_status='new',upload_data=None)
