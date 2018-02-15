@@ -160,6 +160,7 @@ class InstrumentQueryBackEnd(object):
 
 
     def generate_job_id(self):
+        print("!!! GENERATING JOB ID")
         self.job_id=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
         #number = '0123456789'
         #alpha = 'abcdefghijklmnopqrstuvwxyz'.capitalize()

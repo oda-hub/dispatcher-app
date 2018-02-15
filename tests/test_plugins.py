@@ -273,6 +273,7 @@ def set_spectrum_query(instrument_name,
 
 def set_spectral_fit_query(instrument_name,
                      job_id,
+                     session_id,
                      src_name='4U 1700-377',
                      user_catalog=False,
                      scw_list=None,
@@ -282,8 +283,6 @@ def set_spectral_fit_query(instrument_name,
                      T2_iso='2003-02-09T01:48:00.0',
                      RA_user_cat=[205.09872436523438],
                      Dec_user_cat=[83.6317138671875],
-                     session_id='test',
-
                      detection_threshold=5.0,
                      radius=25,
                      E1_keV=20.,
@@ -413,18 +412,50 @@ def test_asynch_request(parameters_dic,instrument_name,query_status,job_id=None,
     return query_out
 
 
+def test_spectral_fit_query():
+    instrument_name = 'isgri'
+    parameters_dic, upload_data = set_spectral_fit_query(instrument_name=instrument_name,
+                                                         session_id='asynch_session',
+                                                         job_id='943QQPH6WUDS8SL1',
+                                                         scw_list=asynch_scw_list,
+                                                         RA_user_cat=[80.63168334960938],
+                                                         Dec_user_cat=[20.01494598388672],
+                                                         user_catalog=False, upload_data=None,
+                                                         query_type='Dummy')
+
+    testapp = flask.Flask(__name__)
+    with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=upload_data):
+        query = InstrumentQueryBackEnd(instrument_name=instrument_name, par_dic=parameters_dic, config=osaconf)
+
+        print('\n')
+        query_out = query.run_query(off_line=True)
+
+        print('\n\n\n')
+
+        #print('query_out:job_monitor', query_out['job_monitor'])
+
+    print('exit_status', query_out['exit_status'])
+    print('job_monitor', query_out['job_monitor'])
+    print('query_status', query_out['query_status'])
+    print('products', query_out['products'].keys())
+    for k in query_out['products'].keys():
+        if k == 'image':
+            print(k, '=>', query_out['products'][k].keys())
+        else:
+            print(k, '=>', query_out['products'][k])
+    return query_out
+
 
 
 def test_asynch_full():
+    """
+    Do not use with set_spectral_fit_query
+    :return:
+    """
+
     instrument_name='isgri'
-    #parameters_dic,upload_data=set_spectrum_query(instrument_name=instrument_name,scw_list=asynch_scw_list,RA_user_cat=[80.63168334960938],Dec_user_cat=[20.01494598388672],user_catalog=False,upload_data=None,query_type='Dummy')
-    parameters_dic,upload_data=set_spectral_fit_query(instrument_name=instrument_name,
-                                                      job_id='',
-                                                      scw_list=asynch_scw_list,
-                                                      RA_user_cat=[80.63168334960938],
-                                                      Dec_user_cat=[20.01494598388672],
-                                                      user_catalog=False,upload_data=None,
-                                                      query_type='Dummy')
+    parameters_dic,upload_data=set_spectrum_query(instrument_name=instrument_name,scw_list=asynch_scw_list,RA_user_cat=[80.63168334960938],Dec_user_cat=[20.01494598388672],user_catalog=False,upload_data=None,query_type='Dummy')
+
 
 
     query_out=test_asynch_request(parameters_dic,instrument_name,query_status='new',upload_data=None)

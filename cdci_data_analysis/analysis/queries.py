@@ -682,10 +682,11 @@ class PostProcessProductQuery(ProductQuery):
 
         for f in   files_list:
             file_path = FilePath(file_name=f,file_dir=out_dir)
+            #print(f,out_dir)
             if file_path.exists()==True:
                 pass
             else:
-                raise  RuntimeError('file %s does not exist'%f)
+                raise  RuntimeError('file %s does not exist in dir %s '%(f,out_dir))
 
     #TODO: revise the role of query_prod_list here!!!!
     def process_product(self,instrument,job, config=None,**kwargs):
@@ -826,7 +827,14 @@ class SpectralFitQuery(PostProcessProductQuery):
         self.check_file_exist([ph_file,rmf_file,arf_file],out_dir=out_dir)
 
         query_out = QueryOutput()
-        query_out.prod_dictionary['image'] = SpectralFitProduct('spectral_fit',ph_file,arf_file,rmf_file,file_dir=out_dir).run_fit(xspec_model=instrument.get_par_by_name('xspec_model').value)
+        try:
+            query_out.prod_dictionary['image'] = SpectralFitProduct('spectral_fit',ph_file,arf_file,rmf_file,file_dir=out_dir).run_fit(xspec_model=instrument.get_par_by_name('xspec_model').value)
+
+        except Exception as e:
+
+            raise RuntimeError('spectral fit failed')
+
+
         query_out.prod_dictionary['job_id'] = job.job_id
         query_out.prod_dictionary['spectrum_name'] = src_name
 
