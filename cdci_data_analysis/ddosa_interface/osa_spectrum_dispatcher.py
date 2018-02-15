@@ -384,7 +384,7 @@ def get_osa_spectrum_dummy_products(instrument,config,out_dir='./'):
 
 
 
-def process_osa_spectrum_products(instrument,prod_list):
+def process_osa_spectrum_products(instrument,job,prod_list):
     for query_spec in prod_list.prod_list:
         query_spec.write()
 
@@ -419,6 +419,10 @@ def process_osa_spectrum_products(instrument,prod_list):
     query_out.prod_dictionary['ph_file_name'] = _pf_path
     query_out.prod_dictionary['arf_file_name'] = _arf_path
     query_out.prod_dictionary['rmf_file_name'] = _rmf_path
+
+    query_out.prod_dictionary['session_id'] = job.session_id
+    query_out.prod_dictionary['job_id'] = job.job_id
+
     query_out.prod_dictionary['download_file_name'] = 'spectra.tar.gz'
     query_out.prod_dictionary['prod_process_maessage']=''
 

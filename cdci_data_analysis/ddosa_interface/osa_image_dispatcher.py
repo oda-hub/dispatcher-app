@@ -262,7 +262,7 @@ def get_osa_image_dummy_products(instrument,config,out_dir='./'):
 
 
 
-def process_osa_image_products(instrument,prod_list):
+def process_osa_image_products(instrument,job,prod_list):
 
     query_image = prod_list.get_prod_by_name('mosaic_image')
     query_catalog = prod_list.get_prod_by_name('mosaic_catalog')
@@ -292,6 +292,10 @@ def process_osa_image_products(instrument,prod_list):
     #TODO: use query_image.file_path.path -> DONE AND PASSED
     #print ("########## TESTING TODO: use query_image.file_path.path ", query_image.file_path.path)
     query_out.prod_dictionary['file_name'] = str(query_image.file_path.name)
+
+    query_out.prod_dictionary['session_id'] = job.session_id
+    query_out.prod_dictionary['job_id'] = job.job_id
+
     query_out.prod_dictionary['download_file_name'] = 'image.gz'
     query_out.prod_dictionary['prod_process_maessage'] = ''
 

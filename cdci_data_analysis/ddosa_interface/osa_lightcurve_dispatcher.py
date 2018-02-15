@@ -276,7 +276,7 @@ def get_osa_lightcurve_dummy_products(instrument,config,out_dir='./'):
 
 
 
-def process_osa_lc_products(instrument,prod_list):
+def process_osa_lc_products(instrument,job,prod_list):
     query_lc = prod_list.get_prod_by_name('isgri_lc')
 
     prod_dictionary = {}
@@ -291,11 +291,15 @@ def process_osa_lc_products(instrument,prod_list):
         html_fig = query_lc.get_html_draw()
         query_out.prod_dictionary['image'] = html_fig
         query_out.prod_dictionary['file_name'] =  str(query_lc.file_path.name)
+        query_out.prod_dictionary['session_id'] = job.session_id
+        query_out.prod_dictionary['job_id'] = job.job_id
         query_out.prod_dictionary['download_file_name'] = 'light_curve.fits.gz'
         query_out.prod_dictionary['prod_process_maessage'] = ''
     else:
         query_out.prod_dictionary['image'] = None
         query_out.prod_dictionary['file_name'] = ''
+        query_out.prod_dictionary['session_id'] = ''
+        query_out.prod_dictionary['job_id'] = ''
         query_out.prod_dictionary['download_file_name'] = ''
         query_out.prod_dictionary['prod_process_maessage'] = 'no light curve produced for name %s',query_lc.src_name
     print('--> send prog')

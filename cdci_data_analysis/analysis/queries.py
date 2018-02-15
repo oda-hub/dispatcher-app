@@ -571,13 +571,13 @@ class ProductQuery(BaseQuery):
         return query_out
 
 
-    def process_product(self,instrument,query_prod_list, config=None,**kwargs):
+    def process_product(self,instrument,job,query_prod_list, config=None,**kwargs):
         query_out = QueryOutput()
         if self._process_product_method is not None and query_prod_list is not None:
-            query_out= self._process_product_method(instrument,query_prod_list,**kwargs)
+            query_out= self._process_product_method(instrument,job,query_prod_list,**kwargs)
         return query_out
 
-    def process_query_product(self,instrument,query_type='Real',logger=None,config=None,**kwargs):
+    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,**kwargs):
         status = 0
         message = ''
         debug_message = ''
@@ -589,7 +589,7 @@ class ProductQuery(BaseQuery):
         query_out = QueryOutput()
 
         try:
-            query_out=self.process_product(instrument, self.query_prod_list,**kwargs)
+            query_out=self.process_product(instrument,job,self.query_prod_list,**kwargs)
 
         except Exception as e:
 
@@ -643,7 +643,7 @@ class ProductQuery(BaseQuery):
 
             else:
                 if query_out.status_dictionary['status'] == 0:
-                    query_out = self.process_query_product(instrument, logger=logger, config=config)
+                    query_out = self.process_query_product(instrument,job, logger=logger, config=config)
 
 
                 if input_prod_list is not None:
@@ -676,6 +676,10 @@ class PostProcessProductQuery(ProductQuery):
 
 
     def check_file_exist(self,files_list,out_dir=None):
+        if files_list==[''] or files_list==None:
+
+            raise RuntimeError('file list empty')
+
         for f in   files_list:
             file_path = FilePath(file_name=f,file_dir=out_dir)
             if file_path.exists()==True:
@@ -683,13 +687,13 @@ class PostProcessProductQuery(ProductQuery):
             else:
                 raise  RuntimeError('file %s does not exist'%f)
 
-    def process_product(self,instrument,query_prod_list, config=None,**kwargs):
-        query_out = QueryOutput()
-        if self._process_product_method is not None and query_prod_list is not None:
-            query_out= self._process_product_method(instrument,query_prod_list,**kwargs)
-        return query_out
+    #TODO: revise the role of query_prod_list here!!!!
+    def process_product(self,instrument,job, config=None,**kwargs):
 
-    def process_query_product(self,instrument,query_type='Real',logger=None,config=None,scratch_dir=None,**kwargs):
+        return self._process_product_method(instrument,job,**kwargs)
+
+
+    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,**kwargs):
         status = 0
         message = ''
         debug_message = ''
@@ -702,7 +706,7 @@ class PostProcessProductQuery(ProductQuery):
         query_out = QueryOutput()
 
         try:
-            query_out=self.process_product(instrument,out_dir=scratch_dir,**kwargs)
+            query_out=self.process_product(instrument,job,out_dir=scratch_dir,**kwargs)
 
         except Exception as e:
 
@@ -729,7 +733,7 @@ class PostProcessProductQuery(ProductQuery):
         #if query_out.status_dictionary['status'] == 0:
 
 
-        query_out = self.process_query_product(instrument, logger=logger, config=config,scratch_dir=scratch_dir)
+        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir)
         if query_out.status_dictionary['status'] == 0:
             job.set_done()
         else:
@@ -809,17 +813,28 @@ class SpectralFitQuery(PostProcessProductQuery):
                                                **kwargs)
 
 
-    def process_product(self,instrument,out_dir=None):
-        print ('out dir',out_dir)
+    def process_product(self,instrument,job,out_dir=None):
+        #print ('out dir',out_dir)
         src_name = instrument.get_par_by_name('src_name').value
 
         ph_file=instrument.get_par_by_name('ph_file_name').value
         rmf_file=instrument.get_par_by_name('rmf_file_name').value
         arf_file=instrument.get_par_by_name('arf_file_name').value
+
         self.check_file_exist([ph_file,rmf_file,arf_file],out_dir=out_dir)
 
         query_out = QueryOutput()
         query_out.prod_dictionary['image'] = SpectralFitProduct('spectral_fit',ph_file,arf_file,rmf_file,file_dir=out_dir).run_fit(xspec_model=instrument.get_par_by_name('xspec_model').value)
+        query_out.prod_dictionary['job_id'] = job.job_id
+        query_out.prod_dictionary['spectrum_name'] = src_name
+
+        query_out.prod_dictionary['ph_file_name'] = ph_file
+        query_out.prod_dictionary['arf_file_name'] = arf_file
+        query_out.prod_dictionary['rmf_file_name'] = rmf_file
+
+        query_out.prod_dictionary['session_id'] = job.session_id
+        query_out.prod_dictionary['download_file_name'] = 'spectra.tar.gz'
+        query_out.prod_dictionary['prod_process_maessage'] = ''
 
         return query_out
 
