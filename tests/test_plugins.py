@@ -322,7 +322,7 @@ def set_spectral_fit_query(instrument_name,
     return parameters_dic, data
 
 def set_lc_query(instrument_name,
-                     src_name='Crab',
+                     src_name='4U 1700-377',
                      time_bin=500,
                      user_catalog=False,
                      time_bin_format='sec',
