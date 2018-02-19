@@ -193,13 +193,11 @@ class Instrument(object):
                 msg_str = '==>product error:',e
                 logger.info(msg_str)
 
-            query_out.set_status(status, message, debug_message=str(debug_message))
+                query_out.set_status(status, message, debug_message=str(debug_message))
 
+                return query_out
 
             query_out=self.get_query_by_name(query_name).run_query(self,out_dir,job,prompt_delegate,query_type=query_type,config=config,logger=logger)
-
-
-
 
 
         return query_out
