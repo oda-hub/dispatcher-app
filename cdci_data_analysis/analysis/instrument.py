@@ -174,7 +174,7 @@ class Instrument(object):
             #print('--->CICCIO',self.query_dictionary)
 
             query_out = QueryOutput()
-
+            status=0
             try:
                 query_name = self.query_dictionary[product_type]
 
