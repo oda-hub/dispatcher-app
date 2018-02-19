@@ -175,6 +175,7 @@ class Instrument(object):
 
             query_out = QueryOutput()
             status=0
+            message=''
             try:
                 query_name = self.query_dictionary[product_type]
 
