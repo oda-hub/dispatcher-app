@@ -96,10 +96,11 @@ class IsgriSpectrumProduct(SpectrumProduct):
             #file_name = file_name.replace('+', 'p')
             #file_name = file_name.replace('-', 'm')
             print ('out spec file_name',file_name)
-            out_arf_file=prod_prefix+'_'+Path(getattr(res, arf_attr)).name
 
+            out_arf_file=prod_prefix+'_'+Path(getattr(res, arf_attr)).name
             out_arf_file=FilePath(file_dir=out_dir,file_name=out_arf_file).path
             print('out arf file_path', out_arf_file)
+
             out_rmf_file=prod_prefix+'_'+Path(out_dir,getattr(res, rmf_attr)).name
             out_rmf_file = FilePath(file_dir=out_dir,file_name=out_rmf_file).path
             print('out rmf file_path', out_rmf_file)
