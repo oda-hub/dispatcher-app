@@ -134,20 +134,23 @@ class OsaQuery(object):
         status=''
         try:
             #with silence_stdout()\
-            simple_logger.log()
-            simple_logger.logger.setLevel(logging.ERROR)
-            product = remote.query(target="ii_spectra_extract",
-                                   modules=["ddosa", "git://ddosadm"],
-                                   assume=["ddosa" + '.ScWData(input_scwid="035200230010.001")',
-                                           'ddosa.ImageBins(use_ebins=[(20,40)],use_version="onebin_20_40")',
-                                           'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")'])
+            # simple_logger.log()
+            # simple_logger.logger.setLevel(logging.ERROR)
+            # product = remote.query(target="ii_spectra_extract",
+            #                        modules=["ddosa", "git://ddosadm"],
+            #                        assume=["ddosa" + '.ScWData(input_scwid="035200230010.001")',
+            #                                'ddosa.ImageBins(use_ebins=[(20,40)],use_version="onebin_20_40")',
+            #                                'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")'])
+            remote.poke()
 
-        except dc.WorkerException as e:
-            content = json.loads(e.content)
+        except Exception as e:
+            #content = json.loads(e.content)
 
-            status = content['result']['status']
-            print('e=> server connection status', status)
+            #status = content['result']['status']
+            print('e=> server connection status', e)
 
+            status='broken communication'
+            raise  RuntimeError('broken communication')
         #status = product['result']['status']
         #print('product=>', product)
         print('--> end test connection')
@@ -250,9 +253,8 @@ class OsaQuery(object):
 
 
 
-            #print ('url for call_back',job.get_call_back_url())
-            #print("cached object in", res,res.ddcache_root_local)
-            #print('--osa disp--')
+            print ('--> url for call_back',job.get_call_back_url())
+            print("--> cached object in", res,res.ddcache_root_local)
             job.set_done()
         except dc.WorkerException as e:
 
@@ -266,7 +268,7 @@ class OsaQuery(object):
         except dc.AnalysisDelegatedException as e:
 
             if isinstance(job,Job):
-                pass
+                print('--> url for call_back', job.get_call_back_url())
             else:
                 raise RuntimeError('job object not passed')
 

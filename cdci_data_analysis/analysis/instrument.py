@@ -37,6 +37,8 @@ from astropy.table import Table
 from cdci_data_analysis.analysis.queries import _check_is_base_query
 from .catalog import BasicCatalog
 from .products import  QueryOutput
+from .io_helper import view_traceback
+
 import  os
 
 __author__ = "Andrea Tramacere"
@@ -170,7 +172,28 @@ class Instrument(object):
 
         if query_out.status_dictionary['status'] == 0:
             #print('--->CICCIO',self.query_dictionary)
-            query_name=self.query_dictionary[product_type]
+
+            query_out = QueryOutput()
+
+            try:
+                query_name = self.query_dictionary[product_type]
+
+            except Exception as e:
+
+                print('!!! >>>Exception<<<', e)
+                print("product error", e)
+                view_traceback()
+                logger.exception(e)
+                status = 1
+                message = 'product error: %s'%(product_type)
+                debug_message = e.message
+
+                msg_str = '==>product error:',e
+                logger.info(msg_str)
+
+            query_out.set_status(status, message, debug_message=str(debug_message))
+
+
             query_out=self.get_query_by_name(query_name).run_query(self,out_dir,job,prompt_delegate,query_type=query_type,config=config,logger=logger)
 
 

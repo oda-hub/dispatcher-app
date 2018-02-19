@@ -28,7 +28,7 @@ crab_scw_list=["035200230010.001","035200240010.001"]
 cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001']
 asynch_scw_list=['004000030030.001']
 asynch_scw_list=['035200230010.001']
-
+asynch_scw_list_jemx=["138700520010.001"]
 
 
 
@@ -453,8 +453,14 @@ def test_asynch_full():
     :return:
     """
 
-    instrument_name='isgri'
-    parameters_dic,upload_data=set_lc_query(instrument_name=instrument_name,scw_list=asynch_scw_list,RA_user_cat=[80.63168334960938],Dec_user_cat=[20.01494598388672],user_catalog=False,upload_data=None,query_type='Dummy')
+    instrument_name='jemx'
+    parameters_dic,upload_data=set_mosaic_query(instrument_name=instrument_name,
+                                                scw_list=asynch_scw_list_jemx,
+                                                E1_keV=23.,
+                                                RA_user_cat=[80.63168334960938],
+                                                Dec_user_cat=[20.01494598388672],
+                                                user_catalog=False,upload_data=None,
+                                                query_type='Real')
 
 
 

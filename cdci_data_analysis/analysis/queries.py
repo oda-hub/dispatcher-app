@@ -3,8 +3,7 @@
 from __future__ import absolute_import, division, print_function
 
 
-from builtins import (bytes, str, open, super, range,
-                      zip, round, input, int, pow, object, map, zip)
+from builtins import (str, super, object)
 
 
 __author__ = "Andrea Tramacere"
@@ -26,19 +25,10 @@ import  logging
 
 
 import json
-import traceback
-import sys
 from .parameters import *
 from .products import SpectralFitProduct,QueryOutput
-from ..analysis.job_manager import Job
 from .io_helper import FilePath
-
-def view_traceback():
-    ex_type, ex, tb = sys.exc_info()
-    print('tb =====>')
-    traceback.print_tb(tb)
-    print('   <=====')
-    del tb
+from .io_helper import view_traceback
 
 
 @decorator.decorator
@@ -831,7 +821,6 @@ class SpectralFitQuery(PostProcessProductQuery):
             query_out.prod_dictionary['image'] = SpectralFitProduct('spectral_fit',ph_file,arf_file,rmf_file,file_dir=out_dir).run_fit(xspec_model=instrument.get_par_by_name('xspec_model').value)
 
         except Exception as e:
-
             raise RuntimeError('spectral fit failed')
 
 
