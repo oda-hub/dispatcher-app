@@ -707,7 +707,7 @@ class PostProcessProductQuery(ProductQuery):
             logger.exception(e)
             status=1
             message='product processig failed: %s'%e
-            debug_message = e.message
+            debug_message = e
 
         msg_str = '==>prod_process_status %d\n' % status
         msg_str += '--> end product process'
@@ -829,7 +829,7 @@ class SpectralFitQuery(PostProcessProductQuery):
 
         except Exception as e:
 
-            raise RuntimeError('spectral fit failed, Xspec Error %s'%e)
+            raise RuntimeError('spectral fit failed, Xspec Error: %s'%e)
 
 
         query_out.prod_dictionary['job_id'] = job.job_id
