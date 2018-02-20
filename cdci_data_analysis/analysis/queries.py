@@ -807,18 +807,25 @@ class SpectralFitQuery(PostProcessProductQuery):
 
 
     def process_product(self,instrument,job,out_dir=None):
-        print ('out dir',out_dir)
+        #print ('out dir',out_dir)
+
         src_name = instrument.get_par_by_name('src_name').value
 
         ph_file=instrument.get_par_by_name('ph_file_name').value
         rmf_file=instrument.get_par_by_name('rmf_file_name').value
         arf_file=instrument.get_par_by_name('arf_file_name').value
-
+        e_min_kev=np.float(instrument.get_par_by_name('E1_keV').value)
+        e_max_kev=np.float(instrument.get_par_by_name('E2_keV').value)
+        print('e_min_kev',e_min_kev)
+        print('e_max_kev', e_max_kev)
+        
         self.check_file_exist([ph_file,rmf_file,arf_file],out_dir=out_dir)
 
         query_out = QueryOutput()
         try:
-            query_out.prod_dictionary['image'] = SpectralFitProduct('spectral_fit',ph_file,arf_file,rmf_file,file_dir=out_dir).run_fit(xspec_model=instrument.get_par_by_name('xspec_model').value)
+            query_out.prod_dictionary['image'] = SpectralFitProduct('spectral_fit',ph_file,arf_file,rmf_file,file_dir=out_dir).run_fit(e_min_kev=e_min_kev,
+                                                                                                                                       e_max_kev=e_max_kev,
+                                                                                                                                       exspec_model=instrument.get_par_by_name('xspec_model').value,)
 
         except Exception as e:
             raise RuntimeError('spectral fit failed')

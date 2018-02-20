@@ -582,7 +582,7 @@ class SpectralFitProduct(BaseQueryProduct):
 
 
 
-    def run_fit(self, plot=False,xspec_model='powerlaw'):
+    def run_fit(self,e_min_kev,e_max_kev, plot=False,xspec_model='powerlaw'):
 
         xsp.AllModels.clear()
         xsp.AllData.clear()
@@ -596,8 +596,8 @@ class SpectralFitProduct(BaseQueryProduct):
         s.response = self.rmf_file.encode('utf-8')
         s.response.arf=self.arf_file.encode('utf-8')
 
-        s.ignore('**-15.')
-        s.ignore('300.-**')
+        s.ignore('**-%f'%e_min_kev)
+        s.ignore('%f-**'%e_max_kev)
         xsp.AllData.ignore('bad')
 
         model_name=xspec_model
