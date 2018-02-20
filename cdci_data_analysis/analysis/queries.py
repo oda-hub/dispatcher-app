@@ -424,7 +424,7 @@ class ProductQuery(BaseQuery):
             print('!!! >>>Exception<<<', e)
             status = 1
             message='dataserver communication failed'
-            debug_message=e.message
+            debug_message=e
             view_traceback()
             logger.exception(e)
 
@@ -500,7 +500,7 @@ class ProductQuery(BaseQuery):
             print('!!! >>>Exception<<<', e)
             status = 1
             message='test has products failed'
-            debug_message=e.message
+            debug_message=e
             view_traceback()
             logger.exception(e)
 
@@ -547,7 +547,7 @@ class ProductQuery(BaseQuery):
             logger.exception(e)
             status=1
             message='dataserver get product query failed'
-            debug_message=e.message
+            debug_message=e
 
         msg_str = '--> data_server_query_status %d\n' % status
         msg_str += '--> end product query '
@@ -589,7 +589,7 @@ class ProductQuery(BaseQuery):
             logger.exception(e)
             status=1
             message='product processig failed'
-            debug_message = e.message
+            debug_message = e
 
         msg_str = '==>prod_process_status %d\n' % status
         msg_str += '--> end product process'

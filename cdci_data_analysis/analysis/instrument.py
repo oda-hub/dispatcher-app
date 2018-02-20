@@ -191,7 +191,7 @@ class Instrument(object):
                 logger.exception(e)
                 status = 1
                 message = 'product error: %s'%(product_type)
-                debug_message = e.message
+                debug_message = e
 
                 msg_str = '==>product error:',e
                 logger.info(msg_str)
@@ -259,8 +259,8 @@ class Instrument(object):
         except Exception as e:
             status=1
             error_message= 'error in form parameter'
-            debug_message = e.message
-            logger.exception(e.message)
+            debug_message = e
+            logger.exception(e)
 
         q.set_status(status,error_message,str(debug_message))
         print('---------------------------------------------')
@@ -288,16 +288,16 @@ class Instrument(object):
             except Exception as e:
                 error_message = 'failed to upload %s'%self.input_prod_name
                 status = 1
-                debug_message = e.message
-                logger.exception(e.message)
+                debug_message = e
+                logger.exception(e)
 
             try:
                 has_input=self.set_input_products(par_dic,input_file_path,input_prod_list_name)
             except Exception as e :
                 error_message = 'scw_list file is not valid'
                 status = 1
-                debug_message = e.message
-                logger.exception(e.message)
+                debug_message = e
+                logger.exception(e)
 
             print ('has input',has_input)
             try:
@@ -357,8 +357,8 @@ class Instrument(object):
             except Exception as e:
                 error_message = 'failed to upload catalog file'
                 status = 1
-                debug_message=e.message
-                logger.exception(e.message)
+                debug_message=e
+                logger.exception(e)
 
         try:
             self.set_catalog(par_dic, scratch_dir=back_end_query.scratch_dir)
@@ -366,9 +366,9 @@ class Instrument(object):
         except Exception as e:
             error_message = 'failed to set catalog '
             status = 1
-            debug_message = e.message
-            print(e.message)
-            logger.exception(e.message)
+            debug_message = e
+            print(e)
+            logger.exception(e)
 
         self.set_pars_from_dic(par_dic,verbose=verbose)
         q.set_status(status, error_message, str(debug_message))

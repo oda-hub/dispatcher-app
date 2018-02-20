@@ -261,7 +261,7 @@ class OsaQuery(object):
             job.set_failed()
             print("ERROR->")
             print (type(e),e)
-            print ("e.message",e.message)
+            print ("e",e)
             e.display()
             raise RuntimeWarning('ddosa connection or processing failed',e)
 
