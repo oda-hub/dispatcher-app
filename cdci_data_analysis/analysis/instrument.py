@@ -177,9 +177,12 @@ class Instrument(object):
             status=0
             message=''
             debug_message=''
+
             try:
                 query_name = self.query_dictionary[product_type]
-
+                query_out = self.get_query_by_name(query_name).run_query(self, out_dir, job, prompt_delegate,
+                                                                         query_type=query_type, config=config,
+                                                                         logger=logger)
             except Exception as e:
 
                 print('!!! >>>Exception<<<', e)
@@ -195,9 +198,9 @@ class Instrument(object):
 
                 query_out.set_status(status, message, debug_message=str(debug_message))
 
-                return query_out
 
-            query_out=self.get_query_by_name(query_name).run_query(self,out_dir,job,prompt_delegate,query_type=query_type,config=config,logger=logger)
+
+
 
 
         return query_out
@@ -346,7 +349,7 @@ class Instrument(object):
 
         cat_file_path=None
         if request.method == 'POST':
-
+            print('POST')
             try:
                 cat_file_path = back_end_query.upload_file('user_catalog_file', back_end_query.scratch_dir)
                 par_dic['user_catalog_file'] = cat_file_path

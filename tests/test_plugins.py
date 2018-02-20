@@ -425,6 +425,7 @@ def test_spectral_fit_query():
 
     testapp = flask.Flask(__name__)
     with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=upload_data):
+
         query = InstrumentQueryBackEnd(instrument_name=instrument_name, par_dic=parameters_dic, config=osaconf)
 
         print('\n')
@@ -459,11 +460,11 @@ def test_asynch_full():
                                                 E1_keV=30,
                                                 RA_user_cat=[80.63168334960938],
                                                 Dec_user_cat=[20.01494598388672],
-                                                user_catalog=False,upload_data=None,
+                                                user_catalog=False,
+                                                upload_data='cat_csv',
                                                 query_type='Real')
 
-
-
+    print('upload_data', upload_data)
     query_out=test_asynch_request(parameters_dic,instrument_name,query_status='new',upload_data=None)
     query_status=query_out['query_status']
     job_id=query_out['job_monitor']['job_id']
