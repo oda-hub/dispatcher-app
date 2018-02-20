@@ -829,7 +829,7 @@ class SpectralFitQuery(PostProcessProductQuery):
 
         except Exception as e:
 
-            raise RuntimeError('spectral fit failed %s'%e)
+            raise RuntimeError('spectral fit failed, Xspec Error %s'%e)
 
 
         query_out.prod_dictionary['job_id'] = job.job_id
