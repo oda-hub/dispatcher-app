@@ -596,8 +596,11 @@ class SpectralFitProduct(BaseQueryProduct):
         s.response = self.rmf_file.encode('utf-8')
         s.response.arf=self.arf_file.encode('utf-8')
 
-        s.ignore('**-%f'%e_min_kev)
-        s.ignore('%f-**'%e_max_kev)
+        s.ignore('**-15.')
+        s.ignore('300.-**')
+
+        #s.ignore('**-%f'%e_min_kev)
+        #s.ignore('%f-**'%e_max_kev)
         xsp.AllData.ignore('bad')
 
         model_name=xspec_model
