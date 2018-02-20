@@ -706,7 +706,7 @@ class PostProcessProductQuery(ProductQuery):
             view_traceback()
             logger.exception(e)
             status=1
-            message='product processig failed %s',e
+            message='product processig failed: %s'%e
             debug_message = e.message
 
         msg_str = '==>prod_process_status %d\n' % status
