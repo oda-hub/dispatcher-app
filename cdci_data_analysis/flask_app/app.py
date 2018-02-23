@@ -594,7 +594,7 @@ def download_products():
     return query.download_products()
 
 @app.route('/test', methods=['POST', 'GET'])
-def run_analysis():
+def run_analysis_test():
     query=InstrumentQueryBackEnd()
     return query.run_query()
 
