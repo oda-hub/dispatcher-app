@@ -150,12 +150,40 @@ class OsaQuery(object):
             print('e=> server connection status', e)
 
             status='broken communication'
-            raise  RuntimeError('broken communication')
-        #status = product['result']['status']
-        #print('product=>', product)
+            raise  RuntimeError('ddosa broken communication with message:',e)
+
         print('--> end test connection')
 
         return status
+
+    def test_busy(self, max_trial=25, sleep_s=1):
+        print('--> start test busy')
+        simple_logger.log()
+        simple_logger.logger.setLevel(logging.ERROR)
+        remote = dc.RemoteDDOSA(self.url, self.ddcache_root_local)
+        status = ''
+        time.sleep(sleep_s)
+        for i in range(max_trial):
+            time.sleep(sleep_s)
+            try:
+                # with silence_stdout():
+                r = remote.poke()
+                print('remote poke ok')
+                status = ''
+                break
+            except dc.WorkerException as e:
+
+                content = json.loads(e.content)
+
+                status = content['result']['status']
+                print('e=>', i, status)
+
+        if status == 'busy':
+            print('server is busy')
+            raise RuntimeError('ddosa server is busy')
+
+        print('--> end test busy')
+
 
     def test_has_input_products(self,instrument):
         print('--> start has input_products')
@@ -199,33 +227,7 @@ class OsaQuery(object):
                 return None
 
 
-    def test_busy(self,max_trial=25,sleep_s=1):
-        print ('--> start test busy')
-        simple_logger.log()
-        simple_logger.logger.setLevel(logging.ERROR)
-        remote = dc.RemoteDDOSA(self.url,self.ddcache_root_local)
-        status=''
-        time.sleep(sleep_s)
-        for i in range(max_trial):
-            time.sleep(sleep_s)
-            try:
-                #with silence_stdout():
-                r = remote.poke()
-                print('remote poke ok')
-                status=''
-                break
-            except dc.WorkerException as e:
 
-                content=json.loads(e.content)
-
-                status= content['result']['status']
-                print('e=>', i, status)
-
-        if status=='busy':
-            print ('server is busy')
-            raise Exception
-
-        print('--> end test busy')
 
     def run_query(self,query_prod,job,prompt_delegate=True):
         res = None
@@ -261,7 +263,7 @@ class OsaQuery(object):
             job.set_failed()
             print("ERROR->")
             print (type(e),e)
-            print ("e",e)
+            print ("e", e)
             e.display()
             raise RuntimeWarning('ddosa connection or processing failed',e)
 

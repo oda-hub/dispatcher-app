@@ -164,7 +164,7 @@ class BaseQuery(object):
 
 
     def _show_parameter(self,par,indent=0):
-        s='%stype: par | name: %s |  value: %s'%(' '*indent,par.name,par.value)
+        s='%stype: par | name: %s |  value: %s| units: %s| units name:%s '%(' '*indent,par.name,par.value,par.units,par.units_name)
         print(s)
 
     # BUIULD DICTIONARY

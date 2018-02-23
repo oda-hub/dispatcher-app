@@ -100,32 +100,29 @@ class FilePath(object):
     def exists(self):
         return self._file_path.exists()
 
-    def mkdir(self,exist_ok=True):
-
-        if exist_ok == True:
-            try:
-                self._file_path.mkdir()
-            except :
+    def mkdir(self,):
+        if  self._file_path.exists()==True:
+            print('!warning already existing dir', self.path)
+            if self._file_path.is_dir():
                 pass
+            else:
+                raise RuntimeError('!Error, path',self.path,'exists and is not a directory')
+
 
         else:
             try:
                 self._file_path.mkdir()
             except Exception as e:
-                print("not possible to create directory: ", e)
+                raise RuntimeError('!Error error ',e,'in creating dir', self.path)
 
-    def rmdir(self,exist_ok=True):
-        if exist_ok == True:
-            try:
-                self._file_path.rmdir()
-            except :
-                pass
-        else:
-            try:
-                self._file_path.rmdir()
-            except Exception as e:
-                print("not possible to remove directory: ", e)
 
+    def rmdir(self):
+        self._file_path.rmdir()
+
+
+
+    def joinpath(self,name):
+        self._file_path.joinpath(name)
 
     def clean_dir(self):
         pass

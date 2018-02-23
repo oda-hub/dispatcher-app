@@ -103,7 +103,7 @@ app = Flask(__name__)
 
 class InstrumentQueryBackEnd(object):
 
-    def __init__(self,instrument_name=None,par_dic=None,config=None,data_server_call_back=False,verbose=False):
+    def __init__(self,instrument_name=None,par_dic=None,config=None,data_server_call_back=False,verbose=False,get_meta_data=False):
         #self.instrument_name=instrument_name
 
 
@@ -118,30 +118,32 @@ class InstrumentQueryBackEnd(object):
             else:
                 self.instrument_name = instrument_name
 
-
-
-            if data_server_call_back is True:
-                self.job_id = self.par_dic['job_id']
-
-            else:
-                query_status = self.par_dic['query_status']
-                self.job_id = None
-                if query_status == 'new':
-                    self.generate_job_id()
-                else:
-                    self.job_id = self.par_dic['job_id']
-
-            self.set_scratch_dir(self.par_dic['session_id'],job_id=self.job_id,verbose=verbose)
-
-            self.set_session_logger(self.scratch_dir,verbose=verbose)
-
-            if data_server_call_back is False:
+            if get_meta_data==True:
                 self.set_instrument(self.instrument_name)
 
-            self.config=config
+            else:
+                if data_server_call_back is True:
+                    self.job_id = self.par_dic['job_id']
+
+                else:
+                    query_status = self.par_dic['query_status']
+                    self.job_id = None
+                    if query_status == 'new':
+                        self.generate_job_id()
+                    else:
+                        self.job_id = self.par_dic['job_id']
+
+                self.set_scratch_dir(self.par_dic['session_id'],job_id=self.job_id,verbose=verbose)
+
+                self.set_session_logger(self.scratch_dir,verbose=verbose)
+
+                if data_server_call_back is False:
+                    self.set_instrument(self.instrument_name)
+
+                self.config=config
 
         except Exception as e:
-
+            print ('e',e)
             status = -1
             message = 'failed InstrumentQueryBackEnd constructor '
             debug_message = e
@@ -227,7 +229,7 @@ class InstrumentQueryBackEnd(object):
             wd +='_'+job_id
 
         wd=FilePath(file_dir=wd)
-        wd.mkdir()
+        wd. mkdir()
         self.scratch_dir=wd.path
 
 
@@ -310,12 +312,15 @@ class InstrumentQueryBackEnd(object):
         if name is None:
             l.append(src_query.get_parameters_list_as_json())
             l.append(self.instrument.get_parameters_list_as_json())
+            src_query.show_parameters_list()
 
         if name == 'src_query':
             l = [src_query.get_parameters_list_as_json()]
+            src_query.show_parameters_list()
 
         if name == 'instrument':
             l = [self.instrument.get_parameters_list_as_json()]
+            self.instrument.show_parameters_list()
 
         return jsonify(l)
 
@@ -472,19 +477,26 @@ class InstrumentQueryBackEnd(object):
 
             print('-----------------> query status new', query_new_status)
 
-        elif query_status=='progress' or query_status=='unaccessible':
+        elif query_status=='progress' or query_status=='unaccessible' or query_status=='unknown':
 
             job_monitor = job.get_dataserver_status()
             print('-----------------> job status from data server', job_monitor['status'])
             if job_monitor['status']=='done':
                 query_new_status='ready'
+            elif job_monitor['status']=='failed':
+                query_new_status='failed'
+            elif job_monitor['status'] == 'progress':
+                query_new_status='progress'
+            elif job_monitor['status'] == 'unaccessible':
+                query_new_status='unaccessible'
             else:
-                query_new_status=job_monitor['status']
+                query_new_status='progress'
 
             print('-----------------> query status new:', query_new_status)
 
             out_dict = {}
             out_dict['job_monitor'] = job_monitor
+            out_dict['job_status'] = job_monitor['status']
             out_dict['query_status'] = query_new_status
             out_dict['products'] = ''
             out_dict['exit_status'] = 0
@@ -497,6 +509,7 @@ class InstrumentQueryBackEnd(object):
             out_dict = {}
             query_new_status='failed'
             out_dict['job_monitor'] = job_monitor
+            out_dict['job_status'] = job_monitor['status']
             out_dict['query_status'] = query_new_status
             out_dict['products'] = ''
             out_dict['exit_status'] = -1
@@ -506,8 +519,9 @@ class InstrumentQueryBackEnd(object):
 
         else:
             out_dict = {}
-            query_new_status = 'uknown'
+            query_new_status = 'unknown'
             out_dict['job_monitor'] = job_monitor
+            out_dict['job_status']='unknown'
             out_dict['query_status'] = query_new_status
             out_dict['products'] = ''
             out_dict['exit_status'] = -1
@@ -546,7 +560,7 @@ class InstrumentQueryBackEnd(object):
             try:
                 return jsonify(out_dict)
             except Exception as e:
-                query_out.set_status(1,error_message='failed json serialization',debug_message=str(e))
+                query_out.set_status(1,error_message='failed json serialization',debug_message=str(e.message))
                 out_dict['exit_status'] = query_out.status_dictionary
                 return jsonify(out_dict)
 
@@ -564,24 +578,14 @@ def test_soon():
 
 @app.route('/meta-data')
 def meta_data():
-    instrument_name = 'ISGRI'
-    query = InstrumentQueryBackEnd(instrument_name=instrument_name)
+    query = InstrumentQueryBackEnd(get_meta_data=True)
     return query.get_meta_data()
 
 
 @app.route('/meta-data-src')
 def meta_data_src():
-    query = InstrumentQueryBackEnd()
+    query = InstrumentQueryBackEnd(get_meta_data=True)
     return query.get_meta_data('src_query')
-    # return render_template('analysis_display_app.html', form=form,image_html='')
-
-
-@app.route('/meta-data-instrument')
-def meta_data_isgri():
-    instrument_name = 'ISGRI'
-    query = InstrumentQueryBackEnd(instrument_name=instrument_name)
-    return query.get_meta_data('isgri')
-
 
 @app.route("/download_products",methods=['POST', 'GET'])
 def download_products():
@@ -590,9 +594,8 @@ def download_products():
     return query.download_products()
 
 
-@app.route('/test', methods=['POST', 'GET'])
-def run_analysis_test():
-    #instrument_name='ISGRI'
+@app.route('/run_analysis', methods=['POST', 'GET'])
+def run_analysis():
     query=InstrumentQueryBackEnd()
     return query.run_query()
 

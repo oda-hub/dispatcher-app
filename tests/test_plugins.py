@@ -456,12 +456,12 @@ def test_asynch_full():
 
     instrument_name='isgri'
     parameters_dic,upload_data=set_mosaic_query(instrument_name=instrument_name,
-                                                scw_list=['005100410010.001','005100420010.001'],
-                                                E1_keV=30,
+                                                scw_list=['005100410010.001'],
+                                                E1_keV=26,
                                                 RA_user_cat=[80.63168334960938],
                                                 Dec_user_cat=[20.01494598388672],
                                                 user_catalog=False,
-                                                upload_data='cat_csv',
+                                                #upload_data='cat_csv',
                                                 query_type='Real')
 
     print('upload_data', upload_data)
@@ -521,3 +521,21 @@ def failure_report(query_out):
         pass
 
     raise Exception('query failed', query_out)
+
+
+def test_meta_data(instrument_name='isgri',):
+    testapp = flask.Flask(__name__)
+
+
+
+    with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=None):
+        query = InstrumentQueryBackEnd(instrument_name=instrument_name, get_meta_data=True)
+
+        print('request', request.method)
+        query_out = query.get_meta_data()
+
+        print('\n\n\n')
+
+        print('query_out:job_monitor', query_out)
+
+

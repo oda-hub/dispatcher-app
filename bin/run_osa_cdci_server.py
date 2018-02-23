@@ -61,7 +61,8 @@ def main(argv=None):
     for envvar in black_listed_evns:
         print ('removing env variable',envvar)
         os.unsetenv(envvar)
-        del os.environ[envvar]
+        if envvar in os.environ.keys():
+            del os.environ[envvar]
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-conf_file', type=str, default=None)
