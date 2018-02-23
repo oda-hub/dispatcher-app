@@ -593,6 +593,10 @@ def download_products():
     query = InstrumentQueryBackEnd()
     return query.download_products()
 
+@app.route('/test', methods=['POST', 'GET'])
+def run_analysis():
+    query=InstrumentQueryBackEnd()
+    return query.run_query()
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
