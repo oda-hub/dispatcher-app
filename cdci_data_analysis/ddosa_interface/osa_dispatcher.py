@@ -75,21 +75,24 @@ def view_traceback():
 
 
 
-class QueryProduct(object):
 
-    def __init__(self,target=None,modules=[],assume=[],inject=[]):
-        self.target=target
-        self.modules=modules
-        self.assume=assume
-        self.inject=inject
+
+
 
 
 class OsaQuery(object):
 
-    def __init__(self,config=None,use_dicosverer=False):
+    def __init__(self,config=None,use_dicosverer=False,target=None,modules=[],assume=[],inject=[]):
         print('--> building class OsaQyery')
         simple_logger.log()
         simple_logger.logger.setLevel(logging.ERROR)
+
+        self.target = target
+        self.modules = modules
+        self.assume = assume
+        self.inject = inject
+
+
         if use_dicosverer == True:
             try:
                 c = discover_docker.DDOSAWorkerContainer()
@@ -229,7 +232,7 @@ class OsaQuery(object):
 
 
 
-    def run_query(self,query_prod,job,prompt_delegate=True):
+    def run_query(self,job,prompt_delegate=True):
         res = None
         try:
             #redirect_out('./')
@@ -246,10 +249,10 @@ class OsaQuery(object):
             #print('*** prompt_delegate', prompt_delegate)
 
 
-            res= dc.RemoteDDOSA(self.url, self.ddcache_root_local).query(target=query_prod.target,
-                                                    modules=query_prod.modules,
-                                                    assume=query_prod.assume,
-                                                    inject=query_prod.inject,
+            res= dc.RemoteDDOSA(self.url, self.ddcache_root_local).query(target=self.target,
+                                                    modules=self.modules,
+                                                    assume=self.assume,
+                                                    inject=self.inject,
                                                     prompt_delegate = prompt_delegate,
                                                     callback = job.get_call_back_url())
 

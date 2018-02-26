@@ -40,9 +40,9 @@ from astropy.io import  fits as pf
 
 from ..analysis.queries import  *
 from ..analysis.products import *
-from .osa_image_dispatcher import get_osa_image_products,get_osa_image_dummy_products,process_osa_image_products
-from .osa_spectrum_dispatcher import get_osa_spectrum,get_osa_spectrum_dummy_products,process_osa_spectrum_products
-from .osa_lightcurve_dispatcher import get_osa_lightcurve,get_osa_lightcurve_dummy_products,process_osa_lc_products
+from .osa_image_dispatcher import IsgriMosaicQuery
+from .osa_spectrum_dispatcher import IsgriSpectrumQuery
+from .osa_lightcurve_dispatcher import IsgriLightCurveQuery
 from .osa_dispatcher import OsaQuery
 
 
@@ -73,27 +73,14 @@ def OSA_ISGRI():
 
 
 
-    light_curve =LightCurveQuery('isgri_lc_query',
-                                 None,
-                                 get_products_method=get_osa_lightcurve,
-                                 get_dummy_products_method=get_osa_lightcurve_dummy_products,
-                                 process_product_method=process_osa_lc_products)
+    light_curve =IsgriLightCurveQuery('isgri_lc_query')
 
-    image=ImageQuery('isgri_image_query',
-                     None,
-                     get_products_method=get_osa_image_products,
-                     get_dummy_products_method=get_osa_image_dummy_products,
-                     process_product_method=process_osa_image_products)
+    image=IsgriMosaicQuery('isgri_image_query')
 
-    spectrum=SpectrumQuery('isgri_spectrum_query', None,
-                           get_products_method=get_osa_spectrum,
-                           get_dummy_products_method=get_osa_spectrum_dummy_products,
-                           process_product_method=process_osa_spectrum_products)
-
-
-
+    spectrum=IsgriSpectrumQuery('isgri_spectrum_query')
 
     xspec_fit = SpectralFitQuery('spectral_fit_query', None)
+
 
     query_dictionary={}
     query_dictionary['isgri_image'] = 'isgri_image_query'
