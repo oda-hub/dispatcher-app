@@ -17,15 +17,13 @@ import  os
 
 # Project
 # relative import eg: from .mod import f
-from ..analysis.queries import ImageQuery
-from ..analysis.parameters import *
+from cdci_data_analysis.analysis.queries import ImageQuery
+from cdci_data_analysis.analysis.parameters import *
 from .osa_catalog import  OsaIsgriCatalog,OsaJemxCatalog
 from .osa_dispatcher import    OsaQuery
-from ..analysis.products import QueryProductList,CatalogProduct,ImageProduct,QueryOutput
-from ..analysis.job_manager import Job
-from ..web_display import draw_fig
+from cdci_data_analysis.analysis.products import QueryProductList,CatalogProduct,ImageProduct,QueryOutput
 from astropy.io import  fits as pf
-
+from ...analysis.catalog import BasicCatalog
 
 
 
@@ -56,12 +54,16 @@ class OsaMosaicQuery(ImageQuery):
 
         super(OsaMosaicQuery, self).__init__(name)
 
-    def get_products_method(self,instrument,job,prompt_delegate,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
 
+    def get_products(self,instrument,job,prompt_delegate,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix='query_spectrum'):
+        scwlist_assumption, cat, extramodules, inject=OsaQuery.get_osa_query_base(instrument)
+        E1=instrument.get_par_by_name('E1_keV').value
+        E2=instrument.get_par_by_name('E2_keV').value
+        target, modules, assume=self.set_instr_dictionaries(extramodules,scwlist_assumption,E1,E2)
+        q=OsaQuery(config=config, target=target, modules=modules, assume=assume, inject=inject)
 
-
-        q=self.get_osa_query(instrument,config=config)
-
+        #import sys
+        #print ('ciccio',target,modules,assume,inject)
 
         res = q.run_query( job=job, prompt_delegate=prompt_delegate)
 
@@ -69,9 +71,10 @@ class OsaMosaicQuery(ImageQuery):
             prod_list = QueryProductList(prod_list=[], job=job)
             return prod_list
         else:
-           return self.build_poduct_list(job,res,out_dir,prod_prefix)
+           return self.build_product_list(job,res,out_dir,prod_prefix)
 
-    def process_product_method(self, instrument, job, prod_list):
+
+    def process_product(self, instrument, job, prod_list):
 
         query_image = prod_list.get_prod_by_name('mosaic_image')
         query_catalog = prod_list.get_prod_by_name('mosaic_catalog')
@@ -107,73 +110,8 @@ class OsaMosaicQuery(ImageQuery):
 
         return query_out
 
-    def get_osa_query_pars(self, instrument):
 
-        # time_range_type = instrument.get_par_by_name('time_group_selector').value
-        RA = instrument.get_par_by_name('RA').value
-        DEC = instrument.get_par_by_name('DEC').value
-        radius = instrument.get_par_by_name('radius').value
-        scw_list = instrument.get_par_by_name('scw_list').value
-        user_catalog = instrument.get_par_by_name('user_catalog').value
-        use_max_pointings = instrument.max_pointings
-
-        extramodules = []
-        if scw_list is None or scw_list != []:
-            T1_iso = instrument.get_par_by_name('T1')._astropy_time.isot
-            T2_iso = instrument.get_par_by_name('T2')._astropy_time.isot
-        else:
-            T1_iso = None
-            T2_iso = None
-            extramodules = ['git://rangequery']
-
-        scwlist_assumption = self.get_scwlist_assumption(T1_iso, T2_iso, RA, DEC, radius, use_max_pointings)
-        instr_user_catalog = self.get_instr_catalog(user_catalog)
-
-        target, modules, assume = self.set_instr_dictionaries(extramodules, scwlist_assumption)
-
-        inject = []
-
-        if instr_user_catalog is not None:
-            cat = ['SourceCatalog',
-                   {
-                       "catalog": [
-                           {
-                               "RA": float(ra.deg),
-                               "DEC": float(dec.deg),
-                               "NAME": str(name),
-                           }
-                           for ra, dec, name in zip(instr_user_catalog.ra, instr_user_catalog.dec, v.name)
-                       ],
-                       "version": "v1",  # catalog id here; good if user-understandable, but can be computed internally
-                       "autoversion": True,
-                   }
-                   ]
-
-            extramodules.append("git://gencat")
-            inject.append(cat)
-
-        return OsaQuery(target=target, modules=modules, assume=assume, inject=inject)
-
-
-    def get_scwlist_assumption(self,scw_list,T1,T2,RA,DEC,radius,use_max_pointings):
-        if scw_list is not None and scw_list != []:
-            scwlist_assumption = 'rangequery.TimeDirectionScWList(\
-                                    use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
-                                    use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
-                                    use_max_pointings=%(use_max_pointings)d)\
-                                ' % (dict(RA=RA, DEC=DEC, radius=radius, T1=T1, T2=T2, use_max_pointings=use_max_pointings))
-
-        else:
-           scwlist_assumption=str(scw_list)
-
-        return scwlist_assumption
-
-
-    def get_instr_catalog(self, user_catalog):
-        raise RuntimeError('Must be specified for each instrument')
-
-
-    def set_instr_dictionaries(self,catalog,):
+    def set_instr_dictionaries(self,extramodules,scwlist_assumption,E1,E2):
         raise RuntimeError('Must be specified for each instrument')
 
 
@@ -200,20 +138,15 @@ class JemxMosaicQuery(OsaMosaicQuery):
     def set_instr_dictionaries(self,extramodules,scwlist_assumption,E1,E2):
         target = "mosaic_jemx"
         modules = ["git://ddosa", "git://ddosadm", "git://ddjemx", 'git://rangequery'] + extramodules
-        # assume = ['ddjemx.JMXImageGroups(input_scwlist=%s)' % scwlist_assumption,
-        #          'ddjemx.JEnergyBins(use_bins=[(%(E1)s,%(E2)s)])' % dict(E1=E1, E2=E2)]
 
-        # target = "mosaic_jemx"
-        # modules = ["git://ddosa", "git://ddosadm", "git://ddjemx", "git://rangequery"] + extramodules
         assume = ['ddjemx.JMXScWImageList(input_scwlist=%s)' % scwlist_assumption,
                   'ddjemx.JEnergyBins(use_bins=[(%(E1)s,%(E2)s)])' % dict(E1=E1, E2=E2),
                   'ddjemx.JEMX(use_num=2)']
 
         return target, modules, assume
 
-
-
     def build_product_list(self, job, res, out_dir, prod_prefix):
+
         image = OsaImageProduct.build_from_ddosa_skyima('mosaic_image', 'jemx_query_mosaic.fits', res.skyima,
                                                         out_dir=out_dir, prod_prefix=prod_prefix)
         osa_catalog = CatalogProduct('mosaic_catalog', catalog=OsaJemxCatalog.build_from_ddosa_srclres(res.srclres),
@@ -233,6 +166,8 @@ class IsgriMosaicQuery(OsaMosaicQuery):
 
 
     def build_product_list(self,job,res,out_dir,prod_prefix):
+        print('ciccio', prod_prefix)
+
         image = OsaImageProduct.build_from_ddosa_skyima('mosaic_image', 'isgri_query_mosaic.fits', res.skyima,
                                                             out_dir=out_dir, prod_prefix=prod_prefix)
         osa_catalog = CatalogProduct('mosaic_catalog',
@@ -245,19 +180,20 @@ class IsgriMosaicQuery(OsaMosaicQuery):
         return prod_list
 
     def set_instr_dictionaries(self,extramodules,scwlist_assumption,E1,E2):
+        print ('E1,E2',E1,E2)
         target = "mosaic_ii_skyimage"
         modules = ["git://ddosa", "git://ddosadm"] + extramodules
         assume = ['ddosa.ImageGroups(input_scwlist=%s)' % scwlist_assumption,
-                  'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,
-                                                                                                           E2=E2),
+                  'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")'%dict(E1=E1,E2=E2),
                   'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")', ]
+            
+        
 
-
+    
         return target,modules,assume
 
     def get_dummy_products(self, instrument, config, out_dir='./'):
-        from ..analysis.products import ImageProduct
-        from ..analysis.catalog import BasicCatalog
+
         dummy_cache = config.dummy_cache
 
         failed = False

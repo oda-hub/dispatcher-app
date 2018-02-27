@@ -180,6 +180,7 @@ class Instrument(object):
 
             try:
                 query_name = self.query_dictionary[product_type]
+                #print ('=======> query_name',query_name)
                 query_out = self.get_query_by_name(query_name).run_query(self, out_dir, job, prompt_delegate,
                                                                          query_type=query_type, config=config,
                                                                          logger=logger)

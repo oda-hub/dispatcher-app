@@ -1,4 +1,4 @@
-from cdci_data_analysis.ddosa_interface.osa_catalog import OsaIsgriCatalog
+from cdci_data_analysis.ddosa.osa_catalog import OsaIsgriCatalog
 
 def test_from_list():
     osa_catalog=OsaIsgriCatalog.build_from_dict_list([dict(ra=0,dec=0,name="SOURCE_NAME")])

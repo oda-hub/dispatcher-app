@@ -38,8 +38,8 @@ __author__ = "Andrea Tramacere"
 from astropy.io import  fits as pf
 
 
-from ..analysis.queries import  *
-from ..analysis.products import *
+from cdci_data_analysis.analysis.queries import  *
+from cdci_data_analysis.analysis.products import *
 from .osa_image_dispatcher import JemxMosaicQuery
 #from .osa_spectrum_dispatcher import get_osa_spectrum,get_osa_spectrum_dummy_products,process_osa_spectrum_products
 #from .osa_lightcurve_dispatcher import get_osa_lightcurve,get_osa_lightcurve_dummy_products,process_osa_lc_products

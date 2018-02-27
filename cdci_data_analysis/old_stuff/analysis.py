@@ -15,7 +15,7 @@ import numpy as np
 from astropy.io import  fits as pf
 
 
-from ..ddosa_interface.osa_image_dispatcher import get_osa_image
+from ..ddosa.osa_image_dispatcher import get_osa_image
 
 
 

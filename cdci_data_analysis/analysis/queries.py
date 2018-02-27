@@ -343,34 +343,36 @@ class ProductQuery(BaseQuery):
     def __init__(self,
                  name,
                  parameters_list=[],
-                 get_products_method=None,
-                 html_draw_method=None,
-                 get_dummy_products_method=None,
-                 process_product_method=None,
+                 #get_products_method=None,
+                 #html_draw_method=None,
+                 #get_dummy_products_method=None,
+                 #process_product_method=None,
                  **kwargs):
 
 
 
         super(ProductQuery, self).__init__(name,parameters_list, **kwargs)
-        self._get_product_method = get_products_method
-        self._html_draw_method = html_draw_method
-        self._get_dummy_products_method=get_dummy_products_method
-        self._process_product_method=process_product_method
+        #self._get_product_method = get_products_method
+        #self._html_draw_method = html_draw_method
+        #self._get_dummy_products_method=get_dummy_products_method
+        #self._process_product_method=process_product_method
         self.query_prod_list=None
         self.job=None
 
 
     def get_products(self, instrument,prompt_delegate, job=None,config=None,**kwargs):
-        if self._get_product_method is not None:
-            return self._get_product_method(instrument,prompt_delegate=prompt_delegate,config=config,job=job,**kwargs)
-        else:
-            return None
+        raise RuntimeError('needs to be implemented in derived class')
+        #if self._get_product_method is not None:
+        #    return self._get_product_method(instrument,prompt_delegate=prompt_delegate,config=config,job=job,**kwargs)
+        #else:
+        #    return None
 
     def get_dummy_products(self,instrument, config=None,**kwargs):
-        if self._get_dummy_products_method is not None:
-            return self._get_dummy_products_method(instrument,config,**kwargs)
-        else:
-            return None
+        raise RuntimeError('needs to be implemented in derived class')
+        #if self._get_dummy_products_method is not None:
+        #    return self._get_dummy_products_method(instrument,config,**kwargs)
+        #else:
+        #    return None
 
 
     def get_parameters_list_as_json(self):
@@ -402,7 +404,7 @@ class ProductQuery(BaseQuery):
     #    product_dictionary['error_message']=error_message
     #    product_dictionary['debug_message']=debug_message
 
-        return product_dictionary
+    #    return product_dictionary
 
     def test_communication(self,instrument,query_type='Real',logger=None,config=None):
         print('logger')
@@ -524,17 +526,20 @@ class ProductQuery(BaseQuery):
         status=0
         message=''
         debug_message=''
-        msg_str = '--> start get prodcut query'
+        msg_str = '--> start get prodcut query',query_type
         print(msg_str)
         logger.info(msg_str)
         try:
             if query_type != 'Dummy':
+                #print('ciccio')
                 self.query_prod_list = self.get_products(instrument,
+                                                         job,
                                                          prompt_delegate,
                                                          config=config,
-                                                         out_dir=scratch_dir,
-                                                         job=job)
+                                                         out_dir=scratch_dir)
+                #print ('polenta')
             else:
+
                 self.query_prod_list = self.get_dummy_products(instrument,
                                                                config=config,
                                                                out_dir=scratch_dir)
@@ -563,8 +568,8 @@ class ProductQuery(BaseQuery):
 
     def process_product(self,instrument,job,query_prod_list, config=None,**kwargs):
         query_out = QueryOutput()
-        if self._process_product_method is not None and query_prod_list is not None:
-            query_out= self._process_product_method(instrument,job,query_prod_list,**kwargs)
+        if self.process_product_method is not None and query_prod_list is not None:
+            query_out= self.process_product_method(instrument,job,query_prod_list,**kwargs)
         return query_out
 
     def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,**kwargs):
@@ -658,10 +663,10 @@ class PostProcessProductQuery(ProductQuery):
                  **kwargs):
 
         super(PostProcessProductQuery, self).__init__(name, parameters_list, **kwargs)
-        self._get_product_method = get_products_method
-        self._html_draw_method = html_draw_method
-        self._get_dummy_products_method = get_dummy_products_method
-        self._process_product_method = process_product_method
+        #self._get_product_method = get_products_method
+        #self._html_draw_method = html_draw_method
+        #self._get_dummy_products_method = get_dummy_products_method
+        #self._process_product_method = process_product_method
         self.query_prod_list = None
 
 
@@ -678,10 +683,9 @@ class PostProcessProductQuery(ProductQuery):
             else:
                 raise  RuntimeError('file %s does not exist in dir %s '%(f,out_dir))
 
-    #TODO: revise the role of query_prod_list here!!!!
-    def process_product(self,instrument,job, config=None,**kwargs):
 
-        return self._process_product_method(instrument,job,**kwargs)
+    def process_product(self,instrument,job, config=None,out_dir=None,**kwargs):
+        raise RuntimeError('this method has to be implemented in the derived class')
 
 
     def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,**kwargs):
@@ -733,7 +737,7 @@ class PostProcessProductQuery(ProductQuery):
         return query_out
 
 class ImageQuery(ProductQuery):
-    def __init__(self,name,parameters_list,**kwargs):
+    def __init__(self,name,parameters_list=[],**kwargs):
         detection_th = DetectionThreshold(value=0.0,units='sigma', name='detection_threshold')
         if parameters_list != [] and parameters_list is not None:
             parameters_list.append(detection_th)
@@ -747,7 +751,7 @@ class ImageQuery(ProductQuery):
 
 
 class LightCurveQuery(ProductQuery):
-    def __init__(self,name,parameters_list, **kwargs):
+    def __init__(self,name,parameters_list=[], **kwargs):
 
         time_bin=TimeDelta(value=1000., name='time_bin', delta_T_format_name='time_bin_format')
         if parameters_list != [] and parameters_list is not None:
@@ -758,7 +762,7 @@ class LightCurveQuery(ProductQuery):
 
 
 class SpectrumQuery(ProductQuery):
-    def __init__(self, name,parameters_list, **kwargs):
+    def __init__(self, name,parameters_list=[], **kwargs):
 
         #xspec_model =Name(name_format='str', name='xspec_model',value='powerlaw')
         #if parameters_list != [] and parameters_list is not None:
@@ -771,7 +775,7 @@ class SpectrumQuery(ProductQuery):
 
 
 class InputDataQuery(ProductQuery):
-    def __init__(self, name,parameters_list, **kwargs):
+    def __init__(self, name,parameters_list=[], **kwargs):
 
         #xspec_model =Name(name_format='str', name='xspec_model',value='powerlaw')
         #if parameters_list != [] and parameters_list is not None:
@@ -783,7 +787,7 @@ class InputDataQuery(ProductQuery):
         super(InputDataQuery, self).__init__(name, parameters_list, **kwargs)
 
 class SpectralFitQuery(PostProcessProductQuery):
-    def __init__(self, name,parameters_list, **kwargs):
+    def __init__(self, name,parameters_list=[], **kwargs):
 
         xspec_model =Name(name_format='str', name='xspec_model',value='powerlaw')
 

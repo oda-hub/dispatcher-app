@@ -1,6 +1,5 @@
 from __future__ import print_function
-from builtins import (bytes, str, open, super, range,
-                      zip, round, input, int, pow, object, map, zip)
+from builtins import (str, open, range)
 
 
 import json
@@ -13,28 +12,20 @@ osaconf = ConfigEnv.from_conf_file('./conf_env.yml')
 
 import time
 from flask import Flask, request
-from flask import jsonify
 import flask
-
-from cdci_data_analysis.ddosa_interface.osa_catalog import OsaIsgriCatalog,OsaJemxCatalog
-
 
 from cdci_data_analysis.flask_app.app import InstrumentQueryBackEnd
 
 
 
 
-crab_scw_list=["035200230010.001","035200240010.001"]
-cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001']
-asynch_scw_list=['004000030030.001']
-asynch_scw_list=['035200230010.001']
-asynch_scw_list_jemx=["138700520010.001"]
+
 
 
 
 def test_instr(use_scw_list=True):
 
-    from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
+    from cdci_data_analysis.plugins.ddosa.osa_isgri import OSA_ISGRI
 
     instr= OSA_ISGRI()
 
@@ -54,7 +45,7 @@ def test_instr(use_scw_list=True):
 
 
 def test_fit_spectrum_cookbook(use_catalog=False,query_type='Real',out_dir=None):
-    from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
+    from cdci_data_analysis.plugins.ddosa.osa_isgri import OSA_ISGRI
     from cdci_data_analysis.flask_app.app import set_session_logger
 
     instr = OSA_ISGRI()
@@ -102,7 +93,7 @@ def test_fit_spectrum_cookbook(use_catalog=False,query_type='Real',out_dir=None)
         print ('\n')
 
 def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,query_type='Real',out_dir=None):
-    from cdci_data_analysis.ddosa_interface.osa_isgri import OSA_ISGRI
+    from cdci_data_analysis.plugins.ddosa.osa_isgri import OSA_ISGRI
     from cdci_data_analysis.flask_app.app import set_session_logger
     set_session_logger(out_dir)
 
@@ -183,8 +174,8 @@ def set_mosaic_query(instrument_name,
                      user_catalog=False,
                      query_type='Real',
                      upload_data=None,
-                     T1_iso='2003-02-08T23:17:56.0',
-                     T2_iso='2003-02-09T01:48:00.0',
+                     T1_iso='2003-03-15T23:27:40.0',
+                     T2_iso='2003-03-16T00:03:15.0',
                      RA_user_cat=[205.09872436523438],
                      Dec_user_cat=[83.6317138671875],
                      session_id='test',
@@ -231,8 +222,8 @@ def set_spectrum_query(instrument_name,
                      user_catalog=False,
                      query_type='Real',
                      upload_data=None,
-                     T1_iso='2003-02-08T23:17:56.0',
-                     T2_iso='2003-02-09T01:48:00.0',
+                     T1_iso='2003-03-15T23:27:40.0',
+                     T2_iso='2003-03-16T00:03:15.0',
                      RA_user_cat=[205.09872436523438],
                      Dec_user_cat=[83.6317138671875],
                      session_id='test',
@@ -279,8 +270,8 @@ def set_spectral_fit_query(instrument_name,
                      scw_list=None,
                      query_type='Real',
                      upload_data=None,
-                     T1_iso='2003-02-08T23:17:56.0',
-                     T2_iso='2003-02-09T01:48:00.0',
+                     T1_iso='2003-03-15T23:27:40.0',
+                     T2_iso='2003-03-16T00:03:15.0',
                      RA_user_cat=[205.09872436523438],
                      Dec_user_cat=[83.6317138671875],
                      detection_threshold=5.0,
@@ -329,8 +320,8 @@ def set_lc_query(instrument_name,
                      scw_list=None,
                      query_type='Real',
                      upload_data=None,
-                     T1_iso='2003-02-08T23:17:56.0',
-                     T2_iso='2003-02-09T01:48:00.0',
+                     T1_iso='2003-03-15T23:27:40.0',
+                     T2_iso='2003-03-16T00:03:15.0',
                      RA_user_cat=[205.09872436523438],
                      Dec_user_cat=[83.6317138671875],
                      session_id='test',
@@ -421,7 +412,7 @@ def test_spectral_fit_query():
                                                          RA_user_cat=[80.63168334960938],
                                                          Dec_user_cat=[20.01494598388672],
                                                          user_catalog=False, upload_data=None,
-                                                         query_type='Dummy')
+                                                         query_type='True')
 
     testapp = flask.Flask(__name__)
     with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=upload_data):
@@ -446,7 +437,11 @@ def test_spectral_fit_query():
             print(k, '=>', query_out['products'][k])
     return query_out
 
-
+crab_scw_list=["035200230010.001","035200240010.001"]
+cookbook_scw_list=['005100410010.001','005100420010.001','005100430010.001','005100440010.001','005100450010.001']
+asynch_scw_list=['004000030030.001']
+asynch_scw_list=['035200230010.001']
+asynch_scw_list_jemx=["138700520010.001"]
 
 def test_asynch_full():
     """
@@ -456,8 +451,8 @@ def test_asynch_full():
 
     instrument_name='isgri'
     parameters_dic,upload_data=set_mosaic_query(instrument_name=instrument_name,
-                                                scw_list=['005100410010.001'],
-                                                E1_keV=26,
+                                                scw_list=None,
+                                                E1_keV=22.5,
                                                 RA_user_cat=[80.63168334960938],
                                                 Dec_user_cat=[20.01494598388672],
                                                 user_catalog=False,

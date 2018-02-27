@@ -45,13 +45,10 @@ __author__ = "Andrea Tramacere"
 
 from astropy.io import  fits as pf
 from pathlib import Path
-import os
-from ..analysis.parameters import *
 from .osa_dispatcher import    OsaQuery
-from ..analysis.queries import SpectrumQuery
-from ..web_display import draw_spectrum
-from ..analysis.products import SpectrumProduct,QueryProductList,QueryOutput
-from ..analysis.io_helper import FilePath
+from cdci_data_analysis.analysis.queries import SpectrumQuery
+from cdci_data_analysis.analysis.products import SpectrumProduct,QueryProductList,QueryOutput
+from cdci_data_analysis.analysis.io_helper import FilePath
 
 class IsgriSpectrumProduct(SpectrumProduct):
 
@@ -128,88 +125,24 @@ class OsaSpectrumQuery(SpectrumQuery):
 
         super(OsaSpectrumQuery, self).__init__(name)
 
-    def get_products_method(self, instrument, job, prompt_delegate, dump_json=False, use_dicosverer=False, config=None,
-                            out_dir=None, prod_prefix=None):
 
-        q = self.get_osa_query(instrument, config=config)
+    def get_products(self,instrument,job,prompt_delegate,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
 
-        res = q.run_query(job=job, prompt_delegate=prompt_delegate)
+
+        scwlist_assumption, cat, extramodules, inject=OsaQuery.get_osa_query_base(instrument)
+        E1=instrument.get_par_by_name('E1_keV').value
+        E2=instrument.get_par_by_name('E2_keV').value
+        target, modules, assume=self.set_instr_dictionaries(extramodules,scwlist_assumption,E1,E2)
+        q=OsaQuery(config=config, target=target, modules=modules, assume=assume, inject=inject)
+
+
+        res = q.run_query( job=job, prompt_delegate=prompt_delegate)
 
         if job.status != 'done':
             prod_list = QueryProductList(prod_list=[], job=job)
             return prod_list
         else:
-            return self.build_poduct_list(job, res, out_dir, prod_prefix)
-
-    def get_osa_query_pars(self, instrument):
-
-        RA = instrument.get_par_by_name('RA').value
-        DEC = instrument.get_par_by_name('DEC').value
-        radius = instrument.get_par_by_name('radius').value
-        scw_list = instrument.get_par_by_name('scw_list').value
-        user_catalog = instrument.get_par_by_name('user_catalog').value
-        use_max_pointings = instrument.max_pointings
-        src_name = instrument.get_par_by_name('src_name').value
-
-        extramodules = []
-        if scw_list is None or scw_list != []:
-            T1_iso = instrument.get_par_by_name('T1')._astropy_time.isot
-            T2_iso = instrument.get_par_by_name('T2')._astropy_time.isot
-        else:
-            T1_iso = None
-            T2_iso = None
-            extramodules = ['git://rangequery']
-
-        scwlist_assumption = self.get_scwlist_assumption(T1_iso, T2_iso, RA, DEC, radius, use_max_pointings)
-        instr_user_catalog = self.get_instr_catalog(user_catalog)
-
-        target, modules, assume = self.set_instr_dictionaries(extramodules, scwlist_assumption)
-
-        inject = []
-
-        if instr_user_catalog is not None:
-            print('user_catalog', user_catalog.ra)
-
-            cat = ['SourceCatalog',
-                   {
-                       "catalog": [
-                           {
-                               "RA": float(ra.deg),
-                               "DEC": float(dec.deg),
-                               "NAME": name,
-                           }
-                           for ra, dec, name in zip(user_catalog.ra, user_catalog.dec, user_catalog.name)
-                       ],
-                       "version": "v2",  # catalog id here; good if user-understandable, but can be computed internally
-                       "autoversion": True,  # this will complement the version with some hash of the data
-                       # consider the above version now to be the version of the version generation
-                   }
-                   ]
-            inject.append(cat)
-
-            modules.append("git://gencat")
-
-
-
-        return OsaQuery(target=target, modules=modules, assume=assume, inject=inject)
-
-    def get_scwlist_assumption(self,scw_list,T1,T2,RA,DEC,radius,use_max_pointings):
-        if scw_list is not None and scw_list != []:
-            scwlist_assumption = 'input_scwlist=\
-                             rangequery.TimeDirectionScWList(\
-                              use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
-                              use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
-                              use_max_pointings=%(use_max_pointings)d \
-                              )'%(dict(RA=RA, DEC=DEC, radius=radius, T1=T1, T2=T2, use_max_pointings=use_max_pointings))
-
-        else:
-           scwlist_assumption=str(scw_list)
-
-        return scwlist_assumption
-
-
-    def get_instr_catalog(self, user_catalog):
-        raise RuntimeError('Must be specified for each instrument')
+           return self.build_product_list(job,res,out_dir,prod_prefix)
 
 
     def set_instr_dictionaries(self,catalog,):
@@ -289,19 +222,15 @@ class IsgriSpectrumQuery(OsaSpectrumQuery):
         modules = ["ddosa", "git://ddosadm", "git://useresponse/cd7855bf7", "git://process_isgri_spectra/2200bfd",
                    "git://rangequery"]
 
-        assume = ['process_isgri_spectra.ScWSpectraList(\
-                                     input_scwlist=%s)\
-                                  )\
-                              '% (scwlist_assumption),
-                  'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,
-                                                                                                           E2=E2),
+        assume = ['process_isgri_spectra.ScWSpectraList(input_scwlist=%s)'% (scwlist_assumption),
+                  'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
                   'process_isgri_spectra.ISGRISpectraSum(use_extract_all=True)',
                   'ddosa.ImagingConfig(use_SouFit=0,use_DoPart2=1,use_version="soufit0_p2")',
                   'ddosa.CatForSpectraFromImaging(use_minsig=3)',
                   ]
 
 
-
+        print ('ciccio',target,modules,assume)
         return target,modules,assume
 
 

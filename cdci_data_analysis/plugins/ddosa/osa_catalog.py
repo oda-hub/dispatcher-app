@@ -39,7 +39,7 @@ import  numpy as np
 
 from astropy.io import  fits as pf
 
-from ..analysis.catalog import BasicCatalog
+from cdci_data_analysis.analysis.catalog import BasicCatalog
 
 
 

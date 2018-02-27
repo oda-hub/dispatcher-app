@@ -8,48 +8,36 @@ Created on Wed May 10 10:55:20 2017
 
 from __future__ import absolute_import, division, print_function
 
-from builtins import (bytes, open, str, super, range,
-                      zip, round, input, int, pow, object, map, zip)
+from builtins import (open, str, range,
+                      object)
 
-
-from flask import Flask, request, redirect, url_for,flash
 from werkzeug.utils import secure_filename
 
-import numpy as np
 import os
 import random
 import string
 
 from flask import jsonify,send_from_directory
-from flask import Flask, request,url_for
-from flask import render_template
-from flask.views import View
+from flask import Flask, request
 
 #from pathlib import Path
 #from flask_restful import reqparse
 
-from ..ddosa_interface.osa_isgri import OSA_ISGRI
-from ..ddosa_interface.osa_jemx import OSA_JEMX
+from cdci_data_analysis.plugins.ddosa.osa_isgri import OSA_ISGRI
+from cdci_data_analysis.plugins.ddosa.osa_jemx import OSA_JEMX
 from ..analysis.queries import *
 from ..analysis.job_manager import Job
 from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
-from .mock_data_server import mock_chek_job_status
 import  tempfile
 import tarfile
 import gzip
 import logging
 import socket
-import threading
-import sys
 
-
-
-# from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
-#from ..ddosa_interface.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
-
-from ..web_display import draw_dummy
+# from ..ddosa.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
+#from ..ddosa.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
 
 #UPLOAD_FOLDER = '/path/to/the/uploads'
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])

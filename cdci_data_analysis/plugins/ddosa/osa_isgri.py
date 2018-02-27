@@ -38,8 +38,7 @@ __author__ = "Andrea Tramacere"
 from astropy.io import  fits as pf
 
 
-from ..analysis.queries import  *
-from ..analysis.products import *
+from cdci_data_analysis.analysis.queries import  *
 from .osa_image_dispatcher import IsgriMosaicQuery
 from .osa_spectrum_dispatcher import IsgriSpectrumQuery
 from .osa_lightcurve_dispatcher import IsgriLightCurveQuery

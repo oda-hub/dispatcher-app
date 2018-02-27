@@ -39,8 +39,8 @@ import json
 # relative import eg: from .mod import f
 import ddosaclient as dc
 import  simple_logger
-from ..analysis.queries import  *
-from ..analysis.job_manager import  Job
+from cdci_data_analysis.analysis.queries import  *
+from cdci_data_analysis.analysis.job_manager import  Job
 import sys
 import traceback
 import time
@@ -72,6 +72,8 @@ def view_traceback():
     ex_type, ex, tb = sys.exc_info()
     traceback.print_tb(tb)
     del tb
+
+
 
 
 
@@ -244,9 +246,9 @@ class OsaQuery(object):
             else:
                 raise RuntimeError('job object not passed')
 
-            #print('--osa disp--')
-            #print('call_back_url',job.get_call_back_url())
-            #print('*** prompt_delegate', prompt_delegate)
+            print('--osa disp--')
+            print('call_back_url',job.get_call_back_url())
+            print('*** prompt_delegate', prompt_delegate)
 
 
             res= dc.RemoteDDOSA(self.url, self.ddcache_root_local).query(target=self.target,
@@ -280,7 +282,72 @@ class OsaQuery(object):
         return res
 
 
+    @classmethod
+    def get_scwlist_assumption(cls, scw_list, T1, T2, RA, DEC, radius, use_max_pointings):
+        if scw_list is not None and scw_list != []:
+
+            scwlist_assumption='ddosa.IDScWList(use_scwid_list=%s)' %  str(scw_list)
+        else:
+            scwlist_assumption = 'rangequery.TimeDirectionScWList(\
+                                                  use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
+                                                  use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
+                                                  use_max_pointings=%(use_max_pointings)d)\
+                                              ' % (dict(RA=RA, DEC=DEC, radius=radius, T1=T1, T2=T2, use_max_pointings=use_max_pointings))
 
 
 
+        return scwlist_assumption
 
+
+    @classmethod
+    def get_osa_query_base(cls, instrument):
+
+        # time_range_type = instrument.get_par_by_name('time_group_selector').value
+        RA = instrument.get_par_by_name('RA').value
+        DEC = instrument.get_par_by_name('DEC').value
+        radius = instrument.get_par_by_name('radius').value
+        scw_list = instrument.get_par_by_name('scw_list').value
+        user_catalog = instrument.get_par_by_name('user_catalog').value
+        use_max_pointings = instrument.max_pointings
+
+        extramodules = []
+        if scw_list is None or scw_list != []:
+            T1_iso = instrument.get_par_by_name('T1')._astropy_time.isot
+            T2_iso = instrument.get_par_by_name('T2')._astropy_time.isot
+        else:
+            T1_iso = None
+            T2_iso = None
+            extramodules = ['git://rangequery']
+
+        scwlist_assumption = cls.get_scwlist_assumption(scw_list, T1_iso, T2_iso, RA, DEC, radius, use_max_pointings)
+        cat = cls.get_instr_catalog(user_catalog)
+
+        inject = []
+
+        if cat is not None:
+            extramodules.append("git://gencat")
+            inject.append(cat)
+
+        return scwlist_assumption,cat,extramodules,inject
+
+    @classmethod
+    def get_instr_catalog(cls, user_catalog=None):
+        if user_catalog is not None:
+            cat = ['SourceCatalog',
+                   {
+                       "catalog": [
+                           {
+                               "RA": float(ra.deg),
+                               "DEC": float(dec.deg),
+                               "NAME": str(name),
+                           }
+                           for ra, dec, name in zip(user_catalog.ra, user_catalog.dec, user_catalog.name)
+                       ],
+                       "version": "v2",  # catalog id here; good if user-understandable, but can be computed internally
+                       "autoversion": True,
+                   }
+                   ]
+        else:
+            cat = None
+
+        return cat
