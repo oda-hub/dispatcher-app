@@ -23,6 +23,9 @@ from cdci_data_analysis.flask_app.app import run_app, app
 from cdci_data_analysis.configurer import ConfigEnv
 
 
+
+
+
 def number_of_workers():
     return (multiprocessing.cpu_count() * 2) + 1
 
@@ -52,6 +55,15 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
 
 
 def main(argv=None):
+
+    black_listed_evns=['https_proxy','http_proxy']
+
+    for envvar in black_listed_evns:
+        print ('removing env variable',envvar)
+        os.unsetenv(envvar)
+        if envvar in os.environ.keys():
+            del os.environ[envvar]
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-conf_file', type=str, default=None)
     parser.add_argument('-use_gunicorn', action='store_true')

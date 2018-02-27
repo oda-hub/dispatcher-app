@@ -2,6 +2,10 @@
 
 from __future__ import absolute_import, division, print_function
 
+
+from builtins import (str, super, object)
+
+
 __author__ = "Andrea Tramacere"
 
 
@@ -21,17 +25,10 @@ import  logging
 
 
 import json
-import traceback
-import sys
 from .parameters import *
 from .products import SpectralFitProduct,QueryOutput
-
-def view_traceback():
-    ex_type, ex, tb = sys.exc_info()
-    print('tb =====>')
-    traceback.print_tb(tb)
-    print('   <=====')
-    del tb
+from .io_helper import FilePath
+from .io_helper import view_traceback
 
 
 @decorator.decorator
@@ -167,7 +164,7 @@ class BaseQuery(object):
 
 
     def _show_parameter(self,par,indent=0):
-        s='%stype: par | name: %s |  value: %s'%(' '*indent,par.name,par.value)
+        s='%stype: par | name: %s |  value: %s| units: %s| units name:%s '%(' '*indent,par.name,par.value,par.units,par.units_name)
         print(s)
 
     # BUIULD DICTIONARY
@@ -360,10 +357,12 @@ class ProductQuery(BaseQuery):
         self._get_dummy_products_method=get_dummy_products_method
         self._process_product_method=process_product_method
         self.query_prod_list=None
+        self.job=None
 
-    def get_products(self, instrument, config=None,**kwargs):
+
+    def get_products(self, instrument,prompt_delegate, job=None,config=None,**kwargs):
         if self._get_product_method is not None:
-            return self._get_product_method(instrument,config=config,**kwargs)
+            return self._get_product_method(instrument,prompt_delegate=prompt_delegate,config=config,job=job,**kwargs)
         else:
             return None
 
@@ -425,7 +424,7 @@ class ProductQuery(BaseQuery):
             print('!!! >>>Exception<<<', e)
             status = 1
             message='dataserver communication failed'
-            debug_message=e.message
+            debug_message=e
             view_traceback()
             logger.exception(e)
 
@@ -501,7 +500,7 @@ class ProductQuery(BaseQuery):
             print('!!! >>>Exception<<<', e)
             status = 1
             message='test has products failed'
-            debug_message=e.message
+            debug_message=e
             view_traceback()
             logger.exception(e)
 
@@ -520,7 +519,7 @@ class ProductQuery(BaseQuery):
 
         return query_out
 
-    def get_query_products(self,instrument,query_type='Real',logger=None,config=None,scratch_dir=None):
+    def get_query_products(self,instrument,job,prompt_delegate,query_type='Real',logger=None,config=None,scratch_dir=None):
         # query
         status=0
         message=''
@@ -531,12 +530,16 @@ class ProductQuery(BaseQuery):
         try:
             if query_type != 'Dummy':
                 self.query_prod_list = self.get_products(instrument,
+                                                         prompt_delegate,
                                                          config=config,
-                                                         out_dir=scratch_dir)
+                                                         out_dir=scratch_dir,
+                                                         job=job)
             else:
                 self.query_prod_list = self.get_dummy_products(instrument,
                                                                config=config,
                                                                out_dir=scratch_dir)
+                job.set_done()
+
         except Exception as e:
             print("prod_query failed, Error:", e)
             print('!!! >>>Exception<<<', e)
@@ -544,7 +547,7 @@ class ProductQuery(BaseQuery):
             logger.exception(e)
             status=1
             message='dataserver get product query failed'
-            debug_message=e.message
+            debug_message=e
 
         msg_str = '--> data_server_query_status %d\n' % status
         msg_str += '--> end product query '
@@ -558,13 +561,13 @@ class ProductQuery(BaseQuery):
         return query_out
 
 
-    def process_product(self,instrument,query_prod_list, config=None,**kwargs):
+    def process_product(self,instrument,job,query_prod_list, config=None,**kwargs):
         query_out = QueryOutput()
         if self._process_product_method is not None and query_prod_list is not None:
-            query_out= self._process_product_method(instrument,query_prod_list,**kwargs)
+            query_out= self._process_product_method(instrument,job,query_prod_list,**kwargs)
         return query_out
 
-    def process_query_product(self,instrument,query_type='Real',logger=None,config=None,**kwargs):
+    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,**kwargs):
         status = 0
         message = ''
         debug_message = ''
@@ -576,7 +579,7 @@ class ProductQuery(BaseQuery):
         query_out = QueryOutput()
 
         try:
-            query_out=self.process_product(instrument, self.query_prod_list,**kwargs)
+            query_out=self.process_product(instrument,job,self.query_prod_list,**kwargs)
 
         except Exception as e:
 
@@ -586,7 +589,7 @@ class ProductQuery(BaseQuery):
             logger.exception(e)
             status=1
             message='product processig failed'
-            debug_message = e.message
+            debug_message = e
 
         msg_str = '==>prod_process_status %d\n' % status
         msg_str += '--> end product process'
@@ -598,8 +601,11 @@ class ProductQuery(BaseQuery):
 
 
 
-    def run_query(self,instrument,scratch_dir,query_type='Real', config=None,logger=None):
+    def run_query(self,instrument,scratch_dir,job,prompt_delegate,query_type='Real', config=None,logger=None):
         input_prod_list=None
+
+
+
         query_out,communication_status = self.test_communication(instrument,query_type=query_type,logger=logger,config=config)
 
         if query_out.status_dictionary['status']==0:
@@ -609,15 +615,29 @@ class ProductQuery(BaseQuery):
             query_out=self.test_has_products(instrument,query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
             input_prod_list=query_out.prod_dictionary['input_prod_list']
 
-        if query_out.status_dictionary['status'] == 0:
-            query_out = self.get_query_products(instrument, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
+
+
 
         if query_out.status_dictionary['status'] == 0:
-            query_out = self.process_query_product(instrument, logger=logger, config=config)
+            query_out = self.get_query_products(instrument,job,prompt_delegate, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
+
+        if query_out.status_dictionary['status'] == 0:
+            if job.status!='done':
 
 
-        if input_prod_list is not None:
-            query_out.prod_dictionary['input_prod_list']=input_prod_list
+                query_out.prod_dictionary = {}
+                # TODO: add check if is asynch
+                # TODO: the asynch status will be in the qery_out class
+                # TODO: if asynch and running return proper query_out
+                # TODO: if asynch and done proceed
+
+            else:
+                if query_out.status_dictionary['status'] == 0:
+                    query_out = self.process_query_product(instrument,job, logger=logger, config=config)
+
+
+                if input_prod_list is not None:
+                    query_out.prod_dictionary['input_prod_list']=input_prod_list
 
         return query_out
 
@@ -645,14 +665,26 @@ class PostProcessProductQuery(ProductQuery):
         self.query_prod_list = None
 
 
+    def check_file_exist(self,files_list,out_dir=None):
+        if files_list==[''] or files_list==None:
 
-    def process_product(self,instrument,query_prod_list, config=None,**kwargs):
-        query_out = QueryOutput()
-        if self._process_product_method is not None and query_prod_list is not None:
-            query_out= self._process_product_method(instrument,query_prod_list,**kwargs)
-        return query_out
+            raise RuntimeError('file list empty')
 
-    def process_query_product(self,instrument,query_type='Real',logger=None,config=None,scratch_dir=None,**kwargs):
+        for f in   files_list:
+            file_path = FilePath(file_name=f,file_dir=out_dir)
+            #print(f,out_dir)
+            if file_path.exists()==True:
+                pass
+            else:
+                raise  RuntimeError('file %s does not exist in dir %s '%(f,out_dir))
+
+    #TODO: revise the role of query_prod_list here!!!!
+    def process_product(self,instrument,job, config=None,**kwargs):
+
+        return self._process_product_method(instrument,job,**kwargs)
+
+
+    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,**kwargs):
         status = 0
         message = ''
         debug_message = ''
@@ -665,7 +697,7 @@ class PostProcessProductQuery(ProductQuery):
         query_out = QueryOutput()
 
         try:
-            query_out=self.process_product(instrument,out_dir=scratch_dir,**kwargs)
+            query_out=self.process_product(instrument,job,out_dir=scratch_dir,**kwargs)
 
         except Exception as e:
 
@@ -674,8 +706,8 @@ class PostProcessProductQuery(ProductQuery):
             view_traceback()
             logger.exception(e)
             status=1
-            message='product processig failed'
-            debug_message = e.message
+            message='product processig failed: %s'%e
+            debug_message = e
 
         msg_str = '==>prod_process_status %d\n' % status
         msg_str += '--> end product process'
@@ -686,12 +718,17 @@ class PostProcessProductQuery(ProductQuery):
 
 
 
-    def run_query(self,instrument,scratch_dir,query_type='Real', config=None,logger=None):
+    def run_query(self,instrument,scratch_dir,job,prompt_delegate,query_type='Real', config=None,logger=None):
 
         #query_out = self.get_query_products(instrument, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
         #if query_out.status_dictionary['status'] == 0:
 
-        query_out = self.process_query_product(instrument, logger=logger, config=config,scratch_dir=scratch_dir)
+
+        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir)
+        if query_out.status_dictionary['status'] == 0:
+            job.set_done()
+        else:
+            job.set_failed()
 
         return query_out
 
@@ -749,9 +786,11 @@ class SpectralFitQuery(PostProcessProductQuery):
     def __init__(self, name,parameters_list, **kwargs):
 
         xspec_model =Name(name_format='str', name='xspec_model',value='powerlaw')
-        ph_file = Name(name_format='str', name='ph_file', value='')
-        rmf_file = Name(name_format='str', name='rmf_file', value='')
-        arf_file = Name(name_format='str', name='arf_file', value='')
+
+
+        ph_file = Name(name_format='str', name='ph_file_name', value='')
+        rmf_file = Name(name_format='str', name='rmf_file_name', value='')
+        arf_file = Name(name_format='str', name='arf_file_name', value='')
 
         p_list=[xspec_model,ph_file,arf_file,rmf_file]
         if parameters_list != [] and parameters_list is not None:
@@ -767,16 +806,42 @@ class SpectralFitQuery(PostProcessProductQuery):
                                                **kwargs)
 
 
-    def process_product(self,instrument,out_dir=None):
-        print ('out dir',out_dir)
+    def process_product(self,instrument,job,out_dir=None):
+        #print ('out dir',out_dir)
+
         src_name = instrument.get_par_by_name('src_name').value
 
-        ph_file=instrument.get_par_by_name('ph_file').value
-        rmf_file=instrument.get_par_by_name('rmf_file').value
-        arf_file=instrument.get_par_by_name('arf_file').value
+        ph_file=instrument.get_par_by_name('ph_file_name').value
+        rmf_file=instrument.get_par_by_name('rmf_file_name').value
+        arf_file=instrument.get_par_by_name('arf_file_name').value
+        e_min_kev=np.float(instrument.get_par_by_name('E1_keV').value)
+        e_max_kev=np.float(instrument.get_par_by_name('E2_keV').value)
+        print('e_min_kev',e_min_kev)
+        print('e_max_kev', e_max_kev)
+
+        self.check_file_exist([ph_file,rmf_file,arf_file],out_dir=out_dir)
 
         query_out = QueryOutput()
-        query_out.prod_dictionary['image'] = SpectralFitProduct('spectral_fit',ph_file,arf_file,rmf_file,file_dir=out_dir).run_fit(xspec_model=instrument.get_par_by_name('xspec_model').value)
+        try:
+            query_out.prod_dictionary['image'] = SpectralFitProduct('spectral_fit',ph_file,arf_file,rmf_file,file_dir=out_dir).run_fit(e_min_kev=e_min_kev,
+                                                                                                                                       e_max_kev=e_max_kev,
+                                                                                                                                       xspec_model=instrument.get_par_by_name('xspec_model').value,)
+
+        except Exception as e:
+
+            raise RuntimeError('spectral fit failed, Xspec Error: %s'%e)
+
+
+        query_out.prod_dictionary['job_id'] = job.job_id
+        query_out.prod_dictionary['spectrum_name'] = src_name
+
+        query_out.prod_dictionary['ph_file_name'] = ph_file
+        query_out.prod_dictionary['arf_file_name'] = arf_file
+        query_out.prod_dictionary['rmf_file_name'] = rmf_file
+
+        query_out.prod_dictionary['session_id'] = job.session_id
+        query_out.prod_dictionary['download_file_name'] = 'spectra.tar.gz'
+        query_out.prod_dictionary['prod_process_maessage'] = ''
 
         return query_out
 

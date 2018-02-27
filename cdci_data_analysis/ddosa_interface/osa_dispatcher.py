@@ -40,6 +40,7 @@ import json
 import ddosaclient as dc
 import  simple_logger
 from ..analysis.queries import  *
+from ..analysis.job_manager import  Job
 import sys
 import traceback
 import time
@@ -133,25 +134,56 @@ class OsaQuery(object):
         status=''
         try:
             #with silence_stdout()\
-            simple_logger.log()
-            simple_logger.logger.setLevel(logging.ERROR)
-            product = remote.query(target="ii_spectra_extract",
-                                   modules=["ddosa", "git://ddosadm"],
-                                   assume=["ddosa" + '.ScWData(input_scwid="035200230010.001")',
-                                           'ddosa.ImageBins(use_ebins=[(20,40)],use_version="onebin_20_40")',
-                                           'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")'])
+            # simple_logger.log()
+            # simple_logger.logger.setLevel(logging.ERROR)
+            # product = remote.query(target="ii_spectra_extract",
+            #                        modules=["ddosa", "git://ddosadm"],
+            #                        assume=["ddosa" + '.ScWData(input_scwid="035200230010.001")',
+            #                                'ddosa.ImageBins(use_ebins=[(20,40)],use_version="onebin_20_40")',
+            #                                'ddosa.ImagingConfig(use_SouFit=0,use_version="soufit0")'])
+            remote.poke()
 
-        except dc.WorkerException as e:
-            content = json.loads(e.content)
+        except Exception as e:
+            #content = json.loads(e.content)
 
-            status = content['result']['status']
-            print('e=> server connection status', status)
+            #status = content['result']['status']
+            print('e=> server connection status', e)
 
-        #status = product['result']['status']
-        #print('product=>', product)
+            status='broken communication'
+            raise  RuntimeError('ddosa broken communication with message:',e)
+
         print('--> end test connection')
 
         return status
+
+    def test_busy(self, max_trial=25, sleep_s=1):
+        print('--> start test busy')
+        simple_logger.log()
+        simple_logger.logger.setLevel(logging.ERROR)
+        remote = dc.RemoteDDOSA(self.url, self.ddcache_root_local)
+        status = ''
+        time.sleep(sleep_s)
+        for i in range(max_trial):
+            time.sleep(sleep_s)
+            try:
+                # with silence_stdout():
+                r = remote.poke()
+                print('remote poke ok')
+                status = ''
+                break
+            except dc.WorkerException as e:
+
+                content = json.loads(e.content)
+
+                status = content['result']['status']
+                print('e=>', i, status)
+
+        if status == 'busy':
+            print('server is busy')
+            raise RuntimeError('ddosa server is busy')
+
+        print('--> end test busy')
+
 
     def test_has_input_products(self,instrument):
         print('--> start has input_products')
@@ -195,49 +227,52 @@ class OsaQuery(object):
                 return None
 
 
-    def test_busy(self,max_trial=25,sleep_s=1):
-        print ('--> start test busy')
-        simple_logger.log()
-        simple_logger.logger.setLevel(logging.ERROR)
-        remote = dc.RemoteDDOSA(self.url,self.ddcache_root_local)
-        status=''
-        time.sleep(sleep_s)
-        for i in range(max_trial):
-            time.sleep(sleep_s)
-            try:
-                #with silence_stdout():
-                r = remote.poke()
-                print('remote poke ok')
-                status=''
-                break
-            except dc.WorkerException as e:
 
-                content=json.loads(e.content)
 
-                status= content['result']['status']
-                print('e=>', i, status)
-
-        if status=='busy':
-            print ('server is busy')
-            raise Exception
-
-        print('--> end test busy')
-
-    def run_query(self,query_prod):
-
+    def run_query(self,query_prod,job,prompt_delegate=True):
+        res = None
         try:
             #redirect_out('./')
             #with silence_stdout():
             simple_logger.logger.setLevel(logging.ERROR)
+
+            if isinstance(job,Job):
+                pass
+            else:
+                raise RuntimeError('job object not passed')
+
+            #print('--osa disp--')
+            #print('call_back_url',job.get_call_back_url())
+            #print('*** prompt_delegate', prompt_delegate)
+
+
             res= dc.RemoteDDOSA(self.url, self.ddcache_root_local).query(target=query_prod.target,
-                                                   modules=query_prod.modules,
-                                                   assume=query_prod.assume,
-                                                   inject=query_prod.inject)
-            print("cached object in", res,res.ddcache_root_local)
+                                                    modules=query_prod.modules,
+                                                    assume=query_prod.assume,
+                                                    inject=query_prod.inject,
+                                                    prompt_delegate = prompt_delegate,
+                                                    callback = job.get_call_back_url())
+
+
+
+            print ('--> url for call_back',job.get_call_back_url())
+            print("--> cached object in", res,res.ddcache_root_local)
+            job.set_done()
         except dc.WorkerException as e:
+
+            job.set_failed()
             print("ERROR->")
+            print (type(e),e)
+            print ("e", e)
             e.display()
             raise RuntimeWarning('ddosa connection or processing failed',e)
+
+        except dc.AnalysisDelegatedException as e:
+
+            if isinstance(job,Job):
+                print('--> url for call_back', job.get_call_back_url())
+            else:
+                raise RuntimeError('job object not passed')
 
         return res
 

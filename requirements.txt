@@ -7,4 +7,4 @@ flask
 astropy
 pathlib
 gunicorn
-flask_restful
+decorator

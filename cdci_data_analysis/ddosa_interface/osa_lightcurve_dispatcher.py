@@ -178,7 +178,7 @@ def do_lc_from_time_span(E1, E2, T1, T2, RA, DEC, radius,src_name,use_max_pointi
 
 
 
-def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
+def get_osa_lightcurve(instrument,job,prompt_delegate,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
     q = OsaQuery(config=config)
 
     RA = instrument.get_par_by_name('RA').value
@@ -224,18 +224,29 @@ def get_osa_lightcurve(instrument,dump_json=False,use_dicosverer=False,config=No
                                                  delta_t=delta_t,
                                                  user_catalog=user_catalog)
 
+    res = q.run_query(query_prod=query_prod, job=job, prompt_delegate=prompt_delegate)
+    if job.status != 'done':
+        prod_list = QueryProductList(prod_list=[], job=job)
+        return prod_list
+    else:
+
+        lc = IsgriLigthtCurve.build_from_ddosa_res('isgri_lc', 'query_lc.fits',
+                                                   res,
+                                                   src_name=src_name,
+                                                   prod_prefix=prod_prefix,
+                                                   out_dir=out_dir)
 
 
 
-    res= q.run_query(query_prod=query_prod)
+    #res= q.run_query(query_prod=query_prod)
 
-    print('res', str(res.lightcurve))
+    #print('res', str(res.lightcurve))
 
-    lc = IsgriLigthtCurve.build_from_ddosa_res('isgri_lc','query_lc.fits',
-                                               res,
-                                               src_name=src_name,
-                                               prod_prefix=prod_prefix,
-                                               out_dir=out_dir)
+    #lc = IsgriLigthtCurve.build_from_ddosa_res('isgri_lc','query_lc.fits',
+    #                                           res,
+    #                                           src_name=src_name,
+    #                                           prod_prefix=prod_prefix,
+    #                                           out_dir=out_dir)
 
     prod_list = QueryProductList(prod_list=[lc])
 
@@ -265,7 +276,7 @@ def get_osa_lightcurve_dummy_products(instrument,config,out_dir='./'):
 
 
 
-def process_osa_lc_products(instrument,prod_list):
+def process_osa_lc_products(instrument,job,prod_list):
     query_lc = prod_list.get_prod_by_name('isgri_lc')
 
     prod_dictionary = {}
@@ -279,13 +290,17 @@ def process_osa_lc_products(instrument,prod_list):
     if query_lc.data is not None:
         html_fig = query_lc.get_html_draw()
         query_out.prod_dictionary['image'] = html_fig
-        query_out.prod_dictionary['file_path'] =  str(os.path.basename(query_lc.file_path.get_file_path()))
-        query_out.prod_dictionary['file_name'] = 'light_curve.fits.gz'
+        query_out.prod_dictionary['file_name'] =  str(query_lc.file_path.name)
+        query_out.prod_dictionary['session_id'] = job.session_id
+        query_out.prod_dictionary['job_id'] = job.job_id
+        query_out.prod_dictionary['download_file_name'] = 'light_curve.fits.gz'
         query_out.prod_dictionary['prod_process_maessage'] = ''
     else:
         query_out.prod_dictionary['image'] = None
-        query_out.prod_dictionary['file_path'] = ''
         query_out.prod_dictionary['file_name'] = ''
+        query_out.prod_dictionary['session_id'] = ''
+        query_out.prod_dictionary['job_id'] = ''
+        query_out.prod_dictionary['download_file_name'] = ''
         query_out.prod_dictionary['prod_process_maessage'] = 'no light curve produced for name %s',query_lc.src_name
     print('--> send prog')
 

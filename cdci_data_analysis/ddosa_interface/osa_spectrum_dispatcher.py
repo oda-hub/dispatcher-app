@@ -51,7 +51,7 @@ from .osa_dispatcher import    OsaQuery,QueryProduct
 from ..analysis.queries import SpectrumQuery
 from ..web_display import draw_spectrum
 from ..analysis.products import SpectrumProduct,QueryProductList,QueryOutput
-
+from ..analysis.io_helper import FilePath
 
 class IsgriSpectrumProduct(SpectrumProduct):
 
@@ -96,12 +96,14 @@ class IsgriSpectrumProduct(SpectrumProduct):
             #file_name = file_name.replace('+', 'p')
             #file_name = file_name.replace('-', 'm')
             print ('out spec file_name',file_name)
+
             out_arf_file=prod_prefix+'_'+Path(getattr(res, arf_attr)).name
-            out_arf_file=str(Path(out_dir,out_arf_file))
-            print('out arf file_name', out_arf_file)
+            out_arf_file=FilePath(file_dir=out_dir,file_name=out_arf_file).path
+            print('out arf file_path', out_arf_file)
+
             out_rmf_file=prod_prefix+'_'+Path(out_dir,getattr(res, rmf_attr)).name
-            out_rmf_file = str(Path(out_dir, out_rmf_file))
-            print('out rmf file_name', out_rmf_file)
+            out_rmf_file = FilePath(file_dir=out_dir,file_name=out_rmf_file).path
+            print('out rmf file_path', out_rmf_file)
 
             name=source_name
 
@@ -143,7 +145,7 @@ class IsgriSpectrumProduct(SpectrumProduct):
 #              'ddosa.CatForSpectraFromImaging(use_minsig=3)',]
 
 
-def do_spectrum_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.001"],user_catalog=None):
+def do_spectrum_from_scw_list(instr_name,E1,E2,scw_list=["035200230010.001","035200240010.001"],user_catalog=None):
     """
      builds a spectrum for list of scw
 
@@ -156,24 +158,31 @@ def do_spectrum_from_scw_list(E1,E2,scw_list=["035200230010.001","035200240010.0
     :param scw_list:
     :return:
     """
-    print('sum spectra from scw_list',scw_list)
+    #print('sum spectra from scw_list',scw_list)
     dic_str = str(scw_list)
-    target = "ISGRISpectraSum"
-    modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
+    if instr_name == 'ISGRI':
+        target = "ISGRISpectraSum"
+        #modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
 
-    assume = ['process_isgri_spectra.ScWSpectraList(input_scwlist=ddosa.IDScWList(use_scwid_list=%s))' % dic_str,
-              'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1, E2=E2),
-              'process_isgri_spectra.ISGRISpectraSum(use_extract_all=True)',
-              'ddosa.ImagingConfig(use_SouFit=0,use_DoPart2=1,use_version="soufit0_p2")',
-              'ddosa.CatForSpectraFromImaging(use_minsig=3)',
-              ]
+        modules = ["ddosa", "git://ddosadm", "git://useresponse/cd7855bf7", "git://process_isgri_spectra/2200bfd",
+                   "git://rangequery"]
 
+        assume = ['process_isgri_spectra.ScWSpectraList(input_scwlist=ddosa.IDScWList(use_scwid_list=%s))' % dic_str,
+                  'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1, E2=E2),
+                  'process_isgri_spectra.ISGRISpectraSum(use_extract_all=True)',
+                  'ddosa.ImagingConfig(use_SouFit=0,use_DoPart2=1,use_version="soufit0_p2")',
+                  'ddosa.CatForSpectraFromImaging(use_minsig=3)',
+                  ]
+    elif instr_name == 'JEMX':
+        pass
+    else:
+        pass
     #print(assume)
 
-    return do_spectrum(target, modules, assume, user_catalog=user_catalog)
+    return do_spectrum(instr_name,target, modules, assume, user_catalog=user_catalog)
 
 
-def do_spectrum_from_time_span(E1,E2,T1,T2,RA,DEC,radius,use_max_pointings,user_catalog=None):
+def do_spectrum_from_time_span(instr_name,E1,E2,T1,T2,RA,DEC,radius,use_max_pointings,user_catalog=None):
     """
      builds a spectrum for a time span
 
@@ -186,28 +195,40 @@ def do_spectrum_from_time_span(E1,E2,T1,T2,RA,DEC,radius,use_max_pointings,user_
     :param position:
     :return:
     """
-    target="ISGRISpectraSum"
-    modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
-    assume = ['process_isgri_spectra.ScWSpectraList(\
-                         input_scwlist=\
-                         rangequery.TimeDirectionScWList(\
-                          use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
-                          use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
-                          use_max_pointings=%(use_max_pointings)d \
+
+    if instr_name == 'ISGRI':
+        target="ISGRISpectraSum"
+
+        #modules = ["ddosa", "git://ddosadm", "git://useresponse", "git://process_isgri_spectra", "git://rangequery"]
+
+        modules = ["ddosa", "git://ddosadm", "git://useresponse/cd7855bf7", "git://process_isgri_spectra/2200bfd",
+                   "git://rangequery"]
+
+        assume = ['process_isgri_spectra.ScWSpectraList(\
+                             input_scwlist=\
+                             rangequery.TimeDirectionScWList(\
+                              use_coordinates=dict(RA=%(RA)s,DEC=%(DEC)s,radius=%(radius)s),\
+                              use_timespan=dict(T1="%(T1)s",T2="%(T2)s"),\
+                              use_max_pointings=%(use_max_pointings)d \
+                              )\
                           )\
-                      )\
-                  '%(dict(RA=RA,DEC=DEC,radius=radius,T1=T1,T2=T2,use_max_pointings=use_max_pointings)),
-              'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
-              'process_isgri_spectra.ISGRISpectraSum(use_extract_all=True)',
-              'ddosa.ImagingConfig(use_SouFit=0,use_DoPart2=1,use_version="soufit0_p2")',
-              'ddosa.CatForSpectraFromImaging(use_minsig=3)',
-              ]
+                      '%(dict(RA=RA,DEC=DEC,radius=radius,T1=T1,T2=T2,use_max_pointings=use_max_pointings)),
+                  'ddosa.ImageBins(use_ebins=[(%(E1)s,%(E2)s)],use_version="onebin_%(E1)s_%(E2)s")' % dict(E1=E1,E2=E2),
+                  'process_isgri_spectra.ISGRISpectraSum(use_extract_all=True)',
+                  'ddosa.ImagingConfig(use_SouFit=0,use_DoPart2=1,use_version="soufit0_p2")',
+                  'ddosa.CatForSpectraFromImaging(use_minsig=3)',
+                  ]
 
-    return  do_spectrum(target,modules,assume,user_catalog=user_catalog)
+    elif instr_name == 'JEMX':
+        pass
+    else:
+        raise RuntimeError('Instrumet %s not implemented' % instr_name)
+
+    return  do_spectrum(instr_name,target,modules,assume,user_catalog=user_catalog)
 
 
 
-def do_spectrum(target,modules,assume,user_catalog=None):
+def do_spectrum(instr_name,target,modules,assume,user_catalog=None):
     inject=[]
     if user_catalog is not None:
         print ('user_catalog',user_catalog.ra)
@@ -229,13 +250,17 @@ def do_spectrum(target,modules,assume,user_catalog=None):
                ]
         inject.append(cat)
 
+
         modules.append("git://gencat")
-#        assume.append("ddosa.ii_spectra_extract(input_cat=gencat.CatForSpectra)")
+
+
+
+        #assume.append("ddosa.ii_spectra_extract(input_cat=gencat.CatForSpectra)")
 
     return QueryProduct(target=target, modules=modules, assume=assume,inject=inject)
 
 
-def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
+def get_osa_spectrum(instrument,job,prompt_delegate,dump_json=False,use_dicosverer=False,config=None,out_dir=None,prod_prefix=None):
 
     q=OsaQuery(config=config)
 
@@ -254,13 +279,15 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
 
         if len(instrument.get_par_by_name('scw_list').value) == 1:
             print('-> single scw')
-            query_prod = do_spectrum_from_scw_list(instrument.get_par_by_name('E1_keV').value,
+            query_prod = do_spectrum_from_scw_list(instrument.name,
+                                                   instrument.get_par_by_name('E1_keV').value,
                                                    instrument.get_par_by_name('E2_keV').value,
                                                    scw_list=instrument.get_par_by_name('scw_list').value,
                                                    user_catalog=user_catalog)
 
         else:
-            query_prod = do_spectrum_from_scw_list(instrument.get_par_by_name('E1_keV').value,
+            query_prod = do_spectrum_from_scw_list(instrument.name,
+                                                   instrument.get_par_by_name('E1_keV').value,
                                                    instrument.get_par_by_name('E2_keV').value,
                                                    scw_list=instrument.get_par_by_name('scw_list').value,
                                                    user_catalog=user_catalog)
@@ -268,21 +295,28 @@ def get_osa_spectrum(instrument,dump_json=False,use_dicosverer=False,config=None
     else:
         T1_iso = instrument.get_par_by_name('T1')._astropy_time.isot
         T2_iso = instrument.get_par_by_name('T2')._astropy_time.isot
-        query_prod = do_spectrum_from_time_span( instrument.get_par_by_name('E1_keV').value,
-                                                 instrument.get_par_by_name('E2_keV').value,
-                                                 T1_iso,
-                                                 T2_iso,
-                                                 RA,
-                                                 DEC,
-                                                 radius,
-                                                 use_max_pointings,
-                                                 user_catalog=user_catalog)
+        query_prod = do_spectrum_from_time_span(instrument.name,
+                                                instrument.get_par_by_name('E1_keV').value,
+                                                instrument.get_par_by_name('E2_keV').value,
+                                                T1_iso,
+                                                T2_iso,
+                                                RA,
+                                                DEC,
+                                                radius,
+                                                use_max_pointings,
+                                                user_catalog=user_catalog)
 
-    res=q.run_query(query_prod=query_prod)
+    #print('====>instrument.name', instrument.name)
+    res = q.run_query(query_prod=query_prod, job=job,prompt_delegate=prompt_delegate)
+    if job.status != 'done':
+        prod_list = QueryProductList(prod_list=[], job=job)
+        return prod_list
+    else:
 
-    spectrum_list=IsgriSpectrumProduct.build_list_from_ddosa_res(res,
-                                                                 out_dir=out_dir,
-                                                                 prod_prefix='query_spectrum')
+        spectrum_list=IsgriSpectrumProduct.build_list_from_ddosa_res(res,
+                                                                     out_dir=out_dir,
+                                                                     prod_prefix='query_spectrum')
+
 
     #print('spectrum_list',spectrum_list)
     prod_list = QueryProductList(prod_list=spectrum_list)
@@ -352,7 +386,7 @@ def get_osa_spectrum_dummy_products(instrument,config,out_dir='./'):
 
 
 
-def process_osa_spectrum_products(instrument,prod_list):
+def process_osa_spectrum_products(instrument,job,prod_list):
     for query_spec in prod_list.prod_list:
         query_spec.write()
 
@@ -365,29 +399,33 @@ def process_osa_spectrum_products(instrument,prod_list):
     _arf_path = []
     _rmf_path = []
     for query_spec in prod_list.prod_list:
-        #print('xspec model',instrument.get_par_by_name('xspec_model').value)
+        # print('xspec model',instrument.get_par_by_name('xspec_model').value)
         #_figs.append( query_spec.get_html_draw(plot=False,xspec_model=instrument.get_par_by_name('xspec_model').value))
         _names.append(query_spec.name)
-        _source_spec=[]
-        _pf_path.append(str(os.path.basename(query_spec.file_path.get_file_path())))
-        _arf_path.append(str(os.path.basename(query_spec.arf_file)))
-        _rmf_path.append(str(os.path.basename(query_spec.rmf_file)))
+        #_source_spec=[]
+        _pf_path.append(str(query_spec.file_path.name))
+        _arf_path.append(str(query_spec.arf_file_path.name))
+        _rmf_path.append(str(query_spec.rmf_file_path.name))
 
-        _source_spec.append(query_spec.file_path.get_file_path())
-        _source_spec.append(query_spec.arf_file.encode('utf-8'))
-        _source_spec.append(query_spec.rmf_file.encode('utf-8'))
+        #_source_spec.append(query_spec.file_path.get_file_path())
+        #_source_spec.append(query_spec.arf_file.encode('utf-8'))
+        #_source_spec.append(query_spec.rmf_file.encode('utf-8'))
 
-        _files_path.append(_source_spec)
+        #_files_path.append(_source_spec)
         #print ('_source_spec',_source_spec)
 
     query_out = QueryOutput()
 
     query_out.prod_dictionary['spectrum_name'] = _names
 
-    query_out.prod_dictionary['ph_file_path'] = _pf_path
-    query_out.prod_dictionary['arf_file_path'] = _arf_path
-    query_out.prod_dictionary['rmf_file_path'] = _rmf_path
-    query_out.prod_dictionary['file_name'] = 'spectra.tar.gz'
+    query_out.prod_dictionary['ph_file_name'] = _pf_path
+    query_out.prod_dictionary['arf_file_name'] = _arf_path
+    query_out.prod_dictionary['rmf_file_name'] = _rmf_path
+
+    query_out.prod_dictionary['session_id'] = job.session_id
+    query_out.prod_dictionary['job_id'] = job.job_id
+
+    query_out.prod_dictionary['download_file_name'] = 'spectra.tar.gz'
     query_out.prod_dictionary['prod_process_maessage']=''
 
 
