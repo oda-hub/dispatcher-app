@@ -295,35 +295,27 @@ class SourceQuery(BaseQuery):
 
 class InstrumentQuery(BaseQuery):
     def __init__(self,name,
-                 radius_name,
-                 raidus_units,
-                 radius_value,
-                 E1_name,
-                 E1_units,
-                 E1_value,
-                 E2_name,
-                 E2_units,
-                 E2_value,
+                 extra_parameters_list=[],
                  input_prod_list_name=None,
                  input_prod_value=None,
                  catalog_name=None,
                  catalog=None):
 
-        radius = Angle(value=radius_value,units=raidus_units, name=radius_name)
 
-
-        E1_keV = SpectralBoundary(value=E1_value,E_units=E1_units,name= E1_name)
-        E2_keV = SpectralBoundary(value=E2_value,E_units=E2_units,name= E2_name)
-
-        spec_window = ParameterRange(E1_keV, E2_keV, 'spec_window')
 
         input_prod_list= InputProdList(value=input_prod_value,_format='names_list', name=input_prod_list_name, )
 
         catalog=UserCatalog(value=catalog,name_format='str',name=catalog_name)
 
-        parameters_list=[spec_window,radius,catalog,input_prod_list]
-        self.input_prod_list_name=input_prod_list_name
-        self.catalog_name=catalog_name
+        self.input_prod_list_name = input_prod_list_name
+        self.catalog_name = catalog_name
+
+        parameters_list=[catalog,input_prod_list]
+
+        if extra_parameters_list is not None and extra_parameters_list!=[]:
+            parameters_list.extend(extra_parameters_list)
+
+
         super(InstrumentQuery, self).__init__(name,parameters_list)
 
 
@@ -407,6 +399,9 @@ class ProductQuery(BaseQuery):
     #    return product_dictionary
 
     def test_communication(self,instrument,query_type='Real',logger=None,config=None):
+        query_out = QueryOutput()
+
+
         print('logger')
         if logger is None:
             logger = logging.getLogger(__name__)
@@ -421,25 +416,29 @@ class ProductQuery(BaseQuery):
 
             if query_type != 'Dummy':
                 communication_status = instrument.test_communication(config)
+            query_out.set_status(status, message, debug_message=str(debug_message))
         except Exception as e:
-            print("dataserver communication failed, Error:", e)
-            print('!!! >>>Exception<<<', e)
-            status = 1
-            message='dataserver communication failed'
-            debug_message=e
-            view_traceback()
-            logger.exception(e)
+            query_out.set_query_exception(e,'dataserver communication',logger=logger)
+
+            #print("dataserver communication failed, Error:", e)
+            #print('!!! >>>Exception<<<', e)
+            #status = 1
+            #message='dataserver communication failed'
+            #debug_message=e
+            #view_traceback()
+            #logger.exception(e)
 
         msg_str = '--> data server communication status %d\n' % status
         msg_str += '--> end dataserver communication test'
         logger.info(msg_str)
 
-        query_out=QueryOutput()
-        query_out.set_status(status, message, debug_message=str(debug_message))
+
+
 
         return query_out,communication_status
 
     def test_is_busy(self,instrument,communication_status,logger=None,config=None):
+        query_out = QueryOutput()
         print('logger')
         if logger is None:
             logger = logging.getLogger(__name__)
@@ -456,25 +455,31 @@ class ProductQuery(BaseQuery):
             try:
                 communication_status = instrument.test_busy(config)
                 status = 0
+
+                query_out.set_status(status, message, debug_message=str(debug_message))
+
             except Exception as e:
-                print("data server  bust, Error:", e)
-                print('!!! >>>Exception<<<', e)
-                data_server_busy_status = 1
-                view_traceback()
-                logger.exception(e)
-                status=1
-                message='dataserver is busy'
+
+                query_out.set_query_exception(e, 'dataserver busy ',extra_message='dataserver is busy', logger=logger)
+
+                #print("data server  bust, Error:", e)
+                #print('!!! >>>Exception<<<', e)
+                #data_server_busy_status = 1
+                #view_traceback()
+                #logger.exception(e)
+                #status=1
+                #message='dataserver is busy'
             msg_str = '-->data_server_busy_status %d\n' % data_server_busy_status
             msg_str += '--> end data server is busy query test'
 
             logger.info(msg_str)
 
-        query_out = QueryOutput()
         query_out.set_status(status, message, debug_message=str(debug_message))
-
         return query_out,communication_status
 
     def test_has_products(self,instrument,query_type='Real',logger=None,config=None,scratch_dir=None):
+        query_out = QueryOutput()
+
         status = 0
         message = ''
         debug_message = ''
@@ -496,15 +501,18 @@ class ProductQuery(BaseQuery):
                     message = 'no input products'
 
 
+            query_out.set_products(['input_prod_list', 'len_prod_list'], [input_prod_list, len(input_prod_list)])
+            query_out.set_status(status, message, debug_message=str(debug_message))
 
         except Exception as e:
-            print("test has products failed, Error:", e)
-            print('!!! >>>Exception<<<', e)
-            status = 1
-            message='test has products failed'
-            debug_message=e
-            view_traceback()
-            logger.exception(e)
+            query_out.set_query_exception(e, 'test has input products ', extra_message='no input products found', logger=logger)
+            #print("test has products failed, Error:", e)
+            #print('!!! >>>Exception<<<', e)
+            #status = 1
+            #message='test has products failed'
+            #debug_message=e
+            #view_traceback()
+            #logger.exception(e)
 
         msg_str = '--> dtest has products status %d\n' % status
         msg_str += '--> end test has products test'
@@ -513,16 +521,15 @@ class ProductQuery(BaseQuery):
 
         print("-->input_prod_list",input_prod_list)
 
-        query_out = QueryOutput()
 
-        query_out.set_products(['input_prod_list','len_prod_list'],[input_prod_list,len(input_prod_list)])
-        query_out.set_status(status, message, debug_message=str(debug_message))
+
+
 
 
         return query_out
 
     def get_query_products(self,instrument,job,prompt_delegate,query_type='Real',logger=None,config=None,scratch_dir=None):
-        # query
+        query_out = QueryOutput()
         status=0
         message=''
         debug_message=''
@@ -545,23 +552,27 @@ class ProductQuery(BaseQuery):
                                                                out_dir=scratch_dir)
                 job.set_done()
 
+            query_out.set_status(status, message, debug_message=str(debug_message))
+
         except Exception as e:
-            print("prod_query failed, Error:", e)
-            print('!!! >>>Exception<<<', e)
-            view_traceback()
-            logger.exception(e)
-            status=1
-            message='dataserver get product query failed'
-            debug_message=e
+            query_out.set_query_exception(e, 'get dataserver products ', extra_message='dataserver get product query failed',
+                                          logger=logger)
+            #print("prod_query failed, Error:", e)
+            #print('!!! >>>Exception<<<', e)
+            #view_traceback()
+            #logger.exception(e)
+            #status=1
+            #message='dataserver get product query failed'
+            #debug_message=e
 
         msg_str = '--> data_server_query_status %d\n' % status
         msg_str += '--> end product query '
 
         logger.info(msg_str)
 
-        query_out = QueryOutput()
 
-        query_out.set_status(status, message, debug_message=str(debug_message))
+
+
 
         return query_out
 
@@ -585,22 +596,24 @@ class ProductQuery(BaseQuery):
 
         try:
             query_out=self.process_product(instrument,job,self.query_prod_list,**kwargs)
-
+            query_out.set_status(status, message, debug_message=str(debug_message))
         except Exception as e:
-
-            print('!!! >>>Exception<<<', e)
-            print("prod_process failed, Error:", e)
-            view_traceback()
-            logger.exception(e)
-            status=1
-            message='product processig failed'
-            debug_message = e
+            query_out.set_query_exception(e, 'product processing',
+                                          extra_message='product processing failed',
+                                          logger=logger)
+            #print('!!! >>>Exception<<<', e)
+            #print("prod_process failed, Error:", e)
+            #view_traceback()
+            #logger.exception(e)
+            #status=1
+            #message='product processig failed'
+            #debug_message = e
 
         msg_str = '==>prod_process_status %d\n' % status
         msg_str += '--> end product process'
         logger.info(msg_str)
 
-        query_out.set_status(status, message, debug_message=str(debug_message))
+
         return query_out
 
 
@@ -625,6 +638,7 @@ class ProductQuery(BaseQuery):
 
         if query_out.status_dictionary['status'] == 0:
             query_out = self.get_query_products(instrument,job,prompt_delegate, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
+            #print ('ciccio run query get products,',query_out.status_dictionary['status'])
 
         if query_out.status_dictionary['status'] == 0:
             if job.status!='done':
@@ -702,22 +716,25 @@ class PostProcessProductQuery(ProductQuery):
 
         try:
             query_out=self.process_product(instrument,job,out_dir=scratch_dir,**kwargs)
-
+            query_out.set_status(status, message, debug_message=str(debug_message))
         except Exception as e:
+            query_out.set_query_exception(e, 'product post processing',
+                                          extra_message='product post processing failed',
+                                          logger=logger)
 
-            print('!!! >>>Exception<<<', e)
-            print("prod_process failed, Error:", e)
-            view_traceback()
-            logger.exception(e)
-            status=1
-            message='product processig failed: %s'%e
-            debug_message = e
+            #print('!!! >>>Exception<<<', e)
+            #print("prod_process failed, Error:", e)
+            #view_traceback()
+            #logger.exception(e)
+            #status=1
+            #message='product processig failed: %s'%e
+            #debug_message = e
 
         msg_str = '==>prod_process_status %d\n' % status
         msg_str += '--> end product process'
         logger.info(msg_str)
 
-        query_out.set_status(status, message, debug_message=str(debug_message))
+
         return query_out
 
 

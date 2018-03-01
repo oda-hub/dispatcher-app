@@ -44,95 +44,6 @@ def test_instr(use_scw_list=True):
 
 
 
-def test_fit_spectrum_cookbook(use_catalog=False,query_type='Real',out_dir=None):
-    from cdci_data_analysis.plugins.ddosa.osa_isgri import OSA_ISGRI
-    from cdci_data_analysis.flask_app.app import set_session_logger
-
-    instr = OSA_ISGRI()
-    print ('out_dir',out_dir)
-    set_session_logger(out_dir)
-    parameters = dict(E1_keV=20., E2_keV=40., T1 =T1_iso, T2 =T2_iso, RA=RA, DEC=DEC, radius=25,
-                      scw_list=cookbook_scw_list,src_name='4U 1700-377',xspec_model='powerlaw',
-                      ph_file='query_spectrum_isgri_sum_1E_1740.7-2942.fits',
-                      arf_file='query_spectrum_arf_sum_1E_1740.7-2942.fits.gz',
-                      rmf_file='query_spectrum_rmf_sum_1E_1740.7-2942.fits.gz')
-
-    logger.info('parameters dictionary')
-    logger.info(parameters)
-
-    instr.set_pars_from_dic(parameters)
-
-
-
-
-    if use_catalog==True:
-        dra=float(time.strftime("0.%j")) # it's vital to make sure that the test changes with the phase of the moon
-        ddec = float(time.strftime("0.%H%M%S"))
-
-        dsrc_name="RD_%.6lg_%.6lg"%(RA+dra,DEC+ddec) # non-astronomical, fix
-        osa_catalog = OsaCatalog.build_from_dict_list([
-            dict(ra=RA, dec=DEC, name=parameters['src_name']),
-            dict(ra=RA+dra, dec=DEC+ddec, name=dsrc_name)
-        ])
-        instr.set_par('', osa_catalog)
-
-    instr.show_parameters_list()
-
-    prod_dictionary = instr.run_query('spectral_fit_query',config=osaconf,out_dir=out_dir,query_type=query_type)
-
-
-
-    if use_catalog==True:
-        print("input catalog:",osa_catalog.name)
-        #assert _names.header['NAME']==parameters['src_name']
-        #TODO: we could also extract other sources really, and assert if the result is consistent with input.
-        #TODO: (for better test coverage)
-
-    for k in prod_dictionary.keys():
-        print(k,':', prod_dictionary[k])
-        print ('\n')
-
-def test_lightcurve_cookbook(use_scw_list=True,use_catalog=False,query_type='Real',out_dir=None):
-    from cdci_data_analysis.plugins.ddosa.osa_isgri import OSA_ISGRI
-    from cdci_data_analysis.flask_app.app import set_session_logger
-    set_session_logger(out_dir)
-
-    instr = OSA_ISGRI()
-    src_name = '4U==1700-377'
-    parameters = dict(E1_keV=20., E2_keV=40., T1=T1_iso, T2=T2_iso, RA=RA, DEC=DEC, radius=25,
-                      scw_list=cookbook_scw_list, src_name=src_name,time_bin=100,time_bin_format='sec')
-
-    logger.info('parameters dictionary')
-    logger.info(parameters)
-
-
-    instr.set_pars_from_dic(parameters)
-
-    logger.info(instr.get_parameters_list_as_json()  )
-
-    if use_scw_list == True:
-        instr.set_par('scw_list', cookbook_scw_list)
-    else:
-        instr.set_par('scw_list', [])
-
-    if use_catalog==True:
-        dra=float(time.strftime("0.%j")) # it's vital to make sure that the test changes with the phase of the moon
-        ddec = float(time.strftime("0.%H%M%S"))
-
-        dsrc_name="RD_%.6lg_%.6lg"%(RA+dra,DEC+ddec) # non-astronomical, fix
-        osa_catalog = OsaCatalog.build_from_dict_list([
-            dict(ra=RA, dec=DEC, name=parameters['src_name']),
-            dict(ra=RA+dra, dec=DEC+ddec, name=dsrc_name)
-        ])
-        instr.set_par('user_catalog', osa_catalog)
-
-    instr.show_parameters_list()
-
-    prod_dictionary = instr.run_query('isgri_lc_query', config=osaconf, out_dir=out_dir, query_type=query_type)
-
-    #instr.get_query_by_name('isgri_lc_query').get_prod_by_name('isgri_lc').get_html_draw(plot=True)
-
-
 
 def build_user_catalog(RA_user_cat,Dec_user_cat):
     cat_dict = {}
@@ -398,7 +309,7 @@ def test_asynch_request(parameters_dic,instrument_name,query_status,job_id=None,
 
         print('\n\n\n')
 
-        #print('query_out:job_monitor', query_out['job_monitor'])
+        print('query_out', query_out['query_status'])
 
     return query_out
 
@@ -450,7 +361,7 @@ def test_asynch_full():
     """
 
     instrument_name='isgri'
-    parameters_dic,upload_data=set_mosaic_query(instrument_name=instrument_name,
+    parameters_dic,upload_data=set_lc_query(instrument_name=instrument_name,
                                                 scw_list=None,
                                                 E1_keV=22.5,
                                                 RA_user_cat=[80.63168334960938],

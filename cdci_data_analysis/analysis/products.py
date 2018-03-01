@@ -23,7 +23,7 @@ import json
 
 
 from pathlib import Path
-import xspec as xsp
+
 
 from astropy import wcs
 from astropy.wcs import WCS
@@ -33,7 +33,7 @@ from astropy.io  import fits as pf
 
 import matplotlib
 
-matplotlib.use('Agg')
+matplotlib.use('Agg',warn=False)
 
 import matplotlib.pyplot as plt
 
@@ -43,7 +43,7 @@ from mpld3 import plugins
 
 from .parameters import *
 from .io_helper import FilePath
-
+from .io_helper import view_traceback,FitsFile
 
 
 
@@ -65,7 +65,41 @@ class QueryOutput(object):
         self.status_dictionary['error_message']=str(error_message)
         self.status_dictionary['debug_message']=str(debug_message)
 
-    
+    def set_query_exception(self, excep, failed_operation, message_prepend_str='', extra_message=None,
+                            logger_prepend_str='==>', logger=None,status=1):
+
+        if excep.__repr__ is None:
+            e_message = ''
+        else:
+            e_message = excep.__repr__()
+
+        print('!!! >>>Exception<<<', e_message)
+        print('!!! failed operation', failed_operation)
+        view_traceback()
+        if logger is not None:
+            logger.exception(e_message)
+        
+
+        message = '%s' % message_prepend_str
+        message += 'failed: %s' % (failed_operation)
+        if extra_message is not None:
+            message += 'message: %s' % (extra_message)
+
+        debug_message = e_message
+
+        msg_str = '%s' % logger_prepend_str
+        msg_str += 'failed: %s'% failed_operation
+        msg_str += ' error: %s'% e_message
+        if extra_message is not None:
+            msg_str += ' message: %s' % (extra_message)
+
+        logger.info(msg_str)
+
+        self.set_status(status, message, debug_message=str(debug_message))
+
+
+
+
 class QueryProductList(object):
 
     def __init__(self,prod_list,job=None):
@@ -119,7 +153,10 @@ class ImageProduct(BaseQueryProduct):
 
     @classmethod
     def from_fits_file(cls,in_file,out_file_name,prod_name,ext=0,**kwargs):
-        hdu = pf.open(in_file)[ext]
+        #hdu = pf.open(in_file)[ext]
+        #print('ciccio in_file', in_file)
+        hdu= FitsFile(in_file).open()[ext]
+
         data = hdu.data
         header = hdu.header
 
@@ -206,7 +243,8 @@ class LightCurveProduct(BaseQueryProduct):
 
     @classmethod
     def from_fits_file(cls, inf_file,out_file_name, prod_name, ext=0,**kwargs):
-        hdu = pf.open(inf_file)[ext]
+        #hdu = pf.open(inf_file)[ext]
+        hdu = FitsFile(inf_file).open()[ext]
         data = hdu.data
         header = hdu.header
         return cls(name=prod_name, data=data, header=header, file_name=out_file_name,**kwargs)
@@ -219,7 +257,10 @@ class LightCurveProduct(BaseQueryProduct):
     def get_html_draw(self, plot=False):
         #from astropy.io import fits as pf
         #print ('loading -->',self.file_path.path)
-        hdul = pf.open(self.file_path.path)
+
+
+        #hdul = pf.open(self.file_path.path)
+        hdul = FitsFile(self.file_path.path).open()
 
         data = hdul[1].data
         header = hdul[1].header
@@ -367,7 +408,8 @@ class   SpectrumProduct(BaseQueryProduct):
             print("-->", self.header[arf_kw])
             self.header[arf_kw] = 'NONE'
         if out_arf_file is not None and in_arf_file is not None:
-            pf.open(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
+            #pf.open(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
+            FitsFile(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
             print('arf written to', out_arf_file)
 
             #if arf_kw is not None  and self.header is not None:
@@ -403,7 +445,8 @@ class   SpectrumProduct(BaseQueryProduct):
             print ("-->", self.header[rmf_kw] )
             self.header[rmf_kw] = 'NONE'
         if out_rmf_file is not None and in_rmf_file is not None:
-            pf.open(in_rmf_file).writeto(out_rmf_file, overwrite=overwrite)
+            #pf.open(in_rmf_file).writeto(out_rmf_file, overwrite=overwrite)
+            FitsFile(in_rmf_file).writeto(out_rmf_file, overwrite=overwrite)
             print('rmf written to', out_rmf_file)
             #if rmf_kw is not None  and self.header is not None:
             #    self.header[rmf_kw] = out_rmf_file
@@ -421,7 +464,9 @@ class   SpectrumProduct(BaseQueryProduct):
 
     @classmethod
     def from_fits_file(cls, file_name, prod_name, ext=0,arf_file_name=None,rmf_file_name=None):
-        hdu = pf.open(file_name)[ext]
+        #hdu = pf.open(file_name)[ext]
+        hdu = FitsFile(file_name).open()[ext]
+
         data = hdu.data
         header = hdu.header
 
@@ -433,135 +478,7 @@ class   SpectrumProduct(BaseQueryProduct):
         pf.writeto(file_path, data=self.data, header=self.header,overwrite=overwrite)
 
 
-    # def get_html_draw(self, catalog=None, plot=False,xspec_model='powerlaw'):
-    #     import xspec as xsp
-    #     xsp.AllModels.clear()
-    #     xsp.AllData.clear()
-    #     xsp.AllChains.clear()
-    #     # PyXspec operations:
-    #     file_path=self.file_path.get_file_path()
-    #     print('fitting->,',file_path)
-    #     print('res',self.rmf_file,type(self.rmf_file.encode('utf-8')))
-    #     print('arf',self.arf_file,type(self.arf_file.encode('utf-8')))
-    #     s = xsp.Spectrum(file_path)
-    #     s.response = self.rmf_file.encode('utf-8')
-    #     s.response.arf=self.arf_file.encode('utf-8')
-    #
-    #     s.ignore('**-15.')
-    #     s.ignore('300.-**')
-    #
-    #     model_name=xspec_model
-    #
-    #     m = xsp.Model(model_name)
-    #     xsp.Fit.query = 'yes'
-    #     xsp.Fit.perform()
-    #
-    #     header_str='Exposure %f (s)\n'%(s.exposure)
-    #     header_str +='Fit report for model %s' % (model_name)
-    #
-    #
-    #     _comp=[]
-    #     _name=[]
-    #     _val=[]
-    #     _unit=[]
-    #     _err=[]
-    #     colnames=['component','par name','value','units','error']
-    #     for model_name in m.componentNames:
-    #         fit_model = getattr(m, model_name)
-    #         for name in fit_model.parameterNames:
-    #             p=getattr(fit_model,name)
-    #             _comp.append('%s' % (model_name))
-    #             _name.append('%s'%(p.name))
-    #             _val.append('%5.5f'%p.values[0])
-    #             _unit.append('%s'%p.unit)
-    #             _err.append('%5.5f'%p.sigma)
-    #
-    #     fit_table=dict(columns_list=[_comp,_name,_val,_unit,_err], column_names=colnames)
-    #
-    #     footer_str ='dof '+ '%d'%xsp.Fit.dof+'\n'
-    #
-    #     footer_str +='Chi-squared '+ '%5.5f\n'%xsp.Fit.statistic
-    #     footer_str +='Chi-squared red. %5.5f\n'%(xsp.Fit.statistic/xsp.Fit.dof)
-    #
-    #     if plot == True:
-    #         xsp.Plot.device = "/xs"
-    #
-    #     xsp.Plot.xLog = True
-    #     xsp.Plot.yLog = True
-    #     xsp.Plot.setRebin(10., 10)
-    #     xsp.Plot.xAxis = 'keV'
-    #     # Plot("data","model","resid")
-    #     # Plot("data model resid")
-    #     xsp.Plot("data,delchi")
-    #
-    #     if plot == True:
-    #         xsp.Plot.show()
-    #
-    #     import matplotlib.pyplot as plt
-    #     import matplotlib.gridspec as gridspec
-    #     gs = gridspec.GridSpec(2, 1, height_ratios=[4, 1])
-    #
-    #     fig = plt.figure()
-    #     ax1 = fig.add_subplot(gs[0])
-    #     ax2 = fig.add_subplot(gs[1])
-    #
-    #     # fig.subplots_adjust(left=0.05, right=0.95, bottom=0.05, top=0.95,
-    #     #                    hspace=0.1, wspace=0.1)
-    #
-    #     x = np.array(xsp.Plot.x())
-    #     y = np.array(xsp.Plot.y())
-    #     dx = np.array(xsp.Plot.xErr())
-    #     dy = np.array(xsp.Plot.yErr())
-    #
-    #     mx = x > 0.
-    #     my = y > 0.
-    #
-    #     msk = np.logical_and(mx, my)
-    #     msk=  np.logical_and(msk,dy>0.)
-    #
-    #
-    #
-    #     ldx = 0.434 * dx / x
-    #     ldy = 0.434 * dy / y
-    #
-    #     y_model = np.array(xsp.Plot.model())
-    #
-    #     msk = np.logical_and(msk, y_model > 0.)
-    #
-    #     if msk.sum()>0:
-    #         ax1.errorbar(np.log10(x[msk]), np.log10(y[msk]), xerr=ldx[msk], yerr=ldy[msk], fmt='o')
-    #         ax1.step(np.log10(x[msk]), np.log10(y_model[msk]), where='mid')
-    #
-    #         # ax1.set_xlabel('log (Energy (keV))')
-    #         ax1.set_ylabel('log (normalize counts/s/keV)')
-    #         # ax1.set_ylim(-3,1)
-    #         ax2.errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=1., xerr=0., fmt='o')
-    #         ax2.plot(ax1.get_xlim(), [0., 0.], '--')
-    #         ax1.set_ylim(np.log10(y[msk]).min() - 0.5, np.log10(y[msk]).max() + 0.5)
-    #         ax2.set_xlim(ax1.get_xlim())
-    #         ax2.set_ylabel('(data-model)/error')
-    #         ax2.set_xlabel('log (Energy) (keV)')
-    #
-    #
-    #
-    #     xsp.AllModels.clear()
-    #     xsp.AllData.clear()
-    #     xsp.AllChains.clear()
-    #
-    #     if plot == True:
-    #         plt.show()
-    #
-    #     plugins.connect(fig, plugins.MousePosition(fontsize=14))
-    #
-    #     res_dict={}
-    #     res_dict['image']= mpld3.fig_to_dict(fig)
-    #     res_dict['header_text']=header_str
-    #     res_dict['table_text'] = fit_table
-    #     res_dict['footer_text'] = footer_str
-    #
-    #     plt.close(fig)
-    #
-    #     return res_dict
+
 
 
 class SpectralFitProduct(BaseQueryProduct):
@@ -583,7 +500,8 @@ class SpectralFitProduct(BaseQueryProduct):
 
 
     def run_fit(self,e_min_kev,e_max_kev, plot=False,xspec_model='powerlaw'):
-
+        import xspec as xsp
+        
         xsp.AllModels.clear()
         xsp.AllData.clear()
         xsp.AllChains.clear()

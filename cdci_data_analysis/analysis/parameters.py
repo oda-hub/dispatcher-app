@@ -377,6 +377,59 @@ class Float(Parameter):
 
 
 
+
+class Integer(Parameter):
+    def __init__(self,value=None,units=None,name=None):
+
+        _allowed_units = None
+
+        #wtform_dict = {'keV': FloatField}
+
+        super(Integer, self).__init__(value=value,
+                                   units=units,
+                                   check_value=self.check_int_value,
+                                   name=name,
+                                   allowed_units=_allowed_units)
+                                   #wtform_dict=wtform_dict)
+
+        self.value=value
+
+    @property
+    def value(self):
+        return self._v
+
+    @value.setter
+    def value(self, v):
+        if v is not None and v!='':
+            self.check_int_value(v,name=self.name)
+            self._v = np.int(v)
+
+        else:
+            self._v=None
+
+
+    @staticmethod
+    def check_int_value(value, units=None,name=None):
+        #print('check type of ',name,'value', value, 'type',type(value))
+        if value is None or value=='':
+            pass
+        else:
+            try:
+              value=ast.literal_eval(value)
+            except:
+                pass
+            value=np.int(value)
+            if type(value) == int or type(value) == np.int:
+                pass
+            elif type(value) == float or type(value) == np.float:
+                pass
+            else:
+                raise RuntimeError('type of ', name, 'not valid', type(value))
+
+
+
+
+
 class Time(Parameter):
     def __init__(self,value=None,T_format=None,name=None,Time_format_name=None):
 

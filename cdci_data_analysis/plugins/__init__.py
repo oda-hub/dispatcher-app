@@ -35,3 +35,7 @@ __author__ = "Andrea Tramacere"
 
 # Project
 # relative import eg: from .mod import f
+
+
+from cdci_osa_plugin import OSA_ISGRI
+from cdci_osa_plugin import OSA_JEMX

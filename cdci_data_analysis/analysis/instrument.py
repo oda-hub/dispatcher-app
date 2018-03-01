@@ -63,8 +63,7 @@ class Instrument(object):
                  catalog=None,
                  product_queries_list=None,
                  data_server_query_class=None,
-                 query_dictionary={},
-                 max_pointings=None):
+                 query_dictionary={}):
 
         #name
         self.name=instr_name
@@ -94,7 +93,6 @@ class Instrument(object):
 
         self.query_dictionary = query_dictionary
 
-        self.max_pointings=max_pointings
 
 
 
@@ -141,6 +139,41 @@ class Instrument(object):
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config).test_has_input_products(instrument)
 
+
+
+    # def set_query_exception(query_out,excep,failed_operation,message_prepend_str='',extra_message=None,logger_prepend_str='==>',logger=None ):
+    #
+    #     if excep.__repr__ is None:
+    #         e_message=''
+    #     else:
+    #         e_message=excep.__repr__
+    #
+    #
+    #     print('!!! >>>Exception<<<', e_message)
+    #     print('!!! failed operation',failed_operation)
+    #     view_traceback()
+    #     if logger is not None:
+    #         logger.exception(e_message)
+    #     status = 1
+    #
+    #     message = '%s'%message_prepend_str
+    #     message += 'failed: %s' % (failed_operation)
+    #     if extra_message is not None:
+    #         message += 'message: %s' % (extra_message)
+    #
+    #     debug_message = e_message
+    #
+    #     msg_str = '%s'%logger_prepend_str
+    #     msg_str += 'failed%s:', failed_operation
+    #     msg_str += ' error%s:', e_message
+    #     if extra_message is not None:
+    #         msg_str += ' message: %s' % (extra_message)
+    #
+    #     logger.info(msg_str)
+    #
+    #     query_out.set_status(status, message, debug_message=str(debug_message))
+
+
     def run_query(self,product_type,par_dic,request,back_end_query,job,prompt_delegate,config=None,out_dir=None,query_type='Real',verbose=False,logger=None,**kwargs):
 
         #prod_dictionary={}
@@ -180,26 +213,34 @@ class Instrument(object):
 
             try:
                 query_name = self.query_dictionary[product_type]
-                #print ('=======> query_name',query_name)
+                print ('=======> query_name',query_name)
                 query_out = self.get_query_by_name(query_name).run_query(self, out_dir, job, prompt_delegate,
                                                                          query_type=query_type, config=config,
                                                                          logger=logger)
+                if query_out.status_dictionary['status'] == 0:
+                    query_out.set_status(status, message, debug_message=str(debug_message))
+                else:
+                    pass
+
             except Exception as e:
 
-                print('!!! >>>Exception<<<', e)
-                print("product error", e)
-                view_traceback()
-                logger.exception(e)
-                status = 1
-                message = 'product error: %s'%(product_type)
-                debug_message = e
+                #print('!!! >>>Exception<<<', e)
+                query_out.set_query_exception(e,product_type,logger=logger)
 
-                msg_str = '==>product error:',e
-                logger.info(msg_str)
+                #print('!!! >>>Exception<<<', e)
+                #print("product error", e)
+                #view_traceback()
+                #logger.exception(e)
+                #status = 1
+                #message = 'product error: %s'%(product_type)
+                #debug_message = e
 
-                query_out.set_status(status, message, debug_message=str(debug_message))
+                #msg_str = '==>product error:',e
+                #logger.info(msg_str)
 
+                #
 
+                #print ('ciccio failed',query_out.tatus_dictionary['status'])
 
 
 
@@ -257,13 +298,16 @@ class Instrument(object):
 
         try:
             self.set_pars_from_dic(par_dic,verbose=verbose)
+            q.set_status(status, error_message, str(debug_message))
         except Exception as e:
-            status=1
-            error_message= 'error in form parameter'
-            debug_message = e
-            logger.exception(e)
+            q.set_query_exception(e,'setting form parameters',logger=logger)
 
-        q.set_status(status,error_message,str(debug_message))
+            #status=1
+            #error_message= 'error in form parameter'
+            #debug_message = e
+            #logger.exception(e)
+
+
         print('---------------------------------------------')
         return q
 
@@ -285,35 +329,49 @@ class Instrument(object):
             try:
                 input_file_path = back_end_query.upload_file('user_scw_list_file', back_end_query.scratch_dir)
 
-
+                q.set_status(status, error_message, str(debug_message))
             except Exception as e:
-                error_message = 'failed to upload %s'%self.input_prod_name
-                status = 1
-                debug_message = e
-                logger.exception(e)
+                q.set_query_exception(e,'failed to upload scw_list file',
+                                         extra_message='failed to upload %s'%self.input_prod_name )
+                #error_message = 'failed to upload %s'%self.input_prod_name
+                #status = 1
+                #debug_message = e
+                #logger.exception(e)
 
             try:
                 has_input=self.set_input_products(par_dic,input_file_path,input_prod_list_name)
+                q.set_status(status, error_message, str(debug_message))
             except Exception as e :
-                error_message = 'scw_list file is not valid'
-                status = 1
-                debug_message = e
-                logger.exception(e)
+                q.set_query_exception(e,'scw_list file is not valid',
+                                         extra_message='scw_list file is not valid',
+                                         logger=logger)
+
+
+                #error_message = 'scw_list file is not valid'
+                #status = 1
+                #debug_message = e
+                #logger.exception(e)
 
             print ('has input',has_input)
             try:
+
                 if has_input==True:
                     pass
                 else:
                     raise RuntimeError
+
+                q.set_status(status, error_message, str(debug_message))
+
             except:
-                error_message = 'No scw_list from file accepted'
-                status = 1
-                debug_message = 'no valid scw in the scwlist file'
-                logger.exception(debug_message)
+                q.set_query_exception(e,'setting input scw_list',extra_message='No scw_list from file accepted')
+
+                #error_message = 'No scw_list from file accepted'
+                #status = 1
+                #debug_message = 'no valid scw in the scwlist file'
+                #logger.exception(debug_message)
 
         self.set_pars_from_dic(par_dic,verbose=verbose)
-        q.set_status(status, error_message, str(debug_message))
+
         print('---------------------------------------------')
         return q
 
@@ -355,24 +413,34 @@ class Instrument(object):
                 cat_file_path = back_end_query.upload_file('user_catalog_file', back_end_query.scratch_dir)
                 par_dic['user_catalog_file'] = cat_file_path
                 print('set_catalog_from_fronted,request.method', request.method, par_dic['user_catalog_file'],cat_file_path)
+                q.set_status(status, error_message, str(debug_message))
             except Exception as e:
-                error_message = 'failed to upload catalog file'
-                status = 1
-                debug_message=e
-                logger.exception(e)
+                q.set_query_exception(e,'upload catalog file',
+                                         extra_message='failed to upload catalog file',
+                                         logger=logger)
+
+                #error_message = 'failed to upload catalog file'
+                #status = 1
+                #debug_message=e
+                #logger.exception(e)
 
         try:
             self.set_catalog(par_dic, scratch_dir=back_end_query.scratch_dir)
-
+            q.set_status(status, error_message, str(debug_message))
         except Exception as e:
-            error_message = 'failed to set catalog '
-            status = 1
-            debug_message = e
-            print(e)
-            logger.exception(e)
+
+            q.set_query_exception(e,'set catalog file',
+                                     extra_message='failed to set catalog',
+                                     logger=logger)
+
+            #error_message = 'failed to set catalog '
+            #status = 1
+            #debug_message = e
+            #print(e)
+            #logger.exception(e)
 
         self.set_pars_from_dic(par_dic,verbose=verbose)
-        q.set_status(status, error_message, str(debug_message))
+
         print('setting user catalog done')
         print('---------------------------------------------')
         return q

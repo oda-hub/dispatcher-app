@@ -20,11 +20,10 @@ import string
 from flask import jsonify,send_from_directory
 from flask import Flask, request
 
-#from pathlib import Path
-#from flask_restful import reqparse
 
-from cdci_data_analysis.plugins.ddosa.osa_isgri import OSA_ISGRI
-from cdci_data_analysis.plugins.ddosa.osa_jemx import OSA_JEMX
+from cdci_data_analysis.plugins import OSA_ISGRI
+from cdci_data_analysis.plugins import OSA_JEMX
+
 from ..analysis.queries import *
 from ..analysis.job_manager import Job
 from ..analysis.io_helper import FilePath
@@ -36,53 +35,11 @@ import gzip
 import logging
 import socket
 
-# from ..ddosa.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
-#from ..ddosa.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
 
 #UPLOAD_FOLDER = '/path/to/the/uploads'
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
 
 app = Flask(__name__)
-#app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-
-#def allowed_file(filename):
-#    return '.' in filename and \
-#           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-
-# def run_app_threaded(conf,debug=False):
-#     threaded_server=threading.Thread(target=run_app,args=(conf),kwargs={'debug':debug})
-#     try:
-#         # Start the server
-#         threaded_server.start()
-#     except Exception as ex:
-#         print('flask thread failed',ex.message)
-#     finally:
-#
-#         # Stop all running threads
-#         threaded_server._Thread__stop()
-#         product_dictionary={}
-#         product_dictionary['error_message'] = 'flask thread failed'
-#         product_dictionary['status'] = -1
-#
-#         return jsonify(product_dictionary)
-
-
-
-#def make_dir(out_dir):
-
-
-#    if os.path.isdir(out_dir):
-#        return
-#    else:
-#        if os.path.isfile(out_dir):
-#            raise RuntimeError("a file with the same name of dir already exists")
-#            #raise RuntimeError, "a file with the same name of dir=%s, exists"%out_dir
-#        else:
-#            os.mkdir(out_dir)
-
 
 
 
@@ -132,18 +89,19 @@ class InstrumentQueryBackEnd(object):
 
         except Exception as e:
             print ('e',e)
-            status = -1
-            message = 'failed InstrumentQueryBackEnd constructor '
-            debug_message = e
+
+            #status = -1
+            #message = 'failed InstrumentQueryBackEnd constructor '
+            #debug_message = e
 
             query_out = QueryOutput()
-            query_out.set_status(status, message, debug_message=str(debug_message))
+            query_out.set_query_exception(e,'InstrumentQueryBackEnd constructor',extra_message='InstrumentQueryBackEnd constructor failed')
 
             out_dict = {}
-            out_dict['message']=message
-            out_dict['query_status'] = -1
-            out_dict['debug_message'] = debug_message
+            out_dict['query_status'] = 1
             out_dict['exit_status'] = query_out.status_dictionary
+            self.build_dispatcher_response(out_dict=out_dict)
+
 
             return jsonify(out_dict)
 
@@ -268,7 +226,7 @@ class InstrumentQueryBackEnd(object):
             return send_from_directory(directory=tmp_dir, filename=target_file, attachment_filename=target_file,
                                        as_attachment=True)
         except Exception as e:
-            return str(e)
+            return e
 
     def upload_file(self,name, scratch_dir):
         print('upload  file')
@@ -382,6 +340,44 @@ class InstrumentQueryBackEnd(object):
 
 
 
+    def build_dispatcher_response(self, out_dict=None,query_new_status=None,query_out=None,job_monitor=None,off_line=True):
+
+        if  out_dict is None:
+            out_dict={}
+
+            if query_new_status is not None:
+                out_dict['query_status'] = query_new_status
+            if query_out is not None:
+                out_dict['products'] = query_out.prod_dictionary
+                out_dict['exit_status'] = query_out.status_dictionary
+
+            print('exit_status', out_dict['exit_status'])
+
+            if job_monitor is not None:
+                out_dict['job_monitor'] = job_monitor
+                print('query_out:job_monitor', job_monitor)
+        else:
+            pass
+
+        print ('offline',off_line)
+        if off_line == True:
+
+            return out_dict
+        else:
+            try:
+                return jsonify(out_dict)
+            except Exception as e:
+                if query_out is None:
+                    query_out = QueryOutput()
+                else:
+                    pass
+
+                query_out.set_status(1, error_message='failed json serialization', debug_message=str(e.message))
+                out_dict['exit_status'] = query_out.status_dictionary
+
+                return jsonify(out_dict)
+
+
     def run_query(self,off_line=False):
 
         print ('==============================> run query <==============================')
@@ -432,6 +428,7 @@ class InstrumentQueryBackEnd(object):
         print('-----------------> job status before query:', job.status)
 
         out_dict=None
+        query_out=None
 
         if query_status=='new' or query_status=='ready':
             if query_status=='new':
@@ -463,7 +460,7 @@ class InstrumentQueryBackEnd(object):
             else:
                 query_new_status = 'failed'
 
-            print('-----------------> query status new', query_new_status)
+            print('-----------------> query status new 1: ', query_new_status)
 
         elif query_status=='progress' or query_status=='unaccessible' or query_status=='unknown':
 
@@ -480,7 +477,7 @@ class InstrumentQueryBackEnd(object):
             else:
                 query_new_status='progress'
 
-            print('-----------------> query status new:', query_new_status)
+            print('-----------------> query status new 2:', query_new_status)
 
             out_dict = {}
             out_dict['job_monitor'] = job_monitor
@@ -488,6 +485,8 @@ class InstrumentQueryBackEnd(object):
             out_dict['query_status'] = query_new_status
             out_dict['products'] = ''
             out_dict['exit_status'] = 0
+
+            #self.build_dispatcher_response(out_dict=out_dict)
             print('query_out:job_monitor', job_monitor)
             print('==============================> query done <==============================')
 
@@ -500,7 +499,9 @@ class InstrumentQueryBackEnd(object):
             out_dict['job_status'] = job_monitor['status']
             out_dict['query_status'] = query_new_status
             out_dict['products'] = ''
-            out_dict['exit_status'] = -1
+            out_dict['exit_status'] = 1
+
+            #self.build_dispatcher_response(out_dict=out_dict)
             print('query_out:job_monitor', job_monitor)
             print('==============================> query done <==============================')
             print('-----------------> query status new:', query_new_status)
@@ -512,7 +513,9 @@ class InstrumentQueryBackEnd(object):
             out_dict['job_status']='unknown'
             out_dict['query_status'] = query_new_status
             out_dict['products'] = ''
-            out_dict['exit_status'] = -1
+            out_dict['exit_status'] = 0
+
+            #self.build_dispatcher_response(out_dict=out_dict)
             print('query_out:job_monitor', job_monitor)
             print('==============================> query done <==============================')
             print('-----------------> query status new:', query_new_status)
@@ -526,31 +529,38 @@ class InstrumentQueryBackEnd(object):
         self.logger.info('============================================================')
         self.logger.info('')
 
+        resp= self.build_dispatcher_response(out_dict=out_dict,
+                                       query_new_status=query_new_status,
+                                       query_out=query_out,
+                                       job_monitor=job_monitor,
+                                       off_line=off_line)
+        #if out_dict is None:
+        #    out_dict = {}
+        #    out_dict['query_status']=query_new_status
+        #    out_dict['products'] = query_out.prod_dictionary
+        #    out_dict['exit_status'] = query_out.status_dictionary
+        #    print('exit_status', out_dict['exit_status'])
 
-        if out_dict is None:
-            out_dict = {}
-            out_dict['query_status']=query_new_status
-            out_dict['products'] = query_out.prod_dictionary
-            out_dict['exit_status'] = query_out.status_dictionary
-            print('exit_status', out_dict['exit_status'])
+        #    #if no_job_class_found == False:
+        #    out_dict['job_monitor'] = job_monitor
+        #    #else:
+        #    #    out_dict['job_monitor']= 'not found'
+        #    #    query_out.set_status(1, error_message='job monitor not found in query_out', )
+         #   print('query_out:job_monitor', job_monitor)
+        print('==============================> query done <==============================')
+        return resp
 
-            #if no_job_class_found == False:
-            out_dict['job_monitor'] = job_monitor
-            #else:
-            #    out_dict['job_monitor']= 'not found'
-            #    query_out.set_status(1, error_message='job monitor not found in query_out', )
-            print('query_out:job_monitor', job_monitor)
-            print('==============================> query done <==============================')
 
-        if off_line == True:
-            return out_dict
-        else:
-            try:
-                return jsonify(out_dict)
-            except Exception as e:
-                query_out.set_status(1,error_message='failed json serialization',debug_message=str(e.message))
-                out_dict['exit_status'] = query_out.status_dictionary
-                return jsonify(out_dict)
+
+        #if off_line == True:
+        #    return out_dict
+        #else:
+        #    try:
+        #        return jsonify(out_dict)
+        #    except Exception as e:
+        #        query_out.set_status(1,error_message='failed json serialization',debug_message=str(e.message))
+        #        out_dict['exit_status'] = query_out.status_dictionary
+        #        return jsonify(out_dict)
 
 
 @app.route("/test_sleep")
