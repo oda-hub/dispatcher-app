@@ -8,3 +8,5 @@ astropy
 pathlib
 gunicorn
 decorator
+python-logstash
+raven

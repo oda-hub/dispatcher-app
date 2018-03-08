@@ -23,24 +23,20 @@ from __future__ import absolute_import, division, print_function
 from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
 
-from werkzeug.utils import secure_filename
 
-from pathlib import Path
 import json
 import  logging
 import  re
-#logger = logging.getLogger(__name__)
+import yaml
 
+import os
 import  numpy as np
 from astropy.table import Table
 
 from cdci_data_analysis.analysis.queries import _check_is_base_query
 from .catalog import BasicCatalog
 from .products import  QueryOutput
-from .io_helper import view_traceback
-
-import  os
-
+from .io_helper import FilePath
 __author__ = "Andrea Tramacere"
 
 # Standard library
@@ -54,6 +50,8 @@ __author__ = "Andrea Tramacere"
 # Project
 # relative import eg: from .mod import f
 
+
+
 class Instrument(object):
     def __init__(self,
                  instr_name,
@@ -61,6 +59,7 @@ class Instrument(object):
                  instrumet_query,
                  input_product_query=None,
                  catalog=None,
+                 data_serve_conf_file=None,
                  product_queries_list=None,
                  data_server_query_class=None,
                  query_dictionary={}):
@@ -76,6 +75,7 @@ class Instrument(object):
         self.instrumet_query=instrumet_query
 
 
+        self.set_data_server_conf_dict(data_serve_conf_file)
 
         self.product_queries_list=product_queries_list
 
@@ -94,6 +94,22 @@ class Instrument(object):
         self.query_dictionary = query_dictionary
 
 
+    def set_data_server_conf_dict(self,data_serve_conf_file):
+        conf_dict=None
+        if data_serve_conf_file is not None:
+           with open(data_serve_conf_file, 'r') as ymlfile:
+                cfg_dict = yaml.load(ymlfile)
+                for k in cfg_dict['instruments'].keys():
+                    #print ('name',k)
+                    if self.name ==k:
+                        #print('name', k,cfg_dict['instruments'][k])
+                        conf_dict=cfg_dict['instruments'][k]
+
+        self.data_server_conf_dict=conf_dict
+
+    def get_logger(self):
+        logger = logging.getLogger(__name__)
+        return logger
 
 
     def _check_names(self):
@@ -127,64 +143,43 @@ class Instrument(object):
 
         return p
 
-    def test_communication(self,config):
+    def test_communication(self,config,logger=None):
         if self.data_server_query_class is not None:
-            return self.data_server_query_class(config=config).test_connection()
+            return self.data_server_query_class(config=config).test_communication(logger=logger)
 
-    def test_busy(self, config):
+    def test_busy(self, config,logger=None):
         if self.data_server_query_class is not None:
-            return self.data_server_query_class(config=config).test_busy()
+            return self.data_server_query_class(config=config).test_busy(logger=logger)
 
-    def test_has_input_products(self, config,instrument):
+    def test_has_input_products(self, config,instrument,logger=None):
         if self.data_server_query_class is not None:
-            return self.data_server_query_class(config=config).test_has_input_products(instrument)
+            return self.data_server_query_class(config=config).test_has_input_products(instrument,logger=logger)
 
 
 
-    # def set_query_exception(query_out,excep,failed_operation,message_prepend_str='',extra_message=None,logger_prepend_str='==>',logger=None ):
-    #
-    #     if excep.__repr__ is None:
-    #         e_message=''
-    #     else:
-    #         e_message=excep.__repr__
-    #
-    #
-    #     print('!!! >>>Exception<<<', e_message)
-    #     print('!!! failed operation',failed_operation)
-    #     view_traceback()
-    #     if logger is not None:
-    #         logger.exception(e_message)
-    #     status = 1
-    #
-    #     message = '%s'%message_prepend_str
-    #     message += 'failed: %s' % (failed_operation)
-    #     if extra_message is not None:
-    #         message += 'message: %s' % (extra_message)
-    #
-    #     debug_message = e_message
-    #
-    #     msg_str = '%s'%logger_prepend_str
-    #     msg_str += 'failed%s:', failed_operation
-    #     msg_str += ' error%s:', e_message
-    #     if extra_message is not None:
-    #         msg_str += ' message: %s' % (extra_message)
-    #
-    #     logger.info(msg_str)
-    #
-    #     query_out.set_status(status, message, debug_message=str(debug_message))
-
-
-    def run_query(self,product_type,par_dic,request,back_end_query,job,prompt_delegate,config=None,out_dir=None,query_type='Real',verbose=False,logger=None,**kwargs):
+    def run_query(self,product_type,
+                  par_dic,
+                  request,
+                  back_end_query,
+                  job,
+                  run_asynch,
+                  config=None,
+                  out_dir=None,
+                  query_type='Real',
+                  verbose=False,
+                  logger=None,
+                  sentry_client=None,
+                  **kwargs):
 
         #prod_dictionary={}
 
 
         if logger is None:
-            logger = logging.getLogger(__name__)
+            logger = self.get_logger()
 
         #set pars
+        query_out=self.set_pars_from_form(par_dic,verbose=verbose,sentry_client=sentry_client)
 
-        query_out=self.set_pars_from_form(par_dic,verbose=verbose)
 
         if verbose ==True:
             self.show_parameters_list()
@@ -193,12 +188,12 @@ class Instrument(object):
 
         #set catalog
         if query_out.status_dictionary['status']==0:
-            query_out=self.set_catalog_from_fronted(par_dic, request,back_end_query,logger=logger,verbose=verbose)
+            query_out=self.set_catalog_from_fronted(par_dic, request,back_end_query,logger=logger,verbose=verbose,sentry_client=sentry_client)
 
 
         #set input products
         if query_out.status_dictionary['status'] == 0:
-            query_out=self.set_input_products_from_fronted(par_dic, request,back_end_query,logger=logger,verbose=verbose)
+            query_out=self.set_input_products_from_fronted(par_dic, request,back_end_query,logger=logger,verbose=verbose,sentry_client=sentry_client)
 
 
 
@@ -214,9 +209,10 @@ class Instrument(object):
             try:
                 query_name = self.query_dictionary[product_type]
                 print ('=======> query_name',query_name)
-                query_out = self.get_query_by_name(query_name).run_query(self, out_dir, job, prompt_delegate,
+                query_out = self.get_query_by_name(query_name).run_query(self, out_dir, job, run_asynch,
                                                                          query_type=query_type, config=config,
-                                                                         logger=logger)
+                                                                         logger=logger,
+                                                                         sentry_client=sentry_client)
                 if query_out.status_dictionary['status'] == 0:
                     query_out.set_status(status, message, debug_message=str(debug_message))
                 else:
@@ -224,24 +220,7 @@ class Instrument(object):
 
             except Exception as e:
 
-                #print('!!! >>>Exception<<<', e)
-                query_out.set_query_exception(e,product_type,logger=logger)
-
-                #print('!!! >>>Exception<<<', e)
-                #print("product error", e)
-                #view_traceback()
-                #logger.exception(e)
-                #status = 1
-                #message = 'product error: %s'%(product_type)
-                #debug_message = e
-
-                #msg_str = '==>product error:',e
-                #logger.info(msg_str)
-
-                #
-
-                #print ('ciccio failed',query_out.tatus_dictionary['status'])
-
+                query_out.set_query_exception(e,product_type,logger=logger,sentry_client=sentry_client)
 
 
 
@@ -286,7 +265,7 @@ class Instrument(object):
 
 
 
-    def set_pars_from_form(self,par_dic,logger=None,verbose=False):
+    def set_pars_from_form(self,par_dic,logger=None,verbose=False,sentry_client=None):
         print('---------------------------------------------')
         print('setting form paramters')
         q=QueryOutput()
@@ -300,7 +279,7 @@ class Instrument(object):
             self.set_pars_from_dic(par_dic,verbose=verbose)
             q.set_status(status, error_message, str(debug_message))
         except Exception as e:
-            q.set_query_exception(e,'setting form parameters',logger=logger)
+            q.set_query_exception(e,'setting form parameters',logger=logger,sentry_client=sentry_client)
 
             #status=1
             #error_message= 'error in form parameter'
@@ -312,7 +291,7 @@ class Instrument(object):
         return q
 
 
-    def set_input_products_from_fronted(self,par_dic,request,back_end_query,verbose=False,logger=None):
+    def set_input_products_from_fronted(self,par_dic,request,back_end_query,verbose=False,logger=None,sentry_client=None):
         print('---------------------------------------------')
         print('setting user input prods')
         input_prod_list_name = self.instrumet_query.input_prod_list_name
@@ -331,20 +310,21 @@ class Instrument(object):
 
                 q.set_status(status, error_message, str(debug_message))
             except Exception as e:
-                q.set_query_exception(e,'failed to upload scw_list file',
-                                         extra_message='failed to upload %s'%self.input_prod_name )
-                #error_message = 'failed to upload %s'%self.input_prod_name
-                #status = 1
-                #debug_message = e
-                #logger.exception(e)
+                q.set_query_exception(e,
+                                      'failed to upload scw_list file',
+                                      extra_message='failed to upload %s' % self.input_prod_name,
+                                      sentry_client=sentry_client)
+
 
             try:
                 has_input=self.set_input_products(par_dic,input_file_path,input_prod_list_name)
                 q.set_status(status, error_message, str(debug_message))
             except Exception as e :
-                q.set_query_exception(e,'scw_list file is not valid',
-                                         extra_message='scw_list file is not valid',
-                                         logger=logger)
+                q.set_query_exception(e,
+                                      'scw_list file is not valid',
+                                      extra_message='scw_list file is not valid',
+                                      logger=logger,
+                                      sentry_client=sentry_client)
 
 
                 #error_message = 'scw_list file is not valid'
@@ -363,7 +343,10 @@ class Instrument(object):
                 q.set_status(status, error_message, str(debug_message))
 
             except:
-                q.set_query_exception(e,'setting input scw_list',extra_message='No scw_list from file accepted')
+                q.set_query_exception(e,
+                                      'setting input scw_list',
+                                      extra_message='No scw_list from file accepted',
+                                      sentry_client=sentry_client)
 
                 #error_message = 'No scw_list from file accepted'
                 #status = 1
@@ -394,7 +377,7 @@ class Instrument(object):
             return len(acceptList)>=1
 
 
-    def set_catalog_from_fronted(self,par_dic,request,back_end_query,logger=None,verbose=False):
+    def set_catalog_from_fronted(self,par_dic,request,back_end_query,logger=None,verbose=False,sentry_client=None):
         print('---------------------------------------------')
         print('setting user catalog')
 
@@ -415,29 +398,26 @@ class Instrument(object):
                 print('set_catalog_from_fronted,request.method', request.method, par_dic['user_catalog_file'],cat_file_path)
                 q.set_status(status, error_message, str(debug_message))
             except Exception as e:
-                q.set_query_exception(e,'upload catalog file',
-                                         extra_message='failed to upload catalog file',
-                                         logger=logger)
+                q.set_query_exception(e,
+                                      'upload catalog file',
+                                      extra_message='failed to upload catalog file',
+                                      logger=logger,
+                                      sentry_client=sentry_client)
 
-                #error_message = 'failed to upload catalog file'
-                #status = 1
-                #debug_message=e
-                #logger.exception(e)
+
 
         try:
             self.set_catalog(par_dic, scratch_dir=back_end_query.scratch_dir)
             q.set_status(status, error_message, str(debug_message))
         except Exception as e:
 
-            q.set_query_exception(e,'set catalog file',
-                                     extra_message='failed to set catalog',
-                                     logger=logger)
+            q.set_query_exception(e,
+                                  'set catalog file',
+                                  extra_message='failed to set catalog',
+                                  logger=logger,
+                                  sentry_client=sentry_client)
 
-            #error_message = 'failed to set catalog '
-            #status = 1
-            #debug_message = e
-            #print(e)
-            #logger.exception(e)
+
 
         self.set_pars_from_dic(par_dic,verbose=verbose)
 
@@ -507,11 +487,11 @@ def build_catalog(cat_dic,catalog_selected_objects=None):
         meta_ids = user_catalog._table['meta_ID']
         IDs=[]
         for ID,cat_ID in enumerate(meta_ids):
-            #print ("ID,cat_id",ID,cat_ID,catalog_selected_objects)
+
             if cat_ID in catalog_selected_objects:
                 IDs.append(ID)
-                #print('selected')
 
-            user_catalog.select_IDs(IDs)
+        #TODO: check this indentation
+        user_catalog.select_IDs(IDs)
 
     return user_catalog

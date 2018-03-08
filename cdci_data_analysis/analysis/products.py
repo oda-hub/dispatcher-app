@@ -44,7 +44,7 @@ from mpld3 import plugins
 from .parameters import *
 from .io_helper import FilePath
 from .io_helper import view_traceback,FitsFile
-
+import  sys
 
 
 
@@ -52,38 +52,68 @@ class QueryOutput(object):
     def  __init__(self):
         self.prod_dictionary={}
         self.status_dictionary={}
-
+        self.set_status(0,job_status='unknown')
     
     def set_products(self,keys,values):
         for k,v in zip(keys,values):
             self.prod_dictionary[k] =v
     
-    def set_status(self,status,error_message='',debug_message=''):
+    def set_status(self,status,error_message='',debug_message='',job_status=None):
        
+
+        if job_status is not None:
+            self.status_dictionary['job_status'] = job_status
 
         self.status_dictionary['status']=status
         self.status_dictionary['error_message']=str(error_message)
         self.status_dictionary['debug_message']=str(debug_message)
 
-    def set_query_exception(self, excep, failed_operation, message_prepend_str='', extra_message=None,
-                            logger_prepend_str='==>', logger=None,status=1):
+    def get_status(self):
+        return self.status_dictionary['status']
+
+    def get_job_status(self):
+        print ('ciccio job_status',self.status_dictionary['job_status'])
+        return self.status_dictionary['job_status']
+
+    def set_query_exception(self, excep,
+                            failed_operation,
+                            message_prepend_str='',
+                            extra_message=None,
+                            message=None,
+                            logger_prepend_str='==>',
+                            logger=None,
+                            status=1,
+                            sentry_client=None):
+
+
 
         if excep.__repr__ is None:
             e_message = ''
         else:
             e_message = excep.__repr__()
 
+
+        if sentry_client is not None:
+            sentry_client.capture('raven.events.Message', message=e_message)
+
         print('!!! >>>Exception<<<', e_message)
         print('!!! failed operation', failed_operation)
+
         view_traceback()
+
         if logger is not None:
             logger.exception(e_message)
         
 
-        message = '%s' % message_prepend_str
-        message += 'failed: %s' % (failed_operation)
-        if extra_message is not None:
-            message += 'message: %s' % (extra_message)
+        if message is None:
+            message = '%s' % message_prepend_str
+            message += 'failed: %s' % (failed_operation)
+            if extra_message is not None:
+                message += 'message: %s' % (extra_message)
+        else:
+            pass
+
+
 
         debug_message = e_message
 
@@ -93,7 +123,8 @@ class QueryOutput(object):
         if extra_message is not None:
             msg_str += ' message: %s' % (extra_message)
 
-        logger.info(msg_str)
+        if logger is not None:
+            logger.info(msg_str)
 
         self.set_status(status, message, debug_message=str(debug_message))
 
@@ -408,6 +439,7 @@ class   SpectrumProduct(BaseQueryProduct):
             print("-->", self.header[arf_kw])
             self.header[arf_kw] = 'NONE'
         if out_arf_file is not None and in_arf_file is not None:
+            #print('in_arf_file', in_arf_file,out_arf_file)
             #pf.open(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
             FitsFile(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
             print('arf written to', out_arf_file)
@@ -474,8 +506,9 @@ class   SpectrumProduct(BaseQueryProduct):
 
     def write(self,file_name=None,overwrite=True,file_dir=None):
         file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
-
-        pf.writeto(file_path, data=self.data, header=self.header,overwrite=overwrite)
+        #print('ciccio')
+        FitsFile(file_path).writeto( data=self.data, header=self.header,overwrite=overwrite)
+        #pf.writeto(file_path, data=self.data, header=self.header,overwrite=overwrite)
 
 
 

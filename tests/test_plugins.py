@@ -8,7 +8,7 @@ import  logging
 logger = logging.getLogger(__name__)
 
 from cdci_data_analysis.configurer import ConfigEnv
-osaconf = ConfigEnv.from_conf_file('./conf_env.yml')
+osaconf = ConfigEnv.from_conf_file('./conf_env_test.yml')
 
 import time
 from flask import Flask, request
@@ -19,26 +19,6 @@ from cdci_data_analysis.flask_app.app import InstrumentQueryBackEnd
 
 
 
-
-
-
-
-def test_instr(use_scw_list=True):
-
-    from cdci_data_analysis.plugins.ddosa.osa_isgri import OSA_ISGRI
-
-    instr= OSA_ISGRI()
-
-    parameters_dic=dict(E1_keV=20.,E2_keV=40.,T1='2003-03-15T23:27:40.0', T2='2003-03-16T00:03:15.0',RA=257.815417,DEC=257.815417,radius=25,scw_list=None,T_format='isot')
-
-
-    instr.set_pars_from_dic(parameters_dic)
-
-    if use_scw_list==True:
-        instr.set_par('scw_list',cookbook_scw_list)
-    else:
-        instr.set_par('scw_list', [])
-        instr.set_par('time_group_selector','time_range_iso')
 
 
 
@@ -361,9 +341,9 @@ def test_asynch_full():
     """
 
     instrument_name='isgri'
-    parameters_dic,upload_data=set_lc_query(instrument_name=instrument_name,
-                                                scw_list=None,
-                                                E1_keV=22.5,
+    parameters_dic,upload_data=set_mosaic_query(instrument_name=instrument_name,
+                                                scw_list=asynch_scw_list,
+                                                E1_keV=23.0,
                                                 RA_user_cat=[80.63168334960938],
                                                 Dec_user_cat=[20.01494598388672],
                                                 user_catalog=False,

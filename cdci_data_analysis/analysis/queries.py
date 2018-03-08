@@ -26,9 +26,8 @@ import  logging
 
 import json
 from .parameters import *
-from .products import SpectralFitProduct,QueryOutput
+from .products import SpectralFitProduct,QueryOutput,QueryProductList
 from .io_helper import FilePath
-from .io_helper import view_traceback
 
 
 @decorator.decorator
@@ -82,6 +81,10 @@ class BaseQuery(object):
         if p is None:
             raise  Warning('parameter',name,'not found')
         return p
+
+    def get_logger(self):
+        logger = logging.getLogger(__name__)
+        return logger
 
     def set_par_value(self,name,value):
         p=self.get_par_by_name(name)
@@ -322,15 +325,6 @@ class InstrumentQuery(BaseQuery):
 
 
 
-
-
-#class InputProdsQuery(BaseQuery):
-#    def __init__(self,name, input_prod_list_name,input_prod_list ):
-#        super(InputProdsQuery, self).__init__(name,[ProdList('names_list', input_prod_list_name, value=input_prod_list)])
-
-
-
-
 class ProductQuery(BaseQuery):
     def __init__(self,
                  name,
@@ -344,27 +338,21 @@ class ProductQuery(BaseQuery):
 
 
         super(ProductQuery, self).__init__(name,parameters_list, **kwargs)
-        #self._get_product_method = get_products_method
-        #self._html_draw_method = html_draw_method
-        #self._get_dummy_products_method=get_dummy_products_method
-        #self._process_product_method=process_product_method
+
         self.query_prod_list=None
         self.job=None
 
 
-    def get_products(self, instrument,prompt_delegate, job=None,config=None,**kwargs):
+    def get_products(self, instrument,run_asynch, job=None,config=None,logger=None,**kwargs):
         raise RuntimeError('needs to be implemented in derived class')
-        #if self._get_product_method is not None:
-        #    return self._get_product_method(instrument,prompt_delegate=prompt_delegate,config=config,job=job,**kwargs)
-        #else:
-        #    return None
+
 
     def get_dummy_products(self,instrument, config=None,**kwargs):
         raise RuntimeError('needs to be implemented in derived class')
-        #if self._get_dummy_products_method is not None:
-        #    return self._get_dummy_products_method(instrument,config,**kwargs)
-        #else:
-        #    return None
+
+
+    def get_data_server_query(self,instrument,config=None,**kwargs):
+        raise RuntimeError('needs to be implemented in derived class')
 
 
     def get_parameters_list_as_json(self):
@@ -385,105 +373,57 @@ class ProductQuery(BaseQuery):
         return self.query_prod_list.get_prod_by_name(name)
 
 
-   # def test_communication(self):
 
+    def test_communication(self,instrument,query_type='Real',logger=None,config=None,sentry_client=None):
+        if logger is None:
+            logger = self.get_logger()
 
-    #def set_message_dictionary(self,status,error_message='',debug_message='',product_dictionary=None):
-     #   if product_dictionary is None:
-     #       product_dictionary={}
-
-    #    product_dictionary['status']=status
-    #    product_dictionary['error_message']=error_message
-    #    product_dictionary['debug_message']=debug_message
-
-    #    return product_dictionary
-
-    def test_communication(self,instrument,query_type='Real',logger=None,config=None):
         query_out = QueryOutput()
 
 
-        print('logger')
-        if logger is None:
-            logger = logging.getLogger(__name__)
+
+
         status = 0
         message=''
         debug_message=''
-        communication_status=0
+
         msg_str = '--> start dataserver communication test'
+
         print(msg_str)
         logger.info(msg_str)
         try:
 
             if query_type != 'Dummy':
-                communication_status = instrument.test_communication(config)
+                test_comm_query_out = instrument.test_communication(config,logger=logger)
+                status=test_comm_query_out.get_status()
             query_out.set_status(status, message, debug_message=str(debug_message))
         except Exception as e:
-            query_out.set_query_exception(e,'dataserver communication',logger=logger)
+            status=1
+            query_out.set_query_exception(e,'dataserver communication',logger=logger,sentry_client=sentry_client)
 
-            #print("dataserver communication failed, Error:", e)
-            #print('!!! >>>Exception<<<', e)
-            #status = 1
-            #message='dataserver communication failed'
-            #debug_message=e
-            #view_traceback()
-            #logger.exception(e)
 
-        msg_str = '--> data server communication status %d\n' % status
+        msg_str = '--> data server communication status %d\n' %status
         msg_str += '--> end dataserver communication test'
         logger.info(msg_str)
 
 
 
 
-        return query_out,communication_status
+        return query_out
 
-    def test_is_busy(self,instrument,communication_status,logger=None,config=None):
-        query_out = QueryOutput()
-        print('logger')
+
+    def test_has_products(self,instrument,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None):
         if logger is None:
-            logger = logging.getLogger(__name__)
+            logger = self.get_logger()
 
-        status = 0
-        message = ''
-        debug_message = ''
-        msg_str = '--> start data server is busy query'
-        print(msg_str)
-        logger.info(msg_str)
-        data_server_busy_status = 0
-        if communication_status == 'busy':
-
-            try:
-                communication_status = instrument.test_busy(config)
-                status = 0
-
-                query_out.set_status(status, message, debug_message=str(debug_message))
-
-            except Exception as e:
-
-                query_out.set_query_exception(e, 'dataserver busy ',extra_message='dataserver is busy', logger=logger)
-
-                #print("data server  bust, Error:", e)
-                #print('!!! >>>Exception<<<', e)
-                #data_server_busy_status = 1
-                #view_traceback()
-                #logger.exception(e)
-                #status=1
-                #message='dataserver is busy'
-            msg_str = '-->data_server_busy_status %d\n' % data_server_busy_status
-            msg_str += '--> end data server is busy query test'
-
-            logger.info(msg_str)
-
-        query_out.set_status(status, message, debug_message=str(debug_message))
-        return query_out,communication_status
-
-    def test_has_products(self,instrument,query_type='Real',logger=None,config=None,scratch_dir=None):
         query_out = QueryOutput()
 
         status = 0
+
         message = ''
         debug_message = ''
         msg_str = '--> start test has products'
+
         print(msg_str)
         logger.info(msg_str)
 
@@ -494,8 +434,8 @@ class ProductQuery(BaseQuery):
         try:
 
             if query_type != 'Dummy':
-                input_prod_list = instrument.test_has_input_products(config,instrument)
-
+                test_has_input_products_query_out,input_prod_list = instrument.test_has_input_products(config,instrument,logger=logger)
+                status = test_has_input_products_query_out.get_status()
                 if len(input_prod_list) < 1:
                     status = 1
                     message = 'no input products'
@@ -505,16 +445,11 @@ class ProductQuery(BaseQuery):
             query_out.set_status(status, message, debug_message=str(debug_message))
 
         except Exception as e:
-            query_out.set_query_exception(e, 'test has input products ', extra_message='no input products found', logger=logger)
-            #print("test has products failed, Error:", e)
-            #print('!!! >>>Exception<<<', e)
-            #status = 1
-            #message='test has products failed'
-            #debug_message=e
-            #view_traceback()
-            #logger.exception(e)
+            status=1
+            query_out.set_query_exception(e, 'test has input products ', extra_message='no input products found', logger=logger,sentry_client=sentry_client)
 
-        msg_str = '--> dtest has products status %d\n' % status
+
+        msg_str = '--> test has products status %d\n' % status
         msg_str += '--> end test has products test'
         logger.info(msg_str)
 
@@ -522,13 +457,12 @@ class ProductQuery(BaseQuery):
         print("-->input_prod_list",input_prod_list)
 
 
-
-
-
-
         return query_out
 
-    def get_query_products(self,instrument,job,prompt_delegate,query_type='Real',logger=None,config=None,scratch_dir=None):
+    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None):
+        if logger is None:
+            logger = self.get_logger()
+
         query_out = QueryOutput()
         status=0
         message=''
@@ -538,32 +472,46 @@ class ProductQuery(BaseQuery):
         logger.info(msg_str)
         try:
             if query_type != 'Dummy':
-                #print('ciccio')
-                self.query_prod_list = self.get_products(instrument,
-                                                         job,
-                                                         prompt_delegate,
-                                                         config=config,
-                                                         out_dir=scratch_dir)
-                #print ('polenta')
+
+                q=self.get_data_server_query(instrument,config)
+
+                res, data_server_query_out = q.run_query(call_back_url=job.get_call_back_url(), run_asynch=run_asynch, logger=logger)
+
+                status = data_server_query_out.get_status()
+                job_status = data_server_query_out.get_job_status()
+
+                if job_status=='done':
+                    job.set_done()
+                else:
+                    job.set_submitted()
+
+                if job.status != 'done':
+                    prod_list = QueryProductList(prod_list=[], job=job)
+                else:
+                    prod_list = self.build_product_list(instrument,res, scratch_dir)
+
+
+                self.query_prod_list=QueryProductList(prod_list=prod_list,job=job)
+
             else:
 
-                self.query_prod_list = self.get_dummy_products(instrument,
-                                                               config=config,
-                                                               out_dir=scratch_dir)
+                prod_list = self.get_dummy_products(instrument,config=config,out_dir=scratch_dir)
+
+                self.query_prod_list = QueryProductList(prod_list=prod_list)
+
                 job.set_done()
 
             query_out.set_status(status, message, debug_message=str(debug_message))
 
         except Exception as e:
-            query_out.set_query_exception(e, 'get dataserver products ', extra_message='dataserver get product query failed',
-                                          logger=logger)
-            #print("prod_query failed, Error:", e)
-            #print('!!! >>>Exception<<<', e)
-            #view_traceback()
-            #logger.exception(e)
-            #status=1
-            #message='dataserver get product query failed'
-            #debug_message=e
+            status=1
+            job.set_failed()
+            query_out.set_query_exception(e,
+                                          'get dataserver products ',
+                                          extra_message='dataserver get product query failed',
+                                          logger=logger,
+                                          sentry_client=sentry_client)
+
 
         msg_str = '--> data_server_query_status %d\n' % status
         msg_str += '--> end product query '
@@ -577,13 +525,17 @@ class ProductQuery(BaseQuery):
         return query_out
 
 
-    def process_product(self,instrument,job,query_prod_list, config=None,**kwargs):
+    def process_product(self,instrument,query_prod_list, config=None,**kwargs):
         query_out = QueryOutput()
         if self.process_product_method is not None and query_prod_list is not None:
-            query_out= self.process_product_method(instrument,job,query_prod_list,**kwargs)
+            query_out= self.process_product_method(instrument,query_prod_list,**kwargs)
         return query_out
 
-    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,**kwargs):
+    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,sentry_client=None,**kwargs):
+        if logger is None:
+            logger = self.get_logger()
+
+
         status = 0
         message = ''
         debug_message = ''
@@ -595,19 +547,23 @@ class ProductQuery(BaseQuery):
         query_out = QueryOutput()
 
         try:
-            query_out=self.process_product(instrument,job,self.query_prod_list,**kwargs)
+            process_products_query_out=self.process_product(instrument,self.query_prod_list,**kwargs)
+
+            process_products_query_out.prod_dictionary['session_id'] = job.session_id
+            process_products_query_out.prod_dictionary['job_id'] = job.job_id
+
+            status = process_products_query_out.get_status()
             query_out.set_status(status, message, debug_message=str(debug_message))
+
+
+
         except Exception as e:
+            status=1
             query_out.set_query_exception(e, 'product processing',
                                           extra_message='product processing failed',
-                                          logger=logger)
-            #print('!!! >>>Exception<<<', e)
-            #print("prod_process failed, Error:", e)
-            #view_traceback()
-            #logger.exception(e)
-            #status=1
-            #message='product processig failed'
-            #debug_message = e
+                                          logger=logger,
+                                          sentry_client=sentry_client)
+
 
         msg_str = '==>prod_process_status %d\n' % status
         msg_str += '--> end product process'
@@ -619,26 +575,24 @@ class ProductQuery(BaseQuery):
 
 
 
-    def run_query(self,instrument,scratch_dir,job,prompt_delegate,query_type='Real', config=None,logger=None):
+    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_client=None):
         input_prod_list=None
 
+        if logger is None:
+            logger = self.get_logger()
 
+        query_out = self.test_communication(instrument,query_type=query_type,logger=logger,config=config,sentry_client=sentry_client)
 
-        query_out,communication_status = self.test_communication(instrument,query_type=query_type,logger=logger,config=config)
-
-        if query_out.status_dictionary['status']==0:
-            query_out,communication_status = self.test_is_busy(instrument,communication_status,logger=logger,config=config)
 
         if query_out.status_dictionary['status'] == 0:
-            query_out=self.test_has_products(instrument,query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
+            query_out=self.test_has_products(instrument,query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client)
             input_prod_list=query_out.prod_dictionary['input_prod_list']
 
 
 
 
         if query_out.status_dictionary['status'] == 0:
-            query_out = self.get_query_products(instrument,job,prompt_delegate, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
-            #print ('ciccio run query get products,',query_out.status_dictionary['status'])
+            query_out = self.get_query_products(instrument,job,run_asynch, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client)
 
         if query_out.status_dictionary['status'] == 0:
             if job.status!='done':
@@ -652,7 +606,7 @@ class ProductQuery(BaseQuery):
 
             else:
                 if query_out.status_dictionary['status'] == 0:
-                    query_out = self.process_query_product(instrument,job, logger=logger, config=config)
+                    query_out = self.process_query_product(instrument,job, logger=logger, config=config,sentry_client=sentry_client)
 
 
                 if input_prod_list is not None:
@@ -677,10 +631,7 @@ class PostProcessProductQuery(ProductQuery):
                  **kwargs):
 
         super(PostProcessProductQuery, self).__init__(name, parameters_list, **kwargs)
-        #self._get_product_method = get_products_method
-        #self._html_draw_method = html_draw_method
-        #self._get_dummy_products_method = get_dummy_products_method
-        #self._process_product_method = process_product_method
+
         self.query_prod_list = None
 
 
@@ -702,7 +653,10 @@ class PostProcessProductQuery(ProductQuery):
         raise RuntimeError('this method has to be implemented in the derived class')
 
 
-    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,**kwargs):
+    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None,**kwargs):
+        if logger is None:
+            logger = self.get_logger()
+
         status = 0
         message = ''
         debug_message = ''
@@ -715,20 +669,16 @@ class PostProcessProductQuery(ProductQuery):
         query_out = QueryOutput()
 
         try:
-            query_out=self.process_product(instrument,job,out_dir=scratch_dir,**kwargs)
+            process_product_query_out=self.process_product(instrument,job,out_dir=scratch_dir,**kwargs)
+            status = process_product_query_out.get_status()
             query_out.set_status(status, message, debug_message=str(debug_message))
         except Exception as e:
             query_out.set_query_exception(e, 'product post processing',
                                           extra_message='product post processing failed',
-                                          logger=logger)
+                                          logger=logger,
+                                          sentry_client=sentry_client)
 
-            #print('!!! >>>Exception<<<', e)
-            #print("prod_process failed, Error:", e)
-            #view_traceback()
-            #logger.exception(e)
-            #status=1
-            #message='product processig failed: %s'%e
-            #debug_message = e
+
 
         msg_str = '==>prod_process_status %d\n' % status
         msg_str += '--> end product process'
@@ -739,19 +689,20 @@ class PostProcessProductQuery(ProductQuery):
 
 
 
-    def run_query(self,instrument,scratch_dir,job,prompt_delegate,query_type='Real', config=None,logger=None):
+    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_client=None):
 
-        #query_out = self.get_query_products(instrument, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir)
-        #if query_out.status_dictionary['status'] == 0:
+        if logger is None:
+            logger = self.get_logger()
 
-
-        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir)
+        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client)
         if query_out.status_dictionary['status'] == 0:
             job.set_done()
         else:
             job.set_failed()
 
         return query_out
+
+
 
 class ImageQuery(ProductQuery):
     def __init__(self,name,parameters_list=[],**kwargs):
@@ -828,7 +779,7 @@ class SpectralFitQuery(PostProcessProductQuery):
 
 
     def process_product(self,instrument,job,out_dir=None):
-        #print ('out dir',out_dir)
+
 
         src_name = instrument.get_par_by_name('src_name').value
 

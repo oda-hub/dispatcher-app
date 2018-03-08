@@ -44,7 +44,7 @@ import  decorator
 
 
 @decorator.decorator
-def check_exist(func,self):
+def check_exist(func,self,**kwargs):
     if self.file_path.exists()==False:
         raise RuntimeError('file %s',self.file_path.path,'does not exists')
     else:
@@ -73,16 +73,23 @@ class FitsFile(File):
     def __init__(self,file_path):
         super(FitsFile,self).__init__(file_path)
 
-    @check_exist
+    #@check_exist
     def open(self):
         #print('ciccio r', self.file_path)
         return pf.open(self.file_path.path)
         #print ('ciccio r',r)
         #return r
 
-    @check_exist
-    def writeto(self,filename, data, header=None, output_verify='exception', overwrite=False, checksum=False):
-        pf.writeto(filename,data,header=header,output_verify=output_verify,overwrite=overwrite,checksum=checksum,)
+    #@check_exist
+    def writeto(self,out_filename=None, data=None, header=None, output_verify='exception', overwrite=False, checksum=False):
+        if out_filename is None:
+            out_filename=self.file_path.path
+
+        if data is None:
+
+            pf.open(self.file_path.path).writeto(out_filename,output_verify=output_verify,overwrite=overwrite,checksum=checksum)
+        else:
+            pf.writeto(out_filename,data,header=header,output_verify=output_verify,overwrite=overwrite,checksum=checksum)
 
 class FilePath(object):
     def __init__(self,file_name='',file_dir=u'./',name_prefix=None):

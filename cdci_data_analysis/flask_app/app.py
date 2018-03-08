@@ -21,20 +21,20 @@ from flask import jsonify,send_from_directory
 from flask import Flask, request
 
 
-from cdci_data_analysis.plugins import OSA_ISGRI
-from cdci_data_analysis.plugins import OSA_JEMX
+from ..plugins import importer
 
 from ..analysis.queries import *
 from ..analysis.job_manager import Job
 from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
+from ..configurer import DataServerConf
 import  tempfile
 import tarfile
 import gzip
 import logging
 import socket
-
+import logstash
 
 #UPLOAD_FOLDER = '/path/to/the/uploads'
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
@@ -81,6 +81,7 @@ class InstrumentQueryBackEnd(object):
                 self.set_scratch_dir(self.par_dic['session_id'],job_id=self.job_id,verbose=verbose)
 
                 self.set_session_logger(self.scratch_dir,verbose=verbose)
+                self.set_sentry_client()
 
                 if data_server_call_back is False:
                     self.set_instrument(self.instrument_name)
@@ -90,9 +91,7 @@ class InstrumentQueryBackEnd(object):
         except Exception as e:
             print ('e',e)
 
-            #status = -1
-            #message = 'failed InstrumentQueryBackEnd constructor '
-            #debug_message = e
+
 
             query_out = QueryOutput()
             query_out.set_query_exception(e,'InstrumentQueryBackEnd constructor',extra_message='InstrumentQueryBackEnd constructor failed')
@@ -110,25 +109,10 @@ class InstrumentQueryBackEnd(object):
     def generate_job_id(self):
         print("!!! GENERATING JOB ID")
         self.job_id=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
-        #number = '0123456789'
-        #alpha = 'abcdefghijklmnopqrstuvwxyz'.capitalize()
-        #ID = ''
-        #for i in range(0, 16, 2):
-        #    ID += random.choice(number)
-        #    ID += random.choice(alpha)
-        #self.job_id=ID
-        #print ('------->str check',type(self.job_id),self.job_id)
 
 
-    def set_instrument(self,instrument_name):
-        if instrument_name == 'isgri':
-            self.instrument = OSA_ISGRI()
-        elif instrument_name=='jemx':
-            self.instrument=OSA_JEMX()
-        elif instrument_name=='mock':
-            self.instrument='mock'
-        else:
-            raise Exception("instrument not recognized".format(instrument_name))
+
+
 
     def set_session_logger(self,scratch_dir,verbose=False):
         logger = logging.getLogger(__name__)
@@ -141,11 +125,33 @@ class InstrumentQueryBackEnd(object):
             log.removeHandler(hdlr)
         log.addHandler(fileh)  # set the new handler
         logger.setLevel(logging.INFO)
+
+
+
         if verbose==True:
             print('logfile set to dir=', scratch_dir, ' with name=session.log')
 
+        host='10.194.169.75'
+        port=5001
+        logger.addHandler(logstash.TCPLogstashHandler(host, port))
+
+        extra = {
+            'origin': 'cdici_dispatcher',
+        }
+        logger = logging.LoggerAdapter(logger, extra)
         self.logger=logger
 
+    def set_sentry_client(self,sentry_url=None):
+
+        if sentry_url is not None:
+            from raven import Client
+
+            client=     Client(sentry_url)
+        else:
+            client=None
+
+
+        self.sentry_client=client
 
     def get_current_ip(self):
         return  socket.gethostbyname(socket.gethostname())
@@ -274,10 +280,17 @@ class InstrumentQueryBackEnd(object):
 
     def run_call_back(self,status_kw_name='action'):
 
-        if self.config is None:
-            config = app.config.get('osaconf')
-        else:
-            config = self.config
+        try:
+            config, config_data_server = self.set_config()
+            print('dispatcher port', config.dispatcher_port)
+        except Exception as e:
+            query_out = QueryOutput()
+            query_out.set_query_exception(e, 'run_query failed in ', self.__class__.__name__,
+                                          extra_message='configuration failed')
+
+
+
+
 
         job = Job(work_dir=self.scratch_dir,
                   server_url=self.get_current_ip(),
@@ -317,10 +330,10 @@ class InstrumentQueryBackEnd(object):
             log_str = 'parameters dictionary, key=' + key + ' value=' + str(self.par_dic[key])
             self.logger.info(log_str)
 
-        if self.config is None:
-            config = app.config.get('osaconf')
-        else:
-            config = self.config
+        #if self.config is None:
+        #    config_disp = app.config.get('dispatcher_conf')
+        #else:
+        #    config_disp = self.config['dispatcher_conf']
 
         out_dict=mock_query(self.par_dic,session_id,self.job_id,self.scratch_dir)
 
@@ -377,21 +390,70 @@ class InstrumentQueryBackEnd(object):
 
                 return jsonify(out_dict)
 
+    def set_instrument(self, instrument_name):
+        new_instrument=None
+        if instrument_name == 'mock':
+            new_instrument = 'mock'
+
+        else:
+            for instrument_factory in importer.instrument_facotry_list:
+                instrument = instrument_factory()
+                if instrument.name == instrument_name:
+                    #print('setting instr',instrument_name,instrument.name)
+                    new_instrument = instrument
+
+
+
+
+        if new_instrument is None:
+
+            raise Exception("instrument not recognized".format(instrument_name))
+        else:
+            self.instrument=new_instrument
+
+    def set_config(self):
+        if self.config is None:
+            config = app.config.get('conf')
+        else:
+            config = self.config
+
+        disp_data_server_conf_dict=config.get_data_server_conf_dict(self.instrument_name)
+
+        #print('pre',self.instrument.data_server_conf_dict)
+        if disp_data_server_conf_dict is not None:
+            if 'data_server' in  disp_data_server_conf_dict.keys():
+                if self.instrument.name in  disp_data_server_conf_dict['data_server'].keys():
+                    for k in disp_data_server_conf_dict['data_server'][self.instrument.name].keys():
+                        if k in self.instrument.data_server_conf_dict.keys():
+                            #print (k,self.instrument.data_server_conf_dict.keys(),disp_data_server_conf_dict['data_server'][self.instrument.name].keys())
+                            self.instrument.data_server_conf_dict[k] = disp_data_server_conf_dict['data_server'][self.instrument.name][k]
+
+            #print('post',self.instrument.data_server_conf_dict)
+            config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
+        else:
+            config_data_server=None
+
+        return config,config_data_server
 
     def run_query(self,off_line=False):
 
         print ('==============================> run query <==============================')
-        query_type = self.par_dic['query_type']
-        product_type = self.par_dic['product_type']
 
-        #JOBID=PID+RAND
-        query_status=self.par_dic['query_status']
 
+        try:
+            query_type = self.par_dic['query_type']
+            product_type = self.par_dic['product_type']
+            query_status=self.par_dic['query_status']
+
+        except Exception as e:
+            query_out = QueryOutput()
+            query_out.set_query_exception(e, 'run_query failed in ',self.__class__.__name__,
+                                          extra_message='InstrumentQueryBackEnd constructor failed')
 
 
         if self.par_dic.has_key('instrumet'):
             self.par_dic.pop('instrumet')
-        #prod_dictionary = self.instrument.set_pars_from_from(par_dic)
+
 
 
 
@@ -407,12 +469,16 @@ class InstrumentQueryBackEnd(object):
             log_str = 'parameters dictionary, key=' + key + ' value=' + str(self.par_dic[key])
             self.logger.info(log_str)
 
-        if self.config is None:
-            config = app.config.get('osaconf')
-        else:
-            config=self.config
+        try:
+            config, config_data_server=self.set_config()
+            print('dispatcher port', config.dispatcher_port)
+        except Exception as e:
+            query_out = QueryOutput()
+            query_out.set_query_exception(e, 'run_query failed in ', self.__class__.__name__,
+                                          extra_message='configuration failed')
 
-        print('conf', config.dispatcher_port)
+        if config.sentry_url is not None:
+            self.set_sentry_client(config.sentry_url)
 
         job = Job(work_dir=self.scratch_dir,
                   server_url=self.get_current_ip(),
@@ -430,24 +496,28 @@ class InstrumentQueryBackEnd(object):
         out_dict=None
         query_out=None
 
-        if query_status=='new' or query_status=='ready':
-            if query_status=='new':
-                prompt_delegate=True
-            else:
-                prompt_delegate=True
 
-            print ('*** prompt_delegate',prompt_delegate)
+        if query_status=='new' or query_status=='ready':
+            run_asynch = True
+
+            #if query_status=='new':
+            #    run_asynch=True
+            #else:
+            #    run_asynch=True
+
+            print ('*** run_asynch',run_asynch)
             query_out = self.instrument.run_query(product_type,
                                                     self.par_dic,
                                                     request,
                                                     self,
                                                     job,
-                                                    prompt_delegate,
+                                                    run_asynch,
                                                     out_dir=self.scratch_dir,
-                                                    config=config,
+                                                    config=config_data_server,
                                                     query_type=query_type,
                                                     logger=self.logger,
-                                                        verbose=False)
+                                                    sentry_client=self.sentry_client,
+                                                    verbose=False)
 
 
             print('-----------------> job status after query:', job.status)
@@ -460,9 +530,10 @@ class InstrumentQueryBackEnd(object):
             else:
                 query_new_status = 'failed'
 
+            job.write_dataserver_status()
             print('-----------------> query status new 1: ', query_new_status)
 
-        elif query_status=='progress' or query_status=='unaccessible' or query_status=='unknown':
+        elif query_status=='progress' or query_status=='unaccessible' or query_status=='unknown' or query_status=='submitted':
 
             job_monitor = job.get_dataserver_status()
             print('-----------------> job status from data server', job_monitor['status'])
@@ -474,6 +545,8 @@ class InstrumentQueryBackEnd(object):
                 query_new_status='progress'
             elif job_monitor['status'] == 'unaccessible':
                 query_new_status='unaccessible'
+            elif job_monitor['status'] == 'submitted':
+                query_new_status='submitted'
             else:
                 query_new_status='progress'
 
@@ -622,7 +695,7 @@ def dataserver_call_back():
 
 
 def run_app(conf,debug=False,threaded=False):
-    app.config['osaconf'] = conf
+    app.config['conf'] = conf
     app.run(host=conf.dispatcher_url, port=conf.dispatcher_port, debug=debug,threaded=threaded)
 
 
