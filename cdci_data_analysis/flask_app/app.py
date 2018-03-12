@@ -362,13 +362,14 @@ class InstrumentQueryBackEnd(object):
 
 
     def build_dispatcher_response(self, out_dict=None,query_new_status=None,query_out=None,job_monitor=None,off_line=True):
-
+        print ('ciccio')
         if  out_dict is None:
             out_dict={}
 
             if query_new_status is not None:
                 out_dict['query_status'] = query_new_status
             if query_out is not None:
+                print('ciccio polenta'),query_out.prod_dictionary
                 out_dict['products'] = query_out.prod_dictionary
                 out_dict['exit_status'] = query_out.status_dictionary
 

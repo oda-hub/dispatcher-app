@@ -544,7 +544,7 @@ class ProductQuery(BaseQuery):
         print(msg_str)
         logger.info(msg_str)
 
-        query_out = QueryOutput()
+        process_products_query_out = QueryOutput()
 
         try:
             process_products_query_out=self.process_product(instrument,self.query_prod_list,**kwargs)
@@ -553,13 +553,13 @@ class ProductQuery(BaseQuery):
             process_products_query_out.prod_dictionary['job_id'] = job.job_id
 
             status = process_products_query_out.get_status()
-            query_out.set_status(status, message, debug_message=str(debug_message))
+            process_products_query_out.set_status(status, message, debug_message=str(debug_message))
 
 
 
         except Exception as e:
             status=1
-            query_out.set_query_exception(e, 'product processing',
+            process_products_query_out.set_query_exception(e, 'product processing',
                                           extra_message='product processing failed',
                                           logger=logger,
                                           sentry_client=sentry_client)
@@ -570,7 +570,7 @@ class ProductQuery(BaseQuery):
         logger.info(msg_str)
 
 
-        return query_out
+        return process_products_query_out
 
 
 
@@ -610,11 +610,9 @@ class ProductQuery(BaseQuery):
                     query_out = self.process_query_product(instrument,job, logger=logger, config=config,sentry_client=sentry_client)
 
 
-
             #attach this at the end, anyhow
             if input_prod_list is not None:
                 query_out.prod_dictionary['input_prod_list']=input_prod_list
-
 
         return query_out
 
