@@ -80,7 +80,7 @@ class InstrumentQueryBackEnd(object):
 
                 self.set_scratch_dir(self.par_dic['session_id'],job_id=self.job_id,verbose=verbose)
 
-                self.set_session_logger(self.scratch_dir,verbose=verbose)
+                self.set_session_logger(self.scratch_dir,verbose=verbose,config=config)
                 self.set_sentry_client()
 
                 if data_server_call_back is False:
@@ -114,7 +114,7 @@ class InstrumentQueryBackEnd(object):
 
 
 
-    def set_session_logger(self,scratch_dir,verbose=False):
+    def set_session_logger(self,scratch_dir,verbose=False,config=None):
         logger = logging.getLogger(__name__)
         fileh = logging.FileHandler(os.path.join(scratch_dir, 'session.log'), 'a')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -131,15 +131,23 @@ class InstrumentQueryBackEnd(object):
         if verbose==True:
             print('logfile set to dir=', scratch_dir, ' with name=session.log')
 
-        host='10.194.169.75'
-        port=5001
-        logger.addHandler(logstash.TCPLogstashHandler(host, port))
+        if config is not None:
+            logger=self.set_logstash(logger,logstash_host=config.logstash_host,logstash_port=config.logstash_port)
 
-        extra = {
-            'origin': 'cdici_dispatcher',
-        }
-        logger = logging.LoggerAdapter(logger, extra)
         self.logger=logger
+
+    def set_logstash(self,logger,logstash_host=None,logstash_port=None):
+        if logstash_host is not None:
+            logger.addHandler(logstash.TCPLogstashHandler(logstash_host, logstash_port))
+
+            extra = {
+                'origin': 'cdici_dispatcher',
+            }
+            logger = logging.LoggerAdapter(logger, extra)
+            self.logger = logger
+
+
+
 
     def set_sentry_client(self,sentry_url=None):
 

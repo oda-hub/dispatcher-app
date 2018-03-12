@@ -14,10 +14,14 @@ monitor
 ## tunnels
 
 to logger
-- `ssh -t -L 5001:localhost:5001 nx ssh -t -L 5001:localhost:5001 tramacer@openstack-compute01`
+-  mac `ssh -t -L 5001:localhost:5001 nx ssh -t -L 5001:localhost:5001 tramacer@openstack-compute01`
 
+-  nx: `ssh -t -L 5001:localhost:5001 tramacer@openstack-compute01`
 to monitor
-- `ssh -t -L 5601:localhost:5601 nx ssh -t -L 5601:localhost:5601 tramacer@openstack-compute01`
+
+- mac `ssh -t -L 5601:localhost:5601 nx ssh -t -L 5601:localhost:5601 tramacer@openstack-compute01`
+
+-  nx `ssh -t -L 5601:localhost:5601 tramacer@openstack-compute01`
 
 ## url from laptop
 `http://localhost:5601`
