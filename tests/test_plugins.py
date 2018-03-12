@@ -348,7 +348,7 @@ def test_asynch_full():
                                                 Dec_user_cat=[20.01494598388672],
                                                 user_catalog=False,
                                                 #upload_data='cat_csv',
-                                                query_type='Dummy')
+                                                query_type='Real')
 
     print('upload_data', upload_data)
     query_out=test_asynch_request(parameters_dic,instrument_name,query_status='new',upload_data=None)
