@@ -362,14 +362,13 @@ class InstrumentQueryBackEnd(object):
 
 
     def build_dispatcher_response(self, out_dict=None,query_new_status=None,query_out=None,job_monitor=None,off_line=True):
-        print ('ciccio')
+
         if  out_dict is None:
             out_dict={}
 
             if query_new_status is not None:
                 out_dict['query_status'] = query_new_status
             if query_out is not None:
-                print('ciccio polenta'),query_out.prod_dictionary
                 out_dict['products'] = query_out.prod_dictionary
                 out_dict['exit_status'] = query_out.status_dictionary
 
@@ -540,7 +539,7 @@ class InstrumentQueryBackEnd(object):
                 query_new_status = 'failed'
 
             job.write_dataserver_status()
-            print('-----------------> query status new 1: ', query_new_status)
+            print('-----------------> query status new 1: ', query_new_status,query_out.status_dictionary)
 
         elif query_status=='progress' or query_status=='unaccessible' or query_status=='unknown' or query_status=='submitted':
 
@@ -561,12 +560,15 @@ class InstrumentQueryBackEnd(object):
 
             print('-----------------> query status new 2:', query_new_status)
 
+            status=0
+            query_out = QueryOutput()
+            query_out.set_status(status=status,job_status=job_monitor['status'])
             out_dict = {}
             out_dict['job_monitor'] = job_monitor
             out_dict['job_status'] = job_monitor['status']
             out_dict['query_status'] = query_new_status
             out_dict['products'] = ''
-            out_dict['exit_status'] = 0
+            out_dict['exit_status'] = query_out
 
             #self.build_dispatcher_response(out_dict=out_dict)
             print('query_out:job_monitor', job_monitor)
@@ -575,13 +577,17 @@ class InstrumentQueryBackEnd(object):
 
         elif query_status=='failed':
             #TODO: here we shoudl rusubmit query to get exception from ddosa
+            status = 1
+            query_out = QueryOutput()
+            query_out.set_status(status=status, job_status=job_monitor['status'])
+
             out_dict = {}
             query_new_status='failed'
             out_dict['job_monitor'] = job_monitor
             out_dict['job_status'] = job_monitor['status']
             out_dict['query_status'] = query_new_status
             out_dict['products'] = ''
-            out_dict['exit_status'] = 1
+            out_dict['exit_status'] = query_out
 
             #self.build_dispatcher_response(out_dict=out_dict)
             print('query_out:job_monitor', job_monitor)
@@ -589,13 +595,16 @@ class InstrumentQueryBackEnd(object):
             print('-----------------> query status new:', query_new_status)
 
         else:
+            status = 0
+            query_out = QueryOutput()
+            query_out.set_status(status=status, job_status=job_monitor['status'])
             out_dict = {}
             query_new_status = 'unknown'
             out_dict['job_monitor'] = job_monitor
             out_dict['job_status']='unknown'
             out_dict['query_status'] = query_new_status
             out_dict['products'] = ''
-            out_dict['exit_status'] = 0
+            out_dict['exit_status'] = query_out
 
             #self.build_dispatcher_response(out_dict=out_dict)
             print('query_out:job_monitor', job_monitor)

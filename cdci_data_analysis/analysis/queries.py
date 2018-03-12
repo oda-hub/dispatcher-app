@@ -501,7 +501,7 @@ class ProductQuery(BaseQuery):
 
                 job.set_done()
 
-            query_out.set_status(status, message, debug_message=str(debug_message))
+            query_out.set_status(status, message, debug_message=str(debug_message),job_status=job.status)
 
         except Exception as e:
             status=1
@@ -554,11 +554,13 @@ class ProductQuery(BaseQuery):
 
             status = process_products_query_out.get_status()
             process_products_query_out.set_status(status, message, debug_message=str(debug_message))
+            job.set_done()
 
-
+            process_products_query_out.set_status(status, message, debug_message=str(debug_message), job_status=job.status)
 
         except Exception as e:
             status=1
+            job.set_failed()
             process_products_query_out.set_query_exception(e, 'product processing',
                                           extra_message='product processing failed',
                                           logger=logger,

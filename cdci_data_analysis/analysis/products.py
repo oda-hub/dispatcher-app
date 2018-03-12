@@ -72,7 +72,7 @@ class QueryOutput(object):
         return self.status_dictionary['status']
 
     def get_job_status(self):
-        print ('ciccio job_status',self.status_dictionary['job_status'])
+        #print ('ciccio job_status',self.status_dictionary['job_status'])
         return self.status_dictionary['job_status']
 
     def set_query_exception(self, excep,

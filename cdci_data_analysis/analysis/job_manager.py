@@ -93,6 +93,8 @@ class Job(object):
 
 
     def get_dataserver_status(self,):
+        # TODO: combine all files
+
         try:
             with open(self.file_path, 'r') as infile:
                 #print("=====> reading  from ", self.file_path)
@@ -104,7 +106,7 @@ class Job(object):
         return  self.monitor
 
     def write_dataserver_status(self,status_dictionary_value=None,full_dict=None):
-        # TODO: add check of current and on file job_id and session_id
+        # TODO: write to specific name coming for call_back
 
         if status_dictionary_value is None:
             pass
