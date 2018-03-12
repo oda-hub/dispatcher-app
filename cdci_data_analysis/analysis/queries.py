@@ -495,9 +495,9 @@ class ProductQuery(BaseQuery):
 
             else:
 
-                prod_list = self.get_dummy_products(instrument,config=config,out_dir=scratch_dir)
+                self.query_prod_list = self.get_dummy_products(instrument,config=config,out_dir=scratch_dir)
 
-                self.query_prod_list = QueryProductList(prod_list=prod_list)
+                #self.query_prod_list = QueryProductList(prod_list=prod_list)
 
                 job.set_done()
 
