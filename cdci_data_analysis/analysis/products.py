@@ -90,7 +90,10 @@ class QueryOutput(object):
         if excep.__repr__ is None:
             e_message = ''
         else:
-            e_message = excep.__repr__()
+            try:
+                e_message = excep.__repr__()
+            except:
+                e_message=''
 
 
         if sentry_client is not None:
