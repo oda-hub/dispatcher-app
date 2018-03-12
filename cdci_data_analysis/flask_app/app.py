@@ -144,7 +144,7 @@ class InstrumentQueryBackEnd(object):
                 'origin': 'cdici_dispatcher',
             }
             logger = logging.LoggerAdapter(logger, extra)
-            self.logger = logger
+            return logger
 
 
 

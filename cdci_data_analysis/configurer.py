@@ -101,7 +101,10 @@ class ConfigEnv(object):
 
             self.set_conf_dispatcher(disp_dict['dispatcher_url'],
                                      disp_dict['dispatcher_port'],
-                                     disp_dict['sentry_url'])
+                                     disp_dict['sentry_url'],
+                                     disp_dict['logstash_host'],
+                                     disp_dict['logstash_port']
+                                     )
 
 
 
@@ -116,13 +119,14 @@ class ConfigEnv(object):
         self._data_server_conf_dict[instr_name] = data_server_conf_dict
         #self._data_server_conf_dict[instr_name] = DataServerConf.from_conf_dict(data_server_conf_dict)
 
-    def set_conf_dispatcher(self,dispatcher_url,dispatcher_port,sentry_url):
+    def set_conf_dispatcher(self,dispatcher_url,dispatcher_port,sentry_url,logstash_host,logstash_port):
         # Generic to dispatcher
         print(dispatcher_url, dispatcher_port)
         self.dispatcher_url = dispatcher_url
         self.dispatcher_port = dispatcher_port
         self.sentry_url=sentry_url
-
+        self.logstash_host=logstash_host
+        self.logstash_port=logstash_port
 
 
 
