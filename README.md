@@ -31,7 +31,7 @@ to monitor
 
   PATH is the local_cache directory from conf_env.yml
   
-  typically `PATH=/Users/orion/astro/Integral_Web_Analysis/TEST_DISPATCHER/ddosa_cache`
+ - `PATH=/Users/orion/astro/Integral_Web_Analysis/TEST_DISPATCHER/ddosa_cache`
 
  - `mkdir PATH`
 
@@ -79,6 +79,6 @@ PYTHON_LIB="-lpython2.7"
 
 #To run tests example in run_test directory:
 
-pytest ../tests/test_plugins.py::test_image -s -v
+- ```pytest ../cdci_data_analysis/tests/test_plugins.py::test_asynch_full -s -v```
 
 

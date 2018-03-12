@@ -576,14 +576,13 @@ class ProductQuery(BaseQuery):
 
 
     def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_client=None):
-        input_prod_list=None
 
         if logger is None:
             logger = self.get_logger()
 
         query_out = self.test_communication(instrument,query_type=query_type,logger=logger,config=config,sentry_client=sentry_client)
 
-
+        input_prod_list=None
         if query_out.status_dictionary['status'] == 0:
             query_out=self.test_has_products(instrument,query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client)
             input_prod_list=query_out.prod_dictionary['input_prod_list']
@@ -594,9 +593,11 @@ class ProductQuery(BaseQuery):
         if query_out.status_dictionary['status'] == 0:
             query_out = self.get_query_products(instrument,job,run_asynch, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client)
 
+
+
+
         if query_out.status_dictionary['status'] == 0:
             if job.status!='done':
-
 
                 query_out.prod_dictionary = {}
                 # TODO: add check if is asynch
@@ -609,8 +610,11 @@ class ProductQuery(BaseQuery):
                     query_out = self.process_query_product(instrument,job, logger=logger, config=config,sentry_client=sentry_client)
 
 
-                if input_prod_list is not None:
-                    query_out.prod_dictionary['input_prod_list']=input_prod_list
+
+            #attach this at the end, anyhow
+            if input_prod_list is not None:
+                query_out.prod_dictionary['input_prod_list']=input_prod_list
+
 
         return query_out
 
