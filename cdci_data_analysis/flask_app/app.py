@@ -24,7 +24,7 @@ from flask import Flask, request
 from ..plugins import importer
 
 from ..analysis.queries import *
-from ..analysis.job_manager import Job
+from ..analysis.job_manager import Job,job_factory
 from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
@@ -300,15 +300,30 @@ class InstrumentQueryBackEnd(object):
 
 
 
-        job = Job(work_dir=self.scratch_dir,
-                  server_url=self.get_current_ip(),
-                  server_port=config.dispatcher_port,
-                  callback_handle='call_back',
-                  session_id=self.par_dic['session_id'],
-                  job_id=self.par_dic['job_id'])
 
 
-        status=self.par_dic[status_kw_name]
+        #job = Job(work_dir=self.scratch_dir,
+        #          server_url=self.get_current_ip(),
+        #          server_port=config.dispatcher_port,
+        #          callback_handle='call_back',
+        #          session_id=self.par_dic['session_id'],
+        #          job_id=self.par_dic['job_id'])
+
+        job = job_factory(self.par_dic['instrument_name'],
+                          self.scratch_dir,
+                          self.get_current_ip(),
+                          config.dispatcher_port,
+                          self.par_dic['session_id'],
+                          self.job_id,
+                          self.par_dic)
+
+
+        #if 'node_id' in self.par_dic.keys():
+        #    print('node_id', self.par_dic['node_id'])
+        #else:
+        #    print('No! node_id')
+
+        status=self.par_dic[job.status_kw_name]
         print ('-----> set status to ',status)
         job.write_dataserver_status(status_dictionary_value=status,full_dict=self.par_dic)
 
@@ -317,7 +332,7 @@ class InstrumentQueryBackEnd(object):
     def run_query_mock(self, off_line=False):
 
 
-        # JOBID=PID+RAND
+
 
 
         job_status = self.par_dic['job_status']
@@ -326,9 +341,7 @@ class InstrumentQueryBackEnd(object):
 
         if self.par_dic.has_key('instrumet'):
             self.par_dic.pop('instrumet')
-        # prod_dictionary = self.instrument.set_pars_from_from(par_dic)
 
-        # if prod_dictionary['status'] == 0:
 
 
         self.logger.info('instrument %s' % self.instrument_name)
@@ -338,10 +351,7 @@ class InstrumentQueryBackEnd(object):
             log_str = 'parameters dictionary, key=' + key + ' value=' + str(self.par_dic[key])
             self.logger.info(log_str)
 
-        #if self.config is None:
-        #    config_disp = app.config.get('dispatcher_conf')
-        #else:
-        #    config_disp = self.config['dispatcher_conf']
+
 
         out_dict=mock_query(self.par_dic,session_id,self.job_id,self.scratch_dir)
 
@@ -488,12 +498,21 @@ class InstrumentQueryBackEnd(object):
         if config.sentry_url is not None:
             self.set_sentry_client(config.sentry_url)
 
-        job = Job(work_dir=self.scratch_dir,
-                  server_url=self.get_current_ip(),
-                  server_port=config.dispatcher_port,
-                  callback_handle='call_back',
-                  session_id=self.par_dic['session_id'],
-                  job_id=self.job_id)
+
+        job=job_factory(self.instrument_name,
+                        self.scratch_dir,
+                        self.get_current_ip(),
+                        config.dispatcher_port,
+                        self.par_dic['session_id'],
+                        self.job_id,
+                        self.par_dic)
+
+        #job = Job(work_dir=self.scratch_dir,
+        #          server_url=self.get_current_ip(),
+        #          server_port=config.dispatcher_port,
+        #          callback_handle='call_back',
+        #          session_id=self.par_dic['session_id'],
+        #          job_id=self.job_id)
 
         job_monitor=job.monitor
 
@@ -544,7 +563,7 @@ class InstrumentQueryBackEnd(object):
         elif query_status=='progress' or query_status=='unaccessible' or query_status=='unknown' or query_status=='submitted':
 
             job_monitor = job.get_dataserver_status()
-            print('-----------------> job status from data server', job_monitor['status'])
+            print('-----------------> job monitor from data server', job_monitor['status'])
             if job_monitor['status']=='done':
                 query_new_status='ready'
             elif job_monitor['status']=='failed':
@@ -571,7 +590,7 @@ class InstrumentQueryBackEnd(object):
             out_dict['exit_status'] = query_out
 
             #self.build_dispatcher_response(out_dict=out_dict)
-            print('query_out:job_monitor', job_monitor)
+            print('query_out:job_monitor',  job_monitor['status'])
             print('==============================> query done <==============================')
 
 
@@ -702,7 +721,7 @@ def test_mock():
 
 @app.route('/call_back', methods=['POST', 'GET'])
 def dataserver_call_back():
-    #instrument_name='ISGRI'
+
     print('===========================> dataserver_call_back')
     query=InstrumentQueryBackEnd(instrument_name='mock',data_server_call_back=True)
     query.run_call_back()

@@ -343,7 +343,7 @@ def test_asynch_full():
     instrument_name='isgri'
     parameters_dic,upload_data=set_mosaic_query(instrument_name=instrument_name,
                                                 scw_list=asynch_scw_list,
-                                                E1_keV=23.0,
+                                                E1_keV=20.01010101,
                                                 RA_user_cat=[80.63168334960938],
                                                 Dec_user_cat=[20.01494598388672],
                                                 user_catalog=False,
