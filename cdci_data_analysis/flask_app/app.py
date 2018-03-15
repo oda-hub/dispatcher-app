@@ -323,8 +323,12 @@ class InstrumentQueryBackEnd(object):
         #else:
         #    print('No! node_id')
 
-        status=self.par_dic[job.status_kw_name]
+        if job.status_kw_name in self.par_dic.keys():
+            status=self.par_dic[job.status_kw_name]
+        else:
+            status='unknown'
         print ('-----> set status to ',status)
+
         job.write_dataserver_status(status_dictionary_value=status,full_dict=self.par_dic)
 
         return status
@@ -371,24 +375,28 @@ class InstrumentQueryBackEnd(object):
 
 
 
-    def build_dispatcher_response(self, out_dict=None,query_new_status=None,query_out=None,job_monitor=None,off_line=True):
+    def build_dispatcher_response(self,query_new_status=None,query_out=None,job_monitor=None,off_line=True):
 
-        if  out_dict is None:
-            out_dict={}
 
-            if query_new_status is not None:
-                out_dict['query_status'] = query_new_status
-            if query_out is not None:
-                out_dict['products'] = query_out.prod_dictionary
-                out_dict['exit_status'] = query_out.status_dictionary
+        out_dict={}
 
-            print('exit_status', out_dict['exit_status'])
+        if query_new_status is not None:
+            out_dict['query_status'] = query_new_status
+        if query_out is not None:
+            out_dict['products'] = query_out.prod_dictionary
+            out_dict['exit_status'] = query_out.status_dictionary
 
-            if job_monitor is not None:
-                out_dict['job_monitor'] = job_monitor
-                print('query_out:job_monitor', job_monitor)
-        else:
-            pass
+        if job_monitor is not None:
+            out_dict['job_monitor'] = job_monitor
+            out_dict['job_status'] = job_monitor['status']
+
+
+        print('exit_status', out_dict['exit_status'])
+
+        if job_monitor is not None:
+            out_dict['job_monitor'] = job_monitor
+            #print('query_out:job_monitor', job_monitor)
+
 
         print ('offline',off_line)
         if off_line == True:
@@ -403,10 +411,12 @@ class InstrumentQueryBackEnd(object):
                 else:
                     pass
 
-                query_out.set_status(1, error_message='failed json serialization', debug_message=str(e.message))
+                query_out.set_failed('build dispatcher response', error_message='failed json serialization', debug_message=str(e.message))
                 out_dict['exit_status'] = query_out.status_dictionary
 
                 return jsonify(out_dict)
+
+
 
     def set_instrument(self, instrument_name):
         new_instrument=None
@@ -507,13 +517,6 @@ class InstrumentQueryBackEnd(object):
                         self.job_id,
                         self.par_dic)
 
-        #job = Job(work_dir=self.scratch_dir,
-        #          server_url=self.get_current_ip(),
-        #          server_port=config.dispatcher_port,
-        #          callback_handle='call_back',
-        #          session_id=self.par_dic['session_id'],
-        #          job_id=self.job_id)
-
         job_monitor=job.monitor
 
         print('-----------------> query status  old is: ',query_status )
@@ -523,14 +526,11 @@ class InstrumentQueryBackEnd(object):
         out_dict=None
         query_out=None
 
-
+        #TODO rename query_new_status and query_status
+        #NEW OR READY
         if query_status=='new' or query_status=='ready':
             run_asynch = True
 
-            #if query_status=='new':
-            #    run_asynch=True
-            #else:
-            #    run_asynch=True
 
             print ('*** run_asynch',run_asynch)
             query_out = self.instrument.run_query(product_type,
@@ -548,87 +548,129 @@ class InstrumentQueryBackEnd(object):
 
 
             print('-----------------> job status after query:', job.status)
+            #print ('q_out.status_dictionary',query_out.status_dictionary)
+            #query_out.set_done(job_status=job_monitor['status'])
+            #query_new_status= query_out.get_status()
+
+
             if query_out.status_dictionary['status']==0:
-                if job.status!='done':
-                    job.set_submitted()
-                    query_new_status = 'progress'
+                if job.status=='done':
+                    query_new_status='done'
+                elif job.status=='failed':
+                    query_new_status='failed'
                 else:
-                    query_new_status = 'done'
+                    query_new_status = 'submitted'
+                    job.set_submitted()
             else:
                 query_new_status = 'failed'
+                job.set_failed()
 
             job.write_dataserver_status()
-            print('-----------------> query status new 1: ', query_new_status,query_out.status_dictionary)
+
+            print('-----------------> query status update for done/ready: ', query_new_status)
 
         elif query_status=='progress' or query_status=='unaccessible' or query_status=='unknown' or query_status=='submitted':
+            query_out = QueryOutput()
 
-            job_monitor = job.get_dataserver_status()
+            job_monitor = job.updat_dataserver_monitor()
+
+
             print('-----------------> job monitor from data server', job_monitor['status'])
             if job_monitor['status']=='done':
-                query_new_status='ready'
-            elif job_monitor['status']=='failed':
-                query_new_status='failed'
-            elif job_monitor['status'] == 'progress':
-                query_new_status='progress'
-            elif job_monitor['status'] == 'unaccessible':
-                query_new_status='unaccessible'
-            elif job_monitor['status'] == 'submitted':
-                query_new_status='submitted'
+                job.set_ready()
+
+            query_out.set_done(job_status=job_monitor['status'])
+
+            if  job_monitor['status']=='unaccessible' or job_monitor['status']=='unknown':
+                query_new_status=query_status
             else:
-                query_new_status='progress'
 
-            print('-----------------> query status new 2:', query_new_status)
+                query_new_status = job.get_status()
 
-            status=0
-            query_out = QueryOutput()
-            query_out.set_status(status=status,job_status=job_monitor['status'])
-            out_dict = {}
-            out_dict['job_monitor'] = job_monitor
-            out_dict['job_status'] = job_monitor['status']
-            out_dict['query_status'] = query_new_status
-            out_dict['products'] = ''
-            out_dict['exit_status'] = query_out
+            print('-----------------> job monitor updated', job_monitor['status'])
+
+
+
+            print('-----------------> query status update for progress:', query_new_status)
+
+
+            #out_dict = {}
+            #out_dict['job_monitor'] = job_monitor
+            #out_dict['job_status'] = job_monitor['status']
+            #out_dict['query_status'] = query_new_status
+            #out_dict['products'] = ''
+            #out_dict['exit_status'] = query_out
+
+
+
+
+            #if job_monitor['status']=='done':
+            #    query_new_status='ready'
+            #elif job_monitor['status']=='failed':
+            #    query_new_status='failed'
+            #elif job_monitor['status'] == 'progress':
+            #    query_new_status='progress'
+            #elif job_monitor['status'] == 'unaccessible':
+            #    query_new_status='unaccessible'
+            #elif job_monitor['status'] == 'submitted':
+            #    query_new_status='submitted'
+            #else:
+            #    query_new_status='progress'
+
+
+            #status=0
+            #query_out = QueryOutput()
+            #query_out.set_done(job_status=job_monitor['status'])
+
 
             #self.build_dispatcher_response(out_dict=out_dict)
-            print('query_out:job_monitor',  job_monitor['status'])
+            #print('query_out:job_monitor',  job_monitor['status'])
             print('==============================> query done <==============================')
 
 
         elif query_status=='failed':
             #TODO: here we shoudl rusubmit query to get exception from ddosa
-            status = 1
+            #status = 1
             query_out = QueryOutput()
-            query_out.set_status(status=status, job_status=job_monitor['status'])
+            query_out.set_failed('submitted job',job_status=job_monitor['status'])
 
-            out_dict = {}
-            query_new_status='failed'
-            out_dict['job_monitor'] = job_monitor
-            out_dict['job_status'] = job_monitor['status']
-            out_dict['query_status'] = query_new_status
-            out_dict['products'] = ''
-            out_dict['exit_status'] = query_out
+            query_new_status =  'failed'
+            print('-----------------> query status update for failed:', query_new_status)
+
+
+            #out_dict = {}
+            #out_dict['job_monitor'] = job_monitor
+            #out_dict['job_status'] = job_monitor['status']
+            #out_dict['query_status'] = query_new_status
+            #out_dict['products'] = ''
+            #out_dict['exit_status'] = query_out
 
             #self.build_dispatcher_response(out_dict=out_dict)
-            print('query_out:job_monitor', job_monitor)
-            print('==============================> query done <==============================')
+            #print('query_out:job_monitor', job_monitor)
             print('-----------------> query status new:', query_new_status)
+            print('==============================> query done <==============================')
+
 
         else:
-            status = 0
+            #status = 0
             query_out = QueryOutput()
-            query_out.set_status(status=status, job_status=job_monitor['status'])
-            out_dict = {}
-            query_new_status = 'unknown'
-            out_dict['job_monitor'] = job_monitor
-            out_dict['job_status']='unknown'
-            out_dict['query_status'] = query_new_status
-            out_dict['products'] = ''
-            out_dict['exit_status'] = query_out
+            query_out.set_status(0,job_status=job_monitor['status'])
+
+            #query_new_status = 'unknown'
+            query_new_status = job.get_status()
+
+            #out_dict = {}
+            #out_dict['job_monitor'] = job_monitor
+            #out_dict['job_status']='unknown'
+            #out_dict['query_status'] = query_new_status
+            #out_dict['products'] = ''
+            #out_dict['exit_status'] = query_out
 
             #self.build_dispatcher_response(out_dict=out_dict)
             print('query_out:job_monitor', job_monitor)
-            print('==============================> query done <==============================')
             print('-----------------> query status new:', query_new_status)
+            print('==============================> query done <==============================')
+
 
 
 
@@ -639,38 +681,16 @@ class InstrumentQueryBackEnd(object):
         self.logger.info('============================================================')
         self.logger.info('')
 
-        resp= self.build_dispatcher_response(out_dict=out_dict,
-                                       query_new_status=query_new_status,
+        resp= self.build_dispatcher_response(query_new_status=query_new_status,
                                        query_out=query_out,
                                        job_monitor=job_monitor,
                                        off_line=off_line)
-        #if out_dict is None:
-        #    out_dict = {}
-        #    out_dict['query_status']=query_new_status
-        #    out_dict['products'] = query_out.prod_dictionary
-        #    out_dict['exit_status'] = query_out.status_dictionary
-        #    print('exit_status', out_dict['exit_status'])
 
-        #    #if no_job_class_found == False:
-        #    out_dict['job_monitor'] = job_monitor
-        #    #else:
-        #    #    out_dict['job_monitor']= 'not found'
-        #    #    query_out.set_status(1, error_message='job monitor not found in query_out', )
-         #   print('query_out:job_monitor', job_monitor)
         print('==============================> query done <==============================')
         return resp
 
 
 
-        #if off_line == True:
-        #    return out_dict
-        #else:
-        #    try:
-        #        return jsonify(out_dict)
-        #    except Exception as e:
-        #        query_out.set_status(1,error_message='failed json serialization',debug_message=str(e.message))
-        #        out_dict['exit_status'] = query_out.status_dictionary
-        #        return jsonify(out_dict)
 
 
 @app.route("/test_sleep")

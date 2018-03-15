@@ -383,7 +383,7 @@ class ProductQuery(BaseQuery):
 
 
 
-        status = 0
+        #status = 0
         message=''
         debug_message=''
 
@@ -396,13 +396,34 @@ class ProductQuery(BaseQuery):
             if query_type != 'Dummy':
                 test_comm_query_out = instrument.test_communication(config,logger=logger)
                 status=test_comm_query_out.get_status()
-            query_out.set_status(status, message, debug_message=str(debug_message))
+            else:
+                status=0
+
+            query_out.set_done(message=message, debug_message=str(debug_message),status=status)
+
         except Exception as e:
-            status=1
-            query_out.set_query_exception(e,'dataserver communication',logger=logger,sentry_client=sentry_client)
+            if hasattr(e, 'message'):
+                e_message = e.message
+            else:
+                e_message = 'communication error'
+
+            if hasattr(e, 'debug_message'):
+                debug_message = e.debug_message
+            else:
+                debug_message = ''
+
+            query_out.set_failed('dataserver communication ',
+                                 extra_message='communication error',
+                                 logger=logger,
+                                 sentry_client=sentry_client,
+                                 excep=e,
+                                 e_message=e_message,
+                                 debug_message=debug_message)
 
 
-        msg_str = '--> data server communication status %d\n' %status
+
+
+        msg_str = '--> data server communication status %d\n' %query_out.get_status()
         msg_str += '--> end dataserver communication test'
         logger.info(msg_str)
 
@@ -418,8 +439,7 @@ class ProductQuery(BaseQuery):
 
         query_out = QueryOutput()
 
-        status = 0
-
+        #status = 0
         message = ''
         debug_message = ''
         msg_str = '--> start test has products'
@@ -428,7 +448,7 @@ class ProductQuery(BaseQuery):
         logger.info(msg_str)
 
         prod_dictionary = {}
-        input_prod_list=[]
+        #input_prod_list=[]
 
 
         try:
@@ -436,20 +456,44 @@ class ProductQuery(BaseQuery):
             if query_type != 'Dummy':
                 test_has_input_products_query_out,input_prod_list = instrument.test_has_input_products(config,instrument,logger=logger)
                 status = test_has_input_products_query_out.get_status()
-                if len(input_prod_list) < 1:
-                    status = 1
-                    message = 'no input products'
 
+            else:
+                status=0
 
-            query_out.set_products(['input_prod_list', 'len_prod_list'], [input_prod_list, len(input_prod_list)])
-            query_out.set_status(status, message, debug_message=str(debug_message))
+            if status==0:
+               query_out.set_products(['input_prod_list', 'len_prod_list'], [input_prod_list, len(input_prod_list)])
+               # DONE
+               query_out.set_done(message=message, debug_message=str(debug_message), status=status)
+
+            else:
+                #FAILED
+                query_out.set_failed('test has input products ', extra_message='no input products found', logger=logger,
+                                     sentry_client=sentry_client)
 
         except Exception as e:
-            status=1
-            query_out.set_query_exception(e, 'test has input products ', extra_message='no input products found', logger=logger,sentry_client=sentry_client)
+            if hasattr(e,'message'):
+                e_message=e.message
+            else:
+                e_message='no input products found'
 
 
-        msg_str = '--> test has products status %d\n' % status
+            if hasattr(e,'debug_message'):
+                debug_message=e.debug_message
+            else:
+                debug_message=''
+
+            input_prod_list=[]
+            query_out.set_products(['input_prod_list', 'len_prod_list'], [input_prod_list, len(input_prod_list)])
+            query_out.set_failed( 'test has input products ',
+                                  extra_message='no input products found',
+                                  logger=logger,
+                                  sentry_client=sentry_client,
+                                  excep=e,
+                                  e_message=e_message,
+                                  debug_message=debug_message)
+
+
+        msg_str = '--> test has products status %d\n' % query_out.get_status()
         msg_str += '--> end test has products test'
         logger.info(msg_str)
 
@@ -464,7 +508,7 @@ class ProductQuery(BaseQuery):
             logger = self.get_logger()
 
         query_out = QueryOutput()
-        status=0
+        #status=0
         message=''
         debug_message=''
         msg_str = '--> start get prodcut query',query_type
@@ -472,7 +516,6 @@ class ProductQuery(BaseQuery):
         logger.info(msg_str)
         try:
             if query_type != 'Dummy':
-
                 q=self.get_data_server_query(instrument,config)
 
                 res, data_server_query_out = q.run_query(call_back_url=job.get_call_back_url(), run_asynch=run_asynch, logger=logger)
@@ -490,30 +533,43 @@ class ProductQuery(BaseQuery):
                 else:
                     prod_list = self.build_product_list(instrument,res, scratch_dir)
 
-
                 self.query_prod_list=QueryProductList(prod_list=prod_list,job=job)
 
             else:
-
+                status=0
                 self.query_prod_list = self.get_dummy_products(instrument,config=config,out_dir=scratch_dir)
 
                 #self.query_prod_list = QueryProductList(prod_list=prod_list)
 
                 job.set_done()
-
-            query_out.set_status(status, message, debug_message=str(debug_message),job_status=job.status)
+            #DONE
+            query_out.set_done(message=message, debug_message=str(debug_message),job_status=job.status,status=status)
 
         except Exception as e:
-            status=1
+            #status=1
             job.set_failed()
-            query_out.set_query_exception(e,
-                                          'get dataserver products ',
-                                          extra_message='dataserver get product query failed',
-                                          logger=logger,
-                                          sentry_client=sentry_client)
+
+            #FAILED
+            if hasattr(e,'message'):
+                e_message=e.message
+            else:
+                e_message=''
 
 
-        msg_str = '--> data_server_query_status %d\n' % status
+            if hasattr(e,'debug_message'):
+                debug_message=e.debug_message
+            else:
+                debug_message=''
+
+            query_out.set_failed('get dataserver products ',
+                                 logger=logger,
+                                 sentry_client=sentry_client,
+                                 excep=e,
+                                 e_message=e_message,
+                                 debug_message=debug_message)
+
+
+        msg_str = '--> data_server_query_status %d\n' % query_out.get_status()
         msg_str += '--> end product query '
 
         logger.info(msg_str)
@@ -536,7 +592,7 @@ class ProductQuery(BaseQuery):
             logger = self.get_logger()
 
 
-        status = 0
+        #status = 0
         message = ''
         debug_message = ''
 
@@ -553,21 +609,23 @@ class ProductQuery(BaseQuery):
             process_products_query_out.prod_dictionary['job_id'] = job.job_id
 
             status = process_products_query_out.get_status()
-            process_products_query_out.set_status(status, message, debug_message=str(debug_message))
-            job.set_done()
 
-            process_products_query_out.set_status(status, message, debug_message=str(debug_message), job_status=job.status)
+            job.set_done()
+            #DONE
+            process_products_query_out.set_done( message=message, debug_message=str(debug_message), job_status=job.status,status=status)
 
         except Exception as e:
-            status=1
+            #status=1
             job.set_failed()
-            process_products_query_out.set_query_exception(e, 'product processing',
-                                          extra_message='product processing failed',
-                                          logger=logger,
-                                          sentry_client=sentry_client)
+            # FAILED
+            process_products_query_out.set_failed('product processing',
+                                                  extra_message='product processing failed',
+                                                  logger=logger,
+                                                  sentry_client=sentry_client,
+                                                  excep=e)
 
 
-        msg_str = '==>prod_process_status %d\n' % status
+        msg_str = '==>prod_process_status %d\n' % process_products_query_out.get_status()
         msg_str += '--> end product process'
         logger.info(msg_str)
 
@@ -661,7 +719,7 @@ class PostProcessProductQuery(ProductQuery):
         if logger is None:
             logger = self.get_logger()
 
-        status = 0
+        #status = 0
         message = ''
         debug_message = ''
 
@@ -675,16 +733,19 @@ class PostProcessProductQuery(ProductQuery):
         try:
             process_product_query_out=self.process_product(instrument,job,out_dir=scratch_dir,**kwargs)
             status = process_product_query_out.get_status()
-            query_out.set_status(status, message, debug_message=str(debug_message))
+            #DONE
+            query_out.set_done(message=message, debug_message=str(debug_message),status=status)
         except Exception as e:
-            query_out.set_query_exception(e, 'product post processing',
-                                          extra_message='product post processing failed',
-                                          logger=logger,
-                                          sentry_client=sentry_client)
+            #FAILED
+            query_out.set_failed('product post processing',
+                                 extra_message='product post processing failed',
+                                 logger=logger,
+                                 sentry_client=sentry_client,
+                                 excep=e)
 
 
 
-        msg_str = '==>prod_process_status %d\n' % status
+        msg_str = '==>prod_process_status %d\n' % query_out.get_status()
         msg_str += '--> end product process'
         logger.info(msg_str)
 

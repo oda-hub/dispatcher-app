@@ -44,7 +44,8 @@ from mpld3 import plugins
 from .parameters import *
 from .io_helper import FilePath
 from .io_helper import view_traceback,FitsFile
-import  sys
+from .job_manager import Job
+
 
 
 
@@ -52,19 +53,76 @@ class QueryOutput(object):
     def  __init__(self):
         self.prod_dictionary={}
         self.status_dictionary={}
-        self.set_status(0,job_status='unknown')
+
+
+
+        self._allowed_status_values_=[0,1]
+        self._allowed_job_status_values_= Job.get_allowed_job_status_values()
+
+        self.set_status(0, job_status='unknown')
     
     def set_products(self,keys,values):
         for k,v in zip(keys,values):
             self.prod_dictionary[k] =v
-    
-    def set_status(self,status,error_message='',debug_message='',job_status=None):
+
+
+    def set_done(self,message='',debug_message='',job_status=None,status=0):
+        self.set_status(status,message=message,debug_message=debug_message,job_status=job_status)
+
+    def set_failed(self,failed_operation,
+                        message_prepend_str='',
+                        extra_message=None,
+                        message=None,
+                        logger_prepend_str='==>',
+                        logger=None,
+                        excep=None,
+                        status=1,
+                        sentry_client=None,
+                        job_status=None,
+                        e_message=None,
+                        debug_message=''):
+
+        self.set_query_exception(excep,
+                                 failed_operation,
+                                 message_prepend_str=message_prepend_str,
+                                 message=message,
+                                 extra_message=extra_message,
+                                 logger_prepend_str=logger_prepend_str,
+                                 logger=logger,
+                                 status=status,
+                                 sentry_client=sentry_client,
+                                 job_status=job_status,
+                                 e_message=e_message,
+                                 debug_message=debug_message)
+
+
+    #def set_progress(self):
+    #    pass
+
+
+
+    def _set_job_status(self,job_status):
+        if job_status is not None:
+            if job_status in self._allowed_job_status_values_:
+
+                self.status_dictionary['job_status'] = job_status
+            else:
+                   raise RuntimeError('job_status',job_status,' in QueryOutput is not allowed',self._allowed_job_status_values_)
+
+
+
+    def set_status(self,status,message='',error_message='',debug_message='',job_status=None):
        
 
-        if job_status is not None:
-            self.status_dictionary['job_status'] = job_status
+        self._set_job_status(job_status)
 
-        self.status_dictionary['status']=status
+        if status in self._allowed_status_values_:
+            self.status_dictionary['status']=status
+        else:
+            raise RuntimeError('status', status, ' in QueryOutput is not allowed',
+                               self._allowed_status_values_)
+
+        self.status_dictionary['message']=str(message)
         self.status_dictionary['error_message']=str(error_message)
         self.status_dictionary['debug_message']=str(debug_message)
 
@@ -72,7 +130,6 @@ class QueryOutput(object):
         return self.status_dictionary['status']
 
     def get_job_status(self):
-        #print ('ciccio job_status',self.status_dictionary['job_status'])
         return self.status_dictionary['job_status']
 
     def set_query_exception(self, excep,
@@ -83,30 +140,39 @@ class QueryOutput(object):
                             logger_prepend_str='==>',
                             logger=None,
                             status=1,
-                            sentry_client=None):
+                            sentry_client=None,
+                            job_status=None,
+                            e_message=None,
+                            debug_message=''):
 
+        self._set_job_status(job_status)
 
+        if e_message is None:
+            e_message=''
+            if excep is not None:
+                if excep.__repr__ is None:
+                    e_message = ''
+                else:
+                    try:
+                        e_message = excep.__repr__()
+                    except:
 
-        if excep.__repr__ is None:
-            e_message = ''
+                        e_message=''
         else:
-            try:
-                e_message = excep.__repr__()
-            except:
-                e_message=''
-
+            print('e_message',e_message)
 
         if sentry_client is not None:
             sentry_client.capture('raven.events.Message', message=e_message)
 
         print('!!! >>>Exception<<<', e_message)
+        print('!!! >>>debug message<<<', debug_message)
         print('!!! failed operation', failed_operation)
 
         view_traceback()
 
         if logger is not None:
             logger.exception(e_message)
-        
+            logger.exception(debug_message)
 
         if message is None:
             message = '%s' % message_prepend_str
@@ -118,18 +184,19 @@ class QueryOutput(object):
 
 
 
-        debug_message = e_message
+
 
         msg_str = '%s' % logger_prepend_str
         msg_str += 'failed: %s'% failed_operation
         msg_str += ' error: %s'% e_message
+        msg_str += ' debug : %s' % debug_message
         if extra_message is not None:
             msg_str += ' message: %s' % (extra_message)
 
         if logger is not None:
             logger.info(msg_str)
 
-        self.set_status(status, message, debug_message=str(debug_message))
+        self.set_status(status,message=message, error_message=e_message, debug_message=str(debug_message))
 
 
 

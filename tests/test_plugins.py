@@ -78,8 +78,8 @@ def set_mosaic_query(instrument_name,
 
     #testapp = flask.Flask(__name__)
 
-    if scw_list==None:
-        scw_list=cookbook_scw_list
+    #if scw_list==None:
+    #    scw_list=cookbook_scw_list
 
     if user_catalog == True:
         cat_dict=build_user_catalog(RA_user_cat,Dec_user_cat)
@@ -93,7 +93,7 @@ def set_mosaic_query(instrument_name,
     else:
         raise RuntimeError('instrumet %s'%instrument_name, 'not supported')
 
-    parameters_dic=dict(E1_keV=E1_keV,E2_keV=E2_keV,T1=T1_iso, T2=T2_iso,RA=RA_user_cat[0],DEC=RA_user_cat[0],radius=radius,scw_list=scw_list,
+    parameters_dic=dict(E1_keV=E1_keV,E2_keV=E2_keV,T1=T1_iso, T2=T2_iso,RA=RA_user_cat[0],DEC=Dec_user_cat[0],radius=radius,scw_list=scw_list,
                         image_scale_min=1,session_id=session_id,query_type=query_type,product_type=product_type,
                         detection_threshold=detection_threshold,user_catalog_dictionary=cat_dict)
 
@@ -131,8 +131,8 @@ def set_spectrum_query(instrument_name,
     else:
         raise RuntimeError('instrumet %s' % instrument_name, 'not supported')
 
-    if scw_list==None:
-        scw_list=cookbook_scw_list
+    #if scw_list==None:
+    #    scw_list=cookbook_scw_list
 
     if user_catalog == True:
         cat_dict=build_user_catalog(RA_user_cat,Dec_user_cat)
@@ -177,15 +177,15 @@ def set_spectral_fit_query(instrument_name,
     else:
         raise RuntimeError('instrumet %s' % instrument_name, 'not supported')
 
-    if scw_list == None:
-        scw_list = cookbook_scw_list
+    #if scw_list == None:
+    #    scw_list = cookbook_scw_list
 
     if user_catalog == True:
         cat_dict = build_user_catalog(RA_user_cat, Dec_user_cat)
     else:
         cat_dict = None
 
-    parameters_dic = dict(E1_keV=E1_keV, E2_keV=E2_keV, T1=T1_iso, T2=T2_iso, RA=RA_user_cat[0], DEC=RA_user_cat[0],
+    parameters_dic = dict(E1_keV=E1_keV, E2_keV=E2_keV, T1=T1_iso, T2=T2_iso, RA=RA_user_cat[0], DEC=Dec_user_cat[0],
                           radius=radius, scw_list=scw_list,src_name=src_name,job_id=job_id,query_status='ready',
                           image_scale_min=1, session_id=session_id, query_type=query_type, product_type=product_type,
                           detection_threshold=detection_threshold, user_catalog_dictionary=cat_dict)
@@ -229,8 +229,8 @@ def set_lc_query(instrument_name,
     else:
         raise RuntimeError('instrumet %s' % instrument_name, 'not supported')
 
-    if scw_list==None:
-        scw_list=cookbook_scw_list
+    #if scw_list==None:
+    #    scw_list=cookbook_scw_list
 
     if user_catalog == True:
         cat_dict=build_user_catalog(RA_user_cat,Dec_user_cat)
@@ -239,7 +239,7 @@ def set_lc_query(instrument_name,
 
 
 
-    parameters_dic=dict(E1_keV=E1_keV,E2_keV=E2_keV,T1=T1_iso, T2=T2_iso,RA=RA_user_cat[0],DEC=RA_user_cat[0],radius=radius,scw_list=scw_list,
+    parameters_dic=dict(E1_keV=E1_keV,E2_keV=E2_keV,T1=T1_iso, T2=T2_iso,RA=RA_user_cat[0],DEC=Dec_user_cat[0],radius=radius,scw_list=scw_list,
                         image_scale_min=1,session_id=session_id,query_type=query_type,product_type=product_type,
                         detection_threshold=detection_threshold,src_name=src_name,time_bin=time_bin,time_bin_format=time_bin_format,user_catalog_dictionary=cat_dict)
 
@@ -342,10 +342,12 @@ def test_asynch_full():
 
     instrument_name='isgri'
     parameters_dic,upload_data=set_mosaic_query(instrument_name=instrument_name,
+                                                T1_iso='2003-03-15T23:27:40.0',
+                                                T2_iso='2003-03-16T00:03:15.0',
                                                 scw_list=asynch_scw_list,
-                                                E1_keV=20.01010101,
-                                                RA_user_cat=[80.63168334960938],
-                                                Dec_user_cat=[20.01494598388672],
+                                                E1_keV=30.0,
+                                                RA_user_cat=[257.815417],
+                                                Dec_user_cat=[-41.593417],
                                                 user_catalog=False,
                                                 #upload_data='cat_csv',
                                                 query_type='Real')
@@ -384,7 +386,10 @@ def test_asynch_full():
         raise Exception('query failed',query_out)
 
 
-    print('exit_status', query_out['exit_status'])
+    print('exit_status, status', query_out['exit_status']['status'])
+    print('exit_status, message', query_out['exit_status']['message'])
+    print('exit_status, error_message', query_out['exit_status']['error_message'])
+    print('exit_status, debug_message', query_out['exit_status']['debug_message'])
     print('job_monitor', query_out['job_monitor'])
     print('query_status', query_out['query_status'])
     print('products', query_out['products'].keys())
@@ -396,17 +401,20 @@ def test_asynch_full():
 
 
 def failure_report(query_out):
-    print('exit_status', query_out['exit_status'])
-    try:
-        tmp_res = json.load(open('tmp_response_content.txt'))
-        print('-------tmp_response_content------- ')
-        for k in tmp_res.keys():
-            print(k, '=>', tmp_res[k])
-        print()
-    except:
-        pass
+    print('exit_status, status', query_out['exit_status']['status'])
+    print('exit_status, message', query_out['exit_status']['message'])
+    print('exit_status, error_message', query_out['exit_status']['error_message'])
+    print('exit_status, debug_message', query_out['exit_status']['debug_message'])
+    #try:
+    #    tmp_res = json.load(open('tmp_response_content.txt'))
+    #    print('-------tmp_response_content------- ')
+    #    for k in tmp_res.keys():
+    #        print(k, '=>', tmp_res[k])
+    #    print()
+    #except:
+    #    pass
 
-    raise Exception('query failed', query_out)
+    #raise Exception('query failed', query_out)
 
 
 def test_meta_data(instrument_name='isgri',):

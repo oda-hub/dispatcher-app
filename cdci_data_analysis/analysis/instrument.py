@@ -202,7 +202,6 @@ class Instrument(object):
             #print('--->CICCIO',self.query_dictionary)
 
             query_out = QueryOutput()
-            status=0
             message=''
             debug_message=''
 
@@ -214,13 +213,14 @@ class Instrument(object):
                                                                          logger=logger,
                                                                          sentry_client=sentry_client)
                 if query_out.status_dictionary['status'] == 0:
-                    query_out.set_status(status, message, debug_message=str(debug_message))
+                    #DONE
+                    query_out.set_done(message=message, debug_message=str(debug_message))
                 else:
                     pass
 
             except Exception as e:
-
-                query_out.set_query_exception(e,product_type,logger=logger,sentry_client=sentry_client)
+                #FAILED
+                query_out.set_failed(product_type,logger=logger,sentry_client=sentry_client,excep=e)
 
 
 
@@ -269,7 +269,7 @@ class Instrument(object):
         print('---------------------------------------------')
         print('setting form paramters')
         q=QueryOutput()
-        status=0
+        #status=0
         error_message=''
         debug_message=''
         if logger is None:
@@ -277,9 +277,11 @@ class Instrument(object):
 
         try:
             self.set_pars_from_dic(par_dic,verbose=verbose)
-            q.set_status(status, error_message, str(debug_message))
+            #DONE
+            q.set_done(debug_message=str(debug_message))
         except Exception as e:
-            q.set_query_exception(e,'setting form parameters',logger=logger,sentry_client=sentry_client)
+            #FAILED
+            q.set_failed('setting form parameters',logger=logger,sentry_client=sentry_client,excep=e)
 
             #status=1
             #error_message= 'error in form parameter'
@@ -296,7 +298,7 @@ class Instrument(object):
         print('setting user input prods')
         input_prod_list_name = self.instrumet_query.input_prod_list_name
         q = QueryOutput()
-        status = 0
+        #status = 0
         error_message = ''
         debug_message = ''
         input_file_path=None
@@ -307,30 +309,29 @@ class Instrument(object):
         if request.method == 'POST':
             try:
                 input_file_path = back_end_query.upload_file('user_scw_list_file', back_end_query.scratch_dir)
-
-                q.set_status(status, error_message, str(debug_message))
+                #DONE
+                q.set_done( debug_message=str(debug_message))
             except Exception as e:
-                q.set_query_exception(e,
-                                      'failed to upload scw_list file',
-                                      extra_message='failed to upload %s' % self.input_prod_name,
-                                      sentry_client=sentry_client)
+                #DONE
+                q.set_failed('failed to upload scw_list file',
+                             extra_message='failed to upload %s' % self.input_prod_name,
+                             sentry_client=sentry_client,
+                             excep=e)
 
 
             try:
                 has_input=self.set_input_products(par_dic,input_file_path,input_prod_list_name)
-                q.set_status(status, error_message, str(debug_message))
+                #DONE
+                q.set_done( debug_message=str(debug_message))
             except Exception as e :
-                q.set_query_exception(e,
-                                      'scw_list file is not valid',
-                                      extra_message='scw_list file is not valid',
-                                      logger=logger,
-                                      sentry_client=sentry_client)
+                #FAILED
+                q.set_failed('scw_list file is not valid',
+                             extra_message='scw_list file is not valid',
+                             logger=logger,
+                             sentry_client=sentry_client,
+                             excep=e)
 
 
-                #error_message = 'scw_list file is not valid'
-                #status = 1
-                #debug_message = e
-                #logger.exception(e)
 
             print ('has input',has_input)
             try:
@@ -339,19 +340,16 @@ class Instrument(object):
                     pass
                 else:
                     raise RuntimeError
-
-                q.set_status(status, error_message, str(debug_message))
+                #DONE
+                q.set_done( debug_message=str(debug_message))
 
             except:
-                q.set_query_exception(e,
-                                      'setting input scw_list',
-                                      extra_message='No scw_list from file accepted',
-                                      sentry_client=sentry_client)
+                #FAILED
+                q.set_failed('setting input scw_list',
+                             extra_message='No scw_list from file accepted',
+                             sentry_client=sentry_client,
+                             excep=e)
 
-                #error_message = 'No scw_list from file accepted'
-                #status = 1
-                #debug_message = 'no valid scw in the scwlist file'
-                #logger.exception(debug_message)
 
         self.set_pars_from_dic(par_dic,verbose=verbose)
 
@@ -382,7 +380,7 @@ class Instrument(object):
         print('setting user catalog')
 
         q = QueryOutput()
-        status = 0
+        #status = 0
         error_message = ''
         debug_message = ''
 
@@ -396,26 +394,29 @@ class Instrument(object):
                 cat_file_path = back_end_query.upload_file('user_catalog_file', back_end_query.scratch_dir)
                 par_dic['user_catalog_file'] = cat_file_path
                 print('set_catalog_from_fronted,request.method', request.method, par_dic['user_catalog_file'],cat_file_path)
-                q.set_status(status, error_message, str(debug_message))
+                #DONE
+                q.set_done( debug_message=str(debug_message))
             except Exception as e:
-                q.set_query_exception(e,
-                                      'upload catalog file',
-                                      extra_message='failed to upload catalog file',
-                                      logger=logger,
-                                      sentry_client=sentry_client)
+                #FAILED
+                q.set_failed('upload catalog file',
+                             extra_message='failed to upload catalog file',
+                             logger=logger,
+                             sentry_client=sentry_client,
+                             excep=e)
 
 
 
         try:
             self.set_catalog(par_dic, scratch_dir=back_end_query.scratch_dir)
-            q.set_status(status, error_message, str(debug_message))
+            #DONE
+            q.set_done(debug_message=str(debug_message))
         except Exception as e:
-
-            q.set_query_exception(e,
-                                  'set catalog file',
-                                  extra_message='failed to set catalog',
-                                  logger=logger,
-                                  sentry_client=sentry_client)
+            # FAILED
+            q.set_failed('set catalog file',
+                         extra_message='failed to set catalog',
+                         logger=logger,
+                         sentry_client=sentry_client,
+                         excep=e)
 
 
 

@@ -64,19 +64,43 @@ class Job(object):
         self.server_port=server_port
         self._set_file_path(file_name=file_name,work_dir=work_dir)
 
-        self.job_id=job_id
-        self.session_id=session_id
-        self.status=status
-        self.update_monitor()
+        #self.job_id=job_id
+        #self.session_id=session_id
+        #self.status=status
+        self.update_monitor(status,session_id,job_id)
+        self._allowed_job_status_values_=self.get_allowed_job_status_values()
 
-    def update_monitor(self):
-        self.monitor['job_id']=self.job_id
-        self.monitor['session_id'] = self.session_id
-        self.monitor['status']=self.status
+    @staticmethod
+    def get_allowed_job_status_values():
+        return  ['done', 'failed', 'progress', 'submitted', 'ready','unknown']
+
+    def update_monitor(self,status,session_id,job_id):
+        self.monitor['job_id']=job_id
+        self.monitor['session_id'] = session_id
+        self.monitor['status']=status
 
 
     def _set_file_path(self,file_name,work_dir):
         self._file_path=FilePath(file_dir=work_dir,file_name=file_name)
+
+    @property
+    def job_id(self):
+        return self.monitor['job_id']
+
+    @property
+    def status(self):
+        return self.monitor['status']
+
+    @status.setter
+    def status(self,s):
+        self._set_status(s)
+
+    @property
+    def session_id(self):
+        return self.monitor['session_id']
+
+
+
 
     @property
     def file_path(self):
@@ -91,8 +115,15 @@ class Job(object):
         return self._file_path.dir_name
 
     def _set_status(self,job_status):
-        self.monitor['status']=job_status
-        self.status=job_status
+        if job_status in self._allowed_job_status_values_:
+            self.monitor['status']=job_status
+            #self.status=job_status
+        else:
+            raise RuntimeError('job_status', job_status, ' in QueryOutput is not allowed',
+                               self._allowed_job_status_values_)
+
+    def set_progress(self):
+        self._set_status('progress')
 
     def set_submitted(self):
         self._set_status('submitted')
@@ -106,8 +137,14 @@ class Job(object):
     def set_unaccessible(self):
         self._set_status('unaccessible')
 
+    def set_ready(self):
+        self._set_status('ready')
 
-    def get_dataserver_status(self,):
+    def get_status(self):
+        return self.monitor['status']
+
+
+    def updat_dataserver_monitor(self,):
         # TODO: combine all files
 
         try:
@@ -146,7 +183,8 @@ class Job(object):
         url += u'job_id=%s&' % self.job_id
         url += u'work_dir=%s&' % self.dir_name
         url += u'file_mame=%s&' % self.file_name
-        url += u'instrument_name=%s' % self.instrument_name
+        url += u'instrument_name=%s&' % self.instrument_name
+        url += u'progressing'
         #print ('-------------> url call back',url)
         return url
 
@@ -202,31 +240,40 @@ class OsaJob(Job):
                                   status=status,
                                   status_kw_name=status_kw_name)
 
-    def get_dataserver_status(self,):
+    def updat_dataserver_monitor(self,):
         job_files_list=glob.glob(self.work_dir+'/job_monitor*.json')
         print('get data server status form files',job_files_list)
         job_done=False
         job_failed=False
+        progress=False
         full_report_dict_list=[]
         for job_file in job_files_list:
             try:
                 with open(job_file, 'r') as infile:
                     self.monitor = json.load(infile, encoding='utf-8')
                     print ('--->for file',job_file,'got',self.monitor['status'])
+
                     if self.monitor['status']=='done':
 
                         job_done=True
                     elif  self.monitor['status']=='failed':
                         job_failed=True
-                    else:
-                        self.monitor['status']='progress'
 
                     if 'full_report_dict' in  self.monitor.keys():
                         full_report_dict_list.append(self.monitor['full_report_dict'])
+
+                        if 'progressing' in self.monitor['full_report_dict'].keys():
+                            print ('keys',self.monitor['full_report_dict'].keys())
+                            progress=True
+                            print("==========>PROGRESS<======================")
+
             except Exception as e:
                 self.set_unaccessible()
 
         #print ('job_done',job_done)
+        if progress is True:
+            self.monitor['status'] = 'progress'
+
         if job_done==True:
             self.monitor['status'] = 'done'
 
