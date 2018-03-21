@@ -728,16 +728,16 @@ class PostProcessProductQuery(ProductQuery):
         print ('kwargs',kwargs)
         logger.info(msg_str)
 
-        query_out = QueryOutput()
+        process_product_query_out = QueryOutput()
 
         try:
             process_product_query_out=self.process_product(instrument,job,out_dir=scratch_dir,**kwargs)
             status = process_product_query_out.get_status()
             #DONE
-            query_out.set_done(message=message, debug_message=str(debug_message),status=status)
+            process_product_query_out.set_done(message=message, debug_message=str(debug_message),status=status)
         except Exception as e:
             #FAILED
-            query_out.set_failed('product post processing',
+            process_product_query_out.set_failed('product post processing',
                                  extra_message='product post processing failed',
                                  logger=logger,
                                  sentry_client=sentry_client,
@@ -745,12 +745,12 @@ class PostProcessProductQuery(ProductQuery):
 
 
 
-        msg_str = '==>prod_process_status %d\n' % query_out.get_status()
+        msg_str = '==>prod_process_status %d\n' % process_product_query_out.get_status()
         msg_str += '--> end product process'
         logger.info(msg_str)
 
 
-        return query_out
+        return process_product_query_out
 
 
 
