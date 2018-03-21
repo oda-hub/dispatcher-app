@@ -33,7 +33,8 @@ __author__ = "Andrea Tramacere"
 # absolute import rg:from copy import deepcopy
 import  os
 from pathlib import Path
-
+from astropy.io import  fits as pf
+import  decorator
 # Dependencies
 # eg numpy 
 # absolute import eg: import numpy as np
@@ -42,6 +43,53 @@ from pathlib import Path
 # relative import eg: from .mod import f
 
 
+@decorator.decorator
+def check_exist(func,self,**kwargs):
+    if self.file_path.exists()==False:
+        raise RuntimeError('file %s',self.file_path.path,'does not exists')
+    else:
+        return func(self)
+
+
+
+class File(object):
+
+    def __init__(self,file_path):
+
+        self.file_path=FilePath(file_path)
+
+
+    @check_exist
+    def read(self):
+        pass
+
+    @check_exist
+    def write(self):
+        pass
+
+
+
+class FitsFile(File):
+    def __init__(self,file_path):
+        super(FitsFile,self).__init__(file_path)
+
+    #@check_exist
+    def open(self):
+        #print('ciccio r', self.file_path)
+        return pf.open(self.file_path.path)
+        #print ('ciccio r',r)
+        #return r
+
+    #@check_exist
+    def writeto(self,out_filename=None, data=None, header=None, output_verify='exception', overwrite=False, checksum=False):
+        if out_filename is None:
+            out_filename=self.file_path.path
+
+        if data is None:
+
+            pf.open(self.file_path.path).writeto(out_filename,output_verify=output_verify,overwrite=overwrite,checksum=checksum)
+        else:
+            pf.writeto(out_filename,data,header=header,output_verify=output_verify,overwrite=overwrite,checksum=checksum)
 
 class FilePath(object):
     def __init__(self,file_name='',file_dir=u'./',name_prefix=None):

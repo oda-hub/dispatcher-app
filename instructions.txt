@@ -1,3 +1,18 @@
+#open stack machine
+http://10.194.169.75
+
+#Sentry
+open stack machine
+http://10.194.169.75:9000/accept/2/afddf62f254a471bb3d858d200a5c6dd19a96317f4444e27bad2fbea176da748/
+http://10.194.169.75:9000/sentry/python/
+
+#Python-stash
+http://openstack-compute01:5601/
+ssh -t -L 5001:localhost:5001 nx ssh -t -L 5001:localhost:5001 tramacer@openstack-compute01
+ssh -t -L 5601:localhost:5601 nx ssh -t -L 5601:localhost:5601 tramacer@openstack-compute01
+http://localhost:5601
+
+
 
 
 #On Mac
@@ -25,6 +40,8 @@
 
 #on every machine
 cp .secret-ddosa-client ~
+
+
 
 
 cdciweb01

@@ -1,0 +1,7 @@
+data_server:
+  isgri:
+      dispatcher_mnt_point:
+      data_server_cache: reduced/ddcache
+      dummy_cache: dummy_prods
+      data_server_url: intggcn01.isdc.unige.ch
+      data_server_port: 32778

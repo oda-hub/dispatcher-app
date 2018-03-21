@@ -44,7 +44,7 @@ import requests
 
 from cdci_data_analysis.flask_app.app import run_app
 from cdci_data_analysis.configurer import ConfigEnv
-from cdci_data_analysis.ddosa_interface.osa_catalog import build_osa_catalog
+from cdci_data_analysis.ddosa.osa_catalog import build_osa_catalog
 
 
 

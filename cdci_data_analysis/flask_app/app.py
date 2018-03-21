@@ -8,93 +8,38 @@ Created on Wed May 10 10:55:20 2017
 
 from __future__ import absolute_import, division, print_function
 
-from builtins import (bytes, open, str, super, range,
-                      zip, round, input, int, pow, object, map, zip)
+from builtins import (open, str, range,
+                      object)
 
-
-from flask import Flask, request, redirect, url_for,flash
 from werkzeug.utils import secure_filename
 
-import numpy as np
 import os
 import random
 import string
 
 from flask import jsonify,send_from_directory
-from flask import Flask, request,url_for
-from flask import render_template
-from flask.views import View
+from flask import Flask, request
 
-#from pathlib import Path
-#from flask_restful import reqparse
 
-from ..ddosa_interface.osa_isgri import OSA_ISGRI
-from ..ddosa_interface.osa_jemx import OSA_JEMX
+from ..plugins import importer
+
 from ..analysis.queries import *
-from ..analysis.job_manager import Job
+from ..analysis.job_manager import Job,job_factory
 from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
-from .mock_data_server import mock_chek_job_status
+from ..configurer import DataServerConf
 import  tempfile
 import tarfile
 import gzip
 import logging
 import socket
-import threading
-import sys
-
-
-
-# from ..ddosa_interface.osa_spectrum_dispatcher import  OSA_ISGRI_SPECTRUM
-#from ..ddosa_interface.osa_lightcurve_dispatcher import OSA_ISGRI_LIGHTCURVE
-
-from ..web_display import draw_dummy
+import logstash
 
 #UPLOAD_FOLDER = '/path/to/the/uploads'
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
 
 app = Flask(__name__)
-#app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-
-#def allowed_file(filename):
-#    return '.' in filename and \
-#           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-
-# def run_app_threaded(conf,debug=False):
-#     threaded_server=threading.Thread(target=run_app,args=(conf),kwargs={'debug':debug})
-#     try:
-#         # Start the server
-#         threaded_server.start()
-#     except Exception as ex:
-#         print('flask thread failed',ex.message)
-#     finally:
-#
-#         # Stop all running threads
-#         threaded_server._Thread__stop()
-#         product_dictionary={}
-#         product_dictionary['error_message'] = 'flask thread failed'
-#         product_dictionary['status'] = -1
-#
-#         return jsonify(product_dictionary)
-
-
-
-#def make_dir(out_dir):
-
-
-#    if os.path.isdir(out_dir):
-#        return
-#    else:
-#        if os.path.isfile(out_dir):
-#            raise RuntimeError("a file with the same name of dir already exists")
-#            #raise RuntimeError, "a file with the same name of dir=%s, exists"%out_dir
-#        else:
-#            os.mkdir(out_dir)
-
 
 
 
@@ -135,7 +80,8 @@ class InstrumentQueryBackEnd(object):
 
                 self.set_scratch_dir(self.par_dic['session_id'],job_id=self.job_id,verbose=verbose)
 
-                self.set_session_logger(self.scratch_dir,verbose=verbose)
+                self.set_session_logger(self.scratch_dir,verbose=verbose,config=config)
+                self.set_sentry_client()
 
                 if data_server_call_back is False:
                     self.set_instrument(self.instrument_name)
@@ -144,18 +90,17 @@ class InstrumentQueryBackEnd(object):
 
         except Exception as e:
             print ('e',e)
-            status = -1
-            message = 'failed InstrumentQueryBackEnd constructor '
-            debug_message = e
+
+
 
             query_out = QueryOutput()
-            query_out.set_status(status, message, debug_message=str(debug_message))
+            query_out.set_query_exception(e,'InstrumentQueryBackEnd constructor',extra_message='InstrumentQueryBackEnd constructor failed')
 
             out_dict = {}
-            out_dict['message']=message
-            out_dict['query_status'] = -1
-            out_dict['debug_message'] = debug_message
+            out_dict['query_status'] = 1
             out_dict['exit_status'] = query_out.status_dictionary
+            self.build_dispatcher_response(out_dict=out_dict)
+
 
             return jsonify(out_dict)
 
@@ -164,27 +109,12 @@ class InstrumentQueryBackEnd(object):
     def generate_job_id(self):
         print("!!! GENERATING JOB ID")
         self.job_id=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
-        #number = '0123456789'
-        #alpha = 'abcdefghijklmnopqrstuvwxyz'.capitalize()
-        #ID = ''
-        #for i in range(0, 16, 2):
-        #    ID += random.choice(number)
-        #    ID += random.choice(alpha)
-        #self.job_id=ID
-        #print ('------->str check',type(self.job_id),self.job_id)
 
 
-    def set_instrument(self,instrument_name):
-        if instrument_name == 'isgri':
-            self.instrument = OSA_ISGRI()
-        elif instrument_name=='jemx':
-            self.instrument=OSA_JEMX()
-        elif instrument_name=='mock':
-            self.instrument='mock'
-        else:
-            raise Exception("instrument not recognized".format(instrument_name))
 
-    def set_session_logger(self,scratch_dir,verbose=False):
+
+
+    def set_session_logger(self,scratch_dir,verbose=False,config=None):
         logger = logging.getLogger(__name__)
         fileh = logging.FileHandler(os.path.join(scratch_dir, 'session.log'), 'a')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -195,11 +125,41 @@ class InstrumentQueryBackEnd(object):
             log.removeHandler(hdlr)
         log.addHandler(fileh)  # set the new handler
         logger.setLevel(logging.INFO)
+
+
+
         if verbose==True:
             print('logfile set to dir=', scratch_dir, ' with name=session.log')
 
+        if config is not None:
+            logger=self.set_logstash(logger,logstash_host=config.logstash_host,logstash_port=config.logstash_port)
+
         self.logger=logger
 
+    def set_logstash(self,logger,logstash_host=None,logstash_port=None):
+        if logstash_host is not None:
+            logger.addHandler(logstash.TCPLogstashHandler(logstash_host, logstash_port))
+
+            extra = {
+                'origin': 'cdici_dispatcher',
+            }
+            logger = logging.LoggerAdapter(logger, extra)
+            return logger
+
+
+
+
+    def set_sentry_client(self,sentry_url=None):
+
+        if sentry_url is not None:
+            from raven import Client
+
+            client=     Client(sentry_url)
+        else:
+            client=None
+
+
+        self.sentry_client=client
 
     def get_current_ip(self):
         return  socket.gethostbyname(socket.gethostname())
@@ -280,7 +240,7 @@ class InstrumentQueryBackEnd(object):
             return send_from_directory(directory=tmp_dir, filename=target_file, attachment_filename=target_file,
                                        as_attachment=True)
         except Exception as e:
-            return str(e)
+            return e
 
     def upload_file(self,name, scratch_dir):
         print('upload  file')
@@ -328,21 +288,47 @@ class InstrumentQueryBackEnd(object):
 
     def run_call_back(self,status_kw_name='action'):
 
-        if self.config is None:
-            config = app.config.get('osaconf')
+        try:
+            config, config_data_server = self.set_config()
+            print('dispatcher port', config.dispatcher_port)
+        except Exception as e:
+            query_out = QueryOutput()
+            query_out.set_query_exception(e, 'run_query failed in ', self.__class__.__name__,
+                                          extra_message='configuration failed')
+
+
+
+
+
+
+
+        #job = Job(work_dir=self.scratch_dir,
+        #          server_url=self.get_current_ip(),
+        #          server_port=config.dispatcher_port,
+        #          callback_handle='call_back',
+        #          session_id=self.par_dic['session_id'],
+        #          job_id=self.par_dic['job_id'])
+
+        job = job_factory(self.par_dic['instrument_name'],
+                          self.scratch_dir,
+                          self.get_current_ip(),
+                          config.dispatcher_port,
+                          self.par_dic['session_id'],
+                          self.job_id,
+                          self.par_dic)
+
+
+        #if 'node_id' in self.par_dic.keys():
+        #    print('node_id', self.par_dic['node_id'])
+        #else:
+        #    print('No! node_id')
+
+        if job.status_kw_name in self.par_dic.keys():
+            status=self.par_dic[job.status_kw_name]
         else:
-            config = self.config
-
-        job = Job(work_dir=self.scratch_dir,
-                  server_url=self.get_current_ip(),
-                  server_port=config.dispatcher_port,
-                  callback_handle='call_back',
-                  session_id=self.par_dic['session_id'],
-                  job_id=self.par_dic['job_id'])
-
-
-        status=self.par_dic[status_kw_name]
+            status='unknown'
         print ('-----> set status to ',status)
+
         job.write_dataserver_status(status_dictionary_value=status,full_dict=self.par_dic)
 
         return status
@@ -350,7 +336,7 @@ class InstrumentQueryBackEnd(object):
     def run_query_mock(self, off_line=False):
 
 
-        # JOBID=PID+RAND
+
 
 
         job_status = self.par_dic['job_status']
@@ -359,9 +345,7 @@ class InstrumentQueryBackEnd(object):
 
         if self.par_dic.has_key('instrumet'):
             self.par_dic.pop('instrumet')
-        # prod_dictionary = self.instrument.set_pars_from_from(par_dic)
 
-        # if prod_dictionary['status'] == 0:
 
 
         self.logger.info('instrument %s' % self.instrument_name)
@@ -371,10 +355,7 @@ class InstrumentQueryBackEnd(object):
             log_str = 'parameters dictionary, key=' + key + ' value=' + str(self.par_dic[key])
             self.logger.info(log_str)
 
-        if self.config is None:
-            config = app.config.get('osaconf')
-        else:
-            config = self.config
+
 
         out_dict=mock_query(self.par_dic,session_id,self.job_id,self.scratch_dir)
 
@@ -394,20 +375,113 @@ class InstrumentQueryBackEnd(object):
 
 
 
+    def build_dispatcher_response(self,query_new_status=None,query_out=None,job_monitor=None,off_line=True):
+
+
+        out_dict={}
+
+        if query_new_status is not None:
+            out_dict['query_status'] = query_new_status
+        if query_out is not None:
+            out_dict['products'] = query_out.prod_dictionary
+            out_dict['exit_status'] = query_out.status_dictionary
+
+        if job_monitor is not None:
+            out_dict['job_monitor'] = job_monitor
+            out_dict['job_status'] = job_monitor['status']
+
+
+        print('exit_status', out_dict['exit_status'])
+
+        if job_monitor is not None:
+            out_dict['job_monitor'] = job_monitor
+            #print('query_out:job_monitor', job_monitor)
+
+
+        print ('offline',off_line)
+        if off_line == True:
+
+            return out_dict
+        else:
+            try:
+                return jsonify(out_dict)
+            except Exception as e:
+                if query_out is None:
+                    query_out = QueryOutput()
+                else:
+                    pass
+
+                query_out.set_failed('build dispatcher response', error_message='failed json serialization', debug_message=str(e.message))
+                out_dict['exit_status'] = query_out.status_dictionary
+
+                return jsonify(out_dict)
+
+
+
+    def set_instrument(self, instrument_name):
+        new_instrument=None
+        if instrument_name == 'mock':
+            new_instrument = 'mock'
+
+        else:
+            for instrument_factory in importer.instrument_facotry_list:
+                instrument = instrument_factory()
+                if instrument.name == instrument_name:
+                    #print('setting instr',instrument_name,instrument.name)
+                    new_instrument = instrument
+
+
+
+
+        if new_instrument is None:
+
+            raise Exception("instrument not recognized".format(instrument_name))
+        else:
+            self.instrument=new_instrument
+
+    def set_config(self):
+        if self.config is None:
+            config = app.config.get('conf')
+        else:
+            config = self.config
+
+        disp_data_server_conf_dict=config.get_data_server_conf_dict(self.instrument_name)
+
+        #print('pre',self.instrument.data_server_conf_dict)
+        if disp_data_server_conf_dict is not None:
+            if 'data_server' in  disp_data_server_conf_dict.keys():
+                if self.instrument.name in  disp_data_server_conf_dict['data_server'].keys():
+                    for k in disp_data_server_conf_dict['data_server'][self.instrument.name].keys():
+                        if k in self.instrument.data_server_conf_dict.keys():
+                            #print (k,self.instrument.data_server_conf_dict.keys(),disp_data_server_conf_dict['data_server'][self.instrument.name].keys())
+                            self.instrument.data_server_conf_dict[k] = disp_data_server_conf_dict['data_server'][self.instrument.name][k]
+
+            #print('post',self.instrument.data_server_conf_dict)
+            config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
+        else:
+            config_data_server=None
+
+        return config,config_data_server
+
     def run_query(self,off_line=False):
 
         print ('==============================> run query <==============================')
-        query_type = self.par_dic['query_type']
-        product_type = self.par_dic['product_type']
 
-        #JOBID=PID+RAND
-        query_status=self.par_dic['query_status']
 
+        try:
+            query_type = self.par_dic['query_type']
+            product_type = self.par_dic['product_type']
+            query_status=self.par_dic['query_status']
+
+        except Exception as e:
+            query_out = QueryOutput()
+            query_out.set_query_exception(e, 'run_query failed in ',self.__class__.__name__,
+                                          extra_message='InstrumentQueryBackEnd constructor failed')
 
 
         if self.par_dic.has_key('instrumet'):
             self.par_dic.pop('instrumet')
-        #prod_dictionary = self.instrument.set_pars_from_from(par_dic)
+
 
 
 
@@ -423,19 +497,25 @@ class InstrumentQueryBackEnd(object):
             log_str = 'parameters dictionary, key=' + key + ' value=' + str(self.par_dic[key])
             self.logger.info(log_str)
 
-        if self.config is None:
-            config = app.config.get('osaconf')
-        else:
-            config=self.config
+        try:
+            config, config_data_server=self.set_config()
+            print('dispatcher port', config.dispatcher_port)
+        except Exception as e:
+            query_out = QueryOutput()
+            query_out.set_query_exception(e, 'run_query failed in ', self.__class__.__name__,
+                                          extra_message='configuration failed')
 
-        print('conf', config.dispatcher_port)
+        if config.sentry_url is not None:
+            self.set_sentry_client(config.sentry_url)
 
-        job = Job(work_dir=self.scratch_dir,
-                  server_url=self.get_current_ip(),
-                  server_port=config.dispatcher_port,
-                  callback_handle='call_back',
-                  session_id=self.par_dic['session_id'],
-                  job_id=self.job_id)
+
+        job=job_factory(self.instrument_name,
+                        self.scratch_dir,
+                        self.get_current_ip(),
+                        config.dispatcher_port,
+                        self.par_dic['session_id'],
+                        self.job_id,
+                        self.par_dic)
 
         job_monitor=job.monitor
 
@@ -444,90 +524,153 @@ class InstrumentQueryBackEnd(object):
         print('-----------------> job status before query:', job.status)
 
         out_dict=None
+        query_out=None
 
+        #TODO rename query_new_status and query_status
+        #NEW OR READY
         if query_status=='new' or query_status=='ready':
-            if query_status=='new':
-                prompt_delegate=True
-            else:
-                prompt_delegate=True
+            run_asynch = True
 
-            print ('*** prompt_delegate',prompt_delegate)
+
+            print ('*** run_asynch',run_asynch)
             query_out = self.instrument.run_query(product_type,
                                                     self.par_dic,
                                                     request,
                                                     self,
                                                     job,
-                                                    prompt_delegate,
+                                                    run_asynch,
                                                     out_dir=self.scratch_dir,
-                                                    config=config,
+                                                    config=config_data_server,
                                                     query_type=query_type,
                                                     logger=self.logger,
-                                                        verbose=False)
+                                                    sentry_client=self.sentry_client,
+                                                    verbose=False)
 
 
             print('-----------------> job status after query:', job.status)
+            #print ('q_out.status_dictionary',query_out.status_dictionary)
+            #query_out.set_done(job_status=job_monitor['status'])
+            #query_new_status= query_out.get_status()
+
+
             if query_out.status_dictionary['status']==0:
-                if job.status!='done':
-                    job.set_submitted()
-                    query_new_status = 'progress'
+                if job.status=='done':
+                    query_new_status='done'
+                elif job.status=='failed':
+                    query_new_status='failed'
                 else:
-                    query_new_status = 'done'
+                    query_new_status = 'submitted'
+                    job.set_submitted()
             else:
                 query_new_status = 'failed'
+                job.set_failed()
 
-            print('-----------------> query status new', query_new_status)
+            job.write_dataserver_status()
 
-        elif query_status=='progress' or query_status=='unaccessible' or query_status=='unknown':
+            print('-----------------> query status update for done/ready: ', query_new_status)
 
-            job_monitor = job.get_dataserver_status()
-            print('-----------------> job status from data server', job_monitor['status'])
+        elif query_status=='progress' or query_status=='unaccessible' or query_status=='unknown' or query_status=='submitted':
+            query_out = QueryOutput()
+
+            job_monitor = job.updat_dataserver_monitor()
+
+
+            print('-----------------> job monitor from data server', job_monitor['status'])
             if job_monitor['status']=='done':
-                query_new_status='ready'
-            elif job_monitor['status']=='failed':
-                query_new_status='failed'
-            elif job_monitor['status'] == 'progress':
-                query_new_status='progress'
-            elif job_monitor['status'] == 'unaccessible':
-                query_new_status='unaccessible'
+                job.set_ready()
+
+            query_out.set_done(job_status=job_monitor['status'])
+
+            if  job_monitor['status']=='unaccessible' or job_monitor['status']=='unknown':
+                query_new_status=query_status
             else:
-                query_new_status='progress'
 
-            print('-----------------> query status new:', query_new_status)
+                query_new_status = job.get_status()
 
-            out_dict = {}
-            out_dict['job_monitor'] = job_monitor
-            out_dict['job_status'] = job_monitor['status']
-            out_dict['query_status'] = query_new_status
-            out_dict['products'] = ''
-            out_dict['exit_status'] = 0
-            print('query_out:job_monitor', job_monitor)
+            print('-----------------> job monitor updated', job_monitor['status'])
+
+
+
+            print('-----------------> query status update for progress:', query_new_status)
+
+
+            #out_dict = {}
+            #out_dict['job_monitor'] = job_monitor
+            #out_dict['job_status'] = job_monitor['status']
+            #out_dict['query_status'] = query_new_status
+            #out_dict['products'] = ''
+            #out_dict['exit_status'] = query_out
+
+
+
+
+            #if job_monitor['status']=='done':
+            #    query_new_status='ready'
+            #elif job_monitor['status']=='failed':
+            #    query_new_status='failed'
+            #elif job_monitor['status'] == 'progress':
+            #    query_new_status='progress'
+            #elif job_monitor['status'] == 'unaccessible':
+            #    query_new_status='unaccessible'
+            #elif job_monitor['status'] == 'submitted':
+            #    query_new_status='submitted'
+            #else:
+            #    query_new_status='progress'
+
+
+            #status=0
+            #query_out = QueryOutput()
+            #query_out.set_done(job_status=job_monitor['status'])
+
+
+            #self.build_dispatcher_response(out_dict=out_dict)
+            #print('query_out:job_monitor',  job_monitor['status'])
             print('==============================> query done <==============================')
 
 
         elif query_status=='failed':
             #TODO: here we shoudl rusubmit query to get exception from ddosa
-            out_dict = {}
-            query_new_status='failed'
-            out_dict['job_monitor'] = job_monitor
-            out_dict['job_status'] = job_monitor['status']
-            out_dict['query_status'] = query_new_status
-            out_dict['products'] = ''
-            out_dict['exit_status'] = -1
-            print('query_out:job_monitor', job_monitor)
-            print('==============================> query done <==============================')
+            #status = 1
+            query_out = QueryOutput()
+            query_out.set_failed('submitted job',job_status=job_monitor['status'])
+
+            query_new_status =  'failed'
+            print('-----------------> query status update for failed:', query_new_status)
+
+
+            #out_dict = {}
+            #out_dict['job_monitor'] = job_monitor
+            #out_dict['job_status'] = job_monitor['status']
+            #out_dict['query_status'] = query_new_status
+            #out_dict['products'] = ''
+            #out_dict['exit_status'] = query_out
+
+            #self.build_dispatcher_response(out_dict=out_dict)
+            #print('query_out:job_monitor', job_monitor)
             print('-----------------> query status new:', query_new_status)
+            print('==============================> query done <==============================')
+
 
         else:
-            out_dict = {}
-            query_new_status = 'unknown'
-            out_dict['job_monitor'] = job_monitor
-            out_dict['job_status']='unknown'
-            out_dict['query_status'] = query_new_status
-            out_dict['products'] = ''
-            out_dict['exit_status'] = -1
+            #status = 0
+            query_out = QueryOutput()
+            query_out.set_status(0,job_status=job_monitor['status'])
+
+            #query_new_status = 'unknown'
+            query_new_status = job.get_status()
+
+            #out_dict = {}
+            #out_dict['job_monitor'] = job_monitor
+            #out_dict['job_status']='unknown'
+            #out_dict['query_status'] = query_new_status
+            #out_dict['products'] = ''
+            #out_dict['exit_status'] = query_out
+
+            #self.build_dispatcher_response(out_dict=out_dict)
             print('query_out:job_monitor', job_monitor)
-            print('==============================> query done <==============================')
             print('-----------------> query status new:', query_new_status)
+            print('==============================> query done <==============================')
+
 
 
 
@@ -538,31 +681,16 @@ class InstrumentQueryBackEnd(object):
         self.logger.info('============================================================')
         self.logger.info('')
 
+        resp= self.build_dispatcher_response(query_new_status=query_new_status,
+                                       query_out=query_out,
+                                       job_monitor=job_monitor,
+                                       off_line=off_line)
 
-        if out_dict is None:
-            out_dict = {}
-            out_dict['query_status']=query_new_status
-            out_dict['products'] = query_out.prod_dictionary
-            out_dict['exit_status'] = query_out.status_dictionary
-            print('exit_status', out_dict['exit_status'])
+        print('==============================> query done <==============================')
+        return resp
 
-            #if no_job_class_found == False:
-            out_dict['job_monitor'] = job_monitor
-            #else:
-            #    out_dict['job_monitor']= 'not found'
-            #    query_out.set_status(1, error_message='job monitor not found in query_out', )
-            print('query_out:job_monitor', job_monitor)
-            print('==============================> query done <==============================')
 
-        if off_line == True:
-            return out_dict
-        else:
-            try:
-                return jsonify(out_dict)
-            except Exception as e:
-                query_out.set_status(1,error_message='failed json serialization',debug_message=str(e.message))
-                out_dict['exit_status'] = query_out.status_dictionary
-                return jsonify(out_dict)
+
 
 
 @app.route("/test_sleep")
@@ -613,7 +741,7 @@ def test_mock():
 
 @app.route('/call_back', methods=['POST', 'GET'])
 def dataserver_call_back():
-    #instrument_name='ISGRI'
+
     print('===========================> dataserver_call_back')
     query=InstrumentQueryBackEnd(instrument_name='mock',data_server_call_back=True)
     query.run_call_back()
@@ -624,7 +752,7 @@ def dataserver_call_back():
 
 
 def run_app(conf,debug=False,threaded=False):
-    app.config['osaconf'] = conf
+    app.config['conf'] = conf
     app.run(host=conf.dispatcher_url, port=conf.dispatcher_port, debug=debug,threaded=threaded)
 
 

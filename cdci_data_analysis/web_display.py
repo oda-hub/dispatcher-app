@@ -21,7 +21,7 @@ __author__ = "Andrea Tramacere"
 
 import matplotlib
 
-matplotlib.use('Agg')
+matplotlib.use('Agg',warn=False)
 
 import matplotlib.pyplot as plt
 
