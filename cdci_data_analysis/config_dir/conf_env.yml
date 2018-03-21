@@ -1,4 +1,4 @@
-data_server:
+  data_server:
     isgri:
         dispatcher_mnt_point: /Users/orion/astro/Integral_Web_Analysis/TEST_DISPATCHER/ddosa_cache
     jemx:

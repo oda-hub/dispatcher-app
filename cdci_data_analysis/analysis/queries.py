@@ -448,7 +448,7 @@ class ProductQuery(BaseQuery):
         logger.info(msg_str)
 
         prod_dictionary = {}
-        #input_prod_list=[]
+        input_prod_list=[]
 
 
         try:
