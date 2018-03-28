@@ -599,8 +599,39 @@ class SpectralFitProduct(BaseQueryProduct):
 
 
 
+    def parse_command(self,params_setting):
+        str_list=params_setting.split('')
+        pars_dict = {}
+        for s in str_list:
+            p=s.split(':')
+            if len(p)!=2:
+                raise RuntimeError('Malformed par string')
+            else:
+                i=np.int(p[0])
+            pars_dict[i]=p[1]
+        return pars_dict
 
-    def run_fit(self,e_min_kev,e_max_kev, plot=False,xspec_model='powerlaw'):
+
+    def set_par(self,m,params_setting):
+        if params_setting is not None:
+            pars_dict=self.parse_command()
+            if pars_dict !={}:
+                m.setPars(pars_dict)
+
+    def set_freeze(self,m,frozen_list):
+        if frozen_list is not None:
+            for f in frozen_list:
+                p = f.split(':')
+                if len(p) != 2:
+                    raise RuntimeError('Malformed freeze string')
+                else:
+                    comp_name=p[0]
+                    par_name=p[1]
+                    comp=getattr(m,comp_name)
+                    par=getattr(comp,par_name)
+                    setattr(par, 'frozen', True)
+
+    def run_fit(self,e_min_kev,e_max_kev, plot=False,xspec_model='powerlaw',params_setting=None,frozen_list=None):
         import xspec as xsp
         
         xsp.AllModels.clear()
@@ -625,6 +656,10 @@ class SpectralFitProduct(BaseQueryProduct):
         model_name=xspec_model
 
         m = xsp.Model(model_name)
+
+        self.set_par(m,params_setting)
+        self.set_freeze(m,frozen_list)
+
         xsp.Fit.query = 'yes'
         xsp.Fit.perform()
 

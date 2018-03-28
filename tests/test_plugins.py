@@ -340,7 +340,7 @@ def test_asynch_full():
     :return:
     """
 
-    instrument_name='isgri'
+    instrument_name='jemx'
     parameters_dic,upload_data=set_mosaic_query(instrument_name=instrument_name,
                                                 T1_iso='2003-03-15T23:27:40.0',
                                                 T2_iso='2003-03-16T00:03:15.0',

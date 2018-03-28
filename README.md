@@ -1,3 +1,10 @@
+cdci_data_analysis
+==========================================
+
+A flexible python framework to bridge front-end and data-server
+for scientific online analysis of astrophysical data
+
+
 #open stack machine
 http://10.194.169.75
 
@@ -86,3 +93,13 @@ PYTHON_LIB="-lpython2.7"
 - ```pytest ../cdci_data_analysis/tests/test_plugins.py::test_asynch_full -s -v```
 
 
+What's the license?
+-------------------
+
+cdci_data_analysis is distributed under the terms of The MIT License.
+
+Who's responsible?
+-------------------
+Andrea Tramacere
+
+ISDC Data Centre for Astrophysics, Astronomy Department of the University of Geneva, Chemin d'Ecogia 16, CH-1290 Versoix, Switzerland

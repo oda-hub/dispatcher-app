@@ -16,10 +16,12 @@ from werkzeug.utils import secure_filename
 import os
 import random
 import string
+import numpy as np
+
 
 from flask import jsonify,send_from_directory
 from flask import Flask, request
-
+from flask.json import JSONEncoder
 
 from ..plugins import importer
 
@@ -39,7 +41,24 @@ import logstash
 #UPLOAD_FOLDER = '/path/to/the/uploads'
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
 
+
+
+
+
+class CustomJSONEncoder(JSONEncoder):
+
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return list(obj)
+        return JSONEncoder.default(self, obj)
+
+
+
+
 app = Flask(__name__)
+app.json_encoder = CustomJSONEncoder
+
+
 
 
 
@@ -411,7 +430,7 @@ class InstrumentQueryBackEnd(object):
                 else:
                     pass
 
-                query_out.set_failed('build dispatcher response', error_message='failed json serialization', debug_message=str(e.message))
+                query_out.set_failed('build dispatcher response', extra_message='failed json serialization', debug_message=str(e.message))
                 out_dict['exit_status'] = query_out.status_dictionary
 
                 return jsonify(out_dict)
@@ -505,9 +524,10 @@ class InstrumentQueryBackEnd(object):
             query_out.set_query_exception(e, 'run_query failed in ', self.__class__.__name__,
                                           extra_message='configuration failed')
 
-        if config.sentry_url is not None:
-            self.set_sentry_client(config.sentry_url)
-
+            config, config_data_server = None, None
+        else:
+            if config.sentry_url is not None:
+                self.set_sentry_client(config.sentry_url)
 
         job=job_factory(self.instrument_name,
                         self.scratch_dir,
