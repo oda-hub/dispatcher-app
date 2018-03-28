@@ -5,6 +5,10 @@ A flexible python framework to bridge front-end and data-server
 for scientific online analysis of astrophysical data
 
 
+
+configuration
+==============
+
 #open stack machine
 http://10.194.169.75
 
