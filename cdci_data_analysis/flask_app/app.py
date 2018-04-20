@@ -41,10 +41,6 @@ import logstash
 #UPLOAD_FOLDER = '/path/to/the/uploads'
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
 
-
-
-
-
 class CustomJSONEncoder(JSONEncoder):
 
     def default(self, obj):
@@ -53,15 +49,8 @@ class CustomJSONEncoder(JSONEncoder):
         return JSONEncoder.default(self, obj)
 
 
-
-
 app = Flask(__name__)
 app.json_encoder = CustomJSONEncoder
-
-
-
-
-
 
 
 
