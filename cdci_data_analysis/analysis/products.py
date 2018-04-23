@@ -689,6 +689,10 @@ class SpectralFitProduct(BaseQueryProduct):
 
         footer_str +='Chi-squared '+ '%5.5f\n'%xsp.Fit.statistic
         footer_str +='Chi-squared red. %5.5f\n'%(xsp.Fit.statistic/xsp.Fit.dof)
+        xsp.AllModels.calcFlux("20.0 60.0 err")
+        (flux, flux_m, flux_p, _1, _2, _3) = s.flux
+        footer_str += 'flux (20.0-60.0) keV %5.5e\n' % (flux)
+        footer_str += 'Error range  68.00%%  confidence (%5.5e,%5.5e)\n' % (flux_m, flux_p)
 
         if plot == True:
             xsp.Plot.device = "/xs"
