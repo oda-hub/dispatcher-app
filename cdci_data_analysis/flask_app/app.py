@@ -145,14 +145,18 @@ class InstrumentQueryBackEnd(object):
         self.logger=logger
 
     def set_logstash(self,logger,logstash_host=None,logstash_port=None):
+        _logger=logger
         if logstash_host is not None:
             logger.addHandler(logstash.TCPLogstashHandler(logstash_host, logstash_port))
 
             extra = {
                 'origin': 'cdici_dispatcher',
             }
-            logger = logging.LoggerAdapter(logger, extra)
-            return logger
+            _logger = logging.LoggerAdapter(logger, extra)
+        else:
+            pass
+
+        return _logger
 
 
 
