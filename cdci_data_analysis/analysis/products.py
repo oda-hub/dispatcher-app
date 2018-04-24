@@ -688,7 +688,7 @@ class SpectralFitProduct(BaseQueryProduct):
 
         footer_str ='dof '+ '%d'%xsp.Fit.dof+'\n'
         footer_str += 'Chi-squared ' + '%5.5f\n' % xsp.Fit.statistic
-        footer_str += 'Chi-squared red. %5.5f\n' % (xsp.Fit.statistic / xsp.Fit.dof)
+        footer_str += 'Chi-squared red. %5.5f\n\n' % (xsp.Fit.statistic / xsp.Fit.dof)
 
         try:
             xsp.AllModels.calcFlux("20.0 60.0 err")
@@ -698,7 +698,7 @@ class SpectralFitProduct(BaseQueryProduct):
 
 
         except:
-            footer_str+='flux cucluation failed\n'
+            footer_str+='flux calculation failed\n'
 
         _passed = False
         try:
@@ -718,11 +718,11 @@ class SpectralFitProduct(BaseQueryProduct):
                 xsp.AllModels.calcFlux("20.0 60.0 err")
                 (flux, flux_m, flux_p, _1, _2, _3) = s.flux
                 footer_str += '\n'
-                footer_str += 'flux cucluation with chain\n'
+                footer_str += 'flux calculation with chain\n'
                 footer_str += 'flux (20.0-60.0) keV %5.5e\n' % (flux)
                 footer_str += 'Error range  68.00%%  confidence (%5.5e,%5.5e)\n' % (flux_m, flux_p)
             except:
-                footer_str += 'flux cucluation with chain failed\n'
+                footer_str += 'flux calculation with chain failed\n'
 
         _passed = False
         try:

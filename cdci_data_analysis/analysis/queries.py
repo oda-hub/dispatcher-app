@@ -674,6 +674,7 @@ class ProductQuery(BaseQuery):
             if input_prod_list is not None:
                 query_out.prod_dictionary['input_prod_list']=input_prod_list
 
+
         return query_out
 
 
