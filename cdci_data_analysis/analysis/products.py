@@ -505,7 +505,7 @@ class   SpectrumProduct(BaseQueryProduct):
         if self.header is not None and arf_kw is not None:
             print("kw -->",arf_kw)
             print("-->", self.header[arf_kw])
-            self.header[arf_kw] = 'NONE'
+            self.header[arf_kw] = arf_kw
         if out_arf_file is not None and in_arf_file is not None:
             #print('in_arf_file', in_arf_file,out_arf_file)
             #pf.open(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
@@ -543,7 +543,7 @@ class   SpectrumProduct(BaseQueryProduct):
         if self.header is not None and rmf_kw is not None:
             print("kw -->", rmf_kw)
             print ("-->", self.header[rmf_kw] )
-            self.header[rmf_kw] = 'NONE'
+            self.header[rmf_kw] = rmf_kw
         if out_rmf_file is not None and in_rmf_file is not None:
             #pf.open(in_rmf_file).writeto(out_rmf_file, overwrite=overwrite)
             FitsFile(in_rmf_file).writeto(out_rmf_file, overwrite=overwrite)
