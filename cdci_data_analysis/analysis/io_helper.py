@@ -148,6 +148,10 @@ class FilePath(object):
     def exists(self):
         return self._file_path.exists()
 
+
+    def remove(self):
+        return self._file_path.unlink()
+
     def mkdir(self,):
         if  self._file_path.exists()==True:
             print('!warning already existing dir', self.path)

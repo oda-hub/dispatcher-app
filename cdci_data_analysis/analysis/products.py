@@ -595,7 +595,8 @@ class SpectralFitProduct(BaseQueryProduct):
         self.rmf_file = FilePath(file_name=rmf_file, file_dir=file_dir).path
         self.arf_file = FilePath(file_name=arf_file, file_dir=file_dir).path
         self.spec_file = FilePath(file_name=spec_file, file_dir=file_dir).path
-
+        self.chain_file = FilePath(file_name='xspec_fit.chain', file_dir=file_dir).path
+        self.out_dir=file_dir
 
 
 
@@ -702,6 +703,10 @@ class SpectralFitProduct(BaseQueryProduct):
         _passed = False
         try:
             _passed=True
+
+            if self.chain_file.exists():
+                self.chain_file.remove()
+                
             fit_chain = xsp.Chain('test.chain', burn=500, runLength=1000, algorithm='mh')
             fit_chain.run()
         except:
@@ -712,6 +717,8 @@ class SpectralFitProduct(BaseQueryProduct):
             try:
                 xsp.AllModels.calcFlux("20.0 60.0 err")
                 (flux, flux_m, flux_p, _1, _2, _3) = s.flux
+                footer_str += '\n'
+                footer_str += 'flux cucluation with chain\n'
                 footer_str += 'flux (20.0-60.0) keV %5.5e\n' % (flux)
                 footer_str += 'Error range  68.00%%  confidence (%5.5e,%5.5e)\n' % (flux_m, flux_p)
             except:
@@ -731,7 +738,7 @@ class SpectralFitProduct(BaseQueryProduct):
                     _err_m.append('%5.5f' % p.error[0])
                     _err_p.append('%5.5f' % p.error[1])
             fit_table['columns_list'].extend([_err_m, _err_p])
-            fit_table['column_names'].extend(['error-', 'error+'])
+            fit_table['column_names'].extend(['range-', 'range+'])
 
         except:
             footer_str += 'chain error failed\n'
