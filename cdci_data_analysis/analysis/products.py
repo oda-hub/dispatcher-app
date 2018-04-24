@@ -710,7 +710,7 @@ class SpectralFitProduct(BaseQueryProduct):
             fit_chain = xsp.Chain( self.chain_file_path.path, burn=500, runLength=1000, algorithm='mh')
             fit_chain.run()
         except:
-            footer_str += 'chain failed\n'
+            footer_str += '!chain failed!\n'
 
 
         if _passed:
@@ -741,7 +741,7 @@ class SpectralFitProduct(BaseQueryProduct):
             fit_table['column_names'].extend(['range-', 'range+'])
 
         except:
-            footer_str += 'chain error failed\n'
+            footer_str += '!chain error failed!\n'
 
         if plot == True:
             xsp.Plot.device = "/xs"
