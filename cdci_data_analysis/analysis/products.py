@@ -595,7 +595,7 @@ class SpectralFitProduct(BaseQueryProduct):
         self.rmf_file = FilePath(file_name=rmf_file, file_dir=file_dir).path
         self.arf_file = FilePath(file_name=arf_file, file_dir=file_dir).path
         self.spec_file = FilePath(file_name=spec_file, file_dir=file_dir).path
-        self.chain_file = FilePath(file_name='xspec_fit.chain', file_dir=file_dir).path
+        self.chain_file_path = FilePath(file_name='xspec_fit.chain', file_dir=file_dir)
         self.out_dir=file_dir
 
 
@@ -704,10 +704,10 @@ class SpectralFitProduct(BaseQueryProduct):
         try:
             _passed=True
 
-            if self.chain_file.exists():
-                self.chain_file.remove()
-                
-            fit_chain = xsp.Chain('test.chain', burn=500, runLength=1000, algorithm='mh')
+            if self.chain_file_path.exists():
+                self.chain_file_path.remove()
+
+            fit_chain = xsp.Chain( self.chain_file_path.path, burn=500, runLength=1000, algorithm='mh')
             fit_chain.run()
         except:
             footer_str += 'chain failed\n'
