@@ -686,13 +686,55 @@ class SpectralFitProduct(BaseQueryProduct):
         fit_table=dict(columns_list=[_comp,_name,_val,_unit,_err], column_names=colnames)
 
         footer_str ='dof '+ '%d'%xsp.Fit.dof+'\n'
+        footer_str += 'Chi-squared ' + '%5.5f\n' % xsp.Fit.statistic
+        footer_str += 'Chi-squared red. %5.5f\n' % (xsp.Fit.statistic / xsp.Fit.dof)
 
-        footer_str +='Chi-squared '+ '%5.5f\n'%xsp.Fit.statistic
-        footer_str +='Chi-squared red. %5.5f\n'%(xsp.Fit.statistic/xsp.Fit.dof)
-        xsp.AllModels.calcFlux("20.0 60.0 err")
-        (flux, flux_m, flux_p, _1, _2, _3) = s.flux
-        footer_str += 'flux (20.0-60.0) keV %5.5e\n' % (flux)
-        footer_str += 'Error range  68.00%%  confidence (%5.5e,%5.5e)\n' % (flux_m, flux_p)
+        try:
+            xsp.AllModels.calcFlux("20.0 60.0 err")
+            (flux, flux_m, flux_p, _1, _2, _3) = s.flux
+            footer_str += 'flux (20.0-60.0) keV %5.5e\n' % (flux)
+            footer_str += 'Error range  68.00%%  confidence (%5.5e,%5.5e)\n' % (flux_m, flux_p)
+
+
+        except:
+            footer_str+='flux cucluation failed\n'
+
+        _passed = False
+        try:
+            _passed=True
+            fit_chain = xsp.Chain('test.chain', burn=500, runLength=1000, algorithm='mh')
+            fit_chain.run()
+        except:
+            footer_str += 'chain failed\n'
+
+
+        if _passed:
+            try:
+                xsp.AllModels.calcFlux("20.0 60.0 err")
+                (flux, flux_m, flux_p, _1, _2, _3) = s.flux
+                footer_str += 'flux (20.0-60.0) keV %5.5e\n' % (flux)
+                footer_str += 'Error range  68.00%%  confidence (%5.5e,%5.5e)\n' % (flux_m, flux_p)
+            except:
+                footer_str += 'flux cucluation with chain failed\n'
+
+        _passed = False
+        try:
+            _passed = True
+            xsp.Fit.error('1-%d' % m.nParameters)
+
+            _err_m = []
+            _err_p = []
+            for model_name in m.componentNames:
+                fit_model = getattr(m, model_name)
+                for name in fit_model.parameterNames:
+                    p = getattr(fit_model, name)
+                    _err_m.append('%5.5f' % p.error[0])
+                    _err_p.append('%5.5f' % p.error[1])
+            fit_table['columns_list'].extend([_err_m, _err_p])
+            fit_table['column_names'].extend(['error-', 'error+'])
+
+        except:
+            footer_str += 'chain error failed\n'
 
         if plot == True:
             xsp.Plot.device = "/xs"
