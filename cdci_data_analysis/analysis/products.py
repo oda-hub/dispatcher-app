@@ -5,7 +5,6 @@ from builtins import (bytes, str, open, super, range,
 
 __author__ = "Andrea Tramacere"
 
-
 # Standard library
 # eg copy
 # absolute import rg:from copy import deepcopy
@@ -19,66 +18,59 @@ __author__ = "Andrea Tramacere"
 
 import json
 
-
 from pathlib import Path
-
 
 from astropy import wcs
 from astropy.wcs import WCS
 
-
-from astropy.io  import fits as pf
+from astropy.io import fits as pf
 
 import matplotlib
 
-matplotlib.use('Agg',warn=False)
+matplotlib.use('Agg', warn=False)
 
 import matplotlib.pyplot as plt
 
+import numpy as np
 
 import mpld3
 from mpld3 import plugins
 
 from .parameters import *
 from .io_helper import FilePath
-from .io_helper import view_traceback,FitsFile
+from .io_helper import view_traceback, FitsFile
 from .job_manager import Job
 
 
-
-
 class QueryOutput(object):
-    def  __init__(self):
-        self.prod_dictionary={}
-        self.status_dictionary={}
+    def __init__(self):
+        self.prod_dictionary = {}
+        self.status_dictionary = {}
 
-
-
-        self._allowed_status_values_=[0,1]
-        self._allowed_job_status_values_= Job.get_allowed_job_status_values()
+        self._allowed_status_values_ = [0, 1]
+        self._allowed_job_status_values_ = Job.get_allowed_job_status_values()
 
         self.set_status(0, job_status='unknown')
-    
-    def set_products(self,keys,values):
-        for k,v in zip(keys,values):
-            self.prod_dictionary[k] =v
 
+    def set_products(self, keys, values):
+        for k, v in zip(keys, values):
+            self.prod_dictionary[k] = v
 
-    def set_done(self,message='',debug_message='',job_status=None,status=0):
-        self.set_status(status,message=message,debug_message=debug_message,job_status=job_status)
+    def set_done(self, message='', debug_message='', job_status=None, status=0):
+        self.set_status(status, message=message, debug_message=debug_message, job_status=job_status)
 
-    def set_failed(self,failed_operation,
-                        message_prepend_str='',
-                        extra_message=None,
-                        message=None,
-                        logger_prepend_str='==>',
-                        logger=None,
-                        excep=None,
-                        status=1,
-                        sentry_client=None,
-                        job_status=None,
-                        e_message=None,
-                        debug_message=''):
+    def set_failed(self, failed_operation,
+                   message_prepend_str='',
+                   extra_message=None,
+                   message=None,
+                   logger_prepend_str='==>',
+                   logger=None,
+                   excep=None,
+                   status=1,
+                   sentry_client=None,
+                   job_status=None,
+                   e_message=None,
+                   debug_message=''):
 
         self.set_query_exception(excep,
                                  failed_operation,
@@ -93,36 +85,31 @@ class QueryOutput(object):
                                  e_message=e_message,
                                  debug_message=debug_message)
 
-
-    #def set_progress(self):
+    # def set_progress(self):
     #    pass
 
-
-
-    def _set_job_status(self,job_status):
+    def _set_job_status(self, job_status):
         if job_status is not None:
             if job_status in self._allowed_job_status_values_:
 
                 self.status_dictionary['job_status'] = job_status
             else:
-                   raise RuntimeError('job_status',job_status,' in QueryOutput is not allowed',self._allowed_job_status_values_)
+                raise RuntimeError('job_status', job_status, ' in QueryOutput is not allowed',
+                                   self._allowed_job_status_values_)
 
-
-
-    def set_status(self,status,message='',error_message='',debug_message='',job_status=None):
-       
+    def set_status(self, status, message='', error_message='', debug_message='', job_status=None):
 
         self._set_job_status(job_status)
 
         if status in self._allowed_status_values_:
-            self.status_dictionary['status']=status
+            self.status_dictionary['status'] = status
         else:
             raise RuntimeError('status', status, ' in QueryOutput is not allowed',
                                self._allowed_status_values_)
 
-        self.status_dictionary['message']=str(message)
-        self.status_dictionary['error_message']=str(error_message)
-        self.status_dictionary['debug_message']=str(debug_message)
+        self.status_dictionary['message'] = str(message)
+        self.status_dictionary['error_message'] = str(error_message)
+        self.status_dictionary['debug_message'] = str(debug_message)
 
     def get_status(self):
         return self.status_dictionary['status']
@@ -146,7 +133,7 @@ class QueryOutput(object):
         self._set_job_status(job_status)
 
         if e_message is None:
-            e_message=''
+            e_message = ''
             if excep is not None:
                 if excep.__repr__ is None:
                     e_message = ''
@@ -155,9 +142,9 @@ class QueryOutput(object):
                         e_message = excep.__repr__()
                     except:
 
-                        e_message=''
+                        e_message = ''
         else:
-            print('e_message',e_message)
+            print('e_message', e_message)
 
         if sentry_client is not None:
             sentry_client.capture('raven.events.Message', message=e_message)
@@ -180,13 +167,9 @@ class QueryOutput(object):
         else:
             pass
 
-
-
-
-
         msg_str = '%s' % logger_prepend_str
-        msg_str += 'failed: %s'% failed_operation
-        msg_str += ' error: %s'% e_message
+        msg_str += 'failed: %s' % failed_operation
+        msg_str += ' error: %s' % e_message
         msg_str += ' debug : %s' % debug_message
         if extra_message is not None:
             msg_str += ' message: %s' % (extra_message)
@@ -194,88 +177,87 @@ class QueryOutput(object):
         if logger is not None:
             logger.info(msg_str)
 
-        self.set_status(status,message=message, error_message=e_message, debug_message=str(debug_message))
-
-
+        self.set_status(status, message=message, error_message=e_message, debug_message=str(debug_message))
 
 
 class QueryProductList(object):
 
-    def __init__(self,prod_list,job=None):
-        self._prod_list=prod_list
-        self.job=job
+    def __init__(self, prod_list, job=None):
+        self._prod_list = prod_list
+        self.job = job
 
     @property
     def prod_list(self):
-        return  self._prod_list
+        return self._prod_list
 
-    def get_prod_by_name(self,name):
-        prod=None
+    def get_prod_by_name(self, name):
+        prod = None
         for prod1 in self._prod_list:
-            if hasattr(prod1,'name'):
-                if prod1.name==name:
-                    prod=prod1
+            if hasattr(prod1, 'name'):
+                if prod1.name == name:
+                    prod = prod1
         if prod is None:
-            raise  Warning('product',name,'not found')
+            raise Warning('product', name, 'not found')
         return prod
+
 
 class BaseQueryProduct(object):
 
+    def __init__(self, name,
+                 file_name=None,
+                 file_dir='./',
+                 name_prefix=None):
 
-    def __init__(self,name,file_name=None,file_dir='./',name_prefix=None):
-        self.name=name
+        self.name = name
         if file_name is not None:
-
-            print ('set file phat')
-            print ('workig dir',file_dir)
-            print ('file name',file_name)
-            print ('name_prefix',name_prefix)
-            self.file_path=FilePath(file_name=file_name, file_dir=file_dir, name_prefix=name_prefix)
-            print('file_path set to',self.file_path.path)
+            print('set file phat')
+            print('workig dir', file_dir)
+            print('file name', file_name)
+            print('name_prefix', name_prefix)
+            self.file_path = FilePath(file_name=file_name, file_dir=file_dir, name_prefix=name_prefix)
+            print('file_path set to', self.file_path.path)
 
     def write(self):
         pass
-
 
     def read(self):
         pass
 
 
-
 class ImageProduct(BaseQueryProduct):
-    def __init__(self,name,data,header,file_name='image.fits',**kwargs):
-        self.name=name
-        self.data=data
-        self.header=header
+    def __init__(self, name, data, header, file_name='image.fits', **kwargs):
+        self.name = name
+        self.data = data
+        self.header = header
         self.file_name = file_name
-        super(ImageProduct, self).__init__(name,file_name=file_name, **kwargs)
+        super(ImageProduct, self).__init__(name, file_name=file_name, **kwargs)
 
     @classmethod
-    def from_fits_file(cls,in_file,out_file_name,prod_name,ext=0,**kwargs):
-        #hdu = pf.open(in_file)[ext]
-        #print('ciccio in_file', in_file)
-        hdu= FitsFile(in_file).open()[ext]
+    def from_fits_file(cls, in_file, out_file_name, prod_name, ext=0, **kwargs):
+        # hdu = pf.open(in_file)[ext]
+        # print('ciccio in_file', in_file)
+        hdu = FitsFile(in_file).open()[ext]
 
         data = hdu.data
         header = hdu.header
 
-        return  cls(name=prod_name, data=data, header=header,file_name=out_file_name,**kwargs)
+        return cls(name=prod_name, data=data, header=header, file_name=out_file_name, **kwargs)
 
-    def write(self,file_name=None,overwrite=True,file_dir=None):
+    def write(self, file_name=None, overwrite=True, file_dir=None):
 
         # TODO: this should be file_path = self.file_path.path-> DONE AND PASSED
         file_path = self.file_path.path
-        #file_path=self.file_path.get_file_path(file_name=file_name,file_dir=file_dir)
-        pf.writeto( file_path   , data=self.data, header=self.header,overwrite=overwrite)
+        # file_path=self.file_path.get_file_path(file_name=file_name,file_dir=file_dir)
+        pf.writeto(file_path, data=self.data, header=self.header, overwrite=overwrite)
 
-    def get_html_draw(self, catalog=None,plot=False,vmin=None,vmax=None):
-        #print('vmin,vmax',vmin,vmax)
-        msk=~np.isnan(self.data)
+    def get_html_draw(self, catalog=None, plot=False, vmin=None, vmax=None):
+        # print('vmin,vmax',vmin,vmax)
+        msk = ~np.isnan(self.data)
         if vmin is None:
-            vmin=self.data[msk].min()
+            vmin = self.data[msk].min()
 
         if vmax is None:
-            vmax=self.data[msk].max()
+            vmax = self.data[msk].max()
 
         fig, (ax) = plt.subplots(1, 1, figsize=(4, 3), subplot_kw={'projection': WCS(self.header)})
         im = ax.imshow(self.data,
@@ -284,8 +266,8 @@ class ImageProduct(BaseQueryProduct):
                        interpolation='none',
                        aspect='equal',
                        cmap=plt.get_cmap('jet'),
-                       vmin = vmin,
-                       vmax = vmax)
+                       vmin=vmin,
+                       vmax=vmax)
 
         if catalog is not None:
 
@@ -293,79 +275,78 @@ class ImageProduct(BaseQueryProduct):
             lat = catalog.dec
 
             w = wcs.WCS(self.header)
-            if len(lat)>0.:
+            if len(lat) > 0.:
                 pixcrd = w.wcs_world2pix(np.column_stack((lon, lat)), 0)
 
-                msk=~np.isnan(pixcrd[:, 0])
+                msk = ~np.isnan(pixcrd[:, 0])
                 ax.plot(pixcrd[:, 0][msk], pixcrd[:, 1][msk], 'o', mfc='none')
 
                 for ID, (x, y) in enumerate(pixcrd):
                     if msk[ID]:
-                        #print ('xy',(pixcrd[:, 0][ID], pixcrd[:, 1][ID]))
-                        ax.annotate('%s' % catalog.name[ID], xy=(x,y), color='white')
-
+                        # print ('xy',(pixcrd[:, 0][ID], pixcrd[:, 1][ID]))
+                        ax.annotate('%s' % catalog.name[ID], xy=(x, y), color='white')
 
         ax.set_xlabel('RA')
         ax.set_ylabel('DEC')
         ax.grid(True, color='white')
         fig.colorbar(im, ax=ax)
 
-
         plugins.connect(fig, plugins.MousePosition(fontsize=14))
         if plot == True:
-            print ('plot',plot)
+            print('plot', plot)
             mpld3.show()
         res_dict = {}
-        res_dict['image'] =  mpld3.fig_to_dict(fig)
+        res_dict['image'] = mpld3.fig_to_dict(fig)
         res_dict['header_text'] = ''
         res_dict['table_text'] = ''
-        res_dict['footer_text'] = 'colorscale for normalzied significance\nmax significance=%.2f, min significance=%.2f'%(vmax,vmin)
+        res_dict[
+            'footer_text'] = 'colorscale for normalzied significance\nmax significance=%.2f, min significance=%.2f' % (
+        vmax, vmin)
 
         plt.close(fig)
         return res_dict
 
 
 class LightCurveProduct(BaseQueryProduct):
-    def __init__(self,name,
-                      data,
-                      header,
-                      file_name='lc.fits',
-                      src_name=None,
-                      **kwargs):
+    def __init__(self, name,
+                 data,
+                 header,
+                 file_name='lc.fits',
+                 src_name=None,
+                 **kwargs):
         self.name = name
         self.data = data
         self.header = header
         self.file_name = file_name
-        self.src_name=src_name
+        self.src_name = src_name
 
-        super(LightCurveProduct, self).__init__(name,file_name=file_name,**kwargs)
+        super(LightCurveProduct, self).__init__(name, file_name=file_name, **kwargs)
 
     @classmethod
-    def from_fits_file(cls, inf_file,out_file_name, prod_name, ext=0,**kwargs):
-        #hdu = pf.open(inf_file)[ext]
+    def from_fits_file(cls, inf_file, out_file_name, prod_name, ext=0, **kwargs):
+        # hdu = pf.open(inf_file)[ext]
         hdu = FitsFile(inf_file).open()[ext]
         data = hdu.data
         header = hdu.header
-        return cls(name=prod_name, data=data, header=header, file_name=out_file_name,**kwargs)
+        return cls(name=prod_name, data=data, header=header, file_name=out_file_name, **kwargs)
 
-    def write(self, file_name=None, overwrite=True,file_dir=None):
-        #print('writing catalog file to->',)
+    def write(self, file_name=None, overwrite=True, file_dir=None):
+        # print('writing catalog file to->',)
         file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
         pf.writeto(file_path, data=self.data, header=self.header, overwrite=overwrite)
 
     def get_html_draw(self, plot=False):
-        #from astropy.io import fits as pf
-        #print ('loading -->',self.file_path.path)
+        # from astropy.io import fits as pf
+        # print ('loading -->',self.file_path.path)
 
-
-        #hdul = pf.open(self.file_path.path)
+        # hdul = pf.open(self.file_path.path)
         hdul = FitsFile(self.file_path.path).open()
 
         data = hdul[1].data
         header = hdul[1].header
 
         import matplotlib
-        #matplotlib.use('TkAgg')
+        # matplotlib.use('TkAgg')
         import pylab as plt
         fig, ax = plt.subplots()
         x = data['TIME']
@@ -382,25 +363,25 @@ class LightCurveProduct(BaseQueryProduct):
         normalized_slope = None
         chisq_red = None
         poly_deg = 0
-        footer_str=''
-        p, chisq, chisq_red, dof=self.do_linear_fit( x, y, dy, poly_deg,'constant fit')
+        footer_str = ''
+        p, chisq, chisq_red, dof = self.do_linear_fit(x, y, dy, poly_deg, 'constant fit')
 
-        exposure=header['TIMEDEL']*data['FRACEXP'].sum()
-        exposure*=86400
-        footer_str='Exposure %5.5f (s) \n'%exposure
+        exposure = header['TIMEDEL'] * data['FRACEXP'].sum()
+        exposure *= 86400
+        footer_str = 'Exposure %5.5f (s) \n' % exposure
         if p is not None:
-            footer_str +='\n'
+            footer_str += '\n'
             footer_str += 'Constant fit\n'
-            footer_str += 'flux level %5.5f\n'%p[0]
+            footer_str += 'flux level %5.5f\n' % p[0]
             footer_str += 'dof ' + '%d' % dof + '\n'
             footer_str += 'Chi-squared red. %5.5f\n' % chisq_red
 
-        poly_deg=1
-        p, chisq, chisq_red, dof = self.do_linear_fit( x, y, dy, poly_deg,'linear fit')
+        poly_deg = 1
+        p, chisq, chisq_red, dof = self.do_linear_fit(x, y, dy, poly_deg, 'linear fit')
         if p is not None:
             footer_str += '\n'
             footer_str += 'Linear fit\n'
-            footer_str += 'slope %5.5f\n'%p[0]
+            footer_str += 'slope %5.5f\n' % p[0]
             footer_str += 'dof ' + '%d' % dof + '\n'
             footer_str += 'Chi-squared red. %5.5f\n' % chisq_red
 
@@ -409,26 +390,22 @@ class LightCurveProduct(BaseQueryProduct):
         if plot == True:
             plt.show()
 
-
         plugins.connect(fig, plugins.MousePosition(fontsize=14))
-
-
-
 
         res_dict = {}
         res_dict['image'] = mpld3.fig_to_dict(fig)
         res_dict['header_text'] = ''
-        res_dict['table_text'] =  ''
+        res_dict['table_text'] = ''
         res_dict['footer_text'] = footer_str
 
         plt.close(fig)
         return res_dict
 
-    def do_linear_fit(self,x,y,dy,poly_deg,label):
-        p=None
-        chisq=None
-        chisq_red=None
-        dof=None
+    def do_linear_fit(self, x, y, dy, poly_deg, label):
+        p = None
+        chisq = None
+        chisq_red = None
+        dof = None
 
         if y.size > poly_deg + 1:
             p = np.polyfit(x, y, poly_deg)
@@ -439,15 +416,12 @@ class LightCurveProduct(BaseQueryProduct):
             chisq = (lin_fit(x) - y) ** 2 / dy ** 2
             dof = y.size - (poly_deg + 1)
             chisq_red = chisq.sum() / float(dof)
-            plt.plot(x_grid, lin_fit(x_grid), '--',label=label)
+            plt.plot(x_grid, lin_fit(x_grid), '--', label=label)
+
+        return p, chisq, chisq_red, dof
 
 
-
-
-        return p,chisq,chisq_red,dof
-
-
-class   SpectrumProduct(BaseQueryProduct):
+class SpectrumProduct(BaseQueryProduct):
     def __init__(self, name,
                  data,
                  header,
@@ -460,11 +434,11 @@ class   SpectrumProduct(BaseQueryProduct):
                  in_rmf_file=None,
                  **kwargs):
 
-        self.name=name
-        self.file_name=file_name
+        self.name = name
+        self.file_name = file_name
 
-        self.in_arf_file=in_arf_file
-        self.in_rmf_file=in_rmf_file
+        self.in_arf_file = in_arf_file
+        self.in_rmf_file = in_rmf_file
 
         self.out_arf_file = out_arf_file
         self.out_rmf_file = out_rmf_file
@@ -472,87 +446,90 @@ class   SpectrumProduct(BaseQueryProduct):
         self.data = data
         self.header = header
 
-        self.arf_kw=arf_kw
+        self.arf_kw = arf_kw
         self.rmf_kw = rmf_kw
 
-        self.rmf_file=None
-        self.arf_file=None
-
+        self.rmf_file = None
+        self.arf_file = None
 
         self.set_arf_file()
         self.set_rmf_file()
 
+        super(SpectrumProduct, self).__init__(name, file_name=file_name, **kwargs)
 
-        super(SpectrumProduct, self).__init__(name,file_name=file_name, **kwargs)
-
-    def set_arf_file(self, in_arf_file=None,arf_kw=None, out_arf_file=None, overwrite=True):
+    def set_arf_file(self, in_arf_file=None, arf_kw=None, arf_kw_value=None, out_arf_file=None, overwrite=True):
 
         if in_arf_file is None:
-            in_arf_file=self.in_arf_file
+            in_arf_file = self.in_arf_file
         else:
-            self.in_arf_file=in_arf_file
+            self.in_arf_file = in_arf_file
 
         if arf_kw is None:
-            arf_kw=self.arf_kw
+            arf_kw = self.arf_kw
         else:
-            self.arf_kw=arf_kw
+            self.arf_kw = arf_kw
 
         if out_arf_file is None:
-            out_arf_file=self.out_arf_file
+            out_arf_file = self.out_arf_file
         else:
-            self.out_arf_file=out_arf_file
+            self.out_arf_file = out_arf_file
 
-        if self.header is not None and arf_kw is not None:
-            print("kw -->",arf_kw)
-            print("-->", self.header[arf_kw])
-            self.header[arf_kw] = 'NONE'
+        if self.header is not None and arf_kw is not None and arf_kw_value is not None:
+            self.set_haeder_kw(arf_kw, arf_kw_value)
+
         if out_arf_file is not None and in_arf_file is not None:
-            #print('in_arf_file', in_arf_file,out_arf_file)
-            #pf.open(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
+            # print('in_arf_file', in_arf_file,out_arf_file)
+            # pf.open(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
             FitsFile(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
             print('arf written to', out_arf_file)
 
-            #if arf_kw is not None  and self.header is not None:
+            # if arf_kw is not None  and self.header is not None:
             #    self.header[arf_kw] = out_arf_file
             #    print('set arf kw to', self.header[arf_kw])
-        #else:
-            #if arf_kw is not None and self.header is not None:
-            #    self.header[arf_kw]=self.in_arf_file_path
-            #    print('set arf kw to', self.header[arf_kw])
+        # else:
+        # if arf_kw is not None and self.header is not None:
+        #    self.header[arf_kw]=self.in_arf_file_path
+        #    print('set arf kw to', self.header[arf_kw])
 
-        self.arf_file_path=FilePath(file_name=out_arf_file)
-        self.arf_file=out_arf_file
+        self.arf_file_path = FilePath(file_name=out_arf_file)
+        self.arf_file = out_arf_file
 
+    def set_haeder_kw(self, kw, val):
+        if self.header is not None:
+            if val is not None and kw is not None:
+                self.header[kw] = val
 
-    def set_rmf_file(self, in_rmf_file=None,rmf_kw=None, out_rmf_file=None, overwrite=True):
+    def del_haeder_kw(self, kw):
+        if self.header is not None and kw is not None:
+            del self.header[kw]
+
+    def set_rmf_file(self, in_rmf_file=None, rmf_kw=None, rmf_kw_value=None, out_rmf_file=None, overwrite=True):
         if in_rmf_file is None:
-            in_rmf_file=self.in_rmf_file
+            in_rmf_file = self.in_rmf_file
         else:
-            self.in_rmf_file=in_rmf_file
+            self.in_rmf_file = in_rmf_file
 
         if rmf_kw is None:
-            rmf_kw=self.arf_kw
+            rmf_kw = self.arf_kw
         else:
-            self.rmf_kw=rmf_kw
+            self.rmf_kw = rmf_kw
 
         if out_rmf_file is None:
-            out_rmf_file=self.out_rmf_file
+            out_rmf_file = self.out_rmf_file
         else:
-            self.out_rmf_file=out_rmf_file
+            self.out_rmf_file = out_rmf_file
 
-        if self.header is not None and rmf_kw is not None:
-            print("kw -->", rmf_kw)
-            print ("-->", self.header[rmf_kw] )
-            self.header[rmf_kw] = 'NONE'
+        if self.header is not None and rmf_kw is not None and rmf_kw_value is not None:
+            self.set_haeder_kw(rmf_kw, rmf_kw_value)
         if out_rmf_file is not None and in_rmf_file is not None:
-            #pf.open(in_rmf_file).writeto(out_rmf_file, overwrite=overwrite)
+            # pf.open(in_rmf_file).writeto(out_rmf_file, overwrite=overwrite)
             FitsFile(in_rmf_file).writeto(out_rmf_file, overwrite=overwrite)
             print('rmf written to', out_rmf_file)
-            #if rmf_kw is not None  and self.header is not None:
+            # if rmf_kw is not None  and self.header is not None:
             #    self.header[rmf_kw] = out_rmf_file
             #    print('set rmf kw to', self.header[rmf_kw])
 
-        #else:
+        # else:
         #    if rmf_kw is not None and self.header is not None:
 
         #        self.header[rmf_kw]=self.in_rmf_file
@@ -561,10 +538,9 @@ class   SpectrumProduct(BaseQueryProduct):
         self.rmf_file_path = FilePath(file_name=out_rmf_file)
         self.rmf_file = out_rmf_file
 
-
     @classmethod
-    def from_fits_file(cls, file_name, prod_name, ext=0,arf_file_name=None,rmf_file_name=None):
-        #hdu = pf.open(file_name)[ext]
+    def from_fits_file(cls, file_name, prod_name, ext=0, arf_file_name=None, rmf_file_name=None):
+        # hdu = pf.open(file_name)[ext]
         hdu = FitsFile(file_name).open()[ext]
 
         data = hdu.data
@@ -572,14 +548,11 @@ class   SpectrumProduct(BaseQueryProduct):
 
         return cls(name=prod_name, data=data, header=header, file_name=file_name)
 
-    def write(self,file_name=None,overwrite=True,file_dir=None):
+    def write(self, file_name=None, overwrite=True, file_dir=None):
         file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
-        #print('ciccio')
-        FitsFile(file_path).writeto( data=self.data, header=self.header,overwrite=overwrite)
-        #pf.writeto(file_path, data=self.data, header=self.header,overwrite=overwrite)
-
-
-
+        # print('ciccio')
+        FitsFile(file_path).writeto(data=self.data, header=self.header, overwrite=overwrite)
+        # pf.writeto(file_path, data=self.data, header=self.header,overwrite=overwrite)
 
 
 class SpectralFitProduct(BaseQueryProduct):
@@ -590,103 +563,99 @@ class SpectralFitProduct(BaseQueryProduct):
                  file_dir,
                  **kwargs):
 
-
         super(SpectralFitProduct, self).__init__(name, **kwargs)
         self.rmf_file = FilePath(file_name=rmf_file, file_dir=file_dir).path
         self.arf_file = FilePath(file_name=arf_file, file_dir=file_dir).path
         self.spec_file = FilePath(file_name=spec_file, file_dir=file_dir).path
         self.chain_file_path = FilePath(file_name='xspec_fit.chain', file_dir=file_dir)
-        self.out_dir=file_dir
+        self.work_dir = file_dir
+        self.out_dir = file_dir
 
-
-
-    def parse_command(self,params_setting):
-        str_list=params_setting.split('')
+    def parse_command(self, params_setting):
+        str_list = params_setting.split('')
         pars_dict = {}
         for s in str_list:
-            p=s.split(':')
-            if len(p)!=2:
+            p = s.split(':')
+            if len(p) != 2:
                 raise RuntimeError('Malformed par string')
             else:
-                i=np.int(p[0])
-            pars_dict[i]=p[1]
+                i = np.int(p[0])
+            pars_dict[i] = p[1]
         return pars_dict
 
-
-    def set_par(self,m,params_setting):
+    def set_par(self, m, params_setting):
         if params_setting is not None:
-            pars_dict=self.parse_command()
-            if pars_dict !={}:
+            pars_dict = self.parse_command()
+            if pars_dict != {}:
                 m.setPars(pars_dict)
 
-    def set_freeze(self,m,frozen_list):
+    def set_freeze(self, m, frozen_list):
         if frozen_list is not None:
             for f in frozen_list:
                 p = f.split(':')
                 if len(p) != 2:
                     raise RuntimeError('Malformed freeze string')
                 else:
-                    comp_name=p[0]
-                    par_name=p[1]
-                    comp=getattr(m,comp_name)
-                    par=getattr(comp,par_name)
+                    comp_name = p[0]
+                    par_name = p[1]
+                    comp = getattr(m, comp_name)
+                    par = getattr(comp, par_name)
                     setattr(par, 'frozen', True)
 
-    def run_fit(self,e_min_kev,e_max_kev, plot=False,xspec_model='powerlaw',params_setting=None,frozen_list=None):
+    def run_fit(self, e_min_kev, e_max_kev, plot=False, xspec_model='powerlaw', params_setting=None, frozen_list=None):
         import xspec as xsp
-        
+
         xsp.AllModels.clear()
         xsp.AllData.clear()
         xsp.AllChains.clear()
         # PyXspec operations:
 
-        print('fitting->,',self.spec_file)
-        print('res',self.rmf_file)
-        print('arf',self.arf_file)
+        print('fitting->,', self.spec_file)
+        print('res', self.rmf_file)
+        print('arf', self.arf_file)
         s = xsp.Spectrum(self.spec_file)
         s.response = self.rmf_file.encode('utf-8')
-        s.response.arf=self.arf_file.encode('utf-8')
+        s.response.arf = self.arf_file.encode('utf-8')
 
         s.ignore('**-15.')
         s.ignore('300.-**')
 
-        #s.ignore('**-%f'%e_min_kev)
-        #s.ignore('%f-**'%e_max_kev)
+        # s.ignore('**-%f'%e_min_kev)
+        # s.ignore('%f-**'%e_max_kev)
         xsp.AllData.ignore('bad')
 
-        model_name=xspec_model
+        model_name = xspec_model
 
         m = xsp.Model(model_name)
 
-        self.set_par(m,params_setting)
-        self.set_freeze(m,frozen_list)
+        self.set_par(m, params_setting)
+        self.set_freeze(m, frozen_list)
 
         xsp.Fit.query = 'yes'
         xsp.Fit.perform()
 
-        header_str='Exposure %f (s)\n'%(s.exposure)
-        header_str +='Fit report for model %s' % (model_name)
+        header_str = 'Exposure %f (s)\n' % (s.exposure)
+        header_str += 'Fit report for model %s' % (model_name)
 
-
-        _comp=[]
-        _name=[]
-        _val=[]
-        _unit=[]
-        _err=[]
-        colnames=['component','par name','value','units','error']
+        _comp = []
+        _name = []
+        _val = []
+        _unit = []
+        _err = []
+        colnames = ['component', 'par name', 'value', 'units', 'error']
         for model_name in m.componentNames:
             fit_model = getattr(m, model_name)
             for name in fit_model.parameterNames:
-                p=getattr(fit_model,name)
+                p = getattr(fit_model, name)
                 _comp.append('%s' % (model_name))
-                _name.append('%s'%(p.name))
-                _val.append('%5.5f'%p.values[0])
-                _unit.append('%s'%p.unit)
-                _err.append('%5.5f'%p.sigma)
+                _name.append('%s' % (p.name))
+                _val.append('%5.5f' % p.values[0])
+                _unit.append('%s' % p.unit)
+                _err.append('%5.5f' % p.sigma)
 
-        fit_table=dict(columns_list=[_comp,_name,_val,_unit,_err], column_names=colnames)
+        fit_table = dict(columns_list=[_comp, _name, _val, _unit, _err], column_names=colnames)
 
-        footer_str ='dof '+ '%d'%xsp.Fit.dof+'\n'
+        footer_str = 'dof ' + '%d' % xsp.Fit.dof + '\n'
         footer_str += 'Chi-squared ' + '%5.5f\n' % xsp.Fit.statistic
         footer_str += 'Chi-squared red. %5.5f\n\n' % (xsp.Fit.statistic / xsp.Fit.dof)
 
@@ -698,20 +667,19 @@ class SpectralFitProduct(BaseQueryProduct):
 
 
         except:
-            footer_str+='flux calculation failed\n'
+            footer_str += 'flux calculation failed\n'
 
         _passed = False
         try:
-            _passed=True
+            _passed = True
 
             if self.chain_file_path.exists():
                 self.chain_file_path.remove()
 
-            fit_chain = xsp.Chain( self.chain_file_path.path, burn=500, runLength=1000, algorithm='mh')
+            fit_chain = xsp.Chain(self.chain_file_path.path, burn=500, runLength=1000, algorithm='mh')
             fit_chain.run()
         except:
             footer_str += '!chain failed!\n'
-
 
         if _passed:
             try:
@@ -777,9 +745,7 @@ class SpectralFitProduct(BaseQueryProduct):
         my = y > 0.
 
         msk = np.logical_and(mx, my)
-        msk=  np.logical_and(msk,dy>0.)
-
-
+        msk = np.logical_and(msk, dy > 0.)
 
         ldx = 0.434 * dx / x
         ldy = 0.434 * dy / y
@@ -788,7 +754,7 @@ class SpectralFitProduct(BaseQueryProduct):
 
         msk = np.logical_and(msk, y_model > 0.)
 
-        if msk.sum()>0:
+        if msk.sum() > 0:
             ax1.errorbar(np.log10(x[msk]), np.log10(y[msk]), xerr=ldx[msk], yerr=ldy[msk], fmt='o')
             ax1.step(np.log10(x[msk]), np.log10(y_model[msk]), where='mid')
 
@@ -802,8 +768,6 @@ class SpectralFitProduct(BaseQueryProduct):
             ax2.set_ylabel('(data-model)/error')
             ax2.set_xlabel('log (Energy) (keV)')
 
-
-
         xsp.AllModels.clear()
         xsp.AllData.clear()
         xsp.AllChains.clear()
@@ -813,9 +777,9 @@ class SpectralFitProduct(BaseQueryProduct):
 
         plugins.connect(fig, plugins.MousePosition(fontsize=14))
 
-        res_dict={}
-        res_dict['spectral_fit_image']= mpld3.fig_to_dict(fig)
-        res_dict['header_text']=header_str
+        res_dict = {}
+        res_dict['spectral_fit_image'] = mpld3.fig_to_dict(fig)
+        res_dict['header_text'] = header_str
         res_dict['table_text'] = fit_table
         res_dict['footer_text'] = footer_str
 
@@ -825,12 +789,11 @@ class SpectralFitProduct(BaseQueryProduct):
 
 
 class CatalogProduct(BaseQueryProduct):
-    def __init__(self, name,catalog,file_name='catalog.fits', **kwargs):
-        self.catalog=catalog
-        super(CatalogProduct, self).__init__(name,file_name=file_name, **kwargs)
+    def __init__(self, name, catalog, file_name='catalog.fits', **kwargs):
+        self.catalog = catalog
+        super(CatalogProduct, self).__init__(name, file_name=file_name, **kwargs)
 
-
-    def write(self,file_name=None,overwrite=True,format='fits',file_dir=None):
-        #TODO: this should be file_path = self.file_path.path
+    def write(self, file_name=None, overwrite=True, format='fits', file_dir=None):
+        # TODO: this should be file_path = self.file_path.path
         file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
-        self.catalog.write(file_path,overwrite=overwrite,format=format)
+        self.catalog.write(file_path, overwrite=overwrite, format=format)
