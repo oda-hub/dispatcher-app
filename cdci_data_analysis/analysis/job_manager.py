@@ -241,7 +241,7 @@ class OsaJob(Job):
                                   status_kw_name=status_kw_name)
 
     def updat_dataserver_monitor(self,):
-        job_files_list=glob.glob(self.work_dir+'/job_monitor*.json')
+        job_files_list = sorted(glob.glob(self.work_dir + '/job_monitor*.json'), key=os.path.getmtime)
         print('get data server status form files',job_files_list)
         job_done=False
         job_failed=False
