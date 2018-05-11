@@ -349,10 +349,17 @@ class LightCurveProduct(BaseQueryProduct):
         # matplotlib.use('TkAgg')
         import pylab as plt
         fig, ax = plt.subplots()
+
+        #filtering zero flux values
+        msk_non_zero = np.count_nonzero([data['RATE'], data['ERROR']], axis=0) > 0
+        data=data[msk_non_zero]
+
         x = data['TIME']
         y = data['RATE']
         dy = data['ERROR']
         mjdref = header['mjdref'] + np.int(x.min())
+
+
 
         x = x - np.int(x.min())
         plt.errorbar(x, y, yerr=dy, fmt='o')
@@ -367,7 +374,7 @@ class LightCurveProduct(BaseQueryProduct):
         p, chisq, chisq_red, dof = self.do_linear_fit(x, y, dy, poly_deg, 'constant fit')
 
         exposure = header['TIMEDEL'] * data['FRACEXP'].sum()
-        exposure *= 86400
+        exposure *= 86400.
         footer_str = 'Exposure %5.5f (s) \n' % exposure
         if p is not None:
             footer_str += '\n'
