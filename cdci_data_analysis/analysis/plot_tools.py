@@ -194,10 +194,10 @@ class ScatterPlot(object):
 
 
     def add_step_line(self,x,y,legend=None):
-        print('a')
+        #print('a')
         self.fig.step(x,y,name=legend, mode="center")
-        print('b')
-        
+        #print('b')
+
     def add_fit_line(self,x,y,legend=None):
         self.fig.line(x,y,legend=legend)
 

@@ -752,7 +752,7 @@ class SpectralFitProduct(BaseQueryProduct):
 
         msk = np.logical_and(msk, y_model > 0.)
 
-        print('OK 1')
+        #print('OK 1')
         if msk.sum() > 0:
             #ax1.errorbar(np.log10(x[msk]), np.log10(y[msk]), xerr=ldx[msk], yerr=ldy[msk], fmt='o')
             #ax1.step(np.log10(x[msk]), np.log10(y_model[msk]), where='mid')
@@ -760,9 +760,9 @@ class SpectralFitProduct(BaseQueryProduct):
             #ax1.set_ylabel('log (normalize counts/s/keV)')
             # ax1.set_ylim(-3,1)
             sp1 = ScatterPlot('', w=600, h=600, x_label='log (Energy) (keV)', y_label='log (normalize counts/s/keV)')
-            print('OK 1a')
+            #print('OK 1a')
             sp1.add_errorbar(np.log10(x[msk]), np.log10(y[msk]), yerr=ldy[msk] )
-            print('OK 1b')
+            #print('OK 1b')
             sp1.add_step_line(np.log10(x[msk]), np.log10(y_model[msk]))
 
             #ax2.errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=1., xerr=0., fmt='o')
@@ -771,8 +771,9 @@ class SpectralFitProduct(BaseQueryProduct):
             #ax2.set_xlim(ax1.get_xlim())
             #ax2.set_ylabel('(data-model)/error')
             #ax2.set_xlabel('log (Energy) (keV)')
-            sp2 = ScatterPlot('', w=600, h=600, x_label='log (Energy) (keV)', y_label='log (normalize counts/s/keV)')
-            sp2.add_errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones[msk.sum()])
+
+            sp2 = ScatterPlot('', w=600, h=600, x_label='log (Energy) (keV)', y_label='(data-model)/error')
+            sp2.add_errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()))
             sp2.add_step_line(np.log10(x[msk]), np.log10(y_model[msk]))
         print('OK 2')
         gp=GridPlot(sp1,sp2)
