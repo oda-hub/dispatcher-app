@@ -14,6 +14,7 @@ from bokeh.models import CustomJS, Slider,HoverTool,ColorBar,LogColorMapper,LogT
 from bokeh.embed import components
 from bokeh.plotting import figure, output_file, show,curdoc,gmap
 from bokeh.palettes import Plasma256
+from bokeh.models import Range1d
 
 
 
@@ -234,7 +235,7 @@ class GridPlot(object):
         #l = layout([self.f1.fig],[self.f2.fig])
 
 
-        grid = gridplot([self.f1.fig,self.f2.fig],ncols=1, plot_width=500, plot_height=250)
+        grid = gridplot([self.f1.fig,self.f2.fig],ncols=1)
         curdoc().add_root(grid)
         #show(grid)
         #output_file("test.html")
