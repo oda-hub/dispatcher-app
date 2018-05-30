@@ -784,13 +784,13 @@ class SpectralFitProduct(BaseQueryProduct):
             #ax2.set_xlabel('log (Energy) (keV)')
 
             sp2 = ScatterPlot(w=500, h=150, x_label='log (Energy) (keV)', y_label='(data-model)/error',
-                              x_range=sp1.fig.x_range,x_axis_type='log')
+                              x_range=sp1.fig.x_range,x_axis_type='log',y_axis_type='linear')
 
             #sp2.add_errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()))
             sp2.add_errorbar(x[msk], (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()))
             #print ('OK 1')
             #sp2.add_line([np.log10(x[msk][0]),np.log10(x[msk][-1])], [0,0])
-            sp2.add_line([x[msk][0], x[msk][-1]], [0, 0])
+            sp2.add_line([x[msk].min(), x[msk].max()], [0, 0])
             #print('OK 2')
         #print('OK 2')
         gp=GridPlot(sp1,sp2,w=550,h=550)
