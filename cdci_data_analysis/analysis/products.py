@@ -775,11 +775,11 @@ class SpectralFitProduct(BaseQueryProduct):
             sp2 = ScatterPlot('', w=600, h=600, x_label='log (Energy) (keV)', y_label='(data-model)/error')
             sp2.add_errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()))
             sp2.add_step_line(np.log10(x[msk]), np.log10(y_model[msk]))
-        print('OK 2')
+        #print('OK 2')
         gp=GridPlot(sp1,sp2)
         htmlt_dict=gp.get_html_draw()
 
-        print('OK 3')
+        #print('OK 3')
         xsp.AllModels.clear()
         xsp.AllData.clear()
         xsp.AllChains.clear()
@@ -795,7 +795,7 @@ class SpectralFitProduct(BaseQueryProduct):
         res_dict['table_text'] = fit_table
         res_dict['footer_text'] = footer_str
 
-        plt.close(fig)
+
 
         return res_dict
 
