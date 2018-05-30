@@ -9,12 +9,11 @@ import  numpy  as np
 
 from astropy import wcs
 
-from bokeh.layouts import row, widgetbox,layout,gridplot
-from bokeh.models import CustomJS, Slider,HoverTool,ColorBar,LogColorMapper,LogTicker,ColorMapper,LinearColorMapper,LabelSet,ColumnDataSource,GMapPlot,GMapOptions
+from bokeh.layouts import row, widgetbox,gridplot
+from bokeh.models import CustomJS, Slider,HoverTool,ColorBar,LinearColorMapper,LabelSet,ColumnDataSource
 from bokeh.embed import components
-from bokeh.plotting import figure, output_file, show,curdoc,gmap
+from bokeh.plotting import figure,show,curdoc
 from bokeh.palettes import Plasma256
-from bokeh.models import Range1d
 
 
 

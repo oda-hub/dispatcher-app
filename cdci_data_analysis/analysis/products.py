@@ -273,14 +273,11 @@ class ImageProduct(BaseQueryProduct):
 
     def get_html_draw(self, catalog=None, plot=False, vmin=None, vmax=None):
 
-        print('CICCIO 1')
         im=Image(data=self.data,header=self.header)
         w=600
         (r,c)=self.data.shape
         ratio=float(r)/c
-        print('CICCIO 2')
         html_dict=im.get_html_draw(w=w,h=int(w*ratio),catalog=catalog)
-        print('CICCIO 3')
 
         res_dict = {}
         res_dict['image']=html_dict
@@ -297,7 +294,6 @@ class ImageProduct(BaseQueryProduct):
         #vmax, vmin)
 
         #plt.close(fig)
-        print('CICCIO 4')
         return res_dict
 
 
