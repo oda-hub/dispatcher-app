@@ -277,9 +277,9 @@ class ImageProduct(BaseQueryProduct):
 
         res_dict['header_text'] = ''
         res_dict['table_text'] = ''
-        res_dict[
-            'footer_text'] = 'colorscale for normalzied significance\nmax significance=%.2f, min significance=%.2f' % (
-        vmax, vmin)
+        res_dict['footer_text']=''
+        #res_dict['footer_text'] = 'colorscale for normalzied significance\nmax significance=%.2f, min significance=%.2f' % (
+        #vmax, vmin)
 
         #plt.close(fig)
         return res_dict
