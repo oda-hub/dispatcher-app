@@ -273,7 +273,7 @@ class ImageProduct(BaseQueryProduct):
 
     def get_html_draw(self, catalog=None, plot=False, vmin=None, vmax=None):
 
-        im=Image(data=self.data,header=self.header)
+        im=Image(w=600,h=400,data=self.data,header=self.header)
         html_dict=im.get_html_draw(catalog=catalog)
 
 
@@ -786,9 +786,9 @@ class SpectralFitProduct(BaseQueryProduct):
                               x_range=sp1.fig.x_range)
 
             sp2.add_errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()))
-            print ('OK 1')
+            #print ('OK 1')
             sp2.add_line([np.log10(x[msk][0]),np.log10(x[msk][-1])], [0,0])
-            print('OK 2')
+            #print('OK 2')
         #print('OK 2')
         gp=GridPlot(sp1,sp2,w=550,h=550)
         htmlt_dict=gp.get_html_draw()

@@ -30,7 +30,7 @@ class Image(object):
 
 
 
-    def get_html_draw(self, catalog=None, plot=False, vmin=None, vmax=None):
+    def get_html_draw(self,w=None,h=None, catalog=None, plot=False, vmin=None, vmax=None):
 
         #import plotly
         #import plotly.graph_objs as go
@@ -56,7 +56,7 @@ class Image(object):
 
         hover = HoverTool(tooltips=[("x", "$x"), ("y", "$y"), ("value", "@image")])
 
-        fig = figure(plot_width=c, plot_height=r, x_range=(0, c * 0.5), y_range=(0, r * 0.5),
+        fig = figure(plot_width=w, plot_height=h, x_range=(0, c * 0.5), y_range=(0, r * 0.5),
                      tools=[hover, 'pan,box_zoom,box_select,wheel_zoom,reset,save,crosshair']
                      )
 
