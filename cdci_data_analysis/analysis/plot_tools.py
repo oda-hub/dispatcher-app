@@ -162,10 +162,12 @@ class Image(object):
 class ScatterPlot(object):
 
 
-    def __init__(self,w,h,x_label=None,y_label=None,x_range=None,y_range=None,title=None):
+    def __init__(self,w,h,x_label=None,y_label=None,x_range=None,y_range=None,title=None,y_axis_type=None,x_axis_type=None):
         hover = HoverTool(tooltips=[("x", "$x"), ("y", "$y")])
 
         self.fig = figure(title=title, width=w, height=h,x_range=x_range,y_range=y_range,
+                          y_axis_type=y_axis_type,
+                          x_axis_type=y_axis_type,
                      tools=[hover, 'pan,box_zoom,box_select,wheel_zoom,reset,save,crosshair']
                      )
 
