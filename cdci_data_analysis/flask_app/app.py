@@ -66,6 +66,8 @@ class InstrumentQueryBackEnd(object):
             else:
                 self.par_dic = par_dic
 
+
+
             if instrument_name is None:
                 self.instrument_name = self.par_dic['instrument']
             else:
@@ -116,6 +118,12 @@ class InstrumentQueryBackEnd(object):
 
     def generate_job_id(self):
         print("!!! GENERATING JOB ID")
+
+        #TODO generate hash (immutable ore convert to Ordered)
+        #import collections
+
+        #self.par_dic-> collections.OrderedDict(self.par_dic)
+
         self.job_id=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
 
 
@@ -539,10 +547,18 @@ class InstrumentQueryBackEnd(object):
         out_dict=None
         query_out=None
 
-        #TODO rename query_new_status and query_status
+        #TODO add method to check if job_id exists if query_status=='new'
+        #TODO swap session ID
+        #TODO set alias_session_ID to existing
+        #TODO set current_session_ID to actual session_ID
+        #TODO set status to query_status to existing
+        #TODO get job monitor update
+        #TODO if query_status=='ready'
+        #TODO swap
         #NEW OR READY
         if query_status=='new' or query_status=='ready':
             run_asynch = True
+
 
 
             print ('*** run_asynch',run_asynch)

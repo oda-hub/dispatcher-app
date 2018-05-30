@@ -10,3 +10,4 @@ gunicorn
 decorator
 python-logstash
 raven
+bokeh

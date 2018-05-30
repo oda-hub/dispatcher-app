@@ -340,8 +340,8 @@ def test_asynch_full():
     :return:
     """
 
-    instrument_name='jemx'
-    parameters_dic,upload_data=set_mosaic_query(instrument_name=instrument_name,
+    instrument_name='isgri'
+    parameters_dic,upload_data=set_lc_query(instrument_name=instrument_name,
                                                 T1_iso='2003-03-15T23:27:40.0',
                                                 T2_iso='2003-03-16T00:03:15.0',
                                                 scw_list=asynch_scw_list,
@@ -350,7 +350,7 @@ def test_asynch_full():
                                                 Dec_user_cat=[-41.593417],
                                                 user_catalog=False,
                                                 #upload_data='cat_csv',
-                                                query_type='Real')
+                                                query_type='Dummy')
 
     print('upload_data', upload_data)
     query_out=test_asynch_request(parameters_dic,instrument_name,query_status='new',upload_data=None)

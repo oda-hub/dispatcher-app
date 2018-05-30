@@ -36,6 +36,9 @@ import numpy as np
 import mpld3
 from mpld3 import plugins
 
+from .plot_tools import  Image,ScatterPlot,GridPlot
+
+
 from .parameters import *
 from .io_helper import FilePath
 from .io_helper import view_traceback, FitsFile
@@ -224,6 +227,10 @@ class BaseQueryProduct(object):
         pass
 
 
+
+
+
+
 class ImageProduct(BaseQueryProduct):
     def __init__(self, name, data, header, file_name='image.fits', **kwargs):
         self.name = name
@@ -250,60 +257,31 @@ class ImageProduct(BaseQueryProduct):
         # file_path=self.file_path.get_file_path(file_name=file_name,file_dir=file_dir)
         pf.writeto(file_path, data=self.data, header=self.header, overwrite=overwrite)
 
+    def change_image_contrast(self,attr, old, new):
+        # print attr,old,new
+        self.fig_im.glyph.color_mapper.update(low=self.graph_min_slider.value, high=self.graph_max_slider.value)
+
     def get_html_draw(self, catalog=None, plot=False, vmin=None, vmax=None):
-        # print('vmin,vmax',vmin,vmax)
-        msk = ~np.isnan(self.data)
-        if vmin is None:
-            vmin = self.data[msk].min()
 
-        if vmax is None:
-            vmax = self.data[msk].max()
+        im=Image(data=self.data,header=self.header)
+        html_dict=im.get_html_draw(catalog=catalog)
 
-        fig, (ax) = plt.subplots(1, 1, figsize=(4, 3), subplot_kw={'projection': WCS(self.header)})
-        im = ax.imshow(self.data,
-                       origin='lower',
-                       zorder=1,
-                       interpolation='none',
-                       aspect='equal',
-                       cmap=plt.get_cmap('jet'),
-                       vmin=vmin,
-                       vmax=vmax)
 
-        if catalog is not None:
-
-            lon = catalog.ra
-            lat = catalog.dec
-
-            w = wcs.WCS(self.header)
-            if len(lat) > 0.:
-                pixcrd = w.wcs_world2pix(np.column_stack((lon, lat)), 0)
-
-                msk = ~np.isnan(pixcrd[:, 0])
-                ax.plot(pixcrd[:, 0][msk], pixcrd[:, 1][msk], 'o', mfc='none')
-
-                for ID, (x, y) in enumerate(pixcrd):
-                    if msk[ID]:
-                        # print ('xy',(pixcrd[:, 0][ID], pixcrd[:, 1][ID]))
-                        ax.annotate('%s' % catalog.name[ID], xy=(x, y), color='white')
-
-        ax.set_xlabel('RA')
-        ax.set_ylabel('DEC')
-        ax.grid(True, color='white')
-        fig.colorbar(im, ax=ax)
-
-        plugins.connect(fig, plugins.MousePosition(fontsize=14))
-        if plot == True:
-            print('plot', plot)
-            mpld3.show()
         res_dict = {}
-        res_dict['image'] = mpld3.fig_to_dict(fig)
+        res_dict['image']=html_dict
+        #res_dict['image'] = mpld3.fig_to_dict(fig)
+        #res_dict['image'] =plotly.offline.plot({
+        #    "data": [self.data],
+        #    "layout": Layout(title="Test plotly")},output_type='div')
+
+
         res_dict['header_text'] = ''
         res_dict['table_text'] = ''
         res_dict[
             'footer_text'] = 'colorscale for normalzied significance\nmax significance=%.2f, min significance=%.2f' % (
         vmax, vmin)
 
-        plt.close(fig)
+        #plt.close(fig)
         return res_dict
 
 
@@ -347,8 +325,8 @@ class LightCurveProduct(BaseQueryProduct):
 
         import matplotlib
         # matplotlib.use('TkAgg')
-        import pylab as plt
-        fig, ax = plt.subplots()
+        #import pylab as plt
+        #fig, ax = plt.subplots()
 
         #filtering zero flux values
         msk_non_zero = np.count_nonzero([data['RATE'], data['ERROR']], axis=0) > 0
@@ -362,16 +340,22 @@ class LightCurveProduct(BaseQueryProduct):
 
 
         x = x - np.int(x.min())
-        plt.errorbar(x, y, yerr=dy, fmt='o')
-        ax.set_xlabel('MJD-%d  (days)' % mjdref)
-        ax.set_ylabel('Rate  (cts/s)')
+
+        sp=ScatterPlot('',w=600,h=600,x_label='MJD-%d  (days)' % mjdref,y_label='Rate  (cts/s)')
+        sp.add_errorbar(x,y,yerr=dy)
+
+
+        #plt.errorbar(x, y, yerr=dy, fmt='o')
+        #ax.set_xlabel('MJD-%d  (days)' % mjdref)
+        #ax.set_ylabel('Rate  (cts/s)')
 
         slope = None
         normalized_slope = None
         chisq_red = None
         poly_deg = 0
         footer_str = ''
-        p, chisq, chisq_red, dof = self.do_linear_fit(x, y, dy, poly_deg, 'constant fit')
+        p, chisq, chisq_red, dof,xf,yf = self.do_linear_fit(x, y, dy, poly_deg, 'constant fit')
+        sp.add_fit_line(xf,yf,'constant fit')
 
         exposure = header['TIMEDEL'] * data['FRACEXP'].sum()
         exposure *= 86400.
@@ -384,7 +368,7 @@ class LightCurveProduct(BaseQueryProduct):
             footer_str += 'Chi-squared red. %5.5f\n' % chisq_red
 
         poly_deg = 1
-        p, chisq, chisq_red, dof = self.do_linear_fit(x, y, dy, poly_deg, 'linear fit')
+        p, chisq, chisq_red, dof,xf,yf = self.do_linear_fit(x, y, dy, poly_deg, 'linear fit')
         if p is not None:
             footer_str += '\n'
             footer_str += 'Linear fit\n'
@@ -392,20 +376,27 @@ class LightCurveProduct(BaseQueryProduct):
             footer_str += 'dof ' + '%d' % dof + '\n'
             footer_str += 'Chi-squared red. %5.5f\n' % chisq_red
 
-        ax.legend(loc='best')
+        sp.add_fit_line(xf, yf, 'linear fit')
+        #ax.legend(loc='best')
 
-        if plot == True:
-            plt.show()
+        #if plot == True:
+        #    plt.show()
 
-        plugins.connect(fig, plugins.MousePosition(fontsize=14))
+        #plugins.connect(fig, plugins.MousePosition(fontsize=14))
 
+        html_dict= sp.get_html_draw()
+
+        #sp1 = ScatterPlot('', w=600, h=600, x_label='MJD-%d  (days)' % mjdref, y_label='Rate  (cts/s)')
+        #sp1.add_errorbar(x, y, yerr=dy)
+        #gp=GridPlot(sp,sp1)
+        #html_dict=gp.get_html_draw()
         res_dict = {}
-        res_dict['image'] = mpld3.fig_to_dict(fig)
+        res_dict['image'] =html_dict
         res_dict['header_text'] = ''
         res_dict['table_text'] = ''
         res_dict['footer_text'] = footer_str
 
-        plt.close(fig)
+        #plt.close(fig)
         return res_dict
 
     def do_linear_fit(self, x, y, dy, poly_deg, label):
@@ -423,9 +414,9 @@ class LightCurveProduct(BaseQueryProduct):
             chisq = (lin_fit(x) - y) ** 2 / dy ** 2
             dof = y.size - (poly_deg + 1)
             chisq_red = chisq.sum() / float(dof)
-            plt.plot(x_grid, lin_fit(x_grid), '--', label=label)
+            #plt.plot(x_grid, lin_fit(x_grid), '--', label=label)
 
-        return p, chisq, chisq_red, dof
+        return p, chisq, chisq_red, dof,x_grid, lin_fit(x_grid)
 
 
 class SpectrumProduct(BaseQueryProduct):
@@ -761,31 +752,40 @@ class SpectralFitProduct(BaseQueryProduct):
 
         msk = np.logical_and(msk, y_model > 0.)
 
+
         if msk.sum() > 0:
-            ax1.errorbar(np.log10(x[msk]), np.log10(y[msk]), xerr=ldx[msk], yerr=ldy[msk], fmt='o')
-            ax1.step(np.log10(x[msk]), np.log10(y_model[msk]), where='mid')
-
+            #ax1.errorbar(np.log10(x[msk]), np.log10(y[msk]), xerr=ldx[msk], yerr=ldy[msk], fmt='o')
+            #ax1.step(np.log10(x[msk]), np.log10(y_model[msk]), where='mid')
             # ax1.set_xlabel('log (Energy (keV))')
-            ax1.set_ylabel('log (normalize counts/s/keV)')
+            #ax1.set_ylabel('log (normalize counts/s/keV)')
             # ax1.set_ylim(-3,1)
-            ax2.errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=1., xerr=0., fmt='o')
-            ax2.plot(ax1.get_xlim(), [0., 0.], '--')
-            ax1.set_ylim(np.log10(y[msk]).min() - 0.5, np.log10(y[msk]).max() + 0.5)
-            ax2.set_xlim(ax1.get_xlim())
-            ax2.set_ylabel('(data-model)/error')
-            ax2.set_xlabel('log (Energy) (keV)')
+            sp1 = ScatterPlot('', w=600, h=600, x_label='log (Energy) (keV)', y_label='log (normalize counts/s/keV)')
+            sp1.add_errorbar(np.log10(x[msk]), np.log10(y[msk]), yerr=ldy[msk] )
+            sp1.add_step_line(np.log10(x[msk]), np.log10(y_model[msk]))
 
+            #ax2.errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=1., xerr=0., fmt='o')
+            #ax2.plot(ax1.get_xlim(), [0., 0.], '--')
+            #ax1.set_ylim(np.log10(y[msk]).min() - 0.5, np.log10(y[msk]).max() + 0.5)
+            #ax2.set_xlim(ax1.get_xlim())
+            #ax2.set_ylabel('(data-model)/error')
+            #ax2.set_xlabel('log (Energy) (keV)')
+            sp2 = ScatterPlot('', w=600, h=600, x_label='log (Energy) (keV)', y_label='log (normalize counts/s/keV)')
+            sp2.add_errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones[msk.sum()])
+            sp2.add_step_line(np.log10(x[msk]), np.log10(y_model[msk]))
+
+        gp=GridPlot(sp1,sp2)
+        htmlt_dict=gp.get_html_draw()
         xsp.AllModels.clear()
         xsp.AllData.clear()
         xsp.AllChains.clear()
 
-        if plot == True:
-            plt.show()
+        #if plot == True:
+        #    plt.show()
 
-        plugins.connect(fig, plugins.MousePosition(fontsize=14))
+        #plugins.connect(fig, plugins.MousePosition(fontsize=14))
 
         res_dict = {}
-        res_dict['spectral_fit_image'] = mpld3.fig_to_dict(fig)
+        res_dict['spectral_fit_image'] = hmtl_dict
         res_dict['header_text'] = header_str
         res_dict['table_text'] = fit_table
         res_dict['footer_text'] = footer_str
