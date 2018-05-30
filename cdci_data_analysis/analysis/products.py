@@ -761,38 +761,23 @@ class SpectralFitProduct(BaseQueryProduct):
 
         msk = np.logical_and(msk, y_model > 0.)
 
-        #print('OK 1')
         if msk.sum() > 0:
-            #ax1.errorbar(np.log10(x[msk]), np.log10(y[msk]), xerr=ldx[msk], yerr=ldy[msk], fmt='o')
-            #ax1.step(np.log10(x[msk]), np.log10(y_model[msk]), where='mid')
-            # ax1.set_xlabel('log (Energy (keV))')
-            #ax1.set_ylabel('log (normalize counts/s/keV)')
-            # ax1.set_ylim(-3,1)
-            sp1 = ScatterPlot(w=500, h=350, x_label='log (Energy) (keV)', y_label='log (normalize counts/s/keV)',y_axis_type='log',x_axis_type='log')
-                              #y_range=[np.log10(y[msk]).min()-np.log10(y[msk]).min()*0.5,np.log10(y[msk]).max()*1.5])
-            #print('OK 1a')
-            #sp1.add_errorbar(np.log10(x[msk]), np.log10(y[msk]), yerr=ldy[msk],xerr=ldx[msk] )
-            sp1.add_errorbar(x[msk], y[msk], yerr=dy[msk], xerr=dx[msk])
-            #print('OK 1b')
-            #sp1.add_step_line(np.log10(x[msk]), np.log10(y_model[msk]))
-            sp1.add_step_line(x[msk], y_model[msk])
-            #ax2.errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=1., xerr=0., fmt='o')
-            #ax2.plot(ax1.get_xlim(), [0., 0.], '--')
-            #ax1.set_ylim(np.log10(y[msk]).min() - 0.5, np.log10(y[msk]).max() + 0.5)
-            #ax2.set_xlim(ax1.get_xlim())
-            #ax2.set_ylabel('(data-model)/error')
-            #ax2.set_xlabel('log (Energy) (keV)')
 
-            sp2 = ScatterPlot(w=500, h=150, x_label='log (Energy) (keV)', y_label='(data-model)/error',
+            sp1 = ScatterPlot(w=500, h=350, x_label='Energy (keV)', y_label='normalize counts/s/keV',y_axis_type='log',x_axis_type='log')
+                              #y_range=[np.log10(y[msk]).min()-np.log10(y[msk]).min()*0.5,np.log10(y[msk]).max()*1.5])
+
+            sp1.add_errorbar(x[msk], y[msk], yerr=dy[msk], xerr=dx[msk])
+
+            sp1.add_step_line(x[msk], y_model[msk])
+
+            sp2 = ScatterPlot(w=500, h=150, x_label='Energy (keV)', y_label='(data-model)/error',
                               x_range=sp1.fig.x_range,x_axis_type='log',y_axis_type='linear')
 
-            #sp2.add_errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()))
             sp2.add_errorbar(x[msk], (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()))
-            #print ('OK 1')
-            #sp2.add_line([np.log10(x[msk][0]),np.log10(x[msk][-1])], [0,0])
+
             sp2.add_line([x[msk].min(), x[msk].max()], [0, 0])
-            #print('OK 2')
-        #print('OK 2')
+
+
         gp=GridPlot(sp1,sp2,w=550,h=550)
         htmlt_dict=gp.get_html_draw()
 
