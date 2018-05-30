@@ -723,13 +723,13 @@ class SpectralFitProduct(BaseQueryProduct):
         if plot == True:
             xsp.Plot.show()
 
-        import matplotlib.pyplot as plt
-        import matplotlib.gridspec as gridspec
-        gs = gridspec.GridSpec(2, 1, height_ratios=[4, 1])
+        #import matplotlib.pyplot as plt
+        #import matplotlib.gridspec as gridspec
+        #gs = gridspec.GridSpec(2, 1, height_ratios=[4, 1])
 
-        fig = plt.figure()
-        ax1 = fig.add_subplot(gs[0])
-        ax2 = fig.add_subplot(gs[1])
+        #fig = plt.figure()
+        #ax1 = fig.add_subplot(gs[0])
+        #ax2 = fig.add_subplot(gs[1])
 
         # fig.subplots_adjust(left=0.05, right=0.95, bottom=0.05, top=0.95,
         #                    hspace=0.1, wspace=0.1)
@@ -752,6 +752,7 @@ class SpectralFitProduct(BaseQueryProduct):
 
         msk = np.logical_and(msk, y_model > 0.)
 
+        print ('OK here')
 
         if msk.sum() > 0:
             #ax1.errorbar(np.log10(x[msk]), np.log10(y[msk]), xerr=ldx[msk], yerr=ldy[msk], fmt='o')
