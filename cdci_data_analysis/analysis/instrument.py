@@ -37,6 +37,7 @@ from cdci_data_analysis.analysis.queries import _check_is_base_query
 from .catalog import BasicCatalog
 from .products import  QueryOutput
 from .io_helper import FilePath
+
 __author__ = "Andrea Tramacere"
 
 # Standard library
@@ -222,8 +223,8 @@ class Instrument(object):
                 #FAILED
                 query_out.set_failed(product_type,logger=logger,sentry_client=sentry_client,excep=e)
 
-
-
+        query_out.set_analysis_parameters(par_dic)
+        query_out.dump_analysis_parameters(out_dir,par_dic)
         return query_out
 
 

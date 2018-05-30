@@ -55,6 +55,16 @@ class QueryOutput(object):
 
         self.set_status(0, job_status='unknown')
 
+
+    def set_analysis_parameters(self,query_dict):
+        self.prod_dictionary['analysis_paramters']=query_dict
+
+    def dump_analysis_parameters(self,work_dir,query_dict):
+        file_path=FilePath(file_dir=work_dir,file_name='anlaysis_par.json')
+        with open(file_path.path, 'w')  as outfile:
+            my_json_str = json.dumps(query_dict, encoding='utf-8')
+            outfile.write(u'%s' % my_json_str)
+
     def set_products(self, keys, values):
         for k, v in zip(keys, values):
             self.prod_dictionary[k] = v
@@ -341,7 +351,7 @@ class LightCurveProduct(BaseQueryProduct):
 
         x = x - np.int(x.min())
 
-        sp=ScatterPlot('',w=600,h=600,x_label='MJD-%d  (days)' % mjdref,y_label='Rate  (cts/s)')
+        sp=ScatterPlot(w=600,h=600,x_label='MJD-%d  (days)' % mjdref,y_label='Rate  (cts/s)')
         sp.add_errorbar(x,y,yerr=dy)
 
 
@@ -355,7 +365,7 @@ class LightCurveProduct(BaseQueryProduct):
         poly_deg = 0
         footer_str = ''
         p, chisq, chisq_red, dof,xf,yf = self.do_linear_fit(x, y, dy, poly_deg, 'constant fit')
-        sp.add_fit_line(xf,yf,'constant fit')
+        sp.add_fit_line(xf,yf,'constant fit',color='green')
 
         exposure = header['TIMEDEL'] * data['FRACEXP'].sum()
         exposure *= 86400.
@@ -376,7 +386,7 @@ class LightCurveProduct(BaseQueryProduct):
             footer_str += 'dof ' + '%d' % dof + '\n'
             footer_str += 'Chi-squared red. %5.5f\n' % chisq_red
 
-        sp.add_fit_line(xf, yf, 'linear fit')
+        sp.add_fit_line(xf, yf, 'linear fit',color='orange')
         #ax.legend(loc='best')
 
         #if plot == True:
@@ -772,12 +782,11 @@ class SpectralFitProduct(BaseQueryProduct):
             #ax2.set_ylabel('(data-model)/error')
             #ax2.set_xlabel('log (Energy) (keV)')
 
-            sp2 = ScatterPlot('', w=600, h=150, x_label='log (Energy) (keV)', y_label='(data-model)/error',
-                              x_range=sp1.fig.x_range,
-                              y_range=sp1.fig.y_range)
+            sp2 = ScatterPlot('', w=600, h=100, x_label='log (Energy) (keV)', y_label='(data-model)/error',
+                              x_range=sp1.fig.x_range)
 
             sp2.add_errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()))
-            sp2.add_step_line(np.log10(x[msk]), np.log10(y_model[msk]))
+            sp2.add_step_line([np.log10(x[msk][0]),np.log10(x[msk][-1])], [0.0])
 
         #print('OK 2')
         gp=GridPlot(sp1,sp2)
@@ -805,11 +814,15 @@ class SpectralFitProduct(BaseQueryProduct):
 
 
 class CatalogProduct(BaseQueryProduct):
-    def __init__(self, name, catalog, file_name='catalog.fits', **kwargs):
+    def __init__(self, name, catalog, file_name='catalog', **kwargs):
         self.catalog = catalog
         super(CatalogProduct, self).__init__(name, file_name=file_name, **kwargs)
 
     def write(self, file_name=None, overwrite=True, format='fits', file_dir=None):
-        # TODO: this should be file_path = self.file_path.path
         file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
-        self.catalog.write(file_path, overwrite=overwrite, format=format)
+        # TODO: this should be file_path = self.file_path.path
+        if format !='ds9':
+
+            self.catalog.write(file_path+'.fits', overwrite=overwrite, format=format)
+        else :
+            self.catalog.write_ds9_region(file_path+'.reg', overwrite=overwrite)

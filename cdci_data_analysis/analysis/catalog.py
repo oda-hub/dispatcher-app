@@ -159,7 +159,7 @@ class BasicCatalog(object):
 
 
 
-    def write_ds9_region(self,name):
+    def write_ds9_region(self,name,overwrite=True):
         ra=self.sc.fk5.ra
         dec=self.sc.fk5.dec
 

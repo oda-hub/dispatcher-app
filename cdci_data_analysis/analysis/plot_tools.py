@@ -86,14 +86,14 @@ class Image(object):
 
                 msk = ~np.isnan(pixcrd[:, 0])
                 #ax.plot(pixcrd[:, 0][msk], pixcrd[:, 1][msk], 'o', mfc='none')
-                source = ColumnDataSource(data=dict(lon=pixcrd[:, 0][msk],
-                                                    lat=pixcrd[:, 1][msk],
+                source = ColumnDataSource(data=dict(lon=pixcrd[:, 0][msk]+0.5,
+                                                    lat=pixcrd[:, 1][msk]+0.5,
                                                     names=catalog.name[msk]))
                 #for ID, (x, y) in enumerate(pixcrd):
                 #    if msk[ID]:
                 #        # print ('xy',(pixcrd[:, 0][ID], pixcrd[:, 1][ID]))
                 #        ax.annotate('%s' % catalog.name[ID], xy=(x, y), color='white')
-
+                #print(pixcrd[:][msk])
                 fig.scatter(x='lon', y='lat', marker='circle', size=15,
                             line_color="white", fill_color=None, alpha=1.0, source=source)
 
@@ -142,7 +142,7 @@ class Image(object):
         curdoc().add_root(layout)
 
         #output_file("slider.html", title="slider.py example")
-        #show(layout)
+        show(layout)
 
         script, div = components(layout)
 
@@ -156,8 +156,8 @@ class Image(object):
 class ScatterPlot(object):
 
 
-    def __init__(self,title,w,h,x_label=None,y_label=None,x_range=None,y_range=None):
-        hover = HoverTool(tooltips=[("xa", "$x"), ("y", "$y")])
+    def __init__(self,w,h,x_label=None,y_label=None,x_range=None,y_range=None,title=None):
+        hover = HoverTool(tooltips=[("x", "$x"), ("y", "$y")])
 
         self.fig = figure(title=title, width=w, height=h,x_range=x_range,y_range=y_range,
                      tools=[hover, 'pan,box_zoom,box_select,wheel_zoom,reset,save,crosshair']
@@ -197,8 +197,8 @@ class ScatterPlot(object):
         self.fig.step(x,y,name=legend, mode="center")
         #print('b')
 
-    def add_fit_line(self,x,y,legend=None):
-        self.fig.line(x,y,legend=legend)
+    def add_fit_line(self,x,y,legend=None,color=None):
+        self.fig.line(x,y,legend=legend,line_color=color)
 
     def get_html_draw(self):
 
@@ -210,7 +210,7 @@ class ScatterPlot(object):
         curdoc().add_root(layout)
 
 
-        #show(layout)
+        show(layout)
 
         script, div = components(layout)
 
