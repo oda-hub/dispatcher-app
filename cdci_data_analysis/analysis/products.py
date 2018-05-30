@@ -752,8 +752,7 @@ class SpectralFitProduct(BaseQueryProduct):
 
         msk = np.logical_and(msk, y_model > 0.)
 
-        print ('OK here')
-
+        print('OK 1')
         if msk.sum() > 0:
             #ax1.errorbar(np.log10(x[msk]), np.log10(y[msk]), xerr=ldx[msk], yerr=ldy[msk], fmt='o')
             #ax1.step(np.log10(x[msk]), np.log10(y_model[msk]), where='mid')
@@ -773,9 +772,11 @@ class SpectralFitProduct(BaseQueryProduct):
             sp2 = ScatterPlot('', w=600, h=600, x_label='log (Energy) (keV)', y_label='log (normalize counts/s/keV)')
             sp2.add_errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones[msk.sum()])
             sp2.add_step_line(np.log10(x[msk]), np.log10(y_model[msk]))
-
+        print('OK 2')
         gp=GridPlot(sp1,sp2)
         htmlt_dict=gp.get_html_draw()
+
+        print('OK 3')
         xsp.AllModels.clear()
         xsp.AllData.clear()
         xsp.AllChains.clear()
