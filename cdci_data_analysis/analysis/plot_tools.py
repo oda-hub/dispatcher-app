@@ -142,8 +142,7 @@ class Image(object):
         curdoc().add_root(layout)
 
         #output_file("slider.html", title="slider.py example")
-
-        show(layout)
+        #show(layout)
 
         script, div = components(layout)
 
@@ -157,10 +156,10 @@ class Image(object):
 class ScatterPlot(object):
 
 
-    def __init__(self,title,w,h,x_label=None,y_label=None):
+    def __init__(self,title,w,h,x_label=None,y_label=None,x_range=None,y_range=None):
         hover = HoverTool(tooltips=[("xa", "$x"), ("y", "$y")])
 
-        self.fig = figure(title=title, width=w, height=h,
+        self.fig = figure(title=title, width=w, height=h,x_range=x_range,y_range=y_range,
                      tools=[hover, 'pan,box_zoom,box_select,wheel_zoom,reset,save,crosshair']
                      )
 
@@ -211,7 +210,7 @@ class ScatterPlot(object):
         curdoc().add_root(layout)
 
 
-        show(layout)
+        #show(layout)
 
         script, div = components(layout)
 
@@ -237,7 +236,7 @@ class GridPlot(object):
 
         grid = gridplot([self.f1.fig,self.f2.fig],ncols=1, plot_width=500, plot_height=250)
         curdoc().add_root(grid)
-        show(grid)
+        #show(grid)
         #output_file("test.html")
         script, div = components(grid)
 

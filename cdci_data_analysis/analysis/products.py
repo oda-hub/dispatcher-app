@@ -759,7 +759,7 @@ class SpectralFitProduct(BaseQueryProduct):
             # ax1.set_xlabel('log (Energy (keV))')
             #ax1.set_ylabel('log (normalize counts/s/keV)')
             # ax1.set_ylim(-3,1)
-            sp1 = ScatterPlot('', w=600, h=600, x_label='log (Energy) (keV)', y_label='log (normalize counts/s/keV)')
+            sp1 = ScatterPlot('', w=600, h=400, x_label='log (Energy) (keV)', y_label='log (normalize counts/s/keV)')
             #print('OK 1a')
             sp1.add_errorbar(np.log10(x[msk]), np.log10(y[msk]), yerr=ldy[msk] )
             #print('OK 1b')
@@ -772,9 +772,13 @@ class SpectralFitProduct(BaseQueryProduct):
             #ax2.set_ylabel('(data-model)/error')
             #ax2.set_xlabel('log (Energy) (keV)')
 
-            sp2 = ScatterPlot('', w=600, h=600, x_label='log (Energy) (keV)', y_label='(data-model)/error')
+            sp2 = ScatterPlot('', w=600, h=150, x_label='log (Energy) (keV)', y_label='(data-model)/error',
+                              x_range=sp1.fig.x_range,
+                              y_range=sp1.fig.y_range)
+
             sp2.add_errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()))
             sp2.add_step_line(np.log10(x[msk]), np.log10(y_model[msk]))
+
         #print('OK 2')
         gp=GridPlot(sp1,sp2)
         htmlt_dict=gp.get_html_draw()
