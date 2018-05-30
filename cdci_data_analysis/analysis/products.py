@@ -274,7 +274,10 @@ class ImageProduct(BaseQueryProduct):
     def get_html_draw(self, catalog=None, plot=False, vmin=None, vmax=None):
 
         im=Image(data=self.data,header=self.header)
-        html_dict=im.get_html_draw(w=600,h=400,catalog=catalog)
+        w=600
+        (r,c)=self.data.shape
+        ratio=float(r)/c
+        html_dict=im.get_html_draw(w=w,h=w*ratio,catalog=catalog)
 
 
         res_dict = {}
