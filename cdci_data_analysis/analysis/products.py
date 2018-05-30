@@ -785,7 +785,7 @@ class SpectralFitProduct(BaseQueryProduct):
         #plugins.connect(fig, plugins.MousePosition(fontsize=14))
 
         res_dict = {}
-        res_dict['spectral_fit_image'] = hmtl_dict
+        res_dict['spectral_fit_image'] = htmlt_dict
         res_dict['header_text'] = header_str
         res_dict['table_text'] = fit_table
         res_dict['footer_text'] = footer_str
