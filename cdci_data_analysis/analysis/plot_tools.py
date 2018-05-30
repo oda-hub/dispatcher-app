@@ -231,11 +231,11 @@ class GridPlot(object):
         self.f1=f1
         self.f2=f2
 
-    def get_html_draw(self):
+    def get_html_draw(self,w=None,h=None):
         #l = layout([self.f1.fig],[self.f2.fig])
 
 
-        grid = gridplot([self.f1.fig,self.f2.fig],ncols=1)
+        grid = gridplot([self.f1.fig,self.f2.fig],ncols=1,plot_width=w, plot_height=h)
         curdoc().add_root(grid)
         #show(grid)
         #output_file("test.html")
