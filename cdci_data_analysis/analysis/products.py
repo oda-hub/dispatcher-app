@@ -787,7 +787,7 @@ class SpectralFitProduct(BaseQueryProduct):
 
             sp2.add_errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()))
             print ('OK 1')
-            sp2.add_line([np.log10(x[msk][0]),np.log10(x[msk][-1])], [0.0])
+            sp2.add_line([np.log10(x[msk][0]),np.log10(x[msk][-1])], [0,0])
             print('OK 2')
         #print('OK 2')
         gp=GridPlot(sp1,sp2,w=550,h=550)
