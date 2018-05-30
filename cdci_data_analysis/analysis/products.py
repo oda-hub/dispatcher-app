@@ -787,7 +787,7 @@ class SpectralFitProduct(BaseQueryProduct):
                               x_range=sp1.fig.x_range,x_axis_type='log')
 
             #sp2.add_errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()))
-            sp2.add_errorbar(x[msk], y[msk] - y_model[msk] / dy[msk], yerr=np.ones(msk.sum()))
+            sp2.add_errorbar(x[msk], (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()))
             #print ('OK 1')
             #sp2.add_line([np.log10(x[msk][0]),np.log10(x[msk][-1])], [0,0])
             sp2.add_line([x[msk][0], x[msk][-1]], [0, 0])
