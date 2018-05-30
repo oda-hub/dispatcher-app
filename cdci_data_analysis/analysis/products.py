@@ -274,6 +274,7 @@ class ImageProduct(BaseQueryProduct):
         (r,c)=self.data.shape
         ratio=float(r)/c
         html_dict=im.get_html_draw(w=w,h=int(w*ratio),catalog=catalog)
+        print('BUILD IMAGE CLASS DONE')
 
         res_dict = {}
         res_dict['image']=html_dict

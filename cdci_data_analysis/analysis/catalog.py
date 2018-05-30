@@ -173,8 +173,7 @@ class BasicCatalog(object):
 
 
     def write(self,name,format='fits',overwrite=True):
-        pass
-        #self._table.write(name,format=format,overwrite=overwrite)
+        self._table.write(name,format=format,overwrite=overwrite)
 
     @classmethod
     def from_ecsv_file(cls, file_name):
