@@ -365,7 +365,7 @@ class LightCurveProduct(BaseQueryProduct):
         poly_deg = 0
         footer_str = ''
         p, chisq, chisq_red, dof,xf,yf = self.do_linear_fit(x, y, dy, poly_deg, 'constant fit')
-        sp.add_fit_line(xf,yf,'constant fit',color='green')
+        sp.add_line(xf,yf,'constant fit',color='green')
 
         exposure = header['TIMEDEL'] * data['FRACEXP'].sum()
         exposure *= 86400.
@@ -386,7 +386,7 @@ class LightCurveProduct(BaseQueryProduct):
             footer_str += 'dof ' + '%d' % dof + '\n'
             footer_str += 'Chi-squared red. %5.5f\n' % chisq_red
 
-        sp.add_fit_line(xf, yf, 'linear fit',color='orange')
+        sp.add_line(xf, yf, 'linear fit',color='orange')
         #ax.legend(loc='best')
 
         #if plot == True:
@@ -786,8 +786,9 @@ class SpectralFitProduct(BaseQueryProduct):
                               x_range=sp1.fig.x_range)
 
             sp2.add_errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()))
-            sp2.add_step_line([np.log10(x[msk][0]),np.log10(x[msk][-1])], [0.0])
-
+            print ('OK 1')
+            sp2.add_line([np.log10(x[msk][0]),np.log10(x[msk][-1])], [0.0])
+            print('OK 2')
         #print('OK 2')
         gp=GridPlot(sp1,sp2)
         htmlt_dict=gp.get_html_draw()
