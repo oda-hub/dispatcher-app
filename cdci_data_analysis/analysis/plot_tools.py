@@ -143,7 +143,7 @@ class Image(object):
         curdoc().add_root(layout)
 
         #output_file("slider.html", title="slider.py example")
-        show(layout)
+        #show(layout)
 
         script, div = components(layout)
 
@@ -211,7 +211,7 @@ class ScatterPlot(object):
         curdoc().add_root(layout)
 
 
-        show(layout)
+        #show(layout)
 
         script, div = components(layout)
 
