@@ -10,4 +10,4 @@ gunicorn
 decorator
 python-logstash
 raven
-bokeh
+bokeh>=0.12.16

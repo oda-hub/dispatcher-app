@@ -12,7 +12,7 @@ from astropy import wcs
 from bokeh.layouts import row, widgetbox,gridplot
 from bokeh.models import CustomJS, Slider,HoverTool,ColorBar,LinearColorMapper,LabelSet,ColumnDataSource
 from bokeh.embed import components
-from bokeh.plotting import figure,curdoc
+from bokeh.plotting import figure
 from bokeh.palettes import Plasma256
 
 
@@ -145,7 +145,7 @@ class Image(object):
             fig, widgetbox(self.graph_min_slider, self.graph_max_slider),
         )
 
-        curdoc().add_root(layout)
+        #curdoc().add_root(layout)
 
         #output_file("slider.html", title="slider.py example")
         #show(layout)
@@ -213,7 +213,7 @@ class ScatterPlot(object):
         layout = row(
             self.fig
         )
-        curdoc().add_root(layout)
+        #curdoc().add_root(layout)
 
 
         #show(layout)
@@ -241,7 +241,7 @@ class GridPlot(object):
 
 
         grid = gridplot([self.f1.fig,self.f2.fig],ncols=1,plot_width=w, plot_height=h)
-        curdoc().add_root(grid)
+        #curdoc().add_root(grid)
         #show(grid)
         #output_file("test.html")
         script, div = components(grid)
