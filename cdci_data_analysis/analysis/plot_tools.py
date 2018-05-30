@@ -12,7 +12,7 @@ from astropy import wcs
 from bokeh.layouts import row, widgetbox,gridplot
 from bokeh.models import CustomJS, Slider,HoverTool,ColorBar,LinearColorMapper,LabelSet,ColumnDataSource
 from bokeh.embed import components
-from bokeh.plotting import figure,show,curdoc
+from bokeh.plotting import figure,curdoc
 from bokeh.palettes import Plasma256
 
 
@@ -23,7 +23,7 @@ class Image(object):
         self.data=data
         self.header=header
 
-    def change_image_contrast(self, attr, old, new):
+    def change_image_contrast(self):
         # print attr,old,new
         self.fig_im.glyph.color_mapper.update(low=self.graph_min_slider.value, high=self.graph_max_slider.value)
 
@@ -54,17 +54,17 @@ class Image(object):
         c = self.data.shape[1] * 2
 
         hover = HoverTool(tooltips=[("x", "$x"), ("y", "$y"), ("value", "@image")])
-        print ("CICCIO 1")
+
         fig = figure(plot_width=w, plot_height=h, x_range=(0, c * 0.5), y_range=(0, r * 0.5),
                      tools=[hover, 'pan,box_zoom,box_select,wheel_zoom,reset,save,crosshair']
                      )
 
         w = wcs.WCS(self.header)
         color_mapper = LinearColorMapper(low=min_s, high=max_s, palette=Plasma256)
-        print("CICCIO 2")
+
         fig_im = fig.image(image=[self.data], x=[0], y=[0], dw=[c * 0.5], dh=[r * 0.5],
                            color_mapper=color_mapper)
-        print("CICCIO 3")
+
         #fig, (ax) = plt.subplots(1, 1, figsize=(4, 3), subplot_kw={'projection': WCS(self.header)})
         #im = ax.imshow(self.data,
         #               origin='lower',
@@ -103,10 +103,10 @@ class Image(object):
                 fig.add_layout(labels)
                 #print'cat', catalog[msk]
 
-        print("CICCIO 4")
+
         color_bar = ColorBar(color_mapper=color_mapper,
                              label_standoff=12, border_line_color=None, location=(0, 0))
-        print("CICCIO 5")
+
         JS_code_slider = """
                    var vmin = low_slider.value;
                    var vmax = high_slider.value;
@@ -114,14 +114,14 @@ class Image(object):
                    fig_im.glyph.color_mapper.low = vmin;
                """
 
-        print("CICCIO 6")
+
         callback = CustomJS(args=dict(fig_im=fig_im), code=JS_code_slider)
 
         self.graph_min_slider = Slider(title="Sig. Min", start=min_s, end=max_s, step=1, value=min_s, callback=callback)
         self.graph_max_slider = Slider(title="Sig. Max", start=min_s, end=max_s, step=1, value=max_s * 0.8,
                                   callback=callback)
 
-        print("CICCIO 7")
+
         self.graph_min_slider.on_change('value', self.change_image_contrast)
         self.graph_max_slider.on_change('value', self.change_image_contrast)
 
@@ -138,20 +138,20 @@ class Image(object):
         #    print('plot', plot)
         #    mpld3.show()
 
-        print("CICCIO 8")
+
         fig.add_layout(color_bar, 'right')
-        print("CICCIO 9")
+
         layout = row(
             fig, widgetbox(self.graph_min_slider, self.graph_max_slider),
         )
-        print("CICCIO 10")
+
         curdoc().add_root(layout)
 
         #output_file("slider.html", title="slider.py example")
         #show(layout)
-        print("CICCIO 11")
+
         script, div = components(layout)
-        print("CICCIO 12")
+
         html_dict = {}
         html_dict['script'] = script
         html_dict['div'] = div
