@@ -782,7 +782,7 @@ class SpectralFitProduct(BaseQueryProduct):
             #ax2.set_ylabel('(data-model)/error')
             #ax2.set_xlabel('log (Energy) (keV)')
 
-            sp2 = ScatterPlot(w=300, h=25, x_label='log (Energy) (keV)', y_label='(data-model)/error',
+            sp2 = ScatterPlot(w=300, h=100, x_label='log (Energy) (keV)', y_label='(data-model)/error',
                               x_range=sp1.fig.x_range)
 
             sp2.add_errorbar(np.log10(x[msk]), (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()))
