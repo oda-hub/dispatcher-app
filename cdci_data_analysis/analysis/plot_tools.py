@@ -23,7 +23,7 @@ class Image(object):
         self.data=data
         self.header=header
 
-    def change_image_contrast(self):
+    def change_image_contrast(self, attr, old, new):
         # print attr,old,new
         self.fig_im.glyph.color_mapper.update(low=self.graph_min_slider.value, high=self.graph_max_slider.value)
 
