@@ -139,7 +139,7 @@ class Image(object):
         layout = row(
             fig, widgetbox(self.graph_min_slider, self.graph_max_slider),
         )
-        curdoc().add_root(layout)
+        #curdoc().add_root(layout)
 
         #output_file("slider.html", title="slider.py example")
         #show(layout)
