@@ -769,7 +769,7 @@ class SpectralFitProduct(BaseQueryProduct):
             #ax1.set_ylabel('log (normalize counts/s/keV)')
             # ax1.set_ylim(-3,1)
             sp1 = ScatterPlot(w=500, h=350, x_label='log (Energy) (keV)', y_label='log (normalize counts/s/keV)',
-                              y_range=[np.log10(y[msk]).min()-np.log10(y[msk]).min()*0.2,np.log10(y[msk]).max()*1.2])
+                              y_range=[np.log10(y[msk]).min()-np.log10(y[msk]).min()*0.5,np.log10(y[msk]).max()*1.5])
             #print('OK 1a')
             sp1.add_errorbar(np.log10(x[msk]), np.log10(y[msk]), yerr=ldy[msk] )
             #print('OK 1b')
