@@ -267,12 +267,8 @@ class ImageProduct(BaseQueryProduct):
         # file_path=self.file_path.get_file_path(file_name=file_name,file_dir=file_dir)
         pf.writeto(file_path, data=self.data, header=self.header, overwrite=overwrite)
 
-    def change_image_contrast(self,attr, old, new):
-        # print attr,old,new
-        self.fig_im.glyph.color_mapper.update(low=self.graph_min_slider.value, high=self.graph_max_slider.value)
-
     def get_html_draw(self, catalog=None, plot=False, vmin=None, vmax=None):
-
+        print ('BUILD IMAGE CLASS')
         im=Image(data=self.data,header=self.header)
         w=600
         (r,c)=self.data.shape
