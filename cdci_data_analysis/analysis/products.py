@@ -405,14 +405,17 @@ class LightCurveProduct(BaseQueryProduct):
         res_dict['table_text'] = ''
         res_dict['footer_text'] = footer_str
 
-        #plt.close(fig)
+
         return res_dict
 
     def do_linear_fit(self, x, y, dy, poly_deg, label):
+
         p = None
         chisq = None
         chisq_red = None
         dof = None
+        x_grid = None
+        y_grid=None
 
         if y.size > poly_deg + 1:
             p = np.polyfit(x, y, poly_deg)
@@ -424,8 +427,9 @@ class LightCurveProduct(BaseQueryProduct):
             dof = y.size - (poly_deg + 1)
             chisq_red = chisq.sum() / float(dof)
             #plt.plot(x_grid, lin_fit(x_grid), '--', label=label)
+            y_grid=lin_fit(x_grid)
 
-        return p, chisq, chisq_red, dof,x_grid, lin_fit(x_grid)
+        return p, chisq, chisq_red, dof,x_grid, y_grid
 
 
 class SpectrumProduct(BaseQueryProduct):
