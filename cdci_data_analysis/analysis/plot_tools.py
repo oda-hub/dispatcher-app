@@ -53,17 +53,21 @@ class Image(object):
         r = self.data.shape[0] * 2
         c = self.data.shape[1] * 2
 
-        hover = HoverTool(tooltips=[("x", "$x"), ("y", "$y"), ("value", "@image")])
+
 
         fig = figure(plot_width=w, plot_height=h, x_range=(0, c * 0.5), y_range=(0, r * 0.5),
-                     tools=[hover, 'pan,box_zoom,box_select,wheel_zoom,reset,save,crosshair']
-                     )
+                     tools=['pan,box_zoom,box_select,wheel_zoom,reset,save,crosshair'])
 
         w = wcs.WCS(self.header)
         color_mapper = LinearColorMapper(low=min_s, high=max_s, palette=Plasma256)
 
         fig_im = fig.image(image=[self.data], x=[0], y=[0], dw=[c * 0.5], dh=[r * 0.5],
                            color_mapper=color_mapper)
+
+        hover = HoverTool(tooltips=[("x", "$x"), ("y", "$y"), ("value", "@image")],
+                          renderers=[fig_im])
+
+        fig.add_tools(hover)
 
         #fig, (ax) = plt.subplots(1, 1, figsize=(4, 3), subplot_kw={'projection': WCS(self.header)})
         #im = ax.imshow(self.data,
@@ -148,6 +152,7 @@ class Image(object):
         #curdoc().add_root(layout)
 
         #output_file("slider.html", title="slider.py example")
+        #from bokeh.io import  show
         #show(layout)
 
         script, div = components(layout)
