@@ -651,6 +651,8 @@ class InstrumentQueryBackEnd(object):
                     job_is_aliased=False
                     job.work_dir=original_work_dir
 
+                if query_type=='dummy':
+                    job_is_aliased=False
 
         #else:
         #    job.aliased=False
