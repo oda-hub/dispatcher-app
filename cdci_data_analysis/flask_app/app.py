@@ -243,7 +243,7 @@ class InstrumentQueryBackEnd(object):
         if job_id is not None:
             wd +='_jid_'+job_id
 
-        alias_workidr = self.get_existing_job_ID_path()
+        alias_workidr = self.get_existing_job_ID_path(wd=FilePath(file_dir=wd).path)
         if alias_workidr is not None:
             wd=wd+'_aliased'
 
@@ -522,7 +522,7 @@ class InstrumentQueryBackEnd(object):
 
         return config,config_data_server
 
-    def get_existing_job_ID_path(self):
+    def get_existing_job_ID_path(self,wd):
         #exist same job_ID, different session ID
         dir_list=glob.glob('*_jid_%s'%(self.job_id))
         print('dirs',dir_list)
@@ -530,7 +530,7 @@ class InstrumentQueryBackEnd(object):
             dir_list=[d for d in dir_list if 'aliased' not in d]
 
         if len(dir_list)==1:
-            if dir_list[0]!=self.scratch_dir:
+            if dir_list[0]!=wd:
                 alias_dir= dir_list[0]
             else:
                 alias_dir=None
@@ -592,7 +592,7 @@ class InstrumentQueryBackEnd(object):
 
 
         try:
-            alias_workidr = self.get_existing_job_ID_path()
+            alias_workidr = self.get_existing_job_ID_path(self.scratch_dir)
         except Exception as e:
             query_out = QueryOutput()
             query_out.set_query_exception(e, 'run_query failed in s%' % self.__class__.__name__,
