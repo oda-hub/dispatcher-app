@@ -530,15 +530,18 @@ class InstrumentQueryBackEnd(object):
             dir_list=[d for d in dir_list if 'aliased' not in d]
 
         if len(dir_list)==1:
-            return dir_list[0]
+            if dir_list[0]!=self.scratch_dir:
+                alias_dir= dir_list[0]
+            else:
+                alias_dir=None
 
         elif len(dir_list)>1:
             raise  RuntimeError('found two non aliased identical job_id')
 
         else:
-            return  None
+            alias_dir = None
 
-
+        return alias_dir
 
     def run_query(self,off_line=False):
 
