@@ -10,14 +10,15 @@ from __future__ import absolute_import, division, print_function
 
 from builtins import (open, str, range,
                       object)
-
+from collections import Counter, OrderedDict
+import  copy
 from werkzeug.utils import secure_filename
 
 import os
-import random
+import glob
 import string
-import numpy as np
-
+import  random
+from raven.contrib.flask import Sentry
 
 from flask import jsonify,send_from_directory
 from flask import Flask, request
@@ -90,6 +91,8 @@ class InstrumentQueryBackEnd(object):
 
                 self.set_scratch_dir(self.par_dic['session_id'],job_id=self.job_id,verbose=verbose)
 
+
+
                 self.set_session_logger(self.scratch_dir,verbose=verbose,config=config)
                 self.set_sentry_client()
 
@@ -97,6 +100,7 @@ class InstrumentQueryBackEnd(object):
                     self.set_instrument(self.instrument_name)
 
                 self.config=config
+
 
         except Exception as e:
             print ('e',e)
@@ -106,26 +110,57 @@ class InstrumentQueryBackEnd(object):
             query_out = QueryOutput()
             query_out.set_query_exception(e,'InstrumentQueryBackEnd constructor',extra_message='InstrumentQueryBackEnd constructor failed')
 
-            out_dict = {}
-            out_dict['query_status'] = 1
-            out_dict['exit_status'] = query_out.status_dictionary
-            self.build_dispatcher_response(out_dict=out_dict)
+            #out_dict = {}
+            #out_dict['query_status'] = 1
+            #out_dict['exit_status'] = query_out.status_dictionary
+            self.build_dispatcher_response(query_new_status='failed',query_out=query_out)
 
 
-            return jsonify(out_dict)
+            #return jsonify(out_dict)
 
 
 
-    def generate_job_id(self):
+    def make_hash(self,o):
+
+        """
+        Makes a hash from a dictionary, list, tuple or set to any level, that contains
+        only other hashable types (including any lists, tuples, sets, and
+        dictionaries).
+        """
+
+        if isinstance(o, (set, tuple, list)):
+            #print('o',o)
+            return tuple([self.make_hash(e) for e in o])
+
+        elif not isinstance(o, dict):
+            #print('o', o)
+            return hash(o)
+
+        new_o = copy.deepcopy(o)
+        for k, v in new_o.items():
+            #if k not in kw_black_list:
+            #    print('k',k)
+            new_o[k] = self.make_hash(v)
+
+        return u'%s'%hash(tuple(frozenset(sorted(new_o.items()))))
+
+
+    def generate_job_id(self,kw_black_list=['session_id']):
         print("!!! GENERATING JOB ID")
 
         #TODO generate hash (immutable ore convert to Ordered)
         #import collections
 
         #self.par_dic-> collections.OrderedDict(self.par_dic)
+        #oredered_dict=OrderedDict(self.par_dic)
 
-        self.job_id=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+        #self.job_id=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+        print('dict',self.par_dic)
 
+        _dict=copy.deepcopy(self.par_dic)
+        for k in kw_black_list:
+            _dict.pop(k)
+        self.job_id=u'%s'%(self.make_hash(OrderedDict(_dict)))
 
 
 
@@ -202,14 +237,18 @@ class InstrumentQueryBackEnd(object):
         wd = 'scratch'
 
         if session_id is not None:
-            wd += '_' + session_id
+            wd += '_sid_' + session_id
 
 
         if job_id is not None:
-            wd +='_'+job_id
+            wd +='_jid_'+job_id
+
+        alias_workidr = self.get_existing_job_ID_path()
+        if alias_workidr is not None:
+            wd=wd+'_aliased'
 
         wd=FilePath(file_dir=wd)
-        wd. mkdir()
+        wd.mkdir()
         self.scratch_dir=wd.path
 
 
@@ -359,7 +398,7 @@ class InstrumentQueryBackEnd(object):
 
 
 
-        job_status = self.par_dic['job_status']
+        #job_status = self.par_dic['job_status']
         session_id=self.par_dic['session_id']
 
 
@@ -382,7 +421,7 @@ class InstrumentQueryBackEnd(object):
         self.logger.info('============================================================')
         self.logger.info('')
 
-        print ('query doen with job status-->',job_status)
+        #print ('query doen with job status-->',job_status)
 
         if off_line == False:
             print('out', out_dict)
@@ -483,6 +522,24 @@ class InstrumentQueryBackEnd(object):
 
         return config,config_data_server
 
+    def get_existing_job_ID_path(self):
+        #exist same job_ID, different session ID
+        dir_list=glob.glob('*_jid_%s'%(self.job_id))
+        print('dirs',dir_list)
+        if dir_list !=[]:
+            dir_list=[d for d in dir_list if 'aliased' not in d]
+
+        if len(dir_list)==1:
+            return dir_list[0]
+
+        elif len(dir_list)>1:
+            raise  RuntimeError('found two non aliased identical job_id')
+
+        else:
+            return  None
+
+
+
     def run_query(self,off_line=False):
 
         print ('==============================> run query <==============================')
@@ -522,7 +579,7 @@ class InstrumentQueryBackEnd(object):
             print('dispatcher port', config.dispatcher_port)
         except Exception as e:
             query_out = QueryOutput()
-            query_out.set_query_exception(e, 'run_query failed in %'%self.__class__.__name__,
+            query_out.set_query_exception(e, 'run_query failed in s%'%self.__class__.__name__,
                                           extra_message='configuration failed')
 
             config, config_data_server = None, None
@@ -530,13 +587,26 @@ class InstrumentQueryBackEnd(object):
             if config.sentry_url is not None:
                 self.set_sentry_client(config.sentry_url)
 
+
+        try:
+            alias_workidr = self.get_existing_job_ID_path()
+        except Exception as e:
+            query_out = QueryOutput()
+            query_out.set_query_exception(e, 'run_query failed in s%' % self.__class__.__name__,
+                                          extra_message='job aliasing failed')
+
+        job_is_aliased = False
+        if alias_workidr is not None:
+            job_is_aliased = True
+
         job=job_factory(self.instrument_name,
                         self.scratch_dir,
                         self.get_current_ip(),
                         config.dispatcher_port,
                         self.par_dic['session_id'],
                         self.job_id,
-                        self.par_dic)
+                        self.par_dic,
+                        aliased=job_is_aliased)
 
         job_monitor=job.monitor
 
@@ -547,16 +617,53 @@ class InstrumentQueryBackEnd(object):
         out_dict=None
         query_out=None
 
-        #TODO add method to check if job_id exists if query_status=='new'
-        #TODO swap session ID
-        #TODO set alias_session_ID to existing
-        #TODO set current_session_ID to actual session_ID
-        #TODO set status to query_status to existing
-        #TODO get job monitor update
-        #TODO if query_status=='ready'
-        #TODO swap
-        #NEW OR READY
-        if query_status=='new' or query_status=='ready':
+
+
+        #job_is_aliased=False
+        #alias_workidr=self.get_existing_job_ID_path()
+
+        # TODO if query status== raedy but you get delegation
+        # TODO set query status to new and ignore alias
+        #if query_status=='ready':
+
+
+
+        # UPDATE WORK DIR ONLY IF ALIASED AND !READY
+        if job_is_aliased==True and query_status!='ready':
+
+                job_is_aliased=True
+
+                #query_status='unknown'
+
+                original_work_dir=job.work_dir
+                job.work_dir=alias_workidr
+
+                print ('==>ALIASING to ',alias_workidr)
+
+                try:
+                    job_monitor = job.updat_dataserver_monitor()
+                except:
+                    job_is_aliased=False
+
+                if job_monitor['status']=='ready' or  job_monitor['status']=='failed':
+                    # NOTE in this case if job is aliased but the original has failed
+                    # NOTE it will be resubmitted anyhow
+                    job_is_aliased=False
+                    job.work_dir=original_work_dir
+
+
+        #else:
+        #    job.aliased=False
+
+        if job_is_aliased == True and query_status == 'ready':
+            print('==>IGNORING ALIASING to ', alias_workidr)
+
+        #(NEW and !ALIASED) or READY
+        if (query_status=='new'and job_is_aliased==False ) or query_status=='ready' :
+            if job_is_aliased == True and query_status == 'ready':
+                print('==>IGNORING ALIASING to ', alias_workidr)
+
+
             run_asynch = True
 
 
@@ -576,6 +683,7 @@ class InstrumentQueryBackEnd(object):
                                                     verbose=False)
 
 
+            #NOTE job status is set in  cdci_data_analysis.analysis.queries.ProductQuery#get_query_products
             print('-----------------> job status after query:', job.status)
             #print ('q_out.status_dictionary',query_out.status_dictionary)
             #query_out.set_done(job_status=job_monitor['status'])
@@ -623,42 +731,12 @@ class InstrumentQueryBackEnd(object):
             print('-----------------> query status update for progress:', query_new_status)
 
 
-            #out_dict = {}
-            #out_dict['job_monitor'] = job_monitor
-            #out_dict['job_status'] = job_monitor['status']
-            #out_dict['query_status'] = query_new_status
-            #out_dict['products'] = ''
-            #out_dict['exit_status'] = query_out
 
-
-
-
-            #if job_monitor['status']=='done':
-            #    query_new_status='ready'
-            #elif job_monitor['status']=='failed':
-            #    query_new_status='failed'
-            #elif job_monitor['status'] == 'progress':
-            #    query_new_status='progress'
-            #elif job_monitor['status'] == 'unaccessible':
-            #    query_new_status='unaccessible'
-            #elif job_monitor['status'] == 'submitted':
-            #    query_new_status='submitted'
-            #else:
-            #    query_new_status='progress'
-
-
-            #status=0
-            #query_out = QueryOutput()
-            #query_out.set_done(job_status=job_monitor['status'])
-
-
-            #self.build_dispatcher_response(out_dict=out_dict)
-            #print('query_out:job_monitor',  job_monitor['status'])
             print('==============================> query done <==============================')
 
 
         elif query_status=='failed':
-            #TODO: here we shoudl rusubmit query to get exception from ddosa
+            #TODO: here we should resubmit query to get exception from ddosa
             #status = 1
             query_out = QueryOutput()
             query_out.set_failed('submitted job',job_status=job_monitor['status'])
@@ -739,6 +817,18 @@ def meta_data():
     return query.get_meta_data()
 
 
+@app.route('/check_satus')
+def check_satus():
+    par_dic = {}
+    par_dic['instrument'] = 'mock'
+    par_dic['query_status'] = 'new'
+    par_dic['session_id'] = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+    par_dic['job_status'] = 'submitted'
+    query = InstrumentQueryBackEnd(par_dic=par_dic, get_meta_data=False, verbose=True)
+    print('request', request.method)
+    return  query.run_query_mock()
+
+
 @app.route('/meta-data-src')
 def meta_data_src():
     query = InstrumentQueryBackEnd(get_meta_data=True)
@@ -782,6 +872,8 @@ def dataserver_call_back():
 
 def run_app(conf,debug=False,threaded=False):
     app.config['conf'] = conf
+    if conf.sentry_url is not None:
+        sentry = Sentry(app, dsn=conf.sentry_url)
     app.run(host=conf.dispatcher_url, port=conf.dispatcher_port, debug=debug,threaded=threaded)
 
 

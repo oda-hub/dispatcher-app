@@ -352,53 +352,47 @@ class LightCurveProduct(BaseQueryProduct):
 
         sp=ScatterPlot(w=600,h=600,x_label='MJD-%d  (days)' % mjdref,y_label='Rate  (cts/s)')
         sp.add_errorbar(x,y,yerr=dy)
+        footer_str=''
+        try:
+            slope = None
+            normalized_slope = None
+            chisq_red = None
+            poly_deg = 0
+            p, chisq, chisq_red, dof,xf,yf = self.do_linear_fit(x, y, dy, poly_deg, 'constant fit')
+            sp.add_line(xf,yf,'constant fit',color='green')
+
+            exposure = header['TIMEDEL'] * data['FRACEXP'].sum()
+            exposure *= 86400.
+            footer_str = 'Exposure %5.5f (s) \n' % exposure
+            if p is not None:
+                footer_str += '\n'
+                footer_str += 'Constant fit\n'
+                footer_str += 'flux level %5.5f (cts/s)\n' % p[0]
+                footer_str += 'dof ' + '%d' % dof + '\n'
+                footer_str += 'Chi-squared red. %5.5f\n' % chisq_red
+
+        except:
+            pass
+
+        try:
+            poly_deg = 1
+            p, chisq, chisq_red, dof,xf,yf = self.do_linear_fit(x, y, dy, poly_deg, 'linear fit')
+            if p is not None:
+                footer_str += '\n'
+                footer_str += 'Linear fit\n'
+                footer_str += 'slope %5.5f\n' % p[0]
+                footer_str += 'dof ' + '%d' % dof + '\n'
+                footer_str += 'Chi-squared red. %5.5f\n' % chisq_red
+
+            sp.add_line(xf, yf, 'linear fit',color='orange')
+        except:
+            pass
 
 
-        #plt.errorbar(x, y, yerr=dy, fmt='o')
-        #ax.set_xlabel('MJD-%d  (days)' % mjdref)
-        #ax.set_ylabel('Rate  (cts/s)')
-
-        slope = None
-        normalized_slope = None
-        chisq_red = None
-        poly_deg = 0
-        footer_str = ''
-        p, chisq, chisq_red, dof,xf,yf = self.do_linear_fit(x, y, dy, poly_deg, 'constant fit')
-        sp.add_line(xf,yf,'constant fit',color='green')
-
-        exposure = header['TIMEDEL'] * data['FRACEXP'].sum()
-        exposure *= 86400.
-        footer_str = 'Exposure %5.5f (s) \n' % exposure
-        if p is not None:
-            footer_str += '\n'
-            footer_str += 'Constant fit\n'
-            footer_str += 'flux level %5.5f\n' % p[0]
-            footer_str += 'dof ' + '%d' % dof + '\n'
-            footer_str += 'Chi-squared red. %5.5f\n' % chisq_red
-
-        poly_deg = 1
-        p, chisq, chisq_red, dof,xf,yf = self.do_linear_fit(x, y, dy, poly_deg, 'linear fit')
-        if p is not None:
-            footer_str += '\n'
-            footer_str += 'Linear fit\n'
-            footer_str += 'slope %5.5f\n' % p[0]
-            footer_str += 'dof ' + '%d' % dof + '\n'
-            footer_str += 'Chi-squared red. %5.5f\n' % chisq_red
-
-        sp.add_line(xf, yf, 'linear fit',color='orange')
-        #ax.legend(loc='best')
-
-        #if plot == True:
-        #    plt.show()
-
-        #plugins.connect(fig, plugins.MousePosition(fontsize=14))
 
         html_dict= sp.get_html_draw()
 
-        #sp1 = ScatterPlot('', w=600, h=600, x_label='MJD-%d  (days)' % mjdref, y_label='Rate  (cts/s)')
-        #sp1.add_errorbar(x, y, yerr=dy)
-        #gp=GridPlot(sp,sp1)
-        #html_dict=gp.get_html_draw()
+
         res_dict = {}
         res_dict['image'] =html_dict
         res_dict['header_text'] = ''
@@ -673,8 +667,8 @@ class SpectralFitProduct(BaseQueryProduct):
         try:
             xsp.AllModels.calcFlux("20.0 60.0 err")
             (flux, flux_m, flux_p, _1, _2, _3) = s.flux
-            footer_str += 'flux (20.0-60.0) keV %5.5e\n' % (flux)
-            footer_str += 'Error range  68.00%%  confidence (%5.5e,%5.5e)\n' % (flux_m, flux_p)
+            footer_str += 'flux (20.0-60.0) keV %5.5e ergs cm^-2 s^-1\n' % (flux)
+            footer_str += 'Error range  68.00%%  confidence (%5.5e,%5.5e) ergs cm^-2 s^-1\n' % (flux_m, flux_p)
 
 
         except:
@@ -697,11 +691,11 @@ class SpectralFitProduct(BaseQueryProduct):
                 xsp.AllModels.calcFlux("20.0 60.0 err")
                 (flux, flux_m, flux_p, _1, _2, _3) = s.flux
                 footer_str += '\n'
-                footer_str += 'flux calculation with chain\n'
-                footer_str += 'flux (20.0-60.0) keV %5.5e\n' % (flux)
-                footer_str += 'Error range  68.00%%  confidence (%5.5e,%5.5e)\n' % (flux_m, flux_p)
+                footer_str += 'flux calculation with Monte Carlo Markov Chain\n'
+                footer_str += 'flux (20.0-60.0) keV %5.5e ergs cm^-2 s^-1\n' % (flux)
+                footer_str += 'Error range  68.00%%  confidence (%5.5e,%5.5e) ergs cm^-2 s^-1\n' % (flux_m, flux_p)
             except:
-                footer_str += 'flux calculation with chain failed\n'
+                footer_str += 'flux calculation with Monte Carlo Markov Chain  failed\n'
 
         _passed = False
         try:
@@ -767,7 +761,7 @@ class SpectralFitProduct(BaseQueryProduct):
 
         if msk.sum() > 0:
 
-            sp1 = ScatterPlot(w=500, h=350, x_label='Energy (keV)', y_label='normalize counts/s/keV',y_axis_type='log',x_axis_type='log')
+            sp1 = ScatterPlot(w=500, h=350, x_label='Energy (keV)', y_label='normalised counts/s/keV',y_axis_type='log',x_axis_type='log')
                               #y_range=[np.log10(y[msk]).min()-np.log10(y[msk]).min()*0.5,np.log10(y[msk]).max()*1.5])
 
             sp1.add_errorbar(x[msk], y[msk], yerr=dy[msk], xerr=dx[msk])

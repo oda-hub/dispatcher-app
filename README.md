@@ -12,7 +12,7 @@ configuration
 #open stack machine
 http://10.194.169.75
 
-#Sentry
+#   Sentry
 invitation
 - `http://10.194.169.75:9000/accept/2/afddf62f254a471bb3d858d200a5c6dd19a96317f4444e27bad2fbea176da748/`
 

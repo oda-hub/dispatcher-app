@@ -1,6 +1,7 @@
 from __future__ import print_function
 from builtins import (str, open, range)
 
+import string
 
 import json
 import  logging
@@ -13,9 +14,8 @@ osaconf = ConfigEnv.from_conf_file('./conf_env_test.yml')
 import time
 from flask import Flask, request
 import flask
-
 from cdci_data_analysis.flask_app.app import InstrumentQueryBackEnd
-
+import  random
 
 
 
@@ -433,3 +433,23 @@ def test_meta_data(instrument_name='isgri',):
         print('query_out:job_monitor', query_out)
 
 
+def test_server(instrument_name='mock',):
+    testapp = flask.Flask(__name__)
+
+
+
+    with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=None):
+        par_dic={}
+        par_dic['instrument'] = instrument_name
+        par_dic['query_status'] = 'new'
+        par_dic['session_id'] = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+        par_dic['job_status']='submitted'
+
+        query = InstrumentQueryBackEnd(par_dic=par_dic, get_meta_data=False,verbose=True)
+
+        print('request', request.method)
+        query_out = query.run_query_mock(off_line=False,)
+        query.get_existing_job_ID_path()
+        print('\n\n\n')
+
+        print('query_out:job_monitor', query_out)

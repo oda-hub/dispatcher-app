@@ -54,9 +54,16 @@ class Job(object):
                  job_id=None,
                  session_id=None,
                  status='unaccessible',
-                 status_kw_name='action'):
+                 status_kw_name='action',
+                 aliased=False):
 
+        #if aliased is False:
+        #
         self.work_dir=work_dir
+
+        #else:
+        #    self.work_dir = work_dir +'_aliased'
+
         self.status_kw_name=status_kw_name
         self.instrument_name=instrument_name
         self.monitor={}
@@ -73,7 +80,7 @@ class Job(object):
 
     @staticmethod
     def get_allowed_job_status_values():
-        return ['done', 'failed', 'progress', 'submitted', 'ready', 'unknown', 'unaccessible']
+        return ['done', 'failed', 'progress', 'submitted', 'ready', 'unknown', 'unaccessible','aliased']
 
     def update_monitor(self,status,session_id,job_id):
         self.monitor['job_id']=job_id
@@ -241,8 +248,11 @@ class OsaJob(Job):
                                   status=status,
                                   status_kw_name=status_kw_name)
 
-    def updat_dataserver_monitor(self,):
-        job_files_list = sorted(glob.glob(self.work_dir + '/job_monitor*.json'), key=os.path.getmtime)
+    def updat_dataserver_monitor(self,work_dir=None):
+        if work_dir is None:
+            work_dir=self.work_dir
+
+        job_files_list = sorted(glob.glob(work_dir + '/job_monitor*.json'), key=os.path.getmtime)
         print('get data server status form files',job_files_list)
         job_done=False
         job_failed=False
@@ -301,7 +311,6 @@ def job_factory(instrument_name,scratch_dir,server_url,dispatcher_port,session_i
              job_id=job_id,
              par_dic=par_dic)
     else:
-        print('ciccio !!!!!! NOT OSA')
         j=Job(instrument_name=instrument_name,
              work_dir=scratch_dir,
              server_url=server_url,
