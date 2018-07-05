@@ -64,6 +64,7 @@ class Job(object):
         #else:
         #    self.work_dir = work_dir +'_aliased'
 
+        self.aliased=aliased
         self.status_kw_name=status_kw_name
         self.instrument_name=instrument_name
         self.monitor={}
@@ -209,7 +210,8 @@ class OsaJob(Job):
                  session_id=None,
                  status='unaccessible',
                  status_kw_name='action',
-                 par_dic=None):
+                 par_dic=None,
+                 aliased=False):
 
         file_id=None
         file_message=None
@@ -246,7 +248,8 @@ class OsaJob(Job):
                                   job_id=job_id,
                                   session_id=session_id,
                                   status=status,
-                                  status_kw_name=status_kw_name)
+                                  status_kw_name=status_kw_name,
+                                  aliased=aliased)
 
     def updat_dataserver_monitor(self,work_dir=None):
         if work_dir is None:
@@ -298,7 +301,7 @@ class OsaJob(Job):
 
 
 
-def job_factory(instrument_name,scratch_dir,server_url,dispatcher_port,session_id,job_id,par_dic):
+def job_factory(instrument_name,scratch_dir,server_url,dispatcher_port,session_id,job_id,par_dic,aliased=False):
     osa_list=['jemx','isgri']
 
     if instrument_name in osa_list:
@@ -309,7 +312,8 @@ def job_factory(instrument_name,scratch_dir,server_url,dispatcher_port,session_i
              callback_handle='call_back',
              session_id=session_id,
              job_id=job_id,
-             par_dic=par_dic)
+             par_dic=par_dic,
+             aliased=aliased)
     else:
         j=Job(instrument_name=instrument_name,
              work_dir=scratch_dir,
@@ -317,6 +321,7 @@ def job_factory(instrument_name,scratch_dir,server_url,dispatcher_port,session_i
              server_port=dispatcher_port,
              callback_handle='call_back',
              session_id=session_id,
-             job_id=job_id)
+             job_id=job_id,
+            aliased=aliased)
 
     return j
