@@ -654,7 +654,7 @@ class InstrumentQueryBackEnd(object):
                     job_is_aliased=False
                     job.work_dir=original_work_dir
 
-                if query_type=='dummy':
+                if query_type=='Dummy':
                     job_is_aliased=False
 
         print('aliased is',job_is_aliased)
