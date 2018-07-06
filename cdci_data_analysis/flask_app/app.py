@@ -654,6 +654,9 @@ class InstrumentQueryBackEnd(object):
                     job_is_aliased=False
                     job.work_dir=original_work_dir
 
+                if query_status == 'done':
+                    job_is_aliased=False
+                    
                 if query_type=='Dummy':
                     job_is_aliased=False
 
