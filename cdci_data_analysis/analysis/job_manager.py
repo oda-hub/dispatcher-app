@@ -256,7 +256,7 @@ class OsaJob(Job):
             work_dir=self.work_dir
 
         job_files_list = sorted(glob.glob(work_dir + '/job_monitor*.json'), key=os.path.getmtime)
-        print('get data server status form files',job_files_list)
+        #print('get data server status form files',job_files_list)
         job_done=False
         job_failed=False
         progress=False
