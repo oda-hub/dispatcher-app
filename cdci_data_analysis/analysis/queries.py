@@ -409,6 +409,7 @@ class ProductQuery(BaseQuery):
 
             if hasattr(e, 'debug_message'):
                 debug_message = e.debug_message
+                #debug_message = str(e)
             else:
                 debug_message = ''
 

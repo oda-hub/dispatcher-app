@@ -636,8 +636,6 @@ class InstrumentQueryBackEnd(object):
 
                 job_is_aliased=True
 
-                #query_status='unknown'
-
                 original_work_dir=job.work_dir
                 job.work_dir=alias_workidr
 
@@ -647,31 +645,34 @@ class InstrumentQueryBackEnd(object):
                     job_monitor = job.updat_dataserver_monitor()
                 except:
                     job_is_aliased=False
+                    job_monitor = {}
+                    job_monitor['status'] = 'failed'
 
+                print ('==>updated job_monitor',job_monitor)
                 if job_monitor['status']=='ready' or  job_monitor['status']=='failed' or job_monitor['status']=='done':
                     # NOTE in this case if job is aliased but the original has failed
                     # NOTE it will be resubmitted anyhow
                     job_is_aliased=False
                     job.work_dir=original_work_dir
-
+                    print('==>ALIASING switched off ')
 
                 if query_type=='Dummy':
                     job_is_aliased=False
-
+                    print('==>ALIASING switched off ')
 
 
 
         if job_is_aliased == True and query_status == 'ready':
             print('==>IGNORING ALIASING to ', alias_workidr)
 
-        print('aliased is', job_is_aliased)
-        print('alias  work dir ', alias_workidr)
-        print('job  work dir ',job.work_dir)
+        print('==> aliased is', job_is_aliased)
+        print('==> alias  work dir ', alias_workidr)
+        print('==> job  work dir ',job.work_dir)
 
         #(NEW and !ALIASED) or READY
         if (query_status=='new'and job_is_aliased==False ) or query_status=='ready' :
-            if job_is_aliased == True and query_status == 'ready':
-                print('==>IGNORING ALIASING to ', alias_workidr)
+            #if job_is_aliased == True and query_status == 'ready':
+            #   print('==>IGNORING ALIASING to ', alias_workidr)
 
 
             run_asynch = True
@@ -788,9 +789,8 @@ class InstrumentQueryBackEnd(object):
             print('-----------------> query status new:', query_new_status)
             print('==============================> query done <==============================')
 
-
-
-
+        if job_is_aliased == False:
+            job.write_dataserver_status()
 
 
 
