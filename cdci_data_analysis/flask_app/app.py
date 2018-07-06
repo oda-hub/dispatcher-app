@@ -590,7 +590,7 @@ class InstrumentQueryBackEnd(object):
             if config.sentry_url is not None:
                 self.set_sentry_client(config.sentry_url)
 
-
+        alias_workidr=None
         try:
             alias_workidr = self.get_existing_job_ID_path(self.scratch_dir)
         except Exception as e:
@@ -648,24 +648,25 @@ class InstrumentQueryBackEnd(object):
                 except:
                     job_is_aliased=False
 
-                if job_monitor['status']=='ready' or  job_monitor['status']=='failed':
+                if job_monitor['status']=='ready' or  job_monitor['status']=='failed' or job_monitor['status']=='done':
                     # NOTE in this case if job is aliased but the original has failed
                     # NOTE it will be resubmitted anyhow
                     job_is_aliased=False
                     job.work_dir=original_work_dir
 
-                if job.status=='done':
-                    job_is_aliased=False
 
                 if query_type=='Dummy':
                     job_is_aliased=False
 
-        print('aliased is',job_is_aliased)
-        #else:
-        #    job.aliased=False
+
+
 
         if job_is_aliased == True and query_status == 'ready':
             print('==>IGNORING ALIASING to ', alias_workidr)
+
+        print('aliased is', job_is_aliased)
+        print('alias  work dir ', alias_workidr)
+        print('job  work dir ',job.work_dir)
 
         #(NEW and !ALIASED) or READY
         if (query_status=='new'and job_is_aliased==False ) or query_status=='ready' :
@@ -783,7 +784,7 @@ class InstrumentQueryBackEnd(object):
             #out_dict['exit_status'] = query_out
 
             #self.build_dispatcher_response(out_dict=out_dict)
-            print('query_out:job_monitor', job_monitor)
+            print('query_out:job_monitor[status]', job_monitor['status']    )
             print('-----------------> query status new:', query_new_status)
             print('==============================> query done <==============================')
 
