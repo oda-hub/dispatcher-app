@@ -9,12 +9,13 @@ import  numpy  as np
 
 from astropy import wcs
 
+from bokeh.models import FuncTickFormatter, FixedTicker
+
 from bokeh.layouts import row, widgetbox,gridplot
 from bokeh.models import CustomJS, Slider,HoverTool,ColorBar,LinearColorMapper,LabelSet,ColumnDataSource
 from bokeh.embed import components
 from bokeh.plotting import figure
 from bokeh.palettes import Plasma256
-
 
 
 class Image(object):

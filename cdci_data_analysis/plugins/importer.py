@@ -37,7 +37,7 @@ __author__ = "Andrea Tramacere"
 # relative import eg: from .mod import f
 import  importlib
 
-plugin_list=['cdci_osa_plugin']
+plugin_list=['cdci_osa_plugin','cdci_polar_plugin']
 
 
 instrument_facotry_list=[]

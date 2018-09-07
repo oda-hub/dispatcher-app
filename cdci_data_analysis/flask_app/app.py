@@ -512,14 +512,14 @@ class InstrumentQueryBackEnd(object):
                 if self.instrument.name in  disp_data_server_conf_dict['data_server'].keys():
                     for k in disp_data_server_conf_dict['data_server'][self.instrument.name].keys():
                         if k in self.instrument.data_server_conf_dict.keys():
-                            #print (k,self.instrument.data_server_conf_dict.keys(),disp_data_server_conf_dict['data_server'][self.instrument.name].keys())
+                            #print (k,disp_data_server_conf_dict['data_server'][self.instrument.name][k],self.instrument.data_server_conf_dict[k] )
                             self.instrument.data_server_conf_dict[k] = disp_data_server_conf_dict['data_server'][self.instrument.name][k]
-
+                            #print(k, disp_data_server_conf_dict['data_server'][self.instrument.name][k],
+                             #     self.instrument.data_server_conf_dict[k])
             #print('post',self.instrument.data_server_conf_dict)
             config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
         else:
             config_data_server=None
-
         return config,config_data_server
 
     def get_existing_job_ID_path(self,wd):
@@ -558,7 +558,7 @@ class InstrumentQueryBackEnd(object):
             query_out.set_query_exception(e, 'run_query failed in %s'%self.__class__.__name__,
                                           extra_message='InstrumentQueryBackEnd constructor failed')
 
-
+        print('==> query_status  ', query_status)
         if self.par_dic.has_key('instrumet'):
             self.par_dic.pop('instrumet')
 
@@ -578,7 +578,9 @@ class InstrumentQueryBackEnd(object):
             self.logger.info(log_str)
 
         try:
+
             config, config_data_server=self.set_config()
+            print ('c',config,config_data_server)
             print('dispatcher port', config.dispatcher_port)
         except Exception as e:
             query_out = QueryOutput()
@@ -668,7 +670,7 @@ class InstrumentQueryBackEnd(object):
         print('==> aliased is', job_is_aliased)
         print('==> alias  work dir ', alias_workidr)
         print('==> job  work dir ',job.work_dir)
-
+        print('==> query_status  ', query_status)
         #(NEW and !ALIASED) or READY
         if (query_status=='new'and job_is_aliased==False ) or query_status=='ready' :
             #if job_is_aliased == True and query_status == 'ready':

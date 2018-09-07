@@ -60,7 +60,7 @@ def build_upload_data(data_type):
     return data
 
 
-def set_mosaic_query(instrument_name,
+def set_osa_mosaic_query(instrument_name,
                      scw_list=None,
                      user_catalog=False,
                      query_type='Real',
@@ -102,13 +102,13 @@ def set_mosaic_query(instrument_name,
     else:
         data=None
 
-    return parameters_dic,data
+    return parameters_dic,data,instrument_name
 
 
 
 
 
-def set_spectrum_query(instrument_name,
+def set_osa_spectrum_query(instrument_name,
                      scw_list=None,
                      user_catalog=False,
                      query_type='Real',
@@ -150,10 +150,10 @@ def set_spectrum_query(instrument_name,
     else:
         data=None
 
-    return parameters_dic,data
+    return parameters_dic,data,instrument_name
 
 
-def set_spectral_fit_query(instrument_name,
+def set_osa_spectral_fit_query(instrument_name,
                      job_id,
                      session_id,
                      src_name='4U 1700-377',
@@ -201,9 +201,9 @@ def set_spectral_fit_query(instrument_name,
     else:
         data=None
 
-    return parameters_dic, data
+    return parameters_dic, data,instrument_name
 
-def set_lc_query(instrument_name,
+def set_osa_lc_query(instrument_name,
                      src_name='4U 1700-377',
                      time_bin=500,
                      user_catalog=False,
@@ -248,11 +248,26 @@ def set_lc_query(instrument_name,
     else:
         data=None
 
-    return parameters_dic,data
+    return parameters_dic,data,instrument_name
 
 
+def set_polar_lc_query(src_name='polar_test_src',
+                     time_bin=0.2   ,
+                     time_bin_format='sec',
+                     query_type='Real',
+                     upload_data=None,
+                     session_id='test',
+                     T1_iso='2016-12-18T08:32:21.000',
+                     T2_iso='2016-12-18T08:34:01.000',
+                     E1_keV=10.,
+                     E2_keV=100.):
+    instrument_name='polar'
+    product_type = 'polar_lc'
+    parameters_dic = dict(E1_keV=E1_keV, E2_keV=E2_keV, T1=T1_iso, T2=T2_iso,session_id=session_id, query_type=query_type, product_type=product_type,
+                        src_name=src_name, time_bin=time_bin,
+                          time_bin_format=time_bin_format)
 
-
+    return parameters_dic,None,instrument_name
 
 
 def test_synch_request(parameters_dic,instrument_name,query_status='new',job_id=None,upload_data=None):
@@ -295,8 +310,7 @@ def test_asynch_request(parameters_dic,instrument_name,query_status,job_id=None,
 
 
 def test_spectral_fit_query():
-    instrument_name = 'isgri'
-    parameters_dic, upload_data = set_spectral_fit_query(instrument_name=instrument_name,
+    parameters_dic, upload_data,instrument_name = set_osa_spectral_fit_query('isgri',
                                                          session_id='asynch_session',
                                                          job_id='943QQPH6WUDS8SL1',
                                                          scw_list=asynch_scw_list,
@@ -334,23 +348,19 @@ asynch_scw_list=['004000030030.001']
 asynch_scw_list=['035200230010.001']
 asynch_scw_list_jemx=["138700520010.001"]
 
+
+
+
+
+
 def test_asynch_full():
     """
     Do not use with set_spectral_fit_query
     :return:
     """
 
-    instrument_name='isgri'
-    parameters_dic,upload_data=set_mosaic_query(instrument_name=instrument_name,
-                                                T1_iso='2003-03-15T23:27:40.0',
-                                                T2_iso='2003-03-16T00:03:15.0',
-                                                scw_list=asynch_scw_list,
-                                                E1_keV=30.0,
-                                                RA_user_cat=[257.815417],
-                                                Dec_user_cat=[-41.593417],
-                                                user_catalog=False,
-                                                #upload_data='cat_csv',
-                                                query_type='Dummy')
+    #instrument_name='isgri'
+    parameters_dic,upload_data,instrument_name=set_polar_lc_query()
 
     print('upload_data', upload_data)
     query_out=test_asynch_request(parameters_dic,instrument_name,query_status='new',upload_data=None)
@@ -393,11 +403,16 @@ def test_asynch_full():
     print('job_monitor', query_out['job_monitor'])
     print('query_status', query_out['query_status'])
     print('products', query_out['products'].keys())
-    for k in query_out['products'].keys():
-        if k=='image':
-            print (k, '=>',query_out['products'][k].keys())
-        else:
-            print(k, '=>',query_out['products'][k])
+    if type(query_out['products'])==list:
+        q=query_out['products'][0]
+    else:
+        q=query_out['products']
+    #print (q)
+    #for k in q.keys():
+    #    if k=='image':
+    #        print (k, '=>',q[k].keys())
+    #    else:
+    #        print(k, '=>',q[k])
 
 
 def failure_report(query_out):
@@ -449,7 +464,8 @@ def test_server(instrument_name='mock',):
 
         print('request', request.method)
         query_out = query.run_query_mock(off_line=False,)
-        query.get_existing_job_ID_path()
+        query.get_existing_job_ID_path('./')
         print('\n\n\n')
 
         print('query_out:job_monitor', query_out)
+

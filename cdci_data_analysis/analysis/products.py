@@ -322,71 +322,14 @@ class LightCurveProduct(BaseQueryProduct):
         file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
         pf.writeto(file_path, data=self.data, header=self.header, overwrite=overwrite)
 
-    def get_html_draw(self, plot=False):
-        # from astropy.io import fits as pf
-        # print ('loading -->',self.file_path.path)
 
-        # hdul = pf.open(self.file_path.path)
-        hdul = FitsFile(self.file_path.path).open()
-
-        data = hdul[1].data
-        header = hdul[1].header
-
-        import matplotlib
-        # matplotlib.use('TkAgg')
-        #import pylab as plt
-        #fig, ax = plt.subplots()
-
-        #filtering zero flux values
-        msk_non_zero = np.count_nonzero([data['RATE'], data['ERROR']], axis=0) > 0
-        data=data[msk_non_zero]
-
-        x = data['TIME']
-        y = data['RATE']
-        dy = data['ERROR']
-        mjdref = header['mjdref'] + np.int(x.min())
-
-
+    def get_html_draw(self,x,y,dy=None,dx=None,x_label='',y_label=''):
 
         x = x - np.int(x.min())
 
-        sp=ScatterPlot(w=600,h=600,x_label='MJD-%d  (days)' % mjdref,y_label='Rate  (cts/s)')
-        sp.add_errorbar(x,y,yerr=dy)
+        sp=ScatterPlot(w=600,h=600,x_label=x_label,y_label=y_label)
+        sp.add_errorbar(x,y,yerr=dy,xerr=dx)
         footer_str=''
-        try:
-            slope = None
-            normalized_slope = None
-            chisq_red = None
-            poly_deg = 0
-            p, chisq, chisq_red, dof,xf,yf = self.do_linear_fit(x, y, dy, poly_deg, 'constant fit')
-            sp.add_line(xf,yf,'constant fit',color='green')
-
-            exposure = header['TIMEDEL'] * data['FRACEXP'].sum()
-            exposure *= 86400.
-            footer_str = 'Exposure %5.5f (s) \n' % exposure
-            if p is not None:
-                footer_str += '\n'
-                footer_str += 'Constant fit\n'
-                footer_str += 'flux level %5.5f (cts/s)\n' % p[0]
-                footer_str += 'dof ' + '%d' % dof + '\n'
-                footer_str += 'Chi-squared red. %5.5f\n' % chisq_red
-
-        except:
-            pass
-
-        try:
-            poly_deg = 1
-            p, chisq, chisq_red, dof,xf,yf = self.do_linear_fit(x, y, dy, poly_deg, 'linear fit')
-            if p is not None:
-                footer_str += '\n'
-                footer_str += 'Linear fit\n'
-                footer_str += 'slope %5.5f\n' % p[0]
-                footer_str += 'dof ' + '%d' % dof + '\n'
-                footer_str += 'Chi-squared red. %5.5f\n' % chisq_red
-
-            sp.add_line(xf, yf, 'linear fit',color='orange')
-        except:
-            pass
 
 
 
@@ -401,29 +344,6 @@ class LightCurveProduct(BaseQueryProduct):
 
 
         return res_dict
-
-    def do_linear_fit(self, x, y, dy, poly_deg, label):
-
-        p = None
-        chisq = None
-        chisq_red = None
-        dof = None
-        x_grid = None
-        y_grid=None
-
-        if y.size > poly_deg + 1:
-            p = np.polyfit(x, y, poly_deg)
-
-            x_grid = np.linspace(x.min(), x.max(), 100)
-            lin_fit = np.poly1d(p)
-
-            chisq = (lin_fit(x) - y) ** 2 / dy ** 2
-            dof = y.size - (poly_deg + 1)
-            chisq_red = chisq.sum() / float(dof)
-            #plt.plot(x_grid, lin_fit(x_grid), '--', label=label)
-            y_grid=lin_fit(x_grid)
-
-        return p, chisq, chisq_red, dof,x_grid, y_grid
 
 
 class SpectrumProduct(BaseQueryProduct):
@@ -607,6 +527,14 @@ class SpectralFitProduct(BaseQueryProduct):
                     par = getattr(comp, par_name)
                     setattr(par, 'frozen', True)
 
+
+    def prepare_data(self):
+        #do ignore
+        #set response/arf
+        #ignore bad b
+        pass
+
+
     def run_fit(self, e_min_kev, e_max_kev, plot=False, xspec_model='powerlaw', params_setting=None, frozen_list=None):
         import xspec as xsp
 
@@ -771,12 +699,29 @@ class SpectralFitProduct(BaseQueryProduct):
             sp2 = ScatterPlot(w=500, h=150, x_label='Energy (keV)', y_label='(data-model)/error',
                               x_range=sp1.fig.x_range,x_axis_type='log',y_axis_type='linear')
 
-            sp2.add_errorbar(x[msk], (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()))
+            sp2.add_errorbar(x[msk], (y[msk] - y_model[msk]) / dy[msk], yerr=np.ones(msk.sum()),xerr=dx[msk])
 
             sp2.add_line([x[msk].min(), x[msk].max()], [0, 0])
 
 
-        gp=GridPlot(sp1,sp2,w=550,h=550)
+
+        else:
+            sp1 = ScatterPlot(w=500, h=350, x_label='Energy (keV)', y_label='normalised counts/s/keV',
+                              y_axis_type='log', x_axis_type='log')
+
+            sp1.add_errorbar(x, y, yerr=dy, xerr=dx)
+
+
+
+            sp2 = ScatterPlot(w=500, h=150, x_label='Energy (keV)', y_label='(data-model)/error',
+                              x_range=sp1.fig.x_range, x_axis_type='log', y_axis_type='linear')
+
+
+            sp2.add_line([x.min(), x.max()], [0, 0])
+
+        #Fixing the missing sp1 error reported by Volodymyr
+        gp = GridPlot(sp1, sp2, w=550, h=550)
+
         htmlt_dict=gp.get_html_draw()
 
         #print('OK 3')
@@ -813,3 +758,45 @@ class CatalogProduct(BaseQueryProduct):
             self.catalog.write(file_path+'.fits', overwrite=overwrite, format=format)
         else :
             self.catalog.write_ds9_region(file_path+'.reg', overwrite=overwrite)
+
+
+
+# class MultiSpectralFitProduct(BaseQueryProduct):
+#
+#     def __init__(self, name,
+#                  spectra_list,
+#                  file_dir,
+#                  **kwargs):
+#
+#         super(MultiSpectralFitProduct, self).__init__(name, **kwargs)
+#         self.spectra_list=spectra_list
+#         self.rmf_file = FilePath(file_name=rmf_file, file_dir=file_dir).path
+#         self.arf_file = FilePath(file_name=arf_file, file_dir=file_dir).path
+#         self.spec_file = FilePath(file_name=spec_file, file_dir=file_dir).path
+#         self.chain_file_path = FilePath(file_name='xspec_fit.chain', file_dir=file_dir)
+#         self.work_dir = file_dir
+#         self.out_dir = file_dir
+#
+#
+# class ProductList():
+#     """
+#     Container of products
+#     """
+#     def __init__(self):
+#         pass
+#
+#
+#     def add_product(self):
+#         pass
+#
+#
+#     def check_product(self):
+#         """
+#         checks that type is the same
+#         :return:
+#         """
+#         pass
+#
+#
+#     def run(self):
+#         pass

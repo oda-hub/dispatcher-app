@@ -327,7 +327,7 @@ class Instrument(object):
             except Exception as e :
                 #FAILED
                 q.set_failed('scw_list file is not valid',
-                             extra_message='scw_list file is not valid',
+                             extra_message='scw_list file is not valid, please check the format',
                              logger=logger,
                              sentry_client=sentry_client,
                              excep=e)
@@ -347,7 +347,7 @@ class Instrument(object):
             except:
                 #FAILED
                 q.set_failed('setting input scw_list',
-                             extra_message='No scw_list from file accepted',
+                             extra_message='scw_list file is not valid, please check the format',
                              sentry_client=sentry_client,
                              excep=e)
 
@@ -368,9 +368,23 @@ class Instrument(object):
             return True
         else:
             with open(input_file_path) as f:
-                lines = f.readlines()
+                _lines = f.readlines()
+
+            # should now accept any combination of commas and/or newlines
+            # raise error if any of the scwlist is not matching the template
+            lines = []
+            for ll in _lines:
+                lines.extend(ll.split(","))
+
 
             acceptList = [item.strip() for item in lines if template.match(item)]
+
+
+
+
+            if len(acceptList)!=len(lines):
+                raise RuntimeError
+
             par_dic[input_prod_list_name]=acceptList
             print ("--> accepted scws",acceptList,len(acceptList))
             return len(acceptList)>=1

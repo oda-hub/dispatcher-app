@@ -51,7 +51,11 @@ class DataServerConf(object):
 
         FilePath(file_dir=self.dispatcher_mnt_point).mkdir()
 
-        self.dataserver_cache = os.path.join(self.dispatcher_mnt_point, self.data_server_remote_path)
+        if self.dispatcher_mnt_point is not None and self.data_server_remote_path is not None:
+            self.dataserver_cache = os.path.join(self.dispatcher_mnt_point, self.data_server_remote_path)
+        else:
+            self.dataserver_cache=None
+
 
     @classmethod
     def from_conf_dict(cls,conf_dict):
