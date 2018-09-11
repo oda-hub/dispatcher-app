@@ -604,7 +604,15 @@ class InstrumentQueryBackEnd(object):
                                           extra_message='job aliasing failed')
 
         job_is_aliased = False
-        if alias_workidr is not None:
+        run_asynch = True
+
+        if 'run_synch' in self.par_dic.keys():
+            run_asynch=False
+
+        if 'run_asynch' in self.par_dic.keys():
+            run_asynch=True
+
+        if alias_workidr is not None and run_asynch==True:
             job_is_aliased = True
 
         job=job_factory(self.instrument_name,
