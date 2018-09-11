@@ -39,7 +39,10 @@ class DataServerConf(object):
 
         # dataserver url
         self.data_server_url = data_server_url
-        self.dataserver_url = 'http://%s:%d' % (self.data_server_url, self.data_server_port)
+        if self.data_server_url  is not None and self.data_server_port is not None:
+            self.data_server_url = 'http://%s'%(self.data_server_url)
+        if self.data_server_url is not None and self.data_server_port is not None:
+            self.data_server_url +=':%d' % (self.data_server_port)
 
         # dummy prods local cache
         self.dummy_cache = dummy_cache
@@ -47,15 +50,23 @@ class DataServerConf(object):
         # path to dataserver cache
         self.data_server_remote_path = data_server_remote_cache
 
-        self.dispatcher_mnt_point = os.path.abspath(dispatcher_mnt_point)
+        if dispatcher_mnt_point is not None:
+            self.dispatcher_mnt_point = os.path.abspath(dispatcher_mnt_point)
+            FilePath(file_dir=self.dispatcher_mnt_point).mkdir()
+        else:
+            self.dispatcher_mnt_point=None
 
-        FilePath(file_dir=self.dispatcher_mnt_point).mkdir()
+
 
         if self.dispatcher_mnt_point is not None and self.data_server_remote_path is not None:
-            self.dataserver_cache = os.path.join(self.dispatcher_mnt_point, self.data_server_remote_path)
+            #self.data_server_cache = os.path.join(self.dispatcher_mnt_point, self.data_server_remote_path)
+            self.data_server_cache = os.path.join(self.dispatcher_mnt_point, self.data_server_remote_path)
         else:
-            self.dataserver_cache=None
+            self.data_server_cache=None
 
+        print(' --> DataServerConf')
+        for v in  vars(self):
+            print ('attr:',v,getattr(self,v))
 
     @classmethod
     def from_conf_dict(cls,conf_dict):
@@ -89,15 +100,16 @@ class ConfigEnv(object):
     def __init__(self,
                  cfg_dict):
 
-
+        print ('--> ConfigEnv')
         self._data_server_conf_dict={}
-        print (cfg_dict.keys())
+        print ('keys found in cfg_dict',cfg_dict.keys())
 
         if 'data_server' in cfg_dict.keys():
+
             for instr_name in cfg_dict['data_server']:
                 self.add_data_server_conf_dict(instr_name,cfg_dict)
 
-
+                print('--> data server key conf',instr_name,self._data_server_conf_dict[instr_name])
 
         if 'dispatcher' in cfg_dict.keys():
 
@@ -110,17 +122,21 @@ class ConfigEnv(object):
                                      disp_dict['logstash_port']
                                      )
 
+            print('--> dispatcher key conf',disp_dict)
 
-
-
+        print('--> _data_server_conf_dict', self._data_server_conf_dict)
 
 
     def get_data_server_conf_dict(self,instr_name):
+        ds_dict=None
         if instr_name in self._data_server_conf_dict.keys():
-            return  self._data_server_conf_dict[instr_name]
+            ds_dict=  self._data_server_conf_dict[instr_name]
 
-    def add_data_server_conf_dict(self,instr_name,data_server_conf_dict):
-        self._data_server_conf_dict[instr_name] = data_server_conf_dict
+        print ('ds_dict from get_data_server_conf_dict', ds_dict)
+        return ds_dict
+
+    def add_data_server_conf_dict(self,instr_name,_dict):
+        self._data_server_conf_dict[instr_name] = _dict
         #self._data_server_conf_dict[instr_name] = DataServerConf.from_conf_dict(data_server_conf_dict)
 
     def set_conf_dispatcher(self,dispatcher_url,dispatcher_port,sentry_url,logstash_host,logstash_port):
@@ -146,8 +162,10 @@ class ConfigEnv(object):
     def from_conf_file(cls, conf_file_path):
         if conf_file_path is None:
             conf_file_path = conf_dir + '/conf_env.yml'
-
+        print('conf_file_path', conf_file_path)
         with open(conf_file_path, 'r') as ymlfile:
+            print('conf_file_path', ymlfile )
             cfg_dict = yaml.load(ymlfile)
         #print('cfg_dict',cfg_dict)
+        print ('CICCIO')
         return ConfigEnv(cfg_dict)

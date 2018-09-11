@@ -506,20 +506,23 @@ class InstrumentQueryBackEnd(object):
 
         disp_data_server_conf_dict=config.get_data_server_conf_dict(self.instrument_name)
 
-        #print('pre',self.instrument.data_server_conf_dict)
+        print ('--> App configuration for:',self.instrument_name)
         if disp_data_server_conf_dict is not None:
+            print('-->',disp_data_server_conf_dict)
             if 'data_server' in  disp_data_server_conf_dict.keys():
+                #print (disp_data_server_conf_dict)
                 if self.instrument.name in  disp_data_server_conf_dict['data_server'].keys():
+                    #print('-->',disp_data_server_conf_dict['data_server'][self.instrument.name].keys(),self.instrument.name)
                     for k in disp_data_server_conf_dict['data_server'][self.instrument.name].keys():
                         if k in self.instrument.data_server_conf_dict.keys():
-                            #print (k,disp_data_server_conf_dict['data_server'][self.instrument.name][k],self.instrument.data_server_conf_dict[k] )
                             self.instrument.data_server_conf_dict[k] = disp_data_server_conf_dict['data_server'][self.instrument.name][k]
-                            #print(k, disp_data_server_conf_dict['data_server'][self.instrument.name][k],
-                             #     self.instrument.data_server_conf_dict[k])
-            #print('post',self.instrument.data_server_conf_dict)
+
             config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
         else:
+
             config_data_server=None
+        print('--> config_data_server', config_data_server,type(config))
+
         return config,config_data_server
 
     def get_existing_job_ID_path(self,wd):

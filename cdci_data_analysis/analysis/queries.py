@@ -638,6 +638,7 @@ class ProductQuery(BaseQuery):
 
     def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_client=None):
 
+        print ('--> running query for ',instrument.name,'with config',config)
         if logger is None:
             logger = self.get_logger()
 

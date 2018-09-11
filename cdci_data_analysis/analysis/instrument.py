@@ -75,7 +75,7 @@ class Instrument(object):
         #Instrument specific
         self.instrumet_query=instrumet_query
 
-
+        #self.data_serve_conf_file=data_serve_conf_file
         self.set_data_server_conf_dict(data_serve_conf_file)
 
         self.product_queries_list=product_queries_list
@@ -97,13 +97,14 @@ class Instrument(object):
 
     def set_data_server_conf_dict(self,data_serve_conf_file):
         conf_dict=None
+        print ('--> setting set_data_server_conf_dict for', self.name,'from data_serve_conf_file',data_serve_conf_file)
         if data_serve_conf_file is not None:
            with open(data_serve_conf_file, 'r') as ymlfile:
                 cfg_dict = yaml.load(ymlfile)
                 for k in cfg_dict['instruments'].keys():
-                    #print ('name',k)
+                    print ('name',k)
                     if self.name ==k:
-                        #print('name', k,cfg_dict['instruments'][k])
+                        print('name', k,cfg_dict['instruments'][k])
                         conf_dict=cfg_dict['instruments'][k]
 
         self.data_server_conf_dict=conf_dict
@@ -146,7 +147,7 @@ class Instrument(object):
 
     def test_communication(self,config,logger=None):
         if self.data_server_query_class is not None:
-            return self.data_server_query_class(config=config).test_communication(logger=logger)
+            return self.data_server_query_class(config=config,instrument=self).test_communication(logger=logger)
 
     def test_busy(self, config,logger=None):
         if self.data_server_query_class is not None:
@@ -154,7 +155,7 @@ class Instrument(object):
 
     def test_has_input_products(self, config,instrument,logger=None):
         if self.data_server_query_class is not None:
-            return self.data_server_query_class(config=config).test_has_input_products(instrument,logger=logger)
+            return self.data_server_query_class(config=config,instrument=self).test_has_input_products(instrument,logger=logger)
 
 
 
