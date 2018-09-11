@@ -826,6 +826,15 @@ class InstrumentQueryBackEnd(object):
 
 
 
+@app.route("/api")
+def run_api():
+    query = InstrumentQueryBackEnd()
+    return query.run_query()
+
+@app.route("/api/meta-data")
+def run_api_meta_data():
+    query = InstrumentQueryBackEnd(get_meta_data=True)
+    return query.get_meta_data()
 
 
 @app.route("/test_sleep")
