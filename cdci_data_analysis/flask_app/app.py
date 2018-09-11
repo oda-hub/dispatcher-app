@@ -614,6 +614,8 @@ class InstrumentQueryBackEnd(object):
                 run_asynch=False
             else:
                 raise  RuntimeError('run_asynch can be True or False, found',self.par_dic['run_asynch'])
+        else:
+            run_asynch=False
 
         if alias_workidr is not None and run_asynch==True:
             job_is_aliased = True
