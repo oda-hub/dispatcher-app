@@ -614,11 +614,12 @@ class InstrumentQueryBackEnd(object):
                 run_asynch=False
             else:
                 raise  RuntimeError('run_asynch can be True or False, found',self.par_dic['run_asynch'])
-        
+
 
         if alias_workidr is not None and run_asynch==True:
             job_is_aliased = True
 
+        print ('--> job aliased',job_is_aliased)
         job=job_factory(self.instrument_name,
                         self.scratch_dir,
                         self.get_current_ip(),
