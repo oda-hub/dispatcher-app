@@ -608,7 +608,7 @@ class InstrumentQueryBackEnd(object):
 
         if 'run_asynch' in self.par_dic.keys():
             if self.par_dic['run_asynch']=='True':
-                run_asynch=False
+                run_asynch=True
 
             elif self.par_dic['run_asynch']=='False':
                 run_asynch=False
