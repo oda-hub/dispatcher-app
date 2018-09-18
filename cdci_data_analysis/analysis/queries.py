@@ -272,7 +272,7 @@ class BaseQuery(object):
 
 class SourceQuery(BaseQuery):
     def __init__(self,name):
-        src_name= Name(name_format='str', name='src_name')
+        src_name= Name(name_format='str', name='src_name',value='test')
         RA = Angle(value=0.,units='deg', name='RA', )
         DEC = Angle(value=0.,units='deg', name='DEC')
 
