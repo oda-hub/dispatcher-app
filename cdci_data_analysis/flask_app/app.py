@@ -324,25 +324,37 @@ class InstrumentQueryBackEnd(object):
             #                        filename=filename))
             return file_path
 
-    def get_meta_data(self,name=None):
+    def get_meta_data(self,meta_name=None):
         src_query = SourceQuery('src_query')
 
         l = []
-        if name is None:
-            l.append(src_query.get_parameters_list_as_json())
-            l.append(self.instrument.get_parameters_list_as_json())
+        if meta_name is None:
+            #l.append(src_query.get_parameters_list_as_json())
+            if 'product_type' in  self.par_dic.keys():
+                prod_name = self.par_dic['product_type']
+            else:
+                prod_name=None
+
+            l.append(self.instrument.get_parameters_list_as_json(prod_name=prod_name))
             src_query.show_parameters_list()
 
-        if name == 'src_query':
+        if meta_name == 'src_query':
             l = [src_query.get_parameters_list_as_json()]
             src_query.show_parameters_list()
 
-        if name == 'instrument':
+        if meta_name == 'instrument':
             l = [self.instrument.get_parameters_list_as_json()]
             self.instrument.show_parameters_list()
 
         return jsonify(l)
 
+
+    def get_instr_list(self,name=None):
+        _l=[]
+        for instrument_factory in importer.instrument_facotry_list:
+            _l.append(instrument_factory().name)
+
+        return jsonify(_l)
 
 
     def run_call_back(self,status_kw_name='action'):
@@ -835,6 +847,11 @@ def run_api():
 def run_api_meta_data():
     query = InstrumentQueryBackEnd(get_meta_data=True)
     return query.get_meta_data()
+
+@app.route("/api/instr-list")
+def run_api_instr_list():
+    query = InstrumentQueryBackEnd(get_meta_data=True)
+    return query.get_instr_list()
 
 
 @app.route("/test_sleep")

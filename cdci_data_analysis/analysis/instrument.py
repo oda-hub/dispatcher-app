@@ -36,6 +36,7 @@ from astropy.table import Table
 from cdci_data_analysis.analysis.queries import _check_is_base_query
 from .catalog import BasicCatalog
 from .products import  QueryOutput
+from .queries import ProductQuery,SourceQuery,InstrumentQuery
 from .io_helper import FilePath
 
 __author__ = "Andrea Tramacere"
@@ -257,10 +258,32 @@ class Instrument(object):
         print("-------------")
 
 
-    def get_parameters_list_as_json(self):
+    def get_parameters_list_as_json(self,add_src_query=True,add_instr_query=True,prod_name=None):
+
         l=[{'instrumet':self.name}]
+        l.append({'prod_dict':self.query_dictionary})
+        print('--> dict',self.query_dictionary)
+
+
         for _query in self._queries_list:
-            l.append(_query.get_parameters_list_as_json())
+            _add_query = True
+            if isinstance(_query,SourceQuery) and add_src_query==False:
+                _add_query=False
+                #print('src',_query.name)
+
+            if isinstance(_query,InstrumentQuery) and add_instr_query==False:
+                _add_query=False
+            #print('isntr', _query.name)
+
+            if isinstance(_query, ProductQuery) and prod_name is not None and _query.name==self.query_dictionary[prod_name]:
+                _add_query = True
+                #print('prd', _query.name,prod_name)
+            elif isinstance(_query, ProductQuery) and prod_name is not None and _query.name!=self.query_dictionary[prod_name]:
+                #print('prd', _query.name, prod_name)
+                _add_query = False
+
+            if _add_query == True:
+                l.append(_query.get_parameters_list_as_json(prod_dict=self.query_dictionary))
 
         return l
 

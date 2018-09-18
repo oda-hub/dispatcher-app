@@ -256,7 +256,16 @@ class BaseQueryProduct(object):
         pass
 
 
+    def set_data(self):
+        self.data_table=None
+        pass
 
+    def set_header(self):
+        self._header_dict=None
+        pass
+
+    def jsonify(self):
+        pass
 
 
 
@@ -343,6 +352,8 @@ class LightCurveProduct(BaseQueryProduct):
         # print('writing catalog file to->',)
         file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
         pf.writeto(file_path, data=self.data, header=self.header, overwrite=overwrite)
+
+
 
 
 
