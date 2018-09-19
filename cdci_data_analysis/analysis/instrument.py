@@ -74,7 +74,7 @@ class Instrument(object):
         self.src_query=src_query
 
 
-        self.asynhc=asynch
+        self.asynch=asynch
 
         #Instrument specific
         self.instrumet_query=instrumet_query
