@@ -56,6 +56,9 @@ class QueryOutput(object):
         self.set_status(0, job_status='unknown')
 
 
+    def set_instrument_parameters(self,o):
+        self.prod_dictionary['instrumet_parameters'] = o
+
     def set_analysis_parameters(self,query_dict):
         self.prod_dictionary['analysis_paramters']=query_dict
 
@@ -214,12 +217,24 @@ class QueryProductList(object):
         return prod
 
 
+
+class ProductData(object):
+
+    def __init__(self,data,kw_dict=None):
+        self. data=data
+        self.kw_dict=kw_dict
+
+
+
+
+
 class BaseQueryProduct(object):
 
     def __init__(self, name,
                  file_name=None,
                  file_dir='./',
-                 name_prefix=None):
+                 name_prefix=None,
+                 product_data=None):
 
         self.name = name
         if file_name is not None:
@@ -230,6 +245,13 @@ class BaseQueryProduct(object):
             self.file_path = FilePath(file_name=file_name, file_dir=file_dir, name_prefix=name_prefix)
             print('file_path set to', self.file_path.path)
 
+        if product_data is not None:
+            if isinstance(product_data,ProductData):
+                self.data = product_data
+            else:
+                raise RuntimeError('data is not of the expected type',type(ProductData))
+
+
     def write(self):
         pass
 
@@ -237,7 +259,16 @@ class BaseQueryProduct(object):
         pass
 
 
+    def set_data(self):
+        self.data_table=None
+        pass
 
+    def set_header(self):
+        self._header_dict=None
+        pass
+
+    def jsonify(self):
+        pass
 
 
 
@@ -301,6 +332,7 @@ class LightCurveProduct(BaseQueryProduct):
                  file_name='lc.fits',
                  src_name=None,
                  **kwargs):
+
         self.name = name
         self.data = data
         self.header = header
@@ -308,6 +340,8 @@ class LightCurveProduct(BaseQueryProduct):
         self.src_name = src_name
 
         super(LightCurveProduct, self).__init__(name, file_name=file_name, **kwargs)
+
+
 
     @classmethod
     def from_fits_file(cls, inf_file, out_file_name, prod_name, ext=0, **kwargs):
@@ -321,6 +355,9 @@ class LightCurveProduct(BaseQueryProduct):
         # print('writing catalog file to->',)
         file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
         pf.writeto(file_path, data=self.data, header=self.header, overwrite=overwrite)
+
+
+
 
 
     def get_html_draw(self,x,y,dy=None,dx=None,x_label='',y_label=''):

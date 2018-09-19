@@ -324,25 +324,41 @@ class InstrumentQueryBackEnd(object):
             #                        filename=filename))
             return file_path
 
-    def get_meta_data(self,name=None):
+    def get_meta_data(self,meta_name=None):
         src_query = SourceQuery('src_query')
 
         l = []
-        if name is None:
-            l.append(src_query.get_parameters_list_as_json())
-            l.append(self.instrument.get_parameters_list_as_json())
+        if meta_name is None:
+            #l.append(src_query.get_parameters_list_as_json())
+            if 'product_type' in  self.par_dic.keys():
+                prod_name = self.par_dic['product_type']
+            else:
+                prod_name=None
+
+            l.append(self.instrument.get_parameters_list_as_json(prod_name=prod_name))
             src_query.show_parameters_list()
 
-        if name == 'src_query':
+        if meta_name == 'src_query':
             l = [src_query.get_parameters_list_as_json()]
             src_query.show_parameters_list()
 
-        if name == 'instrument':
+        if meta_name == 'instrument':
             l = [self.instrument.get_parameters_list_as_json()]
             self.instrument.show_parameters_list()
 
         return jsonify(l)
 
+
+    def get_paramters_dict(self):
+        print('CICCIO',self.par_dic)
+        return jsonify(self.par_dic)
+
+    def get_instr_list(self,name=None):
+        _l=[]
+        for instrument_factory in importer.instrument_facotry_list:
+            _l.append(instrument_factory().name)
+
+        return jsonify(_l)
 
 
     def run_call_back(self,status_kw_name='action'):
@@ -565,10 +581,19 @@ class InstrumentQueryBackEnd(object):
         if self.par_dic.has_key('instrumet'):
             self.par_dic.pop('instrumet')
 
+        verbose=False
+        if 'verbose' in self.par_dic.keys():
+            if self.par_dic['verbose']=='True':
+                verbose=True
+            else:
+                verbose=False
 
-
-
-
+        dry_run=False
+        if 'verbose' in self.par_dic.keys():
+            if self.par_dic['dry_run']=='True':
+                dry_run=True
+            else:
+                dry_run=False
 
 
         self.logger.info('product_type %s' % product_type)
@@ -615,6 +640,9 @@ class InstrumentQueryBackEnd(object):
             else:
                 raise  RuntimeError('run_asynch can be True or False, found',self.par_dic['run_asynch'])
 
+
+        if self.instrument.asynch==False:
+            run_asynch=False
 
         if alias_workidr is not None and run_asynch==True:
             job_is_aliased = True
@@ -693,7 +721,7 @@ class InstrumentQueryBackEnd(object):
             #   print('==>IGNORING ALIASING to ', alias_workidr)
 
 
-            run_asynch = True
+            #run_asynch = True
 
 
 
@@ -709,7 +737,8 @@ class InstrumentQueryBackEnd(object):
                                                     query_type=query_type,
                                                     logger=self.logger,
                                                     sentry_client=self.sentry_client,
-                                                    verbose=False)
+                                                    verbose=verbose,
+                                                    dry_run=dry_run)
 
 
             #NOTE job status is set in  cdci_data_analysis.analysis.queries.ProductQuery#get_query_products
@@ -835,6 +864,16 @@ def run_api():
 def run_api_meta_data():
     query = InstrumentQueryBackEnd(get_meta_data=True)
     return query.get_meta_data()
+
+@app.route("/api/parameters")
+def run_api_parameters():
+    query = InstrumentQueryBackEnd(get_meta_data=True)
+    return query.get_paramters_dict()
+
+@app.route("/api/instr-list")
+def run_api_instr_list():
+    query = InstrumentQueryBackEnd(get_meta_data=True)
+    return query.get_instr_list()
 
 
 @app.route("/test_sleep")

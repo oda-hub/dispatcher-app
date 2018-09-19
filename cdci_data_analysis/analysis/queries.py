@@ -259,7 +259,7 @@ class BaseQuery(object):
 
 
 
-    def get_parameters_list_as_json(self):
+    def get_parameters_list_as_json(self,prod_dict=None):
         l=[ {'query_name':self.name}]
 
         for par in self._parameters_list:
@@ -272,7 +272,7 @@ class BaseQuery(object):
 
 class SourceQuery(BaseQuery):
     def __init__(self,name):
-        src_name= Name(name_format='str', name='src_name')
+        src_name= Name(name_format='str', name='src_name',value='test')
         RA = Angle(value=0.,units='deg', name='RA', )
         DEC = Angle(value=0.,units='deg', name='DEC')
 
@@ -355,13 +355,24 @@ class ProductQuery(BaseQuery):
         raise RuntimeError('needs to be implemented in derived class')
 
 
-    def get_parameters_list_as_json(self):
-        l=[ {'query_name':self.name},{'product_name':self.name}]
+    def get_parameters_list_as_json(self,prod_dict=None):
+
+        l=[ {'query_name':self.name}]
+        prod_name=None
+        if prod_dict is not None:
+            for k,v in prod_dict.items():
+                if v==self.name:
+                    prod_name=k
+        if prod_name is not None:
+            l.append({'product_name':prod_name})
+        else:
+            l.append({'product_name': self.name})
+
 
         for par in self._parameters_list:
             l.append(par.reprJSON())
 
-
+        print(l)
         return json.dumps(l)
 
 
