@@ -60,6 +60,7 @@ class Instrument(object):
                  src_query,
                  instrumet_query,
                  input_product_query=None,
+                 asynch=True,
                  catalog=None,
                  data_serve_conf_file=None,
                  product_queries_list=None,
@@ -72,6 +73,8 @@ class Instrument(object):
         #src query
         self.src_query=src_query
 
+
+        self.asynhc=asynch
 
         #Instrument specific
         self.instrumet_query=instrumet_query
