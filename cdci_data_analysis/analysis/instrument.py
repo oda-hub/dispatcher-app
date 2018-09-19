@@ -172,6 +172,7 @@ class Instrument(object):
                   verbose=False,
                   logger=None,
                   sentry_client=None,
+                  dry_run=False,
                   **kwargs):
 
         #prod_dictionary={}
@@ -189,6 +190,7 @@ class Instrument(object):
 
 
 
+
         #set catalog
         if query_out.status_dictionary['status']==0:
             query_out=self.set_catalog_from_fronted(par_dic, request,back_end_query,logger=logger,verbose=verbose,sentry_client=sentry_client)
@@ -198,32 +200,34 @@ class Instrument(object):
         if query_out.status_dictionary['status'] == 0:
             query_out=self.set_input_products_from_fronted(par_dic, request,back_end_query,logger=logger,verbose=verbose,sentry_client=sentry_client)
 
+        if dry_run == True:
+            job.set_done()
+            query_out.set_done(message='dry-run',job_status=job.status)
+            query_out.set_instrument_parameters(self.get_parameters_list_as_json())
+        else:
+            if query_out.status_dictionary['status'] == 0:
+                #print('--->CICCIO',self.query_dictionary)
 
+                query_out = QueryOutput()
+                message=''
+                debug_message=''
 
+                try:
+                    query_name = self.query_dictionary[product_type]
+                    print ('=======> query_name',query_name)
+                    query_out = self.get_query_by_name(query_name).run_query(self, out_dir, job, run_asynch,
+                                                                             query_type=query_type, config=config,
+                                                                             logger=logger,
+                                                                             sentry_client=sentry_client)
+                    if query_out.status_dictionary['status'] == 0:
+                        #DONE
+                        query_out.set_done(message=message, debug_message=str(debug_message))
+                    else:
+                        pass
 
-        if query_out.status_dictionary['status'] == 0:
-            #print('--->CICCIO',self.query_dictionary)
-
-            query_out = QueryOutput()
-            message=''
-            debug_message=''
-
-            try:
-                query_name = self.query_dictionary[product_type]
-                print ('=======> query_name',query_name)
-                query_out = self.get_query_by_name(query_name).run_query(self, out_dir, job, run_asynch,
-                                                                         query_type=query_type, config=config,
-                                                                         logger=logger,
-                                                                         sentry_client=sentry_client)
-                if query_out.status_dictionary['status'] == 0:
-                    #DONE
-                    query_out.set_done(message=message, debug_message=str(debug_message))
-                else:
-                    pass
-
-            except Exception as e:
-                #FAILED
-                query_out.set_failed(product_type,logger=logger,sentry_client=sentry_client,excep=e)
+                except Exception as e:
+                    #FAILED
+                    query_out.set_failed(product_type,logger=logger,sentry_client=sentry_client,excep=e)
 
         query_out.set_analysis_parameters(par_dic)
         query_out.dump_analysis_parameters(out_dir,par_dic)

@@ -349,6 +349,10 @@ class InstrumentQueryBackEnd(object):
         return jsonify(l)
 
 
+    def get_paramters_dict(self):
+        print('CICCIO',self.par_dic)
+        return jsonify(self.par_dic)
+
     def get_instr_list(self,name=None):
         _l=[]
         for instrument_factory in importer.instrument_facotry_list:
@@ -577,10 +581,19 @@ class InstrumentQueryBackEnd(object):
         if self.par_dic.has_key('instrumet'):
             self.par_dic.pop('instrumet')
 
+        verbose=False
+        if 'verbose' in self.par_dic.keys():
+            if self.par_dic['verbose']=='True':
+                verbose=True
+            else:
+                verbose=False
 
-
-
-
+        dry_run=False
+        if 'verbose' in self.par_dic.keys():
+            if self.par_dic['dry_run']=='True':
+                dry_run=True
+            else:
+                dry_run=False
 
 
         self.logger.info('product_type %s' % product_type)
@@ -721,7 +734,8 @@ class InstrumentQueryBackEnd(object):
                                                     query_type=query_type,
                                                     logger=self.logger,
                                                     sentry_client=self.sentry_client,
-                                                    verbose=False)
+                                                    verbose=verbose,
+                                                    dry_run=dry_run)
 
 
             #NOTE job status is set in  cdci_data_analysis.analysis.queries.ProductQuery#get_query_products
@@ -847,6 +861,11 @@ def run_api():
 def run_api_meta_data():
     query = InstrumentQueryBackEnd(get_meta_data=True)
     return query.get_meta_data()
+
+@app.route("/api/parameters")
+def run_api_parameters():
+    query = InstrumentQueryBackEnd(get_meta_data=True)
+    return query.get_paramters_dict()
 
 @app.route("/api/instr-list")
 def run_api_instr_list():

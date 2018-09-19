@@ -56,6 +56,9 @@ class QueryOutput(object):
         self.set_status(0, job_status='unknown')
 
 
+    def set_instrument_parameters(self,o):
+        self.prod_dictionary['instrumet_parameters'] = o
+
     def set_analysis_parameters(self,query_dict):
         self.prod_dictionary['analysis_paramters']=query_dict
 
