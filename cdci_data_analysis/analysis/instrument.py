@@ -204,7 +204,7 @@ class Instrument(object):
             job.set_done()
 
             query_out.set_done(message='dry-run',job_status=job.status)
-            query_out.set_instrument_parameters(self.get_parameters_list_as_json(product_type=product_type))
+            query_out.set_instrument_parameters(self.get_parameters_list_as_json(prod_name=product_type))
         else:
             if query_out.status_dictionary['status'] == 0:
                 #print('--->CICCIO',self.query_dictionary)
