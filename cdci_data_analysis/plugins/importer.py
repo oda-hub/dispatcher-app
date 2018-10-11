@@ -53,5 +53,6 @@ for plugin_name in cdci_plugins_dict:
     try:
         e=importlib.import_module(plugin_name+'.exposer')
         instrument_facotry_list.extend(e.instr_factory_list)
+        print('imported plugin', plugin_name)
     except:
-        print(plugin_name, 'failed')
+        print('failed to import', plugin_name )
