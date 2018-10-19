@@ -339,9 +339,8 @@ class ProductQuery(BaseQuery):
 
         super(ProductQuery, self).__init__(name,parameters_list, **kwargs)
 
-        self.query_prod_list=None
         self.job=None
-
+        self.query_prod_list=[]
 
     def get_products(self, instrument,run_asynch, job=None,config=None,logger=None,**kwargs):
         raise RuntimeError('needs to be implemented in derived class')
@@ -898,53 +897,53 @@ class SpectralFitQuery(PostProcessProductQuery):
 
 
 
-class ImageProcessQuery(PostProcessProductQuery):
-
-    def __init__(self, name, parameters_list=[], **kwargs):
-        image_file = Name(name_format='str', name='image_file_name', value='')
-        image_scale_min = Float( name='image_scale_min', value=None)
-        image_scale_max = Float( name='image_scale_max', value=None)
-        download_files = Float(name='str', value=None)
-
-        p_list = [image_file, image_scale_min, image_scale_max]
-        if parameters_list != [] and parameters_list is not None:
-            parameters_list.extend(p_list)
-        else:
-            parameters_list = p_list[::]
-
-        super(ImageProcessQuery, self).__init__(name,
-                                               parameters_list,
-                                               # get_products_method=None,
-                                               # get_dummy_products_method=None,
-                                               **kwargs)
-
-    def process_product(self, instrument, job, out_dir=None):
-
-        src_name = instrument.get_par_by_name('src_name').value
-
-        image_file = instrument.get_par_by_name('image_file_name').value
-        download_files = instrument.get_par_by_name('image_download_files').value
-        image_scale_min = instrument.get_par_by_name('image_scale_min').value
-        image_scale_max = instrument.get_par_by_name('image_scale_max').value
-        catalog=instrument.get_par_by_name('image_catalog').value
-        self.check_file_exist([image_file], out_dir=out_dir)
-
-        query_out = QueryOutput()
-        try:
-            query_out.prod_dictionary['image'] = ImageProduct.from_fits_file(image_file).get_html_draw(vmin=image_scale_min,
-                                                vmax=image_scale_max,
-                                                catalog=catalog)
-
-        except Exception as e:
-
-            raise RuntimeError('image update failed with error: %s' % e)
-
-        query_out.prod_dictionary['job_id'] = job.job_id
-        query_out.prod_dictionary['session_id'] = job.session_id
-        query_out.prod_dictionary['spectrum_name'] = src_name
-        query_out.prod_dictionary['catalog'] =catalog.get_dictionary()
-        query_out.prod_dictionary['file_name'] = [download_files]
-        query_out.prod_dictionary['download_file_name'] = 'image.tgz'
-        query_out.prod_dictionary['prod_process_message'] = ''
-
-        return query_out
+# class ImageProcessQuery(PostProcessProductQuery):
+#
+#     def __init__(self, name, parameters_list=[], **kwargs):
+#         image_file = Name(name_format='str', name='image_file_name', value='')
+#         image_scale_min = Float( name='image_scale_min', value=None)
+#         image_scale_max = Float( name='image_scale_max', value=None)
+#         download_files = Float(name='str', value=None)
+#
+#         p_list = [image_file, image_scale_min, image_scale_max]
+#         if parameters_list != [] and parameters_list is not None:
+#             parameters_list.extend(p_list)
+#         else:
+#             parameters_list = p_list[::]
+#
+#         super(ImageProcessQuery, self).__init__(name,
+#                                                parameters_list,
+#                                                # get_products_method=None,
+#                                                # get_dummy_products_method=None,
+#                                                **kwargs)
+#
+#     def process_product(self, instrument, job, out_dir=None):
+#
+#         src_name = instrument.get_par_by_name('src_name').value
+#
+#         image_file = instrument.get_par_by_name('image_file_name').value
+#         download_files = instrument.get_par_by_name('image_download_files').value
+#         image_scale_min = instrument.get_par_by_name('image_scale_min').value
+#         image_scale_max = instrument.get_par_by_name('image_scale_max').value
+#         catalog=instrument.get_par_by_name('image_catalog').value
+#         self.check_file_exist([image_file], out_dir=out_dir)
+#
+#         query_out = QueryOutput()
+#         try:
+#             query_out.prod_dictionary['image'] = ImageProduct.from_fits_file(image_file).get_html_draw(vmin=image_scale_min,
+#                                                 vmax=image_scale_max,
+#                                                 catalog=catalog)
+#
+#         except Exception as e:
+#
+#             raise RuntimeError('image update failed with error: %s' % e)
+#
+#         query_out.prod_dictionary['job_id'] = job.job_id
+#         query_out.prod_dictionary['session_id'] = job.session_id
+#         query_out.prod_dictionary['spectrum_name'] = src_name
+#         query_out.prod_dictionary['catalog'] =catalog.get_dictionary()
+#         query_out.prod_dictionary['file_name'] = [download_files]
+#         query_out.prod_dictionary['download_file_name'] = 'image.tgz'
+#         query_out.prod_dictionary['prod_process_message'] = ''
+#
+#         return query_out

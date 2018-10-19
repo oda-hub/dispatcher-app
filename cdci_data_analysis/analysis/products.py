@@ -18,10 +18,10 @@ __author__ = "Andrea Tramacere"
 
 import json
 
-from pathlib import Path
+#from pathlib import Path
 
-from astropy import wcs
-from astropy.wcs import WCS
+#from astropy import wcs
+#from astropy.wcs import WCS
 
 from astropy.io import fits as pf
 
@@ -29,16 +29,16 @@ import matplotlib
 
 matplotlib.use('Agg', warn=False)
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
-import numpy as np
+#import numpy as np
 
-import mpld3
-from mpld3 import plugins
+#import mpld3
+#from mpld3 import plugins
 
 from .plot_tools import  Image,ScatterPlot,GridPlot
 
-
+from  oda_api.data_products import NumpyDataProduct
 from .parameters import *
 from .io_helper import FilePath
 from .io_helper import view_traceback, FitsFile
@@ -212,17 +212,12 @@ class QueryProductList(object):
             if hasattr(prod1, 'name'):
                 if prod1.name == name:
                     prod = prod1
+                print('prod_name',prod1.name )
         if prod is None:
             raise Warning('product', name, 'not found')
         return prod
 
 
-
-class ProductData(object):
-
-    def __init__(self,data,kw_dict=None):
-        self. data=data
-        self.kw_dict=kw_dict
 
 
 
@@ -230,13 +225,17 @@ class ProductData(object):
 
 class BaseQueryProduct(object):
 
-    def __init__(self, name,
+    def __init__(self,
+                 name='',
                  file_name=None,
                  file_dir='./',
                  name_prefix=None,
-                 product_data=None):
+                 data=None,
+                 meta_data={}):
 
         self.name = name
+        self.meta_data=meta_data
+
         if file_name is not None:
             print('set file phat')
             print('workig dir', file_dir)
@@ -245,116 +244,91 @@ class BaseQueryProduct(object):
             self.file_path = FilePath(file_name=file_name, file_dir=file_dir, name_prefix=name_prefix)
             print('file_path set to', self.file_path.path)
 
-        if product_data is not None:
-            if isinstance(product_data,ProductData):
-                self.data = product_data
+        self.meta_data=None
+        if data is not None:
+            if isinstance(data,NumpyDataProduct):
+                self.data = data
             else:
-                raise RuntimeError('data is not of the expected type',type(ProductData))
+                raise RuntimeError('data is not of the expected type',type(NumpyDataProduct))
 
+            self.meta_data=self.data.meta_data
 
-    def write(self):
-        pass
-
-    def read(self):
-        pass
-
-
-    def set_data(self):
-        self.data_table=None
-        pass
-
-    def set_header(self):
-        self._header_dict=None
-        pass
-
-    def jsonify(self):
-        pass
+    def encode(self):
+        self.data.encode()
 
 
 
 class ImageProduct(BaseQueryProduct):
-    def __init__(self, name, data, header, file_name='image.fits', **kwargs):
-        self.name = name
-        self.data = data
-        self.header = header
+    def __init__(self,name='', data='', file_name='image.fits', **kwargs):
+
         self.file_name = file_name
-        super(ImageProduct, self).__init__(name, file_name=file_name, **kwargs)
+        super(ImageProduct, self).__init__(name=name,data=data, file_name=file_name, **kwargs)
 
     @classmethod
-    def from_fits_file(cls, in_file, out_file_name, prod_name, ext=0, **kwargs):
-        # hdu = pf.open(in_file)[ext]
-        # print('ciccio in_file', in_file)
-        hdu = FitsFile(in_file).open()[ext]
-
-        data = hdu.data
-        header = hdu.header
-
-        return cls(name=prod_name, data=data, header=header, file_name=out_file_name, **kwargs)
+    def from_fits_file(cls,name,in_file,file_name,ext,out_dir,prod_prefix=None,meta_data={}):
+        data = NumpyDataProduct.from_fits_file(in_file, ext=ext, name=name, meta_data=meta_data)
+        return cls(name, data=data, file_dir=out_dir, prod_prefix=prod_prefix, file_name=file_name)
 
     def write(self, file_name=None, overwrite=True, file_dir=None):
+        if file_name is None:
+            # TODO: this should be file_path = self.file_path.path-> DONE AND PASSED
+            file_path = self.file_path.path
+        else:
+            file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
 
-        # TODO: this should be file_path = self.file_path.path-> DONE AND PASSED
-        file_path = self.file_path.path
-        # file_path=self.file_path.get_file_path(file_name=file_name,file_dir=file_dir)
-        pf.writeto(file_path, data=self.data, header=self.header, overwrite=overwrite)
+        self.data.write_fits_file(file_path,overwrite=overwrite)
 
-    def get_html_draw(self, catalog=None, plot=False, vmin=None, vmax=None):
-        print ('BUILD IMAGE CLASS')
-        im=Image(data=self.data,header=self.header)
+
+    def get_html_draw(self, catalog=None, data_ID=0):
+        _du=self.data.get_data_unit(ID=data_ID)
+        im=Image(data=_du.data,header=_du.header)
         w=600
-        (r,c)=self.data.shape
+        (r,c)=_du.data.shape
         ratio=float(r)/c
         html_dict=im.get_html_draw(w=w,h=int(w*ratio),catalog=catalog)
-        print('BUILD IMAGE CLASS DONE')
 
         res_dict = {}
         res_dict['image']=html_dict
-        #res_dict['image'] = mpld3.fig_to_dict(fig)
-        #res_dict['image'] =plotly.offline.plot({
-        #    "data": [self.data],
-        #    "layout": Layout(title="Test plotly")},output_type='div')
+
 
 
         res_dict['header_text'] = ''
         res_dict['table_text'] = ''
         res_dict['footer_text']=''
-        #res_dict['footer_text'] = 'colorscale for normalzied significance\nmax significance=%.2f, min significance=%.2f' % (
-        #vmax, vmin)
 
-        #plt.close(fig)
         return res_dict
 
 
 class LightCurveProduct(BaseQueryProduct):
-    def __init__(self, name,
-                 data,
-                 header,
+    def __init__(self,
+                 name='',
+                 data='',
                  file_name='lc.fits',
-                 src_name=None,
                  **kwargs):
+
+
+
 
         self.name = name
         self.data = data
-        self.header = header
         self.file_name = file_name
-        self.src_name = src_name
+        #self.src_name = src_name
 
-        super(LightCurveProduct, self).__init__(name, file_name=file_name, **kwargs)
-
-
+        super(LightCurveProduct, self).__init__(name=name, data=data,file_name=file_name, **kwargs)
 
     @classmethod
-    def from_fits_file(cls, inf_file, out_file_name, prod_name, ext=0, **kwargs):
-        # hdu = pf.open(inf_file)[ext]
-        hdu = FitsFile(inf_file).open()[ext]
-        data = hdu.data
-        header = hdu.header
-        return cls(name=prod_name, data=data, header=header, file_name=out_file_name, **kwargs)
+    def from_fits_file(cls, name, in_file, file_name, ext, out_dir, prod_prefix=None, meta_data={}):
+        data = NumpyDataProduct.from_fits_file(in_file, ext=ext, name=name, meta_data=meta_data)
+        return cls(name, data=data, file_dir=out_dir, prod_prefix=prod_prefix, file_name=file_name)
 
     def write(self, file_name=None, overwrite=True, file_dir=None):
-        # print('writing catalog file to->',)
-        file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
-        pf.writeto(file_path, data=self.data, header=self.header, overwrite=overwrite)
+        if file_name is None:
+            # TODO: this should be file_path = self.file_path.path-> DONE AND PASSED
+            file_path = self.file_path.path
+        else:
+            file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
+        print('-->writing to ', file_path)
+        self.data.write_fits_file(file_path, overwrite=overwrite)
 
 
 
@@ -786,6 +760,10 @@ class CatalogProduct(BaseQueryProduct):
     def __init__(self, name, catalog, file_name='catalog', **kwargs):
         self.catalog = catalog
         super(CatalogProduct, self).__init__(name, file_name=file_name, **kwargs)
+
+
+    def encode(self):
+        self.catalog.encode()
 
     def write(self, file_name=None, overwrite=True, format='fits', file_dir=None):
         file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)

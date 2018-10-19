@@ -93,7 +93,7 @@ class FitsFile(File):
 
 class FilePath(object):
     def __init__(self,file_name='',file_dir=u'./',name_prefix=None):
-        if name_prefix is not None:
+        if name_prefix is not None and name_prefix !='':
             file_name=name_prefix+'_'+file_name
 
         if file_dir is None:

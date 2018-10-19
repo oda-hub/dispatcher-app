@@ -123,8 +123,7 @@ class Image(object):
         callback = CustomJS(args=dict(fig_im=fig_im), code=JS_code_slider)
 
         self.graph_min_slider = Slider(title="Sig. Min", start=min_s, end=max_s, step=1, value=min_s, callback=callback)
-        self.graph_max_slider = Slider(title="Sig. Max", start=min_s, end=max_s, step=1, value=max_s * 0.8,
-                                  callback=callback)
+        self.graph_max_slider = Slider(title="Sig. Max", start=min_s, end=max_s, step=1, value=max_s * 0.8,callback=callback)
 
 
         self.graph_min_slider.on_change('value', self.change_image_contrast)

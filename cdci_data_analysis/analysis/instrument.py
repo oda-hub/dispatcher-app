@@ -233,8 +233,12 @@ class Instrument(object):
                     #FAILED
                     query_out.set_failed(product_type,logger=logger,sentry_client=sentry_client,excep=e)
 
+
+
+        #adding query parameters to final products
         query_out.set_analysis_parameters(par_dic)
         query_out.dump_analysis_parameters(out_dir,par_dic)
+
         return query_out
 
 

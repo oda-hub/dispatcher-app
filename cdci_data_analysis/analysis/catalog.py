@@ -40,6 +40,7 @@ import  numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.table import Table,Column
 from astropy.io  import fits as pf
+from json_tricks import numpy_encode,dumps
 
 @decorator.decorator
 def _selector(func,arr,mask):
@@ -170,6 +171,19 @@ class BasicCatalog(object):
                 s=u'''fk5; point %f %f #point = x \n'''%(r.deg,d.deg)
                 f.write(s)
 
+
+    #
+    #user_catalog = BasicCatalog(src_names, lon, lat, significance, _table=t, unit=unit, frame=frame)
+
+    def decode(self,enc_table):
+        pass
+
+
+    def encode(self,):
+        _table=numpy_encode(self.table.as_array())
+        _meta=dumps(self.table.meta)
+
+        return dumps(_table,_meta)
 
 
     def write(self,name,format='fits',overwrite=True):
