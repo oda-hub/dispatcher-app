@@ -266,14 +266,17 @@ class InstrumentQueryBackEnd(object):
 
         file_path = os.path.join(tmp_dir, file_name)
         print('writing to file path', file_path)
+        out_dir=file_name.replace('.tar','')
+        out_dir=out_dir.replace('.gz','')
+
 
         if len(file_list) > 1:
             print('preparing tar')
             tar = tarfile.open("%s" % (file_path), "w:gz")
             for name in file_list:
-                print('add to tar', name)
+                print('add to tar', file_name,name)
                 if name is not None:
-                    tar.add(name)
+                    tar.add(name,arcname='%s/%s'%(out_dir,os.path.basename(name)))
             tar.close()
         else:
             print('single fits file')
