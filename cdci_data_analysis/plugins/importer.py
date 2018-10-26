@@ -48,11 +48,12 @@ cdci_plugins_dict = {
 }
 
 instrument_facotry_list=[]
-
+print (' cdci_plugins_dict',cdci_plugins_dict)
 for plugin_name in cdci_plugins_dict:
     try:
         e=importlib.import_module(plugin_name+'.exposer')
         instrument_facotry_list.extend(e.instr_factory_list)
         print('imported plugin', plugin_name)
-    except:
-        print('failed to import', plugin_name )
+
+    except Exception as e:
+        print('failed to import', plugin_name,e )

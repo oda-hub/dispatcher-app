@@ -244,28 +244,20 @@ class BaseQueryProduct(object):
             self.file_path = FilePath(file_name=file_name, file_dir=file_dir, name_prefix=name_prefix)
             print('file_path set to', self.file_path.path)
 
-        self.meta_data=None
+        self.meta_data = self.meta_data
         if data is not None:
             if isinstance(data,NumpyDataProduct):
                 self.data = data
             else:
                 raise RuntimeError('data is not of the expected type',type(NumpyDataProduct))
 
-            self.meta_data=self.data.meta_data
+
 
     def encode(self):
-        self.data.encode()
-
-
-
-class ImageProduct(BaseQueryProduct):
-    def __init__(self,name='', data='', file_name='image.fits', **kwargs):
-
-        self.file_name = file_name
-        super(ImageProduct, self).__init__(name=name,data=data, file_name=file_name, **kwargs)
+        return self.data.encode()
 
     @classmethod
-    def from_fits_file(cls,name,in_file,file_name,ext,out_dir,prod_prefix=None,meta_data={}):
+    def from_fits_file(cls, name, in_file, file_name, ext, out_dir, prod_prefix=None, meta_data={}):
         data = NumpyDataProduct.from_fits_file(in_file, ext=ext, name=name, meta_data=meta_data)
         return cls(name, data=data, file_dir=out_dir, prod_prefix=prod_prefix, file_name=file_name)
 
@@ -276,7 +268,15 @@ class ImageProduct(BaseQueryProduct):
         else:
             file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
 
-        self.data.write_fits_file(file_path,overwrite=overwrite)
+        self.data.write_fits_file(file_path, overwrite=overwrite)
+
+
+
+class ImageProduct(BaseQueryProduct):
+    def __init__(self,name='', data=None, file_name='image.fits',meta_data={}, **kwargs):
+
+        self.file_name = file_name
+        super(ImageProduct, self).__init__(name=name,data=data, file_name=file_name, meta_data=meta_data,**kwargs)
 
 
     def get_html_draw(self, catalog=None, data_ID=0):
@@ -302,8 +302,9 @@ class ImageProduct(BaseQueryProduct):
 class LightCurveProduct(BaseQueryProduct):
     def __init__(self,
                  name='',
-                 data='',
+                 data=None,
                  file_name='lc.fits',
+                 meta_data={},
                  **kwargs):
 
 
@@ -314,23 +315,7 @@ class LightCurveProduct(BaseQueryProduct):
         self.file_name = file_name
         #self.src_name = src_name
 
-        super(LightCurveProduct, self).__init__(name=name, data=data,file_name=file_name, **kwargs)
-
-    @classmethod
-    def from_fits_file(cls, name, in_file, file_name, ext, out_dir, prod_prefix=None, meta_data={}):
-        data = NumpyDataProduct.from_fits_file(in_file, ext=ext, name=name, meta_data=meta_data)
-        return cls(name, data=data, file_dir=out_dir, prod_prefix=prod_prefix, file_name=file_name)
-
-    def write(self, file_name=None, overwrite=True, file_dir=None):
-        if file_name is None:
-            # TODO: this should be file_path = self.file_path.path-> DONE AND PASSED
-            file_path = self.file_path.path
-        else:
-            file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
-        print('-->writing to ', file_path)
-        self.data.write_fits_file(file_path, overwrite=overwrite)
-
-
+        super(LightCurveProduct, self).__init__(name=name, data=data,file_name=file_name,meta_data=meta_data, **kwargs)
 
 
 
@@ -358,137 +343,159 @@ class LightCurveProduct(BaseQueryProduct):
 
 
 class SpectrumProduct(BaseQueryProduct):
-    def __init__(self, name,
-                 data,
-                 header,
-                 file_name,
-                 arf_kw=None,
-                 rmf_kw=None,
-                 out_arf_file=None,
-                 in_arf_file=None,
-                 out_rmf_file=None,
-                 in_rmf_file=None,
+    def __init__(self,
+                 name='',
+                 data=None,
+                 file_name='spectrum_prod.fits',
+                 meta_data={},
+                 rmf_file=None,
+                 arf_file=None,
                  **kwargs):
 
+
+
+        self.arf_file=arf_file
+        self.rmf_file=rmf_file
         self.name = name
-        self.file_name = file_name
-
-        self.in_arf_file = in_arf_file
-        self.in_rmf_file = in_rmf_file
-
-        self.out_arf_file = out_arf_file
-        self.out_rmf_file = out_rmf_file
-
         self.data = data
-        self.header = header
+        self.file_name = file_name
+        #self.src_name = src_name
 
-        self.arf_kw = arf_kw
-        self.rmf_kw = rmf_kw
+        super(SpectrumProduct, self).__init__(name=name, data=data,file_name=file_name,meta_data=meta_data, **kwargs)
 
-        self.rmf_file = None
-        self.arf_file = None
 
-        self.set_arf_file()
-        self.set_rmf_file()
-
-        super(SpectrumProduct, self).__init__(name, file_name=file_name, **kwargs)
-
-    def set_arf_file(self, in_arf_file=None, arf_kw=None, arf_kw_value=None, out_arf_file=None, overwrite=True):
-
-        if in_arf_file is None:
-            in_arf_file = self.in_arf_file
-        else:
-            self.in_arf_file = in_arf_file
-
-        if arf_kw is None:
-            arf_kw = self.arf_kw
-        else:
-            self.arf_kw = arf_kw
-
-        if out_arf_file is None:
-            out_arf_file = self.out_arf_file
-        else:
-            self.out_arf_file = out_arf_file
-
-        if self.header is not None and arf_kw is not None and arf_kw_value is not None:
-            self.set_haeder_kw(arf_kw, arf_kw_value)
-
-        if out_arf_file is not None and in_arf_file is not None:
-            # print('in_arf_file', in_arf_file,out_arf_file)
-            # pf.open(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
-            FitsFile(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
-            print('arf written to', out_arf_file)
-
-            # if arf_kw is not None  and self.header is not None:
-            #    self.header[arf_kw] = out_arf_file
-            #    print('set arf kw to', self.header[arf_kw])
-        # else:
-        # if arf_kw is not None and self.header is not None:
-        #    self.header[arf_kw]=self.in_arf_file_path
-        #    print('set arf kw to', self.header[arf_kw])
-
-        self.arf_file_path = FilePath(file_name=out_arf_file)
-        self.arf_file = out_arf_file
-
-    def set_haeder_kw(self, kw, val):
-        if self.header is not None:
-            if val is not None and kw is not None:
-                self.header[kw] = val
-
-    def del_haeder_kw(self, kw):
-        if self.header is not None and kw is not None:
-            del self.header[kw]
-
-    def set_rmf_file(self, in_rmf_file=None, rmf_kw=None, rmf_kw_value=None, out_rmf_file=None, overwrite=True):
-        if in_rmf_file is None:
-            in_rmf_file = self.in_rmf_file
-        else:
-            self.in_rmf_file = in_rmf_file
-
-        if rmf_kw is None:
-            rmf_kw = self.arf_kw
-        else:
-            self.rmf_kw = rmf_kw
-
-        if out_rmf_file is None:
-            out_rmf_file = self.out_rmf_file
-        else:
-            self.out_rmf_file = out_rmf_file
-
-        if self.header is not None and rmf_kw is not None and rmf_kw_value is not None:
-            self.set_haeder_kw(rmf_kw, rmf_kw_value)
-        if out_rmf_file is not None and in_rmf_file is not None:
-            # pf.open(in_rmf_file).writeto(out_rmf_file, overwrite=overwrite)
-            FitsFile(in_rmf_file).writeto(out_rmf_file, overwrite=overwrite)
-            print('rmf written to', out_rmf_file)
-            # if rmf_kw is not None  and self.header is not None:
-            #    self.header[rmf_kw] = out_rmf_file
-            #    print('set rmf kw to', self.header[rmf_kw])
-
-        # else:
-        #    if rmf_kw is not None and self.header is not None:
-
-        #        self.header[rmf_kw]=self.in_rmf_file
-        #        print('set rmf kw to',self.header[rmf_kw])
-
-        self.rmf_file_path = FilePath(file_name=out_rmf_file)
-        self.rmf_file = out_rmf_file
-
-    @classmethod
-    def from_fits_file(cls, file_name, prod_name, ext=0, arf_file_name=None, rmf_file_name=None):
-        # hdu = pf.open(file_name)[ext]
-        hdu = FitsFile(file_name).open()[ext]
-
-        data = hdu.data
-        header = hdu.header
-
-        return cls(name=prod_name, data=data, header=header, file_name=file_name)
-
-    def write(self, file_name=None, overwrite=True, file_dir=None):
-        file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
-        # print('ciccio')
-        FitsFile(file_path).writeto(data=self.data, header=self.header, overwrite=overwrite)
-        # pf.writeto(file_path, data=self.data, header=self.header,overwrite=overwrite)
+# class SpectrumProduct(BaseQueryProduct):
+#     def __init__(self, name,
+#                  data,
+#                  header,
+#                  file_name,
+#                  arf_kw=None,
+#                  rmf_kw=None,
+#                  out_arf_file=None,
+#                  in_arf_file=None,
+#                  out_rmf_file=None,
+#                  in_rmf_file=None,
+#                  **kwargs):
+#
+#         self.name = name
+#         self.file_name = file_name
+#
+#         self.in_arf_file = in_arf_file
+#         self.in_rmf_file = in_rmf_file
+#
+#         self.out_arf_file = out_arf_file
+#         self.out_rmf_file = out_rmf_file
+#
+#         self.data = data
+#         self.header = header
+#
+#         self.arf_kw = arf_kw
+#         self.rmf_kw = rmf_kw
+#
+#         self.rmf_file = None
+#         self.arf_file = None
+#
+#         self.set_arf_file()
+#         self.set_rmf_file()
+#
+#         super(SpectrumProduct, self).__init__(name, file_name=file_name, **kwargs)
+#
+#     def set_arf_file(self, in_arf_file=None, arf_kw=None, arf_kw_value=None, out_arf_file=None, overwrite=True):
+#
+#         if in_arf_file is None:
+#             in_arf_file = self.in_arf_file
+#         else:
+#             self.in_arf_file = in_arf_file
+#
+#         if arf_kw is None:
+#             arf_kw = self.arf_kw
+#         else:
+#             self.arf_kw = arf_kw
+#
+#         if out_arf_file is None:
+#             out_arf_file = self.out_arf_file
+#         else:
+#             self.out_arf_file = out_arf_file
+#
+#         if self.header is not None and arf_kw is not None and arf_kw_value is not None:
+#             self.set_haeder_kw(arf_kw, arf_kw_value)
+#
+#         if out_arf_file is not None and in_arf_file is not None:
+#             # print('in_arf_file', in_arf_file,out_arf_file)
+#             # pf.open(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
+#             FitsFile(in_arf_file).writeto(out_arf_file, overwrite=overwrite)
+#             #print('arf written to', out_arf_file)
+#
+#             # if arf_kw is not None  and self.header is not None:
+#             #    self.header[arf_kw] = out_arf_file
+#             #    print('set arf kw to', self.header[arf_kw])
+#         # else:
+#         # if arf_kw is not None and self.header is not None:
+#         #    self.header[arf_kw]=self.in_arf_file_path
+#         #    print('set arf kw to', self.header[arf_kw])
+#
+#         self.arf_file_path = FilePath(file_name=out_arf_file)
+#         self.arf_file = out_arf_file
+#
+#     def set_haeder_kw(self, kw, val):
+#         if self.header is not None:
+#             if val is not None and kw is not None:
+#                 self.header[kw] = val
+#
+#     def del_haeder_kw(self, kw):
+#         if self.header is not None and kw is not None:
+#             del self.header[kw]
+#
+#     def set_rmf_file(self, in_rmf_file=None, rmf_kw=None, rmf_kw_value=None, out_rmf_file=None, overwrite=True):
+#         if in_rmf_file is None:
+#             in_rmf_file = self.in_rmf_file
+#         else:
+#             self.in_rmf_file = in_rmf_file
+#
+#         if rmf_kw is None:
+#             rmf_kw = self.arf_kw
+#         else:
+#             self.rmf_kw = rmf_kw
+#
+#         if out_rmf_file is None:
+#             out_rmf_file = self.out_rmf_file
+#         else:
+#             self.out_rmf_file = out_rmf_file
+#
+#         if self.header is not None and rmf_kw is not None and rmf_kw_value is not None:
+#             self.set_haeder_kw(rmf_kw, rmf_kw_value)
+#         if out_rmf_file is not None and in_rmf_file is not None:
+#             # pf.open(in_rmf_file).writeto(out_rmf_file, overwrite=overwrite)
+#             FitsFile(in_rmf_file).writeto(out_rmf_file, overwrite=overwrite)
+#             #print('rmf written to', out_rmf_file)
+#             # if rmf_kw is not None  and self.header is not None:
+#             #    self.header[rmf_kw] = out_rmf_file
+#             #    print('set rmf kw to', self.header[rmf_kw])
+#
+#         # else:
+#         #    if rmf_kw is not None and self.header is not None:
+#
+#         #        self.header[rmf_kw]=self.in_rmf_file
+#         #        print('set rmf kw to',self.header[rmf_kw])
+#
+#         self.rmf_file_path = FilePath(file_name=out_rmf_file)
+#         self.rmf_file = out_rmf_file
+#
+#     @classmethod
+#     def from_fits_file(cls, file_name, prod_name, ext=0, arf_file_name=None, rmf_file_name=None):
+#         # hdu = pf.open(file_name)[ext]
+#         hdu = FitsFile(file_name).open()[ext]
+#
+#         data = hdu.data
+#         header = hdu.header
+#
+#         return cls(name=prod_name, data=data, header=header, file_name=file_name)
+#
+#     def write(self, file_name=None, overwrite=True, file_dir=None):
+#         file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
+#         # print('ciccio')
+#         FitsFile(file_path).writeto(data=self.data, header=self.header, overwrite=overwrite)
+#         # pf.writeto(file_path, data=self.data, header=self.header,overwrite=overwrite)
 
 
 class SpectralFitProduct(BaseQueryProduct):

@@ -176,6 +176,7 @@ class Instrument(object):
                   logger=None,
                   sentry_client=None,
                   dry_run=False,
+                  api=False,
                   **kwargs):
 
         #prod_dictionary={}
@@ -201,13 +202,17 @@ class Instrument(object):
 
         #set input products
         if query_out.status_dictionary['status'] == 0:
-            query_out=self.set_input_products_from_fronted(par_dic, request,back_end_query,logger=logger,verbose=verbose,sentry_client=sentry_client)
+            try:
+                query_out=self.set_input_products_from_fronted(par_dic, request,back_end_query,logger=logger,verbose=verbose,sentry_client=sentry_client)
+            except Exception as e:
+                # FAILED
+                query_out.set_failed(product_type,message='wrong parameter', logger=logger, sentry_client=sentry_client, excep=e)
 
         if dry_run == True:
             job.set_done()
-
-            query_out.set_done(message='dry-run',job_status=job.status)
-            query_out.set_instrument_parameters(self.get_parameters_list_as_json(prod_name=product_type))
+            if query_out.status_dictionary['status'] == 0:
+                query_out.set_done(message='dry-run',job_status=job.status)
+                query_out.set_instrument_parameters(self.get_parameters_list_as_json(prod_name=product_type))
         else:
             if query_out.status_dictionary['status'] == 0:
                 #print('--->CICCIO',self.query_dictionary)
@@ -222,7 +227,8 @@ class Instrument(object):
                     query_out = self.get_query_by_name(query_name).run_query(self, out_dir, job, run_asynch,
                                                                              query_type=query_type, config=config,
                                                                              logger=logger,
-                                                                             sentry_client=sentry_client)
+                                                                             sentry_client=sentry_client,
+                                                                             api=api)
                     if query_out.status_dictionary['status'] == 0:
                         #DONE
                         query_out.set_done(message=message, debug_message=str(debug_message))

@@ -450,7 +450,7 @@ class InstrumentQueryBackEnd(object):
 
 
 
-    def build_dispatcher_response(self,query_new_status=None,query_out=None,job_monitor=None,off_line=True):
+    def build_dispatcher_response(self,query_new_status=None,query_out=None,job_monitor=None,off_line=True,api=False):
 
 
         out_dict={}
@@ -478,9 +478,17 @@ class InstrumentQueryBackEnd(object):
 
             return out_dict
         else:
+
+
             try:
-                return jsonify(out_dict)
+                #return jsonify(out_dict)
+                if api == True:
+                    return self.jsonify_api_response(out_dict)
+                else:
+                    return jsonify(out_dict)
+
             except Exception as e:
+                print ('failed',e)
                 if query_out is None:
                     query_out = QueryOutput()
                 else:
@@ -489,9 +497,24 @@ class InstrumentQueryBackEnd(object):
                 query_out.set_failed('build dispatcher response', extra_message='failed json serialization', debug_message=str(e.message))
                 out_dict['exit_status'] = query_out.status_dictionary
 
+
+
                 return jsonify(out_dict)
 
+    def  jsonify_api_response(self,out_dict):
+        #print ('out_dict.keys()',out_dict.keys())
 
+        if 'numpy_data_product_list' in out_dict['products']:
+            _npdl=out_dict['products']['numpy_data_product_list']
+            #out_dict['products']['numpy_data_product_list']=[]
+
+            out_dict['products']['numpy_data_product_list']=[_d.encode() for _d in _npdl ]
+            #print ( 'ECCO',out_dict['products']['numpy_data_product_list'],_p,_npdl)
+            out_dict = jsonify(out_dict)
+        else:
+            out_dict = jsonify(out_dict)
+
+        return out_dict
 
     def set_instrument(self, instrument_name):
         new_instrument=None
@@ -566,6 +589,10 @@ class InstrumentQueryBackEnd(object):
 
         print ('==============================> run query <==============================')
 
+        if 'api' in self.par_dic.keys():
+            api=True
+        else:
+            api=False
 
         try:
             query_type = self.par_dic['query_type']
@@ -668,16 +695,11 @@ class InstrumentQueryBackEnd(object):
 
 
 
-        #job_is_aliased=False
-        #alias_workidr=self.get_existing_job_ID_path()
-
-        # TODO if query status== raedy but you get delegation
+        # TODO if query status== ready but you get delegation
         # TODO set query status to new and ignore alias
-        #if query_status=='ready':
 
 
 
-        # UPDATE WORK DIR ONLY IF ALIASED AND !READY
         if job_is_aliased==True and query_status!='ready':
 
                 job_is_aliased=True
@@ -715,17 +737,14 @@ class InstrumentQueryBackEnd(object):
         print('==> alias  work dir ', alias_workidr)
         print('==> job  work dir ',job.work_dir)
         print('==> query_status  ', query_status)
-        #(NEW and !ALIASED) or READY
+
         if (query_status=='new'and job_is_aliased==False ) or query_status=='ready' :
-            #if job_is_aliased == True and query_status == 'ready':
-            #   print('==>IGNORING ALIASING to ', alias_workidr)
 
-
-            #run_asynch = True
 
 
 
             print ('*** run_asynch',run_asynch)
+            print ('*** api', api)
             query_out = self.instrument.run_query(product_type,
                                                     self.par_dic,
                                                     request,
@@ -738,14 +757,12 @@ class InstrumentQueryBackEnd(object):
                                                     logger=self.logger,
                                                     sentry_client=self.sentry_client,
                                                     verbose=verbose,
-                                                    dry_run=dry_run)
+                                                    dry_run=dry_run,
+                                                    api=api)
 
 
             #NOTE job status is set in  cdci_data_analysis.analysis.queries.ProductQuery#get_query_products
             print('-----------------> job status after query:', job.status)
-            #print ('q_out.status_dictionary',query_out.status_dictionary)
-            #query_out.set_done(job_status=job_monitor['status'])
-            #query_new_status= query_out.get_status()
 
 
             if query_out.status_dictionary['status']==0:
@@ -795,7 +812,6 @@ class InstrumentQueryBackEnd(object):
 
         elif query_status=='failed':
             #TODO: here we should resubmit query to get exception from ddosa
-            #status = 1
             query_out = QueryOutput()
             query_out.set_failed('submitted job',job_status=job_monitor['status'])
 
@@ -803,35 +819,16 @@ class InstrumentQueryBackEnd(object):
             print('-----------------> query status update for failed:', query_new_status)
 
 
-            #out_dict = {}
-            #out_dict['job_monitor'] = job_monitor
-            #out_dict['job_status'] = job_monitor['status']
-            #out_dict['query_status'] = query_new_status
-            #out_dict['products'] = ''
-            #out_dict['exit_status'] = query_out
-
-            #self.build_dispatcher_response(out_dict=out_dict)
-            #print('query_out:job_monitor', job_monitor)
             print('-----------------> query status new:', query_new_status)
             print('==============================> query done <==============================')
 
 
         else:
-            #status = 0
             query_out = QueryOutput()
             query_out.set_status(0,job_status=job_monitor['status'])
 
-            #query_new_status = 'unknown'
             query_new_status = job.get_status()
 
-            #out_dict = {}
-            #out_dict['job_monitor'] = job_monitor
-            #out_dict['job_status']='unknown'
-            #out_dict['query_status'] = query_new_status
-            #out_dict['products'] = ''
-            #out_dict['exit_status'] = query_out
-
-            #self.build_dispatcher_response(out_dict=out_dict)
             print('query_out:job_monitor[status]', job_monitor['status']    )
             print('-----------------> query status new:', query_new_status)
             print('==============================> query done <==============================')
@@ -845,20 +842,18 @@ class InstrumentQueryBackEnd(object):
         self.logger.info('============================================================')
         self.logger.info('')
 
-        resp= self.build_dispatcher_response(query_new_status=query_new_status,
-                                       query_out=query_out,
-                                       job_monitor=job_monitor,
-                                       off_line=off_line)
+        resp = self.build_dispatcher_response(query_new_status=query_new_status,
+                                              query_out=query_out,
+                                              job_monitor=job_monitor,
+                                              off_line=off_line,
+                                              api=api)
 
         print('==============================> query done <==============================')
         return resp
 
 
 
-@app.route("/api")
-def run_api():
-    query = InstrumentQueryBackEnd()
-    return query.run_query()
+
 
 @app.route("/api/meta-data")
 def run_api_meta_data():
@@ -925,6 +920,7 @@ def run_analysis_test():
 def run_analysis():
     query=InstrumentQueryBackEnd()
     return query.run_query()
+
 
 
 @app.route('/test_mock', methods=['POST', 'GET'])

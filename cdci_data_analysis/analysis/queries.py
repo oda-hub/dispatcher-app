@@ -514,7 +514,7 @@ class ProductQuery(BaseQuery):
 
         return query_out
 
-    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None):
+    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None,api=False):
         if logger is None:
             logger = self.get_logger()
 
@@ -542,13 +542,13 @@ class ProductQuery(BaseQuery):
                 if job.status != 'done':
                     prod_list = QueryProductList(prod_list=[], job=job)
                 else:
-                    prod_list = self.build_product_list(instrument,res, scratch_dir)
+                    prod_list = self.build_product_list(instrument,res, scratch_dir,api=api)
 
                 self.query_prod_list=QueryProductList(prod_list=prod_list,job=job)
 
             else:
                 status=0
-                self.query_prod_list = self.get_dummy_products(instrument,config=config,out_dir=scratch_dir)
+                self.query_prod_list = self.get_dummy_products(instrument,config=config,out_dir=scratch_dir,api=api)
 
                 #self.query_prod_list = QueryProductList(prod_list=prod_list)
 
@@ -592,13 +592,13 @@ class ProductQuery(BaseQuery):
         return query_out
 
 
-    def process_product(self,instrument,query_prod_list, config=None,**kwargs):
+    def process_product(self,instrument,query_prod_list, config=None,api=False,**kwargs):
         query_out = QueryOutput()
         if self.process_product_method is not None and query_prod_list is not None:
-            query_out= self.process_product_method(instrument,query_prod_list,**kwargs)
+            query_out= self.process_product_method(instrument,query_prod_list,api=api,**kwargs)
         return query_out
 
-    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,sentry_client=None,**kwargs):
+    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,sentry_client=None,api=False,**kwargs):
         if logger is None:
             logger = self.get_logger()
 
@@ -614,7 +614,7 @@ class ProductQuery(BaseQuery):
         process_products_query_out = QueryOutput()
 
         try:
-            process_products_query_out=self.process_product(instrument,self.query_prod_list,**kwargs)
+            process_products_query_out=self.process_product(instrument,self.query_prod_list,api=api,**kwargs)
 
             process_products_query_out.prod_dictionary['session_id'] = job.session_id
             process_products_query_out.prod_dictionary['job_id'] = job.job_id
@@ -646,7 +646,7 @@ class ProductQuery(BaseQuery):
 
 
 
-    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_client=None):
+    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_client=None,api=False):
 
         print ('--> running query for ',instrument.name,'with config',config)
         if logger is None:
@@ -663,7 +663,7 @@ class ProductQuery(BaseQuery):
 
 
         if query_out.status_dictionary['status'] == 0:
-            query_out = self.get_query_products(instrument,job,run_asynch, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client)
+            query_out = self.get_query_products(instrument,job,run_asynch, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client,api=api)
 
 
 
@@ -679,7 +679,7 @@ class ProductQuery(BaseQuery):
 
             else:
                 if query_out.status_dictionary['status'] == 0:
-                    query_out = self.process_query_product(instrument,job, logger=logger, config=config,sentry_client=sentry_client)
+                    query_out = self.process_query_product(instrument,job, logger=logger, config=config,sentry_client=sentry_client,api=api)
 
 
             #attach this at the end, anyhow
