@@ -244,7 +244,6 @@ class BaseQueryProduct(object):
             self.file_path = FilePath(file_name=file_name, file_dir=file_dir, name_prefix=name_prefix)
             print('file_path set to', self.file_path.path)
 
-        self.meta_data = self.meta_data
         if data is not None:
             if isinstance(data,NumpyDataProduct):
                 self.data = data
