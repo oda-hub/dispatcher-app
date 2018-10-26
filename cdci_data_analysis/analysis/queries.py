@@ -728,7 +728,7 @@ class PostProcessProductQuery(ProductQuery):
         raise RuntimeError('this method has to be implemented in the derived class')
 
 
-    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None,**kwargs):
+    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None,api=False,**kwargs):
         if logger is None:
             logger = self.get_logger()
 
@@ -767,12 +767,12 @@ class PostProcessProductQuery(ProductQuery):
 
 
 
-    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_client=None):
+    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_client=None,api=False):
 
         if logger is None:
             logger = self.get_logger()
 
-        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client)
+        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client,api=api)
         if query_out.status_dictionary['status'] == 0:
             job.set_done()
         else:
@@ -856,7 +856,7 @@ class SpectralFitQuery(PostProcessProductQuery):
                                                **kwargs)
 
 
-    def process_product(self,instrument,job,out_dir=None):
+    def process_product(self,instrument,job,out_dir=None,api=False):
 
 
         src_name = instrument.get_par_by_name('src_name').value
