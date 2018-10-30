@@ -719,7 +719,7 @@ class InstrumentQueryBackEnd(object):
                     job_monitor = {}
                     job_monitor['status'] = 'failed'
 
-                print ('==>updated job_monitor',job_monitor)
+                print ('==>updated job_monitor',job_monitor['status'])
                 if job_monitor['status']=='ready' or  job_monitor['status']=='failed' or job_monitor['status']=='done':
                     # NOTE in this case if job is aliased but the original has failed
                     # NOTE it will be resubmitted anyhow
