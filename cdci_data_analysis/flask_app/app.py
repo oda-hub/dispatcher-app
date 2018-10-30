@@ -739,6 +739,9 @@ class InstrumentQueryBackEnd(object):
 
 
         if job_is_aliased == True and query_status == 'ready':
+            original_work_dir = job.work_dir
+            job.work_dir = alias_workidr
+
             job_is_aliased = False
             job.work_dir = original_work_dir
             job_monitor = job.updat_dataserver_monitor()
