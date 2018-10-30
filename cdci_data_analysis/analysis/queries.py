@@ -339,9 +339,8 @@ class ProductQuery(BaseQuery):
 
         super(ProductQuery, self).__init__(name,parameters_list, **kwargs)
 
-        self.query_prod_list=None
         self.job=None
-
+        self.query_prod_list=[]
 
     def get_products(self, instrument,run_asynch, job=None,config=None,logger=None,**kwargs):
         raise RuntimeError('needs to be implemented in derived class')
@@ -515,7 +514,7 @@ class ProductQuery(BaseQuery):
 
         return query_out
 
-    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None):
+    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None,api=False):
         if logger is None:
             logger = self.get_logger()
 
@@ -543,13 +542,13 @@ class ProductQuery(BaseQuery):
                 if job.status != 'done':
                     prod_list = QueryProductList(prod_list=[], job=job)
                 else:
-                    prod_list = self.build_product_list(instrument,res, scratch_dir)
+                    prod_list = self.build_product_list(instrument,res, scratch_dir,api=api)
 
                 self.query_prod_list=QueryProductList(prod_list=prod_list,job=job)
 
             else:
                 status=0
-                self.query_prod_list = self.get_dummy_products(instrument,config=config,out_dir=scratch_dir)
+                self.query_prod_list = self.get_dummy_products(instrument,config=config,out_dir=scratch_dir,api=api)
 
                 #self.query_prod_list = QueryProductList(prod_list=prod_list)
 
@@ -593,13 +592,13 @@ class ProductQuery(BaseQuery):
         return query_out
 
 
-    def process_product(self,instrument,query_prod_list, config=None,**kwargs):
+    def process_product(self,instrument,query_prod_list, config=None,api=False,**kwargs):
         query_out = QueryOutput()
         if self.process_product_method is not None and query_prod_list is not None:
-            query_out= self.process_product_method(instrument,query_prod_list,**kwargs)
+            query_out= self.process_product_method(instrument,query_prod_list,api=api,**kwargs)
         return query_out
 
-    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,sentry_client=None,**kwargs):
+    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,sentry_client=None,api=False,**kwargs):
         if logger is None:
             logger = self.get_logger()
 
@@ -615,7 +614,7 @@ class ProductQuery(BaseQuery):
         process_products_query_out = QueryOutput()
 
         try:
-            process_products_query_out=self.process_product(instrument,self.query_prod_list,**kwargs)
+            process_products_query_out=self.process_product(instrument,self.query_prod_list,api=api,**kwargs)
 
             process_products_query_out.prod_dictionary['session_id'] = job.session_id
             process_products_query_out.prod_dictionary['job_id'] = job.job_id
@@ -647,7 +646,7 @@ class ProductQuery(BaseQuery):
 
 
 
-    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_client=None):
+    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_client=None,api=False):
 
         print ('--> running query for ',instrument.name,'with config',config)
         if logger is None:
@@ -664,7 +663,7 @@ class ProductQuery(BaseQuery):
 
 
         if query_out.status_dictionary['status'] == 0:
-            query_out = self.get_query_products(instrument,job,run_asynch, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client)
+            query_out = self.get_query_products(instrument,job,run_asynch, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client,api=api)
 
 
 
@@ -680,7 +679,7 @@ class ProductQuery(BaseQuery):
 
             else:
                 if query_out.status_dictionary['status'] == 0:
-                    query_out = self.process_query_product(instrument,job, logger=logger, config=config,sentry_client=sentry_client)
+                    query_out = self.process_query_product(instrument,job, logger=logger, config=config,sentry_client=sentry_client,api=api)
 
 
             #attach this at the end, anyhow
@@ -729,7 +728,7 @@ class PostProcessProductQuery(ProductQuery):
         raise RuntimeError('this method has to be implemented in the derived class')
 
 
-    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None,**kwargs):
+    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None,api=False,**kwargs):
         if logger is None:
             logger = self.get_logger()
 
@@ -768,12 +767,12 @@ class PostProcessProductQuery(ProductQuery):
 
 
 
-    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_client=None):
+    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_client=None,api=False):
 
         if logger is None:
             logger = self.get_logger()
 
-        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client)
+        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client,api=api)
         if query_out.status_dictionary['status'] == 0:
             job.set_done()
         else:
@@ -857,7 +856,7 @@ class SpectralFitQuery(PostProcessProductQuery):
                                                **kwargs)
 
 
-    def process_product(self,instrument,job,out_dir=None):
+    def process_product(self,instrument,job,out_dir=None,api=False):
 
 
         src_name = instrument.get_par_by_name('src_name').value
@@ -898,53 +897,53 @@ class SpectralFitQuery(PostProcessProductQuery):
 
 
 
-class ImageProcessQuery(PostProcessProductQuery):
-
-    def __init__(self, name, parameters_list=[], **kwargs):
-        image_file = Name(name_format='str', name='image_file_name', value='')
-        image_scale_min = Float( name='image_scale_min', value=None)
-        image_scale_max = Float( name='image_scale_max', value=None)
-        download_files = Float(name='str', value=None)
-
-        p_list = [image_file, image_scale_min, image_scale_max]
-        if parameters_list != [] and parameters_list is not None:
-            parameters_list.extend(p_list)
-        else:
-            parameters_list = p_list[::]
-
-        super(ImageProcessQuery, self).__init__(name,
-                                               parameters_list,
-                                               # get_products_method=None,
-                                               # get_dummy_products_method=None,
-                                               **kwargs)
-
-    def process_product(self, instrument, job, out_dir=None):
-
-        src_name = instrument.get_par_by_name('src_name').value
-
-        image_file = instrument.get_par_by_name('image_file_name').value
-        download_files = instrument.get_par_by_name('image_download_files').value
-        image_scale_min = instrument.get_par_by_name('image_scale_min').value
-        image_scale_max = instrument.get_par_by_name('image_scale_max').value
-        catalog=instrument.get_par_by_name('image_catalog').value
-        self.check_file_exist([image_file], out_dir=out_dir)
-
-        query_out = QueryOutput()
-        try:
-            query_out.prod_dictionary['image'] = ImageProduct.from_fits_file(image_file).get_html_draw(vmin=image_scale_min,
-                                                vmax=image_scale_max,
-                                                catalog=catalog)
-
-        except Exception as e:
-
-            raise RuntimeError('image update failed with error: %s' % e)
-
-        query_out.prod_dictionary['job_id'] = job.job_id
-        query_out.prod_dictionary['session_id'] = job.session_id
-        query_out.prod_dictionary['spectrum_name'] = src_name
-        query_out.prod_dictionary['catalog'] =catalog.get_dictionary()
-        query_out.prod_dictionary['file_name'] = [download_files]
-        query_out.prod_dictionary['download_file_name'] = 'image.tgz'
-        query_out.prod_dictionary['prod_process_message'] = ''
-
-        return query_out
+# class ImageProcessQuery(PostProcessProductQuery):
+#
+#     def __init__(self, name, parameters_list=[], **kwargs):
+#         image_file = Name(name_format='str', name='image_file_name', value='')
+#         image_scale_min = Float( name='image_scale_min', value=None)
+#         image_scale_max = Float( name='image_scale_max', value=None)
+#         download_files = Float(name='str', value=None)
+#
+#         p_list = [image_file, image_scale_min, image_scale_max]
+#         if parameters_list != [] and parameters_list is not None:
+#             parameters_list.extend(p_list)
+#         else:
+#             parameters_list = p_list[::]
+#
+#         super(ImageProcessQuery, self).__init__(name,
+#                                                parameters_list,
+#                                                # get_products_method=None,
+#                                                # get_dummy_products_method=None,
+#                                                **kwargs)
+#
+#     def process_product(self, instrument, job, out_dir=None):
+#
+#         src_name = instrument.get_par_by_name('src_name').value
+#
+#         image_file = instrument.get_par_by_name('image_file_name').value
+#         download_files = instrument.get_par_by_name('image_download_files').value
+#         image_scale_min = instrument.get_par_by_name('image_scale_min').value
+#         image_scale_max = instrument.get_par_by_name('image_scale_max').value
+#         catalog=instrument.get_par_by_name('image_catalog').value
+#         self.check_file_exist([image_file], out_dir=out_dir)
+#
+#         query_out = QueryOutput()
+#         try:
+#             query_out.prod_dictionary['image'] = ImageProduct.from_fits_file(image_file).get_html_draw(vmin=image_scale_min,
+#                                                 vmax=image_scale_max,
+#                                                 catalog=catalog)
+#
+#         except Exception as e:
+#
+#             raise RuntimeError('image update failed with error: %s' % e)
+#
+#         query_out.prod_dictionary['job_id'] = job.job_id
+#         query_out.prod_dictionary['session_id'] = job.session_id
+#         query_out.prod_dictionary['spectrum_name'] = src_name
+#         query_out.prod_dictionary['catalog'] =catalog.get_dictionary()
+#         query_out.prod_dictionary['file_name'] = [download_files]
+#         query_out.prod_dictionary['download_file_name'] = 'image.tgz'
+#         query_out.prod_dictionary['prod_process_message'] = ''
+#
+#         return query_out

@@ -4,7 +4,7 @@ pyyaml
 simplejson
 mpld3
 flask
-astropy
+astropy>=2.0.3
 pathlib
 gunicorn
 decorator
@@ -12,3 +12,4 @@ python-logstash
 raven
 blinker
 bokeh>=0.12.16
+json_tricks

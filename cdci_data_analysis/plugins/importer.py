@@ -36,14 +36,24 @@ __author__ = "Andrea Tramacere"
 # Project
 # relative import eg: from .mod import f
 import  importlib
+import  pkgutil
 
-plugin_list=['cdci_osa_plugin','cdci_polar_plugin']
+#plugin_list=['cdci_osa_plugin','cdci_polar_plugin']
 
+cdci_plugins_dict = {
+    name: importlib.import_module(name)
+    for finder, name, ispkg
+    in pkgutil.iter_modules()
+    if (name.startswith('cdci') and name.endswith('plugin'))
+}
 
 instrument_facotry_list=[]
-for plugin_name in plugin_list:
-    e=importlib.import_module(plugin_name+'.exposer')
-    instrument_facotry_list.extend(e.instr_factory_list)
-    #for p in plugin.instr_factory_list:
-    #    print ('p',p)
+print (' cdci_plugins_dict',cdci_plugins_dict)
+for plugin_name in cdci_plugins_dict:
+    try:
+        e=importlib.import_module(plugin_name+'.exposer')
+        instrument_facotry_list.extend(e.instr_factory_list)
+        print('imported plugin', plugin_name)
 
+    except Exception as e:
+        print('failed to import', plugin_name,e )

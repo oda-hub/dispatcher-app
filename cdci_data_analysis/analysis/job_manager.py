@@ -277,7 +277,7 @@ class OsaJob(Job):
                         full_report_dict_list.append(self.monitor['full_report_dict'])
 
                         if 'progressing' in self.monitor['full_report_dict'].keys():
-                            print ('keys',self.monitor['full_report_dict'].keys())
+                            #print ('keys',self.monitor['full_report_dict'].keys())
                             progress=True
                             print("==========>PROGRESS<======================")
 

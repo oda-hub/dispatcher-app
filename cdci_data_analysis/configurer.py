@@ -64,9 +64,9 @@ class DataServerConf(object):
         else:
             self.data_server_cache=None
 
-        print(' --> DataServerConf')
-        for v in  vars(self):
-            print ('attr:',v,getattr(self,v))
+        #print(' --> DataServerConf')
+        #for v in  vars(self):
+        #    print ('attr:',v,getattr(self,v))
 
     @classmethod
     def from_conf_dict(cls,conf_dict):
@@ -100,16 +100,16 @@ class ConfigEnv(object):
     def __init__(self,
                  cfg_dict):
 
-        print ('--> ConfigEnv')
+        #print ('--> ConfigEnv')
         self._data_server_conf_dict={}
-        print ('keys found in cfg_dict',cfg_dict.keys())
+        #print ('keys found in cfg_dict',cfg_dict.keys())
 
         if 'data_server' in cfg_dict.keys():
 
             for instr_name in cfg_dict['data_server']:
                 self.add_data_server_conf_dict(instr_name,cfg_dict)
 
-                print('--> data server key conf',instr_name,self._data_server_conf_dict[instr_name])
+                #print('--> data server key conf',instr_name,self._data_server_conf_dict[instr_name])
 
         if 'dispatcher' in cfg_dict.keys():
 
@@ -122,9 +122,9 @@ class ConfigEnv(object):
                                      disp_dict['logstash_port']
                                      )
 
-            print('--> dispatcher key conf',disp_dict)
+            #print('--> dispatcher key conf',disp_dict)
 
-        print('--> _data_server_conf_dict', self._data_server_conf_dict)
+        #print('--> _data_server_conf_dict', self._data_server_conf_dict)
 
 
     def get_data_server_conf_dict(self,instr_name):
@@ -132,7 +132,7 @@ class ConfigEnv(object):
         if instr_name in self._data_server_conf_dict.keys():
             ds_dict=  self._data_server_conf_dict[instr_name]
 
-        print ('ds_dict from get_data_server_conf_dict', ds_dict)
+        #print ('ds_dict from get_data_server_conf_dict', ds_dict)
         return ds_dict
 
     def add_data_server_conf_dict(self,instr_name,_dict):
@@ -162,10 +162,10 @@ class ConfigEnv(object):
     def from_conf_file(cls, conf_file_path):
         if conf_file_path is None:
             conf_file_path = conf_dir + '/conf_env.yml'
-        print('conf_file_path', conf_file_path)
+        #print('conf_file_path', conf_file_path)
         with open(conf_file_path, 'r') as ymlfile:
-            print('conf_file_path', ymlfile )
+            #print('conf_file_path', ymlfile )
             cfg_dict = yaml.load(ymlfile)
         #print('cfg_dict',cfg_dict)
-        print ('CICCIO')
+        #print ('CICCIO')
         return ConfigEnv(cfg_dict)
