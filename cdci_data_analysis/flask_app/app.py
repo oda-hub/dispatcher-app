@@ -725,16 +725,25 @@ class InstrumentQueryBackEnd(object):
                     # NOTE it will be resubmitted anyhow
                     job_is_aliased=False
                     job.work_dir=original_work_dir
+                    job_monitor = job.updat_dataserver_monitor()
                     print('==>ALIASING switched off ')
 
+
+
                 if query_type=='Dummy':
-                    job_is_aliased=False
+                    job_is_aliased = False
+                    job.work_dir = original_work_dir
+                    job_monitor = job.updat_dataserver_monitor()
                     print('==>ALIASING switched off ')
 
 
 
         if job_is_aliased == True and query_status == 'ready':
-            print('==>IGNORING ALIASING to ', alias_workidr)
+            job_is_aliased = False
+            job.work_dir = original_work_dir
+            job_monitor = job.updat_dataserver_monitor()
+            print('==>ALIASING switched off ')
+            #print('==>IGNORING ALIASING to ', alias_workidr)
 
         print('==> aliased is', job_is_aliased)
         print('==> alias  work dir ', alias_workidr)
