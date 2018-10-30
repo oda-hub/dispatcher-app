@@ -689,10 +689,11 @@ class InstrumentQueryBackEnd(object):
 
         job_monitor=job.monitor
 
+
+
         print('-----------------> query status  old is: ',query_status )
-
         print('-----------------> job status before query:', job.status)
-
+        print('-----------------> job_is_aliased:', job_is_aliased)
         out_dict=None
         query_out=None
 
