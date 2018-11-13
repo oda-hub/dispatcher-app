@@ -318,11 +318,11 @@ class LightCurveProduct(BaseQueryProduct):
 
 
 
-    def get_html_draw(self,x,y,dy=None,dx=None,x_label='',y_label=''):
+    def get_html_draw(self,x,y,dy=None,dx=None,x_label='',y_label='',title=None):
 
         x = x - np.int(x.min())
 
-        sp=ScatterPlot(w=600,h=600,x_label=x_label,y_label=y_label)
+        sp=ScatterPlot(w=600,h=600,x_label=x_label,y_label=y_label,title=title)
         sp.add_errorbar(x,y,yerr=dy,xerr=dx)
         footer_str=''
 
