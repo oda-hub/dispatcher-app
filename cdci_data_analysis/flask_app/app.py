@@ -165,6 +165,8 @@ class InstrumentQueryBackEnd(object):
 
     def set_session_id(self):
         print("!!! GENERATING SESSION ID")
+        if 'session_id' in self.par_dic.keys():
+            self.par_dic['session_id']=None
 
         if self.par_dic['session_id'] is None or self.par_dic['session_id']=='new':
             self.par_dic['session_id']=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
