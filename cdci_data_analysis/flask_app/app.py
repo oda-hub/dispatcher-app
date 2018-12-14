@@ -165,7 +165,7 @@ class InstrumentQueryBackEnd(object):
 
     def set_session_id(self):
         print("!!! GENERATING SESSION ID")
-        if 'session_id' in self.par_dic.keys():
+        if 'session_id' not in self.par_dic.keys():
             self.par_dic['session_id']=None
 
         if self.par_dic['session_id'] is None or self.par_dic['session_id']=='new':
