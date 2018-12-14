@@ -68,7 +68,7 @@ class InstrumentQueryBackEnd(object):
                 self.par_dic = par_dic
 
 
-
+            self.set_session_id()
             if instrument_name is None:
                 self.instrument_name = self.par_dic['instrument']
             else:
@@ -148,7 +148,7 @@ class InstrumentQueryBackEnd(object):
     def generate_job_id(self,kw_black_list=['session_id']):
         print("!!! GENERATING JOB ID")
 
-        #TODO generate hash (immutable ore convert to Ordered)
+        #TODO generate hash (immutable ore convert to Ordered): DONE
         #import collections
 
         #self.par_dic-> collections.OrderedDict(self.par_dic)
@@ -163,7 +163,13 @@ class InstrumentQueryBackEnd(object):
         self.job_id=u'%s'%(self.make_hash(OrderedDict(_dict)))
 
 
+    def set_session_id(self):
+        print("!!! GENERATING SESSION ID")
+        if 'session_id' not in self.par_dic.keys():
+            self.par_dic['session_id']=None
 
+        if self.par_dic['session_id'] is None or self.par_dic['session_id']=='new':
+            self.par_dic['session_id']=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
 
     def set_session_logger(self,scratch_dir,verbose=False,config=None):
         logger = logging.getLogger(__name__)
@@ -420,7 +426,6 @@ class InstrumentQueryBackEnd(object):
         #job_status = self.par_dic['job_status']
         session_id=self.par_dic['session_id']
 
-
         if self.par_dic.has_key('instrumet'):
             self.par_dic.pop('instrumet')
 
@@ -469,14 +474,15 @@ class InstrumentQueryBackEnd(object):
             out_dict['job_status'] = job_monitor['status']
 
 
-        print('exit_status', out_dict['exit_status'])
+        #print('exit_status', out_dict['exit_status'])
 
         if job_monitor is not None:
             out_dict['job_monitor'] = job_monitor
             #print('query_out:job_monitor', job_monitor)
 
+        out_dict['session_id'] = self.par_dic['session_id']
 
-        print ('offline',off_line)
+        #print ('offline',off_line)
         if off_line == True:
 
             return out_dict
