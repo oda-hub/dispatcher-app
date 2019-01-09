@@ -511,11 +511,11 @@ class SpectralFitProduct(BaseQueryProduct):
         arf_file=None
         spec_file=None
 
-        if rmf_file is not None:
+        if rmf_file is not None and rmf_file!='None':
             self.rmf_file = FilePath(file_name=rmf_file, file_dir=file_dir).path
-        if arf_file is not None:
+        if arf_file is not None and arf_file!='None':
             self.arf_file = FilePath(file_name=arf_file, file_dir=file_dir).path
-        if spec_file is not None:
+        if spec_file is not None and spec_file!='None' :
             self.spec_file = FilePath(file_name=spec_file, file_dir=file_dir).path
 
         self.chain_file_path = FilePath(file_name='xspec_fit.chain', file_dir=file_dir)

@@ -866,13 +866,18 @@ class SpectralFitQuery(PostProcessProductQuery):
         ph_file=instrument.get_par_by_name('ph_file_name').value
         rmf_file=instrument.get_par_by_name('rmf_file_name').value
         arf_file=instrument.get_par_by_name('arf_file_name').value
+
         e_min_kev=np.float(instrument.get_par_by_name('E1_keV').value)
         e_max_kev=np.float(instrument.get_par_by_name('E2_keV').value)
+
+        for f in [ph_file,rmf_file,arf_file]:
+            if    f is not None and f!='None':
+                _c_list.append(f)
 
         print('e_min_kev',e_min_kev)
         print('e_max_kev', e_max_kev)
 
-        self.check_file_exist([ph_file,rmf_file,arf_file],out_dir=out_dir)
+        self.check_file_exist(_c_list,out_dir=out_dir)
 
         query_out = QueryOutput()
         try:
