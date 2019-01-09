@@ -506,9 +506,18 @@ class SpectralFitProduct(BaseQueryProduct):
                  **kwargs):
 
         super(SpectralFitProduct, self).__init__(name, **kwargs)
-        self.rmf_file = FilePath(file_name=rmf_file, file_dir=file_dir).path
-        self.arf_file = FilePath(file_name=arf_file, file_dir=file_dir).path
-        self.spec_file = FilePath(file_name=spec_file, file_dir=file_dir).path
+
+        rmf_file=None
+        arf_file=None
+        spec_file=None
+
+        if rmf_file is not None:
+            self.rmf_file = FilePath(file_name=rmf_file, file_dir=file_dir).path
+        if arf_file is not None:
+            self.arf_file = FilePath(file_name=arf_file, file_dir=file_dir).path
+        if spec_file is not None:
+            self.spec_file = FilePath(file_name=spec_file, file_dir=file_dir).path
+
         self.chain_file_path = FilePath(file_name='xspec_fit.chain', file_dir=file_dir)
         self.work_dir = file_dir
         self.out_dir = file_dir
@@ -564,14 +573,17 @@ class SpectralFitProduct(BaseQueryProduct):
         print('res', self.rmf_file)
         print('arf', self.arf_file)
         s = xsp.Spectrum(self.spec_file)
-        s.response = self.rmf_file.encode('utf-8')
-        s.response.arf = self.arf_file.encode('utf-8')
 
-        s.ignore('**-15.')
-        s.ignore('300.-**')
+        if self.rmf_file is not None:
+            s.response = self.rmf_file.encode('utf-8')
+        if self.arf_file is not None:
+            s.response.arf = self.arf_file.encode('utf-8')
 
-        # s.ignore('**-%f'%e_min_kev)
-        # s.ignore('%f-**'%e_max_kev)
+        #s.ignore('**-15.')
+        #s.ignore('300.-**')
+
+        s.ignore('**-%f'%e_min_kev)
+        s.ignore('%f-**'%e_max_kev)
         xsp.AllData.ignore('bad')
 
         model_name = xspec_model

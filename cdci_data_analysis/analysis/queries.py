@@ -716,12 +716,13 @@ class PostProcessProductQuery(ProductQuery):
             raise RuntimeError('file list empty')
 
         for f in   files_list:
-            file_path = FilePath(file_name=f,file_dir=out_dir)
-            #print(f,out_dir)
-            if file_path.exists()==True:
-                pass
-            else:
-                raise  RuntimeError('file %s does not exist in dir %s '%(f,out_dir))
+            if f is not None:
+                file_path = FilePath(file_name=f,file_dir=out_dir)
+                #print(f,out_dir)
+                if file_path.exists()==True:
+                    pass
+                else:
+                    raise  RuntimeError('file %s does not exist in dir %s '%(f,out_dir))
 
 
     def process_product(self,instrument,job, config=None,out_dir=None,**kwargs):
@@ -858,7 +859,7 @@ class SpectralFitQuery(PostProcessProductQuery):
 
     def process_product(self,instrument,job,out_dir=None,api=False):
 
-
+        _c_list=[]
         src_name = instrument.get_par_by_name('src_name').value
 
         ph_file=instrument.get_par_by_name('ph_file_name').value
@@ -866,6 +867,7 @@ class SpectralFitQuery(PostProcessProductQuery):
         arf_file=instrument.get_par_by_name('arf_file_name').value
         e_min_kev=np.float(instrument.get_par_by_name('E1_keV').value)
         e_max_kev=np.float(instrument.get_par_by_name('E2_keV').value)
+
         print('e_min_kev',e_min_kev)
         print('e_max_kev', e_max_kev)
 
