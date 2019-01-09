@@ -762,7 +762,13 @@ class InstrumentQueryBackEnd(object):
 
 
         if job_is_aliased == True :
-            delta = self.get_file_mtime(alias_workidr+'/'+'job_monitor.json') - time.time()
+            delta=121
+
+            try:
+                delta = self.get_file_mtime(alias_workidr + '/' + 'job_monitor.json') - time.time()
+            except:
+                pass
+
             if delta>120:
                 original_work_dir = job.work_dir
                 job.work_dir = alias_workidr
