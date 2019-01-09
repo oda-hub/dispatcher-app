@@ -594,6 +594,9 @@ class InstrumentQueryBackEnd(object):
 
         return alias_dir
 
+    def get_file_mtime(self,file):
+        return os.path.getmtime(file)
+
     def run_query(self,off_line=False):
 
         print ('==============================> run query <==============================')
@@ -733,7 +736,7 @@ class InstrumentQueryBackEnd(object):
                     job_is_aliased=False
                     job.work_dir=original_work_dir
                     job_monitor = job.updat_dataserver_monitor()
-                    print('==>ALIASING switched off ')
+                    print('==>ALIASING switched off  for status',job_monitor['status'])
 
 
 
@@ -741,7 +744,7 @@ class InstrumentQueryBackEnd(object):
                     job_is_aliased = False
                     job.work_dir = original_work_dir
                     job_monitor = job.updat_dataserver_monitor()
-                    print('==>ALIASING switched off ')
+                    print('==>ALIASING switched off for Dummy query')
 
 
 
@@ -752,8 +755,23 @@ class InstrumentQueryBackEnd(object):
             job_is_aliased = False
             job.work_dir = original_work_dir
             job_monitor = job.updat_dataserver_monitor()
-            print('==>ALIASING switched off ')
+            print('==>ALIASING switched off for status ready')
             #print('==>IGNORING ALIASING to ', alias_workidr)
+
+
+
+
+        if job_is_aliased == True :
+            delta = self.get_file_mtime(alias_workidr+'/'+'job_monitor.json') - time.time()
+            if delta>120:
+                original_work_dir = job.work_dir
+                job.work_dir = alias_workidr
+
+                job_is_aliased = False
+                job.work_dir = original_work_dir
+                job_monitor = job.updat_dataserver_monitor()
+                print('==>ALIASING switched off for delta time >120 sec')
+
 
         print('==> aliased is', job_is_aliased)
         print('==> alias  work dir ', alias_workidr)
