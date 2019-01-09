@@ -776,7 +776,7 @@ class InstrumentQueryBackEnd(object):
                 job_is_aliased = False
                 job.work_dir = original_work_dir
                 job_monitor = job.updat_dataserver_monitor()
-                print('==>ALIASING switched off for delta time >120 sec')
+                print('==>ALIASING switched off for delta time >120 sec',delta)
 
 
         print('==> aliased is', job_is_aliased)

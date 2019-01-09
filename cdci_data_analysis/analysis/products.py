@@ -573,6 +573,7 @@ class SpectralFitProduct(BaseQueryProduct):
         print('fitting->,', self.spec_file)
         print('res', self.rmf_file)
         print('arf', self.arf_file)
+        print('e_min_kev,e_max_kev',e_min_kev,e_max_kev)
         s = xsp.Spectrum(self.spec_file)
 
         if self.rmf_file is not None:
