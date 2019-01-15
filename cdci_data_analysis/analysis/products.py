@@ -212,7 +212,7 @@ class QueryProductList(object):
             if hasattr(prod1, 'name'):
                 if prod1.name == name:
                     prod = prod1
-                print('prod_name',prod1.name )
+                #print('prod_name',prod1.name )
         if prod is None:
             raise Warning('product', name, 'not found')
         return prod
@@ -237,12 +237,12 @@ class BaseQueryProduct(object):
         self.meta_data=meta_data
 
         if file_name is not None:
-            print('set file phat')
-            print('workig dir', file_dir)
-            print('file name', file_name)
-            print('name_prefix', name_prefix)
+            #print('set file phat')
+            #print('workig dir', file_dir)
+            #print('file name', file_name)
+            #print('name_prefix', name_prefix)
             self.file_path = FilePath(file_name=file_name, file_dir=file_dir, name_prefix=name_prefix)
-            print('file_path set to', self.file_path.path)
+            #print('file_path set to', self.file_path.path)
 
         if data is not None:
             if isinstance(data,NumpyDataProduct):
@@ -570,10 +570,10 @@ class SpectralFitProduct(BaseQueryProduct):
         xsp.AllChains.clear()
         # PyXspec operations:
 
-        print('fitting->,', self.spec_file)
-        print('res', self.rmf_file)
-        print('arf', self.arf_file)
-        print('e_min_kev,e_max_kev',e_min_kev,e_max_kev)
+        #print('fitting->,', self.spec_file)
+        #print('res', self.rmf_file)
+        #print('arf', self.arf_file)
+        #print('e_min_kev,e_max_kev',e_min_kev,e_max_kev)
         s = xsp.Spectrum(self.spec_file)
 
         if self.rmf_file is not None:

@@ -88,7 +88,7 @@ class BaseQuery(object):
 
     def set_par_value(self,name,value):
         p=self.get_par_by_name(name)
-        print('get par',p.name,'set value',value)
+        #print('get par',p.name,'set value',value)
         if p is not None:
             p.value=value
 
@@ -509,7 +509,7 @@ class ProductQuery(BaseQuery):
         logger.info(msg_str)
 
 
-        print("-->input_prod_list",input_prod_list)
+        #print("-->input_prod_list",input_prod_list)
 
 
         return query_out
@@ -740,7 +740,7 @@ class PostProcessProductQuery(ProductQuery):
 
         msg_str = '--> start prodcut processing'
         print(msg_str)
-        print ('kwargs',kwargs)
+        #print ('kwargs',kwargs)
         logger.info(msg_str)
 
         process_product_query_out = QueryOutput()
@@ -874,8 +874,8 @@ class SpectralFitQuery(PostProcessProductQuery):
             if    f is not None and f!='None':
                 _c_list.append(f)
 
-        print('e_min_kev',e_min_kev)
-        print('e_max_kev', e_max_kev)
+        #print('e_min_kev',e_min_kev)
+        #print('e_max_kev', e_max_kev)
 
         self.check_file_exist(_c_list,out_dir=out_dir)
 

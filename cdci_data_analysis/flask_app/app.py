@@ -146,7 +146,7 @@ class InstrumentQueryBackEnd(object):
 
 
     def generate_job_id(self,kw_black_list=['session_id']):
-        print("!!! GENERATING JOB ID")
+        print("---> GENERATING JOB ID <---")
 
         #TODO generate hash (immutable ore convert to Ordered): DONE
         #import collections
@@ -161,16 +161,19 @@ class InstrumentQueryBackEnd(object):
         for k in kw_black_list:
             _dict.pop(k)
         self.job_id=u'%s'%(self.make_hash(OrderedDict(_dict)))
-
+        print('generated job_id',self.job_id)
 
     def set_session_id(self):
-        print("!!! GENERATING SESSION ID")
+        print("---> GENERATING SESSION ID <---")
         if 'session_id' not in self.par_dic.keys():
             self.par_dic['session_id']=None
+        print('passed SESSION ID', self.par_dic['session_id'])
 
         if self.par_dic['session_id'] is None or self.par_dic['session_id']=='new':
             self.par_dic['session_id']=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
 
+        print('generated SESSION ID',self.par_dic['session_id'])
+        print('-------')
     def set_session_logger(self,scratch_dir,verbose=False,config=None):
         logger = logging.getLogger(__name__)
         fileh = logging.FileHandler(os.path.join(scratch_dir, 'session.log'), 'a')
@@ -268,24 +271,24 @@ class InstrumentQueryBackEnd(object):
             file_list[ID] = os.path.join(scratch_dir + '/', f)
 
         tmp_dir = tempfile.mkdtemp(prefix='download_', dir='./')
-        print('using tmp dir', tmp_dir)
+        #print('using tmp dir', tmp_dir)
 
         file_path = os.path.join(tmp_dir, file_name)
-        print('writing to file path', file_path)
+        #print('writing to file path', file_path)
         out_dir=file_name.replace('.tar','')
         out_dir=out_dir.replace('.gz','')
 
 
         if len(file_list) > 1:
-            print('preparing tar')
+            #print('preparing tar')
             tar = tarfile.open("%s" % (file_path), "w:gz")
             for name in file_list:
-                print('add to tar', file_name,name)
+                #print('add to tar', file_name,name)
                 if name is not None:
                     tar.add(name,arcname='%s/%s'%(out_dir,os.path.basename(name)))
             tar.close()
         else:
-            print('single fits file')
+            #print('single fits file')
             in_data = open(file_list[0], "rb").read()
             with gzip.open(file_path, 'wb') as f:
                 f.write(in_data)
@@ -295,15 +298,15 @@ class InstrumentQueryBackEnd(object):
         return tmp_dir, file_name
 
     def download_products(self,):
-        print('in url file_list', self.args.get('file_list'))
+        #print('in url file_list', self.args.get('file_list'))
         #scratch_dir, logger = set_session(self.args.get('session_id'))
 
         file_list = self.args.get('file_list').split(',')
-        print('used file_list', file_list)
+        #print('used file_list', file_list)
         file_name = self.args.get('download_file_name')
 
         tmp_dir, target_file = self.prepare_download(file_list, file_name, self.scratch_dir)
-        print('tmp_dir,target_file', tmp_dir, target_file)
+        #print('tmp_dir,target_file', tmp_dir, target_file)
         try:
             return send_from_directory(directory=tmp_dir, filename=target_file, attachment_filename=target_file,
                                        as_attachment=True)
@@ -311,22 +314,22 @@ class InstrumentQueryBackEnd(object):
             return e
 
     def upload_file(self,name, scratch_dir):
-        print('upload  file')
-        print('name', name)
-        print('request.files ',request.files)
+        #print('upload  file')
+        #print('name', name)
+        #print('request.files ',request.files)
         if name not in request.files:
             return None
         else:
             file = request.files[name]
-            print('type file', type(file))
+            #print('type file', type(file))
             # if user does not select file, browser also
             # submit a empty part without filename
             if file.filename == '' or file.filename is None:
                 return None
 
             filename = secure_filename(file.filename)
-            print('scratch_dir',scratch_dir)
-            print('secure_file_name', filename)
+            #print('scratch_dir',scratch_dir)
+            #print('secure_file_name', filename)
             file_path = os.path.join(scratch_dir, filename)
             file.save(file_path)
             # return redirect(url_for('uploaded_file',
@@ -359,7 +362,7 @@ class InstrumentQueryBackEnd(object):
 
 
     def get_paramters_dict(self):
-        print('CICCIO',self.par_dic)
+        #print('CICCIO',self.par_dic)
         return jsonify(self.par_dic)
 
     def get_instr_list(self,name=None):
@@ -374,7 +377,7 @@ class InstrumentQueryBackEnd(object):
 
         try:
             config, config_data_server = self.set_config()
-            print('dispatcher port', config.dispatcher_port)
+            #print('dispatcher port', config.dispatcher_port)
         except Exception as e:
             query_out = QueryOutput()
             query_out.set_query_exception(e, 'run_query failed in %s'%self.__class__.__name__,
@@ -411,7 +414,7 @@ class InstrumentQueryBackEnd(object):
             status=self.par_dic[job.status_kw_name]
         else:
             status='unknown'
-        print ('-----> set status to ',status)
+        #print ('-----> set status to ',status)
 
         job.write_dataserver_status(status_dictionary_value=status,full_dict=self.par_dic)
 
@@ -448,7 +451,7 @@ class InstrumentQueryBackEnd(object):
         #print ('query doen with job status-->',job_status)
 
         if off_line == False:
-            print('out', out_dict)
+            #print('out', out_dict)
             response= jsonify(out_dict)
         else:
             response= out_dict
@@ -554,7 +557,7 @@ class InstrumentQueryBackEnd(object):
 
         disp_data_server_conf_dict=config.get_data_server_conf_dict(self.instrument_name)
 
-        print ('--> App configuration for:',self.instrument_name)
+        #print ('--> App configuration for:',self.instrument_name)
         if disp_data_server_conf_dict is not None:
             print('-->',disp_data_server_conf_dict)
             if 'data_server' in  disp_data_server_conf_dict.keys():
@@ -569,7 +572,7 @@ class InstrumentQueryBackEnd(object):
         else:
 
             config_data_server=None
-        print('--> config_data_server', config_data_server,type(config))
+        #print('--> config_data_server', config_data_server,type(config))
 
         return config,config_data_server
 
@@ -762,21 +765,20 @@ class InstrumentQueryBackEnd(object):
 
 
         if job_is_aliased == True :
-            delta=121
-
+            delta_limit=60
             try:
                 delta = self.get_file_mtime(alias_workidr + '/' + 'job_monitor.json') - time.time()
             except:
                 pass
 
-            if delta>120:
+            if delta>delta_limit:
                 original_work_dir = job.work_dir
                 job.work_dir = alias_workidr
 
                 job_is_aliased = False
                 job.work_dir = original_work_dir
                 job_monitor = job.updat_dataserver_monitor()
-                print('==>ALIASING switched off for delta time >120 sec',delta)
+                print('==>ALIASING switched off for delta time >%f, delta=%f'%(delta_limit,delta))
 
 
         print('==> aliased is', job_is_aliased)

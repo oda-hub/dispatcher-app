@@ -218,7 +218,7 @@ class OsaJob(Job):
 
         if par_dic is not None:
             if 'node_id' in par_dic.keys():
-                print('node_id', par_dic['node_id'])
+                #print('node_id', par_dic['node_id'])
                 file_id=par_dic['node_id']
             else:
                 print('No! node_id')
@@ -265,7 +265,7 @@ class OsaJob(Job):
             try:
                 with open(job_file, 'r') as infile:
                     self.monitor = json.load(infile, encoding='utf-8')
-                    print ('--->for file',job_file,'got',self.monitor['status'])
+                    #print ('--->for file',job_file,'got',self.monitor['status'])
 
                     if self.monitor['status']=='done':
 

@@ -101,14 +101,14 @@ class Instrument(object):
 
     def set_data_server_conf_dict(self,data_serve_conf_file):
         conf_dict=None
-        print ('--> setting set_data_server_conf_dict for', self.name,'from data_serve_conf_file',data_serve_conf_file)
+        #print ('--> setting set_data_server_conf_dict for', self.name,'from data_serve_conf_file',data_serve_conf_file)
         if data_serve_conf_file is not None:
            with open(data_serve_conf_file, 'r') as ymlfile:
                 cfg_dict = yaml.load(ymlfile)
                 for k in cfg_dict['instruments'].keys():
-                    print ('name',k)
+                    #print ('name',k)
                     if self.name ==k:
-                        print('name', k,cfg_dict['instruments'][k])
+                        #print('name', k,cfg_dict['instruments'][k])
                         conf_dict=cfg_dict['instruments'][k]
 
         self.data_server_conf_dict=conf_dict
@@ -223,7 +223,7 @@ class Instrument(object):
 
                 try:
                     query_name = self.query_dictionary[product_type]
-                    print ('=======> query_name',query_name)
+                    #print ('=======> query_name',query_name)
                     query_out = self.get_query_by_name(query_name).run_query(self, out_dir, job, run_asynch,
                                                                              query_type=query_type, config=config,
                                                                              logger=logger,
@@ -280,7 +280,7 @@ class Instrument(object):
 
         l=[{'instrumet':self.name}]
         l.append({'prod_dict':self.query_dictionary})
-        print('--> dict',self.query_dictionary)
+        #print('--> dict',self.query_dictionary)
 
 
         for _query in self._queries_list:
@@ -309,8 +309,8 @@ class Instrument(object):
 
 
     def set_pars_from_form(self,par_dic,logger=None,verbose=False,sentry_client=None):
-        print('---------------------------------------------')
-        print('setting form paramters')
+        #print('---------------------------------------------')
+        #print('setting form paramters')
         q=QueryOutput()
         #status=0
         error_message=''
@@ -332,13 +332,13 @@ class Instrument(object):
             #logger.exception(e)
 
 
-        print('---------------------------------------------')
+        #print('---------------------------------------------')
         return q
 
 
     def set_input_products_from_fronted(self,par_dic,request,back_end_query,verbose=False,logger=None,sentry_client=None):
-        print('---------------------------------------------')
-        print('setting user input prods')
+        #print('---------------------------------------------')
+        #print('setting user input prods')
         input_prod_list_name = self.instrumet_query.input_prod_list_name
         q = QueryOutput()
         #status = 0
@@ -376,7 +376,7 @@ class Instrument(object):
 
 
 
-            print ('has input',has_input)
+            #print ('has input',has_input)
             try:
 
                 if has_input==True:
@@ -396,7 +396,7 @@ class Instrument(object):
 
         self.set_pars_from_dic(par_dic,verbose=verbose)
 
-        print('---------------------------------------------')
+        #print('---------------------------------------------')
         return q
 
 
@@ -428,13 +428,13 @@ class Instrument(object):
                 raise RuntimeError
 
             par_dic[input_prod_list_name]=acceptList
-            print ("--> accepted scws",acceptList,len(acceptList))
+            #print ("--> accepted scws",acceptList,len(acceptList))
             return len(acceptList)>=1
 
 
     def set_catalog_from_fronted(self,par_dic,request,back_end_query,logger=None,verbose=False,sentry_client=None):
-        print('---------------------------------------------')
-        print('setting user catalog')
+        #print('---------------------------------------------')
+        #print('setting user catalog')
 
         q = QueryOutput()
         #status = 0
@@ -446,11 +446,11 @@ class Instrument(object):
 
         cat_file_path=None
         if request.method == 'POST':
-            print('POST')
+            #print('POST')
             try:
                 cat_file_path = back_end_query.upload_file('user_catalog_file', back_end_query.scratch_dir)
                 par_dic['user_catalog_file'] = cat_file_path
-                print('set_catalog_from_fronted,request.method', request.method, par_dic['user_catalog_file'],cat_file_path)
+                #print('set_catalog_from_fronted,request.method', request.method, par_dic['user_catalog_file'],cat_file_path)
                 #DONE
                 q.set_done( debug_message=str(debug_message))
             except Exception as e:
@@ -479,8 +479,8 @@ class Instrument(object):
 
         self.set_pars_from_dic(par_dic,verbose=verbose)
 
-        print('setting user catalog done')
-        print('---------------------------------------------')
+        #print('setting user catalog done')
+        #print('---------------------------------------------')
         return q
 
     def set_catalog(self, par_dic, scratch_dir='./'):
@@ -488,16 +488,16 @@ class Instrument(object):
         user_catalog_file=None
         if 'user_catalog_file' in par_dic.keys() :
             user_catalog_file = par_dic['user_catalog_file']
-            print("--> user_catalog_file ",user_catalog_file)
+            #print("--> user_catalog_file ",user_catalog_file)
 
         if 'user_catalog_dictionary'in par_dic.keys() and par_dic['user_catalog_dictionary'] is not None:
             self.set_par('user_catalog',build_catalog(par_dic['user_catalog_dictionary']))
-            print("user_catalog_dictionary ", par_dic['user_catalog_dictionary'])
+            #print("user_catalog_dictionary ", par_dic['user_catalog_dictionary'])
 
         if user_catalog_file is not None:
-            print('loading catalog  using file', user_catalog_file)
+            #print('loading catalog  using file', user_catalog_file)
             self.set_par('user_catalog', load_user_catalog(user_catalog_file))
-            print('user catalog done, using file',user_catalog_file)
+            #print('user catalog done, using file',user_catalog_file)
 
         else:
             if 'catalog_selected_objects' in par_dic.keys():
@@ -508,16 +508,16 @@ class Instrument(object):
 
             if 'selected_catalog' in par_dic.keys():
                 catalog_dic=json.loads(par_dic['selected_catalog'])
-                print('==> selecetd catalog', catalog_dic)
-                print('==> catalog_selected_objects', catalog_selected_objects)
+                #print('==> selecetd catalog', catalog_dic)
+                #print('==> catalog_selected_objects', catalog_selected_objects)
 
                 if catalog_selected_objects is not None:
 
 
                     user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
                     self.set_par('user_catalog', user_catalog)
-                    print('==> selecetd catalog')
-                    print (user_catalog.table)
+                    #print('==> selecetd catalog')
+                    #print (user_catalog.table)
 
 
 
