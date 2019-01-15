@@ -155,7 +155,7 @@ class InstrumentQueryBackEnd(object):
         #oredered_dict=OrderedDict(self.par_dic)
 
         #self.job_id=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
-        print('dict',self.par_dic)
+        #print('dict',self.par_dic)
 
         _dict=copy.deepcopy(self.par_dic)
         for k in kw_black_list:
@@ -559,7 +559,7 @@ class InstrumentQueryBackEnd(object):
 
         #print ('--> App configuration for:',self.instrument_name)
         if disp_data_server_conf_dict is not None:
-            print('-->',disp_data_server_conf_dict)
+            #print('-->',disp_data_server_conf_dict)
             if 'data_server' in  disp_data_server_conf_dict.keys():
                 #print (disp_data_server_conf_dict)
                 if self.instrument.name in  disp_data_server_conf_dict['data_server'].keys():
@@ -579,7 +579,7 @@ class InstrumentQueryBackEnd(object):
     def get_existing_job_ID_path(self,wd):
         #exist same job_ID, different session ID
         dir_list=glob.glob('*_jid_%s'%(self.job_id))
-        print('dirs',dir_list)
+        #print('dirs',dir_list)
         if dir_list !=[]:
             dir_list=[d for d in dir_list if 'aliased' not in d]
 
@@ -980,7 +980,9 @@ def test_mock():
 
 @app.route('/call_back', methods=['POST', 'GET'])
 def dataserver_call_back():
-
+    log = logging.getLogger('werkzeug')
+    log.disabled = True
+    app.logger.disabled = True
     print('===========================> dataserver_call_back')
     query=InstrumentQueryBackEnd(instrument_name='mock',data_server_call_back=True)
     query.run_call_back()
