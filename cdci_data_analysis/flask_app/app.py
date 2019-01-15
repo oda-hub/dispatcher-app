@@ -769,7 +769,7 @@ class InstrumentQueryBackEnd(object):
             try:
                 delta = self.get_file_mtime(alias_workidr + '/' + 'job_monitor.json') - time.time()
             except:
-                pass
+                delta=delta_limit+1
 
             if delta>delta_limit:
                 original_work_dir = job.work_dir
