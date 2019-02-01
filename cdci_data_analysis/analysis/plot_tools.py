@@ -63,7 +63,7 @@ class Image(object):
         w = wcs.WCS(self.header)
         color_mapper = LinearColorMapper(low=vmin, high=vmax, palette=Plasma256)
 
-        fig_im = fig.image(image=[self.data[msk]], x=[0], y=[0], dw=[c * 0.5], dh=[r * 0.5],
+        fig_im = fig.image(image=[self.data], x=[0], y=[0], dw=[c * 0.5], dh=[r * 0.5],
                            color_mapper=color_mapper)
 
         hover = HoverTool(tooltips=[("x", "$x"), ("y", "$y"), ("value", "@image")],
