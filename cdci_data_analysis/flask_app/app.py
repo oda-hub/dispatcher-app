@@ -306,7 +306,7 @@ class InstrumentQueryBackEnd(object):
         file_name = self.args.get('download_file_name')
 
         tmp_dir, target_file = self.prepare_download(file_list, file_name, self.scratch_dir)
-        #print('tmp_dir,target_file', tmp_dir, target_file)
+        #print('downlaoding scratch dir', self.scratch_dir)
         try:
             return send_from_directory(directory=tmp_dir, filename=target_file, attachment_filename=target_file,
                                        as_attachment=True)
