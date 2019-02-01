@@ -43,14 +43,15 @@ class Image(object):
 
 
         msk = ~np.isnan(self.data)
+
         if vmin is None:
-            vmin = self.data[msk].min()
+            min_s = self.data[msk].min()
 
         if vmax is None:
-            vmax = self.data[msk].max()
+            max_s = self.data[msk].max()
 
-        min_s = self.data.min()
-        max_s = self.data.max()
+
+
         r = self.data.shape[0] * 2
         c = self.data.shape[1] * 2
 
@@ -60,7 +61,7 @@ class Image(object):
                      tools=['pan,box_zoom,box_select,wheel_zoom,reset,save,crosshair'])
 
         w = wcs.WCS(self.header)
-        color_mapper = LinearColorMapper(low=min_s, high=max_s, palette=Plasma256)
+        color_mapper = LinearColorMapper(low=vmin, high=vmax, palette=Plasma256)
 
         fig_im = fig.image(image=[self.data[msk]], x=[0], y=[0], dw=[c * 0.5], dh=[r * 0.5],
                            color_mapper=color_mapper)
