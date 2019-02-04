@@ -88,7 +88,7 @@ class BaseQuery(object):
 
     def set_par_value(self,name,value):
         p=self.get_par_by_name(name)
-        print('get par',p.name,'set value',value)
+        #print('get par',p.name,'set value',value)
         if p is not None:
             p.value=value
 
@@ -509,7 +509,7 @@ class ProductQuery(BaseQuery):
         logger.info(msg_str)
 
 
-        print("-->input_prod_list",input_prod_list)
+        #print("-->input_prod_list",input_prod_list)
 
 
         return query_out
@@ -716,12 +716,14 @@ class PostProcessProductQuery(ProductQuery):
             raise RuntimeError('file list empty')
 
         for f in   files_list:
-            file_path = FilePath(file_name=f,file_dir=out_dir)
-            #print(f,out_dir)
-            if file_path.exists()==True:
-                pass
-            else:
-                raise  RuntimeError('file %s does not exist in dir %s '%(f,out_dir))
+            print('f',f,type(f))
+            if f is not None:
+                file_path = FilePath(file_name=f,file_dir=out_dir)
+                #print(f,out_dir)
+                if file_path.exists()==True:
+                    pass
+                else:
+                    raise  RuntimeError('file %s does not exist in dir %s '%(f,out_dir))
 
 
     def process_product(self,instrument,job, config=None,out_dir=None,**kwargs):
@@ -738,7 +740,7 @@ class PostProcessProductQuery(ProductQuery):
 
         msg_str = '--> start prodcut processing'
         print(msg_str)
-        print ('kwargs',kwargs)
+        #print ('kwargs',kwargs)
         logger.info(msg_str)
 
         process_product_query_out = QueryOutput()
@@ -858,18 +860,24 @@ class SpectralFitQuery(PostProcessProductQuery):
 
     def process_product(self,instrument,job,out_dir=None,api=False):
 
-
+        _c_list=[]
         src_name = instrument.get_par_by_name('src_name').value
 
         ph_file=instrument.get_par_by_name('ph_file_name').value
         rmf_file=instrument.get_par_by_name('rmf_file_name').value
         arf_file=instrument.get_par_by_name('arf_file_name').value
+
         e_min_kev=np.float(instrument.get_par_by_name('E1_keV').value)
         e_max_kev=np.float(instrument.get_par_by_name('E2_keV').value)
-        print('e_min_kev',e_min_kev)
-        print('e_max_kev', e_max_kev)
 
-        self.check_file_exist([ph_file,rmf_file,arf_file],out_dir=out_dir)
+        for f in [ph_file,rmf_file,arf_file]:
+            if    f is not None and f!='None':
+                _c_list.append(f)
+
+        #print('e_min_kev',e_min_kev)
+        #print('e_max_kev', e_max_kev)
+
+        self.check_file_exist(_c_list,out_dir=out_dir)
 
         query_out = QueryOutput()
         try:

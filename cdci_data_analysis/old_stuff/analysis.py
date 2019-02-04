@@ -68,18 +68,18 @@ class AnalysisConf(object):
             self.T1 = request.form['t_start']
             self.T2 = request.form['t_stop']
             self.time_range='from_time'
-            print(self.T1, self.T2)
+            #print(self.T1, self.T2)
 
         elif request.form['time_format'] == 'mjd':
             self.T1 = request.form['mjd_start']
             self.T2 = request.form['mjd_stop']
             self.time_range = 'from_time'
-            print(self.T1, self.T2)
+            #print(self.T1, self.T2)
 
         elif request.form['time_format'] == 'scw_list':
             self.scw_list = [x.strip() for x in request.form['scw_list'].split(',')]
             self.time_range = 'from_scw_list'
-            print(self.scw_list)
+            #print(self.scw_list)
 
         else:
             raise  RuntimeError('wrong time format')

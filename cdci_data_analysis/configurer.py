@@ -141,7 +141,7 @@ class ConfigEnv(object):
 
     def set_conf_dispatcher(self,dispatcher_url,dispatcher_port,sentry_url,logstash_host,logstash_port):
         # Generic to dispatcher
-        print(dispatcher_url, dispatcher_port)
+        #print(dispatcher_url, dispatcher_port)
         self.dispatcher_url = dispatcher_url
         self.dispatcher_port = dispatcher_port
         self.sentry_url=sentry_url
