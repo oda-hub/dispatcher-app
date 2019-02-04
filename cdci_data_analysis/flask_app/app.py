@@ -717,7 +717,7 @@ class InstrumentQueryBackEnd(object):
 
 
         if job_is_aliased==True and query_status!='ready':
-
+                print('job_is_aliased == True and query_status != ready ')
                 job_is_aliased=True
 
                 original_work_dir=job.work_dir
@@ -736,10 +736,12 @@ class InstrumentQueryBackEnd(object):
                 if job_monitor['status']=='ready' or  job_monitor['status']=='failed' or job_monitor['status']=='done':
                     # NOTE in this case if job is aliased but the original has failed
                     # NOTE it will be resubmitted anyhow
+                    print('==>aliased job status', job_monitor['status'])
                     job_is_aliased=False
                     job.work_dir=original_work_dir
                     job_monitor = job.updat_dataserver_monitor()
                     #Note this is necessary to avoid a never ending loop in the non-aliased job-status is set to progress
+                    print('query_status',query_status)
                     query_status='new'
                     print('==>ALIASING switched off  for status',job_monitor['status'])
 
@@ -754,6 +756,7 @@ class InstrumentQueryBackEnd(object):
 
 
         if job_is_aliased == True and query_status == 'ready':
+            print ('job_is_aliased == True and query_status ==ready ')
             original_work_dir = job.work_dir
             job.work_dir = alias_workidr
 
