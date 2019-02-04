@@ -717,7 +717,7 @@ class InstrumentQueryBackEnd(object):
 
 
         if job_is_aliased==True and query_status!='ready':
-                print('job_is_aliased == True and query_status != ready ')
+                #print('job_is_aliased == True and query_status != ready ')
                 job_is_aliased=True
 
                 original_work_dir=job.work_dir
@@ -756,7 +756,7 @@ class InstrumentQueryBackEnd(object):
 
 
         if job_is_aliased == True and query_status == 'ready':
-            print ('job_is_aliased == True and query_status ==ready ')
+            #print ('job_is_aliased == True and query_status ==ready ')
             original_work_dir = job.work_dir
             job.work_dir = alias_workidr
 
