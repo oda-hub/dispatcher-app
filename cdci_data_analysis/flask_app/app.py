@@ -739,6 +739,8 @@ class InstrumentQueryBackEnd(object):
                     job_is_aliased=False
                     job.work_dir=original_work_dir
                     job_monitor = job.updat_dataserver_monitor()
+                    #Note this is necessary to avoid a never ending loop in the non-aliased job-status is set to progress
+                    query_status='new'
                     print('==>ALIASING switched off  for status',job_monitor['status'])
 
 
@@ -765,7 +767,7 @@ class InstrumentQueryBackEnd(object):
 
 
         if job_is_aliased == True :
-            delta_limit=60
+            delta_limit=600
             try:
                 delta = self.get_file_mtime(alias_workidr + '/' + 'job_monitor.json') - time.time()
             except:
