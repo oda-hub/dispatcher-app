@@ -870,6 +870,15 @@ class SpectralFitQuery(PostProcessProductQuery):
         e_min_kev=np.float(instrument.get_par_by_name('E1_keV').value)
         e_max_kev=np.float(instrument.get_par_by_name('E2_keV').value)
 
+
+        if instrument.name=='isgri':
+            e_min_kev=15.
+            e_max_kev=300.
+
+        if 'jemx' in instrument.name:
+            e_min_kev=5.
+            e_max_kev=35.
+
         for f in [ph_file,rmf_file,arf_file]:
             if    f is not None and f!='None':
                 _c_list.append(f)

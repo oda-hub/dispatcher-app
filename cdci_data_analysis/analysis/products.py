@@ -600,6 +600,7 @@ class SpectralFitProduct(BaseQueryProduct):
 
         header_str = 'Exposure %f (s)\n' % (s.exposure)
         header_str += 'Fit report for model %s' % (model_name)
+        header_str += 'energy range %2.2f %2.2f' % (e_min_kev,e_max_kev)
 
         _comp = []
         _name = []
