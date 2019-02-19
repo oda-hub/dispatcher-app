@@ -262,6 +262,9 @@ class InstrumentQueryBackEnd(object):
 
 
     def prepare_download(self,file_list, file_name, scratch_dir):
+
+        file_name = file_name.replace(' ', '_')
+
         if hasattr(file_list, '__iter__'):
             print('file_list is iterable')
         else:
