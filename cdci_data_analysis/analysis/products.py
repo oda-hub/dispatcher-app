@@ -599,8 +599,8 @@ class SpectralFitProduct(BaseQueryProduct):
         xsp.Fit.perform()
 
         header_str = 'Exposure %f (s)\n' % (s.exposure)
-        header_str += 'Fit report for model %s' % (model_name)
-        header_str += 'energy range %2.2f %2.2f' % (e_min_kev,e_max_kev)
+        header_str += 'Fit report for model %s\n' % (model_name)
+        header_str += 'energy range (%2.1f - %2.1f) keV' % (e_min_kev,e_max_kev)
 
         _comp = []
         _name = []
@@ -625,9 +625,9 @@ class SpectralFitProduct(BaseQueryProduct):
         footer_str += 'Chi-squared red. %5.5f\n\n' % (xsp.Fit.statistic / xsp.Fit.dof)
 
         try:
-            xsp.AllModels.calcFlux("20.0 60.0 err")
+            xsp.AllModels.calcFlux("%f %f err"%(e_min_kev,e_max_kev))
             (flux, flux_m, flux_p, _1, _2, _3) = s.flux
-            footer_str += 'flux (20.0-60.0) keV %5.5e ergs cm^-2 s^-1\n' % (flux)
+            footer_str += 'flux (%2.1f - %2.1f) keV %5.5e ergs cm^-2 s^-1\n' % (e_min_kev,e_max_kev,flux)
             footer_str += 'Error range  68.00%%  confidence (%5.5e,%5.5e) ergs cm^-2 s^-1\n' % (flux_m, flux_p)
 
 
@@ -648,11 +648,11 @@ class SpectralFitProduct(BaseQueryProduct):
 
         if _passed:
             try:
-                xsp.AllModels.calcFlux("20.0 60.0 err")
+                xsp.AllModels.calcFlux("%f %f err" % (e_min_kev, e_max_kev))
                 (flux, flux_m, flux_p, _1, _2, _3) = s.flux
                 footer_str += '\n'
                 footer_str += 'flux calculation with Monte Carlo Markov Chain\n'
-                footer_str += 'flux (20.0-60.0) keV %5.5e ergs cm^-2 s^-1\n' % (flux)
+                footer_str += 'flux (%2.1f - %2.1f) keV %5.5e ergs cm^-2 s^-1\n' % (e_min_kev, e_max_kev, flux)
                 footer_str += 'Error range  68.00%%  confidence (%5.5e,%5.5e) ergs cm^-2 s^-1\n' % (flux_m, flux_p)
             except:
                 footer_str += 'flux calculation with Monte Carlo Markov Chain  failed\n'
