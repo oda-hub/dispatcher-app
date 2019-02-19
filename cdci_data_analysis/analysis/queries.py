@@ -872,12 +872,12 @@ class SpectralFitQuery(PostProcessProductQuery):
 
 
         if instrument.name=='isgri':
-            e_min_kev=15.
+            e_min_kev=30.
             e_max_kev=300.
 
         if 'jemx' in instrument.name:
             e_min_kev=5.
-            e_max_kev=35.
+            e_max_kev=20.
 
         for f in [ph_file,rmf_file,arf_file]:
             if    f is not None and f!='None':
