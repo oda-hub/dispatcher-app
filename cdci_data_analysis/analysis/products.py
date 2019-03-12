@@ -39,6 +39,7 @@ matplotlib.use('Agg', warn=False)
 from .plot_tools import  Image,ScatterPlot,GridPlot
 
 from  oda_api.data_products import NumpyDataProduct
+from  oda_api.api import  DispatcherAPI
 from .parameters import *
 from .io_helper import FilePath
 from .io_helper import view_traceback, FitsFile
@@ -61,6 +62,9 @@ class QueryOutput(object):
 
     def set_analysis_parameters(self,query_dict):
         self.prod_dictionary['analysis_paramters']=query_dict
+
+    def set_api_code(self,query_dict):
+        self.prod_dictionary['api_code']=DispatcherAPI.set_api_code(query_dict)
 
     def dump_analysis_parameters(self,work_dir,query_dict):
         file_path=FilePath(file_dir=work_dir,file_name='anlaysis_par.json')

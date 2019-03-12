@@ -243,6 +243,7 @@ class Instrument(object):
 
         #adding query parameters to final products
         query_out.set_analysis_parameters(par_dic)
+        query_out.set_api_code(par_dic)
         query_out.dump_analysis_parameters(out_dir,par_dic)
 
         return query_out
