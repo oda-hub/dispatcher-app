@@ -551,6 +551,8 @@ def build_catalog(cat_dic,catalog_selected_objects=None):
             IDs.append(ID)
 
     #TODO: check this indentation
+
+    print('selected IDs',IDs)
     user_catalog.select_IDs(IDs)
 
     return user_catalog
