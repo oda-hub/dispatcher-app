@@ -514,8 +514,8 @@ class Instrument(object):
                 catalog_dic=json.loads(par_dic['selected_catalog'])
 
 
-            user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
-            self.set_par('user_catalog', user_catalog)
+                user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
+                self.set_par('user_catalog', user_catalog)
 
 
 
