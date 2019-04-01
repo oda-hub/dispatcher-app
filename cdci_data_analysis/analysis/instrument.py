@@ -492,8 +492,11 @@ class Instrument(object):
             #print("--> user_catalog_file ",user_catalog_file)
 
         if 'user_catalog_dictionary'in par_dic.keys() and par_dic['user_catalog_dictionary'] is not None:
-            self.set_par('user_catalog',build_catalog(par_dic['user_catalog_dictionary']))
-            #print("user_catalog_dictionary ", par_dic['user_catalog_dictionary'])
+            if type(par_dic['user_catalog_dictionary'])==dict:
+                self.set_par('user_catalog',build_catalog(par_dic['user_catalog_dictionary']))
+            else:
+                catalog_dic = json.loads(par_dic['selected_catalog'])
+                self.set_par('user_catalog', build_catalog(catalog_dic))
 
         if user_catalog_file is not None:
             #print('loading catalog  using file', user_catalog_file)
@@ -509,16 +512,11 @@ class Instrument(object):
 
             if 'selected_catalog' in par_dic.keys():
                 catalog_dic=json.loads(par_dic['selected_catalog'])
-                #print('==> selecetd catalog', catalog_dic)
-                #print('==> catalog_selected_objects', catalog_selected_objects)
-
-                if catalog_selected_objects is not None:
 
 
-                    user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
-                    self.set_par('user_catalog', user_catalog)
-                    #print('==> selecetd catalog')
-                    #print (user_catalog.table)
+            user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
+            self.set_par('user_catalog', user_catalog)
+
 
 
 

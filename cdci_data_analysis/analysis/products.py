@@ -566,6 +566,22 @@ class SpectralFitProduct(BaseQueryProduct):
         pass
 
 
+    #TODO
+    #def run_fit_threeML(self,e_min_kev, e_max_kev, plot=False, xspec_model='powerlaw', params_setting=None, frozen_list=None):
+    #    from threeML.plugins.OGIPLike import OGIPLike
+    #    from threeML.io.package_data import get_path_of_data_file
+    #    from threeML import *
+    #    #warnings.filterwarnings('ignore')
+
+    #    ogip_data = OGIPLike('ogip',
+    #                         observation=self.spec_file,
+    #                         arf_file=self.rmf_file.encode('utf-8'),
+    #                         response=self.rmf_file.encode('utf-8'))
+
+    #    model=globals()['XS_%s'%xspec_model]
+
+    #    ogip_data.set_active_measurements('%s-%s'%(e_min_kev,e_max_kev))
+
     def run_fit(self, e_min_kev, e_max_kev, plot=False, xspec_model='powerlaw', params_setting=None, frozen_list=None):
         import xspec as xsp
 
