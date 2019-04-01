@@ -540,15 +540,17 @@ def build_catalog(cat_dic,catalog_selected_objects=None):
 
     user_catalog =BasicCatalog(src_names, lon, lat, significance, _table=t, unit=unit, frame=frame)
 
-    if catalog_selected_objects is not None:
-        meta_ids = user_catalog._table['meta_ID']
-        IDs=[]
-        for ID,cat_ID in enumerate(meta_ids):
 
+    meta_ids = user_catalog._table['meta_ID']
+    IDs=[]
+    for ID,cat_ID in enumerate(meta_ids):
+        if catalog_selected_objects is not None:
             if cat_ID in catalog_selected_objects:
                 IDs.append(ID)
+        else:
+            IDs.append(ID)
 
-        #TODO: check this indentation
-        user_catalog.select_IDs(IDs)
+    #TODO: check this indentation
+    user_catalog.select_IDs(IDs)
 
     return user_catalog
