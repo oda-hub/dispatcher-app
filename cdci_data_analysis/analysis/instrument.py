@@ -510,14 +510,14 @@ class Instrument(object):
                 catalog_dic=json.loads(par_dic['selected_catalog'])
                 #print('==> selecetd catalog', catalog_dic)
                 #print('==> catalog_selected_objects', catalog_selected_objects)
+                
+                #This instruction was preventing from accepting the catalog without catalog_selected_objects
+                #if catalog_selected_objects is not None:
 
-                if catalog_selected_objects is not None:
-
-
-                    user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
-                    self.set_par('user_catalog', user_catalog)
-                    #print('==> selecetd catalog')
-                    #print (user_catalog.table)
+                user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
+                self.set_par('user_catalog', user_catalog)
+                # print('==> selecetd catalog')
+                # print (user_catalog.table)
 
 
 
