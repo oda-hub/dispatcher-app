@@ -240,10 +240,10 @@ class InstrumentQueryBackEnd(object):
 
         if 'scw_list' in self.par_dic.keys():
             _p= request.args.getlist('scw_list')
-            if len(_p)!=1:
+            if len(_p)>1:
                 self.par_dic['scw_list']=_p
             print('=======> scw_list',  self.par_dic['scw_list'])
-
+            
         self.args=args
 
     def set_scratch_dir(self,session_id,job_id=None,verbose=False):
