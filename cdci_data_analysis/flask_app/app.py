@@ -238,8 +238,10 @@ class InstrumentQueryBackEnd(object):
             print('par_dic', self.par_dic)
 
         if 'scw_list' in self.par_dic.keys():
-            self.par_dic['scw_list'] = request.args.getlist('scw_list')
-            print('=======> scw_list',  self.par_dic['scw_list'])
+            _p= request.args.getlist('scw_list')
+            if len(_p)>1:
+                self.par_dic['scw_list']=_p
+            print('=======> scw_list',  self.par_dic['scw_list'],_p,len(_p))
 
         self.args=args
 
