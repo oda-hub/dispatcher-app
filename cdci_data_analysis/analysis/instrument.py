@@ -499,9 +499,9 @@ class Instrument(object):
                 self.set_par('user_catalog', build_catalog(catalog_dic))
 
         if user_catalog_file is not None:
-            #print('loading catalog  using file', user_catalog_file)
+            # print('loading catalog  using file', user_catalog_file)
             self.set_par('user_catalog', load_user_catalog(user_catalog_file))
-            #print('user catalog done, using file',user_catalog_file)
+            # print('user catalog done, using file',user_catalog_file)
 
         else:
             if 'catalog_selected_objects' in par_dic.keys():
@@ -513,8 +513,7 @@ class Instrument(object):
             if 'selected_catalog' in par_dic.keys():
                 catalog_dic=json.loads(par_dic['selected_catalog'])
 
-
-                user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
+                user_catalog = build_catalog(catalog_dic, catalog_selected_objects)
                 self.set_par('user_catalog', user_catalog)
 
 
