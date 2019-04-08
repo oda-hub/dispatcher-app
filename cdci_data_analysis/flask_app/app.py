@@ -236,8 +236,9 @@ class InstrumentQueryBackEnd(object):
         self.par_dic = args.to_dict()
         if verbose == True:
             print('par_dic', self.par_dic)
-        args['scw_list'] = request.args.getlist('scw_list')
-        print('=======> scw_list',  args['scw_list'])
+        if 'scw_list' in self.par_dic.keys():
+            self.par_dic['scw_list'] = request.args.getlist('scw_list')
+            print('=======> scw_list',  args['scw_list'])
         self.args=args
 
     def set_scratch_dir(self,session_id,job_id=None,verbose=False):
