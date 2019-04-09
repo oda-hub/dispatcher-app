@@ -609,7 +609,17 @@ class ProductQuery(BaseQuery):
             query_out= self.process_product_method(instrument,query_prod_list,api=api,**kwargs)
         return query_out
 
-    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,sentry_client=None,api=False,**kwargs):
+    def process_query_product(self,
+                              instrument,
+                              job,
+                              query_type='Real',
+                              logger=None,
+                              config=None,
+                              sentry_client=None,
+                              api=False,
+                              backend_warning='',
+                              backend_comment='',
+                              **kwargs):
         if logger is None:
             logger = self.get_logger()
 
@@ -634,7 +644,7 @@ class ProductQuery(BaseQuery):
 
             job.set_done()
             #DONE
-            process_products_query_out.set_done( message=message, debug_message=str(debug_message), job_status=job.status,status=status)
+            process_products_query_out.set_done( message=message, debug_message=str(debug_message), job_status=job.status,status=status,comment=backend_comment,warning=backend_warning)
 
         except Exception as e:
             #status=1
@@ -690,7 +700,22 @@ class ProductQuery(BaseQuery):
 
             else:
                 if query_out.status_dictionary['status'] == 0:
-                    query_out = self.process_query_product(instrument,job, logger=logger, config=config,sentry_client=sentry_client,api=api)
+
+                    if 'comment' in query_out.status_dictionary.keys():
+                        backend_comment = query_out.status_dictionary['comment']
+                    else:
+                        backend_comment=''
+                    if 'warning' in query_out.status_dictionary.keys():
+                        backend_warning = query_out.status_dictionary['warning']
+                    else:
+                        backend_warning=''
+                    query_out = self.process_query_product(instrument,
+                                                           job,
+                                                           logger=logger,
+                                                           config=config,
+                                                           sentry_client=sentry_client,api=api,
+                                                           backend_comment=backend_comment,
+                                                           backend_warning=backend_warning)
 
 
             #attach this at the end, anyhow
