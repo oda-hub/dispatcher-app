@@ -717,7 +717,7 @@ class ProductQuery(BaseQuery):
                                                            backend_comment=backend_comment,
                                                            backend_warning=backend_warning)
 
-
+                    print('-->', query_out.status_dictionary)
             #attach this at the end, anyhow
             if input_prod_list is not None:
                 query_out.prod_dictionary['input_prod_list']=input_prod_list
