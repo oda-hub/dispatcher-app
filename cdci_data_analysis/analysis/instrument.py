@@ -231,7 +231,19 @@ class Instrument(object):
                                                                              api=api)
                     if query_out.status_dictionary['status'] == 0:
                         #DONE
-                        query_out.set_done(message=message, debug_message=str(debug_message))
+                        if 'comment' in query_out.status_dictionary.keys():
+                            backend_comment = query_out.status_dictionary['comment']
+                        else:
+                            backend_comment = ''
+                        if 'warning' in query_out.status_dictionary.keys():
+                            backend_warning = query_out.status_dictionary['warning']
+                        else:
+                            backend_warning = ''
+                        
+                        query_out.set_done(message=message,
+                                           debug_message=str(debug_message),
+                                           backend_comment=backend_comment,
+                                           backend_warning=backend_warning)
                     else:
                         pass
 
