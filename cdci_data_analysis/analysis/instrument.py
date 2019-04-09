@@ -239,11 +239,11 @@ class Instrument(object):
                             backend_warning = query_out.status_dictionary['warning']
                         else:
                             backend_warning = ''
-                        
+
                         query_out.set_done(message=message,
                                            debug_message=str(debug_message),
-                                           backend_comment=backend_comment,
-                                           backend_warning=backend_warning)
+                                           comment=backend_comment,
+                                           warning=backend_warning)
                     else:
                         pass
 
