@@ -566,7 +566,7 @@ class ProductQuery(BaseQuery):
 
 
             query_out.set_done(message=message, debug_message=str(debug_message),job_status=job.status,status=status,comment=backend_comment,warning=backend_warning)
-            print('-->', query_out.status_dictionary)
+            #print('-->', query_out.status_dictionary)
         except Exception as e:
             #status=1
             job.set_failed()
@@ -700,7 +700,7 @@ class ProductQuery(BaseQuery):
 
             else:
                 if query_out.status_dictionary['status'] == 0:
-                    print('-->',query_out.status_dictionary)
+                    #print('-->',query_out.status_dictionary)
                     if 'comment' in query_out.status_dictionary.keys():
                         backend_comment = query_out.status_dictionary['comment']
                     else:
@@ -717,7 +717,7 @@ class ProductQuery(BaseQuery):
                                                            backend_comment=backend_comment,
                                                            backend_warning=backend_warning)
 
-                    print('-->', query_out.status_dictionary)
+                    #print('-->', query_out.status_dictionary)
             #attach this at the end, anyhow
             if input_prod_list is not None:
                 query_out.prod_dictionary['input_prod_list']=input_prod_list

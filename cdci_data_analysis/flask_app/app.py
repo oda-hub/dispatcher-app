@@ -823,7 +823,7 @@ class InstrumentQueryBackEnd(object):
                                                     dry_run=dry_run,
                                                     api=api)
 
-            print('-->', query_out.status_dictionary)
+            #print('-->', query_out.status_dictionary)
             #NOTE job status is set in  cdci_data_analysis.analysis.queries.ProductQuery#get_query_products
             print('-----------------> job status after query:', job.status)
 
