@@ -533,7 +533,7 @@ class ProductQuery(BaseQuery):
 
                 res, data_server_query_out = q.run_query(call_back_url=job.get_call_back_url(), run_asynch=run_asynch, logger=logger)
 
-                if 'comment' in data_server_query_out.status_dictionary.kyes():
+                if 'comment' in data_server_query_out.status_dictionary.keys():
                     backend_comment=data_server_query_out.status_dictionary['comment']
 
                 if 'warning' in data_server_query_out.status_dictionary.keys():
