@@ -522,7 +522,7 @@ class ProductQuery(BaseQuery):
         #status=0
         message=''
         debug_message=''
-        msg_str = '--> start get prodcut query',query_type
+        msg_str = '--> start get product query',query_type
         print(msg_str)
         logger.info(msg_str)
         backend_comment=''
@@ -727,7 +727,7 @@ class PostProcessProductQuery(ProductQuery):
             raise RuntimeError('file list empty')
 
         for f in   files_list:
-            print('f',f,type(f))
+            #print('f',f,type(f))
             if f is not None:
                 file_path = FilePath(file_name=f,file_dir=out_dir)
                 #print(f,out_dir)
