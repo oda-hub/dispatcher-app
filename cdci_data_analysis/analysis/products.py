@@ -117,7 +117,7 @@ class QueryOutput(object):
                 raise RuntimeError('job_status', job_status, ' in QueryOutput is not allowed',
                                    self._allowed_job_status_values_)
 
-    def set_status(self, status, message='', error_message='', debug_message='', job_status=None):
+    def set_status(self, status, message='', error_message='', debug_message='', job_status=None,comment='',warning=''):
 
         self._set_job_status(job_status)
 
@@ -130,6 +130,8 @@ class QueryOutput(object):
         self.status_dictionary['message'] = str(message)
         self.status_dictionary['error_message'] = str(error_message)
         self.status_dictionary['debug_message'] = str(debug_message)
+        self.status_dictionary['comment'] = str(comment)
+        self.status_dictionary['warning'] = str(warning)
 
     def get_status(self):
         return self.status_dictionary['status']
