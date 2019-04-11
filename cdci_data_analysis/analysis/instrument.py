@@ -231,7 +231,19 @@ class Instrument(object):
                                                                              api=api)
                     if query_out.status_dictionary['status'] == 0:
                         #DONE
-                        query_out.set_done(message=message, debug_message=str(debug_message))
+                        if 'comment' in query_out.status_dictionary.keys():
+                            backend_comment = query_out.status_dictionary['comment']
+                        else:
+                            backend_comment = ''
+                        if 'warning' in query_out.status_dictionary.keys():
+                            backend_warning = query_out.status_dictionary['warning']
+                        else:
+                            backend_warning = ''
+
+                        query_out.set_done(message=message,
+                                           debug_message=str(debug_message),
+                                           comment=backend_comment,
+                                           warning=backend_warning)
                     else:
                         pass
 
@@ -243,6 +255,7 @@ class Instrument(object):
 
         #adding query parameters to final products
         query_out.set_analysis_parameters(par_dic)
+        query_out.set_api_code(par_dic)
         query_out.dump_analysis_parameters(out_dir,par_dic)
 
         return query_out
@@ -491,13 +504,16 @@ class Instrument(object):
             #print("--> user_catalog_file ",user_catalog_file)
 
         if 'user_catalog_dictionary'in par_dic.keys() and par_dic['user_catalog_dictionary'] is not None:
-            self.set_par('user_catalog',build_catalog(par_dic['user_catalog_dictionary']))
-            #print("user_catalog_dictionary ", par_dic['user_catalog_dictionary'])
+            if type(par_dic['user_catalog_dictionary'])==dict:
+                self.set_par('user_catalog',build_catalog(par_dic['user_catalog_dictionary']))
+            else:
+                catalog_dic = json.loads(par_dic['selected_catalog'])
+                self.set_par('user_catalog', build_catalog(catalog_dic))
 
         if user_catalog_file is not None:
-            #print('loading catalog  using file', user_catalog_file)
+            # print('loading catalog  using file', user_catalog_file)
             self.set_par('user_catalog', load_user_catalog(user_catalog_file))
-            #print('user catalog done, using file',user_catalog_file)
+            # print('user catalog done, using file',user_catalog_file)
 
         else:
             if 'catalog_selected_objects' in par_dic.keys():
@@ -508,16 +524,10 @@ class Instrument(object):
 
             if 'selected_catalog' in par_dic.keys():
                 catalog_dic=json.loads(par_dic['selected_catalog'])
-                #print('==> selecetd catalog', catalog_dic)
-                #print('==> catalog_selected_objects', catalog_selected_objects)
-                
-                #This instruction was preventing from accepting the catalog without catalog_selected_objects
-                #if catalog_selected_objects is not None:
 
-                user_catalog=build_catalog(catalog_dic,catalog_selected_objects)
+                user_catalog = build_catalog(catalog_dic, catalog_selected_objects)
                 self.set_par('user_catalog', user_catalog)
-                # print('==> selecetd catalog')
-                # print (user_catalog.table)
+
 
 
 
@@ -541,15 +551,19 @@ def build_catalog(cat_dic,catalog_selected_objects=None):
 
     user_catalog =BasicCatalog(src_names, lon, lat, significance, _table=t, unit=unit, frame=frame)
 
-    if catalog_selected_objects is not None:
-        meta_ids = user_catalog._table['meta_ID']
-        IDs=[]
-        for ID,cat_ID in enumerate(meta_ids):
 
+    meta_ids = user_catalog._table['meta_ID']
+    IDs=[]
+    for ID,cat_ID in enumerate(meta_ids):
+        if catalog_selected_objects is not None:
             if cat_ID in catalog_selected_objects:
                 IDs.append(ID)
+        else:
+            IDs.append(ID)
 
-        #TODO: check this indentation
-        user_catalog.select_IDs(IDs)
+    #TODO: check this indentation
+
+    print('selected IDs',IDs)
+    user_catalog.select_IDs(IDs)
 
     return user_catalog

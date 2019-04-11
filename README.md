@@ -82,14 +82,15 @@ cp .secret-ddosa-client ~
 
 in heasoft-<ver>/Xspec/BUILD_DIR/hmakerc
 
-PYTHON_INC="-I/home/isdc/tramacer/anaconda2/include/python2.7"
-PYTHON_LIB="-lpython2.7"
+`PYTHON_INC="-I/home/isdc/tramacer/anaconda2/include/python2.7"`
+
+`PYTHON_LIB="-lpython2.7"`
 
 
-- cd /path/to/heasoft-<ver>/Xspec/src/XSUser/Python/xspec
-- hmake clean
-- hmake
-- hmake install
+- `cd /path/to/heasoft-<ver>/Xspec/src/XSUser/Python/xspec`
+- `hmake clean`
+- `hmake`
+- `hmake install`
 
 
 #To run tests example in run_test directory:

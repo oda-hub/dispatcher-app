@@ -234,6 +234,7 @@ class InstrumentQueryBackEnd(object):
         if request.method == 'POST':
             args = request.form
         self.par_dic = args.to_dict()
+
         if verbose == True:
             print('par_dic', self.par_dic)
 
@@ -268,6 +269,9 @@ class InstrumentQueryBackEnd(object):
 
 
     def prepare_download(self,file_list, file_name, scratch_dir):
+
+        file_name = file_name.replace(' ', '_')
+
         if hasattr(file_list, '__iter__'):
             print('file_list is iterable')
         else:
@@ -819,7 +823,7 @@ class InstrumentQueryBackEnd(object):
                                                     dry_run=dry_run,
                                                     api=api)
 
-
+            #print('-->', query_out.status_dictionary)
             #NOTE job status is set in  cdci_data_analysis.analysis.queries.ProductQuery#get_query_products
             print('-----------------> job status after query:', job.status)
 

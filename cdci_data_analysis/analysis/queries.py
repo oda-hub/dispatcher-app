@@ -522,14 +522,23 @@ class ProductQuery(BaseQuery):
         #status=0
         message=''
         debug_message=''
-        msg_str = '--> start get prodcut query',query_type
+        msg_str = '--> start get product query',query_type
         print(msg_str)
         logger.info(msg_str)
+        backend_comment=''
+        backend_warning=''
         try:
             if query_type != 'Dummy':
                 q=self.get_data_server_query(instrument,config)
 
                 res, data_server_query_out = q.run_query(call_back_url=job.get_call_back_url(), run_asynch=run_asynch, logger=logger)
+
+                if 'comment' in data_server_query_out.status_dictionary.keys():
+                    backend_comment=data_server_query_out.status_dictionary['comment']
+
+                if 'warning' in data_server_query_out.status_dictionary.keys():
+                    backend_warning=data_server_query_out.status_dictionary['warning']
+
 
                 status = data_server_query_out.get_status()
                 job_status = data_server_query_out.get_job_status()
@@ -554,8 +563,10 @@ class ProductQuery(BaseQuery):
 
                 job.set_done()
             #DONE
-            query_out.set_done(message=message, debug_message=str(debug_message),job_status=job.status,status=status)
 
+
+            query_out.set_done(message=message, debug_message=str(debug_message),job_status=job.status,status=status,comment=backend_comment,warning=backend_warning)
+            #print('-->', query_out.status_dictionary)
         except Exception as e:
             #status=1
             job.set_failed()
@@ -598,7 +609,17 @@ class ProductQuery(BaseQuery):
             query_out= self.process_product_method(instrument,query_prod_list,api=api,**kwargs)
         return query_out
 
-    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,sentry_client=None,api=False,**kwargs):
+    def process_query_product(self,
+                              instrument,
+                              job,
+                              query_type='Real',
+                              logger=None,
+                              config=None,
+                              sentry_client=None,
+                              api=False,
+                              backend_warning='',
+                              backend_comment='',
+                              **kwargs):
         if logger is None:
             logger = self.get_logger()
 
@@ -623,7 +644,7 @@ class ProductQuery(BaseQuery):
 
             job.set_done()
             #DONE
-            process_products_query_out.set_done( message=message, debug_message=str(debug_message), job_status=job.status,status=status)
+            process_products_query_out.set_done( message=message, debug_message=str(debug_message), job_status=job.status,status=status,comment=backend_comment,warning=backend_warning)
 
         except Exception as e:
             #status=1
@@ -679,9 +700,24 @@ class ProductQuery(BaseQuery):
 
             else:
                 if query_out.status_dictionary['status'] == 0:
-                    query_out = self.process_query_product(instrument,job, logger=logger, config=config,sentry_client=sentry_client,api=api)
+                    #print('-->',query_out.status_dictionary)
+                    if 'comment' in query_out.status_dictionary.keys():
+                        backend_comment = query_out.status_dictionary['comment']
+                    else:
+                        backend_comment=''
+                    if 'warning' in query_out.status_dictionary.keys():
+                        backend_warning = query_out.status_dictionary['warning']
+                    else:
+                        backend_warning=''
+                    query_out = self.process_query_product(instrument,
+                                                           job,
+                                                           logger=logger,
+                                                           config=config,
+                                                           sentry_client=sentry_client,api=api,
+                                                           backend_comment=backend_comment,
+                                                           backend_warning=backend_warning)
 
-
+                    #print('-->', query_out.status_dictionary)
             #attach this at the end, anyhow
             if input_prod_list is not None:
                 query_out.prod_dictionary['input_prod_list']=input_prod_list
@@ -716,7 +752,7 @@ class PostProcessProductQuery(ProductQuery):
             raise RuntimeError('file list empty')
 
         for f in   files_list:
-            print('f',f,type(f))
+            #print('f',f,type(f))
             if f is not None:
                 file_path = FilePath(file_name=f,file_dir=out_dir)
                 #print(f,out_dir)
@@ -869,6 +905,15 @@ class SpectralFitQuery(PostProcessProductQuery):
 
         e_min_kev=np.float(instrument.get_par_by_name('E1_keV').value)
         e_max_kev=np.float(instrument.get_par_by_name('E2_keV').value)
+
+
+        if instrument.name=='isgri':
+            e_min_kev=30.
+            e_max_kev=300.
+
+        if 'jemx' in instrument.name:
+            e_min_kev=5.
+            e_max_kev=20.
 
         for f in [ph_file,rmf_file,arf_file]:
             if    f is not None and f!='None':

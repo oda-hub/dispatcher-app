@@ -532,11 +532,12 @@ class InputProdList(Parameter):
 
 
     def _split(self,str_list):
-        if type(str_list)==list:
+
+        if type(str_list) == list:
                pass
-        elif type(str_list)==str or type(str(str_list)):
+        elif type(str_list) == str or type(str(str_list)) == str:
             if ',' in str_list:
-                str_list= str_list.split(',')
+                str_list = str_list.split(',')
             else:
                 str_list = str_list.split(' ')
         else:

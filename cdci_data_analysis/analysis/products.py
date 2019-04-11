@@ -39,6 +39,7 @@ matplotlib.use('Agg', warn=False)
 from .plot_tools import  Image,ScatterPlot,GridPlot
 
 from  oda_api.data_products import NumpyDataProduct
+from  oda_api.api import  DispatcherAPI
 from .parameters import *
 from .io_helper import FilePath
 from .io_helper import view_traceback, FitsFile
@@ -62,6 +63,9 @@ class QueryOutput(object):
     def set_analysis_parameters(self,query_dict):
         self.prod_dictionary['analysis_paramters']=query_dict
 
+    def set_api_code(self,query_dict):
+        self.prod_dictionary['api_code']=DispatcherAPI.set_api_code(query_dict)
+
     def dump_analysis_parameters(self,work_dir,query_dict):
         file_path=FilePath(file_dir=work_dir,file_name='anlaysis_par.json')
         with open(file_path.path, 'w')  as outfile:
@@ -72,8 +76,8 @@ class QueryOutput(object):
         for k, v in zip(keys, values):
             self.prod_dictionary[k] = v
 
-    def set_done(self, message='', debug_message='', job_status=None, status=0):
-        self.set_status(status, message=message, debug_message=debug_message, job_status=job_status)
+    def set_done(self, message='', debug_message='', job_status=None, status=0,comment='',warning=''):
+        self.set_status(status, message=message, debug_message=debug_message, job_status=job_status,comment=comment,warning=warning)
 
     def set_failed(self, failed_operation,
                    message_prepend_str='',
@@ -113,7 +117,7 @@ class QueryOutput(object):
                 raise RuntimeError('job_status', job_status, ' in QueryOutput is not allowed',
                                    self._allowed_job_status_values_)
 
-    def set_status(self, status, message='', error_message='', debug_message='', job_status=None):
+    def set_status(self, status, message='', error_message='', debug_message='', job_status=None,comment='',warning=''):
 
         self._set_job_status(job_status)
 
@@ -126,6 +130,8 @@ class QueryOutput(object):
         self.status_dictionary['message'] = str(message)
         self.status_dictionary['error_message'] = str(error_message)
         self.status_dictionary['debug_message'] = str(debug_message)
+        self.status_dictionary['comment'] = str(comment)
+        self.status_dictionary['warning'] = str(warning)
 
     def get_status(self):
         return self.status_dictionary['status']
@@ -562,6 +568,22 @@ class SpectralFitProduct(BaseQueryProduct):
         pass
 
 
+    #TODO
+    #def run_fit_threeML(self,e_min_kev, e_max_kev, plot=False, xspec_model='powerlaw', params_setting=None, frozen_list=None):
+    #    from threeML.plugins.OGIPLike import OGIPLike
+    #    from threeML.io.package_data import get_path_of_data_file
+    #    from threeML import *
+    #    #warnings.filterwarnings('ignore')
+
+    #    ogip_data = OGIPLike('ogip',
+    #                         observation=self.spec_file,
+    #                         arf_file=self.rmf_file.encode('utf-8'),
+    #                         response=self.rmf_file.encode('utf-8'))
+
+    #    model=globals()['XS_%s'%xspec_model]
+
+    #    ogip_data.set_active_measurements('%s-%s'%(e_min_kev,e_max_kev))
+
     def run_fit(self, e_min_kev, e_max_kev, plot=False, xspec_model='powerlaw', params_setting=None, frozen_list=None):
         import xspec as xsp
 
@@ -599,7 +621,8 @@ class SpectralFitProduct(BaseQueryProduct):
         xsp.Fit.perform()
 
         header_str = 'Exposure %f (s)\n' % (s.exposure)
-        header_str += 'Fit report for model %s' % (model_name)
+        header_str += 'Fit report for model %s\n' % (model_name)
+        header_str += 'energy range (%2.1f - %2.1f) keV' % (e_min_kev,e_max_kev)
 
         _comp = []
         _name = []
@@ -624,9 +647,9 @@ class SpectralFitProduct(BaseQueryProduct):
         footer_str += 'Chi-squared red. %5.5f\n\n' % (xsp.Fit.statistic / xsp.Fit.dof)
 
         try:
-            xsp.AllModels.calcFlux("20.0 60.0 err")
+            xsp.AllModels.calcFlux("%f %f err"%(e_min_kev,e_max_kev))
             (flux, flux_m, flux_p, _1, _2, _3) = s.flux
-            footer_str += 'flux (20.0-60.0) keV %5.5e ergs cm^-2 s^-1\n' % (flux)
+            footer_str += 'flux (%2.1f - %2.1f) keV %5.5e ergs cm^-2 s^-1\n' % (e_min_kev,e_max_kev,flux)
             footer_str += 'Error range  68.00%%  confidence (%5.5e,%5.5e) ergs cm^-2 s^-1\n' % (flux_m, flux_p)
 
 
@@ -647,11 +670,11 @@ class SpectralFitProduct(BaseQueryProduct):
 
         if _passed:
             try:
-                xsp.AllModels.calcFlux("20.0 60.0 err")
+                xsp.AllModels.calcFlux("%f %f err" % (e_min_kev, e_max_kev))
                 (flux, flux_m, flux_p, _1, _2, _3) = s.flux
                 footer_str += '\n'
                 footer_str += 'flux calculation with Monte Carlo Markov Chain\n'
-                footer_str += 'flux (20.0-60.0) keV %5.5e ergs cm^-2 s^-1\n' % (flux)
+                footer_str += 'flux (%2.1f - %2.1f) keV %5.5e ergs cm^-2 s^-1\n' % (e_min_kev, e_max_kev, flux)
                 footer_str += 'Error range  68.00%%  confidence (%5.5e,%5.5e) ergs cm^-2 s^-1\n' % (flux_m, flux_p)
             except:
                 footer_str += 'flux calculation with Monte Carlo Markov Chain  failed\n'
