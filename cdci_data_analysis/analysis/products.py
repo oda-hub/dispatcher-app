@@ -324,8 +324,19 @@ class LightCurveProduct(BaseQueryProduct):
 
 
 
-    def get_html_draw(self,x,y,dy=None,dx=None,x_label='',y_label='',title=None):
+    def get_html_draw(self,x,y,dy=None,dx=None,x_label='',y_label='',title=None,max_bins=1E4):
+        warning=''
 
+        if (np.size(x)>max_bins):
+            actual_size = np.size(x)
+            x=x[:max_bins]
+            y=y[:max_bins]
+            if dx is not None:
+                dx=dx[:max_bins]
+            if dy is not None:
+                dy=dy[:max_bins]
+            warning='!!! WARNING Number of bins displayed are limited to %d, actual number of bins is %d'%(max_bins,actual_size)
+            title=title+'\n %s'%warning
         x = x - np.int(x.min())
 
         sp=ScatterPlot(w=600,h=600,x_label=x_label,y_label=y_label,title=title)
