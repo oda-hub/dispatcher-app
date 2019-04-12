@@ -399,7 +399,7 @@ class Instrument(object):
                 #DONE
                 q.set_done( debug_message=str(debug_message))
 
-            except:
+            except Exception as e :
                 #FAILED
                 q.set_failed('setting input scw_list',
                              extra_message='scw_list file is not valid, please check the format',
