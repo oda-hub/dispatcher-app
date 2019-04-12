@@ -430,6 +430,7 @@ class Instrument(object):
                     lines = []
                     for ll in _lines:
                          lines.extend(ll.split(","))
+                    lines = [item.strip() for item in lines]
                 par_dic[input_prod_list_name] = lines
                 has_prods= len(lines) >= 1
             except:
