@@ -399,7 +399,7 @@ class Instrument(object):
                 #DONE
                 q.set_done( debug_message=str(debug_message))
 
-            except Exception as e :
+            except Exception as e:
                 #FAILED
                 q.set_failed('setting input scw_list',
                              extra_message='scw_list file is not valid, please check the format',
@@ -418,31 +418,50 @@ class Instrument(object):
 
 
     def set_input_products(self, par_dic, input_file_path,input_prod_list_name):
-        template = re.compile(r'^(\d{12}).(\d{3})$')
+        has_prods=False
         if input_file_path is None:
-            return True
+            #if no file we pass OK condition
+            #since the paramter will be passed from the form
+            has_prods=True
         else:
-            with open(input_file_path) as f:
-                _lines = f.readlines()
+            try:
+                with open(input_file_path) as f:
+                    _lines = f.readlines()
+                    lines = []
+                    for ll in _lines:
+                         lines.extend(ll.split(","))
+                par_dic[input_prod_list_name] = lines
+                has_prods= len(lines) >= 1
+            except:
+                has_prods=False
 
-            # should now accept any combination of commas and/or newlines
-            # raise error if any of the scwlist is not matching the template
-            lines = []
-            for ll in _lines:
-                lines.extend(ll.split(","))
+        return has_prods
 
-
-            acceptList = [item.strip() for item in lines if template.match(item)]
-
-
-
-
-            if len(acceptList)!=len(lines):
-                raise RuntimeError
-
-            par_dic[input_prod_list_name]=acceptList
-            #print ("--> accepted scws",acceptList,len(acceptList))
-            return len(acceptList)>=1
+        # template = re.compile(r'^(\d{12}).(\d{3})$')
+        # if input_file_path is None:
+        #     return True
+        # else:
+        #     with open(input_file_path) as f:
+        #         _lines = f.readlines()
+        #
+        #     # should now accept any combination of commas and/or newlines
+        #     # raise error if any of the scwlist is not matching the template
+        #     lines = []
+        #     for ll in _lines:
+        #         lines.extend(ll.split(","))
+        #
+        #
+        #     acceptList = [item.strip() for item in lines if template.match(item)]
+        #
+        #
+        #
+        #
+        #     if len(acceptList)!=len(lines):
+        #         raise RuntimeError
+        #
+        #     par_dic[input_prod_list_name]=acceptList
+        #     #print ("--> accepted scws",acceptList,len(acceptList))
+        #     return len(acceptList)>=1
 
 
     def set_catalog_from_fronted(self,par_dic,request,back_end_query,logger=None,verbose=False,sentry_client=None):
