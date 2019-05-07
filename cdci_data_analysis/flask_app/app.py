@@ -809,7 +809,7 @@ class InstrumentQueryBackEnd(object):
             print ('*** run_asynch',run_asynch)
             print ('*** api', api)
             if disp_conf is not None:
-                pirnt(disp_conf.)
+                print('ECCOLO',disp_conf.products_url)
             print ('config_data_server',config_data_server )
             query_out = self.instrument.run_query(product_type,
                                                     self.par_dic,
