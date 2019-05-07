@@ -290,7 +290,7 @@ class BaseQueryProduct(object):
     def add_url_to_fits_file(self,par_dict,url=''):
         url = '%s/%s' % (url, urlencode(par_dict))
         url_dict={'url' : url}
-        self.data.data_unit.append(NumpyDataUnit(None, name='url', hdu_type='primary', data_header=url_dict))
+        self.data.data_unit.append(NumpyDataUnit(None, name='ODA URL', hdu_type='primary', data_header=url_dict))
 
 
 
