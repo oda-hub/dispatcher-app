@@ -91,7 +91,7 @@ class DataServerConf(object):
         dispatcher_mnt_point = conf_dict['dispatcher_mnt_point']
 
         print('--> conf_dict key conf', conf_dict['products_url'])
-        products_url=conf_dict['products_url']
+        #products_url=conf_dict['products_url']
         return DataServerConf(data_server_url,data_server_port,data_server_remote_cache,dispatcher_mnt_point,dummy_cache)
 
     @classmethod
