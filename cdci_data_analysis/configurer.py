@@ -33,7 +33,7 @@ __author__ = "Andrea Tramacere"
 class DataServerConf(object):
 
     def __init__(self, data_server_url, data_server_port, data_server_remote_cache, dispatcher_mnt_point,
-                         dummy_cache):
+                         dummy_cache,products_url=None):
         # dataserver port
         self.data_server_port = data_server_port
 
@@ -56,10 +56,8 @@ class DataServerConf(object):
         else:
             self.dispatcher_mnt_point=None
 
-        #if products_url is not None:
-        #    self.products_url=products_url
-        #else:
-        #    self.products_url=None
+
+        self.products_url=products_url
 
         if self.dispatcher_mnt_point is not None and self.data_server_remote_path is not None:
             #self.data_server_cache = os.path.join(self.dispatcher_mnt_point, self.data_server_remote_path)
@@ -90,9 +88,12 @@ class DataServerConf(object):
 
         dispatcher_mnt_point = conf_dict['dispatcher_mnt_point']
 
-        print('--> conf_dict key conf', conf_dict.keys())
-        #products_url=conf_dict['products_url']
-        return DataServerConf(data_server_url,data_server_port,data_server_remote_cache,dispatcher_mnt_point,dummy_cache)
+        #print('--> conf_dict key conf', conf_dict.keys())
+        if 'products_url' in conf_dict.keys():
+            products_url=conf_dict['products_url']
+        else:
+            products_url=None
+        return DataServerConf(data_server_url,data_server_port,data_server_remote_cache,dispatcher_mnt_point,dummy_cache,products_url)
 
     @classmethod
     def from_conf_file(cls, conf_file):
