@@ -122,14 +122,19 @@ class ConfigEnv(object):
         if 'dispatcher' in cfg_dict.keys():
 
             disp_dict=cfg_dict['dispatcher']
+            if 'products_url' in disp_dict.keys():
+                products_url=disp_dict['products_url']
+            else:
+                products_url=None
 
             self.set_conf_dispatcher(disp_dict['dispatcher_url'],
                                      disp_dict['dispatcher_port'],
                                      disp_dict['sentry_url'],
                                      disp_dict['logstash_host'],
-                                     disp_dict['logstash_port'])
+                                     disp_dict['logstash_port'],
+                                     products_url)
 
-            print('--> dispatcher key conf',disp_dict['products_url'])
+            #print('--> dispatcher key conf',disp_dict['products_url'])
 
         #print('--> _data_server_conf_dict', self._data_server_conf_dict)
 
@@ -146,7 +151,7 @@ class ConfigEnv(object):
         self._data_server_conf_dict[instr_name] = _dict
         #self._data_server_conf_dict[instr_name] = DataServerConf.from_conf_dict(data_server_conf_dict)
 
-    def set_conf_dispatcher(self,dispatcher_url,dispatcher_port,sentry_url,logstash_host,logstash_port):
+    def set_conf_dispatcher(self,dispatcher_url,dispatcher_port,sentry_url,logstash_host,logstash_port,products_url):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
         self.dispatcher_url = dispatcher_url
@@ -154,7 +159,7 @@ class ConfigEnv(object):
         self.sentry_url=sentry_url
         self.logstash_host=logstash_host
         self.logstash_port=logstash_port
-        #self.products_url=products_url
+        self.products_url=products_url
 
 
     def get_data_serve_conf(self,instr_name):
