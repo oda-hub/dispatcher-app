@@ -808,8 +808,8 @@ class InstrumentQueryBackEnd(object):
 
             print ('*** run_asynch',run_asynch)
             print ('*** api', api)
-            self.instrument.conf=self.conf
-            print('CICCIO, conf',self.conf)
+            self.instrument.config=self.config
+            print('CICCIO, conf',self.config)
             query_out = self.instrument.run_query(product_type,
                                                     self.par_dic,
                                                     request,
