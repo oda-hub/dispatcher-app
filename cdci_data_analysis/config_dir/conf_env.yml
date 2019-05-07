@@ -5,6 +5,7 @@
         dispatcher_mnt_point: /Users/orion/astro/Integral_Web_Analysis/TEST_DISPATCHER/ddosa_cache
 
 dispatcher:
+    products_url: set_this_url_in_conf_file
     dispatcher_url: 0.0.0.0
     dispatcher_port: 5000
     sentry_url: http://5d0557416d874ff0bca9fbce3a599341:b2b6058b42ae47d99a37e95a11d3868d@10.194.169.75:9000/2

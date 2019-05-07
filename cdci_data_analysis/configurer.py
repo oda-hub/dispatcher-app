@@ -126,7 +126,8 @@ class ConfigEnv(object):
                                      disp_dict['sentry_url'],
                                      disp_dict['logstash_host'],
                                      disp_dict['logstash_port'])
-            #print('--> dispatcher key conf',disp_dict)
+
+            print('--> dispatcher key conf',disp_dict['products_url'])
 
         #print('--> _data_server_conf_dict', self._data_server_conf_dict)
 
