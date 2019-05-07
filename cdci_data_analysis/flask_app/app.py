@@ -982,6 +982,7 @@ def run_analysis_test():
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
+    print('CCCCCCCCCC',app.config['conf'])
     query=InstrumentQueryBackEnd()
     return query.run_query()
 
