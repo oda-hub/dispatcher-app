@@ -33,7 +33,7 @@ __author__ = "Andrea Tramacere"
 class DataServerConf(object):
 
     def __init__(self, data_server_url, data_server_port, data_server_remote_cache, dispatcher_mnt_point,
-                         dummy_cache,products_url):
+                         dummy_cache):
         # dataserver port
         self.data_server_port = data_server_port
 
@@ -56,10 +56,10 @@ class DataServerConf(object):
         else:
             self.dispatcher_mnt_point=None
 
-        if products_url is not None:
-            self.products_url=products_url
-        else:
-            self.products_url=None
+        #if products_url is not None:
+        #    self.products_url=products_url
+        #else:
+        #    self.products_url=None
 
         if self.dispatcher_mnt_point is not None and self.data_server_remote_path is not None:
             #self.data_server_cache = os.path.join(self.dispatcher_mnt_point, self.data_server_remote_path)
@@ -90,8 +90,8 @@ class DataServerConf(object):
 
         dispatcher_mnt_point = conf_dict['dispatcher_mnt_point']
 
-        products_url=conf_dict['products_url']
-        return DataServerConf(data_server_url,data_server_port,data_server_remote_cache,dispatcher_mnt_point,dummy_cache,products_url)
+        #products_url=conf_dict['products_url']
+        return DataServerConf(data_server_url,data_server_port,data_server_remote_cache,dispatcher_mnt_point,dummy_cache)
 
     @classmethod
     def from_conf_file(cls, conf_file):
@@ -143,7 +143,7 @@ class ConfigEnv(object):
         self._data_server_conf_dict[instr_name] = _dict
         #self._data_server_conf_dict[instr_name] = DataServerConf.from_conf_dict(data_server_conf_dict)
 
-    def set_conf_dispatcher(self,dispatcher_url,dispatcher_port,sentry_url,logstash_host,logstash_port,products_url):
+    def set_conf_dispatcher(self,dispatcher_url,dispatcher_port,sentry_url,logstash_host,logstash_port):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
         self.dispatcher_url = dispatcher_url
@@ -151,7 +151,7 @@ class ConfigEnv(object):
         self.sentry_url=sentry_url
         self.logstash_host=logstash_host
         self.logstash_port=logstash_port
-        self.products_url=products_url
+        #self.products_url=products_url
 
 
     def get_data_serve_conf(self,instr_name):
