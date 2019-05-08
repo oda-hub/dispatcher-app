@@ -38,12 +38,23 @@ matplotlib.use('Agg', warn=False)
 
 from .plot_tools import  Image,ScatterPlot,GridPlot
 
-from  oda_api.data_products import NumpyDataProduct
+from  oda_api.data_products import NumpyDataProduct, NumpyDataUnit
+
 from  oda_api.api import  DispatcherAPI
 from .parameters import *
 from .io_helper import FilePath
 from .io_helper import view_traceback, FitsFile
 from .job_manager import Job
+
+try:
+    from urllib.parse import urlencode
+except ImportError:
+    from urllib import urlencode
+
+
+
+
+
 
 
 class QueryOutput(object):
@@ -273,7 +284,13 @@ class BaseQueryProduct(object):
         else:
             file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
 
+
         self.data.write_fits_file(file_path, overwrite=overwrite)
+
+    def add_url_to_fits_file(self,par_dict,url=''):
+        url = '%s/%s' % (url, urlencode(par_dict))
+        url_dict={'url' : url}
+        self.data.data_unit.append(NumpyDataUnit(None, name='ODA URL', hdu_type='primary', data_header=url_dict))
 
 
 

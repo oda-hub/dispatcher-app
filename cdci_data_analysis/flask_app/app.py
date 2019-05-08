@@ -610,7 +610,7 @@ class InstrumentQueryBackEnd(object):
     def get_file_mtime(self,file):
         return os.path.getmtime(file)
 
-    def run_query(self,off_line=False):
+    def run_query(self,off_line=False,disp_conf=None):
 
         print ('==============================> run query <==============================')
 
@@ -808,6 +808,10 @@ class InstrumentQueryBackEnd(object):
 
             print ('*** run_asynch',run_asynch)
             print ('*** api', api)
+            #if disp_conf is not None:
+            #    print('ECCOLO',disp_conf.products_url)
+            print ('config_data_server',config_data_server )
+            self.instrument.disp_conf=disp_conf
             query_out = self.instrument.run_query(product_type,
                                                     self.par_dic,
                                                     request,
@@ -982,7 +986,7 @@ def run_analysis_test():
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
     query=InstrumentQueryBackEnd()
-    return query.run_query()
+    return query.run_query(disp_conf=app.config['conf'])
 
 
 

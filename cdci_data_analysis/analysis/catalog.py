@@ -163,12 +163,12 @@ class BasicCatalog(object):
     def write_ds9_region(self,name,overwrite=True):
         ra=self.sc.fk5.ra
         dec=self.sc.fk5.dec
-
+        src_names=self.name
 
         with open(name,'w') as f:
-            for r,d in zip(ra,dec):
+            for r,d,src_name in zip(ra,dec,src_names):
 
-                s=u'''fk5; point %f %f #point = x \n'''%(r.deg,d.deg)
+                s=u'''fk5; point %f %f #point = x  text = {%s} \n'''%(r.deg,d.deg,src_name)
                 f.write(s)
 
 

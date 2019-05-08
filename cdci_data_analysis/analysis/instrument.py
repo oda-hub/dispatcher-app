@@ -181,6 +181,7 @@ class Instrument(object):
 
         #prod_dictionary={}
 
+        self._current_par_dic=par_dic
 
         if logger is None:
             logger = self.get_logger()
