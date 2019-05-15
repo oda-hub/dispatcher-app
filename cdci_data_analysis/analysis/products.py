@@ -300,6 +300,7 @@ class BaseQueryProduct(object):
             if du is None:
                 du=self.data.get_data_unit(0)
             if du is not None:
+                print('du.hdu_type',du.hdu_type)
                 if du.hdu_type!='primary':
                     du=None
 
