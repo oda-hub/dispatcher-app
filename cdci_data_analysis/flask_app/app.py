@@ -578,11 +578,11 @@ class InstrumentQueryBackEnd(object):
                         if k in self.instrument.data_server_conf_dict.keys():
                             self.instrument.data_server_conf_dict[k] = disp_data_server_conf_dict['data_server'][self.instrument.name][k]
 
-            config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
-        else:
+        #    config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
+        #else:
 
-            config_data_server=None
-        #print('--> config_data_server', config_data_server,type(config))
+        config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
+
 
         return config,config_data_server
 

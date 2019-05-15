@@ -293,19 +293,25 @@ class BaseQueryProduct(object):
 
         url_dict = OrderedDict()
         url_dict['url']=url
+        #self.data.show()
         if use_primary is True:
             du=self.data.get_data_unit_by_name('PRIMARY')
+            #print('du PRIMARY',du)
             if du is None:
                 du = self.data.get_data_unit_by_name('Primary')
+                #print('du PRIMARY', du)
             if du is None:
                 du=self.data.get_data_unit(0)
+                #print('du.hdu_type', du.hdu_type)
             if du is not None:
+                #print('du.hdu_type',du.hdu_type)
                 if du.hdu_type!='primary':
                     du=None
 
         if du is None or use_primary is False:
-            du=NumpyDataUnit(None, name='PRIMARY', hdu_type='primary')
-            self.data.data_unit.append(du)
+            #print('du not found' )
+            du=NumpyDataUnit(None, name='Primary', hdu_type='primary')
+            self.data.data_unit.insert(0,du)
 
 
         if add_query_dict is True:
@@ -318,8 +324,7 @@ class BaseQueryProduct(object):
         #du.header.append(url_dict.keys(), end=True)
         #for k in url_dict.keys():
         #    du.header[k]=url_dict[k]
-
-
+        self.data.show()
 
 class ImageProduct(BaseQueryProduct):
     def __init__(self,name='', data=None, file_name='image.fits',meta_data={}, **kwargs):
@@ -370,8 +375,9 @@ class LightCurveProduct(BaseQueryProduct):
 
     def get_html_draw(self,x,y,dy=None,dx=None,x_label='',y_label='',title=None,max_bins=1E4):
         warning=''
-
+        max_bins=np.int(max_bins)
         if (np.size(x)>max_bins):
+            #print(np.size(x),np.shape(x),max_bins,x[:])
             actual_size = np.size(x)
             x=x[:max_bins]
             y=y[:max_bins]
