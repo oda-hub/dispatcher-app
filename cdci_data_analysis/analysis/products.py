@@ -17,6 +17,7 @@ __author__ = "Andrea Tramacere"
 # relative import eg: from .mod import f
 
 import json
+from collections import OrderedDict
 
 #from pathlib import Path
 
@@ -287,10 +288,36 @@ class BaseQueryProduct(object):
 
         self.data.write_fits_file(file_path, overwrite=overwrite)
 
-    def add_url_to_fits_file(self,par_dict,url=''):
+    def add_url_to_fits_file(self,par_dict,url='',use_primary=True,add_query_dict=True):
         url = '%s/%s' % (url, urlencode(par_dict))
-        url_dict={'url' : url}
-        self.data.data_unit.append(NumpyDataUnit(None, name='ODA URL', hdu_type='primary', data_header=url_dict))
+
+        url_dict = OrderedDict()
+        url_dict['url']=url
+        if use_primary is True:
+            du=self.data.get_data_unit_by_name('PRIMARY')
+            if du is None:
+                du = self.data.get_data_unit_by_name('Primary')
+            if du is None:
+                du=self.data.get_data_unit(0)
+            if du is not None:
+                if du.hdu_type!='primary':
+                    du=None
+
+        if du is None or use_primary is False:
+            du=NumpyDataUnit(None, name='PRIMARY', hdu_type='primary')
+            self.data.data_unit.append(du)
+
+
+        if add_query_dict is True:
+            url_dict.update(par_dict)
+            #_d_list.append(par_dict)
+
+        print ('url_dict',url_dict)
+        url_dict.update(du.header)
+        du.header=url_dict
+        #du.header.append(url_dict.keys(), end=True)
+        #for k in url_dict.keys():
+        #    du.header[k]=url_dict[k]
 
 
 
