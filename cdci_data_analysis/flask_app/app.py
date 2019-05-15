@@ -581,7 +581,8 @@ class InstrumentQueryBackEnd(object):
             config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
         else:
 
-            config_data_server=None
+            config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
+
         #print('--> config_data_server', config_data_server,type(config))
 
         return config,config_data_server
