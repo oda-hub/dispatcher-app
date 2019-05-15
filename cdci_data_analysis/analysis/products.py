@@ -17,6 +17,7 @@ __author__ = "Andrea Tramacere"
 # relative import eg: from .mod import f
 
 import json
+from collections import OrderedDict
 
 #from pathlib import Path
 
@@ -289,7 +290,9 @@ class BaseQueryProduct(object):
 
     def add_url_to_fits_file(self,par_dict,url='',use_primary=True,add_query_dict=True):
         url = '%s/%s' % (url, urlencode(par_dict))
-        url_dict={'url' : url}
+
+        url_dict = OrderedDict()
+        url_dict['url']=url
         if use_primary is True:
             du=self.data.get_data_unit_by_name('PRIMARY')
 
