@@ -298,13 +298,12 @@ class BaseQueryProduct(object):
             self.data.data_unit.append(du)
 
 
-        _d_list = [url_dict]
         if add_query_dict is True:
-            _d_list.append(par_dict)
+            url_dict.update(par_dict)
+            #_d_list.append(par_dict)
 
-        for d in _d_list:
-            for k in d.keys():
-                du.header[k]=d[k]
+        for k in url_dict.keys():
+            du.header[k]=url_dict[k]
 
 
 
