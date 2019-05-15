@@ -324,8 +324,7 @@ class BaseQueryProduct(object):
         #du.header.append(url_dict.keys(), end=True)
         #for k in url_dict.keys():
         #    du.header[k]=url_dict[k]
-
-
+        self.data.show()
 
 class ImageProduct(BaseQueryProduct):
     def __init__(self,name='', data=None, file_name='image.fits',meta_data={}, **kwargs):
