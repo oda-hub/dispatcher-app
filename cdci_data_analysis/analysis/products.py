@@ -377,7 +377,7 @@ class LightCurveProduct(BaseQueryProduct):
         warning=''
         max_bins=np.int(max_bins)
         if (np.size(x)>max_bins):
-            print(np.size(x),np.shape(x),max_bins,x[:])
+            #print(np.size(x),np.shape(x),max_bins,x[:])
             actual_size = np.size(x)
             x=x[:max_bins]
             y=y[:max_bins]
