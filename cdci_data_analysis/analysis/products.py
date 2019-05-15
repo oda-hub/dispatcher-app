@@ -293,12 +293,16 @@ class BaseQueryProduct(object):
 
         url_dict = OrderedDict()
         url_dict['url']=url
+        self.data.show()
         if use_primary is True:
             du=self.data.get_data_unit_by_name('PRIMARY')
+            print('du PRIMARY',du)
             if du is None:
                 du = self.data.get_data_unit_by_name('Primary')
+                print('du PRIMARY', du)
             if du is None:
                 du=self.data.get_data_unit(0)
+                print('du.hdu_type', du.hdu_type)
             if du is not None:
                 print('du.hdu_type',du.hdu_type)
                 if du.hdu_type!='primary':
