@@ -287,10 +287,24 @@ class BaseQueryProduct(object):
 
         self.data.write_fits_file(file_path, overwrite=overwrite)
 
-    def add_url_to_fits_file(self,par_dict,url=''):
+    def add_url_to_fits_file(self,par_dict,url='',use_primary=True,add_query_dict=True):
         url = '%s/%s' % (url, urlencode(par_dict))
         url_dict={'url' : url}
-        self.data.data_unit.append(NumpyDataUnit(None, name='ODA URL', hdu_type='primary', data_header=url_dict))
+        if use_primary is True:
+            du=self.data.get_data_unit_by_name('PRIMARY')
+
+        if du is None or use_primary is False:
+            du=NumpyDataUnit(None, name='PRIMARY', hdu_type='primary')
+            self.data.data_unit.append(du)
+
+
+        _d_list = [url_dict]
+        if add_query_dict is True:
+            _d_list.append(par_dict)
+
+        for d in _d_list:
+            for k in d.keys():
+                du.header[k]=d[k]
 
 
 
