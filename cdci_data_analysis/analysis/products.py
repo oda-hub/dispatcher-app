@@ -295,6 +295,13 @@ class BaseQueryProduct(object):
         url_dict['url']=url
         if use_primary is True:
             du=self.data.get_data_unit_by_name('PRIMARY')
+            if du is None:
+                du = self.data.get_data_unit_by_name('Primary')
+            if du is None:
+                du=self.data.get_data_unit(0)
+            if du is not None:
+                if du.hdu_type!='primary':
+                    du=None
 
         if du is None or use_primary is False:
             du=NumpyDataUnit(None, name='PRIMARY', hdu_type='primary')
