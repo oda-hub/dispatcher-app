@@ -375,7 +375,7 @@ class LightCurveProduct(BaseQueryProduct):
 
     def get_html_draw(self,x,y,dy=None,dx=None,x_label='',y_label='',title=None,max_bins=1E4):
         warning=''
-
+        max_bins=np.int(max_bins)
         if (np.size(x)>max_bins):
             print(np.size(x),np.shape(x),max_bins,x[:])
             actual_size = np.size(x)
