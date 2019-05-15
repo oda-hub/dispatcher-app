@@ -306,9 +306,11 @@ class BaseQueryProduct(object):
             #_d_list.append(par_dict)
 
         print ('url_dict',url_dict)
-        du.header.append(url_dict.keys(), end=True)
-        for k in url_dict.keys():
-            du.header[k]=url_dict[k]
+        url_dict.update(du.header)
+        du.header=url_dict
+        #du.header.append(url_dict.keys(), end=True)
+        #for k in url_dict.keys():
+        #    du.header[k]=url_dict[k]
 
 
 
