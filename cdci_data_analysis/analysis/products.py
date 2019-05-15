@@ -304,6 +304,7 @@ class BaseQueryProduct(object):
                     du=None
 
         if du is None or use_primary is False:
+            print('du not found' )
             du=NumpyDataUnit(None, name='Primary', hdu_type='primary')
             self.data.data_unit.append(du)
 
