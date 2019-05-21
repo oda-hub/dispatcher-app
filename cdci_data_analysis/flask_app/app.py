@@ -580,8 +580,8 @@ class InstrumentQueryBackEnd(object):
 
         #    config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
         #else:
-
-        config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
+        if hasattr(self,'instrument'):
+            config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
 
 
         return config,config_data_server
