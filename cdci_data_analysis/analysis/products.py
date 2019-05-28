@@ -290,7 +290,7 @@ class BaseQueryProduct(object):
         self.data.write_fits_file(file_path, overwrite=overwrite)
 
     def add_url_to_fits_file(self,par_dict,url='',use_primary=True,add_query_dict=True):
-        url = '%s/%s' % (url, urlencode(par_dict))
+        url = '%s?%s' % (url, urlencode(par_dict))
 
         url_dict = OrderedDict()
         url_dict['url']=url
