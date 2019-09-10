@@ -163,6 +163,53 @@ class Image(object):
         html_dict['div'] = div
         return html_dict
 
+    def get_js9_html(self, file_path):
+        t = '''
+            <html>
+            <head>
+              <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+              <meta http-equiv="X-UA-Compatible" content="IE=Edge;chrome=1" > 
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <link type="image/x-icon" rel="shortcut icon" href="./favicon.ico">
+              <link type="text/css" rel="stylesheet" href="https://js9.si.edu/js9/js9support.css">
+              <link type="text/css" rel="stylesheet" href="https://js9.si.edu/js9/js9.css">
+              <script type="text/javascript" src="https://js9.si.edu/js9/js9prefs.js"></script>
+              <script type="text/javascript" src="https://js9.si.edu/js9/js9support.min.js"></script>
+              <script type="text/javascript" src="https://js9.si.edu/js9/js9.min.js"></script>
+              <script type="text/javascript" src="https://js9.si.edu/js9/js9plugins.js"></script>
+                </head>
+            <body>
+
+
+            <center><font size="+1">
+            </font></center>
+            <table cellspacing="30">
+            <tr valign="top">
+            <td>	
+            </td>
+            <td>	
+            <tr valign="top">
+            <td>
+            <div class="JS9Menubar"></div>
+            <div class="JS9"></div>
+            </td>
+            <td>
+            
+            <p>
+            </td>
+            </tr>
+            </table>
+            <script type="text/javascript">
+              function init(){
+                  JS9.Preload("%s", {scale:"log"});
+              }
+              $(document).ready(function(){
+                init();
+              });
+            </script>
+            
+        </body>
+        </html>'''%file_path
 
 
 class ScatterPlot(object):

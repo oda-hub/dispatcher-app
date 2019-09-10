@@ -76,7 +76,11 @@ class InstrumentQueryBackEnd(object):
 
             if get_meta_data==True:
                 self.set_instrument(self.instrument_name)
-
+                #TODO
+                #decide if it is worth to add the logger also in this case
+                #self.set_scratch_dir(self.par_dic['session_id'], verbose=verbose)
+                #self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
+                #self.set_sentry_client()
             else:
                 if data_server_call_back is True:
                     self.job_id = self.par_dic['job_id']
