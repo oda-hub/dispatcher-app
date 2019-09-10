@@ -211,6 +211,7 @@ class Image(object):
         </body>
         </html>'''%file_path
 
+        return t
 
 class ScatterPlot(object):
 
