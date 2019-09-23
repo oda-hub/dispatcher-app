@@ -11,3 +11,7 @@ dispatcher:
     sentry_url: http://5d0557416d874ff0bca9fbce3a599341:b2b6058b42ae47d99a37e95a11d3868d@10.194.169.75:9000/2
     logstash_host: 10.194.169.75
     logstash_port: 5001
+
+microservice:
+    microservice_url: 0.0.0.0
+    microservice_port: 5001

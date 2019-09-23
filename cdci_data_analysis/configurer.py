@@ -134,6 +134,11 @@ class ConfigEnv(object):
                                      disp_dict['logstash_port'],
                                      products_url)
 
+        if 'microservice' in cfg_dict.keys():
+            mirco_dict = cfg_dict['microservice']
+            self.set_conf_microservice(mirco_dict['microservice_url'],mirco_dict['microservice_port'])
+
+        #
             #print('--> dispatcher key conf',disp_dict['products_url'])
 
         #print('--> _data_server_conf_dict', self._data_server_conf_dict)
@@ -146,6 +151,10 @@ class ConfigEnv(object):
 
         #print ('ds_dict from get_data_server_conf_dict', ds_dict)
         return ds_dict
+
+    def set_conf_microservice(self,url,port):
+        self.microservice_url =url
+        self.microservice_port = port
 
     def add_data_server_conf_dict(self,instr_name,_dict):
         self._data_server_conf_dict[instr_name] = _dict
