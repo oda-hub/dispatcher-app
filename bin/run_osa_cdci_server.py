@@ -37,6 +37,7 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
         self.options = options or {}
         self.application = app
         self.app_conf = app_conf
+        self.app=app
         super(StandaloneApplication, self).__init__()
 
     def load_config(self):
