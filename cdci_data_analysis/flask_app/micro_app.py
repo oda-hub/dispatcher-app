@@ -22,10 +22,10 @@ def get_addressess():
 
 def run_micro_service(conf,debug=False,threaded=False):
     micro_service.config['conf'] = conf
-    if conf.sentry_url is not None:
-        print('conf micro',micro_service.config['conf'])
-        #sentry = Sentry(app, dsn=conf.sentry_url)
-        micro_service.run(host='0.0.0.0', port=32790, debug=debug,threaded=threaded)
+    #if conf.sentry_url is not None:
+    print('conf micro',micro_service.config['conf'])
+    #sentry = Sentry(app, dsn=conf.sentry_url)
+    micro_service.app.run(host=conf.microservice_url, port=conf.microservice_port, debug=debug,threaded=threaded)
 
 #if __name__ == '__main__':
 #    micro_service.run(host="localhost", port=12345)
