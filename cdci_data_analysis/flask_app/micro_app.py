@@ -11,7 +11,7 @@ def get_SED():
     t.write('test.fits', format='fits', overwrite=True)
     p=NumpyDataProduct.from_fits_file('test.fits', meta_data=t.meta, name='SED')
     out_dict={}
-    out_dict['products']=None
+    out_dict['products']={}
     out_dict['products']['numpy_data_product_list'] = [p.encode()]
     # print ( 'ECCO',out_dict['products']['numpy_data_product_list'],_p,_npdl)
     return jsonify(out_dict)
