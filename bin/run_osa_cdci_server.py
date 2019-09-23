@@ -50,8 +50,8 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
     def load(self):
         return self.application
 
-    def run(self, conf, debug=False, threaded=False):
-        run_app(conf, debug=debug, threaded=threaded)
+    def run(self,conf, debug=False, threaded=False):
+        self.app(conf, debug=debug, threaded=threaded)
         #self.application.config['osaconf'] = conf
         #self.application.run(host=conf.dispatcher_url, port=conf.dispatcher_port, debug=debug, threaded=threaded)
 
