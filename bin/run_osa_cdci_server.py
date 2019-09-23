@@ -33,10 +33,11 @@ def number_of_workers():
 
 
 class StandaloneApplication(gunicorn.app.base.BaseApplication):
-    def __init__(self, app, run,options=None, app_conf=None):
+    def __init__(self, app, app_runner,options=None, app_conf=None):
         self.options = options or {}
         self.application = app
         self.app_conf = app_conf
+        self.app_runner = app_runner
         super(StandaloneApplication, self).__init__()
 
     def load_config(self):
@@ -50,8 +51,8 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
     def load(self):
         return self.application
 
-    def run(self, conf,run, debug=False, threaded=False):
-        run(conf, debug=debug, threaded=threaded)
+    def run(self, conf, debug=False, threaded=False):
+        self.app_runner(conf, debug=debug, threaded=threaded)
         #self.application.config['osaconf'] = conf
         #self.application.run(host=conf.dispatcher_url, port=conf.dispatcher_port, debug=debug, threaded=threaded)
 
