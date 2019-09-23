@@ -33,11 +33,10 @@ def number_of_workers():
 
 
 class StandaloneApplication(gunicorn.app.base.BaseApplication):
-    def __init__(self, app, options=None, app_conf=None):
+    def __init__(self, app, run,options=None, app_conf=None):
         self.options = options or {}
         self.application = app
         self.app_conf = app_conf
-        self.app=app
         super(StandaloneApplication, self).__init__()
 
     def load_config(self):
@@ -51,8 +50,8 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
     def load(self):
         return self.application
 
-    def run(self,conf, debug=False, threaded=False):
-        self.app(conf, debug=debug, threaded=threaded)
+    def run(self, conf,run, debug=False, threaded=False):
+        run(conf, debug=debug, threaded=threaded)
         #self.application.config['osaconf'] = conf
         #self.application.run(host=conf.dispatcher_url, port=conf.dispatcher_port, debug=debug, threaded=threaded)
 
@@ -91,8 +90,8 @@ def main(argv=None):
             #'worker-connections': 10,
             #'k': 'gevent',
         }
-        StandaloneApplication(app, options).run(conf, debug=debug,threaded=True)
-        StandaloneApplication(micro_service, options).run(conf, debug=debug, threaded=True)
+        StandaloneApplication(app, run_app, options).run(conf, debug=debug,threaded=True)
+        StandaloneApplication(micro_service, run_micro_service, options).run(conf, debug=debug, threaded=True)
     else:
         run_app(conf, debug=debug, threaded=False)
 
