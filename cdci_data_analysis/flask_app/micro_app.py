@@ -25,7 +25,7 @@ def get_SED():
     #t_rec = pickle.loads(t_rec)
     #t_rec
 
-    return jsonify(_o_dict)
+    return _o_dict
 
 def run_micro_service(conf,debug=False,threaded=False):
     micro_service.config['conf'] = conf
