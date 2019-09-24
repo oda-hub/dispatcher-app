@@ -32,6 +32,7 @@ def run_micro_service(conf,debug=False,threaded=False):
     #if conf.sentry_url is not None:
     print('conf micro',micro_service.config['conf'])
     #sentry = Sentry(app, dsn=conf.sentry_url)
+    micro_service.config['JSON_AS_ASCII'] = False
     micro_service.run(host=conf.microservice_url, port=conf.microservice_port, debug=debug,threaded=threaded)
 
 #if __name__ == '__main__':
