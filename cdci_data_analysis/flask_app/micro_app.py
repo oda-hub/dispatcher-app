@@ -22,7 +22,7 @@ def get_SED():
     #out_dict['products']['astropy_table_product_list'] = [json.dumps(table_text)]
     # print ( 'ECCO',out_dict['products']['numpy_data_product_list'],_p,_npdl)
     t = Table.read('MAGIC_data/19e/magic_19e_sed_fig3_mwl_target01.ecsv', format='ascii')
-    _binarys = base64.b64encode(pickle.dumps(t,protocol=2)).decode('utf-8')
+    _binarys = base64.b64encode(pickle.dumps(t,protocol=2))
     _o_dict = {}
     _o_dict['products'] = _binarys
     _o_dict = json.dumps(_o_dict)
