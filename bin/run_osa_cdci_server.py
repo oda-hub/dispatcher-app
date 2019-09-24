@@ -91,8 +91,8 @@ def main(argv=None):
             #'worker-connections': 10,
             #'k': 'gevent',
         }
-        #StandaloneApplication(app, run_app, options).run(conf, debug=debug,threaded=True)
-        StandaloneApplication(micro_service, run_micro_service, options).run(conf, debug=debug, threaded=True)
+        StandaloneApplication(app, run_app, options).run(conf, debug=debug,threaded=True)
+        #StandaloneApplication(micro_service, run_micro_service, options).run(conf, debug=debug, threaded=True)
     else:
         run_app(conf, debug=debug, threaded=False)
 
