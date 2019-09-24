@@ -1,20 +1,31 @@
 from flask import Flask, jsonify, abort
-from oda_api.data_products import NumpyDataProduct, NumpyDataUnit
 from astropy.table import Table
 import json
+import  base64
+import pickle
+
 micro_service = Flask("micro_service")
 
 
-@micro_service.route('/address_book/api/v1.0/addresses', methods=['GET'])
+@micro_service.route('/api/v1.0/magic', methods=['GET'])
 def get_SED():
-    t = Table.read('MAGIC_data/19e/magic_19e_sed_fig3_mwl_target01.ecsv', format='ascii')
-    t.write('test.fits', format='fits', overwrite=True)
-    p=NumpyDataProduct.from_fits_file('test.fits', meta_data=t.meta, name='SED')
-    out_dict={}
-    out_dict['products']={}
-    out_dict['products']['numpy_data_product_list'] = [p.encode()]
+    #with open("MAGIC_data/19e/magic_19e_sed_fig3_mwl_target01.ecsv") as read_file:
+    #    table_text = read_file.read()
+    #out_dict={}
+    #out_dict['products']={}
+    #out_dict['products']['astropy_table_product_list'] = [json.dumps(table_text)]
     # print ( 'ECCO',out_dict['products']['numpy_data_product_list'],_p,_npdl)
-    return jsonify(out_dict)
+    t = Table.read('data/19e/magic_19e_sed_fig3_mwl_target01.ecsv', format='ascii')
+    _binarys = base64.b64encode(pickle.dumps(t)).decode('utf-8')
+    _o_dict = {}
+    _o_dict['products'] = _binarys
+    _o_dict = json.dumps(_o_dict)
+    #_o_dict = json.loads(_o_dict)
+    #t_rec = base64.b64decode(_o_dict['table'])
+    #t_rec = pickle.loads(t_rec)
+    #t_rec
+
+    return jsonify(_o_dict)
 
 def run_micro_service(conf,debug=False,threaded=False):
     micro_service.config['conf'] = conf
