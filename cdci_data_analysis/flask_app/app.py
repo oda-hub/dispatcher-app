@@ -20,7 +20,7 @@ import string
 import  random
 from raven.contrib.flask import Sentry
 
-from flask import jsonify,send_from_directory
+from flask import jsonify,send_from_directory,redirect
 from flask import Flask, request
 from flask.json import JSONEncoder
 
@@ -1026,6 +1026,11 @@ def page(page_id):
 def product(path):
     print('path',path)
     return send_from_directory(os.path.abspath('./'),path)
+
+
+@app.route('/js9/<path:path>',methods=['GET','POST'])
+def serve_js9(path):
+    return send_from_directory(os.path.abspath('static/js9/'), path)
 
 
 @app.route('/test_js9', methods=['POST', 'GET'])
