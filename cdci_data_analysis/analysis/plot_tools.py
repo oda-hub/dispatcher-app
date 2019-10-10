@@ -170,13 +170,13 @@ class Image(object):
               <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
               <meta http-equiv="X-UA-Compatible" content="IE=Edge;chrome=1" > 
               <meta name="viewport" content="width=device-width, initial-scale=1">
-              <link type="image/x-icon" rel="shortcut icon" href="./favicon.ico">
-              <link type="text/css" rel="stylesheet" href="https://js9.si.edu/js9/js9support.css">
-              <link type="text/css" rel="stylesheet" href="https://js9.si.edu/js9/js9.css">
-              <script type="text/javascript" src="https://js9.si.edu/js9/js9prefs.js"></script>
-              <script type="text/javascript" src="https://js9.si.edu/js9/js9support.min.js"></script>
-              <script type="text/javascript" src="https://js9.si.edu/js9/js9.min.js"></script>
-              <script type="text/javascript" src="https://js9.si.edu/js9/js9plugins.js"></script>
+              <link type="image/x-icon" rel="shortcut icon" href="js9/favicon.ico">
+              <link type="text/css" rel="stylesheet" href="js9/js9support.css">
+              <link type="text/css" rel="stylesheet" href="js9/js9.css">
+              <script type="text/javascript" src="js9/js9prefs.js"></script>
+              <script type="text/javascript" src="js9/js9support.min.js"></script>
+              <script type="text/javascript" src="js9/js9.min.js"></script>
+              <script type="text/javascript" src="js9/js9plugins.js"></script>
                 </head>
             <body>
 

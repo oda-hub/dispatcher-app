@@ -50,10 +50,11 @@ class CustomJSONEncoder(JSONEncoder):
         return JSONEncoder.default(self, obj)
 
 
-app = Flask(__name__)
+app = Flask(__name__,
+            static_url_path=os.path.abspath('./'),
+            static_folder='/static')
+
 app.json_encoder = CustomJSONEncoder
-
-
 
 class InstrumentQueryBackEnd(object):
 
@@ -1014,6 +1015,72 @@ def dataserver_call_back():
     return jsonify({})
 
 
+@app.route('/page/<int:page_id>', methods=['GET', 'POST'])
+def page(page_id):
+    print('page_id',page_id)
+    pass
+    #return '%d'%page_id
+
+
+@app.route('/product/<path:path>',methods=['GET','POST'])
+def product(path):
+    print('path',path)
+    return send_from_directory(os.path.abspath('./'),path)
+
+
+@app.route('/test_js9', methods=['POST', 'GET'])
+def test_js9():
+    return '''                                                                                                                                                                             
+
+<html>                                                                                                                                                                                     
+            <head>                                                                                                                                                                         
+              <meta http-equiv="Content-Type" content="text/html; charset=utf-8">                                                                                                          
+              <meta http-equiv="X-UA-Compatible" content="IE=Edge;chrome=1" >                                                                                                              
+              <meta name="viewport" content="width=device-width, initial-scale=1">                                                                                                         
+              <link type="image/x-icon" rel="shortcut icon" href="./favicon.ico">                                                                                                          
+              <link type="text/css" rel="stylesheet" href="js9/js9support.css">                                                                                                            
+              <link type="text/css" rel="stylesheet" href="js9/js9.css">                                                                                                                   
+              <script type="text/javascript" src="js9/js9prefs.js"></script>                                                                                                               
+              <script type="text/javascript" src="js9/js9support.min.js"></script>                                                                                                         
+              <script type="text/javascript" src="js9/js9.min.js"></script>                                                                                                                
+              <script type="text/javascript" src="js9/js9plugins.js"></script>                                                                                                             
+                </head>                                                                                                                                                                    
+            <body>                                                                                                                                                                         
+
+
+            <center><font size="+1">                                                                                                                                                       
+            </font></center>                                                                                                                                                               
+            <table cellspacing="30">                                                                                                                                                       
+            <tr valign="top">                                                                                                                                                              
+    <td>                                                                                                                                                                                   
+            </td>                                                                                                                                                                          
+    <td>                                                                                                                                                                                   
+            <tr valign="top">                                                                                                                                                              
+            <td>                                                                                                                                                                           
+            <div class="JS9Menubar"></div>                                                                                                                                                 
+            <div class="JS9"></div>                                                                                                                                                        
+            </td>                                                                                                                                                                          
+            <td>                                                                                                                                                                           
+
+            <p>                                                                                                                                                                            
+            </td>                                                                                                                                                                          
+            </tr>                                                                                                                                                                          
+            </table>                                                                                                                                                                       
+            <script type="text/javascript">                                                                                                                                                
+              function init(){                                                                                                                                                             
+                 var idx, obj;                                                                                                                                                             
+
+          JS9.Preload("product/dummy_prods/isgri_query_mosaic.fits");                                                                                                                      
+              }                                                                                                                                                                            
+              $(document).ready(function(){                                                                                                                                                
+                init();                                                                                                                                                                    
+              });                                                                                                                                                                          
+            </script>                                                                                                                                                                      
+
+        </body>                                                                                                                                                                            
+</html>                                                                                                                                                                                    
+
+'''
 
 
 def run_app(conf,debug=False,threaded=False):

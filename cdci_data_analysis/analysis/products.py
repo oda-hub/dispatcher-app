@@ -277,7 +277,7 @@ class BaseQueryProduct(object):
     @classmethod
     def from_fits_file(cls, name, in_file, file_name, ext, out_dir, prod_prefix=None, meta_data={}):
         data = NumpyDataProduct.from_fits_file(in_file, ext=ext, name=name, meta_data=meta_data)
-        return cls(name, data=data, file_dir=out_dir, prod_prefix=prod_prefix, file_name=file_name)
+        return cls(name, data=data, file_dir=out_dir, name_prefix=prod_prefix, file_name=file_name)
 
     def write(self, file_name=None, overwrite=True, file_dir=None):
         if file_name is None:
