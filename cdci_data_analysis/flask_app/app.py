@@ -1024,17 +1024,77 @@ def page(page_id):
 
 @app.route('/product/<path:path>',methods=['GET','POST'])
 def product(path):
-    print('path',path)
+    #print('path',path)
     return send_from_directory(os.path.abspath('./'),path)
 
 
-@app.route('/js9/<path:path>',methods=['GET','POST'])
-def serve_js9(path):
-    return send_from_directory(os.path.abspath('static/js9/'), path)
+#@app.route('/js9/<path:path>',methods=['GET','POST'])
+#def serve_js9(path):
+#    return send_from_directory(os.path.abspath('static/js9/'), path)
 
+
+@app.route('/get_js9_plot', methods=['POST', 'GET'])
+def js9_plot():
+    args = request.args.to_dict()
+    file_path = args['file_path']
+
+
+    print('get_js9_plot path',file_path)
+    return '''                                                                                                                                                                             
+
+    <html>                                                                                                                                                                                     
+                <head>                                                                                                                                                                         
+                  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">                                                                                                          
+                  <meta http-equiv="X-UA-Compatible" content="IE=Edge;chrome=1" >                                                                                                              
+                  <meta name="viewport" content="width=device-width, initial-scale=1">                                                                                                         
+                  <link type="image/x-icon" rel="shortcut icon" href="./favicon.ico">                                                                                                          
+                  <link type="text/css" rel="stylesheet" href="js9/js9support.css">                                                                                                            
+                  <link type="text/css" rel="stylesheet" href="js9/js9.css">                                                                                                                   
+                  <script type="text/javascript" src="js9/js9prefs.js"></script>                                                                                                               
+                  <script type="text/javascript" src="js9/js9support.min.js"></script>                                                                                                         
+                  <script type="text/javascript" src="js9/js9.min.js"></script>                                                                                                                
+                  <script type="text/javascript" src="js9/js9plugins.js"></script>                                                                                                             
+                    </head>                                                                                                                                                                    
+                <body>                                                                                                                                                                         
+
+
+                <center><font size="+1">                                                                                                                                                       
+                </font></center>                                                                                                                                                               
+                <table cellspacing="30">                                                                                                                                                       
+                <tr valign="top">                                                                                                                                                              
+        <td>                                                                                                                                                                                   
+                </td>                                                                                                                                                                          
+        <td>                                                                                                                                                                                   
+                <tr valign="top">                                                                                                                                                              
+                <td>                                                                                                                                                                           
+                <div class="JS9Menubar"></div>                                                                                                                                                 
+                <div class="JS9"></div>                                                                                                                                                        
+                </td>                                                                                                                                                                          
+                <td>                                                                                                                                                                           
+
+                <p>                                                                                                                                                                            
+                </td>                                                                                                                                                                          
+                </tr>                                                                                                                                                                          
+                </table>                                                                                                                                                                       
+                <script type="text/javascript">                                                                                                                                                
+                  function init(){                                                                                                                                                             
+                     var idx, obj;                                                                                                                                                             
+
+              JS9.Preload("product/%s");                                                                                                                      
+                  }                                                                                                                                                                            
+                  $(document).ready(function(){                                                                                                                                                
+                    init();                                                                                                                                                                    
+                  });                                                                                                                                                                          
+                </script>                                                                                                                                                                      
+
+            </body>                                                                                                                                                                            
+    </html>                                                                                                                                                                                    
+
+    ''' % file_path
 
 @app.route('/test_js9', methods=['POST', 'GET'])
 def test_js9():
+    print('get_js9_plot path')
     return '''                                                                                                                                                                             
 
 <html>                                                                                                                                                                                     
