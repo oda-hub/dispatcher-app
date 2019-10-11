@@ -167,7 +167,7 @@ class Image(object):
         region=''
         file='''JS9.Preload("product/%s", {scale: 'linear', colormap: 'plasma'}, {display: "%s"});'''%(file_path,id)
         if region_file is not None:
-            region='''JS9.LoadRegions("product/%s" {display: "%s"});\n'''%(region_file,id)
+            region='''JS9.LoadRegions("product/%s", {display: "%s"});\n'''%(region_file,id)
         t = '''                                                                                                                                                                             
     <html>                                                                                                                                                                                     
                 <head>                                                                                                                                                                         
