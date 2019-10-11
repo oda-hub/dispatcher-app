@@ -1067,7 +1067,8 @@ def js9_plot():
         <td>                                                                                                                                                                                   
                 <tr valign="top">                                                                                                                                                              
                 <td>                                                                                                                                                                           
-                <div class="JS9Menubar"></div>                                                                                                                                                 
+                <div class="JS9Menubar"></div>
+                <div class="JS9Colorbar"></div>
                 <div class="JS9"></div>                                                                                                                                                        
                 </td>                                                                                                                                                                          
                 <td>                                                                                                                                                                           
@@ -1079,8 +1080,7 @@ def js9_plot():
                 <script type="text/javascript">                                                                                                                                                
                   function init(){                                                                                                                                                             
                      var idx, obj;                                                                                                                                                             
-
-              JS9.Preload("product/%s");                                                                                                                      
+                     JS9.Preload("product/%s",{scale:'linear',colormap:'plasma'});                                                                                                                      
                   }                                                                                                                                                                            
                   $(document).ready(function(){                                                                                                                                                
                     init();                                                                                                                                                                    
@@ -1135,7 +1135,7 @@ def test_js9():
               function init(){                                                                                                                                                             
                  var idx, obj;                                                                                                                                                             
 
-              JS9.Preload("product/dummy_prods/isgri_query_mosaic.fits");                                                                                                                      
+                  JS9.Preload("product/dummy_prods/isgri_query_mosaic.fits",{scale:'linear',colormap:'plasma'});                                                                                                                      
               }                                                                                                                                                                            
               $(document).ready(function(){                                                                                                                                                
                 init();                                                                                                                                                                    
