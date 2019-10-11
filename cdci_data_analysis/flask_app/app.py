@@ -1041,7 +1041,7 @@ def js9_plot():
     region_file=None
     if 'region_file' in args.keys():
         region_file= args['region_file']
-    print(file_path,region_file)
+    print('file_path,region_file',file_path,region_file)
     img=Image(None,None)
     #print('get_js9_plot path',file_path)
     return img.get_js9_html(file_path,region_file=region_file)
