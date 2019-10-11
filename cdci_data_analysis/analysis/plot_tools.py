@@ -194,8 +194,8 @@ class Image(object):
         <td>                                                                                                                                                                                   
                 <tr valign="top">                                                                                                                                                              
                 <td>                                                                                                                                                                           
-                <div class="JS9Menubar  id=%sMenubar"></div>
-                <div class="JS9Colorbar id=%sColorbar"></div>
+                <div class="JS9Menubar  id="%sMenubar" ></div>
+                <div class="JS9Colorbar id="%sColorbar" ></div>
                 <div class="JS9" id="%s"></div>                                                                                                                                                        
                 </td>                                                                                                                                                                          
                 <td>                                                                                                                                                                           
