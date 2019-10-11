@@ -163,7 +163,10 @@ class Image(object):
         html_dict['div'] = div
         return html_dict
 
-    def get_js9_html(self, file_path):
+    def get_js9_html(self, file_path,region_file=None):
+        region=''
+        if region_file is not None:
+            region='JS9.LoadRegions(""product/%s");\n'%region_file
         t = '''                                                                                                                                                                             
     <html>                                                                                                                                                                                     
                 <head>                                                                                                                                                                         
@@ -203,7 +206,8 @@ class Image(object):
                 <script type="text/javascript">                                                                                                                                                
                   function init(){                                                                                                                                                             
                      var idx, obj;                                                                                                                                                             
-                     JS9.Preload("product/%s",{scale:'linear',colormap:'plasma'});                                                                                                                      
+                     JS9.Preload("product/%s",{scale:'linear',colormap:'plasma'});
+                     %s                                                                                                                      
                   }                                                                                                                                                                            
                   $(document).ready(function(){                                                                                                                                                
                     init();                                                                                                                                                                    
@@ -213,7 +217,7 @@ class Image(object):
             </body>                                                                                                                                                                            
     </html>                                                                                                                                                                                    
 
-    ''' % file_path
+    ''' % file_path,region
 
         return t
 

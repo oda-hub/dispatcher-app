@@ -1038,11 +1038,13 @@ def serve_js9(path):
 def js9_plot():
     args = request.args.to_dict()
     file_path = args['file_path']
-
+    region_file=None
+    if 'region_file' in args.keys():
+        region_file= args['region_file']
 
     img=Image(None,None)
     #print('get_js9_plot path',file_path)
-    return img.get_js9_html(file_path)
+    return img.get_js9_html(file_path,region_file=region_file)
 
 @app.route('/test_js9', methods=['POST', 'GET'])
 def test_js9():
