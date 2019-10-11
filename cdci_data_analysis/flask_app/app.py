@@ -32,6 +32,7 @@ from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
+from ..analysis.plot_tools import Image
 import  tempfile
 import tarfile
 import gzip
@@ -1039,113 +1040,16 @@ def js9_plot():
     file_path = args['file_path']
 
 
-    print('get_js9_plot path',file_path)
-    return '''                                                                                                                                                                             
-
-    <html>                                                                                                                                                                                     
-                <head>                                                                                                                                                                         
-                  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">                                                                                                          
-                  <meta http-equiv="X-UA-Compatible" content="IE=Edge;chrome=1" >                                                                                                              
-                  <meta name="viewport" content="width=device-width, initial-scale=1">                                                                                                         
-                  <link type="image/x-icon" rel="shortcut icon" href="./favicon.ico">                                                                                                          
-                  <link type="text/css" rel="stylesheet" href="js9/js9support.css">                                                                                                            
-                  <link type="text/css" rel="stylesheet" href="js9/js9.css">                                                                                                                   
-                  <script type="text/javascript" src="js9/js9prefs.js"></script>                                                                                                               
-                  <script type="text/javascript" src="js9/js9support.min.js"></script>                                                                                                         
-                  <script type="text/javascript" src="js9/js9.min.js"></script>                                                                                                                
-                  <script type="text/javascript" src="js9/js9plugins.js"></script>                                                                                                             
-                    </head>                                                                                                                                                                    
-                <body>                                                                                                                                                                         
-
-
-                <center><font size="+1">                                                                                                                                                       
-                </font></center>                                                                                                                                                               
-                <table cellspacing="30">                                                                                                                                                       
-                <tr valign="top">                                                                                                                                                              
-        <td>                                                                                                                                                                                   
-                </td>                                                                                                                                                                          
-        <td>                                                                                                                                                                                   
-                <tr valign="top">                                                                                                                                                              
-                <td>                                                                                                                                                                           
-                <div class="JS9Menubar"></div>
-                <div class="JS9Colorbar"></div>
-                <div class="JS9"></div>                                                                                                                                                        
-                </td>                                                                                                                                                                          
-                <td>                                                                                                                                                                           
-
-                <p>                                                                                                                                                                            
-                </td>                                                                                                                                                                          
-                </tr>                                                                                                                                                                          
-                </table>                                                                                                                                                                       
-                <script type="text/javascript">                                                                                                                                                
-                  function init(){                                                                                                                                                             
-                     var idx, obj;                                                                                                                                                             
-                     JS9.Preload("product/%s",{scale:'linear',colormap:'plasma'});                                                                                                                      
-                  }                                                                                                                                                                            
-                  $(document).ready(function(){                                                                                                                                                
-                    init();                                                                                                                                                                    
-                  });                                                                                                                                                                          
-                </script>                                                                                                                                                                      
-
-            </body>                                                                                                                                                                            
-    </html>                                                                                                                                                                                    
-
-    ''' % file_path
+    img=Image(None,None)
+    #print('get_js9_plot path',file_path)
+    return img.get_js9_html(file_path)
 
 @app.route('/test_js9', methods=['POST', 'GET'])
 def test_js9():
-    print('get_js9_plot path')
-    return '''                                                                                                                                                                             
+    img = Image(None,None)
+    # print('get_js9_plot path',file_path)
+    return img.get_js9_html('dummy_prods/isgri_query_mosaic.fits')
 
-<html>                                                                                                                                                                                     
-            <head>                                                                                                                                                                         
-              <meta http-equiv="Content-Type" content="text/html; charset=utf-8">                                                                                                          
-              <meta http-equiv="X-UA-Compatible" content="IE=Edge;chrome=1" >                                                                                                              
-              <meta name="viewport" content="width=device-width, initial-scale=1">                                                                                                         
-              <link type="image/x-icon" rel="shortcut icon" href="./favicon.ico">                                                                                                          
-              <link type="text/css" rel="stylesheet" href="js9/js9support.css">                                                                                                            
-              <link type="text/css" rel="stylesheet" href="js9/js9.css">                                                                                                                   
-              <script type="text/javascript" src="js9/js9prefs.js"></script>                                                                                                               
-              <script type="text/javascript" src="js9/js9support.min.js"></script>                                                                                                         
-              <script type="text/javascript" src="js9/js9.min.js"></script>                                                                                                                
-              <script type="text/javascript" src="js9/js9plugins.js"></script>                                                                                                             
-                </head>                                                                                                                                                                    
-            <body>                                                                                                                                                                         
-
-
-            <center><font size="+1">                                                                                                                                                       
-            </font></center>                                                                                                                                                               
-            <table cellspacing="30">                                                                                                                                                       
-            <tr valign="top">                                                                                                                                                              
-    <td>                                                                                                                                                                                   
-            </td>                                                                                                                                                                          
-    <td>                                                                                                                                                                                   
-            <tr valign="top">                                                                                                                                                              
-            <td>                                                                                                                                                                           
-            <div class="JS9Menubar"></div>                                                                                                                                                 
-            <div class="JS9"></div>                                                                                                                                                        
-            </td>                                                                                                                                                                          
-            <td>                                                                                                                                                                           
-
-            <p>                                                                                                                                                                            
-            </td>                                                                                                                                                                          
-            </tr>                                                                                                                                                                          
-            </table>                                                                                                                                                                       
-            <script type="text/javascript">                                                                                                                                                
-              function init(){                                                                                                                                                             
-                 var idx, obj;                                                                                                                                                             
-
-                  JS9.Preload("product/dummy_prods/isgri_query_mosaic.fits",{scale:'linear',colormap:'plasma'});                                                                                                                      
-              }                                                                                                                                                                            
-              $(document).ready(function(){                                                                                                                                                
-                init();                                                                                                                                                                    
-              });                                                                                                                                                                          
-            </script>                                                                                                                                                                      
-
-        </body>                                                                                                                                                                            
-</html>                                                                                                                                                                                    
-
-'''
 
 
 def run_app(conf,debug=False,threaded=False):
