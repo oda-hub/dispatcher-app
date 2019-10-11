@@ -165,9 +165,9 @@ class Image(object):
 
     def get_js9_html(self, file_path,region_file=None,id='myJS9'):
         region=''
-        file='''JS9.Preload("product/%s", {scale: 'linear', colormap: 'plasma'});'''%(file_path)
+        file='''JS9.Preload("product/%s", {scale: 'linear', colormap: 'plasma'}, {display: "%s"});'''%(file_path,id)
         if region_file is not None:
-            region='''JS9.LoadRegions("product/%s");\n'''%(region_file)
+            region='''JS9.LoadRegions("product/%s", {display: "%s"});\n'''%(region_file,id)
         t = '''                                                                                                                                                                             
     <html>                                                                                                                                                                                     
                 <head>                                                                                                                                                                         
@@ -196,7 +196,7 @@ class Image(object):
                 <td>                                                                                                                                                                           
                 <div class="JS9Menubar"></div>
                 <div class="JS9Colorbar"></div>
-                <div class="JS9"></div>                                                                                                                                                        
+                <div class="JS9" id="%s"></div>                                                                                                                                                        
                 </td>                                                                                                                                                                          
                 <td>                                                                                                                                                                           
 
@@ -218,7 +218,7 @@ class Image(object):
             </body>                                                                                                                                                                            
     </html>                                                                                                                                                                                    
 
-    ''' % (file,region)
+    ''' % (id,file,region)
 
         return t
 
