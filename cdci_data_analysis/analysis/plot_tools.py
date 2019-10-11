@@ -218,7 +218,7 @@ class Image(object):
             </body>                                                                                                                                                                            
     </html>                                                                                                                                                                                    
 
-    ''' % (id,file,region)
+    ''' % (id,id,id,file,region)
 
         return t
 
