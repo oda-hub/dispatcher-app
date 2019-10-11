@@ -1028,9 +1028,9 @@ def product(path):
     return send_from_directory(os.path.abspath('./'),path)
 
 
-#@app.route('/js9/<path:path>',methods=['GET','POST'])
-#def serve_js9(path):
-#    return send_from_directory(os.path.abspath('static/js9/'), path)
+@app.route('/js9/<path:path>',methods=['GET','POST'])
+def serve_js9(path):
+    return send_from_directory(os.path.abspath('static/js9/'), path)
 
 
 @app.route('/get_js9_plot', methods=['POST', 'GET'])
@@ -1135,7 +1135,7 @@ def test_js9():
               function init(){                                                                                                                                                             
                  var idx, obj;                                                                                                                                                             
 
-          JS9.Preload("product/dummy_prods/isgri_query_mosaic.fits");                                                                                                                      
+              JS9.Preload("product/dummy_prods/isgri_query_mosaic.fits");                                                                                                                      
               }                                                                                                                                                                            
               $(document).ready(function(){                                                                                                                                                
                 init();                                                                                                                                                                    
