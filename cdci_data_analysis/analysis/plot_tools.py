@@ -166,7 +166,7 @@ class Image(object):
     def get_js9_html(self, file_path,region_file=None):
         region=''
         if region_file is not None:
-            region='JS9.LoadRegions(""product/%s");\n'%region_file
+            region='JS9.LoadRegions("product/%s");\n'%region_file
         t = '''                                                                                                                                                                             
     <html>                                                                                                                                                                                     
                 <head>                                                                                                                                                                         
