@@ -208,7 +208,7 @@ class Image(object):
                   function init(){                                                                                                                                                             
                      var idx, obj;                                                                                                                                                             
                      %s
-                    JS9.AddRegions(circle() {wcs: "255.205185,-41.654163, FK5"};
+                    JS9.AddRegions(circle() {wcs: "255.205185,-41.654163, FK5"});
 
                      %s                                                                                                                      
                   }                                                                                                                                                                            
