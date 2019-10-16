@@ -64,7 +64,7 @@ app.json_encoder = CustomJSONEncoder
 
 
 api= Api(app=app, version='1.0', title='CDCI dispatcher',
-    description='API for ODA CDCI dispatcher microservices',)
+    description='API for ODA CDCI dispatcher microservices\n Author: Andrea Tramacere')
 
 
 ns_conf = api.namespace('api/v1.0/oda', description='data access')
