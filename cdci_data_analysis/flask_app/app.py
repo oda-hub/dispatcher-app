@@ -226,13 +226,13 @@ class JS9(Resource):
 
 @ns_conf.route('/get_js9_plot')
 class GetJS9Plot(Resource):
-    @api.doc(responses={410: 'problem with js9 image generation'}, params={'file_name': 'the file name'})
+    @api.doc(responses={410: 'problem with js9 image generation'}, params={'file_path': 'the file path'})
     def get(self):
         """
         returns the js9 image display
         """
         api_parser = reqparse.RequestParser()
-        api_parser.add_argument('file_name', required=True, help="the name of the file",type=str)
+        api_parser.add_argument('file_path', required=True, help="the name of the file",type=str)
         api_args = api_parser.parse_args()
         file_path = api_args['file_path']
         print('file_path',file_path)
