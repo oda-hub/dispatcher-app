@@ -195,15 +195,16 @@ def dataserver_call_back():
 ####################################### API
 @api.errorhandler(APIerror)
 def handle_api_error(error):
-    return make_response({'error': {'code': error.code, 'message': type(error).__name__}}, 403)
-
+    #return make_response({'error': {'code': error.code, 'message': type(error).__name__}}, 403)
     #print('handle_api_error 2')
     #response = jsonify(error.to_dict())
     #print('handle_api_error 2')
     #response.status_code = error.status_code
     #print('handle_api_error 2')
     #return response
-
+    _o_dict={}
+    _o_dict['message']=APIerror.message
+    return jsonify(_o_dict)
 
 
 def output_html(data, code, headers=None):
