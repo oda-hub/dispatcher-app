@@ -208,15 +208,19 @@ def output_html(data, code, headers=None):
 
 @ns_conf.route('/product/<path:path>',methods=['GET','POST'])
 #@app.route('/product/<path:path>',methods=['GET','POST'])
-def product(path):
-    #print('path',path)
-    return send_from_directory(os.path.abspath('./'),path)
+class Product(Resource):
+    @api.doc(responses={410: ''}, params={'path': 'the file path'})
+    def product(path):
+        def get(self):
+            return send_from_directory(os.path.abspath('./'),path)
 
 
 @ns_conf.route('/js9/<path:path>',methods=['GET','POST'])
 #@app.route('/js9/<path:path>',methods=['GET','POST'])
-def serve_js9(path):
-    return send_from_directory(os.path.abspath('static/js9/'), path)
+class Product(Resource):
+    @api.doc(responses={410: ''}, params={'path': 'the file path'})
+    def get(path):
+        return send_from_directory(os.path.abspath('static/js9/'), path)
 
 @ns_conf.route('/get_js9_plot')
 class GetJS9Plot(Resource):
