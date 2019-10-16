@@ -98,8 +98,9 @@ def handle_api_error(error):
 def handle_api_error(error):
     print('handle_api_error 2')
     response = jsonify(error.to_dict())
+    print('handle_api_error 2')
     response.status_code = error.status_code
-
+    print('handle_api_error 2')
     return response
 
 
