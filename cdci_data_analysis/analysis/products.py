@@ -82,7 +82,7 @@ class QueryOutput(object):
     def dump_analysis_parameters(self,work_dir,query_dict):
         file_path=FilePath(file_dir=work_dir,file_name='anlaysis_par.json')
         with open(file_path.path, 'w')  as outfile:
-            my_json_str = json.dumps(query_dict, encoding='utf-8')
+            my_json_str = json.dumps(query_dict,)
             outfile.write(u'%s' % my_json_str)
 
     def set_products(self, keys, values):

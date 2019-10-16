@@ -159,7 +159,7 @@ class Job(object):
         try:
             with open(self.file_path, 'r') as infile:
                 #print("=====> reading  from ", self.file_path)
-                self.monitor = json.load(infile, encoding='utf-8')
+                self.monitor = json.load(infile,)
             #print('JOB MANAGER CHECK-->', self.monitor)
         except Exception as e:
             self.set_unaccessible()
@@ -180,7 +180,7 @@ class Job(object):
 
         with open(self.file_path, 'w')  as outfile:
             #print ("=====> writing to ",self.file_path)
-            my_json_str = json.dumps(self.monitor, encoding='utf-8')
+            my_json_str = json.dumps(self.monitor)
             # if isinstance(my_json_str, str):
             outfile.write(u'%s' % my_json_str)
 
