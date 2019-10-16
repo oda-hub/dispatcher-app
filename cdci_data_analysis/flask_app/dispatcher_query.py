@@ -46,7 +46,7 @@ class InstrumentQueryBackEnd(object):
     def __init__(self,app,instrument_name=None,par_dic=None,config=None,data_server_call_back=False,verbose=False,get_meta_data=False):
         #self.instrument_name=instrument_name
 
-
+        self.app=app
         try:
             if par_dic is None:
                 self.set_args(request,verbose=verbose)
