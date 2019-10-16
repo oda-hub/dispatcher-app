@@ -233,8 +233,8 @@ class Product(Resource):
             return send_from_directory(os.path.abspath('./'),path)
         except Exception as e:
             #print('qui',e)
-            s='problem with local file delivery: %s'%e
-            abort(400, message=s)
+            s='problem with local file delivery: %s'%str(e)
+            abort(400, message=str(s))
             #raise APIerror('problem with local file delivery: %s'%e, status_code=410)
 
 @ns_conf.route('/js9/<path:path>',methods=['GET','POST'])
