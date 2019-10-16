@@ -231,7 +231,7 @@ class GetJS9Plot(Resource):
         try:
             img = Image(None, None)
             # print('get_js9_plot path',file_path)
-            return img.get_js9_html(file_path, region_file=region_file)
+            img= img.get_js9_html(file_path, region_file=region_file)
 
         except Exception as e:
             #print('qui',e)
@@ -251,7 +251,7 @@ class TestJS9Plot(Resource):
         try:
             img = Image(None,None)
             #print('get_js9_plot path',file_path)
-            return img.get_js9_html('dummy_prods/isgri_query_mosaic.fits')
+            img= img.get_js9_html('dummy_prods/isgri_query_mosaic.fits')
 
         except Exception as e:
             #print('qui',e)
