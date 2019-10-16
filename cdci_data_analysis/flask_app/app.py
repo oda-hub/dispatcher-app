@@ -245,7 +245,7 @@ class TestJS9Plot(Resource):
     """
     test js9 error generation
     """
-    @api.doc(responses={410: 'problem with js9 image generation'},)
+    @api.doc(responses={410: 'problem with js9 image generation'})
 
     def get(self):
         try:
