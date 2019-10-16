@@ -86,13 +86,7 @@ class APIerror(Exception):
         return rv
 
 
-#@app.errorhandler(APIerror)
-#def handle_api_error(error):
-#    #print('handle_api_error 1')
-#    response = jsonify(error.to_dict())
-#    response.status_code = error.status_code
 
-#    return response
 
 @app.route("/api/meta-data")
 def run_api_meta_data():
