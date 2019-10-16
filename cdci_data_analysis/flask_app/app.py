@@ -5,14 +5,14 @@ Created on Wed May 10 10:55:20 2017
 
 @author: andrea tramcere
 """
-
-from __future__ import absolute_import, division, print_function
-
 from builtins import (open, str, range,
                       object)
 from collections import Counter, OrderedDict
+import  copy
+from werkzeug.utils import secure_filename
 
 import os
+import glob
 import string
 import  random
 from raven.contrib.flask import Sentry
@@ -23,13 +23,26 @@ from flask.json import JSONEncoder
 from flask_restplus import Api, Resource,reqparse
 
 
-
-
-from ..analysis.plot_tools import Image
-from .diaptcher_tools import InstrumentQueryBackEnd
+import  tempfile
+import tarfile
+import gzip
 import logging
+import socket
+import logstash
 
-import  numpy as np
+
+from ..plugins import importer
+
+from ..analysis.queries import *
+from ..analysis.job_manager import Job,job_factory
+from ..analysis.io_helper import FilePath
+from .mock_data_server import mock_query
+from ..analysis.products import QueryOutput
+from ..configurer import DataServerConf
+from ..analysis.plot_tools import Image
+from .dispatcher_query import InstrumentQueryBackEnd
+
+
 
 #UPLOAD_FOLDER = '/path/to/the/uploads'
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
@@ -94,17 +107,17 @@ def handle_api_error(error):
 
 @app.route("/api/meta-data")
 def run_api_meta_data():
-    query = InstrumentQueryBackEnd(get_meta_data=True)
+    query = InstrumentQueryBackEnd(app,get_meta_data=True)
     return query.get_meta_data()
 
 @app.route("/api/parameters")
 def run_api_parameters():
-    query = InstrumentQueryBackEnd(get_meta_data=True)
+    query = InstrumentQueryBackEnd(app,get_meta_data=True)
     return query.get_paramters_dict()
 
 @app.route("/api/instr-list")
 def run_api_instr_list():
-    query = InstrumentQueryBackEnd(get_meta_data=True)
+    query = InstrumentQueryBackEnd(app,get_meta_data=True)
     return query.get_instr_list()
 
 
@@ -121,7 +134,7 @@ def test_soon():
 
 @app.route('/meta-data')
 def meta_data():
-    query = InstrumentQueryBackEnd(get_meta_data=True)
+    query = InstrumentQueryBackEnd(app,get_meta_data=True)
     return query.get_meta_data()
 
 
@@ -132,30 +145,30 @@ def check_satus():
     par_dic['query_status'] = 'new'
     par_dic['session_id'] = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
     par_dic['job_status'] = 'submitted'
-    query = InstrumentQueryBackEnd(par_dic=par_dic, get_meta_data=False, verbose=True)
+    query = InstrumentQueryBackEnd(app,par_dic=par_dic, get_meta_data=False, verbose=True)
     print('request', request.method)
     return  query.run_query_mock()
 
 
 @app.route('/meta-data-src')
 def meta_data_src():
-    query = InstrumentQueryBackEnd(get_meta_data=True)
+    query = InstrumentQueryBackEnd(app,get_meta_data=True)
     return query.get_meta_data('src_query')
 
 @app.route("/download_products",methods=['POST', 'GET'])
 def download_products():
     #instrument_name = 'ISGRI'
-    query = InstrumentQueryBackEnd()
+    query = InstrumentQueryBackEnd(app)
     return query.download_products()
 
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
-    query=InstrumentQueryBackEnd()
+    query=InstrumentQueryBackEnd(app)
     return query.run_query()
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
-    query=InstrumentQueryBackEnd()
+    query=InstrumentQueryBackEnd(app)
     return query.run_query(disp_conf=app.config['conf'])
 
 
@@ -163,7 +176,7 @@ def run_analysis():
 @app.route('/test_mock', methods=['POST', 'GET'])
 def test_mock():
     #instrument_name='ISGRI'
-    query=InstrumentQueryBackEnd()
+    query=InstrumentQueryBackEnd(app)
     return query.run_query_mock()
 
 
@@ -173,7 +186,7 @@ def dataserver_call_back():
     log.disabled = True
     app.logger.disabled = True
     print('===========================> dataserver_call_back')
-    query=InstrumentQueryBackEnd(instrument_name='mock',data_server_call_back=True)
+    query=InstrumentQueryBackEnd(app,instrument_name='mock',data_server_call_back=True)
     query.run_call_back()
     print('===========================>\n\n\n')
     return jsonify({})

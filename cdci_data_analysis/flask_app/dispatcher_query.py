@@ -6,29 +6,44 @@ Created on Wed May 10 10:55:20 2017
 @author: andrea tramcere
 """
 
-from __future__ import absolute_import, division, print_function
-
 from builtins import (open, str, range,
                       object)
+from collections import Counter, OrderedDict
+import  copy
+from werkzeug.utils import secure_filename
 
+import os
+import glob
+import string
+import  random
+from raven.contrib.flask import Sentry
+
+from flask import jsonify,send_from_directory,redirect
+from flask import Flask, request
+from flask.json import JSONEncoder
+
+import tempfile
+import tarfile
+import gzip
+import logging
+import socket
+import logstash
+
+from ..plugins import importer
+from ..analysis.queries import *
 from ..analysis.job_manager import Job,job_factory
 from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
-from ..analysis.queries import *
+from ..analysis.plot_tools import Image
 
-import socket
-import logstash
-from collections import Counter, OrderedDict
-from ..plugins import importer
 
-import  copy
 
 
 class InstrumentQueryBackEnd(object):
 
-    def __init__(self,instrument_name=None,par_dic=None,config=None,data_server_call_back=False,verbose=False,get_meta_data=False):
+    def __init__(self,app,instrument_name=None,par_dic=None,config=None,data_server_call_back=False,verbose=False,get_meta_data=False):
         #self.instrument_name=instrument_name
 
 
@@ -536,7 +551,7 @@ class InstrumentQueryBackEnd(object):
 
     def set_config(self):
         if self.config is None:
-            config = app.config.get('conf')
+            config = self.app.config.get('conf')
         else:
             config = self.config
 
@@ -892,4 +907,5 @@ class InstrumentQueryBackEnd(object):
                                               api=api)
 
         print('==============================> query done <==============================')
+
         return resp
