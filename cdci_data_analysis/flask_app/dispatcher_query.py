@@ -655,7 +655,7 @@ class InstrumentQueryBackEnd(object):
             print('dispatcher port', config.dispatcher_port)
         except Exception as e:
             query_out = QueryOutput()
-            query_out.set_query_exception(e, 'run_query failed in s%'%self.__class__.__name__,
+            query_out.set_query_exception(e, 'run_query failed in %s'%self.__class__.__name__,
                                           extra_message='configuration failed')
 
             config, config_data_server = None, None
