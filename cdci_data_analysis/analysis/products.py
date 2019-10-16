@@ -359,7 +359,7 @@ class ImageProduct(BaseQueryProduct):
         res_dict['table_text'] = ''
         res_dict['footer_text']=''
 
-        res_dict['file_path']=self.file_path
+        res_dict['file_path']=self.file_path.path
 
         return res_dict
 
