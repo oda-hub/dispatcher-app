@@ -237,7 +237,7 @@ class GetJS9Plot(Resource):
             #print('qui',e)
             raise APIerror('problem with js9 image generation: %s'%e, status_code=410)
 
-        return jsonify(img)
+        return img
 
 
 @ns_conf.route('/test_js9')
@@ -257,7 +257,7 @@ class TestJS9Plot(Resource):
             #print('qui',e)
             raise APIerror('problem with js9 image generation: %s'%e, status_code=410)
 
-        return jsonify(img)
+        return img
 
 
 #@app.route('/get_js9_plot', methods=['POST', 'GET'])
