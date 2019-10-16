@@ -187,14 +187,14 @@ def dataserver_call_back():
 ####################################### API #######################################
 
 
-@app.errorhandler(APIerror)
+#@app.errorhandler(APIerror)
 def handle_api_error(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
 
 
-@api.errorhandler(APIerror)
+#@api.errorhandler(APIerror)
 def handle_api_error(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
