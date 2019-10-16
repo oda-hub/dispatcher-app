@@ -18,7 +18,7 @@ import  random
 from raven.contrib.flask import Sentry
 
 from flask import jsonify,send_from_directory,redirect,Response
-from flask import Flask, request,make_response
+from flask import Flask, request,make_response,abort
 from flask.json import JSONEncoder
 from flask_restplus import Api, Resource,reqparse
 
@@ -233,7 +233,9 @@ class Product(Resource):
             return send_from_directory(os.path.abspath('./'),path)
         except Exception as e:
             #print('qui',e)
-            raise APIerror('problem with local file delivery: %s'%e, status_code=410)
+            s='problem with local file delivery: %s'%e
+            abort(400, message=s)
+            #raise APIerror('problem with local file delivery: %s'%e, status_code=410)
 
 @ns_conf.route('/js9/<path:path>',methods=['GET','POST'])
 #@app.route('/js9/<path:path>',methods=['GET','POST'])
