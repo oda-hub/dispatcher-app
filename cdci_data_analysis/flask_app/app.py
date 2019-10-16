@@ -211,8 +211,7 @@ def output_html(data, code, headers=None):
 class Product(Resource):
     @api.doc(responses={410: ''}, params={'path': 'the file path to be served'})
     def get(self,path):
-        def get(self):
-            return send_from_directory(os.path.abspath('./'),path)
+        return send_from_directory(os.path.abspath('./'),path)
 
 
 @ns_conf.route('/js9/<path:path>',methods=['GET','POST'])
