@@ -20,7 +20,6 @@ import gunicorn.app.base
 from gunicorn.six import iteritems
 
 from cdci_data_analysis.flask_app.app import run_app, app
-from cdci_data_analysis.flask_app.micro_app import run_micro_service, micro_service
 
 from cdci_data_analysis.configurer import ConfigEnv
 
