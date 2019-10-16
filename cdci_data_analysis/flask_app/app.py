@@ -86,21 +86,21 @@ class APIerror(Exception):
         return rv
 
 
-@app.errorhandler(APIerror)
-def handle_api_error(error):
-    print('handle_api_error 1')
-    response = jsonify(error.to_dict())
-    response.status_code = error.status_code
+#@app.errorhandler(APIerror)
+#def handle_api_error(error):
+#    #print('handle_api_error 1')
+#    response = jsonify(error.to_dict())
+#    response.status_code = error.status_code
 
-    return response
+#    return response
 
 @api.errorhandler(APIerror)
 def handle_api_error(error):
-    print('handle_api_error 2')
+    #print('handle_api_error 2')
     response = jsonify(error.to_dict())
-    print('handle_api_error 2')
+    #print('handle_api_error 2')
     response.status_code = error.status_code
-    print('handle_api_error 2')
+    #print('handle_api_error 2')
     return response
 
 
