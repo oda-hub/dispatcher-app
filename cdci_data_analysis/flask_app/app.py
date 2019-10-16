@@ -17,7 +17,7 @@ import string
 import  random
 from raven.contrib.flask import Sentry
 
-from flask import jsonify,send_from_directory,redirect
+from flask import jsonify,send_from_directory,redirect,Response
 from flask import Flask, request
 from flask.json import JSONEncoder
 from flask_restplus import Api, Resource,reqparse
@@ -209,7 +209,10 @@ def serve_js9(path):
 
 
 ####################################### API
-
+def output_html(data, code, headers=None):
+    resp = Response(data, mimetype='text/html', headers=headers)
+    resp.status_code = code
+    return resp
 
 
 @ns_conf.route('/get_js9_plot')
@@ -237,7 +240,7 @@ class GetJS9Plot(Resource):
             #print('qui',e)
             raise APIerror('problem with js9 image generation: %s'%e, status_code=410)
 
-        return img
+        return output_html(img,200)
 
 
 @ns_conf.route('/test_js9')
@@ -257,7 +260,7 @@ class TestJS9Plot(Resource):
             #print('qui',e)
             raise APIerror('problem with js9 image generation: %s'%e, status_code=410)
 
-        return img
+        return output_html(img, 200)
 
 
 #@app.route('/get_js9_plot', methods=['POST', 'GET'])
