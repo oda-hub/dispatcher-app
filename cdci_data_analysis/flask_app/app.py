@@ -90,7 +90,6 @@ class APIerror(Exception):
 def handle_api_error(error):
     print('handle_api_error 1')
     response = jsonify(error.to_dict())
-    #response.json()['error message'] = error
     response.status_code = error.status_code
 
     return response
@@ -99,7 +98,6 @@ def handle_api_error(error):
 def handle_api_error(error):
     print('handle_api_error 2')
     response = jsonify(error.to_dict())
-    response.json()['error message']=error
     response.status_code = error.status_code
 
     return response
