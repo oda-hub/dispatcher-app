@@ -195,15 +195,7 @@ def dataserver_call_back():
 
 
 
-@app.route('/product/<path:path>',methods=['GET','POST'])
-def product(path):
-    #print('path',path)
-    return send_from_directory(os.path.abspath('./'),path)
 
-
-@app.route('/js9/<path:path>',methods=['GET','POST'])
-def serve_js9(path):
-    return send_from_directory(os.path.abspath('static/js9/'), path)
 
 
 
@@ -214,6 +206,17 @@ def output_html(data, code, headers=None):
     resp.status_code = code
     return resp
 
+@ns_conf.route('/product/<path:path>',methods=['GET','POST'])
+#@app.route('/product/<path:path>',methods=['GET','POST'])
+def product(path):
+    #print('path',path)
+    return send_from_directory(os.path.abspath('./'),path)
+
+
+@ns_conf.route('/js9/<path:path>',methods=['GET','POST'])
+#@app.route('/js9/<path:path>',methods=['GET','POST'])
+def serve_js9(path):
+    return send_from_directory(os.path.abspath('static/js9/'), path)
 
 @ns_conf.route('/get_js9_plot')
 class GetJS9Plot(Resource):
