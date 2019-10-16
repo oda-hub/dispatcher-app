@@ -210,7 +210,7 @@ def output_html(data, code, headers=None):
 #@app.route('/product/<path:path>',methods=['GET','POST'])
 class Product(Resource):
     @api.doc(responses={410: ''}, params={'path': 'the file path to be served'})
-    def product(self,path):
+    def get(self,path):
         def get(self):
             return send_from_directory(os.path.abspath('./'),path)
 
