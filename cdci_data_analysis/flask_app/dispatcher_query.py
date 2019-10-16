@@ -429,7 +429,7 @@ class InstrumentQueryBackEnd(object):
         #job_status = self.par_dic['job_status']
         session_id=self.par_dic['session_id']
 
-        if self.par_dic.has_key('instrumet'):
+        if 'instrumet' in self.par_dic.keys():
             self.par_dic.pop('instrumet')
 
 
@@ -621,7 +621,7 @@ class InstrumentQueryBackEnd(object):
                                           extra_message='InstrumentQueryBackEnd constructor failed')
 
         print('==> query_status  ', query_status)
-        if self.par_dic.has_key('instrumet'):
+        if 'instrumet' in  self.par_dic.keys():
             self.par_dic.pop('instrumet')
 
         verbose=False
