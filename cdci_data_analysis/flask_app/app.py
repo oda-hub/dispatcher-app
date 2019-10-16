@@ -184,35 +184,21 @@ def dataserver_call_back():
     return jsonify({})
 
 
+####################################### API #######################################
 
 
-
-
-
-
-
-
-####################################### API
-
-
-#@app.errorhandler(APIerror)
-#def handle_api_error(error):
-#    #print('handle_api_error 1')
-#    response = jsonify(error.to_dict())
-#    #response.json()['error message'] = error
-#    response.status_code = error.status_code
-
-#    return response
-
-@api.errorhandler(APIerror)
 @app.errorhandler(APIerror)
 def handle_api_error(error):
-   #print('handle_api_error 2')
-   response = jsonify(error.to_dict())
-   response.json()['error message']=error
-   response.status_code = error.status_code
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
 
-   return response
+
+@api.errorhandler(APIerror)
+def handle_api_error(error):
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
 
 
 
@@ -233,9 +219,7 @@ class Product(Resource):
             return send_from_directory(os.path.abspath('./'),path)
         except Exception as e:
             #print('qui',e)
-            s='problem with local file delivery: %s'%str(e)
-            abort(400, message=str(s))
-            #raise APIerror('problem with local file delivery: %s'%e, status_code=410)
+            raise APIerror('problem with local file delivery: %s'%e, status_code=410)
 
 @ns_conf.route('/js9/<path:path>',methods=['GET','POST'])
 #@app.route('/js9/<path:path>',methods=['GET','POST'])
