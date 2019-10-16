@@ -24,7 +24,7 @@ from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
 
 __author__ = "Andrea Tramacere"
-
+import six
 import  ast
 import decorator
 
@@ -36,6 +36,7 @@ from astropy.coordinates import Angle as astropyAngle
 from .catalog import BasicCatalog
 
 import  numpy as np
+
 
 
 @decorator.decorator
@@ -209,7 +210,7 @@ class Parameter(object):
                 if v not in self._allowed_values:
                     raise RuntimeError('value',v,'not allowed, allowed=',self._allowed_values)
             #print('set->',self.name,v,type(v))
-            if type(v)==str or type(v)== unicode:
+            if type(v)==str or isinstance(v, six.string_types):
                 self._value=v.strip()
             else:
                 self._value = v
