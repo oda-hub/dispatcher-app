@@ -18,7 +18,7 @@ import  random
 from raven.contrib.flask import Sentry
 
 from flask import jsonify,send_from_directory,redirect,Response
-from flask import Flask, request
+from flask import Flask, request,make_response
 from flask.json import JSONEncoder
 from flask_restplus import Api, Resource,reqparse
 
@@ -94,14 +94,7 @@ class APIerror(Exception):
 
 #    return response
 
-@api.errorhandler(APIerror)
-def handle_api_error(error):
-    #print('handle_api_error 2')
-    response = jsonify(error.to_dict())
-    #print('handle_api_error 2')
-    response.status_code = error.status_code
-    #print('handle_api_error 2')
-    return response
+
 
 
 @app.route("/api/meta-data")
@@ -200,6 +193,19 @@ def dataserver_call_back():
 
 
 ####################################### API
+@api.errorhandler(APIerror)
+def handle_api_error(error):
+    return make_response({'error': {'code': error.code, 'message': type(error).__name__}}, 403)
+
+    #print('handle_api_error 2')
+    #response = jsonify(error.to_dict())
+    #print('handle_api_error 2')
+    #response.status_code = error.status_code
+    #print('handle_api_error 2')
+    #return response
+
+
+
 def output_html(data, code, headers=None):
     resp = Response(data, mimetype='text/html', headers=headers)
     resp.status_code = code
