@@ -359,7 +359,7 @@ class ImageProduct(BaseQueryProduct):
         res_dict['table_text'] = ''
         res_dict['footer_text']=''
 
-        res_dict['js9']=im.get_js9_html(self.file_path)
+        res_dict['file_path']=self.file_path
 
         return res_dict
 
