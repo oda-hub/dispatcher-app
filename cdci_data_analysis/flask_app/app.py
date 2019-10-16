@@ -63,11 +63,11 @@ app.json_encoder = CustomJSONEncoder
 
 
 
-api= Api(app=app, version='1.0', title='CDCI dispatcher',
+api= Api(app=app, version='1.0', title='CDCI ODA API',
     description='API for ODA CDCI dispatcher microservices\n Author: Andrea Tramacere')
 
 
-ns_conf = api.namespace('api/v1.0/oda', description='data access')
+ns_conf = api.namespace('api/v1.0/oda', description='api')
 
 class APIerror(Exception):
 
@@ -94,35 +94,23 @@ class APIerror(Exception):
 
 #    return response
 
-
-
-
 @app.route("/api/meta-data")
 def run_api_meta_data():
     query = InstrumentQueryBackEnd(app,get_meta_data=True)
     return query.get_meta_data()
+
 
 @app.route("/api/parameters")
 def run_api_parameters():
     query = InstrumentQueryBackEnd(app,get_meta_data=True)
     return query.get_paramters_dict()
 
+
 @app.route("/api/instr-list")
 def run_api_instr_list():
     query = InstrumentQueryBackEnd(app,get_meta_data=True)
     return query.get_instr_list()
 
-
-@app.route("/test_sleep")
-def test_sleep():
-    import time
-    time.sleep(10)
-    return "<h1 style='color:blue'>Hello There!</h1>"
-
-
-@app.route("/test_soon")
-def test_soon():
-    return "<h1 style='color:blue'>Hello There!</h1>"
 
 @app.route('/meta-data')
 def meta_data():
