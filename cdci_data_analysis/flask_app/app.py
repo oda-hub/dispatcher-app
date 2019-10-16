@@ -88,7 +88,7 @@ class APIerror(Exception):
 
 @app.errorhandler(APIerror)
 def handle_api_error(error):
-    #print('handle_api_error 1')
+    print('handle_api_error 1')
     response = jsonify(error.to_dict())
     #response.json()['error message'] = error
     response.status_code = error.status_code
@@ -97,7 +97,7 @@ def handle_api_error(error):
 
 @api.errorhandler(APIerror)
 def handle_api_error(error):
-    #print('handle_api_error 2')
+    print('handle_api_error 2')
     response = jsonify(error.to_dict())
     response.json()['error message']=error
     response.status_code = error.status_code
@@ -209,17 +209,31 @@ def output_html(data, code, headers=None):
 @ns_conf.route('/product/<path:path>',methods=['GET','POST'])
 #@app.route('/product/<path:path>',methods=['GET','POST'])
 class Product(Resource):
-    @api.doc(responses={410: ''}, params={'path': 'the file path to be served'})
+    @api.doc(responses={410: 'problem with local file delivery'}, params={'path': 'the file path to be served'})
     def get(self,path):
-        return send_from_directory(os.path.abspath('./'),path)
-
+        """
+        serves a locally stored file
+        """
+        try:
+            return send_from_directory(os.path.abspath('./'),path)
+        except Exception as e:
+            #print('qui',e)
+            raise APIerror('problem with local file delivery: %s'%e, status_code=410)
 
 @ns_conf.route('/js9/<path:path>',methods=['GET','POST'])
 #@app.route('/js9/<path:path>',methods=['GET','POST'])
 class JS9(Resource):
-    @api.doc(responses={410: ''}, params={'path': 'the file path for the JS9 library'})
+    @api.doc(responses={410: 'problem with  js9 library'}, params={'path': 'the file path for the JS9 library'})
     def get(self,path):
-        return send_from_directory(os.path.abspath('static/js9/'), path)
+        """
+        serves the js9 library
+        """
+        try:
+            return send_from_directory(os.path.abspath('static/js9/'), path)
+        except Exception as e:
+        # print('qui',e)
+            raise APIerror('problem with local file delivery: %s' % e, status_code=410)
+
 
 @ns_conf.route('/get_js9_plot')
 class GetJS9Plot(Resource):
@@ -252,7 +266,7 @@ class GetJS9Plot(Resource):
 @ns_conf.route('/test_js9')
 class TestJS9Plot(Resource):
     """
-    test js9 error generation
+    tests js9 with a predefined file
     """
     @api.doc(responses={410: 'problem with js9 image generation'})
 
