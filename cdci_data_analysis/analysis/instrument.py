@@ -331,7 +331,7 @@ class Instrument(object):
         for _query in self._queries_list:
             print('q:', _query.name)
             for _par in _query._parameters_list:
-                l.append[_par.name]
+                l.append(_par.name)
 
         return l
 
