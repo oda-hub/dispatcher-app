@@ -325,13 +325,32 @@ class Instrument(object):
 
         return l
 
-
-    def get_parameters_name_list(self):
-        l=[]
+    def get_parameters_name_list(self, prod_name=None):
+        l = []
+        _add_query = False
         for _query in self._queries_list:
+            _add_query = True
             print('q:', _query.name)
-            for _par in _query._parameters_list:
-                l.append(_par.name)
+
+            if isinstance(_query, SourceQuery):
+                _add_query = True
+
+            if isinstance(_query, InstrumentQuery):
+                _add_query = True
+            # print('isntr', _query.name)
+
+            if isinstance(_query, ProductQuery) and prod_name is not None and _query.name == self.query_dictionary[
+                prod_name]:
+                _add_query = True
+                # print('prd', _query.name,prod_name)
+            elif isinstance(_query, ProductQuery) and prod_name is not None and _query.name != self.query_dictionary[
+                prod_name]:
+                # print('prd', _query.name, prod_name)
+                _add_query = False
+
+            if _add_query == True:
+                for _par in _query._parameters_list:
+                    l.append(_par.name)
 
         return l
 

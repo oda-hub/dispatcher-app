@@ -360,11 +360,18 @@ class InstrumentQueryBackEnd(object):
 
         return jsonify(l)
 
+    def get_api_par_names(self):
 
-    def get_api_par_names(self,):
-        _l=self.instrument.get_parameters_name_list()
-        _l.remove('user_catalog')
-        return jsonify(self.instrument.get_parameters_name_list())
+        if 'product_type' in self.par_dic.keys():
+            prod_name = self.par_dic['product_type']
+        else:
+            prod_name = None
+
+        _l = self.instrument.get_parameters_name_list(prod_name=prod_name)
+        if 'user_catalog' in _l:
+            _l.remove('user_catalog')
+
+        return jsonify(_l)
 
 
     def get_paramters_dict(self):
