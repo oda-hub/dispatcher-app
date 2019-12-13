@@ -326,7 +326,7 @@ class Instrument(object):
         for _query in self._queries_list:
             _add_query = True
             print('q:', _query.name)
-            if isinstance(_query,InstrumentQuery) and add_instr_query==False:
+            if isinstance(_query,InstrumentQuery) :
                 _add_query=False
             #print('isntr', _query.name)
 
