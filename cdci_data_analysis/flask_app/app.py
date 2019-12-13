@@ -85,6 +85,11 @@ class APIerror(Exception):
         rv['error_message'] = self.message
         return rv
 
+@app.errorhandler(APIerror)
+def handle_api_error(error):
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
 
 
 
@@ -169,11 +174,7 @@ def dataserver_call_back():
 ####################################### API #######################################
 
 
-@app.errorhandler(APIerror)
-def handle_api_error(error):
-    response = jsonify(error.to_dict())
-    response.status_code = error.status_code
-    return response
+
 
 
 @api.errorhandler(APIerror)

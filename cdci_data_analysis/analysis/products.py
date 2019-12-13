@@ -352,9 +352,6 @@ class ImageProduct(BaseQueryProduct):
 
         res_dict = {}
         res_dict['image']=html_dict
-
-
-
         res_dict['header_text'] = ''
         res_dict['table_text'] = ''
         res_dict['footer_text']=''
