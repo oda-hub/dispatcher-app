@@ -362,7 +362,8 @@ class InstrumentQueryBackEnd(object):
 
 
     def get_api_par_names(self,):
-
+        _l=self.instrument.get_parameters_name_list()
+        _l.remove('user_catalog')
         return jsonify(self.instrument.get_parameters_name_list())
 
 
