@@ -326,8 +326,12 @@ class Instrument(object):
         for _query in self._queries_list:
             _add_query = True
             print('q:', _query.name)
+
+            if isinstance(_query,SourceQuery):
+                _add_query = True
+
             if isinstance(_query,InstrumentQuery) :
-                _add_query=False
+                _add_query=True
             #print('isntr', _query.name)
 
             if isinstance(_query, ProductQuery) and prod_name is not None and _query.name==self.query_dictionary[prod_name]:
