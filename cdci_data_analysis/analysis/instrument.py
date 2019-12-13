@@ -320,7 +320,7 @@ class Instrument(object):
         return l
 
 
-    def get_parameters_name_list(self):
+    def get_parameters_name_list(self, prod_name= None):
         l=[]
         _add_query = False
         for _query in self._queries_list:
