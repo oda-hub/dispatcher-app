@@ -361,6 +361,11 @@ class InstrumentQueryBackEnd(object):
         return jsonify(l)
 
 
+    def get_api_par_names(self,):
+
+        return jsonify(self.instrument.get_parameters_name_list())
+
+
     def get_paramters_dict(self):
         #print('CICCIO',self.par_dic)
         return jsonify(self.par_dic)

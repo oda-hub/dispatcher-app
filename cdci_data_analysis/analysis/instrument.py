@@ -209,7 +209,7 @@ class Instrument(object):
                 # FAILED
                 query_out.set_failed(product_type,message='wrong parameter', logger=logger, sentry_client=sentry_client, excep=e)
 
-        self.validate_parameters()
+
         print('--> par dict',par_dic)
 
         if dry_run == True:
@@ -294,16 +294,7 @@ class Instrument(object):
         print("-------------")
 
 
-    def validate_parameters(self):
-        _l=[]
-        print("-------------")
-        for _query in self._queries_list:
-            print('q:', _query.name)
-            for par in _query._parameters_list:
-                _l.append(par.name)
 
-        print (_l)
-        print("-------------")
 
     def get_parameters_list_as_json(self,add_src_query=True,add_instr_query=True,prod_name=None):
 
@@ -335,6 +326,14 @@ class Instrument(object):
         return l
 
 
+    def get_parameters_name_list(self):
+        l=[]
+        for _query in self._queries_list:
+            print('q:', _query.name)
+            for _par in _query._parameters_list:
+                l.append[_par.name]
+
+        return l
 
 
     def set_pars_from_form(self,par_dic,logger=None,verbose=False,sentry_client=None):
