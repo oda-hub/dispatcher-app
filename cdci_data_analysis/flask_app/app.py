@@ -379,7 +379,7 @@ class InstrumentQueryBackEnd(object):
 
         _l = self.instrument.get_parameters_name_list(prod_name=prod_name)
         _l.remove('user_catalog')
-        return jsonify(self.instrument.get_parameters_name_list())
+        return jsonify(_l)
 
     def get_paramters_dict(self):
         #print('CICCIO',self.par_dic)
