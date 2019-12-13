@@ -309,7 +309,8 @@ class InstrumentQuery(BaseQuery):
         input_prod_list= InputProdList(value=input_prod_value,_format='names_list', name=input_prod_list_name, )
 
         catalog=UserCatalog(value=catalog,name_format='str',name=catalog_name)
-        selected_catalog=UserCatalog(value=catalog,name_format='str',name='catalog_name')
+
+        selected_catalog = UserCatalog(value=None, name_format='str', name='selected_catalog')
 
         self.input_prod_list_name = input_prod_list_name
         self.catalog_name = catalog_name

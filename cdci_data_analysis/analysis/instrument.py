@@ -209,11 +209,15 @@ class Instrument(object):
                 # FAILED
                 query_out.set_failed(product_type,message='wrong parameter', logger=logger, sentry_client=sentry_client, excep=e)
 
+        self.validate_parameters()
+        print('--> par dict',par_dic)
+
         if dry_run == True:
             job.set_done()
             if query_out.status_dictionary['status'] == 0:
                 query_out.set_done(message='dry-run',job_status=job.status)
                 query_out.set_instrument_parameters(self.get_parameters_list_as_json(prod_name=product_type))
+
         else:
             if query_out.status_dictionary['status'] == 0:
                 #print('--->CICCIO',self.query_dictionary)
@@ -289,6 +293,17 @@ class Instrument(object):
             _query.show_parameters_list()
         print("-------------")
 
+
+    def validate_parameters(self):
+        _l=[]
+        print("-------------")
+        for _query in self._queries_list:
+            print('q:', _query.name)
+            for par in _query._parameters_list:
+                _l.append(par.name)
+
+        print (_l)
+        print("-------------")
 
     def get_parameters_list_as_json(self,add_src_query=True,add_instr_query=True,prod_name=None):
 
