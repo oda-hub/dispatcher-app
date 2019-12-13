@@ -116,6 +116,10 @@ def meta_data():
     query = InstrumentQueryBackEnd(app,get_meta_data=True)
     return query.get_meta_data()
 
+@app.route('/api/par-names')
+def get_api_par_names():
+    query = InstrumentQueryBackEnd(app, get_meta_data=True)
+    return query.get_api_par_names()
 
 @app.route('/check_satus')
 def check_satus():
