@@ -370,6 +370,16 @@ class InstrumentQueryBackEnd(object):
 
         return jsonify(l)
 
+    def get_api_par_names(self):
+
+        if 'product_type' in self.par_dic.keys():
+            prod_name = self.par_dic['product_type']
+        else:
+            prod_name = None
+
+        _l = self.instrument.get_parameters_name_list(prod_name=prod_name)
+        _l.remove('user_catalog')
+        return jsonify(self.instrument.get_parameters_name_list())
 
     def get_paramters_dict(self):
         #print('CICCIO',self.par_dic)
@@ -937,6 +947,11 @@ def run_api_parameters():
 def run_api_instr_list():
     query = InstrumentQueryBackEnd(get_meta_data=True)
     return query.get_instr_list()
+
+@app.route('/api/par-names')
+def get_api_par_names():
+    query = InstrumentQueryBackEnd(app, get_meta_data=True)
+    return query.get_api_par_names()
 
 
 @app.route("/test_sleep")
