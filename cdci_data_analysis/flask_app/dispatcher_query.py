@@ -397,18 +397,6 @@ class InstrumentQueryBackEnd(object):
                                           extra_message='configuration failed')
 
 
-
-
-
-
-
-        #job = Job(work_dir=self.scratch_dir,
-        #          server_url=self.get_current_ip(),
-        #          server_port=config.dispatcher_port,
-        #          callback_handle='call_back',
-        #          session_id=self.par_dic['session_id'],
-        #          job_id=self.par_dic['job_id'])
-
         job = job_factory(self.par_dic['instrument_name'],
                           self.scratch_dir,
                           self.get_current_ip(),

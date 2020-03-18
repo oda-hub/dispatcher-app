@@ -23,7 +23,7 @@ from __future__ import absolute_import, division, print_function
 from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
 
-
+import string
 import json
 import  logging
 import  re
@@ -465,7 +465,12 @@ class Instrument(object):
                     for ll in _lines:
                          lines.extend(ll.split(","))
                     lines = [item.strip() for item in lines]
-                par_dic[input_prod_list_name] = lines
+                    cleaned_lines=[]
+                    for line in lines:
+                        line = ''.join([x if x in string.printable else '' for x in line])
+                        cleaned_lines.append(line)
+
+                par_dic[input_prod_list_name] = cleaned_lines
                 has_prods= len(lines) >= 1
             except:
                 has_prods=False

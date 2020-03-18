@@ -29,7 +29,6 @@ class Image(object):
         self.fig_im.glyph.color_mapper.update(low=self.graph_min_slider.value, high=self.graph_max_slider.value)
 
 
-
     def get_html_draw(self,w=None,h=None, catalog=None, plot=False, vmin=None, vmax=None):
 
         #import plotly

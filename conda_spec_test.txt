@@ -2,7 +2,6 @@ future
 numpy
 pyyaml
 simplejson
-#mpld3
 flask
 astropy>=2.0.3
 pathlib
@@ -11,8 +10,9 @@ decorator
 python-logstash
 raven
 blinker
-bokeh==0.12.16
+bokeh
 json_tricks
 flask-restplus
-oda_api
 six
+matplotlib
+jupyter
