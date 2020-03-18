@@ -28,6 +28,7 @@ import json
 import  logging
 import  re
 import yaml
+import  string
 
 import os
 import  numpy as np
@@ -438,29 +439,29 @@ class Instrument(object):
         #print('---------------------------------------------')
         return q
 
-
-
-
-
-
-    def set_input_products(self, par_dic, input_file_path,input_prod_list_name):
-        has_prods=False
+    def set_input_products(self, par_dic, input_file_path, input_prod_list_name):
+        has_prods = False
         if input_file_path is None:
-            #if no file we pass OK condition
-            #since the paramter will be passed from the form
-            has_prods=True
+            # if no file we pass OK condition
+            # since the paramter will be passed from the form
+            has_prods = True
         else:
             try:
                 with open(input_file_path) as f:
                     _lines = f.readlines()
                     lines = []
                     for ll in _lines:
-                         lines.extend(ll.split(","))
+                        lines.extend(ll.split(","))
                     lines = [item.strip() for item in lines]
-                par_dic[input_prod_list_name] = lines
-                has_prods= len(lines) >= 1
+                    cleaned_lines = []
+                    for line in lines:
+                        line = ''.join([x if x in string.printable else '' for x in line])
+                        cleaned_lines.append(line)
+
+                par_dic[input_prod_list_name] = cleaned_lines
+                has_prods = len(lines) >= 1
             except:
-                has_prods=False
+                has_prods = False
 
         return has_prods
 
