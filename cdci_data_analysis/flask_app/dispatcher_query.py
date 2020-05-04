@@ -633,7 +633,6 @@ class InstrumentQueryBackEnd(object):
                 print('instrument_name',self.instrument_name)
                 print ('scratch_dir',self.scratch_dir)
                 print('ip',   self.get_current_ip())
-                print( 'port',  config.dispatcher_port)
                 print(  'sess id',   self.par_dic['session_id'])
                 print(  'job id',   self.job_id)
                 print(   'par dic',   self.par_dic)
