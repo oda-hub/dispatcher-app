@@ -38,7 +38,7 @@ from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
 
-
+import oda_api
 
 
 class InstrumentQueryBackEnd(object):
