@@ -632,7 +632,7 @@ class InstrumentQueryBackEnd(object):
                 resp = self.build_dispatcher_response(query_new_status=query_status, query_out=query_out, job_monitor=None, off_line=off_line, api=api)
                 return resp
 
-            print(current_disp_oda_api_version,query_oda_api_version,failed_task,oda_api_version_error)
+            print('API version check',current_disp_oda_api_version,query_oda_api_version,failed_task,oda_api_version_error)
         else:
             api=False
 
