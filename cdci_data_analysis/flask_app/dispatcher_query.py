@@ -624,18 +624,11 @@ class InstrumentQueryBackEnd(object):
                 oda_api_version_error = 'oda_api on server are outdated please contact oda api responsible'
             elif current_disp_oda_api_version > query_oda_api_version:
 
-                oda_api_version_error = 'oda_api version not compatible, min version=%s, current=%s, please update your oda_api package' % (current_disp_oda_api_version, current_disp_oda_api_version)
+                oda_api_version_error = 'oda_api version not compatible, min version=%s, current=%s, please update your oda_api package' % (current_disp_oda_api_version, query_oda_api_version)
             else:
                 pass
 
             if oda_api_version_error is not None:
-                print('===> ecco')
-                print('instrument_name',self.instrument_name)
-                print ('scratch_dir',self.scratch_dir)
-                print('ip',   self.get_current_ip())
-                print(  'sess id',   self.par_dic['session_id'])
-                print(  'job id',   self.job_id)
-                print(   'par dic',   self.par_dic)
 
                 job = job_factory(self.instrument_name,
                                   self.scratch_dir,
@@ -648,9 +641,7 @@ class InstrumentQueryBackEnd(object):
 
                 job.set_failed()
 
-                print('===> job',job)
                 job_monitor = job.monitor
-                print('===> job_monitor', job_monitor)
                 query_status = 'failed'
 
                 query_out = QueryOutput()
@@ -658,13 +649,11 @@ class InstrumentQueryBackEnd(object):
 
                 query_out.set_failed(failed_task, message=oda_api_version_error, job_status=job_monitor['status'])
 
-                print('===> query_out', query_out)
                 resp = self.build_dispatcher_response(query_new_status=query_status,
                                                       query_out=query_out,
                                                       job_monitor=job_monitor,
                                                       off_line=off_line,
                                                       api=api)
-                print('=====>resp',resp)
                 return resp
         else:
             api=False
