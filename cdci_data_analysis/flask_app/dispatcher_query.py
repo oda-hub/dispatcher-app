@@ -605,10 +605,7 @@ class InstrumentQueryBackEnd(object):
     def run_query(self,off_line=False,disp_conf=None):
 
         print ('==============================> run query <==============================')
-        print('self.par_dic.keys()',self.par_dic.keys())
         if 'api' in self.par_dic.keys():
-            #print('API version check', current_disp_oda_api_version, query_oda_api_version, failed_task, oda_api_version_error)
-            print('1')
             api = True
             current_disp_oda_api_version = None
             if hasattr(oda_api, '__version__'):
@@ -620,20 +617,17 @@ class InstrumentQueryBackEnd(object):
             oda_api_version_error = None
             failed_task = 'oda_api version compatibility'
 
-            print('2')
-            print(current_disp_oda_api_version, query_oda_api_version)
+
             if query_oda_api_version is None:
-                print('a')
                 oda_api_version_error = 'oda_api version compatibility non safe, please update your oda_api package'
             elif  current_disp_oda_api_version is None:
-                print('b')
                 oda_api_version_error = 'oda_api on server are outdated please contact oda api responsible'
             elif current_disp_oda_api_version > query_oda_api_version:
-                print('c')
-                oda_api_version_error = 'oda_api version not compatible, min=%s, current=%s' % (_min_v, current_disp_oda_api_version)
+
+                oda_api_version_error = 'oda_api version not compatible, min version=%s, current=%s, please update your oda_api package' % (current_disp_oda_api_version, current_disp_oda_api_version)
             else:
                 pass
-            print('3')
+
             if oda_api_version_error is not None:
                 query_status = 'failed'
                 query_out = QueryOutput()
