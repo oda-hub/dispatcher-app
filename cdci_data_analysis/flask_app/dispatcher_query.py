@@ -641,7 +641,7 @@ class InstrumentQueryBackEnd(object):
                 job = job_factory(self.instrument_name,
                                   self.scratch_dir,
                                   self.get_current_ip(),
-                                  config.dispatcher_port,
+                                  None,
                                   self.par_dic['session_id'],
                                   self.job_id,
                                   self.par_dic,
