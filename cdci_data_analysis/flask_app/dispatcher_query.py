@@ -621,6 +621,7 @@ class InstrumentQueryBackEnd(object):
             failed_task = 'oda_api version compatibility'
 
             print('2')
+            print(current_disp_oda_api_version, query_oda_api_version)
             if query_oda_api_version is None:
                 print('a')
                 oda_api_version_error = 'oda_api version compatibility non safe, please update your oda_api package'
