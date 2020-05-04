@@ -608,20 +608,20 @@ class InstrumentQueryBackEnd(object):
 
         if 'api' in self.par_dic.keys():
             api = True
-            curent_disp_oda_api_version = None
+            current_disp_oda_api_version = None
             if hasattr(oda_api, '__version__'):
-                curent_disp_oda_api_version = oda_api.__version__
+                current_disp_oda_api_version = oda_api.__version__
             query_oda_api_version = None
             if 'oda_api_version' in self.par_dic.keys():
                 query_oda_api_version = self.par_dic['oda_api_version']
 
             oda_api_version_error = None
             failed_task = 'oda_api version compatibility'
-            if query_oda_api_version is None or curent_disp_oda_api_version is None:
+            if query_oda_api_version is None or current_disp_oda_api_version is None:
                 oda_api_version_error = 'oda_api version not compatible, current version=%s, update your oda_api package' % curent_disp_oda_api_version
 
 
-            elif curent_disp_oda_api_version > query_oda_api_version:
+            elif current_disp_oda_api_version > query_oda_api_version:
                 oda_api_version_error = 'oda_api version not compatible, min=%s, current=%s' % (_min_v, curent_disp_oda_api_version)
 
             if oda_api_version_error is not None:
@@ -632,6 +632,7 @@ class InstrumentQueryBackEnd(object):
                 resp = self.build_dispatcher_response(query_new_status=query_status, query_out=query_out, job_monitor=None, off_line=off_line, api=api)
                 return resp
 
+            print(current_disp_oda_api_version,query_oda_api_version,failed_task,oda_api_version_error)
         else:
             api=False
 
