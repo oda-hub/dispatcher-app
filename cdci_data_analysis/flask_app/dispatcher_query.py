@@ -629,6 +629,7 @@ class InstrumentQueryBackEnd(object):
                 pass
 
             if oda_api_version_error is not None:
+                print('===> ecco')
                 job = job_factory(self.instrument_name,
                                   self.scratch_dir,
                                   self.get_current_ip(),
@@ -640,8 +641,9 @@ class InstrumentQueryBackEnd(object):
 
                 job.set_failed()
 
+                print('===> job',job)
                 job_monitor = job.monitor
-
+                print('===> job_monitor', job_monitor)
                 query_status = 'failed'
 
                 query_out = QueryOutput()
@@ -649,12 +651,13 @@ class InstrumentQueryBackEnd(object):
 
                 query_out.set_failed(failed_task, message=oda_api_version_error, job_status=job_monitor['status'])
 
+                print('===> query_out', query_out)
                 resp = self.build_dispatcher_response(query_new_status=query_status,
                                                       query_out=query_out,
                                                       job_monitor=job_monitor,
                                                       off_line=off_line,
                                                       api=api)
-                print('resp',resp)
+                print('=====>resp',resp)
                 return resp
         else:
             api=False
