@@ -630,7 +630,14 @@ class InstrumentQueryBackEnd(object):
 
             if oda_api_version_error is not None:
                 print('===> ecco')
-                print()
+                print(self.instrument_name)
+                print (self.scratch_dir)
+                print(   self.get_current_ip())
+                print(   config.dispatcher_port)
+                print(     self.par_dic['session_id'])
+                print(     self.job_id)
+                print(      self.par_dic)
+
                 job = job_factory(self.instrument_name,
                                   self.scratch_dir,
                                   self.get_current_ip(),
