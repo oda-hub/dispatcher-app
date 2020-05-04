@@ -622,10 +622,13 @@ class InstrumentQueryBackEnd(object):
 
             print('2')
             if query_oda_api_version is None:
+                print('a')
                 oda_api_version_error = 'oda_api version compatibility non safe, please update your oda_api package'
             elif  current_disp_oda_api_version is None:
+                print('b')
                 oda_api_version_error = 'oda_api on server are outdated please contact oda api responsible'
             elif current_disp_oda_api_version > query_oda_api_version:
+                print('c')
                 oda_api_version_error = 'oda_api version not compatible, min=%s, current=%s' % (_min_v, current_disp_oda_api_version)
             else:
                 pass
