@@ -654,6 +654,7 @@ class InstrumentQueryBackEnd(object):
                                                       job_monitor=job_monitor,
                                                       off_line=off_line,
                                                       api=api)
+                print('resp',resp)
                 return resp
         else:
             api=False
