@@ -629,14 +629,32 @@ class InstrumentQueryBackEnd(object):
                 pass
 
             if oda_api_version_error is not None:
-                query_status = 'failed'
-                query_out = QueryOutput()
-                query_out.set_failed(failed_task, message=oda_api_version_error, job_status='failed')
+                job = job_factory(self.instrument_name,
+                                  self.scratch_dir,
+                                  self.get_current_ip(),
+                                  config.dispatcher_port,
+                                  self.par_dic['session_id'],
+                                  self.job_id,
+                                  self.par_dic,
+                                  aliased=job_is_aliased)
 
-                resp = self.build_dispatcher_response(query_new_status=query_status, query_out=query_out, job_monitor=None, off_line=off_line, api=api)
+                job.set_failed()
+
+                job_monitor = job.monitor
+
+                query_status = 'failed'
+
+                query_out = QueryOutput()
+
+
+                query_out.set_failed(failed_task, message=oda_api_version_error, job_status=job_monitor['status'])
+
+                resp = self.build_dispatcher_response(query_new_status=query_status,
+                                                      query_out=query_out,
+                                                      job_monitor=job_monitor,
+                                                      off_line=off_line,
+                                                      api=api)
                 return resp
-            print('4')
-            print('API version check',current_disp_oda_api_version,query_oda_api_version,failed_task,oda_api_version_error)
         else:
             api=False
 
