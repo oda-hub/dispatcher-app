@@ -607,6 +607,7 @@ class InstrumentQueryBackEnd(object):
         print ('==============================> run query <==============================')
 
         if 'api' in self.par_dic.keys():
+            print('API version check', current_disp_oda_api_version, query_oda_api_version, failed_task, oda_api_version_error)
             api = True
             current_disp_oda_api_version = None
             if hasattr(oda_api, '__version__'):
