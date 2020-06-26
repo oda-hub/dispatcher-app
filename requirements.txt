@@ -10,7 +10,7 @@ decorator
 python-logstash
 raven
 blinker
-#bokeh==0.12.16
+bokeh==0.12.16
 json_tricks
 flask-restplus
 oda_api
