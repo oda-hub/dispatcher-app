@@ -238,11 +238,11 @@ class Parameter(object):
         u = None
         in_dictionary=False
 
-
         if units_name is not None:
             if units_name in form.keys():
                u = form[units_name]
         if par_name in form.keys():
+
             v=form[par_name]
             in_dictionary=True
 

@@ -264,7 +264,7 @@ class BaseQueryProduct(object):
             #print('file_path set to', self.file_path.path)
 
         if data is not None:
-            if isinstance(data,NumpyDataProduct):
+            if isinstance(data,NumpyDataProduct) or isinstance():
                 self.data = data
             else:
                 raise RuntimeError('data is not of the expected type',type(NumpyDataProduct))

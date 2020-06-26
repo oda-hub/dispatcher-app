@@ -17,7 +17,7 @@ import multiprocessing
 
 import gunicorn.app.base
 
-from gunicorn.six import iteritems
+#from gunicorn.six import iteritems
 
 from cdci_data_analysis.flask_app.app import run_app, app
 
@@ -40,10 +40,10 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
         super(StandaloneApplication, self).__init__()
 
     def load_config(self):
-        config = dict([(key, value) for key, value in iteritems(self.options)
+        config = dict([(key, value) for key, value in self.options.items()
                        if key in self.cfg.settings and value is not None])
 
-        for key, value in iteritems(config):
+        for key, value in config.items():
             print ('conf',key.lower(), value)
             self.cfg.set(key.lower(), value)
 
