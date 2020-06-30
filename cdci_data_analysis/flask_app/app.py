@@ -41,6 +41,7 @@ from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
 from .dispatcher_query import InstrumentQueryBackEnd
+from .exceptions import APIerror, BadRequest
 
 
 
@@ -68,28 +69,6 @@ api= Api(app=app, version='1.0', title='CDCI ODA API',
 
 
 ns_conf = api.namespace('api/v1.0/oda', description='api')
-
-class APIerror(Exception):
-
-    def __init__(self, message, status_code=None, payload=None):
-        Exception.__init__(self)
-        self.message = message
-
-        if status_code is not None:
-            self.status_code = status_code
-        self.payload = payload
-        print('API Error Message',message)
-
-    def to_dict(self):
-        rv = dict(self.payload or ())
-        rv['error_message'] = self.message
-        return rv
-
-@app.errorhandler(APIerror)
-def handle_api_error(error):
-    response = jsonify(error.to_dict())
-    response.status_code = error.status_code
-    return response
 
 
 
@@ -178,11 +157,9 @@ def dataserver_call_back():
 ####################################### API #######################################
 
 
-
-
-
 @api.errorhandler(APIerror)
 def handle_api_error(error):
+    print("=> APIerror flask handler", error)
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response

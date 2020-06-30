@@ -47,12 +47,12 @@ cdci_plugins_dict = {
     if (name.startswith('cdci') and name.endswith('plugin'))
 }
 
-instrument_facotry_list=[]
+instrument_factory_list=[]
 print (' cdci_plugins_dict',cdci_plugins_dict)
 for plugin_name in cdci_plugins_dict:
     try:
         e=importlib.import_module(plugin_name+'.exposer')
-        instrument_facotry_list.extend(e.instr_factory_list)
+        instrument_factory_list.extend(e.instr_factory_list)
         print('imported plugin', plugin_name)
 
     except Exception as e:

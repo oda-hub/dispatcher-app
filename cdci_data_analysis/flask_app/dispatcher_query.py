@@ -37,11 +37,15 @@ from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
+from .exceptions import BadRequest, APIerror
 
 import oda_api
 
 
-class InstrumentQueryBackEnd(object):
+class InstrumentNotRecognized(BadRequest):
+    pass
+
+class InstrumentQueryBackEnd:
 
     def __init__(self,app,instrument_name=None,par_dic=None,config=None,data_server_call_back=False,verbose=False,get_meta_data=False):
         #self.instrument_name=instrument_name
@@ -91,10 +95,11 @@ class InstrumentQueryBackEnd(object):
 
                 self.config=config
 
+        except APIerror:
+            raise
 
         except Exception as e:
             print ('e',e)
-
 
 
             query_out = QueryOutput()
@@ -380,7 +385,7 @@ class InstrumentQueryBackEnd(object):
 
     def get_instr_list(self,name=None):
         _l=[]
-        for instrument_factory in importer.instrument_facotry_list:
+        for instrument_factory in importer.instrument_factory_list:
             _l.append(instrument_factory().name)
 
         return jsonify(_l)
@@ -535,7 +540,7 @@ class InstrumentQueryBackEnd(object):
             new_instrument = 'mock'
 
         else:
-            for instrument_factory in importer.instrument_facotry_list:
+            for instrument_factory in importer.instrument_factory_list:
                 instrument = instrument_factory()
                 if instrument.name == instrument_name:
                     #print('setting instr',instrument_name,instrument.name)
@@ -545,13 +550,12 @@ class InstrumentQueryBackEnd(object):
 
 
         if new_instrument is None:
-
-            raise Exception("instrument not recognized".format(instrument_name))
+            raise InstrumentNotRecognized("instrument: \"{}\"".format(instrument_name))
         else:
             self.instrument=new_instrument
 
     def set_config(self):
-        if self.config is None:
+        if getattr(self, 'config', None) is None:
             config = self.app.config.get('conf')
         else:
             config = self.config
