@@ -32,17 +32,13 @@ __author__ = "Andrea Tramacere"
 
 class DataServerConf(object):
 
-    def __init__(self, data_server_url, data_server_port, data_server_remote_cache, dispatcher_mnt_point,
+    def __init__(self, data_server_url, data_server_remote_cache, dispatcher_mnt_point,
                          dummy_cache,products_url=None):
         # dataserver port
         self.data_server_port = data_server_port
 
         # dataserver url
         self.data_server_url = data_server_url
-        if self.data_server_url  is not None and self.data_server_port is not None:
-            self.data_server_url = 'http://%s'%(self.data_server_url)
-        if self.data_server_url is not None and self.data_server_port is not None:
-            self.data_server_url +=':%d' % (self.data_server_port)
 
         # dummy prods local cache
         self.dummy_cache = dummy_cache
