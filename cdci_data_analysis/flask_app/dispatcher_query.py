@@ -197,7 +197,7 @@ class InstrumentQueryBackEnd:
             logger.addHandler(logstash.TCPLogstashHandler(logstash_host, logstash_port))
 
             extra = {
-                'origin': 'cdici_dispatcher',
+                'origin': 'cdci_dispatcher',
             }
             _logger = logging.LoggerAdapter(logger, extra)
         else:
@@ -535,6 +535,8 @@ class InstrumentQueryBackEnd:
         return out_dict
 
     def set_instrument(self, instrument_name):
+        known_instruments = []
+
         new_instrument=None
         if instrument_name == 'mock':
             new_instrument = 'mock'
@@ -545,12 +547,12 @@ class InstrumentQueryBackEnd:
                 if instrument.name == instrument_name:
                     #print('setting instr',instrument_name,instrument.name)
                     new_instrument = instrument
-
+                known_instruments.append(instrument.name)
 
 
 
         if new_instrument is None:
-            raise InstrumentNotRecognized("instrument: \"{}\"".format(instrument_name))
+            raise InstrumentNotRecognized(f'instrument: "{instrument_name}", known: {known_instruments}')
         else:
             self.instrument=new_instrument
 

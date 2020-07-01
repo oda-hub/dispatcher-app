@@ -130,8 +130,12 @@ def run_analysis_test():
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
-    query=InstrumentQueryBackEnd(app)
-    return query.run_query(disp_conf=app.config['conf'])
+    try:
+        query=InstrumentQueryBackEnd(app)
+        return query.run_query(disp_conf=app.config['conf'])
+    except Exception as e:
+        print("exception in run_analysis:", repr(e))
+        return make_response("unknown issue"), 400
 
 
 
@@ -164,6 +168,13 @@ def handle_api_error(error):
     response.status_code = error.status_code
     return response
 
+# TODO: apparently flask-restplus modifies (messes up) error handling of flask. 
+# since it's deprecated and to be removed, no reason to try figuring it out
+
+@api.errorhandler(Exception)
+def handle_error(error):
+    print("=> APIerror flask handler", error)
+    return make_response(f"unmanagable error: {error}"), 400
 
 
 def output_html(data, code, headers=None):
