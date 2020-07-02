@@ -35,8 +35,6 @@ class DataServerConf(object):
     def __init__(self, data_server_url, data_server_remote_cache, dispatcher_mnt_point,
                          dummy_cache,products_url=None):
         # dataserver port
-        self.data_server_port = data_server_port
-
         # dataserver url
         self.data_server_url = data_server_url
 

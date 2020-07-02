@@ -227,7 +227,10 @@ class Instrument(object):
                 debug_message=''
 
                 try:
-                    query_name = self.query_dictionary[product_type]
+                    if product_type not in self.query_dictionary:
+                        raise Exception(f"product type {product_type} not in query_dictionary {self.query_dictionary}")
+                    else:
+                        query_name = self.query_dictionary[product_type]
                     #print ('=======> query_name',query_name)
                     query_out = self.get_query_by_name(query_name).run_query(self, out_dir, job, run_asynch,
                                                                              query_type=query_type, config=config,

@@ -8,6 +8,9 @@ Created on Wed May 10 10:55:20 2017
 
 from builtins import (open, str, range,
                       object)
+
+import traceback
+
 from collections import Counter, OrderedDict
 import  copy
 from werkzeug.utils import secure_filename
@@ -49,6 +52,7 @@ class InstrumentQueryBackEnd:
 
     def __init__(self,app,instrument_name=None,par_dic=None,config=None,data_server_call_back=False,verbose=False,get_meta_data=False):
         #self.instrument_name=instrument_name
+        self.logger = logging.getLogger(repr(self))
 
         self.app=app
         try:
@@ -99,7 +103,8 @@ class InstrumentQueryBackEnd:
             raise
 
         except Exception as e:
-            print ('e',e)
+            self.logger.error('exception in constructor of %s %s', self, repr(e))
+            self.logger.error("traceback: %s", traceback.format_exc())
 
 
             query_out = QueryOutput()

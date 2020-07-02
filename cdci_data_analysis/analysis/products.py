@@ -48,6 +48,8 @@ from .io_helper import FilePath
 from .io_helper import view_traceback, FitsFile
 from .job_manager import Job
 
+import traceback
+
 try:
     from urllib.parse import urlencode
 except ImportError:
@@ -187,6 +189,8 @@ class QueryOutput(object):
         print('!!! >>>Exception<<<', e_message)
         print('!!! >>>debug message<<<', debug_message)
         print('!!! failed operation', failed_operation)
+
+        print(traceback.format_exc())
 
         view_traceback()
 

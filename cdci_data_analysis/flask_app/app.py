@@ -17,6 +17,8 @@ import string
 import  random
 from raven.contrib.flask import Sentry
 
+import traceback
+
 from flask import jsonify,send_from_directory,redirect,Response
 from flask import Flask, request,make_response,abort
 from flask.json import JSONEncoder
@@ -134,7 +136,8 @@ def run_analysis():
         query=InstrumentQueryBackEnd(app)
         return query.run_query(disp_conf=app.config['conf'])
     except Exception as e:
-        print("exception in run_analysis:", repr(e))
+        logging.getLogger().error("exception in run_analysis: %s %s", repr(e), traceback.format_exc())
+        print("exception in run_analysis: %s %s", repr(e), traceback.format_exc())
         return make_response("unknown issue"), 400
 
 
