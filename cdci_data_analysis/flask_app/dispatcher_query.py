@@ -174,16 +174,17 @@ class InstrumentQueryBackEnd:
 
         print('generated SESSION ID',self.par_dic['session_id'])
         print('-------')
+
     def set_session_logger(self,scratch_dir,verbose=False,config=None):
         logger = logging.getLogger(__name__)
         fileh = logging.FileHandler(os.path.join(scratch_dir, 'session.log'), 'a')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fileh.setFormatter(formatter)
 
-        log = logging.getLogger()  # root logger
-        for hdlr in log.handlers[:]:  # remove all old handlers
-            log.removeHandler(hdlr)
-        log.addHandler(fileh)  # set the new handler
+        #log = logging.getLogger()  # root logger
+        #for hdlr in log.handlers[:]:  # remove all old handlers
+        #    log.removeHandler(hdlr)
+        #log.addHandler(fileh)  # set the new handler
         logger.setLevel(logging.INFO)
 
 
@@ -567,7 +568,7 @@ class InstrumentQueryBackEnd:
         else:
             config = self.config
 
-        disp_data_server_conf_dict=config.get_data_server_conf_dict(self.instrument_name)
+        disp_data_server_conf_dict = config.get_data_server_conf_dict(self.instrument_name)
 
         #print ('--> App configuration for:',self.instrument_name)
         if disp_data_server_conf_dict is not None:
@@ -710,9 +711,10 @@ class InstrumentQueryBackEnd:
         try:
 
             config, config_data_server=self.set_config()
-            print ('c',config,config_data_server)
-            print('dispatcher port', config.dispatcher_port)
+            self.logger.info('loading config: %s config_data_server: %s', config, config_data_server)
+            self.logger.info('dispatcher port %s', config.dispatcher_port)
         except Exception as e:
+            self.logger.error("problem setting config %s", e)
             query_out = QueryOutput()
             query_out.set_query_exception(e, 'run_query failed in %s'%self.__class__.__name__,
                                           extra_message='configuration failed')

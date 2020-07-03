@@ -9,6 +9,7 @@ import yaml
 
 import sys
 import os
+import logging
 
 __author__ = "Andrea Tramacere"
 
@@ -29,13 +30,22 @@ __author__ = "Andrea Tramacere"
 # launch
 # ----------------------------------------
 
+logger = logging.getLogger(__name__)
 
-class DataServerConf(object):
+import traceback
+
+# TODO: this looks rather specific to INTEGRAL?
+class DataServerConf:
 
     def __init__(self, data_server_url, data_server_remote_cache, dispatcher_mnt_point,
                          dummy_cache,products_url=None):
-        # dataserver port
-        # dataserver url
+
+        logger.info("building config from %s %s %s", data_server_url, data_server_remote_cache, dispatcher_mnt_point)
+
+        if data_server_url is None or data_server_remote_cache is None or dispatcher_mnt_point is None:
+            traceback.print_exc()
+            raise Exception(f"problem constructing {self}: some parameters are None: {data_server_url} {data_server_remote_cache} {dispatcher_mnt_point}")
+
         self.data_server_url = data_server_url
 
         # dummy prods local cache

@@ -35,8 +35,14 @@ __author__ = "Andrea Tramacere"
 
 # Project
 # relative import eg: from .mod import f
-import  importlib
-import  pkgutil
+import importlib
+import pkgutil
+import traceback
+
+import logging
+from pscolors import render
+
+logger = logging.getLogger(__name__)
 
 #plugin_list=['cdci_osa_plugin','cdci_polar_plugin']
 
@@ -48,12 +54,14 @@ cdci_plugins_dict = {
 }
 
 instrument_factory_list=[]
-print (' cdci_plugins_dict',cdci_plugins_dict)
 for plugin_name in cdci_plugins_dict:
+    logger.info("found plugin: %s", plugin_name)
+
     try:
         e=importlib.import_module(plugin_name+'.exposer')
         instrument_factory_list.extend(e.instr_factory_list)
-        print(__name__, 'imported plugin', plugin_name)
+        logger.info(render('{GREEN}imported plugin: %s{/}'), plugin_name)
 
     except Exception as e:
-        print(__name__, 'failed to import', plugin_name,e )
+        logger.error('failed to import %s: %s', plugin_name,e )
+        traceback.print_exc()

@@ -18,7 +18,7 @@ Module API
 ----------
 """
 
-from __future__ import absolute_import, division, print_function
+
 
 from flask import url_for
 
@@ -46,11 +46,14 @@ import requests
 
 from cdci_data_analysis.flask_app.app import run_app
 from cdci_data_analysis.configurer import ConfigEnv
-from cdci_data_analysis.ddosa.osa_catalog import build_osa_catalog
 
+import pytest
+
+pytestmark = pytest.mark.skip("these tests still WIP")
 
 
 def main(argv=None):
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-conf_file',type=str,default=None)
     args = parser.parse_args()
@@ -70,9 +73,9 @@ def test_image_client(client):
     ))
     jdata = c.json()
     print('b')
-    print
-    jdata.keys()
-    print
+    print()
+    list(jdata.keys())
+    print()
     jdata['data']
 
 def test_image():
@@ -86,9 +89,9 @@ def test_image():
     ))
     jdata = c.json()
     print('b')
-    print
-    jdata.keys()
-    print
+    print()
+    list(jdata.keys())
+    print()
     jdata['data']
 
 
@@ -100,5 +103,6 @@ if __name__ == "__main__":
 
 
 def test_osa_catalog():
+    from cdci_data_analysis.ddosa.osa_catalog import build_osa_catalog
 
     catalog=build_osa_catalog('mosaic_catalog.fits')

@@ -186,13 +186,12 @@ class QueryOutput(object):
         if sentry_client is not None:
             sentry_client.capture('raven.events.Message', message=e_message)
 
-        print('!!! >>>Exception<<<', e_message)
-        print('!!! >>>debug message<<<', debug_message)
-        print('!!! failed operation', failed_operation)
+        logger.error('!!! >>>Exception<<< %s', e_message)
+        logger.error('!!! >>>debug message<<< %s', debug_message)
+        logger.error('!!! failed operation: %s', failed_operation)
 
         print(traceback.format_exc())
 
-        view_traceback()
 
         if logger is not None:
             logger.exception(e_message)
