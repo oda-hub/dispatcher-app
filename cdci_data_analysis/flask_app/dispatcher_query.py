@@ -400,7 +400,8 @@ class InstrumentQueryBackEnd:
 
     @property
     def dispatcher_service_url(self):
-        return self._dispatcher_service_url
+        return getattr(self, '_dispatcher_service_url',
+                       getattr(self.config, 'dispatcher_service_url', None))
 
     def run_call_back(self,status_kw_name='action'):
 

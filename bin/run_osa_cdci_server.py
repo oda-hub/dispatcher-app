@@ -15,6 +15,8 @@ import os
 import argparse
 import multiprocessing
 
+import logging
+
 import gunicorn.app.base
 
 #from gunicorn.six import iteritems
@@ -57,6 +59,13 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
 
 
 def main(argv=None):
+
+    # TODO: make a conditon
+    logging.basicConfig(level=logging.DEBUG)
+
+    logging.warning("test warning")
+    logging.info("test info")
+    logging.debug("test debug")
 
     black_listed_evns=['https_proxy','http_proxy']
 
