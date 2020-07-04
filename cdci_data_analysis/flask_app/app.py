@@ -151,9 +151,9 @@ def test_mock():
 
 @app.route('/call_back', methods=['POST', 'GET'])
 def dataserver_call_back():
-    log = logging.getLogger('werkzeug')
-    log.disabled = True
-    app.logger.disabled = True
+    #log = logging.getLogger('werkzeug')
+    #log.disabled = True
+    #app.logger.disabled = True
     print('===========================> dataserver_call_back')
     query=InstrumentQueryBackEnd(app,instrument_name='mock',data_server_call_back=True)
     query.run_call_back()

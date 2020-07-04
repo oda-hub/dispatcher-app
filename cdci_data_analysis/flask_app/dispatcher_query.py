@@ -403,14 +403,14 @@ class InstrumentQueryBackEnd:
         return getattr(self, '_dispatcher_service_url',
                        getattr(self.config, 'dispatcher_service_url', None))
 
-    def run_call_back(self,status_kw_name='action'):
+    def run_call_back(self, status_kw_name='action'):
 
         try:
             config, config_data_server = self.set_config()
             #print('dispatcher port', config.dispatcher_port)
         except Exception as e:
             query_out = QueryOutput()
-            query_out.set_query_exception(e, 'run_query failed in %s'%self.__class__.__name__,
+            query_out.set_query_exception(e, 'run_call_back failed in %s'%self.__class__.__name__,
                                           extra_message='configuration failed')
 
 
@@ -422,6 +422,7 @@ class InstrumentQueryBackEnd:
                           self.job_id,
                           self.par_dic)
 
+        self.logger.info("%s.run_call_back with args %s", self, self.par_dict)
 
         #if 'node_id' in self.par_dic.keys():
         #    print('node_id', self.par_dic['node_id'])
@@ -432,7 +433,7 @@ class InstrumentQueryBackEnd:
             status=self.par_dic[job.status_kw_name]
         else:
             status='unknown'
-        #print ('-----> set status to ',status)
+        print ('-----> set status to ',status)
 
         job.write_dataserver_status(status_dictionary_value=status,full_dict=self.par_dic)
 
