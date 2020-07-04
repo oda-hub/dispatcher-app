@@ -44,6 +44,8 @@ from .exceptions import BadRequest, APIerror
 
 import oda_api
 
+logger = logging.getLogger(__name__)
+
 
 class InstrumentNotRecognized(BadRequest):
     pass
@@ -396,6 +398,9 @@ class InstrumentQueryBackEnd:
 
         return jsonify(_l)
 
+    @property
+    def dispatcher_service_url(self):
+        return self._dispatcher_service_url
 
     def run_call_back(self,status_kw_name='action'):
 
@@ -410,8 +415,8 @@ class InstrumentQueryBackEnd:
 
         job = job_factory(self.par_dic['instrument_name'],
                           self.scratch_dir,
-                          self.get_current_ip(),
-                          config.dispatcher_port,
+                          self.dispatcher_service_url,
+                          None,
                           self.par_dic['session_id'],
                           self.job_id,
                           self.par_dic)
@@ -570,7 +575,7 @@ class InstrumentQueryBackEnd:
 
         disp_data_server_conf_dict = config.get_data_server_conf_dict(self.instrument_name)
 
-        #print ('--> App configuration for:',self.instrument_name)
+        logger.debug('--> App configuration for:',self.instrument_name)
         if disp_data_server_conf_dict is not None:
             #print('-->',disp_data_server_conf_dict)
             if 'data_server' in  disp_data_server_conf_dict.keys():
@@ -581,14 +586,16 @@ class InstrumentQueryBackEnd:
                         if k in self.instrument.data_server_conf_dict.keys():
                             self.instrument.data_server_conf_dict[k] = disp_data_server_conf_dict['data_server'][self.instrument.name][k]
 
-            config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
+            config_data_server = DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
         else:
             config_data_server = None
         #if hasattr(self,'instrument'):
             #config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
 
 
-        return config,config_data_server
+        logger.info("loaded config %s", config)
+
+        return config, config_data_server
 
     def get_existing_job_ID_path(self,wd):
         #exist same job_ID, different session ID
@@ -644,7 +651,7 @@ class InstrumentQueryBackEnd:
 
                 job = job_factory(self.instrument_name,
                                   self.scratch_dir,
-                                  self.get_current_ip(),
+                                  self.dispatcher_service_url,
                                   None,
                                   self.par_dic['session_id'],
                                   self.job_id,
@@ -710,7 +717,7 @@ class InstrumentQueryBackEnd:
 
         try:
 
-            config, config_data_server=self.set_config()
+            config, config_data_server = self.set_config()
             self.logger.info('loading config: %s config_data_server: %s', config, config_data_server)
             self.logger.info('dispatcher port %s', config.dispatcher_port)
         except Exception as e:
@@ -723,6 +730,11 @@ class InstrumentQueryBackEnd:
         else:
             if config.sentry_url is not None:
                 self.set_sentry_client(config.sentry_url)
+
+            self._dispatcher_service_url = config.dispatcher_service_url
+
+
+
 
         alias_workidr=None
         try:
@@ -754,8 +766,8 @@ class InstrumentQueryBackEnd:
         print ('--> job aliased',job_is_aliased)
         job=job_factory(self.instrument_name,
                         self.scratch_dir,
-                        self.get_current_ip(),
-                        config.dispatcher_port,
+                        self.dispatcher_service_url,
+                        None,
                         self.par_dic['session_id'],
                         self.job_id,
                         self.par_dic,

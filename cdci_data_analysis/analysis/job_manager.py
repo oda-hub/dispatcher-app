@@ -29,6 +29,13 @@ import glob
 
 import json
 import  os
+
+import logging
+
+from urllib.parse import urlencode
+
+logger = logging.getLogger(__name__)
+
 # Standard library
 # eg copy
 # absolute import rg:from copy import deepcopy
@@ -41,6 +48,7 @@ import  os
 # relative import eg: from .mod import f
 
 from ..analysis.io_helper import FilePath
+
 
 class Job(object):
 
@@ -187,14 +195,19 @@ class Job(object):
 
 
     def get_call_back_url(self):
-        url=u'http://%s:%s/%s?'%(self.server_url,self.server_port,self.callback_handle)
-        url+=u'session_id=%s&'%self.session_id
-        url += u'job_id=%s&' % self.job_id
-        url += u'work_dir=%s&' % self.dir_name
-        url += u'file_mame=%s&' % self.file_name
-        url += u'instrument_name=%s&' % self.instrument_name
-        url += u'progressing'
-        #print ('-------------> url call back',url)
+        if self.server_port is None:
+            url = f'{self.server_url}/{self.callback_handle}'
+        else:
+            url = f'http://{self.server_url}:{self.server_port}/{self.callback_handle}'
+
+        url += "?" + urlencode({ k:getattr(self, k) for k in [
+                "session_id", "job_id", "work_dir", "file_name", "instrument_name"
+            ]})
+
+        url += 'progressing'
+
+        logger.debug("callback url: %s", url)
+
         return url
 
 
