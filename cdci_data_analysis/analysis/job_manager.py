@@ -204,7 +204,7 @@ class Job(object):
                 "session_id", "job_id", "work_dir", "file_name", "instrument_name"
             ]})
 
-        url += 'progressing'
+        url += '&progressing'
 
         logger.debug("callback url: %s", url)
 
