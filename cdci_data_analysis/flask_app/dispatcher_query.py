@@ -422,7 +422,7 @@ class InstrumentQueryBackEnd:
                           self.job_id,
                           self.par_dic)
 
-        self.logger.info("%s.run_call_back with args %s", self, self.par_dict)
+        self.logger.info("%s.run_call_back with args %s", self, self.par_dic)
 
         #if 'node_id' in self.par_dic.keys():
         #    print('node_id', self.par_dic['node_id'])
