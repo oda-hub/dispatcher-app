@@ -241,7 +241,7 @@ class GetJS9Plot(Resource):
 
         data=FitsFile(file_path).open()[ext_id]
         print(data,tmp_file.file_path)
-        data.writeto(tmp_file.file_path,overwrite=True,format='fits')
+        data.writeto(tmp_file.file_path,overwrite=True)
         region_file = None
         if 'region_file' in api_args.keys():
             region_file = api_args['region_file']
