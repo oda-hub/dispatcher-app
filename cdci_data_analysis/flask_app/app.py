@@ -173,7 +173,7 @@ class InvalidUsage(Exception):
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
     try:
-        query=InstrumentQueryBackEnd()
+        query=InstrumentQueryBackEnd(app)
         return query.run_query(disp_conf=app.config['conf'])
     except Exception as e:
         payload={}
