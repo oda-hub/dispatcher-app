@@ -240,16 +240,16 @@ class GetJS9Plot(Resource):
         tmp_file.file_path._set_file_path(tmp_file.file_path.dir_name,'js9.fits')
 
         data=FitsFile(file_path).open()[ext_id]
-        print(data,tmp_file.file_path)  
+        print(data,tmp_file.file_path)
         data.writeto(tmp_file.file_path.path,overwrite=True)
         region_file = None
         if 'region_file' in api_args.keys():
             region_file = api_args['region_file']
-        print('file_path,region_file', file_path, region_file)
+        print('file_path,region_file', tmp_file.path, region_file)
         try:
             img = Image(None, None)
-            print('get_js9_plot path',tmp_file)
-            img= img.get_js9_html(tmp_file, region_file=region_file)
+            print('get_js9_plot path',tmp_file.path)
+            img= img.get_js9_html(tmp_file.path, region_file=region_file)
 
         except Exception as e:
             #print('qui',e)
