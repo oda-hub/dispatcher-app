@@ -232,7 +232,7 @@ class GetJS9Plot(Resource):
         """
         api_parser = reqparse.RequestParser()
         api_parser.add_argument('file_path', required=True, help="the name of the file",type=str)
-        api_parser.add_argument('ext_id', required=False, help="extension id", type=int,default=4   )
+        api_parser.add_argument('ext_id', required=False, help="extension id", type=int,default=4 )
         api_args = api_parser.parse_args()
         file_path = api_args['file_path']
         ext_id = api_args['ext_id']
@@ -240,7 +240,7 @@ class GetJS9Plot(Resource):
         tmp_file.file_path._set_file_path(tmp_file.file_path.dir_name,'js9.fits')
 
         data=FitsFile(file_path).open()[ext_id]
-        #print(data,tmp_file.file_path)
+        print('==>',tmp_file.file_path,ext_id)
         data.writeto(tmp_file.file_path.path,overwrite=True)
         region_file = None
         if 'region_file' in api_args.keys():
