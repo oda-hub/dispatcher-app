@@ -248,8 +248,8 @@ class GetJS9Plot(Resource):
         print('file_path,region_file', tmp_file.file_path.path, region_file)
         try:
             img = Image(None, None)
-            print('get_js9_plot path',tmp_file.path)
-            img= img.get_js9_html(tmp_file.path, region_file=region_file)
+            print('get_js9_plot path',tmp_file.file_path.path)
+            img= img.get_js9_html(tmp_file.file_path.path, region_file=region_file)
 
         except Exception as e:
             #print('qui',e)
