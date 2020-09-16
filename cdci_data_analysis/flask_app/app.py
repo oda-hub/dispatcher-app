@@ -168,6 +168,11 @@ class InvalidUsage(Exception):
         rv['message'] = self.message
         return rv
 
+@app.errorhandler(InvalidUsage)
+def handle_invalid_usage(error):
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
@@ -185,8 +190,8 @@ def run_analysis():
         for instrument_factory in importer.instrument_facotry_list:
             _l+='%s, '%instrument_factory().name
         payload['installed_instruments'] = _l
-        print(payload)
-        raise InvalidUsage('request not valid', status_code=410,payload=payload)
+        #print(payload)
+        raise InvalidUsage('request not valid', status_code=410,p       )
 
 
 
