@@ -185,6 +185,7 @@ def run_analysis():
         for instrument_factory in importer.instrument_facotry_list:
             _l.append(instrument_factory().name)
         payload['instrument_list'] =  _l
+        print(payload)
         raise InvalidUsage('request not valid', status_code=410,payload=payload)
 
 
