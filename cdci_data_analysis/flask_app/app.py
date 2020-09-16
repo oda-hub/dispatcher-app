@@ -237,7 +237,7 @@ class GetJS9Plot(Resource):
         file_path = api_args['file_path']
         ext_id = api_args['ext_id']
         tmp_file=FitsFile(file_path)
-        tmp_file.file_path._name='js9_tmp.fits'
+        tmp_file._set_file_path(tmp_file.file_path.dir_name,'js9.fits')
 
         data=FitsFile(file_path).open()[ext_id]
         print(data,tmp_file.file_path)
