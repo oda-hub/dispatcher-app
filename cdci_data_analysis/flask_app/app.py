@@ -235,7 +235,7 @@ class GetJS9Plot(Resource):
         api_parser.add_argument('ext_id', required=False, help="extension id", type=int)
         api_args = api_parser.parse_args()
         file_path = api_args['file_path']
-        ext_id = '%s'%api_args['ext_id']
+        ext_id = api_args['ext_id']
         tmp_file=FitsFile(file_path)
         tmp_file.file_path._name='js9_tmp.fits'
 
