@@ -189,7 +189,7 @@ def run_analysis():
         _l = []
         for instrument_factory in importer.instrument_facotry_list:
         #   _l+='%s, '%instrument_factory().name
-        _l.append('%s'%instrument_factory().name)
+            _l.append('%s'%instrument_factory().name)
         payload['installed_instruments'] = _l
         print(payload)
         raise InvalidUsage('request not valid', status_code=410,payload=payload)
