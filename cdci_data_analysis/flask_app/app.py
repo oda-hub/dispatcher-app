@@ -245,7 +245,7 @@ class GetJS9Plot(Resource):
         region_file = None
         if 'region_file' in api_args.keys():
             region_file = api_args['region_file']
-        print('file_path,region_file', tmp_file.path, region_file)
+        print('file_path,region_file', tmp_file.file_path.path, region_file)
         try:
             img = Image(None, None)
             print('get_js9_plot path',tmp_file.path)
