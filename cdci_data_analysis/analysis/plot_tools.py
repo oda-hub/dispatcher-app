@@ -162,9 +162,9 @@ class Image(object):
         html_dict['div'] = div
         return html_dict
 
-    def get_js9_html(self, file_path,region_file=None,js9_id='myJS9',ext_id='all'):
+    def get_js9_html(self, file_path,region_file=None,js9_id='myJS9'):
         region=''
-        file='''JS9.Preload("product/%s", {scale: 'linear', colormap: 'plasma',extid: "%s"}, {display: "%s"});'''%(file_path,js9_id,ext_id)
+        file='''JS9.Preload("product/%s", {scale: 'linear', colormap: 'plasma'}, {display: "%s"});'''%(file_path,js9_id)
         if region_file is not None:
             region='''JS9.LoadRegions("product/%s", {display: "%s"});\n'''%(region_file,js9_id)
         t = '''                                                                                                                                                                             

@@ -35,7 +35,7 @@ from ..plugins import importer
 
 from ..analysis.queries import *
 from ..analysis.job_manager import Job,job_factory
-from ..analysis.io_helper import FilePath
+from ..analysis.io_helper import FilePath,FitsFile
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
@@ -225,26 +225,29 @@ class JS9(Resource):
 
 @ns_conf.route('/get_js9_plot')
 class GetJS9Plot(Resource):
-    @api.doc(responses={410: 'problem with js9 image generation'}, params={'file_path': 'the file path'})#,'ext_id':'extension id'})
+    @api.doc(responses={410: 'problem with js9 image generation'}, params={'file_path': 'the file path','ext_id':'extension id'})
     def get(self):
         """
         returns the js9 image display
         """
         api_parser = reqparse.RequestParser()
         api_parser.add_argument('file_path', required=True, help="the name of the file",type=str)
-        #api_parser.add_argument('ext_id', required=False, help="extension id", type=int)
+        api_parser.add_argument('ext_id', required=False, help="extension id", type=int)
         api_args = api_parser.parse_args()
         file_path = api_args['file_path']
-        #ext_id = '%s'%api_args['ext_id']
-        print('file_path',file_path)
+        ext_id = '%s'%api_args['ext_id']
+        tmp_file=FitsFile(file_path)
+        tmp_file.file_path.name='js9_tmp.fits'
+
+        tmp_file.write(data=FitsFile(file_path).open()[ext_id])
         region_file = None
         if 'region_file' in api_args.keys():
             region_file = api_args['region_file']
         print('file_path,region_file', file_path, region_file)
         try:
             img = Image(None, None)
-            # print('get_js9_plot path',file_path)
-            img= img.get_js9_html(file_path, region_file=region_file)
+            print('get_js9_plot path',tmp_file)
+            img= img.get_js9_html(tmp_file, region_file=region_file)
 
         except Exception as e:
             #print('qui',e)
