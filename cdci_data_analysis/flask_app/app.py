@@ -225,17 +225,17 @@ class JS9(Resource):
 
 @ns_conf.route('/get_js9_plot')
 class GetJS9Plot(Resource):
-    @api.doc(responses={410: 'problem with js9 image generation'}, params={'file_path': 'the file path','id':'extension id'})
+    @api.doc(responses={410: 'problem with js9 image generation'}, params={'file_path': 'the file path','ext_id':'extension id'})
     def get(self):
         """
         returns the js9 image display
         """
         api_parser = reqparse.RequestParser()
         api_parser.add_argument('file_path', required=True, help="the name of the file",type=str)
-        api_parser.add_argument('id', required=True, help="extension id", type=int)
+        api_parser.add_argument('ext_id', required=False, help="extension id", type=int)
         api_args = api_parser.parse_args()
         file_path = api_args['file_path']
-        id = api_args['id']
+        ext_id = '%s'%api_args['ext_id']
         print('file_path',file_path)
         region_file = None
         if 'region_file' in api_args.keys():
@@ -244,7 +244,7 @@ class GetJS9Plot(Resource):
         try:
             img = Image(None, None)
             # print('get_js9_plot path',file_path)
-            img= img.get_js9_html(file_path, region_file=region_file,id=id)
+            img= img.get_js9_html(file_path, region_file=region_file,ext_id=ext_id)
 
         except Exception as e:
             #print('qui',e)

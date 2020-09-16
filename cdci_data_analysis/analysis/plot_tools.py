@@ -162,11 +162,11 @@ class Image(object):
         html_dict['div'] = div
         return html_dict
 
-    def get_js9_html(self, file_path,region_file=None,id=1):
+    def get_js9_html(self, file_path,region_file=None,js9_id='myJS9',ext_id='all'):
         region=''
-        file='''JS9.Preload("product/%s", {scale: 'linear', colormap: 'plasma'}, {display: "%d"});'''%(file_path,id)
+        file='''JS9.Preload("product/%s", {scale: 'linear', colormap: 'plasma'}, {display: "%s"}),{extid: "%s"};'''%(file_path,js9_id,ext_id)
         if region_file is not None:
-            region='''JS9.LoadRegions("product/%s", {display: "%d"});\n'''%(region_file,id)
+            region='''JS9.LoadRegions("product/%s", {display: "%s"});\n'''%(region_file,js9_id)
         t = '''                                                                                                                                                                             
     <html>                                                                                                                                                                                     
                 <head>                                                                                                                                                                         
@@ -193,9 +193,9 @@ class Image(object):
         <td>                                                                                                                                                                                   
                 <tr valign="top">                                                                                                                                                              
                 <td>                                                                                                                                                                           
-                <div class="JS9Menubar"  id="%dMenubar" ></div>
-                <div class="JS9Colorbar" id="%dColorbar" ></div>
-                <div class="JS9" id="%d"></div>                                                                                                                                                        
+                <div class="JS9Menubar"  id="%sMenubar" ></div>
+                <div class="JS9Colorbar" id="%sColorbar" ></div>
+                <div class="JS9" id="%s"></div>                                                                                                                                                        
                 </td>                                                                                                                                                                          
                 <td>                                                                                                                                                                           
 
@@ -217,7 +217,7 @@ class Image(object):
             </body>                                                                                                                                                                            
     </html>                                                                                                                                                                                    
 
-    ''' % (id,id,id,file,region)
+    ''' % (js9_id,js9_id,js9_id,file,region)
 
         return t
 
