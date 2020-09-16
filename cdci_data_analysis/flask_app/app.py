@@ -43,6 +43,9 @@ from ..analysis.plot_tools import Image
 from .dispatcher_query import InstrumentQueryBackEnd
 
 
+from cdci_data_analysis import  __version__
+import oda_api
+
 
 #UPLOAD_FOLDER = '/path/to/the/uploads'
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
@@ -149,10 +152,42 @@ def run_analysis_test():
     query=InstrumentQueryBackEnd(app)
     return query.run_query()
 
+
+class InvalidUsage(Exception):
+    status_code = 400
+
+    def __init__(self, message, status_code=None, payload=None):
+        Exception.__init__(self)
+        self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
+
+    def to_dict(self):
+        rv = dict(self.payload or ())
+        rv['message'] = self.message
+        return rv
+
+
+
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
-    query=InstrumentQueryBackEnd(app)
-    return query.run_query(disp_conf=app.config['conf'])
+    try:
+        query=InstrumentQueryBackEnd()
+        return query.run_query(disp_conf=app.config['conf'])
+    except Exception as e:
+        payload={}
+
+        payload['cdci_data_analysis_version']=__version__
+        payload['oda_api_version'] = oda_api.__version__
+        payload['error_message'] = str(e)
+        _l = []
+        for instrument_factory in importer.instrument_facotry_list:
+            _l.append(instrument_factory().name)
+        payload['instrument_list'] =  _l
+        raise InvalidUsage('request not valid', status_code=410,payload=payload)
+
+
 
 
 
