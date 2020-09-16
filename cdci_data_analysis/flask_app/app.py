@@ -232,7 +232,7 @@ class GetJS9Plot(Resource):
         """
         api_parser = reqparse.RequestParser()
         api_parser.add_argument('file_path', required=True, help="the name of the file",type=str)
-        api_parser.add_argument('ext_id', required=False, help="extension id", type=int,default=4)
+        api_parser.add_argument('ext_id', required=False, help="extension id", type=int,default=4   )
         api_args = api_parser.parse_args()
         file_path = api_args['file_path']
         ext_id = api_args['ext_id']
