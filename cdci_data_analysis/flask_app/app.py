@@ -181,10 +181,10 @@ def run_analysis():
         payload['cdci_data_analysis_version']=__version__
         payload['oda_api_version'] = oda_api.__version__
         payload['error_message'] = str(e)
-        _l = []
-        for instrument_factory in importer.instrument_facotry_list:
-            _l.append(instrument_factory().name)
-        payload['instrument_list'] =  _l
+        #_l = []
+        #for instrument_factory in importer.instrument_facotry_list:
+        #    _l.append(instrument_factory().name)
+        #payload['instrument_list'] =  _l
         raise InvalidUsage('request not valid', status_code=410,payload=payload)
 
 
