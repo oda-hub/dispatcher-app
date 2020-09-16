@@ -236,12 +236,18 @@ class GetJS9Plot(Resource):
         api_args = api_parser.parse_args()
         file_path = api_args['file_path']
         ext_id = api_args['ext_id']
-        tmp_file=FitsFile(file_path)
-        tmp_file.file_path._set_file_path(tmp_file.file_path.dir_name,'js9.fits')
 
-        data=FitsFile(file_path).open()[ext_id]
-        print('==>',tmp_file.file_path,ext_id)
-        data.writeto(tmp_file.file_path.path,overwrite=True)
+        try:
+            tmp_file=FitsFile(file_path)
+            tmp_file.file_path._set_file_path(tmp_file.file_path.dir_name,'js9.fits')
+
+            data=FitsFile(file_path).open()[ext_id]
+            print('==>',tmp_file.file_path,ext_id)
+            data.writeto(tmp_file.file_path.path,overwrite=True)
+        except Exception as e:
+            # print('qui',e)
+            raise APIerror('problem with input file: %s' % e, status_code=410)
+
         region_file = None
         if 'region_file' in api_args.keys():
             region_file = api_args['region_file']
