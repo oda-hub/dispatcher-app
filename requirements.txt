@@ -13,5 +13,5 @@ blinker
 bokeh==0.12.16
 json_tricks
 flask-restplus
-oda_api
+oda_api>=1.0.0
 six
