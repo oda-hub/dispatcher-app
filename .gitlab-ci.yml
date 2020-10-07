@@ -2,9 +2,12 @@ lint-and-test:
   image: python:3.9
   stage: test
   before_script:
-    - echo "nothing"
+    - pip install -r requirements.txt
+    - pip install pylint mypy
   script:
-    - echo "nothing"
+    - python -m pytest tests/
+    - pylint -E cdci_data_analysis || echo "ignoring lint"
+    - mypy cdci_data_analysis || echo "ignoring mypy"
   only:
     - staging-1.3
     - ci
