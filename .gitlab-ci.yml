@@ -1,3 +1,15 @@
+lint-and-test:
+  image: python:3.9
+  stage: test
+  before_script:
+    - echo "nothing"
+  script:
+    - echo "nothing"
+  only:
+    - staging-1.3
+    - ci
+
+
 trigger_assembly:
   stage: .post
   trigger:
