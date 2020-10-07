@@ -13,7 +13,7 @@ __author__ = 'andrea tramacere'
 
 from setuptools import setup, find_packages
 import  glob
-
+import json
 
 
 f = open("./requirements.txt",'r')
@@ -24,6 +24,10 @@ f.close()
 packs=find_packages()
 
 print ('packs',packs)
+with open('cdci_data_analysis/pkg_info.json') as fp:
+    _info = json.load(fp)
+
+__version__ = _info['version']
 
 
 
@@ -32,7 +36,7 @@ include_package_data=True
 
 scripts_list=glob.glob('./bin/*')
 setup(name='cdci_data_analysis',
-      version=1.0,
+      version=__version__,
       description='A Python Framework for CDCI online data analysis',
       author='Andrea Tramacere',
       author_email='andrea.tramacere@unige.ch',

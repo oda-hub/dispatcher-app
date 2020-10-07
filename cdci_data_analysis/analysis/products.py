@@ -319,21 +319,21 @@ class BaseQueryProduct(object):
             self.data.data_unit.insert(0,du)
 
 
-        #query_dict = copy.deepcopy(par_dict)
-
-
 
         if add_query_dict is True:
             url_dict.update(par_dict)
-            #_d_list.append(par_dict)
+
+        _url_dict = OrderedDict()
 
         for k in url_dict.keys():
             if len(str(k))>8 and len(str(url_dict[k]))>58:
-                url_dict[k[0:8]]=url_dict.pop(k)
+                _url_dict[k[0:8]]=url_dict[k]
+            else:
+                _url_dict[k] = url_dict[k]
 
-        url_dict.update(du.header)
+        _url_dict.update(du.header)
 
-        du.header=url_dict
+        du.header=_url_dict
         #du.header.append(url_dict.keys(), end=True)
         #for k in url_dict.keys():
         #    du.header[k]=url_dict[k]
