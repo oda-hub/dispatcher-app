@@ -341,14 +341,15 @@ class InstrumentQueryBackEnd(object):
 
         l = []
         if meta_name is None:
-            #l.append(src_query.get_parameters_list_as_json())
             if 'product_type' in  self.par_dic.keys():
                 prod_name = self.par_dic['product_type']
             else:
                 prod_name=None
-
-            l.append(self.instrument.get_parameters_list_as_json(prod_name=prod_name))
-            src_query.show_parameters_list()
+            if hasattr(self,'instrument'):
+                l.append(self.instrument.get_parameters_list_as_json(prod_name=prod_name))
+                src_query.show_parameters_list()
+            else:
+                l = ['instrument not recognized']
 
         if meta_name == 'src_query':
             l = [src_query.get_parameters_list_as_json()]
@@ -361,16 +362,17 @@ class InstrumentQueryBackEnd(object):
         return jsonify(l)
 
     def get_api_par_names(self):
-
+        _l=[]
         if 'product_type' in self.par_dic.keys():
             prod_name = self.par_dic['product_type']
         else:
             prod_name = None
-
-        _l = self.instrument.get_parameters_name_list(prod_name=prod_name)
-        if 'user_catalog' in _l:
-            _l.remove('user_catalog')
-
+        if hasattr(self, 'instrument'):
+            _l = self.instrument.get_parameters_name_list(prod_name=prod_name)
+            if 'user_catalog' in _l:
+                _l.remove('user_catalog')
+        else:
+           _l = ['instrument not recognized']
         return jsonify(_l)
 
 
