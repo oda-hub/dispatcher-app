@@ -668,7 +668,7 @@ class InstrumentQueryBackEnd(object):
             query_out.set_query_exception(e, 'run_query failed in %s'%self.__class__.__name__,
                                           extra_message='InstrumentQueryBackEnd constructor failed')
 
-        print('==> query_status  ', query_status)
+        #print('==> query_status  ', query_status)
         if 'instrumet' in  self.par_dic.keys():
             self.par_dic.pop('instrumet')
 

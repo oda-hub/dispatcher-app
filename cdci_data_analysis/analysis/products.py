@@ -29,7 +29,7 @@ from astropy.io import fits as pf
 import matplotlib
 import copy
 
-matplotlib.use('Agg', warn=False)
+matplotlib.use('Agg')
 
 #import matplotlib.pyplot as plt
 
