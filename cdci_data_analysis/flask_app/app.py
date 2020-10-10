@@ -17,6 +17,8 @@ import string
 import  random
 from raven.contrib.flask import Sentry
 
+import traceback
+
 from flask import jsonify,send_from_directory,redirect,Response
 from flask import Flask, request,make_response,abort
 from flask.json import JSONEncoder
@@ -41,6 +43,7 @@ from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
 from .dispatcher_query import InstrumentQueryBackEnd
+from .exceptions import APIerror, BadRequest
 
 
 from cdci_data_analysis import  __version__
@@ -71,28 +74,6 @@ api= Api(app=app, version='1.0', title='CDCI ODA API',
 
 
 ns_conf = api.namespace('api/v1.0/oda', description='api')
-
-class APIerror(Exception):
-
-    def __init__(self, message, status_code=None, payload=None):
-        Exception.__init__(self)
-        self.message = message
-
-        if status_code is not None:
-            self.status_code = status_code
-        self.payload = payload
-        print('API Error Message',message)
-
-    def to_dict(self):
-        rv = dict(self.payload or ())
-        rv['error_message'] = self.message
-        return rv
-
-@app.errorhandler(APIerror)
-def handle_api_error(error):
-    response = jsonify(error.to_dict())
-    response.status_code = error.status_code
-    return response
 
 
 
@@ -181,6 +162,9 @@ def run_analysis():
         query=InstrumentQueryBackEnd(app)
         return query.run_query(disp_conf=app.config['conf'])
     except Exception as e:
+        logging.getLogger().error("exception in run_analysis: %s %s", repr(e), traceback.format_exc())
+        print("exception in run_analysis: %s %s", repr(e), traceback.format_exc())
+
         payload={}
 
         payload['cdci_data_analysis_version']=__version__
@@ -207,9 +191,9 @@ def test_mock():
 
 @app.route('/call_back', methods=['POST', 'GET'])
 def dataserver_call_back():
-    log = logging.getLogger('werkzeug')
-    log.disabled = True
-    app.logger.disabled = True
+    #log = logging.getLogger('werkzeug')
+    #log.disabled = True
+    #app.logger.disabled = True
     print('===========================> dataserver_call_back')
     query=InstrumentQueryBackEnd(app,instrument_name='mock',data_server_call_back=True)
     query.run_call_back()
@@ -220,15 +204,20 @@ def dataserver_call_back():
 ####################################### API #######################################
 
 
-
-
-
 @api.errorhandler(APIerror)
 def handle_api_error(error):
+    print("=> APIerror flask handler", error)
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
 
+# TODO: apparently flask-restplus modifies (messes up) error handling of flask. 
+# since it's deprecated and to be removed, no reason to try figuring it out
+
+@api.errorhandler(Exception)
+def handle_error(error):
+    print("=> APIerror flask handler", error)
+    return make_response(f"unmanagable error: {error}"), 400
 
 
 def output_html(data, code, headers=None):

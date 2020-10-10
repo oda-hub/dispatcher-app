@@ -9,7 +9,11 @@ import traceback
 from threading import Thread
 from time import sleep
 
+import pytest
+
 __this_dir__ = os.path.join(os.path.abspath(os.path.dirname(__file__)))
+
+pytestmark = pytest.mark.skip("these tests still WIP")
 
 class DispatcherServer(object):
     def __init__(self):
@@ -20,11 +24,11 @@ class DispatcherServer(object):
     def follow_output(self):
         url=None
         for line in iter(self.process.stdout.readline,''):
-            print "following server:",line.rstrip()
+            print("following server:",line.rstrip())
             m=re.search("Running on (.*?) \(Press CTRL\+C to quit\)",line)
             if m:
                 url=m.group(1) # alaternatively get from configenv
-                print("found url:",url)
+                print(("found url:",url))
         
             if re.search("\* Debugger PIN:.*?",line):
                 print("server ready")
@@ -33,7 +37,7 @@ class DispatcherServer(object):
 
     def start(self):
         cmd=["python",__this_dir__+"/../bin/run_osa_cdci_server.py"]
-        print("command:"," ".join(cmd))
+        print(("command:"," ".join(cmd)))
         self.process=subprocess.Popen(cmd,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=False)
 
         print("\n\nfollowing server startup")
@@ -57,14 +61,14 @@ class DispatcherServer(object):
         return self.start()
 
     def __exit__(self, _type, value, tracebac):
-        print("exiting:",_type,value, tracebac)
+        print(("exiting:",_type,value, tracebac))
         traceback.print_tb(tracebac)
         time.sleep(0.5)
         self.stop()
 
 def test_urltest():
     with DispatcherServer() as server:
-        print server
+        print(server)
         c=requests.get(server.url+"/test",params=dict(
                         image_type="Real",
                         product_type="image",
@@ -75,8 +79,7 @@ def test_urltest():
                     ))
         jdata=c.json()
         print('done')
-        print jdata.keys()
-        print jdata['data']
+        print(list(jdata.keys()))
+        print(jdata['data'])
 
 
-test_urltest()

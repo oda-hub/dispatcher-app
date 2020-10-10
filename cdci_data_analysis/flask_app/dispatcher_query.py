@@ -8,6 +8,9 @@ Created on Wed May 10 10:55:20 2017
 
 from builtins import (open, str, range,
                       object)
+
+import traceback
+
 from collections import Counter, OrderedDict
 import  copy
 from werkzeug.utils import secure_filename
@@ -37,14 +40,21 @@ from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
+from .exceptions import BadRequest, APIerror
 
 import oda_api
 
+logger = logging.getLogger(__name__)
 
-class InstrumentQueryBackEnd(object):
+
+class InstrumentNotRecognized(BadRequest):
+    pass
+
+class InstrumentQueryBackEnd:
 
     def __init__(self,app,instrument_name=None,par_dic=None,config=None,data_server_call_back=False,verbose=False,get_meta_data=False):
         #self.instrument_name=instrument_name
+        self.logger = logging.getLogger(repr(self))
 
         self.app=app
         try:
@@ -91,10 +101,12 @@ class InstrumentQueryBackEnd(object):
 
                 self.config=config
 
+        except APIerror:
+            raise
 
         except Exception as e:
-            print ('e',e)
-
+            self.logger.error('exception in constructor of %s %s', self, repr(e))
+            self.logger.error("traceback: %s", traceback.format_exc())
 
 
             query_out = QueryOutput()
@@ -164,16 +176,17 @@ class InstrumentQueryBackEnd(object):
 
         print('generated SESSION ID',self.par_dic['session_id'])
         print('-------')
+
     def set_session_logger(self,scratch_dir,verbose=False,config=None):
         logger = logging.getLogger(__name__)
         fileh = logging.FileHandler(os.path.join(scratch_dir, 'session.log'), 'a')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fileh.setFormatter(formatter)
 
-        log = logging.getLogger()  # root logger
-        for hdlr in log.handlers[:]:  # remove all old handlers
-            log.removeHandler(hdlr)
-        log.addHandler(fileh)  # set the new handler
+        #log = logging.getLogger()  # root logger
+        #for hdlr in log.handlers[:]:  # remove all old handlers
+        #    log.removeHandler(hdlr)
+        #log.addHandler(fileh)  # set the new handler
         logger.setLevel(logging.INFO)
 
 
@@ -192,7 +205,7 @@ class InstrumentQueryBackEnd(object):
             logger.addHandler(logstash.TCPLogstashHandler(logstash_host, logstash_port))
 
             extra = {
-                'origin': 'cdici_dispatcher',
+                'origin': 'cdci_dispatcher',
             }
             _logger = logging.LoggerAdapter(logger, extra)
         else:
@@ -382,31 +395,36 @@ class InstrumentQueryBackEnd(object):
 
     def get_instr_list(self,name=None):
         _l=[]
-        for instrument_factory in importer.instrument_facotry_list:
+        for instrument_factory in importer.instrument_factory_list:
             _l.append(instrument_factory().name)
 
         return jsonify(_l)
 
+    @property
+    def dispatcher_service_url(self):
+        return getattr(self, '_dispatcher_service_url',
+                       getattr(self.config, 'dispatcher_service_url', None))
 
-    def run_call_back(self,status_kw_name='action'):
+    def run_call_back(self, status_kw_name='action'):
 
         try:
             config, config_data_server = self.set_config()
             #print('dispatcher port', config.dispatcher_port)
         except Exception as e:
             query_out = QueryOutput()
-            query_out.set_query_exception(e, 'run_query failed in %s'%self.__class__.__name__,
+            query_out.set_query_exception(e, 'run_call_back failed in %s'%self.__class__.__name__,
                                           extra_message='configuration failed')
 
 
         job = job_factory(self.par_dic['instrument_name'],
                           self.scratch_dir,
-                          self.get_current_ip(),
-                          config.dispatcher_port,
+                          self.dispatcher_service_url,
+                          None,
                           self.par_dic['session_id'],
                           self.job_id,
                           self.par_dic)
 
+        self.logger.info("%s.run_call_back with args %s", self, self.par_dic)
 
         #if 'node_id' in self.par_dic.keys():
         #    print('node_id', self.par_dic['node_id'])
@@ -417,7 +435,7 @@ class InstrumentQueryBackEnd(object):
             status=self.par_dic[job.status_kw_name]
         else:
             status='unknown'
-        #print ('-----> set status to ',status)
+        print ('-----> set status to ',status)
 
         job.write_dataserver_status(status_dictionary_value=status,full_dict=self.par_dic)
 
@@ -532,35 +550,36 @@ class InstrumentQueryBackEnd(object):
         return out_dict
 
     def set_instrument(self, instrument_name):
+        known_instruments = []
+
         new_instrument=None
         if instrument_name == 'mock':
             new_instrument = 'mock'
 
         else:
-            for instrument_factory in importer.instrument_facotry_list:
+            for instrument_factory in importer.instrument_factory_list:
                 instrument = instrument_factory()
                 if instrument.name == instrument_name:
                     #print('setting instr',instrument_name,instrument.name)
                     new_instrument = instrument
-
+                known_instruments.append(instrument.name)
 
 
 
         if new_instrument is None:
-
-            raise Exception("instrument not recognized".format(instrument_name))
+            raise InstrumentNotRecognized(f'instrument: "{instrument_name}", known: {known_instruments}')
         else:
             self.instrument=new_instrument
 
     def set_config(self):
-        if self.config is None:
+        if getattr(self, 'config', None) is None:
             config = self.app.config.get('conf')
         else:
             config = self.config
 
-        disp_data_server_conf_dict=config.get_data_server_conf_dict(self.instrument_name)
+        disp_data_server_conf_dict = config.get_data_server_conf_dict(self.instrument_name)
 
-        #print ('--> App configuration for:',self.instrument_name)
+        logger.debug('--> App configuration for:',self.instrument_name)
         if disp_data_server_conf_dict is not None:
             #print('-->',disp_data_server_conf_dict)
             if 'data_server' in  disp_data_server_conf_dict.keys():
@@ -571,14 +590,16 @@ class InstrumentQueryBackEnd(object):
                         if k in self.instrument.data_server_conf_dict.keys():
                             self.instrument.data_server_conf_dict[k] = disp_data_server_conf_dict['data_server'][self.instrument.name][k]
 
-            config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
+            config_data_server = DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
         else:
             config_data_server = None
         #if hasattr(self,'instrument'):
             #config_data_server=DataServerConf.from_conf_dict(self.instrument.data_server_conf_dict)
 
 
-        return config,config_data_server
+        logger.info("loaded config %s", config)
+
+        return config, config_data_server
 
     def get_existing_job_ID_path(self,wd):
         #exist same job_ID, different session ID
@@ -634,7 +655,7 @@ class InstrumentQueryBackEnd(object):
 
                 job = job_factory(self.instrument_name,
                                   self.scratch_dir,
-                                  self.get_current_ip(),
+                                  self.dispatcher_service_url,
                                   None,
                                   self.par_dic['session_id'],
                                   self.job_id,
@@ -700,10 +721,11 @@ class InstrumentQueryBackEnd(object):
 
         try:
 
-            config, config_data_server=self.set_config()
-            print ('c',config,config_data_server)
-            print('dispatcher port', config.dispatcher_port)
+            config, config_data_server = self.set_config()
+            self.logger.info('loading config: %s config_data_server: %s', config, config_data_server)
+            self.logger.info('dispatcher port %s', config.dispatcher_port)
         except Exception as e:
+            self.logger.error("problem setting config %s", e)
             query_out = QueryOutput()
             query_out.set_query_exception(e, 'run_query failed in %s'%self.__class__.__name__,
                                           extra_message='configuration failed')
@@ -712,6 +734,11 @@ class InstrumentQueryBackEnd(object):
         else:
             if config.sentry_url is not None:
                 self.set_sentry_client(config.sentry_url)
+
+            self._dispatcher_service_url = config.dispatcher_service_url
+
+
+
 
         alias_workidr=None
         try:
@@ -743,8 +770,8 @@ class InstrumentQueryBackEnd(object):
         print ('--> job aliased',job_is_aliased)
         job=job_factory(self.instrument_name,
                         self.scratch_dir,
-                        self.get_current_ip(),
-                        config.dispatcher_port,
+                        self.dispatcher_service_url,
+                        None,
                         self.par_dic['session_id'],
                         self.job_id,
                         self.par_dic,

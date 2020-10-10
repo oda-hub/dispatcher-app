@@ -9,6 +9,7 @@ import yaml
 
 import sys
 import os
+import logging
 
 __author__ = "Andrea Tramacere"
 
@@ -29,20 +30,23 @@ __author__ = "Andrea Tramacere"
 # launch
 # ----------------------------------------
 
+logger = logging.getLogger(__name__)
 
-class DataServerConf(object):
+import traceback
 
-    def __init__(self, data_server_url, data_server_port, data_server_remote_cache, dispatcher_mnt_point,
+# TODO: this looks rather specific to INTEGRAL?
+class DataServerConf:
+
+    def __init__(self, data_server_url, data_server_remote_cache, dispatcher_mnt_point,
                          dummy_cache,products_url=None):
-        # dataserver port
-        self.data_server_port = data_server_port
 
-        # dataserver url
+        logger.info("building config from %s %s %s", data_server_url, data_server_remote_cache, dispatcher_mnt_point)
+
+        if data_server_url is None or data_server_remote_cache is None or dispatcher_mnt_point is None:
+            traceback.print_exc()
+            raise Exception(f"problem constructing {self}: some parameters are None: {data_server_url} {data_server_remote_cache} {dispatcher_mnt_point}")
+
         self.data_server_url = data_server_url
-        if self.data_server_url  is not None and self.data_server_port is not None:
-            self.data_server_url = 'http://%s'%(self.data_server_url)
-        if self.data_server_url is not None and self.data_server_port is not None:
-            self.data_server_url +=':%d' % (self.data_server_port)
 
         # dummy prods local cache
         self.dummy_cache = dummy_cache
@@ -105,8 +109,7 @@ class DataServerConf(object):
 
 
 class ConfigEnv(object):
-    def __init__(self,
-                 cfg_dict):
+    def __init__(self, cfg_dict):
 
         #print ('--> ConfigEnv')
         self._data_server_conf_dict={}
@@ -132,7 +135,9 @@ class ConfigEnv(object):
                                      disp_dict['sentry_url'],
                                      disp_dict['logstash_host'],
                                      disp_dict['logstash_port'],
-                                     products_url)
+                                     products_url,
+                                     disp_dict['dispatcher_service_url'],
+                                     )
 
         if 'microservice' in cfg_dict.keys():
             mirco_dict = cfg_dict['microservice']
@@ -160,7 +165,7 @@ class ConfigEnv(object):
         self._data_server_conf_dict[instr_name] = _dict
         #self._data_server_conf_dict[instr_name] = DataServerConf.from_conf_dict(data_server_conf_dict)
 
-    def set_conf_dispatcher(self,dispatcher_url,dispatcher_port,sentry_url,logstash_host,logstash_port,products_url):
+    def set_conf_dispatcher(self,dispatcher_url,dispatcher_port,sentry_url,logstash_host,logstash_port,products_url, dispatcher_service_url):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
         self.dispatcher_url = dispatcher_url
@@ -169,6 +174,7 @@ class ConfigEnv(object):
         self.logstash_host=logstash_host
         self.logstash_port=logstash_port
         self.products_url=products_url
+        self.dispatcher_service_url = dispatcher_service_url
 
 
     def get_data_serve_conf(self,instr_name):
@@ -181,12 +187,18 @@ class ConfigEnv(object):
 
     @classmethod
     def from_conf_file(cls, conf_file_path):
+
         if conf_file_path is None:
             conf_file_path = conf_dir + '/conf_env.yml'
+
+        logger.info("loading config from file: %s", conf_file_path)
+
         #print('conf_file_path', conf_file_path)
         with open(conf_file_path, 'r') as ymlfile:
             #print('conf_file_path', ymlfile )
             cfg_dict = yaml.load(ymlfile)
-        #print('cfg_dict',cfg_dict)
+
+
+        logger.debug('cfg_dict: %s', cfg_dict)
         #print ('CICCIO')
         return ConfigEnv(cfg_dict)

@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 from builtins import (str, open, range)
 
 import string
@@ -9,16 +9,20 @@ import  logging
 logger = logging.getLogger(__name__)
 
 from cdci_data_analysis.configurer import ConfigEnv
-osaconf = ConfigEnv.from_conf_file('./conf_env_test.yml')
+
+
+def getconf():
+    return ConfigEnv.from_conf_file('./conf_env_test.yml')
 
 import time
 from flask import Flask, request
 import flask
 from cdci_data_analysis.flask_app.app import InstrumentQueryBackEnd
 import  random
+import pytest
 
 
-
+pytestmark = pytest.mark.skip("these tests still WIP")
 
 
 
@@ -278,7 +282,7 @@ def test_synch_request(parameters_dic,instrument_name,query_status='new',job_id=
     parameters_dic['job_id'] = job_id
 
     with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=upload_data):
-        query = InstrumentQueryBackEnd(instrument_name=instrument_name, par_dic=parameters_dic, config=osaconf)
+        query = InstrumentQueryBackEnd(instrument_name=instrument_name, par_dic=parameters_dic, config=getconf())
 
         print('request', request.method)
         query_out = query.run_query(off_line=True)
@@ -297,7 +301,7 @@ def test_asynch_request(parameters_dic,instrument_name,query_status,job_id=None,
 
 
     with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=upload_data):
-        query = InstrumentQueryBackEnd(instrument_name=instrument_name, par_dic=parameters_dic, config=osaconf)
+        query = InstrumentQueryBackEnd(instrument_name=instrument_name, par_dic=parameters_dic, config=getconf())
 
         print('\n')
         query_out = query.run_query(off_line=True)
@@ -322,7 +326,7 @@ def test_spectral_fit_query():
     testapp = flask.Flask(__name__)
     with testapp.test_request_context(method='POST', content_type='multipart/form-data', data=upload_data):
 
-        query = InstrumentQueryBackEnd(instrument_name=instrument_name, par_dic=parameters_dic, config=osaconf)
+        query = InstrumentQueryBackEnd(instrument_name=instrument_name, par_dic=parameters_dic, config=getconf())
 
         print('\n')
         query_out = query.run_query(off_line=True)
@@ -334,10 +338,10 @@ def test_spectral_fit_query():
     print('exit_status', query_out['exit_status'])
     print('job_monitor', query_out['job_monitor'])
     print('query_status', query_out['query_status'])
-    print('products', query_out['products'].keys())
-    for k in query_out['products'].keys():
+    print('products', list(query_out['products'].keys()))
+    for k in list(query_out['products'].keys()):
         if k == 'image':
-            print(k, '=>', query_out['products'][k].keys())
+            print(k, '=>', list(query_out['products'][k].keys()))
         else:
             print(k, '=>', query_out['products'][k])
     return query_out
@@ -402,7 +406,7 @@ def test_asynch_full():
     print('exit_status, debug_message', query_out['exit_status']['debug_message'])
     print('job_monitor', query_out['job_monitor'])
     print('query_status', query_out['query_status'])
-    print('products', query_out['products'].keys())
+    print('products', list(query_out['products'].keys()))
     if type(query_out['products'])==list:
         q=query_out['products'][0]
     else:
@@ -457,7 +461,7 @@ def test_server(instrument_name='mock',):
         par_dic={}
         par_dic['instrument'] = instrument_name
         par_dic['query_status'] = 'new'
-        par_dic['session_id'] = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+        par_dic['session_id'] = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
         par_dic['job_status']='submitted'
 
         query = InstrumentQueryBackEnd(par_dic=par_dic, get_meta_data=False,verbose=True)

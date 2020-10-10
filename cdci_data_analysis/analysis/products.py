@@ -29,7 +29,7 @@ from astropy.io import fits as pf
 import matplotlib
 import copy
 
-matplotlib.use('Agg')
+matplotlib.use('Agg') #, warn=False - deprecated
 
 #import matplotlib.pyplot as plt
 
@@ -47,6 +47,8 @@ from .parameters import *
 from .io_helper import FilePath
 from .io_helper import view_traceback, FitsFile
 from .job_manager import Job
+
+import traceback
 
 try:
     from urllib.parse import urlencode
@@ -184,11 +186,12 @@ class QueryOutput(object):
         if sentry_client is not None:
             sentry_client.capture('raven.events.Message', message=e_message)
 
-        print('!!! >>>Exception<<<', e_message)
-        print('!!! >>>debug message<<<', debug_message)
-        print('!!! failed operation', failed_operation)
+        logger.error('!!! >>>Exception<<< %s', e_message)
+        logger.error('!!! >>>debug message<<< %s', debug_message)
+        logger.error('!!! failed operation: %s', failed_operation)
 
-        view_traceback()
+        print(traceback.format_exc())
+
 
         if logger is not None:
             logger.exception(e_message)
