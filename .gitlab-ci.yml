@@ -3,7 +3,7 @@ lint-and-test:
   stage: test
   before_script:
     - pip install -r requirements.txt
-    - pip install pylint mypy
+    - pip install pylint mypy pytest
   script:
     - python -m pytest tests/
     - pylint -E cdci_data_analysis || echo "ignoring lint"
