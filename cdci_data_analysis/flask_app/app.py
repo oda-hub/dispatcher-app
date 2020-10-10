@@ -22,7 +22,7 @@ import traceback
 from flask import jsonify,send_from_directory,redirect,Response
 from flask import Flask, request,make_response,abort
 from flask.json import JSONEncoder
-from flask_restplus import Api, Resource,reqparse
+from flask_restx import Api, Resource,reqparse
 
 
 import  tempfile
