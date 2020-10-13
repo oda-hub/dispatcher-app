@@ -20,3 +20,4 @@ lib64
 /.idea
 /run_tests
 /diagrams
+.mypy_cache
