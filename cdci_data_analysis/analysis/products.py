@@ -327,9 +327,13 @@ class BaseQueryProduct(object):
             url_dict.update(par_dict)
             #_d_list.append(par_dict)
 
+        new_url_dict = url_dict
+
         for k in url_dict.keys():
             if len(str(k))>8 and len(str(url_dict[k]))>58:
-                url_dict[k[0:8]]=url_dict.pop(k)
+                new_url_dict[k[0:8]] = url_dict[k]
+            else:
+                new_url_dict[k] = url_dict[k]
 
         url_dict.update(du.header)
 
