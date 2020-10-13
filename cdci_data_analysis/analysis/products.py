@@ -327,7 +327,7 @@ class BaseQueryProduct(object):
             url_dict.update(par_dict)
             #_d_list.append(par_dict)
 
-        new_url_dict = url_dict
+        new_url_dict = url_dict.copy()
 
         for k in url_dict.keys():
             if len(str(k))>8 and len(str(url_dict[k]))>58:
