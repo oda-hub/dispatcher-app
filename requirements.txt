@@ -12,7 +12,8 @@ raven
 blinker
 bokeh==0.12.16
 json_tricks
-flask-restplus
-oda_api
+flask-restx
+oda_api>=1.0.1
 six
 werkzeug<=0.16.1
+python-shell-colors

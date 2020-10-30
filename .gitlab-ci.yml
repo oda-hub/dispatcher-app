@@ -1,0 +1,24 @@
+lint-and-test:
+  image: python:3.9
+  stage: test
+  before_script:
+    - pip install -r requirements.txt
+    - pip install pylint mypy pytest
+  script:
+    - python -m pytest tests/
+    - pylint -E cdci_data_analysis || echo "ignoring lint"
+    - mypy cdci_data_analysis || echo "ignoring mypy"
+  only:
+    - staging-1.3
+    - ci
+
+
+trigger_assembly:
+  stage: .post
+  trigger:
+    project: cdci/dispatcher/cdci_docker_dispatcher
+    branch: staging-1.3
+
+  only:
+    - staging-1.3
+    - ci

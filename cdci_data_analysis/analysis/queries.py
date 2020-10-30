@@ -637,7 +637,7 @@ class ProductQuery(BaseQuery):
         process_products_query_out = QueryOutput()
 
         try:
-            process_products_query_out=self.process_product(instrument,self.query_prod_list,api=api,**kwargs)
+            process_products_query_out=self.process_product(instrument,self.query_prod_list,api=api,config=config,**kwargs)
 
             process_products_query_out.prod_dictionary['session_id'] = job.session_id
             process_products_query_out.prod_dictionary['job_id'] = job.job_id

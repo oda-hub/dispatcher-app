@@ -22,7 +22,7 @@ import traceback
 from flask import jsonify,send_from_directory,redirect,Response
 from flask import Flask, request,make_response,abort
 from flask.json import JSONEncoder
-from flask_restplus import Api, Resource,reqparse
+from flask_restx import Api, Resource,reqparse
 
 
 import  tempfile
@@ -37,7 +37,7 @@ from ..plugins import importer
 
 from ..analysis.queries import *
 from ..analysis.job_manager import Job,job_factory
-from ..analysis.io_helper import FilePath
+from ..analysis.io_helper import FilePath,FitsFile
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
@@ -45,6 +45,9 @@ from ..analysis.plot_tools import Image
 from .dispatcher_query import InstrumentQueryBackEnd
 from .exceptions import APIerror, BadRequest
 
+
+from cdci_data_analysis import  __version__
+import oda_api
 
 
 #UPLOAD_FOLDER = '/path/to/the/uploads'
@@ -130,6 +133,29 @@ def run_analysis_test():
     query=InstrumentQueryBackEnd(app)
     return query.run_query()
 
+
+class InvalidUsage(Exception):
+    status_code = 400
+
+    def __init__(self, message, status_code=None, payload=None):
+        Exception.__init__(self)
+        self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
+
+    def to_dict(self):
+        rv = dict(self.payload or ())
+        rv['message'] = self.message
+        return rv
+
+@app.errorhandler(InvalidUsage)
+def handle_invalid_usage(error):
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
+
+
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
     try:
@@ -138,7 +164,21 @@ def run_analysis():
     except Exception as e:
         logging.getLogger().error("exception in run_analysis: %s %s", repr(e), traceback.format_exc())
         print("exception in run_analysis: %s %s", repr(e), traceback.format_exc())
-        return make_response("unknown issue"), 400
+
+        payload={}
+
+        payload['cdci_data_analysis_version']=__version__
+        payload['oda_api_version'] = oda_api.__version__
+        payload['error_message'] = str(e)
+        _l = []
+        for instrument_factory in importer.instrument_facotry_list:
+        #   _l+='%s, '%instrument_factory().name
+            _l.append('%s'%instrument_factory().name)
+        payload['installed_instruments'] = _l
+        print(payload)
+        raise InvalidUsage('request not valid', status_code=410,payload=payload)
+
+
 
 
 
@@ -216,24 +256,37 @@ class JS9(Resource):
 
 @ns_conf.route('/get_js9_plot')
 class GetJS9Plot(Resource):
-    @api.doc(responses={410: 'problem with js9 image generation'}, params={'file_path': 'the file path'})
+    @api.doc(responses={410: 'problem with js9 image generation'}, params={'file_path': 'the file path','ext_id':'extension id'})
     def get(self):
         """
         returns the js9 image display
         """
         api_parser = reqparse.RequestParser()
         api_parser.add_argument('file_path', required=True, help="the name of the file",type=str)
+        api_parser.add_argument('ext_id', required=False, help="extension id", type=int,default=4 )
         api_args = api_parser.parse_args()
         file_path = api_args['file_path']
-        print('file_path',file_path)
+        ext_id = api_args['ext_id']
+
+        try:
+            tmp_file=FitsFile(file_path)
+            tmp_file.file_path._set_file_path(tmp_file.file_path.dir_name,'js9.fits')
+
+            data=FitsFile(file_path).open()[ext_id]
+            print('==>',tmp_file.file_path,ext_id)
+            data.writeto(tmp_file.file_path.path,overwrite=True)
+        except Exception as e:
+            # print('qui',e)
+            raise APIerror('problem with input file: %s' % e, status_code=410)
+
         region_file = None
         if 'region_file' in api_args.keys():
             region_file = api_args['region_file']
-        print('file_path,region_file', file_path, region_file)
+        print('file_path,region_file', tmp_file.file_path.path, region_file)
         try:
             img = Image(None, None)
-            # print('get_js9_plot path',file_path)
-            img= img.get_js9_html(file_path, region_file=region_file)
+            #print('get_js9_plot path',tmp_file.file_path.path)
+            img= img.get_js9_html(tmp_file.file_path.path, region_file=region_file)
 
         except Exception as e:
             #print('qui',e)
