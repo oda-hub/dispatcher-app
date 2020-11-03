@@ -49,6 +49,8 @@ from .exceptions import APIerror, BadRequest
 from cdci_data_analysis import  __version__
 import oda_api
 
+from astropy.io.fits.card import Undefined as astropyUndefined
+
 
 #UPLOAD_FOLDER = '/path/to/the/uploads'
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
@@ -58,7 +60,14 @@ class CustomJSONEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.ndarray):
             return list(obj)
-        return JSONEncoder.default(self, obj)
+
+        if isinstance(obj, astropyUndefined):
+            return "UNDEFINED"
+
+        logging.error("problem encoding %s, will send as string", obj) # TODO: dangerous probably, fix!
+        return 'unencodable ' + str(obj)
+
+        #return JSONEncoder.default(self, obj)
 
 
 app = Flask(__name__,
@@ -171,7 +180,7 @@ def run_analysis():
         payload['oda_api_version'] = oda_api.__version__
         payload['error_message'] = str(e)
         _l = []
-        for instrument_factory in importer.instrument_facotry_list:
+        for instrument_factory in importer.instrument_factory_list:
         #   _l+='%s, '%instrument_factory().name
             _l.append('%s'%instrument_factory().name)
         payload['installed_instruments'] = _l
