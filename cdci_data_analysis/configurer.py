@@ -38,7 +38,10 @@ import traceback
 class DataServerConf:
 
     def __init__(self, data_server_url, data_server_remote_cache, dispatcher_mnt_point,
-                         dummy_cache,products_url=None):
+                         dummy_cache,products_url=None, data_server_port=None):
+
+        if data_server_port is not None:
+            logger.warning("data_server_port is disregarded, since it is naturally included in the url")
 
         logger.info("building config from %s %s %s", data_server_url, data_server_remote_cache, dispatcher_mnt_point)
 
