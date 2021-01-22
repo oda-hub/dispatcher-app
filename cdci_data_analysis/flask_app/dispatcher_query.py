@@ -179,7 +179,10 @@ class InstrumentQueryBackEnd:
 
     def set_session_logger(self,scratch_dir,verbose=False,config=None):
         logger = logging.getLogger(__name__)
-        fileh = logging.FileHandler(os.path.join(scratch_dir, 'session.log'), 'a')
+
+        session_log_filename = os.path.join(scratch_dir, 'session.log')
+
+        fileh = logging.FileHandler(session_log_filename, 'a')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fileh.setFormatter(formatter)
 
@@ -192,7 +195,7 @@ class InstrumentQueryBackEnd:
 
 
         if verbose==True:
-            print('logfile set to dir=', scratch_dir, ' with name=session.log')
+            print('logfile set to dir=', scratch_dir, ' with name=session_log_filename')
 
         if config is not None:
             logger=self.set_logstash(logger,logstash_host=config.logstash_host,logstash_port=config.logstash_port)
