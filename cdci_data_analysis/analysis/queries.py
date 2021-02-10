@@ -733,7 +733,7 @@ class ProductQuery(BaseQuery):
             if input_prod_list is not None:
                 query_out.prod_dictionary['input_prod_list']=input_prod_list
 
-        print(f"\033[32mquery output, keys {query_out.keys()}")
+        print(f"\033[32mquery output, prod_dictionary keys {query_out.prod_dictionary.keys()}")
         print(f"query output, status_dictionary{query_out.status_dictionary}\033[0m")
 
         return query_out
