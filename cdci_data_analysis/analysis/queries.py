@@ -669,7 +669,16 @@ class ProductQuery(BaseQuery):
 
 
 
-    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_client=None,api=False):
+    def run_query(self, 
+                  instrument, 
+                  scratch_dir, 
+                  job, 
+                  run_asynch, 
+                  query_type='Real', 
+                  config=None, 
+                  logger=None,
+                  sentry_client=None,
+                  api=False):
 
         print ('--> running query for ',instrument.name,'with config',config)
         if logger is None:
@@ -724,6 +733,8 @@ class ProductQuery(BaseQuery):
             if input_prod_list is not None:
                 query_out.prod_dictionary['input_prod_list']=input_prod_list
 
+        print(f"\033[32mquery output, keys {query_out.keys()}")
+        print(f"query output, status_dictionary{query_out.status_dictionary}\033[0m")
 
         return query_out
 

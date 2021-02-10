@@ -195,7 +195,7 @@ class InstrumentQueryBackEnd:
 
 
         if verbose==True:
-            print('logfile set to dir=', scratch_dir, ' with name=session_log_filename')
+            print('logfile set to dir=', scratch_dir, ' with name=', session_log_filename)
 
         if config is not None:
             logger=self.set_logstash(logger,logstash_host=config.logstash_host,logstash_port=config.logstash_port)
