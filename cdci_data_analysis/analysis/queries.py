@@ -24,7 +24,7 @@ __author__ = "Andrea Tramacere"
 import  logging
 
 
-import time
+import time as _time
 import json
 from collections import OrderedDict
 
@@ -688,23 +688,23 @@ class ProductQuery(BaseQuery):
             logger = self.get_logger()
 
         self._t_query_steps = OrderedDict()
-        self._t_query_steps['start'] = time.time()
+        self._t_query_steps['start'] = _time.time()
 
         query_out = self.test_communication(instrument,query_type=query_type,logger=logger,config=config,sentry_client=sentry_client)
-        self._t_query_steps['after_test_communication'] = time.time()
+        self._t_query_steps['after_test_communication'] = _time.time()
 
         input_prod_list=None
         if query_out.status_dictionary['status'] == 0:
             query_out=self.test_has_products(instrument,query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client)
             input_prod_list=query_out.prod_dictionary['input_prod_list']
-            self._t_query_steps['after_test_has_products'] = time.time()
+            self._t_query_steps['after_test_has_products'] = _time.time()
 
 
 
 
         if query_out.status_dictionary['status'] == 0:
             query_out = self.get_query_products(instrument,job,run_asynch, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client,api=api)
-            self._t_query_steps['after_get_query_products'] = time.time()
+            self._t_query_steps['after_get_query_products'] = _time.time()
 
 
 
@@ -736,7 +736,7 @@ class ProductQuery(BaseQuery):
                                                            sentry_client=sentry_client,api=api,
                                                            backend_comment=backend_comment,
                                                            backend_warning=backend_warning)
-                    self._t_query_steps['after_process_query_products'] = time.time()
+                    self._t_query_steps['after_process_query_products'] = _time.time()
 
                     #print('-->', query_out.status_dictionary)
             #attach this at the end, anyhow
