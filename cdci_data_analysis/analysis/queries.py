@@ -24,7 +24,10 @@ __author__ = "Andrea Tramacere"
 import  logging
 
 
+import time
 import json
+from collections import OrderedDict
+
 from .parameters import *
 from .products import SpectralFitProduct,QueryOutput,QueryProductList,ImageProduct
 from .io_helper import FilePath
@@ -684,18 +687,24 @@ class ProductQuery(BaseQuery):
         if logger is None:
             logger = self.get_logger()
 
+        self._t_query_steps = OrderedDict()
+        self._t_query_steps['start'] = time.time()
+
         query_out = self.test_communication(instrument,query_type=query_type,logger=logger,config=config,sentry_client=sentry_client)
+        self._t_query_steps['after_test_communication'] = time.time()
 
         input_prod_list=None
         if query_out.status_dictionary['status'] == 0:
             query_out=self.test_has_products(instrument,query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client)
             input_prod_list=query_out.prod_dictionary['input_prod_list']
+            self._t_query_steps['after_test_has_products'] = time.time()
 
 
 
 
         if query_out.status_dictionary['status'] == 0:
             query_out = self.get_query_products(instrument,job,run_asynch, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client,api=api)
+            self._t_query_steps['after_get_query_products'] = time.time()
 
 
 
@@ -727,6 +736,7 @@ class ProductQuery(BaseQuery):
                                                            sentry_client=sentry_client,api=api,
                                                            backend_comment=backend_comment,
                                                            backend_warning=backend_warning)
+                    self._t_query_steps['after_process_query_products'] = time.time()
 
                     #print('-->', query_out.status_dictionary)
             #attach this at the end, anyhow
@@ -735,6 +745,10 @@ class ProductQuery(BaseQuery):
 
         print(f"\033[32mquery output, prod_dictionary keys {query_out.prod_dictionary.keys()}")
         print(f"query output, status_dictionary{query_out.status_dictionary}\033[0m")
+        
+        L = list(self._t_query_steps)
+        for s1, s2 in zip(L[:-1], L[1:]):
+            print(f"\033[33m {s1} - {s2} : {self._t_query_steps[s2] - self._t_query_steps[s1]}\033[0m")
 
         return query_out
 
