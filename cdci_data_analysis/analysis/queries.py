@@ -748,7 +748,7 @@ class ProductQuery(BaseQuery):
         
         L = list(self._t_query_steps)
         for s1, s2 in zip(L[:-1], L[1:]):
-            print(f"\033[33m {s1} - {s2} : {self._t_query_steps[s2] - self._t_query_steps[s1]}\033[0m")
+            print(f"\033[33m {s1} - {s2} : {self._t_query_steps[s2] - self._t_query_steps[s1]:3.2g}\033[0m")
 
         return query_out
 
