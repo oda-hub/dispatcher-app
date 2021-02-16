@@ -79,7 +79,7 @@ app.json_encoder = CustomJSONEncoder
 
 
 api= Api(app=app, version='1.0', title='CDCI ODA API',
-    description='API for ODA CDCI dispatcher microservices\n Author: Andrea Tramacere')
+    description='API for ODA CDCI dispatcher microservices\n Author: Andrea Tramacere, Volodymyr Savchenko')
 
 
 ns_conf = api.namespace('api/v1.0/oda', description='api')
@@ -164,29 +164,42 @@ def handle_invalid_usage(error):
     response.status_code = error.status_code
     return response
 
+@app.errorhandler(APIerror)
+def handle_bad_request(error):
+    response = jsonify({**error.to_dict(), 
+                        'error': str(error) + ':' + error.message, 
+                        **common_exception_payload()})
+    response.status_code = error.status_code
+    return response
+
+def common_exception_payload():
+    payload={}
+
+    payload['cdci_data_analysis_version']=__version__
+    payload['oda_api_version'] = oda_api.__version__
+    _l = []
+
+    for instrument_factory in importer.instrument_factory_list:
+        _l.append('%s'%instrument_factory().name)
+
+    payload['installed_instruments'] = _l
+
+    return payload
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
     try:
         query = InstrumentQueryBackEnd(app)
         return query.run_query(disp_conf=app.config['conf'])
+    except APIerror as e:
+        raise
     except Exception as e:
         logging.getLogger().error("exception in run_analysis: %s %s", repr(e), traceback.format_exc())
         print("exception in run_analysis: %s %s", repr(e), traceback.format_exc())
 
-        payload={}
-
-        payload['cdci_data_analysis_version']=__version__
-        payload['oda_api_version'] = oda_api.__version__
-        payload['error_message'] = str(e)
-        _l = []
-
-        for instrument_factory in importer.instrument_factory_list:
-            _l.append('%s'%instrument_factory().name)
-
-        payload['installed_instruments'] = _l
-        print(payload)
-        raise InvalidUsage('request not valid', status_code=410,payload=payload)
+        raise InvalidUsage('request not valid', 
+                           status_code=410,
+                           payload={'error_message': str(e), **common_exception_payload()})
 
 
 

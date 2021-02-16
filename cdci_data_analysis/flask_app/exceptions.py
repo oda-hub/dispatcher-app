@@ -6,6 +6,9 @@ class APIerror(Exception):
 
         if status_code is not None:
             self.status_code = status_code
+        else:
+            self.status_code = 400
+
         self.payload = payload
         print(f'APIerror {self} constructor: {message}')
 

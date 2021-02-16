@@ -38,9 +38,9 @@ class DispatcherServer(object):
                 print("server ready")
 
     def start(self):
-        cmd=["python", __this_dir__+"/../bin/run_osa_cdci_server.py"]
-        print(("command:"," ".join(cmd)))
-        self.process=subprocess.Popen(cmd,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=False)
+        cmd = ["python", __this_dir__+"/../bin/run_osa_cdci_server.py"]
+        print("command:"," ".join(cmd))
+        self.process=subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=False)
 
         print("\n\nfollowing server startup")
 
@@ -58,7 +58,9 @@ class DispatcherServer(object):
     
 
     def stop(self):
-        os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+        pass
+        os.kill(os.getpgid(self.process.pid), signal.SIGTERM)
+        #os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
 
     def __enter__(self):
         return self.start()
@@ -69,9 +71,10 @@ class DispatcherServer(object):
         time.sleep(0.5)
         self.stop()
 
-def test_urltest():
+def test_no_instrument():
     with DispatcherServer() as server:
         print("constructed server:", server)
+
         c=requests.get(server.url + "run_analysis",
                        params=dict(
                        image_type="Real",
@@ -81,6 +84,28 @@ def test_urltest():
                        T1="2008-01-01T11:11:11.0",
                        T2="2008-06-01T11:11:11.0",
                     ))
+
+        print("content:", c.text)
+
+        jdata=c.json()
+
+        assert c.status_code == 400
+
+
+def test_isgri_image_instrument():
+    with DispatcherServer() as server: # this should be fixture
+        print("constructed server:", server)
+
+        c=requests.get(server.url + "run_analysis",
+                       params=dict(
+                           image_type="Real",
+                           product_type="image",
+                           E1=20.,
+                           E2=40.,
+                           T1="2008-01-01T11:11:11.0",
+                           T2="2008-06-01T11:11:11.0",
+                        )
+                      )
 
         print("content:", c.text)
 
