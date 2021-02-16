@@ -54,7 +54,7 @@ __author__ = "Andrea Tramacere"
 
 
 
-class Instrument(object):
+class Instrument:
     def __init__(self,
                  instr_name,
                  src_query,

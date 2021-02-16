@@ -46,11 +46,22 @@ import oda_api
 
 logger = logging.getLogger(__name__)
 
+class NoInstrumentSpecified(BadRequest):
+    pass
 
 class InstrumentNotRecognized(BadRequest):
     pass
 
 class InstrumentQueryBackEnd:
+
+    @property
+    def instrument_name(self):
+        return getattr(self, '_instrument_name', 'instrument-not-set')
+    
+    @instrument_name.setter
+    def instrument_name(self):
+        self._instrument_name = instrument_name
+    
 
     def __init__(self,app,instrument_name=None,par_dic=None,config=None,data_server_call_back=False,verbose=False,get_meta_data=False):
         #self.instrument_name=instrument_name
@@ -63,10 +74,12 @@ class InstrumentQueryBackEnd:
             else:
                 self.par_dic = par_dic
 
-
             self.set_session_id()
             if instrument_name is None:
-                self.instrument_name = self.par_dic['instrument']
+                if 'instrument' in self.par_dic:
+                    self.instrument_name = self.par_dic['instrument']
+                else:
+                    raise NoInstrumentSpecified()
             else:
                 self.instrument_name = instrument_name
 
@@ -92,8 +105,7 @@ class InstrumentQueryBackEnd:
                 self.set_scratch_dir(self.par_dic['session_id'],job_id=self.job_id,verbose=verbose)
 
 
-
-                self.set_session_logger(self.scratch_dir,verbose=verbose,config=config)
+                self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
                 self.set_sentry_client()
 
                 if data_server_call_back is False:
@@ -582,7 +594,7 @@ class InstrumentQueryBackEnd:
 
         disp_data_server_conf_dict = config.get_data_server_conf_dict(self.instrument_name)
 
-        logger.debug('--> App configuration for:',self.instrument_name)
+        logger.debug('--> App configuration for: %s', self.instrument_name)
         if disp_data_server_conf_dict is not None:
             #print('-->',disp_data_server_conf_dict)
             if 'data_server' in  disp_data_server_conf_dict.keys():
@@ -628,61 +640,78 @@ class InstrumentQueryBackEnd:
     def get_file_mtime(self,file):
         return os.path.getmtime(file)
 
-    def run_query(self,off_line=False,disp_conf=None):
+    def find_api_version_issues(self, oda_api): # -> None, resp
+        current_disp_oda_api_version = None
+        if hasattr(oda_api, '__version__'):
+            current_disp_oda_api_version = oda_api.__version__
+        query_oda_api_version = None
+        if 'oda_api_version' in self.par_dic.keys():
+            query_oda_api_version = self.par_dic['oda_api_version']
 
-        print ('==============================> run query <==============================')
+        oda_api_version_error = None
+        failed_task = 'oda_api version compatibility'
+
+
+        if query_oda_api_version is None:
+            oda_api_version_error = 'oda_api version compatibility non safe, please update your oda_api package'
+        elif  current_disp_oda_api_version is None:
+            oda_api_version_error = 'oda_api on server are outdated please contact oda api responsible'
+        elif current_disp_oda_api_version > query_oda_api_version:
+            oda_api_version_error = f'oda_api version not compatible, ' + \
+                                    f'min version={current_disp_oda_api_version}, oda api query version={query_oda_api_version}, ' + \
+                                    f'please update your oda_api package' 
+        else:
+            pass
+
+        if oda_api_version_error is not None:
+
+            job = job_factory(self.instrument_name,
+                              self.scratch_dir,
+                              self.dispatcher_service_url,
+                              None,
+                              self.par_dic['session_id'],
+                              self.job_id,
+                              self.par_dic,
+                              aliased=False)
+
+            job.set_failed()
+
+            job_monitor = job.monitor
+            query_status = 'failed'
+
+            query_out = QueryOutput()
+
+
+            query_out.set_failed(failed_task, message=oda_api_version_error, job_status=job_monitor['status'])
+
+            resp = self.build_dispatcher_response(query_new_status=query_status,
+                                                  query_out=query_out,
+                                                  job_monitor=job_monitor,
+                                                  off_line=off_line,
+                                                  api=api)
+            return resp
+
+        return None # None means ok
+
+
+    def run_query(self, off_line=False, disp_conf=None):
+        """
+        this is the principal function to respond to the requests
+
+        TODO: this function is very long, and flow is too complex, especially for exception handling
+        """
+
+        print('\033[31m==============================> run query <==============================\033[0m')
         if 'api' in self.par_dic.keys():
             api = True
-            current_disp_oda_api_version = None
-            if hasattr(oda_api, '__version__'):
-                current_disp_oda_api_version = oda_api.__version__
-            query_oda_api_version = None
-            if 'oda_api_version' in self.par_dic.keys():
-                query_oda_api_version = self.par_dic['oda_api_version']
 
-            oda_api_version_error = None
-            failed_task = 'oda_api version compatibility'
-
-
-            if query_oda_api_version is None:
-                oda_api_version_error = 'oda_api version compatibility non safe, please update your oda_api package'
-            elif  current_disp_oda_api_version is None:
-                oda_api_version_error = 'oda_api on server are outdated please contact oda api responsible'
-            elif current_disp_oda_api_version > query_oda_api_version:
-
-                oda_api_version_error = 'oda_api version not compatible, min version=%s, oda api query version=%s, please update your oda_api package' % (current_disp_oda_api_version, query_oda_api_version)
-            else:
-                pass
-
-            if oda_api_version_error is not None:
-
-                job = job_factory(self.instrument_name,
-                                  self.scratch_dir,
-                                  self.dispatcher_service_url,
-                                  None,
-                                  self.par_dic['session_id'],
-                                  self.job_id,
-                                  self.par_dic,
-                                  aliased=False)
-
-                job.set_failed()
-
-                job_monitor = job.monitor
-                query_status = 'failed'
-
-                query_out = QueryOutput()
-
-
-                query_out.set_failed(failed_task, message=oda_api_version_error, job_status=job_monitor['status'])
-
-                resp = self.build_dispatcher_response(query_new_status=query_status,
-                                                      query_out=query_out,
-                                                      job_monitor=job_monitor,
-                                                      off_line=off_line,
-                                                      api=api)
-                return resp
+            r = self.find_api_version_issues()
+            if r is not None:
+                self.logger.warning("client API has incompatible version, and it is not ok!")
+                return r
         else:
             api=False
+
 
         try:
             query_type = self.par_dic['query_type']
@@ -693,6 +722,12 @@ class InstrumentQueryBackEnd:
             query_out = QueryOutput()
             query_out.set_query_exception(e, 'run_query failed in %s'%self.__class__.__name__,
                                           extra_message='InstrumentQueryBackEnd constructor failed')
+
+            query_type = None
+            product_type = None
+            query_status =  None
+
+            #return
 
         #print('==> query_status  ', query_status)
         if 'instrumet' in  self.par_dic.keys():
@@ -713,9 +748,9 @@ class InstrumentQueryBackEnd:
                 dry_run=False
 
 
-        self.logger.info('product_type %s' % product_type)
-        self.logger.info('query_type %s ' % query_type)
-        self.logger.info('instrument %s' % self.instrument_name)
+        self.logger.info('product_type %s', product_type)
+        self.logger.info('query_type %s ', query_type)
+        self.logger.info('instrument %s', self.instrument_name)
         self.logger.info('parameters dictionary')
 
         for key in self.par_dic.keys():
@@ -723,7 +758,6 @@ class InstrumentQueryBackEnd:
             self.logger.info(log_str)
 
         try:
-
             config, config_data_server = self.set_config()
             self.logger.info('loading config: %s config_data_server: %s', config, config_data_server)
             self.logger.info('dispatcher port %s', config.dispatcher_port)
@@ -748,7 +782,7 @@ class InstrumentQueryBackEnd:
             alias_workidr = self.get_existing_job_ID_path(self.scratch_dir)
         except Exception as e:
             query_out = QueryOutput()
-            query_out.set_query_exception(e, 'run_query failed in s%' % self.__class__.__name__,
+            query_out.set_query_exception(e, 'run_query failed in %s' % self.__class__.__name__,
                                           extra_message='job aliasing failed')
 
         job_is_aliased = False
@@ -884,19 +918,19 @@ class InstrumentQueryBackEnd:
             print ('config_data_server',config_data_server )
             self.instrument.disp_conf=disp_conf
             query_out = self.instrument.run_query(product_type,
-                                                    self.par_dic,
-                                                    request,
-                                                    self,
-                                                    job,
-                                                    run_asynch,
-                                                    out_dir=self.scratch_dir,
-                                                    config=config_data_server,
-                                                    query_type=query_type,
-                                                    logger=self.logger,
-                                                    sentry_client=self.sentry_client,
-                                                    verbose=verbose,
-                                                    dry_run=dry_run,
-                                                    api=api)
+                                                  self.par_dic,
+                                                  request,
+                                                  self,
+                                                  job,
+                                                  run_asynch,
+                                                  out_dir=self.scratch_dir,
+                                                  config=config_data_server,
+                                                  query_type=query_type,
+                                                  logger=self.logger,
+                                                  sentry_client=self.sentry_client,
+                                                  verbose=verbose,
+                                                  dry_run=dry_run,
+                                                  api=api)
 
             #print('-->', query_out.status_dictionary)
             #NOTE job status is set in  cdci_data_analysis.analysis.queries.ProductQuery#get_query_products

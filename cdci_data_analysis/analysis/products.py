@@ -49,6 +49,7 @@ from .io_helper import view_traceback, FitsFile
 from .job_manager import Job
 
 import traceback
+import logging
 
 try:
     from urllib.parse import urlencode
@@ -167,6 +168,9 @@ class QueryOutput(object):
                             e_message=None,
                             debug_message=''):
 
+        if logger is None:
+            logger = logging.getLogger(repr(self))
+
         self._set_job_status(job_status)
 
         if e_message is None:
@@ -216,6 +220,9 @@ class QueryOutput(object):
             logger.info(msg_str)
 
         self.set_status(status, message=message, error_message=e_message, debug_message=str(debug_message))
+
+    def __repr__(self):
+        return f'[ {self.__class__.__name__} ]'
 
 
 class QueryProductList(object):

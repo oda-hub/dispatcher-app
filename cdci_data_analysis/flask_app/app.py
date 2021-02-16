@@ -168,7 +168,7 @@ def handle_invalid_usage(error):
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
     try:
-        query=InstrumentQueryBackEnd(app)
+        query = InstrumentQueryBackEnd(app)
         return query.run_query(disp_conf=app.config['conf'])
     except Exception as e:
         logging.getLogger().error("exception in run_analysis: %s %s", repr(e), traceback.format_exc())
