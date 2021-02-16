@@ -52,15 +52,23 @@ def dispatcher_live_fixture(pytestconfig):
     def follow_output():
         url_store[0] = None
         for line in iter(p.stdout):
-            print("following server:", line.rstrip())
-            m = re.search(b"Running on (.*?) \(Press CTRL\+C to quit\)", line)
+            line = line.decode()
+
+            NC = '\033[0m'
+            if 'ERROR' in line:
+                C = '\033[31m'
+            else:
+                C = '\033[34m'
+
+            print(f"{C}following server: {line.rstrip()}{NC}" )
+            m = re.search("Running on (.*?) \(Press CTRL\+C to quit\)", line)
             if m:
                 url_store[0] = m.group(1)[:-1]  # alaternatively get from configenv
                 print(("found url:", url_store[0]))
 
-            if re.search(b"\* Debugger PIN:.*?", line):
+            if re.search("\* Debugger PIN:.*?", line):
                 url_store[0] = url_store[0].replace("0.0.0.0", "127.0.0.1")
-                print(("server ready, url", url_store[0]))
+                print("server ready, url", url_store[0])
 
 
     thread = Thread(target=follow_output, args=())

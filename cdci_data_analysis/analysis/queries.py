@@ -389,14 +389,11 @@ class ProductQuery(BaseQuery):
 
 
 
-    def test_communication(self,instrument,query_type='Real',logger=None,config=None,sentry_client=None):
+    def test_communication(self, instrument, query_type='Real', logger=None, config=None, sentry_client=None):
         if logger is None:
             logger = self.get_logger()
 
         query_out = QueryOutput()
-
-
-
 
         #status = 0
         message=''
@@ -410,17 +407,17 @@ class ProductQuery(BaseQuery):
 
             if query_type != 'Dummy':
                 test_comm_query_out = instrument.test_communication(config,logger=logger)
-                status=test_comm_query_out.get_status()
+                status = test_comm_query_out.get_status()
             else:
                 status=0
 
             query_out.set_done(message=message, debug_message=str(debug_message),status=status)
 
         except Exception as e:
+            e_message = f'test of communication with backend (instrument: {instrument}) failed!'
+
             if hasattr(e, 'message'):
-                e_message = e.message
-            else:
-                e_message = 'communication error'
+                e_message = e_message + " : " + e.message
 
             if hasattr(e, 'debug_message'):
                 debug_message = e.debug_message
@@ -428,8 +425,8 @@ class ProductQuery(BaseQuery):
             else:
                 debug_message = ''
 
-            query_out.set_failed('dataserver communication ',
-                                 extra_message='communication error',
+            query_out.set_failed('dataserver communication test',
+                                 extra_message=e_message,
                                  logger=logger,
                                  sentry_client=sentry_client,
                                  excep=e,

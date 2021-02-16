@@ -87,7 +87,7 @@ class Instrument:
         self._queries_list=[self.src_query,self.instrumet_query]
 
 
-        self.data_server_query_class=data_server_query_class
+        self.data_server_query_class = data_server_query_class
 
         if product_queries_list is not None and product_queries_list !=[]:
             self._queries_list.extend(product_queries_list)
@@ -151,7 +151,7 @@ class Instrument:
 
     def test_communication(self,config,logger=None):
         if self.data_server_query_class is not None:
-            return self.data_server_query_class(config=config,instrument=self).test_communication(logger=logger)
+            return self.data_server_query_class(config=config, instrument=self).test_communication(logger=logger)
 
     def test_busy(self, config,logger=None):
         if self.data_server_query_class is not None:

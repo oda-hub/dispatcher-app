@@ -52,6 +52,9 @@ class NoInstrumentSpecified(BadRequest):
 class InstrumentNotRecognized(BadRequest):
     pass
 
+class MissingRequestParameter(BadRequest):
+    pass
+
 class InstrumentQueryBackEnd:
 
     @property
@@ -59,7 +62,7 @@ class InstrumentQueryBackEnd:
         return getattr(self, '_instrument_name', 'instrument-not-set')
     
     @instrument_name.setter
-    def instrument_name(self):
+    def instrument_name(self, instrument_name):
         self._instrument_name = instrument_name
     
 
@@ -83,7 +86,8 @@ class InstrumentQueryBackEnd:
             else:
                 self.instrument_name = instrument_name
 
-            if get_meta_data==True:
+            if get_meta_data == True:
+                print("get_meta_data request: no scratch_dir")
                 self.set_instrument(self.instrument_name)
                 #TODO
                 #decide if it is worth to add the logger also in this case
@@ -91,6 +95,11 @@ class InstrumentQueryBackEnd:
                 #self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
                 #self.set_sentry_client()
             else:
+                print("NOT get_meta_data request: yes scratch_dir")
+
+                if 'query_status' not in self.par_dic:
+                    raise MissingRequestParameter('no query_status!')
+
                 if data_server_call_back is True:
                     self.job_id = self.par_dic['job_id']
 
@@ -716,9 +725,12 @@ class InstrumentQueryBackEnd:
         try:
             query_type = self.par_dic['query_type']
             product_type = self.par_dic['product_type']
-            query_status=self.par_dic['query_status']
+            query_status = self.par_dic['query_status']
+        except KeyError as e:
+            raise MissingRequestParameter(repr(e))
 
         except Exception as e:
+
             query_out = QueryOutput()
             query_out.set_query_exception(e, 'run_query failed in %s'%self.__class__.__name__,
                                           extra_message='InstrumentQueryBackEnd constructor failed')
@@ -727,7 +739,6 @@ class InstrumentQueryBackEnd:
             product_type = None
             query_status =  None
 
-            #return
 
         #print('==> query_status  ', query_status)
         if 'instrumet' in  self.par_dic.keys():

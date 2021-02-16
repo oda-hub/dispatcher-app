@@ -15,8 +15,7 @@ import pytest
 
 
 def test_no_instrument(dispatcher_live_fixture):
-    server = dispatcher_live_fixture.decode()
-
+    server = dispatcher_live_fixture
     print("constructed server:", server)
 
     c=requests.get(server + "/run_analysis",
@@ -37,12 +36,15 @@ def test_no_instrument(dispatcher_live_fixture):
 
 
 def test_isgri_image_instrument(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
     print("constructed server:", server)
 
-    c=requests.get(server.url + "/run_analysis",
+    c=requests.get(server + "/run_analysis",
                    params=dict(
-                       image_type="Real",
-                       product_type="image",
+                       query_status="new",
+                       query_type="Real",
+                       instrument="isgri",
+                       product_type="isgri_image",
                        E1=20.,
                        E2=40.,
                        T1="2008-01-01T11:11:11.0",
