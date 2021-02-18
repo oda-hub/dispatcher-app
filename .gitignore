@@ -22,3 +22,6 @@ lib64
 /diagrams
 .mypy_cache
 *.gpg
+tmp_*
+data/default-cache
+scratch_sid_*
