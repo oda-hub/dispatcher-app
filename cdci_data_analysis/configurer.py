@@ -201,7 +201,7 @@ class ConfigEnv(object):
         #print('conf_file_path', conf_file_path)
         with open(conf_file_path, 'r') as ymlfile:
             #print('conf_file_path', ymlfile )
-            cfg_dict = yaml.load(ymlfile)
+            cfg_dict = yaml.load(ymlfile, Loader=yaml.SafeLoader)
 
 
         logger.debug('cfg_dict: %s', cfg_dict)

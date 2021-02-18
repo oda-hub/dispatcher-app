@@ -83,9 +83,9 @@ class QueryOutput(object):
         self.prod_dictionary['api_code'] = DispatcherAPI.set_api_code(query_dict)
 
     def dump_analysis_parameters(self,work_dir,query_dict):
-        file_path=FilePath(file_dir=work_dir, file_name='anlaysis_par.json')
+        file_path=FilePath(file_dir=work_dir, file_name='analysis_parameters.json')
         with open(file_path.path, 'w')  as outfile:
-            my_json_str = json.dumps(query_dict,)
+            my_json_str = json.dumps(query_dict, indent=4)
             outfile.write(u'%s' % my_json_str)
 
     def set_products(self, keys, values):

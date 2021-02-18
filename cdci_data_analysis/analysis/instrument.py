@@ -38,6 +38,8 @@ from .catalog import BasicCatalog
 from .products import  QueryOutput
 from .queries import ProductQuery,SourceQuery,InstrumentQuery
 from .io_helper import FilePath
+from .exceptions import RequestNotUnderstood
+
 
 __author__ = "Andrea Tramacere"
 
@@ -254,6 +256,10 @@ class Instrument:
                                            warning=backend_warning)
                     else:
                         pass
+
+                except RequestNotUnderstood as e:
+                    logger.warning("bad request from user, passing through: %s", e)
+                    raise
 
                 except Exception as e:
                     #FAILED
