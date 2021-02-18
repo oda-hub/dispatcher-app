@@ -31,6 +31,7 @@ from collections import OrderedDict
 from .parameters import *
 from .products import SpectralFitProduct,QueryOutput,QueryProductList,ImageProduct
 from .io_helper import FilePath
+from .exceptions import RequestNotUnderstood
 
 
 @decorator.decorator
@@ -569,6 +570,10 @@ class ProductQuery(BaseQuery):
 
             query_out.set_done(message=message, debug_message=str(debug_message),job_status=job.status,status=status,comment=backend_comment,warning=backend_warning)
             #print('-->', query_out.status_dictionary)
+        except RequestNotUnderstood as e:
+            logger.error("passing request issue: %s", e)
+            raise
+
         except Exception as e:
             #status=1
             job.set_failed()

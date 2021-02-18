@@ -188,6 +188,23 @@ def common_exception_payload():
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
+    """
+    DRAFT
+    ---
+    operationId: 'run_analysis'
+    parameters:
+    - name: 'query_status'
+      in: 'query'
+      required: false
+      type: 'string'
+    responses:
+        200: 
+            description: 'analysis done'
+        202: 
+            description: 'request accepted but not done yet' 
+        400: 
+            description: 'something in request not understood - missing, unexpected values'
+    """
     try:
         query = InstrumentQueryBackEnd(app)
         return query.run_query(disp_conf=app.config['conf'])
