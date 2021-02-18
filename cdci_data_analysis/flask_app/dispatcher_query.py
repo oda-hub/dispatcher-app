@@ -40,7 +40,7 @@ from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
-from .exceptions import BadRequest, APIerror
+from ..analysis.exceptions import BadRequest, APIerror
 
 import oda_api
 

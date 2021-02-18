@@ -43,7 +43,7 @@ from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
 from .dispatcher_query import InstrumentQueryBackEnd
-from .exceptions import APIerror, BadRequest
+from ..analysis.exceptions import APIerror, BadRequest
 
 
 from cdci_data_analysis import  __version__
