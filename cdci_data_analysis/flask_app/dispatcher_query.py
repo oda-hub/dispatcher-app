@@ -68,7 +68,17 @@ class InstrumentQueryBackEnd:
 
     def __init__(self,app,instrument_name=None,par_dic=None,config=None,data_server_call_back=False,verbose=False,get_meta_data=False):
         #self.instrument_name=instrument_name
+
         self.logger = logging.getLogger(repr(self))
+
+        if verbose:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
+
+        self.logger.info("TEST")
+        self.logger.warning("TEST")
+        self.logger.error("TEST")
 
         self.app=app
         try:
@@ -111,7 +121,7 @@ class InstrumentQueryBackEnd:
                     else:
                         self.job_id = self.par_dic['job_id']
 
-                self.set_scratch_dir(self.par_dic['session_id'],job_id=self.job_id,verbose=verbose)
+                self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
 
 
                 self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
@@ -143,7 +153,7 @@ class InstrumentQueryBackEnd:
 
 
 
-    def make_hash(self,o):
+    def make_hash(self, o):
 
         """
         Makes a hash from a dictionary, list, tuple or set to any level, that contains
@@ -152,23 +162,19 @@ class InstrumentQueryBackEnd:
         """
 
         if isinstance(o, (set, tuple, list)):
-            #print('o',o)
             return tuple([self.make_hash(e) for e in o])
 
         elif not isinstance(o, dict):
-            #print('o', o)
             return hash(o)
 
         new_o = copy.deepcopy(o)
         for k, v in new_o.items():
-            #if k not in kw_black_list:
-            #    print('k',k)
             new_o[k] = self.make_hash(v)
 
-        return u'%s'%hash(tuple(frozenset(sorted(new_o.items()))))
+        return u'%016x'%abs(hash(tuple(frozenset(sorted(new_o.items())))))
 
 
-    def generate_job_id(self,kw_black_list=['session_id']):
+    def generate_job_id(self, kw_black_list=['session_id']):
         print("---> GENERATING JOB ID <---")
 
         #TODO generate hash (immutable ore convert to Ordered): DONE
@@ -180,26 +186,36 @@ class InstrumentQueryBackEnd:
         #self.job_id=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
         #print('dict',self.par_dic)
 
-        _dict=copy.deepcopy(self.par_dic)
-        for k in kw_black_list:
-            _dict.pop(k)
-        self.job_id=u'%s'%(self.make_hash(OrderedDict(_dict)))
-        print('generated job_id',self.job_id)
+        _dict = OrderedDict({
+                    k: v for k, v in self.par_dic.items()
+                    if k not in kw_black_list
+                })
+
+        self.job_id=u'%s'%(self.make_hash(_dict))
+
+        self.logger.info('\033[31mgenerated NEW job_id %s \033[0m', self.job_id)
+
 
     def set_session_id(self):
-        print("---> GENERATING SESSION ID <---")
+        self.logger.info("---> SET_SESSION_ID <---")
         if 'session_id' not in self.par_dic.keys():
             self.par_dic['session_id']=None
-        print('passed SESSION ID', self.par_dic['session_id'])
 
-        if self.par_dic['session_id'] is None or self.par_dic['session_id']=='new':
+        self.logger.info('passed SESSION ID: %s', self.par_dic['session_id'])
+
+        if self.par_dic['session_id'] is None or self.par_dic['session_id'] == 'new':
+            self.logger.info('generating SESSION ID: %s', self.par_dic['session_id'])
             self.par_dic['session_id']=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
 
-        print('generated SESSION ID',self.par_dic['session_id'])
-        print('-------')
+        self.logger.info('setting SESSION ID: %s', self.par_dic['session_id'])
 
     def set_session_logger(self,scratch_dir,verbose=False,config=None):
         logger = logging.getLogger(__name__)
+
+        if verbose:
+            logger.setLevel(logging.DEBUG)
+        else:
+            logger.setLevel(logging.INFO)
 
         session_log_filename = os.path.join(scratch_dir, 'session.log')
 
@@ -207,21 +223,16 @@ class InstrumentQueryBackEnd:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fileh.setFormatter(formatter)
 
-        #log = logging.getLogger()  # root logger
-        #for hdlr in log.handlers[:]:  # remove all old handlers
-        #    log.removeHandler(hdlr)
-        #log.addHandler(fileh)  # set the new handler
-        logger.setLevel(logging.INFO)
-
+        logger.addHandler(fileh)  # set the new handler
 
 
         if verbose==True:
             print('logfile set to dir=', scratch_dir, ' with name=', session_log_filename)
 
-        if config is not None:
-            logger=self.set_logstash(logger,logstash_host=config.logstash_host,logstash_port=config.logstash_port)
+        #if config is not None:
+        #    logger=self.set_logstash(logger,logstash_host=config.logstash_host,logstash_port=config.logstash_port)
 
-        self.logger=logger
+        self.logger = logger
 
     def set_logstash(self,logger,logstash_host=None,logstash_port=None):
         _logger=logger

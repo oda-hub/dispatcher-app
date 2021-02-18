@@ -106,7 +106,7 @@ class Instrument:
         #print ('--> setting set_data_server_conf_dict for', self.name,'from data_serve_conf_file',data_serve_conf_file)
         if data_serve_conf_file is not None:
            with open(data_serve_conf_file, 'r') as ymlfile:
-                cfg_dict = yaml.load(ymlfile)
+                cfg_dict = yaml.load(ymlfile, Loader=yaml.SafeLoader)
                 for k in cfg_dict['instruments'].keys():
                     #print ('name',k)
                     if self.name ==k:

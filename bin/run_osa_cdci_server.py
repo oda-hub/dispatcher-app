@@ -61,11 +61,18 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
 def main(argv=None):
 
     # TODO: make a conditon
-    logging.basicConfig(level=logging.DEBUG)
 
-    logging.warning("test warning")
-    logging.info("test info")
-    logging.debug("test debug")
+    try:
+        logger = logging.getLogger()
+        logger.setLevel(logging.INFO)
+        logger.warning("run_osa_cdci_server.py:main test warning")
+        logger.info("run_osa_cdci_server.py:main test info")
+        logger.debug("run_osa_cdci_server.py:main test debug")
+
+        from logging_tree import printout
+        printout()
+    except:
+        pass
 
     black_listed_evns=['https_proxy','http_proxy']
 

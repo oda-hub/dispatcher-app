@@ -106,9 +106,10 @@ class DataServerConf:
 
     @classmethod
     def from_conf_file(cls, conf_file):
+        logger.info("\033[32mconstructing config from file %s\033[0m", conf_file)
 
         with open(conf_file, 'r') as ymlfile:
-            cfg_dict = yaml.load(ymlfile)
+            cfg_dict = yaml.load(ymlfile, Loader=yaml.SafeLoader)
 
         return DataServerConf.from_conf_dict(cfg_dict)
 
