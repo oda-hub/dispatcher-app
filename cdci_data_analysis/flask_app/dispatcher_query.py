@@ -94,6 +94,12 @@ class InstrumentQueryBackEnd:
 
             self.client_name = self.par_dic.pop('client-name', 'unknown')
             self.async_dispatcher = self.par_dic.pop('async_dispatcher', 'True') == 'True' #why string true?? else false anyway
+            """
+                async dispatcher operation avoids building QueryOutput in the sync request, and instead sends it in the queue
+                in the queue, the same request is repeated, same session id/job id, but requesting sync request
+                this immitates two repeated identical requests from the same client, which takes care of aliasing/etc complexity
+                the remaining complexity is to send back a response which indicates "submitted" but not submitted job - only request
+            """
 
 
             self.set_session_id()
