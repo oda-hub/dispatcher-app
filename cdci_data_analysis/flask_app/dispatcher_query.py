@@ -42,7 +42,7 @@ from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
-from ..analysis.exceptions import BadRequest, APIerror
+from ..analysis.exceptions import BadRequest, APIerror, MissingParameter, RequestNotUnderstood
 
 import oda_api
 
@@ -121,6 +121,9 @@ class InstrumentQueryBackEnd:
                     if query_status == 'new':
                         self.generate_job_id()
                     else:
+                        if 'job_id' not in self.par_dic:
+                            raise RequestNotUnderstood(f"job_id must be present if query_status != \"new\" (it is \"{query_status}\")")
+
                         self.job_id = self.par_dic['job_id']
 
                 self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
@@ -170,19 +173,13 @@ class InstrumentQueryBackEnd:
                                     ).hexdigest()[:16]
 
         if isinstance(o, (set, tuple, list)):
-            r = format_hash(tuple(map(self.make_hash, o)))
-            self.logger.info("formatting hash from list(-y thing) %s => %s", o, r)
-            return r
+            return format_hash(tuple(map(self.make_hash, o)))
 
         elif isinstance(o, (dict, OrderedDict)):
-            r = self.make_hash(tuple(o.items()))
-            self.logger.info("formatting hash from dict %s => %s", o, r)
-            return r
+            return self.make_hash(tuple(o.items()))
 
         # this takes care of various strange objects which can not be properly represented
-        r = format_hash(json.dumps(o)) 
-        self.logger.info("formatting something else %s => %s", o, r)
-        return r
+        return format_hash(json.dumps(o)) 
 
     def generate_job_id(self, kw_black_list=['session_id']):
         self.logger.info("\033[31m---> GENERATING JOB ID <---\033[0m")
@@ -229,14 +226,19 @@ class InstrumentQueryBackEnd:
 
         session_log_filename = os.path.join(scratch_dir, 'session.log')
 
-        fileh = logging.FileHandler(session_log_filename, 'a')
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        fileh.setFormatter(formatter)
+        if not any([
+                  isinstance(handler, logging.FileHandler) and handler.filename == session_log_filename
+                    for handler in logger.handlers
+               ]):
 
-        logger.addHandler(fileh)  # set the new handler
+            fileh = logging.FileHandler(session_log_filename, 'a')
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            fileh.setFormatter(formatter)
+
+            logger.addHandler(fileh)  # set the new handler
 
 
-        if verbose==True:
+        if verbose == True:
             print('logfile set to dir=', scratch_dir, ' with name=', session_log_filename)
 
         #if config is not None:

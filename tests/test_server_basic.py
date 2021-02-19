@@ -4,6 +4,7 @@ import time
 import re
 import signal
 import os
+import random
 import traceback
 
 from threading import Thread
@@ -27,8 +28,8 @@ def test_no_instrument(dispatcher_live_fixture):
                    params=dict(
                    image_type="Real",
                    product_type="image",
-                   E1=20.,
-                   E2=40.,
+                   E1_keV=20.,
+                   E2_keV=40.,
                    T1="2008-01-01T11:11:11.0",
                    T2="2008-06-01T11:11:11.0",
                 ))
@@ -49,8 +50,8 @@ def test_isgri_no_osa(dispatcher_live_fixture):
                        query_type="Real",
                        instrument="isgri",
                        product_type="isgri_image",
-                       E1=20.,
-                       E2=40.,
+                       E1_keV=20.,
+                       E2_keV=40.,
                        T1="2008-01-01T11:11:11.0",
                        T2="2008-06-01T11:11:11.0",
                     )
@@ -82,8 +83,8 @@ def test_isgri_image_no_pointings(dispatcher_live_fixture):
                        instrument="isgri",
                        product_type="isgri_image",
                        osa_version="OSA10.2",
-                       E1=20.,
-                       E2=40.,
+                       E1_keV=20.,
+                       E2_keV=40.,
                        T1="2008-01-01T11:11:11.0",
                        T2="2009-01-01T11:11:11.0",
                        max_pointings=1,
@@ -104,7 +105,7 @@ def test_isgri_image_no_pointings(dispatcher_live_fixture):
     assert jdata["job_status"] == "failed"
 
 
-def test_isgri_image(dispatcher_live_fixture):
+def test_isgri_image_fixed_done(dispatcher_live_fixture):
     """
     something already done at backend
     """
@@ -120,12 +121,11 @@ def test_isgri_image(dispatcher_live_fixture):
                        instrument="isgri",
                        product_type="isgri_image",
                        osa_version="OSA10.2",
-                       E1=20.,
-                       E2=40.,
+                       E1_keV=20.,
+                       E2_keV=40.,
                        T1="2008-01-01T11:11:11.0",
                        T2="2009-01-01T11:11:11.0",
-                       max_pointings=1,
-                       max_pointins=1,
+                       max_pointings=2,
                        RA=83,
                        DEC=22,
                        radius=6,
@@ -145,4 +145,83 @@ def test_isgri_image(dispatcher_live_fixture):
     print(list(jdata.keys()))
 
     assert jdata["exit_status"]["job_status"] == "done"
+
+
+def test_isgri_image_random_emax(dispatcher_live_fixture):
+    """
+    something already done at backend
+    """
+
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    try:
+        emax = int(open("emax-last", "rt").read())
+    except:
+        emax = random.randint(30, 800) # but sometimes it's going to be done
+        open("emax-last", "wt").write("%d"%emax)
+                   
+    params=dict(
+       query_status="new",
+       query_type="Real",
+       instrument="isgri",
+       product_type="isgri_image",
+       osa_version="OSA10.2",
+       E1_keV=20.,
+       E2_keV=emax,
+       T1="2008-01-01T11:11:11.0",
+       T2="2009-01-01T11:11:11.0",
+       max_pointings=2,
+       RA=83,
+       DEC=22,
+       radius=6,
+    )
+
+    t0 = time.time()
+    c = requests.get(server + "/run_analysis",
+                   params=params,
+                )
+    print(f"\033[31m request took {time.time() - t0} seconds\033[0m")
+
+    print("content:", c.text[:1000])
+    if len(c.text) > 1000:
+        print(".... (truncated)")
+
+    jdata=c.json()
+    
+    assert c.status_code == 200
+
+    print(list(jdata.keys()))
+
+    assert jdata["exit_status"]["job_status"] == "submitted"
+    assert jdata["query_status"] == "submitted"
+
+    last_status = jdata["query_status"]
+
+    n = 10
+    while True:
+        t0 = time.time()
+        c = requests.get(
+                    server + "/run_analysis",
+                    params={**params, 
+                                'query_status': jdata['query_status'],
+                                'job_id': jdata['job_monitor']['job_id'],
+                                'session_id': jdata['session_id'],
+                           },
+                  )
+        print(f"\033[31m request took {time.time() - t0} seconds\033[0m")
+
+        if jdata["query_status"] == "ready":
+            print("query READY:", jdata["query_status"])
+            break
+
+        print("query NOT-READY:", jdata["query_status"], jdata["job_monitor"])
+        print("looping...")
+
+        time.sleep(5)
+        n -= 1
+
+        if n <= 0: break # since callback will not be treated
+
+
 
