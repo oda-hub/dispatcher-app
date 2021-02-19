@@ -25,12 +25,14 @@ from flask import jsonify,send_from_directory,redirect
 from flask import Flask, request
 from flask.json import JSONEncoder
 
+import json
 import tempfile
 import tarfile
 import gzip
 import logging
 import socket
 import logstash
+import hashlib
 
 from ..plugins import importer
 from ..analysis.queries import *
@@ -159,23 +161,31 @@ class InstrumentQueryBackEnd:
         Makes a hash from a dictionary, list, tuple or set to any level, that contains
         only other hashable types (including any lists, tuples, sets, and
         dictionaries).
+
         """
 
+        # note that even strings change hash() value between python invocations, so it's not safe to do so
+        format_hash = lambda x: hashlib.md5(
+                                    json.dumps(sorted(x)).encode()
+                                    ).hexdigest()[:16]
+
         if isinstance(o, (set, tuple, list)):
-            return tuple([self.make_hash(e) for e in o])
+            r = format_hash(tuple(map(self.make_hash, o)))
+            self.logger.info("formatting hash from list(-y thing) %s => %s", o, r)
+            return r
 
-        elif not isinstance(o, dict):
-            return hash(o)
+        elif isinstance(o, (dict, OrderedDict)):
+            r = self.make_hash(tuple(o.items()))
+            self.logger.info("formatting hash from dict %s => %s", o, r)
+            return r
 
-        new_o = copy.deepcopy(o)
-        for k, v in new_o.items():
-            new_o[k] = self.make_hash(v)
-
-        return u'%016x'%abs(hash(tuple(frozenset(sorted(new_o.items())))))
-
+        # this takes care of various strange objects which can not be properly represented
+        r = format_hash(json.dumps(o)) 
+        self.logger.info("formatting something else %s => %s", o, r)
+        return r
 
     def generate_job_id(self, kw_black_list=['session_id']):
-        print("---> GENERATING JOB ID <---")
+        self.logger.info("\033[31m---> GENERATING JOB ID <---\033[0m")
 
         #TODO generate hash (immutable ore convert to Ordered): DONE
         #import collections
