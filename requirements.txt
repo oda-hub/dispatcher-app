@@ -17,3 +17,4 @@ oda_api>=1.0.1
 six
 werkzeug<=0.16.1
 python-shell-colors
+logging_tree

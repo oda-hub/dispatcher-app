@@ -16,15 +16,15 @@ import argparse
 import multiprocessing
 
 import logging
+import logging_tree
 
 import gunicorn.app.base
 
 #from gunicorn.six import iteritems
 
+from cdci_data_analysis.app_logging import app_logging 
 from cdci_data_analysis.flask_app.app import run_app, app
-
 from cdci_data_analysis.configurer import ConfigEnv
-
 
 
 
@@ -62,32 +62,29 @@ def main(argv=None):
 
     # TODO: make a conditon
 
-    try:
-        logger = logging.getLogger()
-        logger.setLevel(logging.INFO)
-        logger.warning("run_osa_cdci_server.py:main test warning")
-        logger.info("run_osa_cdci_server.py:main test info")
-        logger.debug("run_osa_cdci_server.py:main test debug")
-
-        from logging_tree import printout
-        printout()
-    except:
-        pass
-
-    black_listed_evns=['https_proxy','http_proxy']
-
-    for envvar in black_listed_evns:
-        print ('removing env variable',envvar)
-        os.unsetenv(envvar)
-        if envvar in os.environ.keys():
-            del os.environ[envvar]
-
     parser = argparse.ArgumentParser()
     parser.add_argument('-conf_file', type=str, default=None)
     parser.add_argument('-use_gunicorn', action='store_true')
-    parser.add_argument('-debug', action='store_true')
+    parser.add_argument('-debug', action='store_true', help='sets global logger debug')
+    parser.add_argument('--log-config', type=str, default=":info", help="log levels by logger, e.g. \"osa:debug,flask:info,:warning\"")
 
     args = parser.parse_args()
+
+    if args.debug:
+        app_logging.level_by_logger = {"": "debug"}
+        app_logging.setup()
+    else:
+        app_logging.level_by_logger = { l.split(":")[0]:l.split(":")[1] for l in args.log_config.split(",") }
+        app_logging.setup()
+
+
+    black_listed_envs = ['https_proxy', 'http_proxy']
+
+    for envvar in black_listed_envs:
+        app_logging.getLogger("env").debug('removing env variable: %s',envvar)
+        os.unsetenv(envvar)
+        if envvar in os.environ.keys():
+            del os.environ[envvar]
 
     conf_file = args.conf_file
 
@@ -103,11 +100,12 @@ def main(argv=None):
             'bind': '%s:%s' % (dispatcher_url, port),
             'workers': 2,
             'threads': 4,
-            #'worker-connections': 10,
-            #'k': 'gevent',
         }
-        StandaloneApplication(app, run_app, options).run(conf, debug=debug,threaded=True)
-        #StandaloneApplication(micro_service, run_micro_service, options).run(conf, debug=debug, threaded=True)
+
+        if True:
+            StandaloneApplication(app, run_app, options).run(conf, debug=debug,threaded=True)
+        else:
+            StandaloneApplication(micro_service, run_micro_service, options).run(conf, debug=debug, threaded=True)
     else:
         run_app(conf, debug=debug, threaded=False)
 

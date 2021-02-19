@@ -49,7 +49,14 @@ class DataServerConf:
 
         logger.info("building config from %s %s %s", data_server_url, data_server_remote_cache, dispatcher_mnt_point)
 
-        logger.warning(f"problem constructing {self}: some parameters are None: {data_server_url} {data_server_remote_cache} {dispatcher_mnt_point}")
+        if data_server_url is None:
+            logger.warning(f"problem constructing {self}: data_server_url is None: {data_server_url}")
+
+        if data_server_remote_cache is None:
+            logger.warning(f"problem constructing {self}: data_server_remote_cache is None: {data_server_remote_cache}")
+        
+        if dispatcher_mnt_point is None:
+            logger.warning(f"problem constructing {self}: dispatcher_mnt_point is None: {dispatcher_mnt_point}")
 
         self.data_server_url = data_server_url
 
