@@ -750,14 +750,14 @@ class InstrumentQueryBackEnd:
             return Q
         self.logger.info("\033[31mstored query out NOT FOUND at %s\033[0m", self.query_out_filename)
                     
-    def request_query_out(self):
-        if os.path.exists(self.query_out_request):
+    def request_query_out(self, overwrite=False):
+        if not overwrite and os.path.exists(self.query_out_request):
             r_json = json.load(open(self.query_out_request))
 
             r = AsyncResult(r_json['celery-id'])
             self.logger.info("found celery job: %s state: %s", r.id, r.state)
         else:
-            # TODO: here we might as well query from minio etc
+            # TODO: here we might as well query from minio etc, but only if ready
             r = tasks.request_dispatcher.delay(self.dispatcher_service_url + "/run_analysis", {**self.par_dic, 'async_dispatcher': False})
             self.logger.info("submitted celery job with pars %s", self.par_dic)
             self.logger.info("submitted celery job: %s state: %s", r.id, r.state)
@@ -1056,7 +1056,8 @@ class InstrumentQueryBackEnd:
                         elif job_status == 'failed':
                             query_new_status = 'failed'
                         else:
-                            raise NotImplemented("async query retrieved but not done/failed. recreate?")
+                            query_new_status = 'submitted'
+                            query_out = self.request_query_out(overwrite=True)
                 else:
                     query_out = QueryOutput()
                     query_new_status = query_status
