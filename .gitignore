@@ -25,3 +25,6 @@ lib64
 tmp_*
 data/default-cache
 scratch_sid_*
+reduced
+log
+data_*json

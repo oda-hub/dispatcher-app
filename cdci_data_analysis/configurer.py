@@ -30,7 +30,7 @@ __author__ = "Andrea Tramacere"
 # launch
 # ----------------------------------------
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("conf")
 
 import traceback
 
@@ -203,6 +203,7 @@ class ConfigEnv(object):
 
         if conf_file_path is None:
             conf_file_path = conf_dir + '/conf_env.yml'
+            logger.info("using conf file from default dir \"%s\" (set by cdci_data_analysis module file location): %s", conf_dir, conf_file_path)
 
         logger.info("loading config from file: %s", conf_file_path)
 

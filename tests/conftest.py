@@ -37,7 +37,11 @@ def dispatcher_live_fixture(pytestconfig):
     env['PYTHONPATH'] = str(pytestconfig.rootdir)+":"+str(pytestconfig.rootdir)+"/tests:"+env.get('PYTHONPATH', "")
     print(("pythonpath",env['PYTHONPATH']))
         
-    cmd = ["python", __this_dir__+"/../bin/run_osa_cdci_server.py"]
+    cmd = [ 
+            "python", 
+            os.path.join(__this_dir__, "../bin/run_osa_cdci_server.py"),
+            "-conf_file", os.path.join(__this_dir__, "../tests/test-conf.yaml"),
+          ] 
 
     p=subprocess.Popen(
         cmd,

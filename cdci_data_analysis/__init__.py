@@ -26,4 +26,4 @@ with open('%s/pkg_info.json'%_dir) as fp:
 
 __version__ = _info['version']
 
-conf_dir=os.path.dirname(__file__)+'/config_dir'
+conf_dir = os.path.dirname(__file__)+'/config_dir'

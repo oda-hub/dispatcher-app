@@ -14,6 +14,11 @@ import pytest
 #pytestmark = pytest.mark.skip("these tests still WIP")
 
 
+"""
+this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
+"""
+
+
 def test_no_instrument(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
@@ -101,12 +106,13 @@ def test_isgri_image_no_pointings(dispatcher_live_fixture):
 
 def test_isgri_image(dispatcher_live_fixture):
     """
-    this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
+    something already done at backend
     """
 
     server = dispatcher_live_fixture
     print("constructed server:", server)
 
+    t0 = time.time()
     c=requests.get(server + "/run_analysis",
                    params=dict(
                        query_status="new",
@@ -126,7 +132,11 @@ def test_isgri_image(dispatcher_live_fixture):
                     )
                   )
 
-    print("content:", c.text)
+    print(f"\033[31m request took {time.time() - t0} seconds\033[0m")
+
+    print("content:", c.text[:1000])
+    if len(c.text) > 1000:
+        print(".... (truncated)")
 
     jdata=c.json()
     
@@ -134,5 +144,5 @@ def test_isgri_image(dispatcher_live_fixture):
 
     print(list(jdata.keys()))
 
-    assert jdata["exit_status"]["job_status"] == "submitted"
+    assert jdata["exit_status"]["job_status"] == "done"
 
