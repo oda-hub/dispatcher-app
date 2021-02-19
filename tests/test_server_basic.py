@@ -129,10 +129,13 @@ def test_isgri_image_fixed_done(dispatcher_live_fixture):
                        RA=83,
                        DEC=22,
                        radius=6,
+                       async_dispatcher=False,
                     )
                   )
 
     print(f"\033[31m request took {time.time() - t0} seconds\033[0m")
+
+    assert time.time() - t0 > 15
 
     print("content:", c.text[:1000])
     if len(c.text) > 1000:
@@ -145,6 +148,80 @@ def test_isgri_image_fixed_done(dispatcher_live_fixture):
     print(list(jdata.keys()))
 
     assert jdata["exit_status"]["job_status"] == "done"
+
+def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
+    """
+    something already done at backend
+    """
+
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    params=dict(
+       query_status="new",
+       query_type="Real",
+       instrument="isgri",
+       product_type="isgri_image",
+       osa_version="OSA10.2",
+       E1_keV=20.,
+       E2_keV=40.,
+       T1="2008-01-01T11:11:11.0",
+       T2="2009-01-01T11:11:11.0",
+       max_pointings=2,
+       RA=83,
+       DEC=22,
+       radius=6,
+    )
+
+    t0 = time.time()
+    c=requests.get(server + "/run_analysis",
+                   params={**params, 'async_dispatcher': True},
+                  )
+    print(f"\033[31m request took {time.time() - t0} seconds\033[0m")
+    assert time.time() - t0 < 2
+
+    print("content:", c.text[:1000])
+    if len(c.text) > 1000:
+        print(".... (truncated)")
+
+    jdata=c.json()
+    assert c.status_code == 200
+
+    print(list(jdata.keys()))
+
+    assert jdata["exit_status"]["job_status"] == "post-processing"
+
+    ########
+
+    while True:
+        t0 = time.time()
+        c=requests.get(server + "/run_analysis",
+                       params={**params, 
+                               'query_status': jdata['query_status'],
+                               'job_id': jdata['job_monitor']['job_id'],
+                               'session_id': jdata['session_id'],
+                               'async_dispatcher': True,
+                              }
+                      )
+        print(f"\033[31m request took {time.time() - t0} seconds\033[0m")
+        assert time.time() - t0 < 10 # this might be longer due to serialization, store otherwise!
+
+        print("content:", c.text[:1000])
+        if len(c.text) > 1000:
+            print(".... (truncated)")
+
+        jdata=c.json()
+        assert c.status_code == 200
+
+        print(list(jdata.keys()))
+
+        print(f"\033[31mquery status \"{jdata['query_status']}\" job status {jdata['exit_status']['job_status']} \033[0m")
+        
+        if jdata["query_status"] == "done":
+            print("query READY:", jdata["query_status"])
+            break
+
+        time.sleep(1)
 
 
 def test_isgri_image_random_emax(dispatcher_live_fixture):
@@ -211,7 +288,7 @@ def test_isgri_image_random_emax(dispatcher_live_fixture):
                   )
         print(f"\033[31m request took {time.time() - t0} seconds\033[0m")
 
-        if jdata["query_status"] == "ready":
+        if jdata["query_status"] in ["ready", "done"]:
             print("query READY:", jdata["query_status"])
             break
 

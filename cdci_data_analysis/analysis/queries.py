@@ -29,7 +29,7 @@ import json
 from collections import OrderedDict
 
 from .parameters import *
-from .products import SpectralFitProduct,QueryOutput,QueryProductList,ImageProduct
+from .products import SpectralFitProduct, QueryOutput, QueryProductList, ImageProduct
 from .io_helper import FilePath
 from .exceptions import RequestNotUnderstood
 

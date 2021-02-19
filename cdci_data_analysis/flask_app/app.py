@@ -3,7 +3,7 @@
 """
 Created on Wed May 10 10:55:20 2017
 
-@author: andrea tramcere
+@author: Andrea Tramcere, Volodymyr Savchenko
 """
 from builtins import (open, str, range,
                       object)
@@ -31,6 +31,7 @@ import gzip
 import logging
 import socket
 import logstash
+import time as _time
 
 
 from ..plugins import importer
@@ -44,6 +45,8 @@ from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
 from .dispatcher_query import InstrumentQueryBackEnd
 from ..analysis.exceptions import APIerror, BadRequest
+from ..app_logging import app_logging
+from . import tasks
 
 
 from cdci_data_analysis import  __version__
@@ -54,6 +57,8 @@ from astropy.io.fits.card import Undefined as astropyUndefined
 
 #UPLOAD_FOLDER = '/path/to/the/uploads'
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
+
+logger = app_logging.getLogger('flask_app')
 
 class CustomJSONEncoder(JSONEncoder):
 
@@ -206,8 +211,12 @@ def run_analysis():
             description: 'something in request not understood - missing, unexpected values'
     """
     try:
+        t0 = _time.time()
         query = InstrumentQueryBackEnd(app)
-        return query.run_query(disp_conf=app.config['conf'])
+        r = query.run_query(disp_conf=app.config['conf'])
+        logger.info("run_analysis for %s took %g seconds", request.args.get('client-name', 'unknown'), _time.time() - t0)
+
+        return r
     except APIerror as e:
         raise
     except Exception as e:

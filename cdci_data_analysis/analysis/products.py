@@ -50,6 +50,7 @@ from .job_manager import Job
 
 import traceback
 import logging
+from ..app_logging import app_logging
 
 try:
     from urllib.parse import urlencode
@@ -67,7 +68,7 @@ class QueryOutput(object):
         self.prod_dictionary = {}
         self.status_dictionary = {}
 
-        self._allowed_status_values_ = [0, 1]
+        self._allowed_status_values_ = [0, 1] # ok or nok?
         self._allowed_job_status_values_ = Job.get_allowed_job_status_values()
 
         self.set_status(0, job_status='unknown')
@@ -169,7 +170,7 @@ class QueryOutput(object):
                             debug_message=''):
 
         if logger is None:
-            logger = logging.getLogger(repr(self))
+            logger = app_logging.getLogger(repr(self))
 
         self._set_job_status(job_status)
 
@@ -223,6 +224,22 @@ class QueryOutput(object):
 
     def __repr__(self):
         return f'[ {self.__class__.__name__} ]'
+
+    def serialize(self, writable):
+        json.dump({ 
+                    k: v
+                    for k, v in self.__dict__.items()
+                    if not k.startswith("_")
+                  },
+                  writable
+                )
+    
+    def deserialize(self, readable):
+        logger = app_logging.getLogger(self.__class__.__name__)
+
+        for k, v in json.load(readable).items():
+            logger.info("deserializing query_out state: %s : %s (%s)", k , str(v)[:100], len(str(v)))
+            setattr(self, k, v)
 
 
 class QueryProductList(object):

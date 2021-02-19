@@ -18,3 +18,5 @@ six
 werkzeug<=0.16.1
 python-shell-colors
 logging_tree
+celery
+redis

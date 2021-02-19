@@ -33,6 +33,7 @@ import logging
 import socket
 import logstash
 import hashlib
+from celery.result import AsyncResult
 
 from ..plugins import importer
 from ..analysis.queries import *
@@ -43,6 +44,7 @@ from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
 from ..analysis.exceptions import BadRequest, APIerror, MissingParameter, RequestNotUnderstood
+from . import tasks
 
 import oda_api
 
@@ -88,6 +90,11 @@ class InstrumentQueryBackEnd:
                 self.set_args(request,verbose=verbose)
             else:
                 self.par_dic = par_dic
+
+
+            self.client_name = self.par_dic.pop('client-name', 'unknown')
+            self.async_dispatcher = self.par_dic.pop('async_dispatcher', 'True') == 'True' #why string true?? else false anyway
+
 
             self.set_session_id()
             if instrument_name is None:
@@ -183,6 +190,7 @@ class InstrumentQueryBackEnd:
 
     def generate_job_id(self, kw_black_list=['session_id']):
         self.logger.info("\033[31m---> GENERATING JOB ID <---\033[0m")
+        self.logger.info("\033[31m---> new job id for %s <---\033[0m", self.par_dic)
 
         #TODO generate hash (immutable ore convert to Ordered): DONE
         #import collections
@@ -227,7 +235,7 @@ class InstrumentQueryBackEnd:
         session_log_filename = os.path.join(scratch_dir, 'session.log')
 
         if not any([
-                  isinstance(handler, logging.FileHandler) and handler.filename == session_log_filename
+                  isinstance(handler, logging.FileHandler) and handler.baseFilename == session_log_filename
                     for handler in logger.handlers
                ]):
 
@@ -309,8 +317,8 @@ class InstrumentQueryBackEnd:
         if job_id is not None:
             wd +='_jid_'+job_id
 
-        alias_workidr = self.get_existing_job_ID_path(wd=FilePath(file_dir=wd).path)
-        if alias_workidr is not None:
+        alias_workdir = self.get_existing_job_ID_path(wd=FilePath(file_dir=wd).path)
+        if alias_workdir is not None:
             wd=wd+'_aliased'
 
         wd=FilePath(file_dir=wd)
@@ -500,8 +508,6 @@ class InstrumentQueryBackEnd:
         if 'instrumet' in self.par_dic.keys():
             self.par_dic.pop('instrumet')
 
-
-
         self.logger.info('instrument %s' % self.instrument_name)
         self.logger.info('parameters dictionary')
 
@@ -529,8 +535,12 @@ class InstrumentQueryBackEnd:
 
 
 
-    def build_dispatcher_response(self,query_new_status=None,query_out=None,job_monitor=None,off_line=True,api=False):
-
+    def build_dispatcher_response(self, 
+                                  query_new_status=None, 
+                                  query_out=None, 
+                                  job_monitor=None, 
+                                  off_line=True, 
+                                  api=False):
 
         out_dict={}
 
@@ -545,30 +555,23 @@ class InstrumentQueryBackEnd:
             out_dict['job_status'] = job_monitor['status']
 
 
-        #print('exit_status', out_dict['exit_status'])
-
         if job_monitor is not None:
             out_dict['job_monitor'] = job_monitor
-            #print('query_out:job_monitor', job_monitor)
 
         out_dict['session_id'] = self.par_dic['session_id']
 
-        #print ('offline',off_line)
         if off_line == True:
-
             return out_dict
         else:
 
-
             try:
-                #return jsonify(out_dict)
                 if api == True:
                     return self.jsonify_api_response(out_dict)
                 else:
                     return jsonify(out_dict)
 
             except Exception as e:
-                print ('failed',e)
+                print('failed', e)
                 if query_out is None:
                     query_out = QueryOutput()
                 else:
@@ -581,9 +584,7 @@ class InstrumentQueryBackEnd:
 
                 return jsonify(out_dict)
 
-    def  jsonify_api_response(self,out_dict):
-        #print ('out_dict.keys()',out_dict.keys())
-
+    def jsonify_api_response(self, out_dict):
         if 'numpy_data_product_list' in out_dict['products']:
             _npdl=out_dict['products']['numpy_data_product_list']
             #out_dict['products']['numpy_data_product_list']=[]
@@ -725,13 +726,48 @@ class InstrumentQueryBackEnd:
 
         return None # None means ok
 
+    @property
+    def query_out_filename(self):
+        return os.path.join(self.scratch_dir, "query_output.json")
+    
+    @property
+    def query_out_request(self): 
+        # this file-based stuff is vulnerable to race conditions, and can become problematic
+        # luckily dispatcher is usually scales to few processes at most
+        return os.path.join(self.scratch_dir, "query_output_request.json")
+
+    def find_stored_query_out(self) -> QueryOutput:
+        if os.path.exists(self.query_out_filename):
+            self.logger.info("\033[32mstored query out FOUND at %s\033[0m", self.query_out_filename)
+            Q = QueryOutput()
+            Q.deserialize(open(self.query_out_filename, "r"))
+            return Q
+        self.logger.info("\033[31mstored query out NOT FOUND at %s\033[0m", self.query_out_filename)
+                    
+    def request_query_out(self):
+        if os.path.exists(self.query_out_request):
+            r_json = json.load(open(self.query_out_request))
+
+            r = AsyncResult(r_json['celery-id'])
+            self.logger.info("found celery job: %s state: %s", r.id, r.state)
+        else:
+            # TODO: here we might as well query from minio etc
+            r = tasks.request_dispatcher.delay(self.dispatcher_service_url + "/run_analysis", {**self.par_dic, 'async_dispatcher': False})
+            self.logger.info("submitted celery job with pars %s", self.par_dic)
+            self.logger.info("submitted celery job: %s state: %s", r.id, r.state)
+            json.dump({'celery-id': r.id},
+                      open(self.query_out_request, "w"))
+    
+    def store_query_out(self, query_out):
+        query_out.serialize(open(self.query_out_filename, "w"))
 
     def run_query(self, off_line=False, disp_conf=None):
         """
         this is the principal function to respond to the requests
 
-        TODO: this function is very long, and flow is too complex, especially for exception handling
+        TODO: this function is quite very long, and flow is a little bit too complex, especially for exception handling
         """
+        
 
         print('\033[31m==============================> run query <==============================\033[0m')
         if 'api' in self.par_dic.keys():
@@ -749,37 +785,37 @@ class InstrumentQueryBackEnd:
             query_type = self.par_dic['query_type']
             product_type = self.par_dic['product_type']
             query_status = self.par_dic['query_status']
+
         except KeyError as e:
             raise MissingRequestParameter(repr(e))
 
         except Exception as e:
-
             query_out = QueryOutput()
             query_out.set_query_exception(e, 'run_query failed in %s'%self.__class__.__name__,
                                           extra_message='InstrumentQueryBackEnd constructor failed')
-
             query_type = None
             product_type = None
             query_status =  None
 
 
-        #print('==> query_status  ', query_status)
         if 'instrumet' in  self.par_dic.keys():
-            self.par_dic.pop('instrumet')
+            self.par_dic.pop('instrumet') #???
 
-        verbose=False
+
+        verbose = False
+
         if 'verbose' in self.par_dic.keys():
             if self.par_dic['verbose']=='True':
-                verbose=True
+                verbose = True
             else:
-                verbose=False
+                verbose = False
 
-        dry_run=False
+        dry_run = False
         if 'verbose' in self.par_dic.keys():
             if self.par_dic['dry_run']=='True':
-                dry_run=True
+                dry_run = True
             else:
-                dry_run=False
+                dry_run = False
 
 
         self.logger.info('product_type %s', product_type)
@@ -810,10 +846,9 @@ class InstrumentQueryBackEnd:
 
 
 
-
-        alias_workidr=None
+        alias_workdir=None
         try:
-            alias_workidr = self.get_existing_job_ID_path(self.scratch_dir)
+            alias_workdir = self.get_existing_job_ID_path(self.scratch_dir)
         except Exception as e:
             query_out = QueryOutput()
             query_out.set_query_exception(e, 'run_query failed in %s' % self.__class__.__name__,
@@ -825,21 +860,26 @@ class InstrumentQueryBackEnd:
         if 'run_asynch' in self.par_dic.keys():
             if self.par_dic['run_asynch']=='True':
                 run_asynch=True
-
             elif self.par_dic['run_asynch']=='False':
                 run_asynch=False
             else:
-                raise  RuntimeError('run_asynch can be True or False, found',self.par_dic['run_asynch'])
+                raise RuntimeError('run_asynch can be True or False, found',self.par_dic['run_asynch'])
 
 
-        if self.instrument.asynch==False:
-            run_asynch=False
 
-        if alias_workidr is not None and run_asynch==True:
+        if self.async_dispatcher:
+            self.logger.info('==> async dispatcher operation requested')
+        else:
+            self.logger.info('==> async dispatcher operation NOT requested')
+
+        if self.instrument.asynch == False:
+            run_asynch = False
+
+        if alias_workdir is not None and run_asynch==True:
             job_is_aliased = True
 
-        print ('--> job aliased',job_is_aliased)
-        job=job_factory(self.instrument_name,
+        self.logger.info('--> is job aliased? : %s', job_is_aliased)
+        job = job_factory(self.instrument_name,
                         self.scratch_dir,
                         self.dispatcher_service_url,
                         None,
@@ -848,13 +888,13 @@ class InstrumentQueryBackEnd:
                         self.par_dic,
                         aliased=job_is_aliased)
 
-        job_monitor=job.monitor
+        job_monitor = job.monitor
 
 
 
-        print('-----------------> query status  old is: ',query_status )
-        print('-----------------> job status before query:', job.status)
-        print('-----------------> job_is_aliased:', job_is_aliased)
+        self.logger.info('-----------------> query status  old is: %s', query_status )
+        self.logger.info('-----------------> job status before query: %s', job.status)
+        self.logger.info('-----------------> job_is_aliased: %s', job_is_aliased)
         out_dict=None
         query_out=None
 
@@ -864,36 +904,35 @@ class InstrumentQueryBackEnd:
         # TODO set query status to new and ignore alias
 
 
+        if job_is_aliased == True and query_status != 'ready':
+            job_is_aliased=True
 
-        if job_is_aliased==True and query_status!='ready':
-                #print('job_is_aliased == True and query_status != ready ')
-                job_is_aliased=True
+            original_work_dir = job.work_dir
+            job.work_dir = alias_workdir
 
-                original_work_dir=job.work_dir
-                job.work_dir=alias_workidr
+            self.logger.info('\033[32m==> ALIASING to %s\033[0m', alias_workdir)
 
-                print ('==>ALIASING to ',alias_workidr)
+            try:
+                job_monitor = job.updat_dataserver_monitor()
+            except:
+                job_is_aliased=False
+                job_monitor = {}
+                job_monitor['status'] = 'failed'
 
-                try:
-                    job_monitor = job.updat_dataserver_monitor()
-                except:
-                    job_is_aliased=False
-                    job_monitor = {}
-                    job_monitor['status'] = 'failed'
+            print('==>updated job_monitor', job_monitor['status'])
 
-                print ('==>updated job_monitor',job_monitor['status'])
-                if job_monitor['status']=='ready' or  job_monitor['status']=='failed' or job_monitor['status']=='done':
-                    # NOTE in this case if job is aliased but the original has failed
-                    # NOTE it will be resubmitted anyhow
-                    print('==>aliased job status', job_monitor['status'])
-                    job_is_aliased=False
-                    job.work_dir=original_work_dir
-                    job_monitor = job.updat_dataserver_monitor()
-                    #Note this is necessary to avoid a never ending loop in the non-aliased job-status is set to progress
-                    print('query_status',query_status)
-                    query_status='new'
-                    print('==>ALIASING switched off  for status',job_monitor['status'])
+            if job_monitor['status']=='ready' or  job_monitor['status']=='failed' or job_monitor['status']=='done':
+                # NOTE in this case if job is aliased but the original has failed
+                # NOTE it will be resubmitted anyhow
+                print('==>aliased job status', job_monitor['status'])
+                job_is_aliased=False
+                job.work_dir=original_work_dir
+                job_monitor = job.updat_dataserver_monitor()
+                #Note this is necessary to avoid a never ending loop in the non-aliased job-status is set to progress
+                print('query_status',query_status)
 
+                query_status='new'
+                print('==>ALIASING switched off  for status',job_monitor['status'])
 
 
                 if query_type=='Dummy':
@@ -907,13 +946,13 @@ class InstrumentQueryBackEnd:
         if job_is_aliased == True and query_status == 'ready':
             #print ('job_is_aliased == True and query_status ==ready ')
             original_work_dir = job.work_dir
-            job.work_dir = alias_workidr
+            job.work_dir = alias_workdir
 
             job_is_aliased = False
             job.work_dir = original_work_dir
             job_monitor = job.updat_dataserver_monitor()
             print('==>ALIASING switched off for status ready')
-            #print('==>IGNORING ALIASING to ', alias_workidr)
+            #print('==>IGNORING ALIASING to ', alias_workdir)
 
 
 
@@ -921,13 +960,13 @@ class InstrumentQueryBackEnd:
         if job_is_aliased == True :
             delta_limit=600
             try:
-                delta = self.get_file_mtime(alias_workidr + '/' + 'job_monitor.json') - time.time()
+                delta = self.get_file_mtime(alias_workdir + '/' + 'job_monitor.json') - time.time()
             except:
                 delta=delta_limit+1
 
             if delta>delta_limit:
                 original_work_dir = job.work_dir
-                job.work_dir = alias_workidr
+                job.work_dir = alias_workdir
 
                 job_is_aliased = False
                 job.work_dir = original_work_dir
@@ -935,47 +974,55 @@ class InstrumentQueryBackEnd:
                 print('==>ALIASING switched off for delta time >%f, delta=%f'%(delta_limit,delta))
 
 
-        print('==> aliased is', job_is_aliased)
-        print('==> alias  work dir ', alias_workidr)
-        print('==> job  work dir ',job.work_dir)
-        print('==> query_status  ', query_status)
+        self.logger.info('==> aliased is %s', job_is_aliased)
+        self.logger.info('==> alias  work dir %s', alias_workdir)
+        self.logger.info('==> job  work dir %s', job.work_dir)
+        self.logger.info('==> query_status  %s', query_status)
 
-        if (query_status=='new'and job_is_aliased==False ) or query_status=='ready' :
+        if (query_status == 'new' and job_is_aliased == False ) or query_status == 'ready':
+            self.logger.info('*** run_asynch %s', run_asynch)
+            self.logger.info('*** api %s', api)
+            self.logger.info('config_data_server %s', config_data_server)
 
+            self.instrument.disp_conf = disp_conf
 
+            # this might be long and we want to async this
 
+            if self.async_dispatcher:
+                self.logger.info("async dispatcher enabled, for new or ready: %s", query_status)
+                query_out = self.find_stored_query_out()
+                if query_out is None:
+                    self.logger.info("async dispatcher query_out not ready, registering")
+                    self.request_query_out()
 
-            print ('*** run_asynch',run_asynch)
-            print ('*** api', api)
-            #if disp_conf is not None:
-            #    print('ECCOLO',disp_conf.products_url)
-            print ('config_data_server',config_data_server )
-            self.instrument.disp_conf=disp_conf
-            query_out = self.instrument.run_query(product_type,
-                                                  self.par_dic,
-                                                  request,
-                                                  self,
-                                                  job,
-                                                  run_asynch,
-                                                  out_dir=self.scratch_dir,
-                                                  config=config_data_server,
-                                                  query_type=query_type,
-                                                  logger=self.logger,
-                                                  sentry_client=self.sentry_client,
-                                                  verbose=verbose,
-                                                  dry_run=dry_run,
-                                                  api=api)
+                    query_out = QueryOutput()
+                    query_out.set_status(status=0, job_status="post-processing", message="async-dispatcher waiting") # is this acceptable?
 
-            #print('-->', query_out.status_dictionary)
-            #NOTE job status is set in  cdci_data_analysis.analysis.queries.ProductQuery#get_query_products
+            else:
+                query_out = self.instrument.run_query(product_type,
+                                                      self.par_dic,
+                                                      request,
+                                                      self, # this will change?
+                                                      job, # this will change
+                                                      run_asynch,
+                                                      out_dir=self.scratch_dir,
+                                                      config=config_data_server,
+                                                      query_type=query_type,
+                                                      logger=self.logger,
+                                                      sentry_client=self.sentry_client,
+                                                      verbose=verbose,
+                                                      dry_run=dry_run,
+                                                      api=api)
+
+                self.store_query_out(query_out)
+
             print('-----------------> job status after query:', job.status)
 
-
-            if query_out.status_dictionary['status']==0:
-                if job.status=='done':
-                    query_new_status='done'
-                elif job.status=='failed':
-                    query_new_status='failed'
+            if query_out.status_dictionary['status'] == 0:
+                if job.status == 'done':
+                    query_new_status = 'done'
+                elif job.status == 'failed':
+                    query_new_status = 'failed'
                 else:
                     query_new_status = 'submitted'
                     job.set_submitted()
@@ -988,31 +1035,47 @@ class InstrumentQueryBackEnd:
             print('-----------------> query status update for done/ready: ', query_new_status)
 
         elif query_status=='progress' or query_status=='unaccessible' or query_status=='unknown' or query_status=='submitted':
-            query_out = QueryOutput()
-
-            job_monitor = job.updat_dataserver_monitor()
-
-
-            print('-----------------> job monitor from data server', job_monitor['status'])
-            if job_monitor['status']=='done':
-                job.set_ready()
-
-            query_out.set_done(job_status=job_monitor['status'])
-
-            if  job_monitor['status']=='unaccessible' or job_monitor['status']=='unknown':
-                query_new_status=query_status
+            if self.async_dispatcher:
+                self.logger.info("async dispatcher enabled, for submitted/progress/etc: %s", query_status)
+                query_out = self.find_stored_query_out()
+                if query_out is not None:
+                    self.logger.info("\033[32masync dispatcher query_out READY, status %s job_status %s\033[0m",
+                                        query_out.status_dictionary['status'],
+                                        query_out.status_dictionary['job_status'],
+                                    )
+                    if query_out.status_dictionary['status'] == 0:
+                        job_status = query_out.status_dictionary['job_status']
+                        if job_status == 'done':
+                            query_new_status = 'done'
+                        elif job_status == 'failed':
+                            query_new_status = 'failed'
+                        else:
+                            raise NotImplemented("async query retrieved but not done/failed. recreate?")
+                else:
+                    query_out = QueryOutput()
+                    query_new_status = query_status
+                    query_out.set_status(status=0, job_status="post-processing", message="async-dispatcher waiting") # is this acceptable?
             else:
+                self.logger.info("NO async dispatcher enabled, for submitted/progress/etc: %s", query_status)
+                query_out = QueryOutput()
 
-                query_new_status = job.get_status()
+                job_monitor = job.updat_dataserver_monitor()
+
+
+                print('-----------------> job monitor from data server', job_monitor['status'])
+                if job_monitor['status']=='done':
+                    job.set_ready()
+
+                query_out.set_done(job_status=job_monitor['status'])
+
+                if query_new_status is None:
+                    if job_monitor['status'] in ['unaccessible', 'unknown']:
+                        query_new_status = query_status
+                    else:
+                        query_new_status = job.get_status()
 
             print('-----------------> job monitor updated', job_monitor['status'])
-
-
-
             print('-----------------> query status update for progress:', query_new_status)
-
-
-
             print('==============================> query done <==============================')
 
 
@@ -1035,9 +1098,9 @@ class InstrumentQueryBackEnd:
 
             query_new_status = job.get_status()
 
-            print('query_out:job_monitor[status]', job_monitor['status']    )
-            print('-----------------> query status new:', query_new_status)
-            print('==============================> query done <==============================')
+            self.logger.info('query_out:job_monitor[status]: %s', job_monitor['status'] )
+            self.logger.info('-----------------> query status now: %s', query_new_status)
+            self.logger.info('==============================> query done <==============================')
 
         if job_is_aliased == False:
             job.write_dataserver_status()

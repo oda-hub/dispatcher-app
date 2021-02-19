@@ -4,7 +4,7 @@ import logging_tree
 class AppLogging:
     @property
     def level_by_logger(self) -> dict:
-        return self._level_by_logger
+        return getattr(self, '_level_by_logger', {"":"info"})
 
     @level_by_logger.setter
     def level_by_logger(self, level_by_logger: dict):
