@@ -2,11 +2,13 @@ from celery import Celery
 from celery.result import AsyncResult
 import requests
 
+import os
+
 def make_celery():
     celery = Celery(
         'dispatcher',
-        broker='redis://localhost:6379',
-        backend='redis://localhost:6379',
+        broker=os.environ.get("CELERY_BROKER", "redis://localhost:6379"),
+        backend=os.environ.get("CELERY_BACKEND", "redis://localhost:6379"),
     )
     #celery.conf.update(app.config)
 

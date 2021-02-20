@@ -169,7 +169,7 @@ class Job(object):
                 #print("=====> reading  from ", self.file_path)
                 self.monitor = json.load(infile,)
 
-            logger('JOB MANAGER CHECK-->', self.monitor)
+            logger.info('JOB MANAGER CHECK-->', self.monitor)
         except Exception as e:
             logger.warning("no current job state: %s", e)
             self.set_unaccessible()
