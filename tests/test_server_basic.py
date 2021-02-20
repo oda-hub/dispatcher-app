@@ -124,13 +124,15 @@ default_params = dict(
                  )
 
 
-def ask(server, params, expected_query_status, expected_job_status=None, max_time_s=1.0, expected_status_code=200):
+# why ~1 second? so long
+def ask(server, params, expected_query_status, expected_job_status=None, max_time_s=2.0, expected_status_code=200):
     t0 = time.time()
     c=requests.get(server + "/run_analysis",
                    params={**params},
                   )
     print(f"\033[31m request took {time.time() - t0} seconds\033[0m")
-    assert time.time() - t0 < max_time_s
+    t_spent = time.time() - t0
+    assert t_spent < max_time_s
 
     print("content:", c.text[:1000])
     if len(c.text) > 1000:
@@ -238,15 +240,27 @@ def test_isgri_image_random_emax(dispatcher_live_fixture):
 
     last_status = jdata["query_status"]
 
-    n = 10
+    t0 = time.time()
+
+    tries_till_reset = 20
+
     while True:
+        if tries_till_reset <= 0:
+            next_query_status = "ready"
+            print("\033[1;31;46mresetting query status to new, too long!\033[0m")
+            tries_till_reset = 20
+        else:
+            next_query_status = jdata['query_status']
+            tries_till_reset -= 1
+
         jdata = ask(server,
                     {**params, "async_dispatcher": True,
-                               'query_status': jdata['query_status'],
+                               'query_status': next_query_status,
                                'job_id': jdata['job_monitor']['job_id'],
                                'session_id': jdata['session_id']},
-                    expected_query_status=["submitted"])
-        print(f"\033[31m request took {time.time() - t0} seconds\033[0m")
+                    expected_query_status=["submitted", "done"],
+                    max_time_s=3,
+                    )
 
         if jdata["query_status"] in ["ready", "done"]:
             print("query READY:", jdata["query_status"])
@@ -256,9 +270,8 @@ def test_isgri_image_random_emax(dispatcher_live_fixture):
         print("looping...")
 
         time.sleep(5)
-        n -= 1
 
-        if n <= 0: break # since callback will not be treated
 
+    print(f"\033[31m total request took {time.time() - t0} seconds\033[0m")
 
 

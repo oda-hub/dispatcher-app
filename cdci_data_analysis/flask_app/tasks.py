@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.result import AsyncResult
 import requests
 
 def make_celery():
