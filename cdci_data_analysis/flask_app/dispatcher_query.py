@@ -122,8 +122,9 @@ class InstrumentQueryBackEnd:
             else:
                 print("NOT get_meta_data request: yes scratch_dir")
 
-                if 'query_status' not in self.par_dic:
-                    raise MissingRequestParameter('no query_status!')
+                #TODO: if not callback!
+                #if 'query_status' not in self.par_dic:
+                #    raise MissingRequestParameter('no query_status!')
 
                 if data_server_call_back is True:
                     self.job_id = self.par_dic['job_id']
