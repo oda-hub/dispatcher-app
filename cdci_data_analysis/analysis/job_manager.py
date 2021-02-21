@@ -182,11 +182,11 @@ class Job(object):
         if status_dictionary_value is None:
             pass
         else:
-            self.monitor['status']=status_dictionary_value
+            self.monitor['status'] = status_dictionary_value
 
         #print('writing job status to job_monitor', self.monitor['status'])
         if full_dict is not None:
-            self.monitor['full_report_dict']=full_dict
+            self.monitor['full_report_dict'] = full_dict
 
         with open(self.file_path, 'w')  as outfile:
             #print ("=====> writing to ",self.file_path)
@@ -266,7 +266,7 @@ class OsaJob(Job):
                                   status_kw_name=status_kw_name,
                                   aliased=aliased)
 
-    def updat_dataserver_monitor(self,work_dir=None):
+    def updated_dataserver_monitor(self,work_dir=None):
         if work_dir is None:
             work_dir=self.work_dir
 
