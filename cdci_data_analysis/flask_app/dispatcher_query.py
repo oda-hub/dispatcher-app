@@ -93,7 +93,10 @@ class InstrumentQueryBackEnd:
 
 
             self.client_name = self.par_dic.pop('client-name', 'unknown')
-            self.async_dispatcher = self.par_dic.pop('async_dispatcher', 'True') == 'True' #why string true?? else false anyway
+            if os.environ.get("DISPATCHER_ASYNC_ENABLED", "no") == "yes":
+                self.async_dispatcher = self.par_dic.pop('async_dispatcher', 'True') == 'True' #why string true?? else false anyway
+            else:
+                self.async_dispatcher = False
             """
                 async dispatcher operation avoids building QueryOutput in the sync request, and instead sends it in the queue
                 in the queue, the same request is repeated, same session id/job id, but requesting sync request
