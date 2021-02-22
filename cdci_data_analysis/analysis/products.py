@@ -47,6 +47,7 @@ from .parameters import *
 from .io_helper import FilePath
 from .io_helper import view_traceback, FitsFile
 from .job_manager import Job
+from .json import CustomJSONEncoder
 
 import traceback
 import logging
@@ -231,7 +232,8 @@ class QueryOutput(object):
                     for k, v in self.__dict__.items()
                     if not k.startswith("_")
                   },
-                  writable
+                  writable,
+                  cls=CustomJSONEncoder
                 )
     
     def deserialize(self, readable):
