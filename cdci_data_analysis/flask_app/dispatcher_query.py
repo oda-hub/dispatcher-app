@@ -93,7 +93,7 @@ class InstrumentQueryBackEnd:
 
 
             self.client_name = self.par_dic.pop('client-name', 'unknown')
-            if os.environ.get("DISPATCHER_ASYNC_ENABLED", "no") == "yes":
+            if os.environ.get("DISPATCHER_ASYNC_ENABLED", "no") == "yes": #TODO: move to config!
                 self.async_dispatcher = self.par_dic.pop('async_dispatcher', 'True') == 'True' #why string true?? else false anyway
             else:
                 self.async_dispatcher = False
@@ -840,8 +840,11 @@ class InstrumentQueryBackEnd:
 
             r = self.find_api_version_issues(off_line, api)
             if r is not None:
-                self.logger.warning("client API has incompatible version, and it is not ok!")
-                return r
+                if os.environ.get('DISPATCHER_ENFORCE_API_VERSION', 'no') == 'yes':
+                    self.logger.warning("client API has incompatible version: %s, and it is not ok!", r)
+                    return r
+                else:
+                    self.logger.warning("client API has incompatible version: %s, but it is ok", r)
         else:
             api=False
 
