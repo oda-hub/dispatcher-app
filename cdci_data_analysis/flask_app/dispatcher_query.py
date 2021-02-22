@@ -629,6 +629,7 @@ class InstrumentQueryBackEnd:
         return os.path.getmtime(file)
 
     def validate_query_from_token(self,token):
+        print("==> token",token)
         return True
         #read 64bit token
         #decide if it is valid
