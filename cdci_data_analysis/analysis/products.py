@@ -634,7 +634,7 @@ class SpectralFitProduct(BaseQueryProduct):
         for s in str_list:
             p = s.split(':')
             if len(p) != 2:
-                raise RuntimeError('Malformed par string')
+                raise RuntimeError('Malformed par string') 
             else:
                 i = np.int(p[0])
             pars_dict[i] = p[1]
@@ -642,7 +642,7 @@ class SpectralFitProduct(BaseQueryProduct):
 
     def set_par(self, m, params_setting):
         if params_setting is not None:
-            pars_dict = self.parse_command()
+            pars_dict = self.parse_command() # ??? did this work
             if pars_dict != {}:
                 m.setPars(pars_dict)
 
