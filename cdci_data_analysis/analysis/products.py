@@ -77,7 +77,7 @@ class QueryOutput(object):
     def set_instrument_parameters(self,o):
         self.prod_dictionary['instrumet_parameters'] = o
 
-    def set_analysis_parameters(self,query_dict):
+    def set_analysis_parameters(self, query_dict):
         self.prod_dictionary['analysis_paramters'] = query_dict
 
     def set_api_code(self,query_dict):
