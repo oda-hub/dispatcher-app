@@ -48,6 +48,7 @@ from ..analysis.exceptions import APIerror, BadRequest
 from ..app_logging import app_logging
 from . import tasks
 
+from ..analysis.json import CustomJSONEncoder
 
 from cdci_data_analysis import  __version__
 import oda_api
@@ -59,20 +60,6 @@ from astropy.io.fits.card import Undefined as astropyUndefined
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
 
 logger = app_logging.getLogger('flask_app')
-
-class CustomJSONEncoder(JSONEncoder):
-
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return list(obj)
-
-        if isinstance(obj, astropyUndefined):
-            return "UNDEFINED"
-
-        logging.error("problem encoding %s, will send as string", obj) # TODO: dangerous probably, fix!
-        return 'unencodable ' + str(obj)
-
-        #return JSONEncoder.default(self, obj)
 
 
 app = Flask(__name__,

@@ -23,7 +23,6 @@ from raven.contrib.flask import Sentry
 
 from flask import jsonify,send_from_directory,redirect
 from flask import Flask, request
-from flask.json import JSONEncoder
 
 import json
 import tempfile
@@ -601,7 +600,11 @@ class InstrumentQueryBackEnd:
 
                 return jsonify(out_dict)
 
+
     def jsonify_api_response(self, out_dict):
+        return jsonify(self.prep_jsonify_api_response(out_dict))
+
+    def prep_jsonify_api_response(self, out_dict):
         if 'numpy_data_product_list' in out_dict['products']:
             _npdl=out_dict['products']['numpy_data_product_list']
 

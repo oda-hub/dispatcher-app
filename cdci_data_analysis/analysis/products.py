@@ -77,7 +77,7 @@ class QueryOutput(object):
     def set_instrument_parameters(self,o):
         self.prod_dictionary['instrumet_parameters'] = o
 
-    def set_analysis_parameters(self,query_dict):
+    def set_analysis_parameters(self, query_dict):
         self.prod_dictionary['analysis_paramters'] = query_dict
 
     def set_api_code(self,query_dict):
@@ -634,7 +634,7 @@ class SpectralFitProduct(BaseQueryProduct):
         for s in str_list:
             p = s.split(':')
             if len(p) != 2:
-                raise RuntimeError('Malformed par string')
+                raise RuntimeError('Malformed par string') 
             else:
                 i = np.int(p[0])
             pars_dict[i] = p[1]
@@ -642,7 +642,7 @@ class SpectralFitProduct(BaseQueryProduct):
 
     def set_par(self, m, params_setting):
         if params_setting is not None:
-            pars_dict = self.parse_command()
+            pars_dict = self.parse_command() # ??? did this work
             if pars_dict != {}:
                 m.setPars(pars_dict)
 
