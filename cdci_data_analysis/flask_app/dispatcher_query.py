@@ -1147,6 +1147,7 @@ class InstrumentQueryBackEnd:
                     query_new_status = 'failed'
 
                 else:
+                    # TODO: call it progress here!
                     query_new_status = 'submitted'
                     self.request_query_out(overwrite=True)
                     self.logger.info("\033[36mforce RESUBMIT for this state!\033[0m")
