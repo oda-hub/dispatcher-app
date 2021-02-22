@@ -1140,7 +1140,7 @@ class InstrumentQueryBackEnd:
             if query_out.status_dictionary['status'] == 0:
                 job_status = query_out.status_dictionary['job_status']
 
-                if job_status == 'done':
+                if job_status in ['done', 'ready']: #two??
                     query_new_status = 'done'
 
                 elif job_status == 'failed':
@@ -1148,9 +1148,15 @@ class InstrumentQueryBackEnd:
 
                 else:
                     # TODO: call it progress here!
-                    query_new_status = 'submitted'
+                    if job_status == "progress":
+                        query_new_status = 'progress'
+                    else:
+                        query_new_status = 'submitted'
+
                     self.request_query_out(overwrite=True)
-                    self.logger.info("\033[36mforce RESUBMIT for this state!\033[0m")
+                    self.logger.info("\033[36mforce RESUBMIT for this job_status=%s, will query_new_status=%s!\033[0m", 
+                                     job_status, 
+                                     query_new_status)
             
                     query_out = QueryOutput()
                     query_out.set_status(status=0, job_status="submitted", message="async-dispatcher waiting") # is this acceptable to frontend?
