@@ -742,36 +742,40 @@ class InstrumentQueryBackEnd:
         return None # None means ok
 
     @property
-    def query_out_filename(self):
+    def response_filename(self):
         return os.path.join(self.scratch_dir, "query_output.json")
     
     @property
-    def query_out_log_filename(self):
+    def response_log_filename(self):
         return os.path.join(self.scratch_dir, 
                             "query-log", 
                             f"query_output_{time_.strftime('%Y-%m-%d-%H-%M-%S')}.json")
 
     @property
     def query_log_dir(self):
-        return os.path.dirname(self.query_out_log_filename)
+        return os.path.dirname(self.response_log_filename)
     
     @property
-    def query_out_request(self): 
+    def response_request(self): 
         # this file-based stuff is vulnerable to race conditions, and can become problematic
         # luckily dispatcher is usually scales to few processes at most
         return os.path.join(self.scratch_dir, "query_output_request.json")
 
-    def find_stored_query_out(self) -> QueryOutput:
-        if os.path.exists(self.query_out_filename):
-            self.logger.info("\033[32mstored query out FOUND at %s\033[0m", self.query_out_filename)
+    def find_stored_response(self) -> QueryOutput:
+        if os.path.exists(self.response_filename):
+            self.logger.info("\033[32mstored query out FOUND at %s\033[0m", self.response_filename)
             Q = QueryOutput()
-            Q.deserialize(open(self.query_out_filename, "r"))
-            return Q
-        self.logger.info("\033[31mstored query out NOT FOUND at %s\033[0m", self.query_out_filename)
+            Q.deserialize(open(self.response_filename, "r"))
+
+            j = json.load(open(self.response_filename+".job-monitor", "r")) # modify!
+
+            return Q, j
+
+        self.logger.info("\033[31mstored query out NOT FOUND at %s\033[0m", self.response_filename)
                     
     def request_query_out(self, overwrite=False):
-        if os.path.exists(self.query_out_request):
-            r_json = json.load(open(self.query_out_request))
+        if os.path.exists(self.response_request):
+            r_json = json.load(open(self.response_request))
 
             r = tasks.celery.AsyncResult(r_json['celery-id'])
             self.logger.info("found celery job: %s state: %s", r.id, r.state)
@@ -791,18 +795,19 @@ class InstrumentQueryBackEnd:
         self.logger.info("submitted celery job with pars %s", self.par_dic)
         self.logger.info("submitted celery job: %s state: %s", r.id, r.state)
         json.dump({'celery-id': r.id},
-                  open(self.query_out_request, "w"))
+                  open(self.response_request, "w"))
             
     
-    def store_query_out(self, query_out):
-        self.logger.info("storing query output: %s, %s", self.query_out_filename, self.query_out_log_filename)
-        if os.path.exists(self.query_out_filename):
+    def store_response(self, query_out, job_monitor):
+        self.logger.info("storing query output: %s, %s", self.response_filename, self.response_log_filename)
+        if os.path.exists(self.response_filename):
             if not os.path.exists(self.query_log_dir):
                 os.makedirs(self.query_log_dir)
-            os.rename(self.query_out_filename, self.query_out_log_filename)
-            self.logger.info("renamed query log log %s => %s", self.query_out_filename, self.query_out_log_filename)
+            os.rename(self.response_filename, self.response_log_filename)
+            self.logger.info("renamed query log log %s => %s", self.response_filename, self.response_log_filename)
 
-        query_out.serialize(open(self.query_out_filename, "w"))
+        query_out.serialize(open(self.response_filename, "w"))
+        json.dump(job_monitor, open(self.response_filename + ".job-monitor", "w"))
 
     def load_config(self):
         try:
@@ -1005,7 +1010,9 @@ class InstrumentQueryBackEnd:
             # this might be long and we want to async this
 
             if self.async_dispatcher:
-                query_out, query_new_status = self.async_dispatcher_query(query_status)
+                query_out, job_monitor, query_new_status = self.async_dispatcher_query(query_status)
+                if job_monitor is None:
+                    job_monitor = job.monitor
             else:
                 query_out = self.instrument.run_query(product_type,
                                                       self.par_dic,
@@ -1044,7 +1051,10 @@ class InstrumentQueryBackEnd:
         elif query_status=='progress' or query_status=='unaccessible' or query_status=='unknown' or query_status=='submitted':
             # we can not just avoid async here since the request still might be long
             if self.async_dispatcher:
-                query_out, query_new_status = self.async_dispatcher_query(query_status)
+                query_out, job_monitor, query_new_status = self.async_dispatcher_query(query_status)
+
+                if job_monitor is None:
+                    job_monitor = job.monitor
             else:
                 query_out = QueryOutput()
 
@@ -1089,7 +1099,7 @@ class InstrumentQueryBackEnd:
             job.write_dataserver_status()
 
         if not self.async_dispatcher:
-            self.store_query_out(query_out)
+            self.store_response(query_out, job_monitor) # should we store entire reponse, before it is serialized?..
 
         self.logger.info('\033[33;44m============================================================\033[0m')
         self.logger.info('')
@@ -1106,18 +1116,22 @@ class InstrumentQueryBackEnd:
     def async_dispatcher_query(self, query_status: str) -> tuple:
         self.logger.info("async dispatcher enabled, for %s", query_status)
 
-        query_out = self.find_stored_query_out()
+        R = self.find_stored_response()
             
-        if query_out is None:
+        if R is None:
             query_new_status = 'submitted'
 
             self.logger.info("async dispatcher query_out not ready, registering")
             self.request_query_out()
 
+            job_monitor = None
+
             query_out = QueryOutput()
             query_out.set_status(status=0, job_status="post-processing", message="async-dispatcher waiting") # is this acceptable to frontend?
 
         else:
+            query_out, job_monitor = R
+
             self.logger.info("\033[32masync dispatcher query_out READY, new status %s job_status %s\033[0m",
                                 query_out.status_dictionary['status'],
                                 query_out.status_dictionary['job_status'],
@@ -1142,4 +1156,4 @@ class InstrumentQueryBackEnd:
             else:
                 raise NotImplementedError
 
-        return query_out, query_new_status
+        return query_out, job_monitor, query_new_status
