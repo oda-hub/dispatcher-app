@@ -727,8 +727,8 @@ class InstrumentQueryBackEnd:
                                                           api=api)
 
                     return resp
-            else:
-                print('==> NO TOKEN FOUND IN PARS')
+        else:
+            print('==> NO TOKEN FOUND IN PARS')
 
         try:
             query_type = self.par_dic['query_type']
