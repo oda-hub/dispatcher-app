@@ -625,6 +625,12 @@ class InstrumentQueryBackEnd:
     def get_file_mtime(self,file):
         return os.path.getmtime(file)
 
+    def validate_query_from_token(self,token):
+        return True
+        #read 64bit token
+        #decide if it is valid
+        #return True/Fasle
+
     def run_query(self,off_line=False,disp_conf=None):
 
         print ('==============================> run query <==============================')
@@ -669,7 +675,6 @@ class InstrumentQueryBackEnd:
 
                 query_out = QueryOutput()
 
-
                 query_out.set_failed(failed_task, message=oda_api_version_error, job_status=job_monitor['status'])
 
                 resp = self.build_dispatcher_response(query_new_status=query_status,
@@ -681,6 +686,42 @@ class InstrumentQueryBackEnd:
         else:
             api=False
 
+        if 'token' in self.par_dic.keys():
+            token = self.par_dic['token']
+            if token is not None:
+                validate = self.validate_query_from_token(token)
+                if validate is True:
+                    pass
+                else:
+                    job = job_factory(self.instrument_name,
+                                      self.scratch_dir,
+                                      self.dispatcher_service_url,
+                                      None,
+                                      self.par_dic['session_id'],
+                                      self.job_id,
+                                      self.par_dic,
+                                      aliased=False)
+
+                    job.set_failed()
+
+                    job_monitor = job.monitor
+                    query_status = 'failed'
+
+                    query_out = QueryOutput()
+
+                    failed_task = 'oda_api permissions failed'
+
+                    query_out.set_failed(failed_task, message='you do not have permissions for this query, contact oda',
+                                         job_status=job_monitor['status'])
+
+                    resp = self.build_dispatcher_response(query_new_status=query_status,
+                                                          query_out=query_out,
+                                                          job_monitor=job_monitor,
+                                                          off_line=off_line,
+                                                          api=api)
+
+                    return resp
+
         try:
             query_type = self.par_dic['query_type']
             product_type = self.par_dic['product_type']
@@ -688,7 +729,8 @@ class InstrumentQueryBackEnd:
 
         except Exception as e:
             query_out = QueryOutput()
-            query_out.set_query_exception(e, 'run_query failed in %s'%self.__class__.__name__,
+            query_out.set_query_exception(e,
+                                          'run_query failed in %s'%self.__class__.__name__,
                                           extra_message='InstrumentQueryBackEnd constructor failed')
 
         #print('==> query_status  ', query_status)
