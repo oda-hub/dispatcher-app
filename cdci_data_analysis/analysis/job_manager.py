@@ -274,42 +274,44 @@ class OsaJob(Job):
         job_failed=False
         progress=False
         full_report_dict_list=[]
+
+        n_progress = 0
+
         for job_file in job_files_list:
             try:
                 with open(job_file, 'r') as infile:
                     self.monitor = json.load(infile, encoding='utf-8')
                     #print ('--->for file',job_file,'got',self.monitor['status'])
 
-                    if self.monitor['status']=='done':
-
-                        job_done=True
-                    elif  self.monitor['status']=='failed':
-                        job_failed=True
+                    if self.monitor['status'] == 'done':
+                        job_done = True
+                    elif self.monitor['status'] == 'failed':
+                        job_failed = True
 
                     if 'full_report_dict' in  self.monitor.keys():
                         full_report_dict_list.append(self.monitor['full_report_dict'])
 
                         if 'progressing' in self.monitor['full_report_dict'].keys():
-                            #print ('keys',self.monitor['full_report_dict'].keys())
-                            progress=True
-                            print("==========>PROGRESS<======================")
+                            progress = True
+                            n_progress += 1
 
             except Exception as e:
                 self.set_unaccessible()
 
-        #print ('job_done',job_done)
+        print(f"found {n_progress} PROGRESS entries in {len(job_files_list)} job_files ({work_dir}/job_monitor*.json)")
+
         if progress is True:
             self.monitor['status'] = 'progress'
 
-        if job_done==True:
+        if job_done == True:
             self.monitor['status'] = 'done'
 
-        if job_failed==True:
+        if job_failed == True:
             self.monitor['status'] = 'failed'
 
 
         self.monitor['full_report_dict_list']=full_report_dict_list
-        print('final status', self.monitor['status'])
+        print('\033[32mfinal status', self.monitor['status'], '\033[0m')
         return  self.monitor
 
 

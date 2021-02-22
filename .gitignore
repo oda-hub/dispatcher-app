@@ -21,3 +21,4 @@ lib64
 /run_tests
 /diagrams
 .mypy_cache
+*.gpg
