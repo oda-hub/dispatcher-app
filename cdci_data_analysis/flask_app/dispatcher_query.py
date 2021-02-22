@@ -610,7 +610,7 @@ class InstrumentQueryBackEnd:
 
             out_dict['products']['numpy_data_product_list']=[_d.encode() for _d in _npdl ]
 
-        return jsonify(out_dict)
+        return out_dict
 
     def set_instrument(self, instrument_name):
         known_instruments = []
