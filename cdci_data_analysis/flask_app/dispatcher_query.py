@@ -1137,30 +1137,30 @@ class InstrumentQueryBackEnd:
                                 query_out.status_dictionary['job_status'],
                             )
 
-            if query_out.status_dictionary['status'] == 0:
-                job_status = query_out.status_dictionary['job_status']
+            if query_out.status_dictionary['status'] != 0:
+                self.logger.warning("why is status not 0? it is %s", query_out.status_dictionary['status'])
 
-                if job_status in ['done', 'ready']: #two??
-                    query_new_status = 'done'
+            job_status = query_out.status_dictionary['job_status']
 
-                elif job_status == 'failed':
-                    query_new_status = 'failed'
+            if job_status in ['done', 'ready']: #two??
+                query_new_status = 'done'
 
-                else:
-                    # TODO: call it progress here!
-                    if job_status == "progress":
-                        query_new_status = 'progress'
-                    else:
-                        query_new_status = 'submitted'
+            elif job_status == 'failed':
+                query_new_status = 'failed'
 
-                    self.request_query_out(overwrite=True)
-                    self.logger.info("\033[36mforce RESUBMIT for this job_status=%s, will query_new_status=%s!\033[0m", 
-                                     job_status, 
-                                     query_new_status)
-            
-                    query_out = QueryOutput()
-                    query_out.set_status(status=0, job_status="submitted", message="async-dispatcher waiting") # is this acceptable to frontend?
             else:
-                raise NotImplementedError
+                # TODO: call it progress here!
+                if job_status == "progress":
+                    query_new_status = 'progress'
+                else:
+                    query_new_status = 'submitted'
+
+                self.request_query_out(overwrite=True)
+                self.logger.info("\033[36mforce RESUBMIT for this job_status=%s, will query_new_status=%s!\033[0m", 
+                                 job_status, 
+                                 query_new_status)
+        
+                query_out = QueryOutput()
+                query_out.set_status(status=0, job_status="submitted", message="async-dispatcher waiting") # is this acceptable to frontend?
 
         return query_out, job_monitor, query_new_status

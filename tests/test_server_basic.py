@@ -2,6 +2,7 @@ import subprocess
 import requests
 import time
 import re
+import json
 import signal
 import os
 import random
@@ -167,6 +168,10 @@ def test_isgri_image_fixed_done(dispatcher_live_fixture):
                 expected_query_status=["done"],
                 max_time_s=50,
                 )
+
+    print(jdata)
+
+    json.dump(jdata, open("jdata.json", "w"))
 
 
 def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
