@@ -43,6 +43,7 @@ from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
 from ..analysis.exceptions import BadRequest, APIerror, MissingParameter, RequestNotUnderstood
 from . import tasks
+from oda_api.data_products import NumpyDataProduct
 import time as time_
 
 import oda_api
@@ -611,7 +612,10 @@ class InstrumentQueryBackEnd:
         if 'numpy_data_product_list' in out_dict['products']:
             _npdl=out_dict['products']['numpy_data_product_list']
 
-            out_dict['products']['numpy_data_product_list']=[_d.encode() for _d in _npdl ]
+            out_dict['products']['numpy_data_product_list'] = [
+                        (_d.encode() if isinstance(_d, NumpyDataProduct) else _d ) # meh TODO
+                        for _d in _npdl 
+                    ]
 
         return out_dict
 
