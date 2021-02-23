@@ -49,3 +49,10 @@ In the second case, a more restricted **Token** can be provided to the backend, 
 ## Actual roles
 
 See current working definition of real roles [here](https://github.com/oda-hub/doc-multi-user/blob/main/plan-roles-users.md).
+
+
+## Other Applicable Documents
+
+|||
+| :-- | :-- |
+| Meetings | [2021-02-22](https://github.com/oda-hub/meetings/blob/main/2021-02-22/MoM.md) |
