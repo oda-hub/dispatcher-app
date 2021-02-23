@@ -1139,10 +1139,12 @@ class InstrumentQueryBackEnd:
                                 query_out.status_dictionary['job_status'],
                             )
 
-            if query_out.status_dictionary['status'] != 0:
+            if query_out.status_dictionary['status'] == 0:
+                job_status = query_out.status_dictionary['job_status']
+            else:
+                job_status = "failed"
                 self.logger.warning("why is status not 0? it is %s", query_out.status_dictionary['status'])
 
-            job_status = query_out.status_dictionary['job_status']
 
             if job_status in ['done', 'ready']: #two??
                 query_new_status = 'done'
@@ -1151,7 +1153,6 @@ class InstrumentQueryBackEnd:
                 query_new_status = 'failed'
 
             else:
-                # TODO: call it progress here!
                 if job_status == "progress":
                     query_new_status = 'progress'
                 else:
