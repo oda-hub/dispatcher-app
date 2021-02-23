@@ -35,3 +35,13 @@ class RequestNotUnderstood(BadRequest):
 
 class MissingParameter(RequestNotUnderstood):
     pass
+
+###
+
+class UnfortunateRequestResults(Exception):
+    """
+    positive exception messages only!
+    it is not user error
+    it is not bad request
+    it is unclear for us and we want user to please clarify!
+    """

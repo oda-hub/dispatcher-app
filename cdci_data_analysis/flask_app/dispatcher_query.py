@@ -60,6 +60,9 @@ class MissingRequestParameter(BadRequest):
 
 class InstrumentQueryBackEnd:
 
+    def __repr__(self):
+        return f"[ {self.__class__.__name__} : {self.instrument_name} ]"
+
     @property
     def instrument_name(self):
         return getattr(self, '_instrument_name', 'instrument-not-set')

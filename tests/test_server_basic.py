@@ -69,44 +69,6 @@ def test_isgri_no_osa(dispatcher_live_fixture):
     assert jdata["error_message"] == "osa_version is needed"
 
 
-def test_isgri_image_no_pointings(dispatcher_live_fixture):
-    """
-    this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
-    """
-
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    c=requests.get(server + "/run_analysis",
-                   params=dict(
-                       query_status="new",
-                       query_type="Real",
-                       instrument="isgri",
-                       product_type="isgri_image",
-                       osa_version="OSA10.2",
-                       E1_keV=20.,
-                       E2_keV=40.,
-                       T1="2008-01-01T11:11:11.0",
-                       T2="2009-01-01T11:11:11.0",
-                       max_pointings=1,
-                    )
-                  )
-
-    print("content:", c.text)
-
-    jdata=c.json()
-    
-    assert c.status_code == 200
-
-    print(list(jdata.keys()))
-
-    assert jdata["exit_status"]["debug_message"] == "{\"node\": \"dataanalysis.core.AnalysisException\", \"exception\": \"{}\", \"exception_kind\": \"handled\"}"
-    assert jdata["exit_status"]["error_message"] == "AnalysisException:{}"
-    assert jdata["exit_status"]["message"] == "failed: get dataserver products "
-    assert jdata["job_status"] == "failed"
-
-
-
 default_params = dict(
                     query_status="new",
                     query_type="Real",
@@ -155,92 +117,12 @@ def ask(server, params, expected_query_status, expected_job_status=None, max_tim
     return jdata
 
 
-def test_isgri_image_fixed_done(dispatcher_live_fixture):
-    """
-    something already done at backend
-    """
-
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
+def loop_ask(params):
     jdata = ask(server,
-                {**default_params, "async_dispatcher": False},
-                expected_query_status=["done"],
-                max_time_s=50,
-                )
-
-    print(jdata)
-
-    json.dump(jdata, open("jdata.json", "w"))
-
-
-def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
-    """
-    something already done at backend
-    new session every time, hence re-do post-process
-    """
-
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    params = {
-       **default_params,
-       'query_status': 'new'
-    }
-
-    jdata = ask(server,
-                {**params, "async_dispatcher": True},
-                expected_query_status=["submitted"])
-
-    t0_total = time.time()
-
-    while True:
-        jdata = ask(server,
-                    {**params, 'async_dispatcher': True,
-                               'query_status': jdata['query_status'],
-                               'job_id': jdata['job_monitor']['job_id'],
-                               'session_id': jdata['session_id'],
-                               'async_dispatcher': True},
-                    expected_query_status=["submitted", "done"],
-                    max_time_s=10)
-            
-        print(f"\033[34mspent since start {time.time() - t0_total}\033[0m")
-
-        if jdata["query_status"] == "done":
-            print("query READY:", jdata["query_status"])
-            print(f"\033[31mspent since start {time.time() - t0_total}\033[0m")
-            break
-
-        time.sleep(1)
-
-    assert time.time() - t0_total > 20
-    assert time.time() - t0_total < 40
-
-
-
-def test_isgri_image_random_emax(dispatcher_live_fixture):
-    """
-    something already done at backend
-    """
-
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    try:
-        emax = int(open("emax-last", "rt").read())
-    except:
-        emax = random.randint(30, 800) # but sometimes it's going to be done
-        open("emax-last", "wt").write("%d"%emax)
-                   
-    
-    params = {
-       **default_params,
-       'E2_keV':emax,
-       'query_status':"new",
-    }
-
-    jdata = ask(server,
-                {**params, "async_dispatcher": True},
+                {**params, 
+                 'async_dispatcher': True,
+                 'query_status': 'new',
+                },
                 expected_query_status=["submitted"])
 
     last_status = jdata["query_status"]
@@ -278,5 +160,111 @@ def test_isgri_image_random_emax(dispatcher_live_fixture):
 
 
     print(f"\033[31m total request took {time.time() - t0} seconds\033[0m")
+
+    return jdata, time.time() - t0
+
+def validate_no_data_products(jdata):
+    assert jdata["exit_status"]["debug_message"] == "{\"node\": \"dataanalysis.core.AnalysisException\", \"exception\": \"{}\", \"exception_kind\": \"handled\"}"
+    assert jdata["exit_status"]["error_message"] == "AnalysisException:{}"
+    assert jdata["exit_status"]["message"] == "failed: get dataserver products "
+    assert jdata["job_status"] == "failed"
+
+@pytest.mark.parametrize("selection", ["range", "280200470010.001"])
+def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
+    """
+    this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
+    """
+
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    if selection == "range":
+        params = {
+            **default_params,
+            'T1': "2008-01-01T11:11:11.0",
+            'T2': "2009-01-01T11:11:11.0",
+            'max_pointings': 1,
+            'async_dispatcher': False,
+        }
+    else:
+        params = {
+            **default_params,
+            'scw_list': selection,
+            'async_dispatcher': False,
+        }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=50,
+                )
+    
+    print(list(jdata.keys()))
+
+    validate_no_data_products(jdata)
+
+
+
+def test_isgri_image_fixed_done(dispatcher_live_fixture):
+    """
+    something already done at backend
+    """
+
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    jdata = ask(server,
+                {**default_params, "async_dispatcher": False},
+                expected_query_status=["done"],
+                max_time_s=50,
+                )
+
+    print(jdata)
+
+    json.dump(jdata, open("jdata.json", "w"))
+
+
+def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
+    """
+    something already done at backend
+    new session every time, hence re-do post-process
+    """
+
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    params = {
+       **default_params,
+    }
+
+    jdata, tspent = loop_ask(params)
+
+    assert time.time() - t0_total > 20
+    assert time.time() - t0_total < 40
+
+
+
+def test_isgri_image_random_emax(dispatcher_live_fixture):
+    """
+    something already done at backend
+    """
+
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    try:
+        emax = int(open("emax-last", "rt").read())
+    except:
+        emax = random.randint(30, 800) # but sometimes it's going to be done
+        open("emax-last", "wt").write("%d"%emax)
+                   
+    
+    params = {
+       **default_params,
+       'E2_keV':emax,
+    }
+
+    jdata, tspent = loop_ask(params)
+
 
 
