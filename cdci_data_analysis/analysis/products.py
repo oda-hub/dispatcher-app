@@ -237,6 +237,8 @@ class QueryOutput(object):
                 )
     
     def deserialize(self, readable):
+        #TODO sometimes race on read, fails as json. retry a bit!
+
         logger = app_logging.getLogger(self.__class__.__name__)
 
         for k, v in json.load(readable).items():
