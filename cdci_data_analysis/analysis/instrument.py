@@ -36,7 +36,7 @@ from astropy.table import Table
 from cdci_data_analysis.analysis.queries import _check_is_base_query
 from .catalog import BasicCatalog
 from .products import  QueryOutput
-from .queries import ProductQuery,SourceQuery,InstrumentQuery
+from .queries import ProductQuery, SourceQuery, InstrumentQuery
 from .io_helper import FilePath
 from .exceptions import RequestNotUnderstood
 
@@ -100,6 +100,8 @@ class Instrument:
 
         self.query_dictionary = query_dictionary
 
+    def __repr__(self):
+        return f"[ {self.__class__.__name__} : {self.name} ]"
 
     def set_data_server_conf_dict(self,data_serve_conf_file):
         conf_dict=None
@@ -261,9 +263,10 @@ class Instrument:
                     logger.warning("bad request from user, passing through: %s", e)
                     raise
 
-                except Exception as e:
-                    #FAILED
-                    query_out.set_failed(product_type,logger=logger,sentry_client=sentry_client,excep=e)
+                except Exception as e: # we shall not do that
+                    logger.error("run_query failed: %s", e)
+                    logger.error("run_query failed: %s", traceback.format_exc())
+                    query_out.set_failed(product_type, logger=logger, sentry_client=sentry_client, excep=e)
 
 
 
@@ -403,7 +406,7 @@ class Instrument:
         input_file_path=None
 
         if logger is None:
-            logger = logging.getLogger(__name__)
+            logger = logging.getLogger(repr(self))
 
         if request.method == 'POST':
             try:

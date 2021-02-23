@@ -196,7 +196,7 @@ class QueryOutput(object):
         logger.error('!!! >>>debug message<<< %s', debug_message)
         logger.error('!!! failed operation: %s', failed_operation)
 
-        print(traceback.format_exc())
+        logger.error(traceback.format_exc())
 
 
         if logger is not None:

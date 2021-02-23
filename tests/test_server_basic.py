@@ -195,7 +195,7 @@ def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
 
     jdata = ask(server,
                 params,
-                expected_query_status=["done"],
+                expected_query_status=["failed"],
                 max_time_s=50,
                 )
     

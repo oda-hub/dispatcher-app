@@ -58,7 +58,7 @@ for plugin_name in cdci_plugins_dict:
     logger.info("found plugin: %s", plugin_name)
 
     try:
-        e=importlib.import_module(plugin_name+'.exposer')
+        e = importlib.import_module(plugin_name+'.exposer')
         instrument_factory_list.extend(e.instr_factory_list)
         logger.info(render('{GREEN}imported plugin: %s{/}'), plugin_name)
 

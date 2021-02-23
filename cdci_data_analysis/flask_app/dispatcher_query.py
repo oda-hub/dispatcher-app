@@ -626,16 +626,14 @@ class InstrumentQueryBackEnd:
             for instrument_factory in importer.instrument_factory_list:
                 instrument = instrument_factory()
                 if instrument.name == instrument_name:
-                    #print('setting instr',instrument_name,instrument.name)
-                    new_instrument = instrument
+                    new_instrument = instrument # multiple assignment? TODO
+
                 known_instruments.append(instrument.name)
-
-
 
         if new_instrument is None:
             raise InstrumentNotRecognized(f'instrument: "{instrument_name}", known: {known_instruments}')
         else:
-            self.instrument=new_instrument
+            self.instrument = new_instrument
 
     def set_config(self):
         if getattr(self, 'config', None) is None:
@@ -1017,6 +1015,7 @@ class InstrumentQueryBackEnd:
                 if job_monitor is None:
                     job_monitor = job.monitor
             else:
+
                 query_out = self.instrument.run_query(product_type,
                                                       self.par_dic,
                                                       request,

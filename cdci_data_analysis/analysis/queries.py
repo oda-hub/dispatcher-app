@@ -51,9 +51,7 @@ def _check_is_base_query(_list):
 
 class BaseQuery(object):
 
-
     def __init__(self,name,_list):
-
 
         if _list is None:
             _list=[]
@@ -64,9 +62,7 @@ class BaseQuery(object):
         self._parameters_list=self._build_parameters_list(_list)
         self._build_par_dictionary()
 
-
         self.product=None
-
 
 
     @property
@@ -275,8 +271,8 @@ class BaseQuery(object):
 
 
 class SourceQuery(BaseQuery):
-    def __init__(self,name):
-        src_name= Name(name_format='str', name='src_name',value='test')
+    def __init__(self, name):
+        src_name = Name(name_format='str', name='src_name',value='test')
         RA = Angle(value=0.,units='deg', name='RA', )
         DEC = Angle(value=0.,units='deg', name='DEC')
 
@@ -574,7 +570,7 @@ class ProductQuery(BaseQuery):
             logger.error("passing request issue: %s", e)
             raise
 
-        except Exception as e:
+        except Exception as e: # noo!!!
             #status=1
             job.set_failed()
 
@@ -602,9 +598,6 @@ class ProductQuery(BaseQuery):
         msg_str += '--> end product query '
 
         logger.info(msg_str)
-
-
-
 
 
         return query_out
@@ -700,7 +693,6 @@ class ProductQuery(BaseQuery):
             query_out=self.test_has_products(instrument,query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client)
             input_prod_list=query_out.prod_dictionary['input_prod_list']
             self._t_query_steps['after_test_has_products'] = _time.time()
-
 
 
 
