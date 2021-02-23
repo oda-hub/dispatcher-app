@@ -56,3 +56,16 @@ See current working definition of real roles [here](https://github.com/oda-hub/d
 |||
 | :-- | :-- |
 | Meetings | [2021-02-22](https://github.com/oda-hub/meetings/blob/main/2021-02-22/MoM.md) |
+
+
+## Other sources  of identity
+
+source of identity:
+
+    drupal user account can be used
+    github/gmail
+    unige ldap
+    unige ISIS?
+    switch?
+    edugain?
+
