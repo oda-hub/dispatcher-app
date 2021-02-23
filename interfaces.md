@@ -1,6 +1,8 @@
 # Purpose
 
-# User token origin and usage
+# User tokens
+
+## Generation
 
 We use [JWT](https://jwt.io/introduction/) to authentify users.
 
@@ -26,3 +28,24 @@ Example:
 ```
 
 exp is the expiration time of the token which can be defined in the Drupal administration GUI as a life time in minutes.
+
+## Usage
+
+Token can be used by the frontend to hide some parts of the interface.
+
+But, most of all, token will be used by the **dispatcher** and some **backends** to allocate resources.
+
+See current working definition of real roles [here](https://github.com/oda-hub/doc-multi-user/blob/main/plan-roles-users.md).
+
+* **Roles** will be used by **dispatcher** when filtering queries. **Dispatcher** may associate each query with required **Roles**, or establish filters for more complex request matching (e.g. restricting parameter ranges). We should be cautious to put too much configuration in dispatcher when other methods (below) are possible.
+
+In general, backends should be able to control access to themselves by instructing dispatcher, see [interface]() for dispatcher to learn about role restrictions from backend:
+
+* Some **Backends** may **declare which roles they require**, and **dispatcher** will respect these requests. See [interface]() for dispatcher to learn about role restrictions from backend.
+* Some **backends** (e.g. integral) will declare that they can operate in role-restricted mode, and will themselves perform additional filtering based on the **Role** information provided.
+
+In the second case, a more restricted **Token** can be provided to the backend, to prevent backend gaining entire rights of the user. **Restricted Token** can be obtained (on a special service, or another authority source) in exchange for the User **Token**, specifying the narrowing down of the scope.
+
+## Actual roles
+
+See current working definition of real roles [here](https://github.com/oda-hub/doc-multi-user/blob/main/plan-roles-users.md).
