@@ -1,4 +1,4 @@
-cdci_data_analysis
+ODA Dispatcher
 ==========================================
 
 A flexible python framework to bridge front-end and data-server for scientific online analysis of astrophysical data:
