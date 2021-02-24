@@ -30,6 +30,6 @@ def request_dispatcher(url, params):
 
     r = requests.get(url, params=params)
 
-    print("\033[35m", r.json(), "\033[0m")
+    print("\033[35m", r.text[:200], "\033[0m")
 
     return url + str(params)
