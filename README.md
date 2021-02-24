@@ -6,6 +6,7 @@ A flexible python framework to bridge front-end and data-server for scientific o
 * provides boilerplate code to implement interfaces to specific instument backends with [plugins](dispatcher-plugins).
 * implements interface to [frontend](frontend).
 
+**this repository also contains much of relenvant documentations relevant to gluing these levels together**
 
 What's the license?
 -------------------
