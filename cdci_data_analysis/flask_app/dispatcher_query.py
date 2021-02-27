@@ -41,7 +41,7 @@ from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
-from ..analysis.exceptions import BadRequest, APIerror, MissingParameter, RequestNotUnderstood
+from ..analysis.exceptions import BadRequest, APIerror, MissingParameter, RequestNotUnderstood, ProblemDecodingStoredQueryOut
 from . import tasks
 from oda_api.data_products import NumpyDataProduct
 import time as time_
@@ -770,7 +770,12 @@ class InstrumentQueryBackEnd:
         if os.path.exists(self.response_filename):
             self.logger.info("\033[32mstored query out FOUND at %s\033[0m", self.response_filename)
             Q = QueryOutput()
-            Q.deserialize(open(self.response_filename, "r"))
+
+            try:
+                Q.deserialize(open(self.response_filename, "r"))
+            except ProblemDecodingStoredQueryOut:
+                self.logger.info("\033[31mstored query out corrupt (race?) or NOT FOUND at %s\033[0m", self.response_filename)
+                return 
 
             j = json.load(open(self.response_filename+".job-monitor", "r")) # modify!
 

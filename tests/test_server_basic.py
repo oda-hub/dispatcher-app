@@ -240,8 +240,7 @@ def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
 
     jdata, tspent = loop_ask(server, params)
 
-    assert time.time() - t0_total > 20
-    assert time.time() - t0_total < 40
+    assert  20 < tspent < 40
 
 
 

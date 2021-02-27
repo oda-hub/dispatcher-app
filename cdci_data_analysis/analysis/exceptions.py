@@ -45,3 +45,8 @@ class UnfortunateRequestResults(Exception):
     it is not bad request
     it is unclear for us and we want user to please clarify!
     """
+
+class ProblemDecodingStoredQueryOut(Exception):
+    """
+    problem with storage? race?
+    """

@@ -48,6 +48,7 @@ from .io_helper import FilePath
 from .io_helper import view_traceback, FitsFile
 from .job_manager import Job
 from .json import CustomJSONEncoder
+from .exceptions import ProblemDecodingStoredQueryOut
 
 import traceback
 import logging
@@ -237,13 +238,16 @@ class QueryOutput(object):
                 )
     
     def deserialize(self, readable):
-        #TODO sometimes race on read, fails as json. retry a bit!
 
         logger = app_logging.getLogger(self.__class__.__name__)
 
-        for k, v in json.load(readable).items():
-            logger.info("deserializing query_out state: %s : %s (%s)", k , str(v)[:100], len(str(v)))
-            setattr(self, k, v)
+        try:
+            for k, v in json.load(readable).items():
+                logger.info("deserializing query_out state: %s : %s (%s)", k , str(v)[:100], len(str(v)))
+                setattr(self, k, v)
+        except json.decoder.JSONDecodeError as e:
+            logger.error("problem decoding query_out json: race?")
+            raise ProblemDecodingStoredQueryOut(f"got {e} trying to read {readable}")
 
 
 class QueryProductList(object):
