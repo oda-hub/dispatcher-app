@@ -3,7 +3,7 @@
 """
 Created on Wed May 10 10:55:20 2017
 
-@author: andrea tramcere
+@author: Andrea Tramcere, Volodymyr Savchenko
 """
 from builtins import (open, str, range,
                       object)
@@ -31,6 +31,7 @@ import gzip
 import logging
 import socket
 import logstash
+import time as _time
 
 
 from ..plugins import importer
@@ -43,8 +44,11 @@ from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
 from .dispatcher_query import InstrumentQueryBackEnd
-from .exceptions import APIerror, BadRequest
+from ..analysis.exceptions import APIerror, BadRequest
+from ..app_logging import app_logging
+from . import tasks
 
+from ..analysis.json import CustomJSONEncoder
 
 from cdci_data_analysis import  __version__
 import oda_api
@@ -55,19 +59,7 @@ from astropy.io.fits.card import Undefined as astropyUndefined
 #UPLOAD_FOLDER = '/path/to/the/uploads'
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
 
-class CustomJSONEncoder(JSONEncoder):
-
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return list(obj)
-
-        if isinstance(obj, astropyUndefined):
-            return "UNDEFINED"
-
-        logging.error("problem encoding %s, will send as string", obj) # TODO: dangerous probably, fix!
-        return 'unencodable ' + str(obj)
-
-        #return JSONEncoder.default(self, obj)
+logger = app_logging.getLogger('flask_app')
 
 
 app = Flask(__name__,
@@ -79,7 +71,7 @@ app.json_encoder = CustomJSONEncoder
 
 
 api= Api(app=app, version='1.0', title='CDCI ODA API',
-    description='API for ODA CDCI dispatcher microservices\n Author: Andrea Tramacere')
+    description='API for ODA CDCI dispatcher microservices\n Author: Andrea Tramacere, Volodymyr Savchenko')
 
 
 ns_conf = api.namespace('api/v1.0/oda', description='api')
@@ -164,29 +156,63 @@ def handle_invalid_usage(error):
     response.status_code = error.status_code
     return response
 
+@app.errorhandler(APIerror)
+def handle_bad_request(error):
+    response = jsonify({**error.to_dict(), 
+                        'error': str(error) + ':' + error.message, 
+                        **common_exception_payload()})
+    response.status_code = error.status_code
+    return response
+
+def common_exception_payload():
+    payload={}
+
+    payload['cdci_data_analysis_version']=__version__
+    payload['oda_api_version'] = oda_api.__version__
+    _l = []
+
+    for instrument_factory in importer.instrument_factory_list:
+        _l.append('%s'%instrument_factory().name)
+
+    payload['installed_instruments'] = _l
+
+    return payload
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
+    """
+    DRAFT
+    ---
+    operationId: 'run_analysis'
+    parameters:
+    - name: 'query_status'
+      in: 'query'
+      required: false
+      type: 'string'
+    responses:
+        200: 
+            description: 'analysis done'
+        202: 
+            description: 'request accepted but not done yet' 
+        400: 
+            description: 'something in request not understood - missing, unexpected values'
+    """
     try:
-        query=InstrumentQueryBackEnd(app)
-        return query.run_query(disp_conf=app.config['conf'])
+        t0 = _time.time()
+        query = InstrumentQueryBackEnd(app)
+        r = query.run_query(disp_conf=app.config['conf'])
+        logger.info("run_analysis for %s took %g seconds", request.args.get('client-name', 'unknown'), _time.time() - t0)
+
+        return r
+    except APIerror as e:
+        raise
     except Exception as e:
         logging.getLogger().error("exception in run_analysis: %s %s", repr(e), traceback.format_exc())
         print("exception in run_analysis: %s %s", repr(e), traceback.format_exc())
 
-        payload={}
-
-        payload['cdci_data_analysis_version']=__version__
-        payload['oda_api_version'] = oda_api.__version__
-        payload['error_message'] = str(e)
-        _l = []
-
-        for instrument_factory in importer.instrument_factory_list:
-            _l.append('%s'%instrument_factory().name)
-
-        payload['installed_instruments'] = _l
-        print(payload)
-        raise InvalidUsage('request not valid', status_code=410,payload=payload)
+        raise InvalidUsage('request not valid', 
+                           status_code=410,
+                           payload={'error_message': str(e), **common_exception_payload()})
 
 
 

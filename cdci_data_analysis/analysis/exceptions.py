@@ -1,3 +1,4 @@
+
 class APIerror(Exception):
 
     def __init__(self, message, status_code=None, payload=None):
@@ -6,6 +7,9 @@ class APIerror(Exception):
 
         if status_code is not None:
             self.status_code = status_code
+        else:
+            self.status_code = 400
+
         self.payload = payload
         print(f'APIerror {self} constructor: {message}')
 
@@ -20,3 +24,29 @@ class APIerror(Exception):
 class BadRequest(APIerror):
     def __init__(self, message, status_code=None, payload=None):
         super().__init__(message, status_code=400, payload=payload)
+
+class RequestNotUnderstood(BadRequest):
+    """
+    positive exception messages only!
+    it is not user error
+    it is not bad request
+    it is unclear for us and we want user to please clarify!
+    """
+
+class MissingParameter(RequestNotUnderstood):
+    pass
+
+###
+
+class UnfortunateRequestResults(Exception):
+    """
+    positive exception messages only!
+    it is not user error
+    it is not bad request
+    it is unclear for us and we want user to please clarify!
+    """
+
+class ProblemDecodingStoredQueryOut(Exception):
+    """
+    problem with storage? race?
+    """

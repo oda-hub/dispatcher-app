@@ -89,7 +89,7 @@ class Job(object):
 
     @staticmethod
     def get_allowed_job_status_values():
-        return ['done', 'failed', 'progress', 'submitted', 'ready', 'unknown', 'unaccessible','aliased']
+        return ['done', 'failed', 'progress', 'submitted', 'ready', 'unknown', 'unaccessible','aliased', 'post-processing']
 
     def update_monitor(self,status,session_id,job_id):
         self.monitor['job_id']=job_id
@@ -161,18 +161,20 @@ class Job(object):
         return self.monitor['status']
 
 
-    def updat_dataserver_monitor(self,):
+    def updated_dataserver_monitor(self,):
         # TODO: combine all files
 
         try:
             with open(self.file_path, 'r') as infile:
                 #print("=====> reading  from ", self.file_path)
                 self.monitor = json.load(infile,)
-            #print('JOB MANAGER CHECK-->', self.monitor)
+
+            logger.info('JOB MANAGER CHECK-->', self.monitor)
         except Exception as e:
+            logger.warning("no current job state: %s", e)
             self.set_unaccessible()
 
-        return  self.monitor
+        return self.monitor
 
     def write_dataserver_status(self,status_dictionary_value=None,full_dict=None):
         # TODO: write to specific name coming for call_back
@@ -180,11 +182,11 @@ class Job(object):
         if status_dictionary_value is None:
             pass
         else:
-            self.monitor['status']=status_dictionary_value
+            self.monitor['status'] = status_dictionary_value
 
         #print('writing job status to job_monitor', self.monitor['status'])
         if full_dict is not None:
-            self.monitor['full_report_dict']=full_dict
+            self.monitor['full_report_dict'] = full_dict
 
         with open(self.file_path, 'w')  as outfile:
             #print ("=====> writing to ",self.file_path)
@@ -264,7 +266,7 @@ class OsaJob(Job):
                                   status_kw_name=status_kw_name,
                                   aliased=aliased)
 
-    def updat_dataserver_monitor(self,work_dir=None):
+    def updated_dataserver_monitor(self,work_dir=None):
         if work_dir is None:
             work_dir=self.work_dir
 
@@ -316,11 +318,12 @@ class OsaJob(Job):
 
 
 
-def job_factory(instrument_name,scratch_dir,server_url,dispatcher_port,session_id,job_id,par_dic,aliased=False):
-    osa_list=['jemx','isgri']
+def job_factory(instrument_name, scratch_dir, server_url, dispatcher_port, session_id, job_id, par_dic, aliased=False):
+    osa_list = ['jemx','isgri']
 
     if instrument_name in osa_list:
-        j = OsaJob(instrument_name=instrument_name,
+        j = OsaJob(
+             instrument_name=instrument_name,
              work_dir=scratch_dir,
              server_url=server_url,
              server_port=dispatcher_port,
@@ -330,13 +333,14 @@ def job_factory(instrument_name,scratch_dir,server_url,dispatcher_port,session_i
              par_dic=par_dic,
              aliased=aliased)
     else:
-        j=Job(instrument_name=instrument_name,
+        j = Job(
+             instrument_name=instrument_name,
              work_dir=scratch_dir,
              server_url=server_url,
              server_port=dispatcher_port,
              callback_handle='call_back',
              session_id=session_id,
              job_id=job_id,
-            aliased=aliased)
+             aliased=aliased)
 
     return j

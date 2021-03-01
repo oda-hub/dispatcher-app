@@ -2,8 +2,10 @@ import subprocess
 import requests
 import time
 import re
+import json
 import signal
 import os
+import random
 import traceback
 
 from threading import Thread
@@ -11,75 +13,258 @@ from time import sleep
 
 import pytest
 
-__this_dir__ = os.path.join(os.path.abspath(os.path.dirname(__file__)))
+#pytestmark = pytest.mark.skip("these tests still WIP")
 
-pytestmark = pytest.mark.skip("these tests still WIP")
 
-class DispatcherServer(object):
-    def __init__(self):
-        pass
+"""
+this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
+"""
 
-    url=None
 
-    def follow_output(self):
-        url=None
-        for line in iter(self.process.stdout.readline,''):
-            print("following server:",line.rstrip())
-            m=re.search("Running on (.*?) \(Press CTRL\+C to quit\)",line)
-            if m:
-                url=m.group(1) # alaternatively get from configenv
-                print(("found url:",url))
-        
-            if re.search("\* Debugger PIN:.*?",line):
-                print("server ready")
-                url=url.replace("0.0.0.0","127.0.0.1")
-                self.url=url
+def test_no_instrument(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
 
-    def start(self):
-        cmd=["python",__this_dir__+"/../bin/run_osa_cdci_server.py"]
-        print(("command:"," ".join(cmd)))
-        self.process=subprocess.Popen(cmd,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=False)
+    c=requests.get(server + "/run_analysis",
+                   params=dict(
+                   image_type="Real",
+                   product_type="image",
+                   E1_keV=20.,
+                   E2_keV=40.,
+                   T1="2008-01-01T11:11:11.0",
+                   T2="2008-06-01T11:11:11.0",
+                ))
 
-        print("\n\nfollowing server startup")
+    print("content:", c.text)
 
-        thread = Thread(target = self.follow_output, args = ())
-        thread.start()
+    jdata=c.json()
 
-        while self.url is None:
-            time.sleep(0.1)
-        time.sleep(0.5)
+    assert c.status_code == 400
 
-        self.url="http://127.0.0.1:5000"
+@pytest.mark.skip(reason="todo")
+def test_isgri_no_osa(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
 
-        return self
+    c=requests.get(server + "/run_analysis",
+                   params=dict(
+                       query_status="new",
+                       query_type="Real",
+                       instrument="isgri",
+                       product_type="isgri_image",
+                       E1_keV=20.,
+                       E2_keV=40.,
+                       T1="2008-01-01T11:11:11.0",
+                       T2="2008-06-01T11:11:11.0",
+                    )
+                  )
+
+    print("content:", c.text)
+
+    jdata=c.json()
+    print(list(jdata.keys()))
+    print(jdata)
+
+    assert c.status_code == 400
+
+    assert jdata["error_message"] == "osa_version is needed"
+
+
+default_params = dict(
+                    query_status="new",
+                    query_type="Real",
+                    instrument="isgri",
+                    product_type="isgri_image",
+                    osa_version="OSA10.2",
+                    E1_keV=20.,
+                    E2_keV=40.,
+                    T1="2008-01-01T11:11:11.0",
+                    T2="2009-01-01T11:11:11.0",
+                    max_pointings=2,
+                    RA=83,
+                    DEC=22,
+                    radius=6,
+                    async_dispatcher=False,
+                 )
+
+
+# why ~1 second? so long
+def ask(server, params, expected_query_status, expected_job_status=None, max_time_s=2.0, expected_status_code=200):
+    t0 = time.time()
+    c=requests.get(server + "/run_analysis",
+                   params={**params},
+                  )
+    print(f"\033[31m request took {time.time() - t0} seconds\033[0m")
+    t_spent = time.time() - t0
+    assert t_spent < max_time_s
+
+    print("content:", c.text[:1000])
+    if len(c.text) > 1000:
+        print(".... (truncated)")
+
+    jdata=c.json()
+
+    if expected_status_code is not None:
+        assert c.status_code == expected_status_code
+
+    print(list(jdata.keys()))
+
+    if expected_job_status is not None:
+        assert jdata["exit_status"]["job_status"] in expected_job_status
+
+    if expected_query_status is not None:
+        assert jdata["query_status"] in expected_query_status
+
+    return jdata
+
+
+def loop_ask(server, params):
+    jdata = ask(server,
+                {**params, 
+                 'async_dispatcher': True,
+                 'query_status': 'new',
+                },
+                expected_query_status=["submitted"])
+
+    last_status = jdata["query_status"]
+
+    t0 = time.time()
+
+    tries_till_reset = 20
+
+    while True:
+        if tries_till_reset <= 0:
+            next_query_status = "ready"
+            print("\033[1;31;46mresetting query status to new, too long!\033[0m")
+            tries_till_reset = 20
+        else:
+            next_query_status = jdata['query_status']
+            tries_till_reset -= 1
+
+        jdata = ask(server,
+                    {**params, "async_dispatcher": True,
+                               'query_status': next_query_status,
+                               'job_id': jdata['job_monitor']['job_id'],
+                               'session_id': jdata['session_id']},
+                    expected_query_status=["submitted", "done"],
+                    max_time_s=3,
+                    )
+
+        if jdata["query_status"] in ["ready", "done"]:
+            print("query READY:", jdata["query_status"])
+            break
+
+        print("query NOT-READY:", jdata["query_status"], jdata["job_monitor"])
+        print("looping...")
+
+        time.sleep(5)
+
+
+    print(f"\033[31m total request took {time.time() - t0} seconds\033[0m")
+
+    return jdata, time.time() - t0
+
+def validate_no_data_products(jdata):
+    assert jdata["exit_status"]["debug_message"] == "{\"node\": \"dataanalysis.core.AnalysisException\", \"exception\": \"{}\", \"exception_kind\": \"handled\"}"
+    assert jdata["exit_status"]["error_message"] == "AnalysisException:{}"
+    assert jdata["exit_status"]["message"] == "failed: get dataserver products "
+    assert jdata["job_status"] == "failed"
+
+@pytest.mark.parametrize("selection", ["range", "280200470010.001"])
+def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
+    """
+    this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
+    """
+
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    if selection == "range":
+        params = {
+            **default_params,
+            'T1': "2008-01-01T11:11:11.0",
+            'T2': "2009-01-01T11:11:11.0",
+            'max_pointings': 1,
+            'async_dispatcher': False,
+        }
+    else:
+        params = {
+            **default_params,
+            'scw_list': selection,
+            'async_dispatcher': False,
+        }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["failed"],
+                max_time_s=50,
+                )
     
+    print(list(jdata.keys()))
 
-    def stop(self):
-        os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+    validate_no_data_products(jdata)
 
-    def __enter__(self):
-        return self.start()
 
-    def __exit__(self, _type, value, tracebac):
-        print(("exiting:",_type,value, tracebac))
-        traceback.print_tb(tracebac)
-        time.sleep(0.5)
-        self.stop()
 
-def test_urltest():
-    with DispatcherServer() as server:
-        print(server)
-        c=requests.get(server.url+"/test",params=dict(
-                        image_type="Real",
-                        product_type="image",
-                        E1=20.,
-                        E2=40.,
-                        T1="2008-01-01T11:11:11.0",
-                        T2="2008-06-01T11:11:11.0",
-                    ))
-        jdata=c.json()
-        print('done')
-        print(list(jdata.keys()))
-        print(jdata['data'])
+def test_isgri_image_fixed_done(dispatcher_live_fixture):
+    """
+    something already done at backend
+    """
+
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    jdata = ask(server,
+                {**default_params, "async_dispatcher": False},
+                expected_query_status=["done"],
+                max_time_s=50,
+                )
+
+    print(jdata)
+
+    json.dump(jdata, open("jdata.json", "w"))
+
+
+def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
+    """
+    something already done at backend
+    new session every time, hence re-do post-process
+    """
+
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    params = {
+       **default_params,
+    }
+
+    jdata, tspent = loop_ask(server, params)
+
+    assert  20 < tspent < 40
+
+
+
+def test_isgri_image_random_emax(dispatcher_live_fixture):
+    """
+    something already done at backend
+    """
+
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    try:
+        emax = int(open("emax-last", "rt").read())
+    except:
+        emax = random.randint(30, 800) # but sometimes it's going to be done
+        open("emax-last", "wt").write("%d"%emax)
+                   
+    
+    params = {
+       **default_params,
+       'E2_keV':emax,
+    }
+
+    jdata, tspent = loop_ask(server, params)
+
 
 

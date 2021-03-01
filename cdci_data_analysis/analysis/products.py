@@ -47,8 +47,12 @@ from .parameters import *
 from .io_helper import FilePath
 from .io_helper import view_traceback, FitsFile
 from .job_manager import Job
+from .json import CustomJSONEncoder
+from .exceptions import ProblemDecodingStoredQueryOut
 
 import traceback
+import logging
+from ..app_logging import app_logging
 
 try:
     from urllib.parse import urlencode
@@ -66,7 +70,7 @@ class QueryOutput(object):
         self.prod_dictionary = {}
         self.status_dictionary = {}
 
-        self._allowed_status_values_ = [0, 1]
+        self._allowed_status_values_ = [0, 1] # ok or nok?
         self._allowed_job_status_values_ = Job.get_allowed_job_status_values()
 
         self.set_status(0, job_status='unknown')
@@ -75,16 +79,16 @@ class QueryOutput(object):
     def set_instrument_parameters(self,o):
         self.prod_dictionary['instrumet_parameters'] = o
 
-    def set_analysis_parameters(self,query_dict):
+    def set_analysis_parameters(self, query_dict):
         self.prod_dictionary['analysis_paramters'] = query_dict
 
     def set_api_code(self,query_dict):
         self.prod_dictionary['api_code'] = DispatcherAPI.set_api_code(query_dict)
 
     def dump_analysis_parameters(self,work_dir,query_dict):
-        file_path=FilePath(file_dir=work_dir, file_name='anlaysis_par.json')
+        file_path=FilePath(file_dir=work_dir, file_name='analysis_parameters.json')
         with open(file_path.path, 'w')  as outfile:
-            my_json_str = json.dumps(query_dict,)
+            my_json_str = json.dumps(query_dict, indent=4)
             outfile.write(u'%s' % my_json_str)
 
     def set_products(self, keys, values):
@@ -167,6 +171,9 @@ class QueryOutput(object):
                             e_message=None,
                             debug_message=''):
 
+        if logger is None:
+            logger = app_logging.getLogger(repr(self))
+
         self._set_job_status(job_status)
 
         if e_message is None:
@@ -190,7 +197,7 @@ class QueryOutput(object):
         logger.error('!!! >>>debug message<<< %s', debug_message)
         logger.error('!!! failed operation: %s', failed_operation)
 
-        print(traceback.format_exc())
+        logger.error(traceback.format_exc())
 
 
         if logger is not None:
@@ -216,6 +223,31 @@ class QueryOutput(object):
             logger.info(msg_str)
 
         self.set_status(status, message=message, error_message=e_message, debug_message=str(debug_message))
+
+    def __repr__(self):
+        return f'[ {self.__class__.__name__} ]'
+
+    def serialize(self, writable):
+        json.dump({ 
+                    k: v
+                    for k, v in self.__dict__.items()
+                    if not k.startswith("_")
+                  },
+                  writable,
+                  cls=CustomJSONEncoder
+                )
+    
+    def deserialize(self, readable):
+
+        logger = app_logging.getLogger(self.__class__.__name__)
+
+        try:
+            for k, v in json.load(readable).items():
+                logger.info("deserializing query_out state: %s : %s (%s)", k , str(v)[:100], len(str(v)))
+                setattr(self, k, v)
+        except json.decoder.JSONDecodeError as e:
+            logger.error("problem decoding query_out json: race?")
+            raise ProblemDecodingStoredQueryOut(f"got {e} trying to read {readable}")
 
 
 class QueryProductList(object):
@@ -610,7 +642,7 @@ class SpectralFitProduct(BaseQueryProduct):
         for s in str_list:
             p = s.split(':')
             if len(p) != 2:
-                raise RuntimeError('Malformed par string')
+                raise RuntimeError('Malformed par string') 
             else:
                 i = np.int(p[0])
             pars_dict[i] = p[1]
@@ -618,7 +650,7 @@ class SpectralFitProduct(BaseQueryProduct):
 
     def set_par(self, m, params_setting):
         if params_setting is not None:
-            pars_dict = self.parse_command()
+            pars_dict = self.parse_command() # ??? did this work
             if pars_dict != {}:
                 m.setPars(pars_dict)
 

@@ -29,8 +29,9 @@ import json
 from collections import OrderedDict
 
 from .parameters import *
-from .products import SpectralFitProduct,QueryOutput,QueryProductList,ImageProduct
+from .products import SpectralFitProduct, QueryOutput, QueryProductList, ImageProduct
 from .io_helper import FilePath
+from .exceptions import RequestNotUnderstood
 
 
 @decorator.decorator
@@ -50,9 +51,7 @@ def _check_is_base_query(_list):
 
 class BaseQuery(object):
 
-
     def __init__(self,name,_list):
-
 
         if _list is None:
             _list=[]
@@ -63,9 +62,7 @@ class BaseQuery(object):
         self._parameters_list=self._build_parameters_list(_list)
         self._build_par_dictionary()
 
-
         self.product=None
-
 
 
     @property
@@ -274,8 +271,8 @@ class BaseQuery(object):
 
 
 class SourceQuery(BaseQuery):
-    def __init__(self,name):
-        src_name= Name(name_format='str', name='src_name',value='test')
+    def __init__(self, name):
+        src_name = Name(name_format='str', name='src_name',value='test')
         RA = Angle(value=0.,units='deg', name='RA', )
         DEC = Angle(value=0.,units='deg', name='DEC')
 
@@ -389,14 +386,11 @@ class ProductQuery(BaseQuery):
 
 
 
-    def test_communication(self,instrument,query_type='Real',logger=None,config=None,sentry_client=None):
+    def test_communication(self, instrument, query_type='Real', logger=None, config=None, sentry_client=None):
         if logger is None:
             logger = self.get_logger()
 
         query_out = QueryOutput()
-
-
-
 
         #status = 0
         message=''
@@ -410,17 +404,17 @@ class ProductQuery(BaseQuery):
 
             if query_type != 'Dummy':
                 test_comm_query_out = instrument.test_communication(config,logger=logger)
-                status=test_comm_query_out.get_status()
+                status = test_comm_query_out.get_status()
             else:
                 status=0
 
             query_out.set_done(message=message, debug_message=str(debug_message),status=status)
 
         except Exception as e:
+            e_message = f'test of communication with backend (instrument: {instrument}) failed!'
+
             if hasattr(e, 'message'):
-                e_message = e.message
-            else:
-                e_message = 'communication error'
+                e_message = e_message + " : " + e.message
 
             if hasattr(e, 'debug_message'):
                 debug_message = e.debug_message
@@ -428,8 +422,8 @@ class ProductQuery(BaseQuery):
             else:
                 debug_message = ''
 
-            query_out.set_failed('dataserver communication ',
-                                 extra_message='communication error',
+            query_out.set_failed('dataserver communication test',
+                                 extra_message=e_message,
                                  logger=logger,
                                  sentry_client=sentry_client,
                                  excep=e,
@@ -572,7 +566,11 @@ class ProductQuery(BaseQuery):
 
             query_out.set_done(message=message, debug_message=str(debug_message),job_status=job.status,status=status,comment=backend_comment,warning=backend_warning)
             #print('-->', query_out.status_dictionary)
-        except Exception as e:
+        except RequestNotUnderstood as e:
+            logger.error("passing request issue: %s", e)
+            raise
+
+        except Exception as e: # noo!!!
             #status=1
             job.set_failed()
 
@@ -600,9 +598,6 @@ class ProductQuery(BaseQuery):
         msg_str += '--> end product query '
 
         logger.info(msg_str)
-
-
-
 
 
         return query_out
@@ -698,7 +693,6 @@ class ProductQuery(BaseQuery):
             query_out=self.test_has_products(instrument,query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client)
             input_prod_list=query_out.prod_dictionary['input_prod_list']
             self._t_query_steps['after_test_has_products'] = _time.time()
-
 
 
 

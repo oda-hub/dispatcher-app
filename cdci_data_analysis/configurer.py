@@ -30,7 +30,7 @@ __author__ = "Andrea Tramacere"
 # launch
 # ----------------------------------------
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("conf")
 
 import traceback
 
@@ -49,7 +49,14 @@ class DataServerConf:
 
         logger.info("building config from %s %s %s", data_server_url, data_server_remote_cache, dispatcher_mnt_point)
 
-        logger.warning(f"problem constructing {self}: some parameters are None: {data_server_url} {data_server_remote_cache} {dispatcher_mnt_point}")
+        if data_server_url is None:
+            logger.warning(f"problem constructing {self}: data_server_url is None: {data_server_url}")
+
+        if data_server_remote_cache is None:
+            logger.warning(f"problem constructing {self}: data_server_remote_cache is None: {data_server_remote_cache}")
+        
+        if dispatcher_mnt_point is None:
+            logger.warning(f"problem constructing {self}: dispatcher_mnt_point is None: {dispatcher_mnt_point}")
 
         self.data_server_url = data_server_url
 
@@ -106,9 +113,10 @@ class DataServerConf:
 
     @classmethod
     def from_conf_file(cls, conf_file):
+        logger.info("\033[32mconstructing config from file %s\033[0m", conf_file)
 
         with open(conf_file, 'r') as ymlfile:
-            cfg_dict = yaml.load(ymlfile)
+            cfg_dict = yaml.load(ymlfile, Loader=yaml.SafeLoader)
 
         return DataServerConf.from_conf_dict(cfg_dict)
 
@@ -195,13 +203,14 @@ class ConfigEnv(object):
 
         if conf_file_path is None:
             conf_file_path = conf_dir + '/conf_env.yml'
+            logger.info("using conf file from default dir \"%s\" (set by cdci_data_analysis module file location): %s", conf_dir, conf_file_path)
 
         logger.info("loading config from file: %s", conf_file_path)
 
         #print('conf_file_path', conf_file_path)
         with open(conf_file_path, 'r') as ymlfile:
             #print('conf_file_path', ymlfile )
-            cfg_dict = yaml.load(ymlfile)
+            cfg_dict = yaml.load(ymlfile, Loader=yaml.SafeLoader)
 
 
         logger.debug('cfg_dict: %s', cfg_dict)

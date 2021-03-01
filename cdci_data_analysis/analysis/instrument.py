@@ -36,8 +36,10 @@ from astropy.table import Table
 from cdci_data_analysis.analysis.queries import _check_is_base_query
 from .catalog import BasicCatalog
 from .products import  QueryOutput
-from .queries import ProductQuery,SourceQuery,InstrumentQuery
+from .queries import ProductQuery, SourceQuery, InstrumentQuery
 from .io_helper import FilePath
+from .exceptions import RequestNotUnderstood
+
 
 __author__ = "Andrea Tramacere"
 
@@ -54,7 +56,7 @@ __author__ = "Andrea Tramacere"
 
 
 
-class Instrument(object):
+class Instrument:
     def __init__(self,
                  instr_name,
                  src_query,
@@ -87,7 +89,7 @@ class Instrument(object):
         self._queries_list=[self.src_query,self.instrumet_query]
 
 
-        self.data_server_query_class=data_server_query_class
+        self.data_server_query_class = data_server_query_class
 
         if product_queries_list is not None and product_queries_list !=[]:
             self._queries_list.extend(product_queries_list)
@@ -98,13 +100,15 @@ class Instrument(object):
 
         self.query_dictionary = query_dictionary
 
+    def __repr__(self):
+        return f"[ {self.__class__.__name__} : {self.name} ]"
 
     def set_data_server_conf_dict(self,data_serve_conf_file):
         conf_dict=None
         #print ('--> setting set_data_server_conf_dict for', self.name,'from data_serve_conf_file',data_serve_conf_file)
         if data_serve_conf_file is not None:
            with open(data_serve_conf_file, 'r') as ymlfile:
-                cfg_dict = yaml.load(ymlfile)
+                cfg_dict = yaml.load(ymlfile, Loader=yaml.SafeLoader)
                 for k in cfg_dict['instruments'].keys():
                     #print ('name',k)
                     if self.name ==k:
@@ -151,7 +155,7 @@ class Instrument(object):
 
     def test_communication(self,config,logger=None):
         if self.data_server_query_class is not None:
-            return self.data_server_query_class(config=config,instrument=self).test_communication(logger=logger)
+            return self.data_server_query_class(config=config, instrument=self).test_communication(logger=logger)
 
     def test_busy(self, config,logger=None):
         if self.data_server_query_class is not None:
@@ -255,9 +259,14 @@ class Instrument(object):
                     else:
                         pass
 
-                except Exception as e:
-                    #FAILED
-                    query_out.set_failed(product_type,logger=logger,sentry_client=sentry_client,excep=e)
+                except RequestNotUnderstood as e:
+                    logger.warning("bad request from user, passing through: %s", e)
+                    raise
+
+                except Exception as e: # we shall not do that
+                    logger.error("run_query failed: %s", e)
+                    logger.error("run_query failed: %s", traceback.format_exc())
+                    query_out.set_failed(product_type, logger=logger, sentry_client=sentry_client, excep=e)
 
 
 
@@ -397,7 +406,7 @@ class Instrument(object):
         input_file_path=None
 
         if logger is None:
-            logger = logging.getLogger(__name__)
+            logger = logging.getLogger(repr(self))
 
         if request.method == 'POST':
             try:
