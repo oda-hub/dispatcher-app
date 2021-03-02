@@ -198,6 +198,8 @@ def test_no_token(dispatcher_live_fixture, async_dispatcher):
 
 
 @pytest.mark.parametrize("selection", ["range", "280200470010.001"])
+@pytest.mark.dda
+@pytest.mark.xfail
 def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
     """
     this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
@@ -233,6 +235,7 @@ def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
 
 
 
+@pytest.mark.dda
 def test_isgri_image_fixed_done(dispatcher_live_fixture):
     """
     something already done at backend
@@ -252,6 +255,7 @@ def test_isgri_image_fixed_done(dispatcher_live_fixture):
     json.dump(jdata, open("jdata.json", "w"))
 
 
+@pytest.mark.dda
 def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
     """
     something already done at backend
@@ -271,6 +275,7 @@ def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
 
 
 
+@pytest.mark.dda
 def test_isgri_image_random_emax(dispatcher_live_fixture):
     """
     something already done at backend
