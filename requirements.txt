@@ -20,3 +20,4 @@ python-shell-colors
 logging_tree
 celery
 redis
+psutil
