@@ -32,6 +32,7 @@ import logging
 import socket
 import logstash
 import hashlib
+import typing
 
 from ..plugins import importer
 from ..analysis.queries import *
@@ -156,6 +157,8 @@ class InstrumentQueryBackEnd:
                     self.set_instrument(self.instrument_name)
 
                 self.config=config
+
+            print('==> found par dict',self.par_dic.keys())
 
         except APIerror:
             raise
@@ -697,7 +700,9 @@ class InstrumentQueryBackEnd:
         current_disp_oda_api_version = None
         if hasattr(oda_api, '__version__'):
             current_disp_oda_api_version = oda_api.__version__
+            
         query_oda_api_version = None
+
         if 'oda_api_version' in self.par_dic.keys():
             query_oda_api_version = self.par_dic['oda_api_version']
 
@@ -716,35 +721,71 @@ class InstrumentQueryBackEnd:
         else:
             pass
 
-        if oda_api_version_error is not None:
+        return None # it's good
+        
+    def validate_query_from_token(self,token):
+        """
+        read base64 token
+        decide if it is valid
+        return True/False
+        """
 
-            job = job_factory(self.instrument_name,
-                              self.scratch_dir,
-                              self.dispatcher_service_url,
-                              None,
-                              self.par_dic['session_id'],
-                              self.job_id,
-                              self.par_dic,
-                              aliased=False)
+        print("==> token",token)
+        return True
 
-            job.set_failed()
+    def validate_token(self, off_line=False, disp_conf=None, api=False) -> typing.Union[None, QueryOutput]:
+        if 'token' in self.par_dic.keys():
+            token = self.par_dic['token']
+            if token is not None:
+                validate = self.validate_query_from_token(token)
+                if validate is True:
+                    pass
+                else:
+                    job = job_factory(self.instrument_name,
+                                      self.scratch_dir,
+                                      self.dispatcher_service_url,
+                                      None,
+                                      self.par_dic['session_id'],
+                                      self.job_id,
+                                      self.par_dic,
+                                      aliased=False)
 
-            job_monitor = job.monitor
-            query_status = 'failed'
+                    job.set_failed()
 
+                    job_monitor = job.monitor
+                    query_status = 'failed'
+
+                    query_out = QueryOutput()
+
+                    failed_task = 'oda_api permissions failed'
+
+                    query_out.set_failed(failed_task, message='you do not have permissions for this query, contact oda',
+                                         job_status=job_monitor['status'])
+
+                    resp = self.build_dispatcher_response(query_new_status=query_status,
+                                                          query_out=query_out,
+                                                          job_monitor=job_monitor,
+                                                          off_line=off_line,
+                                                          api=api)
+
+                    return resp
+        else:
+            print('==> NO TOKEN FOUND IN PARS')
+
+        try:
+            query_status=self.par_dic['query_status']
+        except Exception as e:
             query_out = QueryOutput()
+            query_out.set_query_exception(e,
+                                          'validate_token  failed in %s'%self.__class__.__name__,
+                                          extra_message='token validation failed unexplicably')
 
+        return None
 
-            query_out.set_failed(failed_task, message=oda_api_version_error, job_status=job_monitor['status'])
+    @property
+    def query_log_dir(self):
+        return os.path.dirname(self.response_log_filename)
 
-            resp = self.build_dispatcher_response(query_new_status=query_status,
-                                                  query_out=query_out,
-                                                  job_monitor=job_monitor,
-                                                  off_line=off_line,
-                                                  api=api)
-            return resp
-
-        return None # None means ok
 
     @property
     def response_filename(self):
@@ -755,10 +796,6 @@ class InstrumentQueryBackEnd:
         return os.path.join(self.scratch_dir, 
                             "query-log", 
                             f"query_output_{time_.strftime('%Y-%m-%d-%H-%M-%S')}.json")
-
-    @property
-    def query_log_dir(self):
-        return os.path.dirname(self.response_log_filename)
     
     @property
     def response_request(self): 
@@ -867,6 +904,11 @@ class InstrumentQueryBackEnd:
             query_status = self.par_dic['query_status']
         except KeyError as e:
             raise MissingRequestParameter(repr(e))
+
+        resp = self.validate_token()
+        if resp is not None:
+            self.logger.warn("query dismissed by token validation")
+            return resp
 
         if self.par_dic.pop('instrumet', None) is not None:
             self.logger.warning("someone is sending instrume(N!)ts?")
