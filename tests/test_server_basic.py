@@ -179,6 +179,7 @@ def test_no_token(dispatcher_live_fixture, async_dispatcher):
     params = {
         **default_params,
         'async_dispatcher': async_dispatcher,
+        'instrument': 'mock',
     }
 
     params.pop('token')
