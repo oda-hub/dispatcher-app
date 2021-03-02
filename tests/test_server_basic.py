@@ -85,6 +85,7 @@ default_params = dict(
                     DEC=22,
                     radius=6,
                     async_dispatcher=False,
+                    token="fake-token",
                  )
 
 
@@ -169,6 +170,32 @@ def validate_no_data_products(jdata):
     assert jdata["exit_status"]["error_message"] == "AnalysisException:{}"
     assert jdata["exit_status"]["message"] == "failed: get dataserver products "
     assert jdata["job_status"] == "failed"
+
+@pytest.mark.parametrize("async_dispatcher", [False, True])
+def test_no_token(dispatcher_live_fixture, async_dispatcher):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    params = {
+        **default_params,
+        'async_dispatcher': async_dispatcher,
+    }
+
+    params.pop('token')
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["failed"],
+                max_time_s=50,
+                )
+
+    print(json.dumps(jdata, indent=4))
+    
+    assert jdata["job_status"] == "failed"
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == "you do not have permissions for this query, contact oda"
+
 
 @pytest.mark.parametrize("selection", ["range", "280200470010.001"])
 def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
