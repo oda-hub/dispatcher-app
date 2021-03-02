@@ -765,6 +765,10 @@ class InstrumentQueryBackEnd:
         return resp
 
     def validate_token(self, off_line=False, disp_conf=None, api=False) -> typing.Union[None, QueryOutput]:
+        if os.environ.get('DISPATCHER_ENFORCE_TOKEN', 'no') != 'yes': #TODO to config!
+            self.logger.info('dispatcher not configured to enforce token!')
+            return 
+
         if 'token' in self.par_dic.keys():
             token = self.par_dic['token']
             if token is not None:
