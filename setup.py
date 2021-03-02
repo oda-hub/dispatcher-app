@@ -45,6 +45,9 @@ setup(name='cdci_data_analysis',
       packages=packs,
       include_package_data=True,
       install_requires=install_req,
+      tests_require=[
+            "psutil",
+          ]
 )
 
 

@@ -269,7 +269,6 @@ class BaseQuery(object):
         return json.dumps(l)
 
 
-
 class SourceQuery(BaseQuery):
     def __init__(self, name):
         src_name = Name(name_format='str', name='src_name',value='test')
@@ -283,11 +282,13 @@ class SourceQuery(BaseQuery):
 
         t_range = ParameterRange(t1, t2, 'time')
 
+        token = Name(name_format='str', name='token',value=None)
+
         #time_group = ParameterGroup([t_range_iso, t_range_mjd], 'time_range', selected='t_range_iso')
         #time_group_selector = time_group.build_selector('time_group_selector')
 
 
-        parameters_list=[src_name,sky_coords,t_range]
+        parameters_list=[src_name,sky_coords,t_range,token]
 
 
         super(SourceQuery, self).__init__(name,parameters_list)
