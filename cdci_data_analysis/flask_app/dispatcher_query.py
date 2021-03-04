@@ -166,7 +166,7 @@ class InstrumentQueryBackEnd:
 
         except Exception as e:
             self.logger.error(
-                'exception in constructor of %s %s', self, repr(e))
+                '\033[31mexception in constructor of %s %s\033[0m', self, repr(e))
             self.logger.error("traceback: %s", traceback.format_exc())
 
             query_out = QueryOutput()
