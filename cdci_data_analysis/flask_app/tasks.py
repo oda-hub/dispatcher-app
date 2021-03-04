@@ -29,12 +29,17 @@ def request_dispatcher(url, params):
     print("\033[31mquery URL", url, "\033[0m")
     print("\033[31mquery params", params, "\033[0m")
 
-    for i in range(10):
+    r = None
+    for i in reversed(range(10)):
         try:
             r = requests.get(url, params=params)
+            break
         except Exception as e:
             print("\033[31m exception in the request", e, "\033[0m")
-            time.sleep(3)
+            if i == 0:
+                raise
+            else:
+                time.sleep(1 + int(i**0.5))
 
     print("\033[35m", r.text[:200], "\033[0m")
 
