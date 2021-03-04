@@ -843,6 +843,11 @@ class InstrumentQueryBackEnd:
 
             r = tasks.celery.AsyncResult(r_json['celery-id'])
             self.logger.info("found celery job: %s state: %s", r.id, r.state)
+            
+            if r.state in ["FAILURE"]:
+                self.logger.info("celery job state failure, will overwrite")
+                overwrite = True
+
             if not overwrite:
                 self.logger.info("not overwriting, fine with the job")
                 return
