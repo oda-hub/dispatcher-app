@@ -824,13 +824,14 @@ class InstrumentQueryBackEnd:
 
             try:
                 Q.deserialize(open(self.response_filename, "r"))
-            except ProblemDecodingStoredQueryOut:
+                j = json.load(open(self.response_filename +
+                                   ".job-monitor", "r"))  # modify!
+            except (ProblemDecodingStoredQueryOut, FileNotFoundError, json.decoder.JSONDecodeError) as e:
                 self.logger.info(
                     "\033[31mstored query out corrupt (race?) or NOT FOUND at %s\033[0m", self.response_filename)
                 return
 
-            j = json.load(open(self.response_filename +
-                               ".job-monitor", "r"))  # modify!
+
 
             return Q, j
 
