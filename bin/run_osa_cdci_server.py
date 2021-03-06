@@ -88,7 +88,8 @@ def main(argv=None):
 
     conf_file = args.conf_file
 
-    conf = ConfigEnv.from_conf_file(conf_file)
+    conf = ConfigEnv.from_conf_file(conf_file, 
+                                    set_by=f'command line {__file__}:{__name__}')
     use_gunicorn = args.use_gunicorn
     debug = args.debug
 

@@ -175,6 +175,13 @@ def common_exception_payload():
         _l.append('%s'%instrument_factory().name)
 
     payload['installed_instruments'] = _l
+    
+    payload['debug_mode'] = os.environ.get('DISPATCHER_DEBUG_MODE', 'yes') # change the default
+
+    if payload['debug_mode'] == "yes":
+        payload['config'] = {
+            'dispatcher-config': app.config['conf']
+        }
 
     return payload
 
@@ -375,6 +382,8 @@ def run_app(conf,debug=False,threaded=False):
     app.config['conf'] = conf
     if conf.sentry_url is not None:
         sentry = Sentry(app, dsn=conf.sentry_url)
+        logger.warning("sentry not used")
+
     app.run(host=conf.dispatcher_url, port=conf.dispatcher_port, debug=debug,threaded=threaded)
 
 

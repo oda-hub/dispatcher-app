@@ -11,18 +11,10 @@ def make_celery():
         broker=os.environ.get("CELERY_BROKER", "redis://localhost:6379"),
         backend=os.environ.get("CELERY_BACKEND", "redis://localhost:6379"),
     )
-    #celery.conf.update(app.config)
-
-    # do we want that?
-#    class ContextTask(celery.Task):
-#        def __call__(self, *args, **kwargs):
-#            with app.app_context():
-#                return self.run(*args, **kwargs)
-
-    #celery.Task = ContextTask
     return celery
 
 celery = make_celery()
+celery.conf.result_expires = 600
 
 @celery.task()
 def request_dispatcher(url, params):

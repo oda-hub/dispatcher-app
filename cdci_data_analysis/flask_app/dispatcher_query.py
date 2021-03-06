@@ -35,7 +35,7 @@ import hashlib
 import typing
 
 from ..plugins import importer
-from ..analysis.queries import *
+from ..analysis.queries import * # TODO: evil wildcard import
 from ..analysis.job_manager import Job, job_factory
 from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
@@ -863,8 +863,10 @@ class InstrumentQueryBackEnd:
                         "overwriting request for this job: %s", r.state)
 
         # TODO: here we might as well query from minio etc, but only if ready
-        r = tasks.request_dispatcher.delay(
-            self.dispatcher_service_url + "/run_analysis", {**self.par_dic, 'async_dispatcher': False})
+        r = tasks.request_dispatcher.apply_async(
+            args=[self.dispatcher_service_url + "/run_analysis"], 
+            kwargs={**self.par_dic, 'async_dispatcher': False}
+        )
         self.logger.info("submitted celery job with pars %s", self.par_dic)
         self.logger.info("submitted celery job: %s state: %s", r.id, r.state)
         json.dump({'celery-id': r.id},

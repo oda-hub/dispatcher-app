@@ -24,7 +24,7 @@ def app():
     app.config['conf'] = ConfigEnv.from_conf_file("cdci_data_analysis/config_dir/conf_env.yml")
     return app
 
-@pytest.yield_fixture
+@pytest.fixture
 def dispatcher_live_fixture(pytestconfig):
     import subprocess
     import os
@@ -79,8 +79,10 @@ def dispatcher_live_fixture(pytestconfig):
     thread = Thread(target=follow_output, args=())
     thread.start()
 
+    started_waiting = time.time()
     while url_store[0] is None:
-        time.sleep(0.1)
+        print("waiting for server to start since", time.time() - started_waiting)
+        time.sleep(0.2)
     time.sleep(0.5)
 
     service=url_store[0]
@@ -89,7 +91,7 @@ def dispatcher_live_fixture(pytestconfig):
 
     
     print("will keep service alive a bit, for async")
-    time.sleep(5)
+    time.sleep(0.5)
 
     print(("child:",p.pid))
     import os,signal
