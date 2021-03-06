@@ -203,6 +203,13 @@ def common_exception_payload():
             'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),  ['sentry_url', 'logstash_host', 'logstash_port'])
         }
 
+    plugins = {}
+    payload['config']['plugins'] = plugins
+    for plugin_name, plugin_module in importer.cdci_plugins_dict.items():
+        plugins[plugin_name] = {
+            'config_file': plugin_module.conf_file
+        }
+
     return payload
 
 
