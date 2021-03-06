@@ -45,8 +45,10 @@ def test_empty_request(dispatcher_live_fixture):
 
     assert 'origin' in dispatcher_config
 
-    assert 'sentry_url' not in jdata['config']
-    
+    assert 'sentry_url' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'logstash_port' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'logstash_host' not in dispatcher_config['cfg_dict']['dispatcher']
+
     print(jdata['config'])
 
 
