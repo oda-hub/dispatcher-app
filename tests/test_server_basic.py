@@ -34,8 +34,9 @@ def test_empty_request(dispatcher_live_fixture):
 
     assert c.status_code == 400
 
-    assert jdata['installed_instruments'] == ['isgri', 'jemx', 'osa_fake'] or \ # parameterize this
-           jdata['installed_instruments'] == ['isgri', 'jemx', 'osa_fake']
+     # parameterize this
+    assert jdata['installed_instruments'] == ['isgri', 'jemx', 'osa_fake'] or \
+           jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"
     assert 'dispatcher-config' in jdata['config']
