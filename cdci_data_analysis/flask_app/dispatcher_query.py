@@ -845,6 +845,12 @@ class InstrumentQueryBackEnd:
             r = tasks.celery.AsyncResult(r_json['celery-id'])
             self.logger.info("found celery job: %s state: %s", r.id, r.state)
             self.logger.info("celery job: %s state: %s", r, r.__dict__)
+
+            if r.state == "PENDING":
+                flower_task = tasks.flower_task(r_json['celery-id'])
+                if flower_task is None:
+                    self.logger.info("PENDING celery job: %s does not exist in flower, marking UNEXISTENT", r)
+                    r.state = "UNEXISTENT"
             
             if r.state in ["FAILURE"]:
                 self.logger.info("celery job state failure, will overwrite")
@@ -856,7 +862,7 @@ class InstrumentQueryBackEnd:
             else:
                 if r.state in ["PENDING", "RUNNING"]:
                     self.logger.info(
-                        "even with overwriting, will not touch running/pending active job: %s", r.state)
+                        "even with overwriting, will not touch running/pending active job: %s", r.state) # sometimes job is stuck??
                     return
                 else:
                     self.logger.info(

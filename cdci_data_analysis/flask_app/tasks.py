@@ -1,5 +1,6 @@
 from celery import Celery
 from celery.result import AsyncResult
+import typing
 import requests
 
 import os
@@ -36,3 +37,18 @@ def request_dispatcher(url, **params):
     print("\033[35m", r.text[:200], "\033[0m")
 
     return url + str(params)
+
+def flower_task(task_id: str) -> typing.Union[None, dict]:
+    # same pod, port is fixed
+    r = requests.get(os.environ.get("CELERY_FLOWER", "http://localhost:5555") +
+                     "/api/task/info/" + task_id)
+
+    if r.status_code == 404:
+        return None
+
+    try:
+        return r.json()
+    except Exception as e:
+        # log and complan here TODO
+        raise
+
