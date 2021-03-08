@@ -1,5 +1,7 @@
 # Purpose
 
+To describe flow of the tokens in ODA.
+
 # User tokens
 
 ## Generation
