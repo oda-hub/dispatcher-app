@@ -843,16 +843,19 @@ class InstrumentQueryBackEnd:
             r_json = json.load(open(self.response_request))
 
             r = tasks.celery.AsyncResult(r_json['celery-id'])
-            self.logger.info("found celery job: %s state: %s", r.id, r.state)
+            r_state = r.state
+
+            self.logger.info("found celery job: %s state: %s", r.id, r_state)
             self.logger.info("celery job: %s state: %s", r, r.__dict__)
 
-            if r.state == "PENDING":
+
+            if r_state == "PENDING":
                 flower_task = tasks.flower_task(r_json['celery-id'])
                 if flower_task is None:
                     self.logger.info("PENDING celery job: %s does not exist in flower, marking UNEXISTENT", r)
-                    r.state = "UNEXISTENT"
+                    r_state = "UNEXISTENT"
             
-            if r.state in ["FAILURE"]:
+            if r_state in ["FAILURE"]:
                 self.logger.info("celery job state failure, will overwrite")
                 overwrite = True
 
@@ -860,13 +863,13 @@ class InstrumentQueryBackEnd:
                 self.logger.info("not overwriting, fine with the job")
                 return
             else:
-                if r.state in ["PENDING", "RUNNING"]:
+                if r_state in ["PENDING", "RUNNING"]:
                     self.logger.info(
-                        "even with overwriting, will not touch running/pending active job: %s", r.state) # sometimes job is stuck??
+                        "even with overwriting, will not touch running/pending active job: %s", r_state) # sometimes job is stuck??
                     return
                 else:
                     self.logger.info(
-                        "overwriting request for this job: %s", r.state)
+                        "overwriting request for this job: %s", r_state)
 
         # TODO: here we might as well query from minio etc, but only if ready
         r = tasks.request_dispatcher.apply_async(
@@ -874,7 +877,7 @@ class InstrumentQueryBackEnd:
             kwargs={**self.par_dic, 'async_dispatcher': False}
         )
         self.logger.info("submitted celery job with pars %s", self.par_dic)
-        self.logger.info("submitted celery job: %s state: %s", r.id, r.state)
+        self.logger.info("submitted celery job: %s state: %s", r.id, r_state)
         json.dump({'celery-id': r.id},
                   open(self.response_request, "w"))
 
