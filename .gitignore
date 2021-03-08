@@ -31,3 +31,4 @@ data_*json
 emax-last
 jdata.json
 .vscode/settings.json
+/venv

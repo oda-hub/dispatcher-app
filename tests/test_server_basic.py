@@ -7,6 +7,7 @@ import signal
 import os
 import random
 import traceback
+import logging
 
 from threading import Thread
 from time import sleep
@@ -15,6 +16,7 @@ import pytest
 
 #pytestmark = pytest.mark.skip("these tests still WIP")
 
+logger = logging.getLogger(__name__)
 
 """
 this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
@@ -52,8 +54,23 @@ def test_empty_request(dispatcher_live_fixture):
     print(jdata['config'])
 
 
-    
+    def test_isgri_dummy(dispatcher_live_fixture):
+        server = dispatcher_live_fixture
 
+        # print("constructed server:", server)
+        logger.info("constructed server: %s", server)
+        c = requests.get(server + "/run_analysis",
+                          params = dict(
+                              query_status = "new",
+                              query_type = "Dummy",
+                              instrument = "isgri",
+                              product_type = "isgri_image",
+                          ))
+        logger.info("content: %s", c.text)
+        jdata = c.json()
+        logger.info(list(jdata.keys()))
+        logger.info(jdata)
+        assert c.status_code == 200
 
 
 def test_no_instrument(dispatcher_live_fixture):
@@ -214,7 +231,7 @@ def test_no_token(dispatcher_live_fixture, async_dispatcher):
     params = {
         **default_params,
         'async_dispatcher': async_dispatcher,
-        'instrument': 'mock',
+        # 'instrument': 'mock',
     }
 
     params.pop('token')
