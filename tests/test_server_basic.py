@@ -54,23 +54,50 @@ def test_empty_request(dispatcher_live_fixture):
     print(jdata['config'])
 
 
-    def test_isgri_dummy(dispatcher_live_fixture):
-        server = dispatcher_live_fixture
+def test_isgri_dummy(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
 
-        # print("constructed server:", server)
-        logger.info("constructed server: %s", server)
-        c = requests.get(server + "/run_analysis",
-                          params = dict(
-                              query_status = "new",
-                              query_type = "Dummy",
-                              instrument = "isgri",
-                              product_type = "isgri_image",
-                          ))
-        logger.info("content: %s", c.text)
-        jdata = c.json()
-        logger.info(list(jdata.keys()))
-        logger.info(jdata)
-        assert c.status_code == 200
+    # print("constructed server:", server)
+    logger.info("constructed server: %s", server)
+    c = requests.get(server + "/run_analysis",
+                      params = dict(
+                          query_status = "new",
+                          query_type = "Dummy",
+                          instrument = "isgri",
+                          product_type = "isgri_image",
+                      ))
+    logger.info("content: %s", c.text)
+    jdata = c.json()
+    logger.info(list(jdata.keys()))
+    logger.info(jdata)
+    assert c.status_code == 200
+
+def test_empty_request(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    params = {
+         **default_params,
+        'product_type': 'dummy',
+        'query_type' : "Dummy",
+        'instrument': 'empty',
+    }
+
+    # params.pop('token')
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=50,
+                )
+
+    print(json.dumps(jdata, indent=4))
+
+    assert jdata["job_status"] == "done"
+    assert jdata["exit_status"]["status_code"] == 200
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == ""
 
 
 def test_no_instrument(dispatcher_live_fixture):
@@ -157,6 +184,9 @@ def ask(server, params, expected_query_status, expected_job_status=None, max_tim
 
     jdata=c.json()
 
+    if c.status_code is not None:
+        jdata["exit_status"]["status_code"] = c.status_code
+
     if expected_status_code is not None:
         assert c.status_code == expected_status_code
 
@@ -223,6 +253,8 @@ def validate_no_data_products(jdata):
     assert jdata["exit_status"]["message"] == "failed: get dataserver products "
     assert jdata["job_status"] == "failed"
 
+
+
 @pytest.mark.parametrize("async_dispatcher", [False, True])
 def test_no_token(dispatcher_live_fixture, async_dispatcher):
     server = dispatcher_live_fixture
@@ -231,7 +263,7 @@ def test_no_token(dispatcher_live_fixture, async_dispatcher):
     params = {
         **default_params,
         'async_dispatcher': async_dispatcher,
-        # 'instrument': 'mock',
+        'instrument': 'mock',
     }
 
     params.pop('token')

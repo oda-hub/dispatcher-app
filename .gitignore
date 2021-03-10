@@ -32,3 +32,5 @@ emax-last
 jdata.json
 .vscode/settings.json
 /venv
+/tests/isgri_query_mosaic.fits
+/tests/query_catalog.fits
