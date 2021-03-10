@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
 """
 
+
 def test_empty_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
@@ -51,7 +52,49 @@ def test_empty_request(dispatcher_live_fixture):
     assert 'logstash_port' not in dispatcher_config['cfg_dict']['dispatcher']
     assert 'logstash_host' not in dispatcher_config['cfg_dict']['dispatcher']
 
-    print(jdata['config'])
+    logger.info(jdata['config'])
+
+
+@pytest.mark.parametrize("public", [False, True])
+def test_empty_public(dispatcher_live_fixture, public):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'public': public
+    }
+
+    # let's remove the token
+    params.pop('token')
+
+    if public:
+        # if the request is public, then it should be authorized
+        jdata = ask(server,
+                    params,
+                    expected_query_status=["done"],
+                    max_time_s=50,
+                    )
+        assert jdata["exit_status"]["debug_message"] == ""
+        assert jdata["exit_status"]["error_message"] == ""
+        assert jdata["exit_status"]["message"] == ""
+    else:
+        # if the request is not public, then it should be denied since the token has been removed
+        jdata = ask(server,
+                    params,
+                    expected_query_status=["failed"],
+                    max_time_s=50,
+                    )
+        assert jdata["exit_status"]["debug_message"] == ""
+        assert jdata["exit_status"]["error_message"] == ""
+        assert jdata["exit_status"]["message"] == "you do not have permissions for this query, contact oda"
+
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
 
 
 def test_isgri_dummy(dispatcher_live_fixture):
@@ -72,18 +115,17 @@ def test_isgri_dummy(dispatcher_live_fixture):
     logger.info(jdata)
     assert c.status_code == 200
 
+
 def test_empty_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
 
     params = {
-         **default_params,
+        **default_params,
         'product_type': 'dummy',
-        'query_type' : "Dummy",
+        'query_type': "Dummy",
         'instrument': 'empty',
     }
-
-    # params.pop('token')
 
     jdata = ask(server,
                 params,
@@ -91,10 +133,9 @@ def test_empty_request(dispatcher_live_fixture):
                 max_time_s=50,
                 )
 
-    print(json.dumps(jdata, indent=4))
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
 
-    assert jdata["job_status"] == "done"
-    assert jdata["exit_status"]["status_code"] == 200
     assert jdata["exit_status"]["debug_message"] == ""
     assert jdata["exit_status"]["error_message"] == ""
     assert jdata["exit_status"]["message"] == ""
@@ -119,6 +160,7 @@ def test_no_instrument(dispatcher_live_fixture):
     jdata=c.json()
 
     assert c.status_code == 400
+
 
 @pytest.mark.skip(reason="todo")
 def test_isgri_no_osa(dispatcher_live_fixture):
@@ -174,23 +216,20 @@ def ask(server, params, expected_query_status, expected_job_status=None, max_tim
     c=requests.get(server + "/run_analysis",
                    params={**params},
                   )
-    print(f"\033[31m request took {time.time() - t0} seconds\033[0m")
+    logger.info(f"\033[31m request took {time.time() - t0} seconds\033[0m")
     t_spent = time.time() - t0
     assert t_spent < max_time_s
 
-    print("content:", c.text[:1000])
+    logger.info("content: %s", c.text[:1000])
     if len(c.text) > 1000:
         print(".... (truncated)")
 
     jdata=c.json()
 
-    if c.status_code is not None:
-        jdata["exit_status"]["status_code"] = c.status_code
-
     if expected_status_code is not None:
         assert c.status_code == expected_status_code
 
-    print(list(jdata.keys()))
+    logger.info(list(jdata.keys()))
 
     if expected_job_status is not None:
         assert jdata["exit_status"]["job_status"] in expected_job_status
@@ -234,25 +273,24 @@ def loop_ask(server, params):
                     )
 
         if jdata["query_status"] in ["ready", "done"]:
-            print("query READY:", jdata["query_status"])
+            logger.info("query READY:", jdata["query_status"])
             break
 
-        print("query NOT-READY:", jdata["query_status"], jdata["job_monitor"])
-        print("looping...")
+        logger.info("query NOT-READY:", jdata["query_status"], jdata["job_monitor"])
+        logger.info("looping...")
 
         time.sleep(5)
 
-
-    print(f"\033[31m total request took {time.time() - t0} seconds\033[0m")
+    logger.info(f"\033[31m total request took {time.time() - t0} seconds\033[0m")
 
     return jdata, time.time() - t0
+
 
 def validate_no_data_products(jdata):
     assert jdata["exit_status"]["debug_message"] == "{\"node\": \"dataanalysis.core.AnalysisException\", \"exception\": \"{}\", \"exception_kind\": \"handled\"}"
     assert jdata["exit_status"]["error_message"] == "AnalysisException:{}"
     assert jdata["exit_status"]["message"] == "failed: get dataserver products "
     assert jdata["job_status"] == "failed"
-
 
 
 @pytest.mark.parametrize("async_dispatcher", [False, True])
@@ -275,8 +313,7 @@ def test_no_token(dispatcher_live_fixture, async_dispatcher):
                 )
 
     print(json.dumps(jdata, indent=4))
-    
-    assert jdata["job_status"] == "failed"
+
     assert jdata["exit_status"]["debug_message"] == ""
     assert jdata["exit_status"]["error_message"] == ""
     assert jdata["exit_status"]["message"] == "you do not have permissions for this query, contact oda"

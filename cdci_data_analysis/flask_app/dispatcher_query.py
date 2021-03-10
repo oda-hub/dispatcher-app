@@ -108,6 +108,12 @@ class InstrumentQueryBackEnd:
             """
 
             self.set_session_id()
+
+            self.public = True
+
+            if 'public' in self.par_dic:
+                self.public = self.par_dic['public'] in ['true', 'True']
+
             if instrument_name is None:
                 if 'instrument' in self.par_dic:
                     self.instrument_name = self.par_dic['instrument']
@@ -538,8 +544,7 @@ class InstrumentQueryBackEnd:
         out_dict = mock_query(self.par_dic, session_id,
                               self.job_id, self.scratch_dir)
 
-        self.logger.info(
-            '============================================================')
+        self.logger.info('============================================================')
         self.logger.info('')
 
         #print ('query doen with job status-->',job_status)
@@ -766,7 +771,39 @@ class InstrumentQueryBackEnd:
                                               api=self.api)
         return resp
 
-    def validate_token(self, off_line=False, disp_conf=None, api=False) -> typing.Union[None, QueryOutput]:
+    def validate_token_request_param(self,):
+        # if the request is public then authorize it, because the token is not there
+        if self.public:
+            return None
+
+        if 'token' in self.par_dic.keys():
+            token = self.par_dic['token']
+            if token is not None:
+                validate = self.validate_query_from_token(token)
+                if validate is True:
+                    pass
+                else:
+                    return self.build_response_failed('oda_api permissions failed',
+                                                      'you do not have permissions for this query, contact oda')
+
+        else:
+            self.logger.warning('==> NO TOKEN FOUND IN PARS')
+
+            return self.build_response_failed('oda_api token is needed',
+                                              'you do not have permissions for this query, contact oda')
+
+        try:
+            query_status = self.par_dic['query_status']
+        except Exception as e:
+            query_out = QueryOutput()
+            query_out.set_query_exception(e,
+                                          'validate_token  failed in %s' % self.__class__.__name__,
+                                          extra_message='token validation failed unexplicably')
+            return query_out
+
+        return None
+
+    def validate_token_env_var(self, off_line=False, disp_conf=None, api=False) -> typing.Union[None, QueryOutput]:
         if os.environ.get('DISPATCHER_ENFORCE_TOKEN', 'no') != 'yes': #TODO to config!
             self.logger.info('dispatcher not configured to enforce token!')
             return 
@@ -954,7 +991,8 @@ class InstrumentQueryBackEnd:
         except KeyError as e:
             raise MissingRequestParameter(repr(e))
 
-        resp = self.validate_token()
+        # resp = self.validate_token_env_var()
+        resp = self.validate_token_request_param()
         if resp is not None:
             self.logger.warn("query dismissed by token validation")
             return resp
