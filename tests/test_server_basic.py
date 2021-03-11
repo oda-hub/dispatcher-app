@@ -8,6 +8,7 @@ import os
 import random
 import traceback
 import logging
+import jwt
 
 from threading import Thread
 from time import sleep
@@ -16,7 +17,10 @@ import pytest
 
 #pytestmark = pytest.mark.skip("these tests still WIP")
 
+# logger
 logger = logging.getLogger(__name__)
+# symmetric shared secret for the decoding of the token
+secret_key = os.environ.get('SECRET_KEY', 'SECRET_KEY') # temporary
 
 """
 this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
@@ -55,43 +59,71 @@ def test_empty_request(dispatcher_live_fixture):
     logger.info(jdata['config'])
 
 
-@pytest.mark.parametrize("public", [False, True])
-def test_empty_public(dispatcher_live_fixture, public):
+def test_valid_token(dispatcher_live_fixture,):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
+    token_payload = {
+        "email": "mtm@mtmco.net",
+        "name": "mmeharga",
+        "roles": "authenticated user, content manager, general, magic",
+        "exp": 1618161500
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
     params = {
         **default_params,
         'product_type': 'dummy',
         'query_type': "Dummy",
         'instrument': 'empty',
-        'public': public
+        'token': encoded_token
     }
 
-    # let's remove the token
-    params.pop('token')
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=50,
+                )
 
-    if public:
-        # if the request is public, then it should be authorized
-        jdata = ask(server,
-                    params,
-                    expected_query_status=["done"],
-                    max_time_s=50,
-                    )
-        assert jdata["exit_status"]["debug_message"] == ""
-        assert jdata["exit_status"]["error_message"] == ""
-        assert jdata["exit_status"]["message"] == ""
-    else:
-        # if the request is not public, then it should be denied since the token has been removed
-        jdata = ask(server,
-                    params,
-                    expected_query_status=["failed"],
-                    max_time_s=50,
-                    )
-        assert jdata["exit_status"]["debug_message"] == ""
-        assert jdata["exit_status"]["error_message"] == ""
-        assert jdata["exit_status"]["message"] == "you do not have permissions for this query, contact oda"
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == ""
+
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
+
+
+def test_invalid_token(dispatcher_live_fixture, ):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # expired token
+    token_payload = {
+        "email": "mtm@mtmco.net",
+        "name": "mmeharga",
+        "roles": "authenticated user, content manager, general, magic",
+        "exp": 1318161500
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["failed"],
+                max_time_s=50,
+                )
+
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == "you do not have permissions for this query, contact oda"
 
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))

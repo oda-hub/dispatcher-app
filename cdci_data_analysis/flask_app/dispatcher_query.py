@@ -33,6 +33,7 @@ import socket
 import logstash
 import hashlib
 import typing
+import jwt
 
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
@@ -109,10 +110,15 @@ class InstrumentQueryBackEnd:
 
             self.set_session_id()
 
+            # By default, a request is public, let's now check if a token has been included
+            # In that case, validation is needed
             self.public = True
 
-            if 'public' in self.par_dic:
-                self.public = self.par_dic['public'] in ['true', 'True']
+            # if 'public' in self.par_dic:
+            #     self.public = self.par_dic['public'] in ['true', 'True']
+            if 'token' in self.par_dic.keys() and self.par_dic['token'] != "":
+                self.token = self.par_dic['token']
+                self.public = False
 
             if instrument_name is None:
                 if 'instrument' in self.par_dic:
@@ -729,14 +735,25 @@ class InstrumentQueryBackEnd:
 
         return None  # it's good
 
-    def validate_query_from_token(self, token):
+    def validate_query_from_token(self, encoded_token):
         """
         read base64 token
         decide if it is valid
         return True/False
         """
 
-        print("==> token", token)
+        """
+        extract the various content of the token
+        """
+        secret_key = os.environ.get('SECRET_KEY', 'SECRET_KEY') # temporary
+        try:
+            decoded_token = jwt.decode(encoded_token, secret_key, algorithms=['HS256'])
+        except jwt.exceptions.ExpiredSignatureError as e:
+            # expired token
+
+            return False
+
+        self.logger.info("==> token %s", decoded_token)
         return True
 
     def build_job(self):
@@ -776,15 +793,13 @@ class InstrumentQueryBackEnd:
         if self.public:
             return None
 
-        if 'token' in self.par_dic.keys():
-            token = self.par_dic['token']
-            if token is not None:
-                validate = self.validate_query_from_token(token)
-                if validate is True:
-                    pass
-                else:
-                    return self.build_response_failed('oda_api permissions failed',
-                                                      'you do not have permissions for this query, contact oda')
+        if self.token is not None:
+            validate = self.validate_query_from_token(self.token)
+            if validate is True:
+                pass
+            else:
+                return self.build_response_failed('oda_api permissions failed',
+                                                  'you do not have permissions for this query, contact oda')
 
         else:
             self.logger.warning('==> NO TOKEN FOUND IN PARS')
