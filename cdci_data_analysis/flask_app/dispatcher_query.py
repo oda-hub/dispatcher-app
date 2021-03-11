@@ -877,7 +877,7 @@ class InstrumentQueryBackEnd:
             kwargs={**self.par_dic, 'async_dispatcher': False}
         )
         self.logger.info("submitted celery job with pars %s", self.par_dic)
-        self.logger.info("submitted celery job: %s state: %s", r.id, r_state)
+        self.logger.info("submitted celery job: %s state: %s", r.id, r.state)
         json.dump({'celery-id': r.id},
                   open(self.response_request, "w"))
 
