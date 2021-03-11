@@ -1,4 +1,12 @@
+|||
+|:--|:--|
+|**Status**| In-Progress|
+|**Prepared-By**| VS, MM|
+|**Prepared-For**| ODA developers |
+
 # Purpose
+
+To describe flow of the tokens in ODA. 
 
 # User tokens
 
