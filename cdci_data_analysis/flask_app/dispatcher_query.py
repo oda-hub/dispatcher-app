@@ -746,12 +746,7 @@ class InstrumentQueryBackEnd:
         extract the various content of the token
         """
         secret_key = os.environ.get('SECRET_KEY', 'SECRET_KEY') # temporary
-        try:
-            decoded_token = jwt.decode(encoded_token, secret_key, algorithms=['HS256'])
-        except jwt.exceptions.ExpiredSignatureError as e:
-            # expired token
-
-            return False
+        decoded_token = jwt.decode(encoded_token, secret_key, algorithms=['HS256'])
 
         self.logger.info("==> token %s", decoded_token)
         return True
@@ -794,16 +789,18 @@ class InstrumentQueryBackEnd:
             return None
 
         if self.token is not None:
-            validate = self.validate_query_from_token(self.token)
-            if validate is True:
-                pass
-            else:
+            try:
+                validate = self.validate_query_from_token(self.token)
+                if validate:
+                    pass
+            except jwt.exceptions.ExpiredSignatureError as e:
+                # expired token
+                return self.build_response_failed('oda_api permissions failed', 'token expired')
+            except Exception as e:
                 return self.build_response_failed('oda_api permissions failed',
                                                   'you do not have permissions for this query, contact oda')
-
         else:
             self.logger.warning('==> NO TOKEN FOUND IN PARS')
-
             return self.build_response_failed('oda_api token is needed',
                                               'you do not have permissions for this query, contact oda')
 
