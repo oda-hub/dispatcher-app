@@ -22,4 +22,3 @@ celery
 redis
 psutil
 pyjwt
-logging
