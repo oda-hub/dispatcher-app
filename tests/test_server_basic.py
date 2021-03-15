@@ -131,7 +131,7 @@ def test_invalid_token(dispatcher_live_fixture, ):
     logger.info(json.dumps(jdata, indent=4))
 
 
-@pytest.mark.dda
+@pytest.mark.isgri_plugin
 def test_isgri_dummy(dispatcher_live_fixture):
     server = dispatcher_live_fixture
 
