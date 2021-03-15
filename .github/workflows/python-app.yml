@@ -35,4 +35,4 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || echo "failed second lint"
     - name: Test with pytest
       run: |
-        DISPATCHER_ENFORCE_TOKEN=yes pytest  tests/test_server_basic.py -sv --full-trace   --log-cli-level=DEBUG    -m 'not dda, not isgri_plugin'
+        DISPATCHER_ENFORCE_TOKEN=yes pytest  tests/test_server_basic.py -sv --full-trace   --log-cli-level=DEBUG    -m 'not isgri_plugin'

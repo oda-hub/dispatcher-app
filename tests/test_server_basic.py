@@ -200,6 +200,7 @@ def test_no_instrument(dispatcher_live_fixture):
 
 
 @pytest.mark.skip(reason="todo")
+@pytest.mark.isgri_plugin
 def test_isgri_no_osa(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
@@ -359,6 +360,7 @@ def test_no_token(dispatcher_live_fixture, async_dispatcher):
 
 @pytest.mark.parametrize("selection", ["range", "280200470010.001"])
 @pytest.mark.dda
+@pytest.mark.isgri_plugin
 @pytest.mark.xfail
 def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
     """
@@ -395,6 +397,7 @@ def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
 
 
 @pytest.mark.dda
+@pytest.mark.isgri_plugin
 def test_isgri_image_fixed_done(dispatcher_live_fixture):
     """
     something already done at backend
@@ -415,6 +418,7 @@ def test_isgri_image_fixed_done(dispatcher_live_fixture):
 
 
 @pytest.mark.dda
+@pytest.mark.isgri_plugin
 def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
     """
     something already done at backend
@@ -434,6 +438,7 @@ def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
 
 
 @pytest.mark.dda
+@pytest.mark.isgri_plugin
 def test_isgri_image_random_emax(dispatcher_live_fixture):
     """
     something already done at backend
