@@ -131,10 +131,10 @@ def test_invalid_token(dispatcher_live_fixture, ):
     logger.info(json.dumps(jdata, indent=4))
 
 
+@pytest.mark.dda
 def test_isgri_dummy(dispatcher_live_fixture):
     server = dispatcher_live_fixture
 
-    # print("constructed server:", server)
     logger.info("constructed server: %s", server)
     c = requests.get(server + "/run_analysis",
                       params = dict(
@@ -394,7 +394,6 @@ def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
     validate_no_data_products(jdata)
 
 
-
 @pytest.mark.dda
 def test_isgri_image_fixed_done(dispatcher_live_fixture):
     """
@@ -432,7 +431,6 @@ def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
     jdata, tspent = loop_ask(server, params)
 
     assert  20 < tspent < 40
-
 
 
 @pytest.mark.dda

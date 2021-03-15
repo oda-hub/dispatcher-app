@@ -183,6 +183,7 @@ def remove_nested_keys(D, keys):
 
     return D
 
+
 def common_exception_payload():
     payload = {}
 

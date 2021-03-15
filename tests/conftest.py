@@ -18,11 +18,13 @@ def kill_child_processes(parent_pid, sig=signal.SIGTERM):
     except psutil.NoSuchProcess:
         return
 
+
 @pytest.fixture(scope="session")
 def app():
     app = cdci_data_analysis.flask_app.app.app
     app.config['conf'] = ConfigEnv.from_conf_file("cdci_data_analysis/config_dir/conf_env.yml")
     return app
+
 
 @pytest.fixture
 def dispatcher_live_fixture(pytestconfig):
@@ -32,10 +34,10 @@ def dispatcher_live_fixture(pytestconfig):
     import time
     from threading import Thread
 
-    env=copy.deepcopy(dict(os.environ))
-    print(("rootdir",str(pytestconfig.rootdir)))
-    env['PYTHONPATH'] = str(pytestconfig.rootdir)+":"+str(pytestconfig.rootdir)+"/tests:"+env.get('PYTHONPATH', "")
-    print(("pythonpath",env['PYTHONPATH']))
+    env = copy.deepcopy(dict(os.environ))
+    print(("rootdir", str(pytestconfig.rootdir)))
+    env['PYTHONPATH'] = str(pytestconfig.rootdir) + ":" + str(pytestconfig.rootdir) + "/tests:" + env.get('PYTHONPATH', "")
+    print(("pythonpath", env['PYTHONPATH']))
         
     cmd = [ 
             "python", 
@@ -44,7 +46,7 @@ def dispatcher_live_fixture(pytestconfig):
             "-use_gunicorn"
           ] 
 
-    p=subprocess.Popen(
+    p = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
