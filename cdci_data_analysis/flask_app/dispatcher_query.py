@@ -745,9 +745,17 @@ class InstrumentQueryBackEnd:
         """
         extract the various content of the token
         """
-        secret_key = os.environ.get('SECRET_KEY', 'SECRET_KEY') # temporary
+        # dispatcher-app deployment cofiguration, will always be here ?
+        secret_key = self.app.config.get('conf').secret_key
         decoded_token = jwt.decode(encoded_token, secret_key, algorithms=['HS256'])
 
+        # extract user
+        user = decoded_token['name']
+        # extract role(s)
+        roles = decoded_token['roles'].split(',')
+        roles[:] = [r.strip() for r in roles]
+        # for i, role in enumerate(roles):
+        #     roles[i] = roles[i].strip()
         self.logger.info("==> token %s", decoded_token)
         return True
 
@@ -882,8 +890,6 @@ class InstrumentQueryBackEnd:
                     "\033[31mstored query out corrupt (race?) or NOT FOUND at %s\033[0m", self.response_filename)
                 return
 
-
-
             return Q, j
 
         self.logger.info(
@@ -898,7 +904,6 @@ class InstrumentQueryBackEnd:
 
             self.logger.info("found celery job: %s state: %s", r.id, r_state)
             self.logger.info("celery job: %s state: %s", r, r.__dict__)
-
 
             if r_state == "PENDING":
                 flower_task = tasks.flower_task(r_json['celery-id'])

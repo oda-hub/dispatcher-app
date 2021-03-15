@@ -20,8 +20,7 @@ import pytest
 # logger
 logger = logging.getLogger(__name__)
 # symmetric shared secret for the decoding of the token
-secret_key = os.environ.get('SECRET_KEY', 'SECRET_KEY') # temporary
-
+secret_key = 'secretkey_test'
 """
 this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
 """
@@ -68,7 +67,7 @@ def test_valid_token(dispatcher_live_fixture,):
     token_payload = {
         "email": "mtm@mtmco.net",
         "name": "mmeharga",
-        "roles": "authenticated user, content manager, general, magic",
+        "roles": "authenticated user ,  content manager ,  general , magic",
         "exp": exp_time
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
@@ -83,8 +82,8 @@ def test_valid_token(dispatcher_live_fixture,):
 
     jdata = ask(server,
                 params,
-                expected_query_status=["done"],
-                max_time_s=50,
+                expected_query_status = ["done"],
+                max_time_s = 50,
                 )
 
     assert jdata["exit_status"]["debug_message"] == ""
@@ -161,6 +160,9 @@ def test_empty_request(dispatcher_live_fixture):
         'query_type': "Dummy",
         'instrument': 'empty',
     }
+
+    # let's keep the request public
+    params.pop('token')
 
     jdata = ask(server,
                 params,

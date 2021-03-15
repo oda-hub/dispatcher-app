@@ -172,6 +172,7 @@ class ConfigEnv(object):
                                      disp_dict['logstash_port'],
                                      products_url,
                                      disp_dict['dispatcher_service_url'],
+                                     disp_dict['secret_key'],
                                      )
 
         # not used?
@@ -201,7 +202,7 @@ class ConfigEnv(object):
         self._data_server_conf_dict[instr_name] = _dict
         #self._data_server_conf_dict[instr_name] = DataServerConf.from_conf_dict(data_server_conf_dict)
 
-    def set_conf_dispatcher(self, dispatcher_url, dispatcher_port, sentry_url, logstash_host, logstash_port, products_url, dispatcher_service_url):
+    def set_conf_dispatcher(self, dispatcher_url, dispatcher_port, sentry_url, logstash_host, logstash_port, products_url, dispatcher_service_url, secret_key):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
         self.dispatcher_url = dispatcher_url
@@ -211,6 +212,7 @@ class ConfigEnv(object):
         self.logstash_port = logstash_port
         self.products_url = products_url
         self.dispatcher_service_url = dispatcher_service_url
+        self.secret_key = secret_key
 
     def get_data_serve_conf(self, instr_name):
         if instr_name in self.data_server_conf_dict.keys():
