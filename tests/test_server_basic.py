@@ -330,6 +330,7 @@ def validate_no_data_products(jdata):
     assert jdata["job_status"] == "failed"
 
 
+@pytest.mark.skip(reason="old, replaced by new tests")
 @pytest.mark.parametrize("async_dispatcher", [False, True])
 def test_no_token(dispatcher_live_fixture, async_dispatcher):
     server = dispatcher_live_fixture
