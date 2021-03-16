@@ -201,7 +201,7 @@ def common_exception_payload():
 
     if payload['debug_mode'] == "yes":
         payload['config'] = {
-            'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),  ['sentry_url', 'logstash_host', 'logstash_port'])
+            'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),  ['sentry_url', 'logstash_host', 'logstash_port', 'secret_key'])
         }
 
     plugins = {}
