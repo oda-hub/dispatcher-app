@@ -33,59 +33,50 @@ __author__ = "Andrea Tramacere"
 
 logger = logging.getLogger("conf")
 
-
-# TODO: this looks rather specific to INTEGRAL?
-
 class DataServerConf:
 
-    def __init__(self, data_server_url,
-                 data_server_remote_cache=None,
-                 dispatcher_mnt_point=None,
-                 dummy_cache=None,
-                 products_url=None,
-                 data_server_port=None):
+    def __init__(self, **kwargs):
 
-        if data_server_port is not None:
-            logger.warning(
-                "data_server_port is disregarded, since it is naturally included in the url")
+        conf = kwargs.copy()
 
-        logger.info("building config from %s %s %s", data_server_url,
-                    data_server_remote_cache, dispatcher_mnt_point)
+        logger.info("building config from %s", conf)
 
-        if data_server_url is None:
-            logger.warning(
-                f"problem constructing {self}: data_server_url is None: {data_server_url}")
+        required_keys = ['data_server_url']
 
-        if data_server_remote_cache is None:
-            logger.warning(
-                f"problem constructing {self}: data_server_remote_cache is None: {data_server_remote_cache}")
+        for key in required_keys:
+            try:
+                self.__setattr__(key, conf.pop(key))
+            except KeyError as e:
+                logger.error(
+                    f"problem constructing {self}: {key} configuration key is required")
+                raise e
 
-        if dispatcher_mnt_point is None:
-            logger.warning(
-                f"problem constructing {self}: dispatcher_mnt_point is None: {dispatcher_mnt_point}")
+        if conf.pop('data_server_port', None) is not None:
+             logger.warning(
+                 "data""_server_port is disregarded, since it is naturally included in the url")
 
-        self.data_server_url = data_server_url
+        #special cases (maybe INTEGRAL specific a bit)
+        if conf.get('data_server_remote_cache', None) is not None:
+            # path to dataserver cache
+            self.data_server_remote_path = conf.pop('data_server_remote_cache')
+        else:
+            self.data_server_remote_path = None
 
-        # dummy prods local cache
-        self.dummy_cache = dummy_cache
-
-        # path to dataserver cache
-        self.data_server_remote_path = data_server_remote_cache
-
-        if dispatcher_mnt_point is not None:
-            self.dispatcher_mnt_point = os.path.abspath(dispatcher_mnt_point)
+        if conf.get('dispatcher_mnt_point', None) is not None:
+            self.dispatcher_mnt_point = os.path.abspath(conf.pop('dispatcher_mnt_point'))
             FilePath(file_dir=self.dispatcher_mnt_point).mkdir()
         else:
             self.dispatcher_mnt_point = None
 
-        self.products_url = products_url
-
         if self.dispatcher_mnt_point is not None and self.data_server_remote_path is not None:
-            #self.data_server_cache = os.path.join(self.dispatcher_mnt_point, self.data_server_remote_path)
             self.data_server_cache = os.path.join(
                 self.dispatcher_mnt_point, self.data_server_remote_path)
         else:
             self.data_server_cache = None
+
+        #optional config keys
+        for key in conf:
+            self.__setattr__(key, conf[key])
 
         #print(' --> DataServerConf')
         # for v in  vars(self):
@@ -93,33 +84,11 @@ class DataServerConf:
 
     @classmethod
     def from_conf_dict(cls, conf_dict):
-
-        # dataserver port
-        data_server_port = conf_dict.get('data_server_port', None)
-
-        # dataserver url
-        data_server_url = conf_dict.get('data_server_url', None)
-
-        # dummy prods local cache
-        dummy_cache = conf_dict.get('dummy_cache', None)
-
-        # path to dataserver cache
-        data_server_remote_cache = conf_dict.get('data_server_cache', None)
-
-        dispatcher_mnt_point = conf_dict.get('dispatcher_mnt_point', None)
-
-        #print('--> conf_dict key conf', conf_dict.keys())
-
-        products_url = conf_dict.get('products_url', None)
-
-        return DataServerConf(data_server_url=data_server_url,
-                              data_server_remote_cache=data_server_remote_cache,
-                              dispatcher_mnt_point=dispatcher_mnt_point,
-                              dummy_cache=dummy_cache,
-                              products_url=products_url,
-                              data_server_port=data_server_port)
+        return DataServerConf(**conf_dict)
 
     @classmethod
+    # NOTE this method is not used elsewhere
+    # Bug? Need to use nested dict, cfg_dict['instrument'][instrument_name]
     def from_conf_file(cls, conf_file):
         logger.info(
             "\033[32mconstructing config from file %s\033[0m", conf_file)
