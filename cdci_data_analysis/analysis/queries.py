@@ -43,7 +43,7 @@ def check_is_base_query(func,prod_list,*args, **kwargs):
 
 def _check_is_base_query(_list):
     for _item in _list:
-        if isinstance(_item,BaseQuery):
+        if isinstance(_item, BaseQuery):
             pass
         else:
             raise RuntimeError('each member has to be a BaseQuery instance')
@@ -51,7 +51,7 @@ def _check_is_base_query(_list):
 
 class BaseQuery(object):
 
-    def __init__(self,name,_list):
+    def __init__(self, name, _list):
 
         if _list is None:
             _list=[]

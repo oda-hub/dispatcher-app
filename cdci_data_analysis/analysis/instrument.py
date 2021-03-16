@@ -35,7 +35,7 @@ from astropy.table import Table
 
 from cdci_data_analysis.analysis.queries import _check_is_base_query
 from .catalog import BasicCatalog
-from .products import  QueryOutput
+from .products import QueryOutput
 from .queries import ProductQuery, SourceQuery, InstrumentQuery
 from .io_helper import FilePath
 from .exceptions import RequestNotUnderstood
@@ -142,11 +142,11 @@ class Instrument:
 
 
 
-    def get_query_by_name(self,prod_name):
+    def get_query_by_name(self, prod_name):
         p=None
         for _query in self._queries_list:
             if prod_name == _query.name:
-                p  =  _query
+                p = _query
 
         if p is None:
             raise Warning('query', prod_name, 'not found')
@@ -236,11 +236,12 @@ class Instrument:
                     else:
                         query_name = self.query_dictionary[product_type]
                     #print ('=======> query_name',query_name)
-                    query_out = self.get_query_by_name(query_name).run_query(self, out_dir, job, run_asynch,
-                                                                             query_type=query_type, config=config,
-                                                                             logger=logger,
-                                                                             sentry_client=sentry_client,
-                                                                             api=api)
+                    query_obj = self.get_query_by_name(query_name)
+                    query_out = query_obj.run_query(self, out_dir, job, run_asynch,
+                                                             query_type=query_type, config=config,
+                                                             logger=logger,
+                                                             sentry_client=sentry_client,
+                                                             api=api)
                     if query_out.status_dictionary['status'] == 0:
                         #DONE
                         if 'comment' in query_out.status_dictionary.keys():
@@ -265,7 +266,7 @@ class Instrument:
 
                 except Exception as e: # we shall not do that
                     logger.error("run_query failed: %s", e)
-                    logger.error("run_query failed: %s", traceback.format_exc())
+                    # logger.error("run_query failed: %s", traceback.format_exc())
                     query_out.set_failed(product_type, logger=logger, sentry_client=sentry_client, excep=e)
 
 

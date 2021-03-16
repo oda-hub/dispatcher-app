@@ -33,6 +33,7 @@ import socket
 import logstash
 import hashlib
 import typing
+import jwt
 
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
@@ -108,6 +109,17 @@ class InstrumentQueryBackEnd:
             """
 
             self.set_session_id()
+
+            # By default, a request is public, let's now check if a token has been included
+            # In that case, validation is needed
+            self.public = True
+
+            # if 'public' in self.par_dic:
+            #     self.public = self.par_dic['public'] in ['true', 'True']
+            if 'token' in self.par_dic.keys() and self.par_dic['token'] != "":
+                self.token = self.par_dic['token']
+                self.public = False
+
             if instrument_name is None:
                 if 'instrument' in self.par_dic:
                     self.instrument_name = self.par_dic['instrument']
@@ -538,8 +550,7 @@ class InstrumentQueryBackEnd:
         out_dict = mock_query(self.par_dic, session_id,
                               self.job_id, self.scratch_dir)
 
-        self.logger.info(
-            '============================================================')
+        self.logger.info('============================================================')
         self.logger.info('')
 
         #print ('query doen with job status-->',job_status)
@@ -642,8 +653,10 @@ class InstrumentQueryBackEnd:
         else:
             config = self.config
 
-        disp_data_server_conf_dict = config.get_data_server_conf_dict(
-            self.instrument_name)
+        disp_data_server_conf_dict = config.get_data_server_conf_dict(self.instrument_name)
+
+        if disp_data_server_conf_dict is None and self.instrument is not None and not isinstance(self.instrument, str):
+            disp_data_server_conf_dict = self.instrument.data_server_conf_dict
 
         logger.debug('--> App configuration for: %s', self.instrument_name)
         if disp_data_server_conf_dict is not None:
@@ -722,14 +735,28 @@ class InstrumentQueryBackEnd:
 
         return None  # it's good
 
-    def validate_query_from_token(self, token):
+    def validate_query_from_token(self, encoded_token):
         """
         read base64 token
         decide if it is valid
         return True/False
         """
 
-        print("==> token", token)
+        """
+        extract the various content of the token
+        """
+        # dispatcher-app deployment cofiguration, will always be here ?
+        secret_key = self.app.config.get('conf').secret_key
+        decoded_token = jwt.decode(encoded_token, secret_key, algorithms=['HS256'])
+
+        # extract user
+        user = decoded_token['name']
+        # extract role(s)
+        roles = decoded_token['roles'].split(',')
+        roles[:] = [r.strip() for r in roles]
+        # for i, role in enumerate(roles):
+        #     roles[i] = roles[i].strip()
+        self.logger.info("==> token %s", decoded_token)
         return True
 
     def build_job(self):
@@ -764,7 +791,39 @@ class InstrumentQueryBackEnd:
                                               api=self.api)
         return resp
 
-    def validate_token(self, off_line=False, disp_conf=None, api=False) -> typing.Union[None, QueryOutput]:
+    def validate_token_request_param(self,):
+        # if the request is public then authorize it, because the token is not there
+        if self.public:
+            return None
+
+        if self.token is not None:
+            try:
+                validate = self.validate_query_from_token(self.token)
+                if validate:
+                    pass
+            except jwt.exceptions.ExpiredSignatureError as e:
+                # expired token
+                return self.build_response_failed('oda_api permissions failed', 'token expired')
+            except Exception as e:
+                return self.build_response_failed('oda_api permissions failed',
+                                                  'you do not have permissions for this query, contact oda')
+        else:
+            self.logger.warning('==> NO TOKEN FOUND IN PARS')
+            return self.build_response_failed('oda_api token is needed',
+                                              'you do not have permissions for this query, contact oda')
+
+        try:
+            query_status = self.par_dic['query_status']
+        except Exception as e:
+            query_out = QueryOutput()
+            query_out.set_query_exception(e,
+                                          'validate_token  failed in %s' % self.__class__.__name__,
+                                          extra_message='token validation failed unexplicably')
+            return query_out
+
+        return None
+
+    def validate_token_env_var(self, off_line=False, disp_conf=None, api=False) -> typing.Union[None, QueryOutput]:
         if os.environ.get('DISPATCHER_ENFORCE_TOKEN', 'no') != 'yes': #TODO to config!
             self.logger.info('dispatcher not configured to enforce token!')
             return 
@@ -831,8 +890,6 @@ class InstrumentQueryBackEnd:
                     "\033[31mstored query out corrupt (race?) or NOT FOUND at %s\033[0m", self.response_filename)
                 return
 
-
-
             return Q, j
 
         self.logger.info(
@@ -847,7 +904,6 @@ class InstrumentQueryBackEnd:
 
             self.logger.info("found celery job: %s state: %s", r.id, r_state)
             self.logger.info("celery job: %s state: %s", r, r.__dict__)
-
 
             if r_state == "PENDING":
                 flower_task = tasks.flower_task(r_json['celery-id'])
@@ -952,7 +1008,8 @@ class InstrumentQueryBackEnd:
         except KeyError as e:
             raise MissingRequestParameter(repr(e))
 
-        resp = self.validate_token()
+        # resp = self.validate_token_env_var()
+        resp = self.validate_token_request_param()
         if resp is not None:
             self.logger.warn("query dismissed by token validation")
             return resp

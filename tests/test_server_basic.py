@@ -7,6 +7,8 @@ import signal
 import os
 import random
 import traceback
+import logging
+import jwt
 
 from threading import Thread
 from time import sleep
@@ -15,10 +17,14 @@ import pytest
 
 #pytestmark = pytest.mark.skip("these tests still WIP")
 
-
+# logger
+logger = logging.getLogger(__name__)
+# symmetric shared secret for the decoding of the token
+secret_key = 'secretkey_test'
 """
 this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
 """
+
 
 def test_empty_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
@@ -49,11 +55,127 @@ def test_empty_request(dispatcher_live_fixture):
     assert 'logstash_port' not in dispatcher_config['cfg_dict']['dispatcher']
     assert 'logstash_host' not in dispatcher_config['cfg_dict']['dispatcher']
 
-    print(jdata['config'])
+    logger.info(jdata['config'])
 
 
-    
+def test_valid_token(dispatcher_live_fixture,):
+    server = dispatcher_live_fixture
 
+    logger.info("constructed server: %s", server)
+    # let's generate a valid token
+    exp_time = int(time.time()) + 500
+    token_payload = {
+        "email": "mtm@mtmco.net",
+        "name": "mmeharga",
+        "roles": "authenticated user ,  content manager ,  general , magic",
+        "exp": exp_time
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status = ["done"],
+                max_time_s = 50,
+                )
+
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == ""
+
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
+
+
+def test_invalid_token(dispatcher_live_fixture, ):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    # let's generate an expired token
+    exp_time = int(time.time()) - 500
+    # expired token
+    token_payload = {
+        "email": "mtm@mtmco.net",
+        "name": "mmeharga",
+        "roles": "authenticated user, content manager, general, magic",
+        "exp": exp_time
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["failed"],
+                max_time_s=50,
+                )
+
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == "token expired"
+
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
+
+
+@pytest.mark.isgri_plugin
+def test_isgri_dummy(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    c = requests.get(server + "/run_analysis",
+                      params = dict(
+                          query_status = "new",
+                          query_type = "Dummy",
+                          instrument = "isgri",
+                          product_type = "isgri_image",
+                      ))
+    logger.info("content: %s", c.text)
+    jdata = c.json()
+    logger.info(list(jdata.keys()))
+    logger.info(jdata)
+    assert c.status_code == 200
+
+
+def test_empty_request(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+    }
+
+    # let's keep the request public
+    params.pop('token')
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=50,
+                )
+
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
+
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == ""
 
 
 def test_no_instrument(dispatcher_live_fixture):
@@ -76,7 +198,9 @@ def test_no_instrument(dispatcher_live_fixture):
 
     assert c.status_code == 400
 
+
 @pytest.mark.skip(reason="todo")
+@pytest.mark.isgri_plugin
 def test_isgri_no_osa(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
@@ -130,11 +254,11 @@ def ask(server, params, expected_query_status, expected_job_status=None, max_tim
     c=requests.get(server + "/run_analysis",
                    params={**params},
                   )
-    print(f"\033[31m request took {time.time() - t0} seconds\033[0m")
+    logger.info(f"\033[31m request took {time.time() - t0} seconds\033[0m")
     t_spent = time.time() - t0
     assert t_spent < max_time_s
 
-    print("content:", c.text[:1000])
+    logger.info("content: %s", c.text[:1000])
     if len(c.text) > 1000:
         print(".... (truncated)")
 
@@ -143,7 +267,7 @@ def ask(server, params, expected_query_status, expected_job_status=None, max_tim
     if expected_status_code is not None:
         assert c.status_code == expected_status_code
 
-    print(list(jdata.keys()))
+    logger.info(list(jdata.keys()))
 
     if expected_job_status is not None:
         assert jdata["exit_status"]["job_status"] in expected_job_status
@@ -187,18 +311,18 @@ def loop_ask(server, params):
                     )
 
         if jdata["query_status"] in ["ready", "done"]:
-            print("query READY:", jdata["query_status"])
+            logger.info("query READY:", jdata["query_status"])
             break
 
-        print("query NOT-READY:", jdata["query_status"], jdata["job_monitor"])
-        print("looping...")
+        logger.info("query NOT-READY:", jdata["query_status"], jdata["job_monitor"])
+        logger.info("looping...")
 
         time.sleep(5)
 
-
-    print(f"\033[31m total request took {time.time() - t0} seconds\033[0m")
+    logger.info(f"\033[31m total request took {time.time() - t0} seconds\033[0m")
 
     return jdata, time.time() - t0
+
 
 def validate_no_data_products(jdata):
     assert jdata["exit_status"]["debug_message"] == "{\"node\": \"dataanalysis.core.AnalysisException\", \"exception\": \"{}\", \"exception_kind\": \"handled\"}"
@@ -206,6 +330,8 @@ def validate_no_data_products(jdata):
     assert jdata["exit_status"]["message"] == "failed: get dataserver products "
     assert jdata["job_status"] == "failed"
 
+
+@pytest.mark.skip(reason="old, replaced by new tests")
 @pytest.mark.parametrize("async_dispatcher", [False, True])
 def test_no_token(dispatcher_live_fixture, async_dispatcher):
     server = dispatcher_live_fixture
@@ -226,8 +352,7 @@ def test_no_token(dispatcher_live_fixture, async_dispatcher):
                 )
 
     print(json.dumps(jdata, indent=4))
-    
-    assert jdata["job_status"] == "failed"
+
     assert jdata["exit_status"]["debug_message"] == ""
     assert jdata["exit_status"]["error_message"] == ""
     assert jdata["exit_status"]["message"] == "you do not have permissions for this query, contact oda"
@@ -235,6 +360,7 @@ def test_no_token(dispatcher_live_fixture, async_dispatcher):
 
 @pytest.mark.parametrize("selection", ["range", "280200470010.001"])
 @pytest.mark.dda
+@pytest.mark.isgri_plugin
 @pytest.mark.xfail
 def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
     """
@@ -270,8 +396,8 @@ def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
     validate_no_data_products(jdata)
 
 
-
 @pytest.mark.dda
+@pytest.mark.isgri_plugin
 def test_isgri_image_fixed_done(dispatcher_live_fixture):
     """
     something already done at backend
@@ -292,6 +418,7 @@ def test_isgri_image_fixed_done(dispatcher_live_fixture):
 
 
 @pytest.mark.dda
+@pytest.mark.isgri_plugin
 def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
     """
     something already done at backend
@@ -310,8 +437,8 @@ def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
     assert  20 < tspent < 40
 
 
-
 @pytest.mark.dda
+@pytest.mark.isgri_plugin
 def test_isgri_image_random_emax(dispatcher_live_fixture):
     """
     something already done at backend

@@ -41,7 +41,7 @@ import traceback
 
 import logging
 from pscolors import render
-
+from .dummy_instrument import empty_instrument
 logger = logging.getLogger(__name__)
 
 #plugin_list=['cdci_osa_plugin','cdci_polar_plugin']
@@ -53,7 +53,9 @@ cdci_plugins_dict = {
     if (name.startswith('cdci') and name.endswith('plugin'))
 }
 
-instrument_factory_list=[]
+instrument_factory_list = []
+# pre-load the empty instrument factory
+instrument_factory_list.append(empty_instrument.my_instr_factory)
 for plugin_name in cdci_plugins_dict:
     logger.info("found plugin: %s", plugin_name)
 

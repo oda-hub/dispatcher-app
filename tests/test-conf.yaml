@@ -7,3 +7,4 @@ dispatcher:
     sentry_url: "https://2ba7e5918358439485632251fa73658c@sentry.io/1467382"
     logstash_host: 10.194.169.75
     logstash_port: 5001
+    secret_key: 'secretkey_test'
