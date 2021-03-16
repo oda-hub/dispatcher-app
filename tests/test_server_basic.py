@@ -154,7 +154,7 @@ def test_isgri_dummy(dispatcher_live_fixture):
     assert c.status_code == 200
 
 
-def test_empty_request(dispatcher_live_fixture):
+def test_empty_instrument_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
 
