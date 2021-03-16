@@ -98,22 +98,26 @@ class DataServerConf:
         data_server_port = conf_dict.get('data_server_port', None)
 
         # dataserver url
-        data_server_url = conf_dict['data_server_url']
+        data_server_url = conf_dict.get('data_server_url', None)
 
         # dummy prods local cache
-        dummy_cache = conf_dict['dummy_cache']
+        dummy_cache = conf_dict.get('dummy_cache', None)
 
         # path to dataserver cache
-        data_server_remote_cache = conf_dict['data_server_cache']
+        data_server_remote_cache = conf_dict.get('data_server_cache', None)
 
-        dispatcher_mnt_point = conf_dict['dispatcher_mnt_point']
+        dispatcher_mnt_point = conf_dict.get('dispatcher_mnt_point', None)
 
         #print('--> conf_dict key conf', conf_dict.keys())
-        if 'products_url' in conf_dict.keys():
-            products_url = conf_dict['products_url']
-        else:
-            products_url = None
-        return DataServerConf(data_server_url, data_server_remote_cache, dispatcher_mnt_point, dummy_cache, products_url, data_server_port)
+
+        products_url = conf_dict.get('products_url', None)
+
+        return DataServerConf(data_server_url=data_server_url,
+                              data_server_remote_cache=data_server_remote_cache,
+                              dispatcher_mnt_point=dispatcher_mnt_point,
+                              dummy_cache=dummy_cache,
+                              products_url=products_url,
+                              data_server_port=data_server_port)
 
     @classmethod
     def from_conf_file(cls, conf_file):
