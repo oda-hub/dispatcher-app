@@ -95,29 +95,25 @@ class DataServerConf:
     def from_conf_dict(cls, conf_dict):
 
         # dataserver port
-        data_server_port = conf_dict.get('data_server_port', None)
+        data_server_port = conf_dict['data_server_port']
 
         # dataserver url
-        data_server_url = conf_dict.get('data_server_url', None)
+        data_server_url = conf_dict['data_server_url']
 
         # dummy prods local cache
-        dummy_cache = conf_dict.get('dummy_cache', None)
+        dummy_cache = conf_dict['dummy_cache']
 
         # path to dataserver cache
-        data_server_remote_cache = conf_dict.get('data_server_cache', None)
+        data_server_remote_cache = conf_dict['data_server_cache']
 
-        dispatcher_mnt_point = conf_dict.get('dispatcher_mnt_point', None)
+        dispatcher_mnt_point = conf_dict['dispatcher_mnt_point']
 
         #print('--> conf_dict key conf', conf_dict.keys())
-
-        products_url = conf_dict.get('products_url', None)
-
-        return DataServerConf(data_server_url=data_server_url,
-                              data_server_remote_cache=data_server_remote_cache,
-                              dispatcher_mnt_point=dispatcher_mnt_point,
-                              dummy_cache=dummy_cache,
-                              products_url=products_url,
-                              data_server_port=data_server_port)
+        if 'products_url' in conf_dict.keys():
+            products_url = conf_dict['products_url']
+        else:
+            products_url = None
+        return DataServerConf(data_server_url, data_server_port, data_server_remote_cache, dispatcher_mnt_point, dummy_cache, products_url)
 
     @classmethod
     def from_conf_file(cls, conf_file):
