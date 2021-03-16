@@ -21,3 +21,4 @@ logging_tree
 celery
 redis
 psutil
+pyjwt
