@@ -95,7 +95,7 @@ class DataServerConf:
     def from_conf_dict(cls, conf_dict):
 
         # dataserver port
-        data_server_port = conf_dict['data_server_port']
+        data_server_port = conf_dict.get('data_server_port', None)
 
         # dataserver url
         data_server_url = conf_dict['data_server_url']
@@ -113,7 +113,7 @@ class DataServerConf:
             products_url = conf_dict['products_url']
         else:
             products_url = None
-        return DataServerConf(data_server_url, data_server_port, data_server_remote_cache, dispatcher_mnt_point, dummy_cache, products_url)
+        return DataServerConf(data_server_url, data_server_remote_cache, dispatcher_mnt_point, dummy_cache, products_url, data_server_port)
 
     @classmethod
     def from_conf_file(cls, conf_file):
