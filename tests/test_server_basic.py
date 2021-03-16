@@ -41,7 +41,8 @@ def test_empty_request(dispatcher_live_fixture):
     assert c.status_code == 400
 
      # parameterize this
-    assert jdata['installed_instruments'] == ['isgri', 'jemx', 'osa_fake'] or \
+    assert jdata['installed_instruments'] == ['empty', 'isgri', 'jemx', 'osa_fake'] or \
+           jdata['installed_instruments'] == ['empty'] or \
            jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"
@@ -54,6 +55,9 @@ def test_empty_request(dispatcher_live_fixture):
     assert 'sentry_url' not in dispatcher_config['cfg_dict']['dispatcher']
     assert 'logstash_port' not in dispatcher_config['cfg_dict']['dispatcher']
     assert 'logstash_host' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'secret_key' not in dispatcher_config['cfg_dict']['dispatcher']
+
+    assert 'products_url' in dispatcher_config['cfg_dict']['dispatcher']
 
     logger.info(jdata['config'])
 
@@ -150,7 +154,7 @@ def test_isgri_dummy(dispatcher_live_fixture):
     assert c.status_code == 200
 
 
-def test_empty_request(dispatcher_live_fixture):
+def test_empty_instrument_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
 
