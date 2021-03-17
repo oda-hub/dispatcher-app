@@ -52,16 +52,18 @@ def my_instr_factory():
     # empty query
     instr_query = InstrumentQuery(name='empty_parameters',)
 
-
     # my_instr_image_query -> name given to this query
     query = DataServerQuery('empty_parameters_query',)
 
     # this dicts binds the product query name to the product name from frontend
     # eg my_instr_image is the parameter passed by the fronted to access the
-    # the MyInstrMosaicQuery, and the dictionary will bing
-    query_dictionary = {}
-    query_dictionary['dummy'] = 'empty_parameters_query'
+    # the MyInstrMosaicQuery, and the dictionary will bind
     # query_dictionary['my_instr_image'] = 'my_instr_image_query'
+    query_dictionary = {}
+    # the empty instrument does not effectively do anything and therefore support any particular query
+    # nor product, only a simple query that does not return anything
+    query_dictionary['dummy'] = 'empty_parameters_query'
+
 
 
     return Instrument('empty',
