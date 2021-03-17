@@ -6,7 +6,7 @@
 
 # Purpose
 
-To describe flow of the tokens in ODA. 
+To describe flow of the tokens in ODA.
 
 # User tokens
 
