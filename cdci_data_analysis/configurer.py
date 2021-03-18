@@ -35,27 +35,32 @@ logger = logging.getLogger("conf")
 
 class DataServerConf:
 
-    def __init__(self, **kwargs):
+    def __init__(self, required_keys=None, allowed_keys=None, **kwargs):
+        if required_keys is None:
+            #temporary hardcode to preserve interface
+            required_keys = ['data_server_url', 'dummy_cache']
+
+        if allowed_keys is None:
+            #temporary hardcode to preserve interface
+            allowed_optional_keys = ['optional_key']
+        else:
+            allowed_optional_keys = [x for x in allowed_keys if x not in required_keys]
 
         conf = kwargs.copy()
 
         logger.info("building config from %s", conf)
 
-        required_keys = ['data_server_url']
 
-        for key in required_keys:
-            try:
-                self.__setattr__(key, conf.pop(key))
-            except KeyError as e:
-                logger.error(
-                    f"problem constructing {self}: {key} configuration key is required")
-                raise e
+        try:
+            self.__setattr__('data_server_url', conf.pop('data_server_url'))
+            required_keys.remove('data_server_url')
+        except KeyError as e:
+            logger.error(
+                f"problem constructing {self}: data_server_url configuration key is required")
+            raise e
 
-        if conf.pop('data_server_port', None) is not None:
-             logger.warning(
-                 "data""_server_port is disregarded, since it is naturally included in the url")
-
-        #special cases (maybe INTEGRAL specific a bit)
+        # special cases (INTEGRAL specific)
+        # NOTE: these are required for integral, so need to be processed before for-cycle for the other required ones
         if conf.get('data_server_remote_cache', None) is not None:
             # path to dataserver cache
             self.data_server_remote_path = conf.pop('data_server_remote_cache')
@@ -74,8 +79,38 @@ class DataServerConf:
         else:
             self.data_server_cache = None
 
+
+        for key in required_keys:
+            try:
+                value = conf.pop(key)
+                if value is None:
+                    if os.environ.get('DISPATCHER_DEBUG_MODE', 'yes') != 'yes':
+                        logger.error(
+                            f"required configuration key {key} is None")
+                        raise ValueError(
+                            f"None value of the required configuration key {key} is only allowed in debug mode")
+                    logger.warning(
+                        f"required configuration key {key} is None")
+                self.__setattr__(key, value)
+            except KeyError as e:
+                logger.error(
+                    f"problem constructing {self}: {key} configuration key is required")
+                raise e
+
+        if conf.pop('data_server_port', None) is not None:
+             logger.warning(
+                 "data_server_port is disregarded, since it is naturally included in the url")
+        if conf.pop('data_server_host', None) is not None:
+            logger.warning(
+                "data_server_host is disregarded, since it is naturally included in the url")
+
         #optional config keys
         for key in conf:
+            if key not in allowed_optional_keys:
+                logger.error(
+                             f"config key {key} is not allowed in this context")
+                raise ValueError(
+                    f"config key {key} is not allowed in this context")
             self.__setattr__(key, conf[key])
 
         #print(' --> DataServerConf')
@@ -83,12 +118,12 @@ class DataServerConf:
         #    print ('attr:',v,getattr(self,v))
 
     @classmethod
-    def from_conf_dict(cls, conf_dict):
-        return DataServerConf(**conf_dict)
+    def from_conf_dict(cls, conf_dict, required_keys=None, allowed_keys=None):
+        return DataServerConf(required_keys, allowed_keys, **conf_dict)
 
     @classmethod
     # NOTE this method is not used elsewhere
-    # Bug? Need to use nested dict, cfg_dict['instrument'][instrument_name]
+    # FIXME Bug? Need to use nested dict, cfg_dict['instrument'][instrument_name]
     def from_conf_file(cls, conf_file):
         logger.info(
             "\033[32mconstructing config from file %s\033[0m", conf_file)
