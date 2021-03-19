@@ -30,13 +30,9 @@ def test_empty_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
 
-    c=requests.get(server + "/run_analysis",
-                   params={},
-                )
+    c = requests.get(server + "/run_analysis", params={}, )
 
-    print("content:", c.text)
-
-    jdata=c.json()
+    jdata = c.json()
 
     assert c.status_code == 400
 
@@ -129,7 +125,7 @@ def test_invalid_token(dispatcher_live_fixture, ):
 
     assert jdata["exit_status"]["debug_message"] == ""
     assert jdata["exit_status"]["error_message"] == ""
-    assert jdata["exit_status"]["message"] == "token expired"
+    assert jdata["exit_status"]["message"] == "token expired, contact oda"
 
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
@@ -388,6 +384,8 @@ def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
             'scw_list': selection,
             'async_dispatcher': False,
         }
+    # let's make it a public request
+    params.pop('token')
 
     jdata = ask(server,
                 params,
@@ -409,7 +407,8 @@ def test_isgri_image_fixed_done(dispatcher_live_fixture):
 
     server = dispatcher_live_fixture
     print("constructed server:", server)
-
+    # let's make it a public request
+    default_params.pop('token')
     jdata = ask(server,
                 {**default_params, "async_dispatcher": False},
                 expected_query_status=["done"],
@@ -435,6 +434,9 @@ def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
     params = {
        **default_params,
     }
+
+    # let's make it a public request
+    params.pop('token')
 
     jdata, tspent = loop_ask(server, params)
 
@@ -462,6 +464,9 @@ def test_isgri_image_random_emax(dispatcher_live_fixture):
        **default_params,
        'E2_keV':emax,
     }
+
+    # let's make it a public request
+    params.pop('token')
 
     jdata, tspent = loop_ask(server, params)
 

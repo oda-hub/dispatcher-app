@@ -317,7 +317,7 @@ class OsaJob(Job):
         return  self.monitor
 
 
-
+# dispatcher port to be removed ?
 def job_factory(instrument_name, scratch_dir, server_url, dispatcher_port, session_id, job_id, par_dic, aliased=False):
     osa_list = ['jemx','isgri']
 

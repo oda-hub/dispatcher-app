@@ -65,6 +65,9 @@ class MissingRequestParameter(BadRequest):
     pass
 
 
+class WrongValueRequestParameter(BadRequest):
+    pass
+
 class InstrumentQueryBackEnd:
 
     def __repr__(self):
@@ -183,11 +186,10 @@ class InstrumentQueryBackEnd:
 
             query_out = QueryOutput()
             query_out.set_query_exception(
-                e, 'InstrumentQueryBackEnd constructor', extra_message='InstrumentQueryBackEnd constructor failed')
+                e,
+                'InstrumentQueryBackEnd constructor',
+                extra_message='InstrumentQueryBackEnd constructor failed')
 
-            #out_dict = {}
-            #out_dict['query_status'] = 1
-            #out_dict['exit_status'] = query_out.status_dictionary
             self.build_dispatcher_response(
                 query_new_status='failed', query_out=query_out)
 
@@ -774,17 +776,13 @@ class InstrumentQueryBackEnd:
         job.set_failed()
         job_monitor = job.monitor
 
-        query_status = 'failed'
-
         query_out = QueryOutput()
 
-        failed_task = message
-
-        query_out.set_failed(failed_task,
+        query_out.set_failed(message,
                              message=extra_message,
                              job_status=job_monitor['status'])
 
-        resp = self.build_dispatcher_response(query_new_status=query_status,
+        resp = self.build_dispatcher_response(query_new_status='failed',
                                               query_out=query_out,
                                               job_monitor=job_monitor,
                                               off_line=self.off_line,
@@ -803,23 +801,30 @@ class InstrumentQueryBackEnd:
                     pass
             except jwt.exceptions.ExpiredSignatureError as e:
                 # expired token
-                return self.build_response_failed('oda_api permissions failed', 'token expired')
+                return self.build_response_failed('oda_api token validation failed',
+                                                  'token expired, contact oda')
+            except jwt.DecodeError as e:
+                # token not properly formatted
+                return self.build_response_failed('oda_api token validation failed',
+                                                  'token not properly formatted, contact oda')
             except Exception as e:
-                return self.build_response_failed('oda_api permissions failed',
+                return self.build_response_failed('oda_api token validation failed',
                                                   'you do not have permissions for this query, contact oda')
         else:
             self.logger.warning('==> NO TOKEN FOUND IN PARS')
-            return self.build_response_failed('oda_api token is needed',
-                                              'you do not have permissions for this query, contact oda')
+            return self.build_response_failed('oda_api token validation failed',
+                                              'No token was provided')
 
-        try:
-            query_status = self.par_dic['query_status']
-        except Exception as e:
-            query_out = QueryOutput()
-            query_out.set_query_exception(e,
-                                          'validate_token  failed in %s' % self.__class__.__name__,
-                                          extra_message='token validation failed unexplicably')
-            return query_out
+        # TODO perhaps this should be removed? Why is it here?
+        # It is actually performed before calling this function
+        # try:
+        #     query_status = self.par_dic['query_status']
+        # except Exception as e:
+        #     query_out = QueryOutput()
+        #     query_out.set_query_exception(e,
+        #                                   'validate_token  failed in %s' % self.__class__.__name__,
+        #                                   extra_message='token validation failed unexplicably')
+        #     return query_out
 
         return None
 
@@ -1011,7 +1016,7 @@ class InstrumentQueryBackEnd:
         # resp = self.validate_token_env_var()
         resp = self.validate_token_request_param()
         if resp is not None:
-            self.logger.warn("query dismissed by token validation")
+            self.logger.warning("query dismissed by token validation")
             return resp
 
         if self.par_dic.pop('instrumet', None) is not None:
@@ -1039,7 +1044,7 @@ class InstrumentQueryBackEnd:
                                           'run_query failed in %s' % self.__class__.__name__,
                                           extra_message='job aliasing failed')
 
-        job_is_aliased = False
+        # setting up instrument asynch (typo?) running
         run_asynch = True
 
         if 'run_asynch' in self.par_dic.keys():
@@ -1048,18 +1053,21 @@ class InstrumentQueryBackEnd:
             elif self.par_dic['run_asynch'] == 'False':
                 run_asynch = False
             else:
-                raise RuntimeError(
-                    'run_asynch can be True or False, found', self.par_dic['run_asynch'])
+                raise RequestNotUnderstood(
+                    f"run_asynch can only be True or False, found : {self.par_dic['run_asynch']}")
 
         if self.async_dispatcher:
             self.logger.info('==> async dispatcher operation requested')
         else:
             self.logger.info('==> async dispatcher operation NOT requested')
 
-        if self.instrument.asynch == False:
+        if not self.instrument.asynch:
             run_asynch = False
 
-        if alias_workdir is not None and run_asynch == True:
+        # setting up aliased job
+        job_is_aliased = False
+
+        if alias_workdir is not None and run_asynch:
             job_is_aliased = True
 
         self.logger.info('--> is job aliased? : %s', job_is_aliased)
@@ -1087,7 +1095,7 @@ class InstrumentQueryBackEnd:
         # TODO if query status== ready but you get delegation
         # TODO set query status to new and ignore alias
 
-        if job_is_aliased == True and query_status != 'ready':
+        if job_is_aliased and query_status != 'ready':
             job_is_aliased = True
 
             original_work_dir = job.work_dir
@@ -1125,7 +1133,7 @@ class InstrumentQueryBackEnd:
                     job_monitor = job.updated_dataserver_monitor()
                     print('==>ALIASING switched off for Dummy query')
 
-        if job_is_aliased == True and query_status == 'ready':
+        if job_is_aliased and query_status == 'ready':
             original_work_dir = job.work_dir
             job.work_dir = alias_workdir
 
@@ -1134,7 +1142,7 @@ class InstrumentQueryBackEnd:
             job_monitor = job.updated_dataserver_monitor()
             self.logger.info('==>ALIASING switched off for status ready')
 
-        if job_is_aliased == True:
+        if job_is_aliased:
             delta_limit = 600
             try:
                 delta = self.get_file_mtime(
