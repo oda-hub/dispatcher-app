@@ -39,10 +39,13 @@ class DataServerConf:
         if required_keys is None:
             #temporary hardcode to preserve interface
             required_keys = ['data_server_url', 'dummy_cache']
+            # also integral specific, but treated seperately
+        else:
+            required_keys = required_keys.copy()
 
         if allowed_keys is None:
-            #temporary hardcode to preserve interface
-            allowed_optional_keys = ['optional_key']
+            #temporary hardcode smth to preserve interface
+            allowed_optional_keys = ['data_server_cache']
         else:
             allowed_optional_keys = [x for x in allowed_keys if x not in required_keys]
 
@@ -51,6 +54,7 @@ class DataServerConf:
         conf = kwargs.copy()
 
         logger.info("building config from %s", conf)
+        logger.info("allowed keys %s", allowed_keys)
 
 
         try:
@@ -61,13 +65,13 @@ class DataServerConf:
                 f"problem constructing {self}: data_server_url configuration key is required")
             raise e
 
-        self.process_integral_keys(conf)
+        self.process_integral_keys(conf, required_keys)
 
         for key in required_keys:
             try:
                 value = conf.pop(key)
                 if value is None:
-                    if os.environ.get('DISPATCHER_DEBUG_MODE', 'yes') != 'yes':
+                    if os.environ.get('DISPATCHER_DEBUG_MODE', 'no') != 'yes':
                         logger.error(
                             f"required configuration key {key} is None")
                         raise ValueError(
@@ -90,7 +94,7 @@ class DataServerConf:
             if key not in allowed_optional_keys:
                 logger.error(
                              f"config key {key} is not allowed in this context")
-                raise ValueError(
+                raise KeyError(
                     f"config key {key} is not allowed in this context")
             self.__setattr__(key, conf[key])
 
@@ -116,27 +120,33 @@ class DataServerConf:
 
         return DataServerConf.from_conf_dict(cfg_dict)
 
-    def process_integral_keys(self, conf):
+    def process_integral_keys(self, conf, required_keys):
     # special cases (INTEGRAL specific)
-    # NOTE: these are required keys for integral,
+    # NOTE: these could appear in required_keys for Integral (if explicitly specified),
     # so need to be done in constructor before for-loop for the other required ones
         if conf.get('data_server_remote_cache', None) is not None:
             # path to dataserver cache
             self.data_server_remote_path = conf.pop('data_server_remote_cache')
         else:
-            self.data_server_remote_path = None
+            if 'data_server_remote_cache' in required_keys:
+                raise KeyError("data_server_remote_cache configuration key is required")
 
         if conf.get('dispatcher_mnt_point', None) is not None:
             self.dispatcher_mnt_point = os.path.abspath(conf.pop('dispatcher_mnt_point'))
             FilePath(file_dir=self.dispatcher_mnt_point).mkdir()
         else:
-            self.dispatcher_mnt_point = None
+            if 'dispatcher_mnt_point' in required_keys:
+                raise KeyError("dispatcher_mnt_point configuration key is required")
 
-        if self.dispatcher_mnt_point is not None and self.data_server_remote_path is not None:
+        try:
+            required_keys.remove('data_server_remote_cache')
+            required_keys.remove('dispather_mnt_point')
+        except ValueError:
+            pass
+
+        if hasattr(self, 'dispatcher_mnt_point') and hasattr(self, 'data_server_remote_path'):
             self.data_server_cache = os.path.join(
                 self.dispatcher_mnt_point, self.data_server_remote_path)
-        else:
-            self.data_server_cache = None
 
 class ConfigEnv(object):
 
