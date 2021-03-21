@@ -46,39 +46,22 @@ class DataServerConf:
         else:
             allowed_optional_keys = [x for x in allowed_keys if x not in required_keys]
 
+        obsolete_keys = ['data_server_port', 'data_server_host']
+
         conf = kwargs.copy()
 
         logger.info("building config from %s", conf)
 
 
         try:
-            self.__setattr__('data_server_url', conf.pop('data_server_url'))
+            self.data_server_url = conf.pop('data_server_url')
             required_keys.remove('data_server_url')
         except KeyError as e:
             logger.error(
                 f"problem constructing {self}: data_server_url configuration key is required")
             raise e
 
-        # special cases (INTEGRAL specific)
-        # NOTE: these are required for integral, so need to be processed before for-cycle for the other required ones
-        if conf.get('data_server_remote_cache', None) is not None:
-            # path to dataserver cache
-            self.data_server_remote_path = conf.pop('data_server_remote_cache')
-        else:
-            self.data_server_remote_path = None
-
-        if conf.get('dispatcher_mnt_point', None) is not None:
-            self.dispatcher_mnt_point = os.path.abspath(conf.pop('dispatcher_mnt_point'))
-            FilePath(file_dir=self.dispatcher_mnt_point).mkdir()
-        else:
-            self.dispatcher_mnt_point = None
-
-        if self.dispatcher_mnt_point is not None and self.data_server_remote_path is not None:
-            self.data_server_cache = os.path.join(
-                self.dispatcher_mnt_point, self.data_server_remote_path)
-        else:
-            self.data_server_cache = None
-
+        self.process_integral_keys(conf)
 
         for key in required_keys:
             try:
@@ -97,12 +80,10 @@ class DataServerConf:
                     f"problem constructing {self}: {key} configuration key is required")
                 raise e
 
-        if conf.pop('data_server_port', None) is not None:
-             logger.warning(
-                 "data_server_port is disregarded, since it is naturally included in the url")
-        if conf.pop('data_server_host', None) is not None:
-            logger.warning(
-                "data_server_host is disregarded, since it is naturally included in the url")
+        for key in obsolete_keys:
+            if conf.pop(key, None) is not None:
+                logger.warning(
+                    f"{key} is disregarded, since it is naturally included in the url")
 
         #optional config keys
         for key in conf:
@@ -116,6 +97,8 @@ class DataServerConf:
         #print(' --> DataServerConf')
         # for v in  vars(self):
         #    print ('attr:',v,getattr(self,v))
+
+
 
     @classmethod
     def from_conf_dict(cls, conf_dict, required_keys=None, allowed_keys=None):
@@ -133,6 +116,27 @@ class DataServerConf:
 
         return DataServerConf.from_conf_dict(cfg_dict)
 
+    def process_integral_keys(self, conf):
+    # special cases (INTEGRAL specific)
+    # NOTE: these are required keys for integral,
+    # so need to be done in constructor before for-loop for the other required ones
+        if conf.get('data_server_remote_cache', None) is not None:
+            # path to dataserver cache
+            self.data_server_remote_path = conf.pop('data_server_remote_cache')
+        else:
+            self.data_server_remote_path = None
+
+        if conf.get('dispatcher_mnt_point', None) is not None:
+            self.dispatcher_mnt_point = os.path.abspath(conf.pop('dispatcher_mnt_point'))
+            FilePath(file_dir=self.dispatcher_mnt_point).mkdir()
+        else:
+            self.dispatcher_mnt_point = None
+
+        if self.dispatcher_mnt_point is not None and self.data_server_remote_path is not None:
+            self.data_server_cache = os.path.join(
+                self.dispatcher_mnt_point, self.data_server_remote_path)
+        else:
+            self.data_server_cache = None
 
 class ConfigEnv(object):
 
