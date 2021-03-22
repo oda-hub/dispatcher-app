@@ -52,7 +52,7 @@ See current working definition of real roles [here](https://github.com/oda-hub/d
   or establish filters for more complex request matching (e.g. restricting parameter ranges). 
   We should be cautious to put too much configuration in dispatcher when other methods (below) are possible.
 
-In general, backends should be able to control access to themselves by instructing dispatcher, see [interface](plugin-auth-interface.md) for dispatcher to learn about role restrictions from backend:
+In general, backends should be able to control access to themselves by instructing dispatcher, see [interface](plugin-interface.md) for dispatcher to learn about role restrictions from backend:
 
 * Some **Backends** may **declare which roles they require**, and **dispatcher** will respect these requests. See [interface](plugin-auth-interface.md) for dispatcher to learn about role restrictions from backend.
 * Some **Backends** (e.g. integral) will declare that they can operate in role-restricted mode, and will themselves perform additional filtering based on the **Role** information provided.
