@@ -54,7 +54,7 @@ See current working definition of real roles [here](https://github.com/oda-hub/d
 
 In general, backends should be able to control access to themselves by instructing dispatcher, see [interface](plugin-interface.md) for dispatcher to learn about role restrictions from backend:
 
-* Some **Backends** may **declare which roles they require**, and **dispatcher** will respect these requests. See [interface](plugin-auth-interface.md) for dispatcher to learn about role restrictions from backend.
+* Some **Backends** may **declare which roles they require**, and **dispatcher** will respect these requests. See [interface](plugin-interface.md) for dispatcher to learn about role restrictions from backend.
 * Some **Backends** (e.g. integral) will declare that they can operate in role-restricted mode, and will themselves perform additional filtering based on the **Role** information provided.
 
 In the second case, a more restricted **Token** can be provided to the backend, to prevent backend gaining entire rights of the user. **Restricted Token** can be obtained (on a special service, or another authority source) in exchange for the User **Token**, specifying the narrowing down of the scope.
