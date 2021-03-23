@@ -37,6 +37,7 @@ from .catalog import BasicCatalog
 
 import  numpy as np
 
+from typing import Union
 import logging
 
 logger = logging.getLogger(__name__)
@@ -184,17 +185,33 @@ class ParameterTuple(object):
 
 
 class Parameter(object):
-    def __init__(self,value=None,units=None,name=None,allowed_units=[],check_value=None,allowed_values=None,units_name=None):
+    def __init__(self, 
+                 value=None, 
+                 units=None, 
+                 name: Union[str, None]=None, 
+                 allowed_units=None,
+                 check_value=None,
+                 allowed_values=None,
+                 units_name=None):
         self.check_value=check_value
+
+        if allowed_units is None:
+            allowed_units = []
+        else:
+            allowed_units = allowed_units.copy()
+
+        if not ( name is None or type(name) in [ str ] ):
+            raise RuntimeError(f"can not initialize parameter with name {name} and type {type(name)}")
 
         self._allowed_units = allowed_units
         self._allowed_values = allowed_values
         self.name = name
-        self.units=units
+        self.units = units
         self.value = value
-        self.units_name=units_name
+        self.units_name = units_name
         #self._wtform_dict=wtform_dict
 
+        logger.info("initializing parameter %s name=%s", self, self.name)
 
 
 
@@ -251,7 +268,8 @@ class Parameter(object):
                 v = form[par_name]
                 in_dictionary=True
         except Exception as e:
-            logger.error("problem setting par_name=%s, form=%s",
+            logger.error("problem e=%s setting par_name=%s, form=%s",
+                         repr(e),
                          par_name,
                          form,
                         )
