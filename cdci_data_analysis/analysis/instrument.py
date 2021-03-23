@@ -127,12 +127,11 @@ class Instrument:
 
 
 
-    def set_pars_from_dic(self,par_dic,verbose=False):
+    def set_pars_from_dic(self, par_dic, verbose=False):
 
         for _query in self._queries_list:
-
             for par in _query._parameters_list:
-                par.set_from_form(par_dic,verbose=verbose)
+                par.set_from_form(par_dic, verbose=verbose)
 
 
     def set_par(self,par_name,value):
@@ -373,18 +372,25 @@ class Instrument:
         #print('setting form paramters')
         q=QueryOutput()
         #status=0
-        error_message=''
-        debug_message=''
+        error_message = ''
+        debug_message = ''
         if logger is None:
             logger = logging.getLogger(__name__)
 
         try:
-            self.set_pars_from_dic(par_dic,verbose=verbose)
+            self.set_pars_from_dic(par_dic, verbose=verbose)
             #DONE
             q.set_done(debug_message=str(debug_message))
         except Exception as e:
             #FAILED
-            q.set_failed('setting form parameters',logger=logger,sentry_client=sentry_client,excep=e)
+
+            m = f'problem setting form parameters from dict: {par_dic}'
+            logger.error(m)
+
+            q.set_failed(m,
+                         logger=logger,
+                         sentry_client=sentry_client,
+                         excep=e)
 
             #status=1
             #error_message= 'error in form parameter'
