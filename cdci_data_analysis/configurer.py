@@ -12,6 +12,8 @@ import sys
 import os
 import logging
 
+from typing import List, Union
+
 __author__ = "Andrea Tramacere"
 
 
@@ -35,7 +37,11 @@ logger = logging.getLogger("conf")
 
 class DataServerConf:
 
-    def __init__(self, required_keys=None, allowed_keys=None, **kwargs):
+    def __init__(self, 
+                 required_keys: Union[List[str], None]=None, 
+                 allowed_keys: Union[List[str], None]=None, 
+                 **kwargs):
+
         if required_keys is None:
             #temporary hardcode to preserve interface
             required_keys = ['data_server_url', 'dummy_cache']
@@ -56,6 +62,15 @@ class DataServerConf:
         logger.info("building config from %s", conf)
         logger.info("allowed keys %s", allowed_keys)
 
+        context_details_message = \
+        f"""
+        required_keys: {required_keys}
+        allowed_keys: {allowed_keys}
+        allowed_optional_keys: {allowed_optional_keys}
+        obsolete_keys: {obsolete_keys}
+
+        conf: {conf}
+        """
 
         try:
             self.data_server_url = conf.pop('data_server_url')
@@ -77,11 +92,11 @@ class DataServerConf:
                         raise ValueError(
                             f"None value of the required configuration key {key} is only allowed in debug mode")
                     logger.warning(
-                        f"required configuration key {key} is None")
+                        f"required configuration key {key} is None\m" + context_details_message)
                 self.__setattr__(key, value)
             except KeyError as e:
                 logger.error(
-                    f"problem constructing {self}: {key} configuration key is required")
+                    f"problem constructing {self}: {key} configuration key is required\n" + context_details_message)
                 raise e
 
         for key in obsolete_keys:
@@ -92,10 +107,9 @@ class DataServerConf:
         #optional config keys
         for key in conf:
             if key not in allowed_optional_keys:
-                logger.error(
-                             f"config key {key} is not allowed in this context")
-                raise KeyError(
-                    f"config key {key} is not allowed in this context")
+                m = f"config key {key} is not allowed in this context!'\n" + context_details_message                
+                logger.error(m)
+                raise KeyError(m)
             self.__setattr__(key, conf[key])
 
         #print(' --> DataServerConf')
