@@ -153,7 +153,8 @@ def test_invalid_token(dispatcher_live_fixture, ):
     logger.info(json.dumps(jdata, indent=4))
 
 
-def test_unauthorized_user(dispatcher_live_fixture,):
+@pytest.mark.parametrize("roles", ["soldier", "authenticated user, content manager, general, magic"])
+def test_authorization_user_roles(dispatcher_live_fixture, roles):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
@@ -162,7 +163,7 @@ def test_unauthorized_user(dispatcher_live_fixture,):
     token_payload = {
         "email": "mtm@mtmco.net",
         "name": "mmeharga",
-        "roles": "soldier",
+        "roles": roles,
         "exp": exp_time
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
@@ -175,15 +176,24 @@ def test_unauthorized_user(dispatcher_live_fixture,):
         'token': encoded_token
     }
 
-    jdata = ask(server,
-                params,
-                expected_query_status = ["failed"],
-                max_time_s = 50,
-                )
-
-    assert jdata["exit_status"]["debug_message"] == ""
-    assert jdata["exit_status"]["error_message"] == ""
-    assert jdata["exit_status"]["message"] == "roles not authorized"
+    if 'general' in roles:
+        jdata = ask(server,
+                    params,
+                    expected_query_status=["done"],
+                    max_time_s=50,
+                    )
+        assert jdata["exit_status"]["debug_message"] == ""
+        assert jdata["exit_status"]["error_message"] == ""
+        assert jdata["exit_status"]["message"] == ""
+    else:
+        jdata = ask(server,
+                    params,
+                    expected_query_status = ["failed"],
+                    max_time_s = 50,
+                    )
+        assert jdata["exit_status"]["debug_message"] == ""
+        assert jdata["exit_status"]["error_message"] == ""
+        assert jdata["exit_status"]["message"] == "roles not authorized"
 
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
