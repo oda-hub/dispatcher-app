@@ -33,6 +33,9 @@ class RequestNotUnderstood(BadRequest):
     it is unclear for us and we want user to please clarify!
     """
 
+class RequestNotAuthorized(BadRequest):
+    pass
+
 class MissingParameter(RequestNotUnderstood):
     pass
 

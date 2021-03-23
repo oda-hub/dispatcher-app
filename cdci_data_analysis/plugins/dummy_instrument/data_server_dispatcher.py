@@ -61,3 +61,8 @@ class DataServerQuery(ProductQuery):
     def process_product_method(self, instrument, prod_list,api=False, **kw):
         query_out = QueryOutput()
         return query_out
+
+    # example with the general user role
+    def check_query_roles(self, roles):
+        return 'general' in roles
+

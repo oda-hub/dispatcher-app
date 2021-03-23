@@ -43,7 +43,7 @@ from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
-from ..analysis.exceptions import BadRequest, APIerror, MissingParameter, RequestNotUnderstood, ProblemDecodingStoredQueryOut
+from ..analysis.exceptions import BadRequest, APIerror, MissingParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut
 from . import tasks
 from oda_api.data_products import NumpyDataProduct
 import time as time_
@@ -114,6 +114,7 @@ class InstrumentQueryBackEnd:
             # In that case, validation is needed
             self.public = True
 
+            self.token = None
             # if 'public' in self.par_dic:
             #     self.public = self.par_dic['public'] in ['true', 'True']
             if 'token' in self.par_dic.keys() and self.par_dic['token'] != "":
@@ -745,19 +746,25 @@ class InstrumentQueryBackEnd:
         """
         extract the various content of the token
         """
-        # dispatcher-app deployment cofiguration, will always be here ?
-        secret_key = self.app.config.get('conf').secret_key
-        decoded_token = jwt.decode(encoded_token, secret_key, algorithms=['HS256'])
-
-        # extract user
-        user = decoded_token['name']
-        # extract role(s)
-        roles = decoded_token['roles'].split(',')
-        roles[:] = [r.strip() for r in roles]
-        # for i, role in enumerate(roles):
-        #     roles[i] = roles[i].strip()
-        self.logger.info("==> token %s", decoded_token)
+        # decode the token
+        self.decoded_token = self.get_decoded_token()
+        self.logger.info("==> token %s", self.decoded_token)
         return True
+
+    def get_decoded_token(self):
+        if self.token is not None:
+            secret_key = self.app.config.get('conf').secret_key
+            return jwt.decode(self.token, secret_key, algorithms=['HS256'])
+
+    def get_token_roles(self):
+        # extract role(s)
+        roles = self.decoded_token['roles'].split(',') if 'roles' in self.decoded_token else []
+        roles[:] = [r.strip() for r in roles]
+        return roles
+
+    def get_token_user(self):
+        # extract user
+        return self.decoded_token['name'] if 'name' in self.decoded_token else ''
 
     def build_job(self):
         return job_factory(self.instrument_name,
@@ -791,7 +798,7 @@ class InstrumentQueryBackEnd:
                                               api=self.api)
         return resp
 
-    def validate_token_request_param(self,):
+    def validate_token_request_param(self, ):
         # if the request is public then authorize it, because the token is not there
         if self.public:
             return None
@@ -1011,7 +1018,7 @@ class InstrumentQueryBackEnd:
         # resp = self.validate_token_env_var()
         resp = self.validate_token_request_param()
         if resp is not None:
-            self.logger.warn("query dismissed by token validation")
+            self.logger.warning("query dismissed by token validation")
             return resp
 
         if self.par_dic.pop('instrumet', None) is not None:
@@ -1172,8 +1179,18 @@ class InstrumentQueryBackEnd:
                 if job_monitor is None:
                     job_monitor = job.monitor
             else:
-
+                query_name = self.instrument.get_product_query_name(product_type)
+                if not self.public:
+                    roles = []
+                    if self.token is not None and self.decoded_token is not None:
+                        roles = self.get_token_roles()
+                    # assess the permissions for the query execution
+                    try:
+                        self.instrument.check_instrument_query_role(query_name, roles)
+                    except RequestNotAuthorized:
+                        return self.build_response_failed('oda_api permissions failed', 'roles not authorized')
                 query_out = self.instrument.run_query(product_type,
+                                                      query_name,
                                                       self.par_dic,
                                                       request,
                                                       self,  # this will change?
@@ -1186,10 +1203,9 @@ class InstrumentQueryBackEnd:
                                                       sentry_client=self.sentry_client,
                                                       verbose=verbose,
                                                       dry_run=dry_run,
-                                                      api=api)
+                                                      api=api,)
 
-                self.logger.info(
-                    '-----------------> job status after query: %s', job.status)
+                self.logger.info('-----------------> job status after query: %s', job.status)
 
                 if query_out.status_dictionary['status'] == 0:
                     if job.status == 'done':

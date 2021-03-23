@@ -25,6 +25,24 @@ secret_key = 'secretkey_test'
 this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
 """
 
+default_params = dict(
+                    query_status="new",
+                    query_type="Real",
+                    instrument="isgri",
+                    product_type="isgri_image",
+                    osa_version="OSA10.2",
+                    E1_keV=20.,
+                    E2_keV=40.,
+                    T1="2008-01-01T11:11:11.0",
+                    T2="2009-01-01T11:11:11.0",
+                    max_pointings=2,
+                    RA=83,
+                    DEC=22,
+                    radius=6,
+                    async_dispatcher=False,
+                    token="fake-token",
+                 )
+
 
 def test_empty_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
@@ -135,6 +153,42 @@ def test_invalid_token(dispatcher_live_fixture, ):
     logger.info(json.dumps(jdata, indent=4))
 
 
+def test_unauthorized_user(dispatcher_live_fixture,):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    # let's generate a valid token
+    exp_time = int(time.time()) + 500
+    token_payload = {
+        "email": "mtm@mtmco.net",
+        "name": "mmeharga",
+        "roles": "soldier",
+        "exp": exp_time
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status = ["failed"],
+                max_time_s = 50,
+                )
+
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == "roles not authorized"
+
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
+
+
 @pytest.mark.isgri_plugin
 def test_isgri_dummy(dispatcher_live_fixture):
     server = dispatcher_live_fixture
@@ -231,26 +285,6 @@ def test_isgri_no_osa(dispatcher_live_fixture):
     assert c.status_code == 400
 
     assert jdata["error_message"] == "osa_version is needed"
-
-
-default_params = dict(
-                    query_status="new",
-                    query_type="Real",
-                    instrument="isgri",
-                    product_type="isgri_image",
-                    osa_version="OSA10.2",
-                    E1_keV=20.,
-                    E2_keV=40.,
-                    T1="2008-01-01T11:11:11.0",
-                    T2="2009-01-01T11:11:11.0",
-                    max_pointings=2,
-                    RA=83,
-                    DEC=22,
-                    radius=6,
-                    async_dispatcher=False,
-                    token="fake-token",
-                 )
-
 
 # why ~1 second? so long
 def ask(server, params, expected_query_status, expected_job_status=None, max_time_s=2.0, expected_status_code=200):

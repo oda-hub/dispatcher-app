@@ -64,8 +64,6 @@ def my_instr_factory():
     # nor product, only a simple query that does not return anything
     query_dictionary['dummy'] = 'empty_parameters_query'
 
-
-
     return Instrument('empty',
                        src_query=src_query,
                        instrumet_query=instr_query,
