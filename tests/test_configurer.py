@@ -75,3 +75,14 @@ def test_dsconf_pass_keys():
     conf_dict['spam'] = 'eggs'
     with pytest.raises(KeyError):
         conf = DataServerConf.from_conf_dict(conf_dict, required_keys, allowed_keys)
+
+def test_dsconf_legacy_plugin_keys():
+    conf_dict = {
+                 'data_server_url': 'bacon',
+                 'data_server_port': 'eggs',
+                 'data_server_remote_cache': 'spam',
+                 'dispatcher_mnt_point': 'spam',
+                 'dummy_cache': 'spam!',
+                }
+
+    conf = DataServerConf.from_conf_dict(conf_dict)
