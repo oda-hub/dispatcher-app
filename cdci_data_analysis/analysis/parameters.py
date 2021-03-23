@@ -37,6 +37,10 @@ from .catalog import BasicCatalog
 
 import  numpy as np
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 
 @decorator.decorator
@@ -231,7 +235,7 @@ class Parameter(object):
 
         self._units=units
 
-    def set_from_form(self,form,verbose=False):
+    def set_from_form(self, form, verbose=False):
         par_name = self.name
         units_name = self.units_name
         v = None
@@ -241,10 +245,17 @@ class Parameter(object):
         if units_name is not None:
             if units_name in form.keys():
                u = form[units_name]
-        if par_name in form.keys():
 
-            v=form[par_name]
-            in_dictionary=True
+        try:
+            if par_name in form.keys():
+                v = form[par_name]
+                in_dictionary=True
+        except Exception as e:
+            logger.error("problem setting par_name=%s, form=%s",
+                         par_name,
+                         form,
+                        )
+            raise
 
         if in_dictionary is True:
             self.set_par(value=v,units=u)
