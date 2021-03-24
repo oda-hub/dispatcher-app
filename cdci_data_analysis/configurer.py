@@ -37,6 +37,18 @@ logger = logging.getLogger("conf")
 
 class DataServerConf:
 
+    @property
+    def legacy_plugin12_allowed(self) -> bool:
+        return os.environ.get('DISPATCHER_LEGACY_PLUGIN12_ALLOWED', 'yes') == 'yes'
+
+    def __getattr__(self, k):
+        if self.legacy_plugin12_allowed:
+            if k in self.obsolete_keys:
+                logger.warning("attempting to access obsolete key %s, returning None", k)
+                return None
+        
+        return super().__getattr__(k)
+
     def __init__(self, 
                  required_keys: Union[List[str], None]=None, 
                  allowed_keys: Union[List[str], None]=None, 
@@ -58,7 +70,7 @@ class DataServerConf:
         else:
             allowed_optional_keys = [x for x in allowed_keys if x not in required_keys]
 
-        obsolete_keys = ['data_server_port', 'data_server_host']
+        self.obsolete_keys = ('data_server_port', 'data_server_host')
 
         conf = kwargs.copy()
 
@@ -70,7 +82,7 @@ class DataServerConf:
         required_keys: {required_keys}
         allowed_keys: {allowed_keys}
         allowed_optional_keys: {allowed_optional_keys}
-        obsolete_keys: {obsolete_keys}
+        obsolete_keys: {self.obsolete_keys}
 
         conf: {conf}
         """
@@ -95,14 +107,14 @@ class DataServerConf:
                         raise ValueError(
                             f"None value of the required configuration key {key} is only allowed in debug mode")
                     logger.warning(
-                        f"required configuration key {key} is None\m" + context_details_message)
+                        f"required configuration key {key} is None\n" + context_details_message)
                 self.__setattr__(key, value)
             except KeyError as e:
                 logger.error(
                     f"problem constructing {self}: {key} configuration key is required\n" + context_details_message)
                 raise e
 
-        for key in obsolete_keys:
+        for key in self.obsolete_keys:
             if conf.pop(key, None) is not None:
                 logger.warning(
                     f"{key} is disregarded, since it is naturally included in the url")

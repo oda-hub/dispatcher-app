@@ -79,10 +79,12 @@ def test_dsconf_pass_keys():
 def test_dsconf_legacy_plugin_keys():
     conf_dict = {
                  'data_server_url': 'bacon',
-                 'data_server_port': 'eggs',
                  'data_server_remote_cache': 'spam',
                  'dispatcher_mnt_point': 'spam',
                  'dummy_cache': 'spam!',
                 }
 
     conf = DataServerConf.from_conf_dict(conf_dict)
+
+    assert conf.data_server_port is None
+
