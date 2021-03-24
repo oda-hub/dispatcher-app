@@ -544,8 +544,7 @@ class TimeDelta(Parameter):
         self._value = value
 
 class InputProdList(Parameter):
-    def __init__(self,value=None,_format='names_list',name=None):
-
+    def __init__(self, value=None, _format='names_list', name: str=None):
         _allowed_units = ['names_list']
 
         if value is None:
