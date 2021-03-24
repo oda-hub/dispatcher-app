@@ -631,9 +631,9 @@ class InstrumentQueryBackEnd:
         known_instruments = []
 
         new_instrument = None
+        # TODO to get rid of the mock instrument option, we now have the empty instrument
         if instrument_name == 'mock':
             new_instrument = 'mock'
-
         else:
             for instrument_factory in importer.instrument_factory_list:
                 instrument = instrument_factory()
