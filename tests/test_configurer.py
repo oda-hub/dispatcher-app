@@ -10,7 +10,7 @@ def dispatcher_debug(monkeypatch):
 def dispatcher_nodebug(monkeypatch):
     monkeypatch.delenv('DISPATCHER_DEBUG_MODE', raising=False)
 
-def test_dsconf_integral(tmpdir):
+def test_dsconf_integral_osa(tmpdir):
     conf_dict = {'data_server_url': 'https://data-server:5000',
             'dispatcher_mnt_point': 'data',
             'data_server_remote_cache': 'reduced/ddcache',
@@ -75,3 +75,19 @@ def test_dsconf_pass_keys():
     conf_dict['spam'] = 'eggs'
     with pytest.raises(KeyError):
         conf = DataServerConf.from_conf_dict(conf_dict, required_keys, allowed_keys)
+
+def test_dsconf_legacy_plugin_keys(caplog):
+    conf = DataServerConf(data_server_url="eggs",
+                          data_server_port="bacon",
+                          data_server_remote_cache=None,
+                          dispatcher_mnt_point=None,
+                          dummy_cache="spam")
+
+    assert conf.data_server_port is None
+    assert conf.data_server_host is None
+    assert 'attempting to access obsolete key data_server_port, returning None' in caplog.text
+    assert 'attempting to access obsolete key data_server_host, returning None' in caplog.text
+
+    with pytest.raises(AttributeError):
+        conf.data_server_spam 
+
