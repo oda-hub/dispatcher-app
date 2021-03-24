@@ -4,13 +4,15 @@ import traceback
 from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
 
-from cdci_data_analysis import conf_dir
-from cdci_data_analysis.analysis.io_helper import FilePath
-import yaml
+from typing import Union, List
 
 import sys
 import os
 import logging
+
+from cdci_data_analysis import conf_dir
+from cdci_data_analysis.analysis.io_helper import FilePath
+import yaml
 
 __author__ = "Andrea Tramacere"
 
@@ -35,7 +37,23 @@ logger = logging.getLogger("conf")
 
 class DataServerConf:
 
-    def __init__(self, required_keys=None, allowed_keys=None, **kwargs):
+    @property
+    def legacy_plugin12_allowed(self) -> bool:
+        return os.environ.get('DISPATCHER_LEGACY_PLUGIN12_ALLOWED', 'yes') == 'yes'
+
+    def __getattr__(self, k):
+        if self.legacy_plugin12_allowed:
+            if k in self.obsolete_keys:
+                logger.warning("attempting to access obsolete key %s, returning None", k)
+                return None
+        
+        raise AttributeError
+
+    def __init__(self, 
+                 required_keys: Union[List[str], None]=None, 
+                 allowed_keys: Union[List[str], None]=None, 
+                 **kwargs):
+
         if required_keys is None:
             #temporary hardcode to preserve interface
             required_keys = ['data_server_url', 'dummy_cache']
@@ -52,13 +70,22 @@ class DataServerConf:
         else:
             allowed_optional_keys = [x for x in allowed_keys if x not in required_keys]
 
-        obsolete_keys = ['data_server_port', 'data_server_host']
+        self.obsolete_keys = ('data_server_port', 'data_server_host')
 
         conf = kwargs.copy()
 
         logger.info("building config from %s", conf)
         logger.info("allowed keys %s", allowed_keys)
 
+        context_details_message = \
+        f"""
+        required_keys: {required_keys}
+        allowed_keys: {allowed_keys}
+        allowed_optional_keys: {allowed_optional_keys}
+        obsolete_keys: {self.obsolete_keys}
+
+        conf: {conf}
+        """
 
         try:
             self.data_server_url = conf.pop('data_server_url')
@@ -80,14 +107,14 @@ class DataServerConf:
                         raise ValueError(
                             f"None value of the required configuration key {key} is only allowed in debug mode")
                     logger.warning(
-                        f"required configuration key {key} is None")
+                        f"required configuration key {key} is None\n" + context_details_message)
                 self.__setattr__(key, value)
             except KeyError as e:
                 logger.error(
                     f"problem constructing {self}: {key} configuration key is required")
                 raise e
 
-        for key in obsolete_keys:
+        for key in self.obsolete_keys:
             if conf.pop(key, None) is not None:
                 logger.warning(
                     f"{key} is disregarded, since it is naturally included in the url")
