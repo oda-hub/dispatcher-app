@@ -24,7 +24,7 @@ class APIerror(Exception):
 
 class BadRequest(APIerror):
     def __init__(self, message, status_code=None, payload=None):
-        super().__init__(message, status_code=400, payload=payload)
+        super().__init__(message, status_code=status_code, payload=payload)
 
 
 class RequestNotUnderstood(BadRequest):
@@ -37,7 +37,8 @@ class RequestNotUnderstood(BadRequest):
 
 
 class RequestNotAuthorized(BadRequest):
-    pass
+    def __init__(self, message):
+        super().__init__(message, status_code=403)
 
 
 class MissingParameter(RequestNotUnderstood):

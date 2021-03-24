@@ -567,9 +567,10 @@ class InstrumentQueryBackEnd:
     def build_dispatcher_response(self,
                                   query_new_status=None,
                                   query_out=None,
+                                  status_code=None,
                                   job_monitor=None,
                                   off_line=True,
-                                  api=False):
+                                  api=False,):
 
         out_dict = {}
 
@@ -588,15 +589,17 @@ class InstrumentQueryBackEnd:
 
         out_dict['session_id'] = self.par_dic['session_id']
 
-        if off_line == True:
+        if status_code is not None:
+            out_dict['status_code'] = status_code
+
+        if off_line:
             return out_dict
         else:
-
             try:
-                if api == True:
-                    return self.jsonify_api_response(out_dict)
+                if api:
+                    return self.jsonify_api_response(out_dict), status_code
                 else:
-                    return jsonify(out_dict)
+                    return jsonify(out_dict), status_code
 
             except Exception as e:
                 print('failed', e)
@@ -611,7 +614,7 @@ class InstrumentQueryBackEnd:
 
                 out_dict['exit_status'] = query_out.status_dictionary
 
-                return jsonify(out_dict)
+                return jsonify(out_dict), status_code
 
     def jsonify_api_response(self, out_dict):
         return jsonify(self.prep_jsonify_api_response(out_dict))
@@ -776,7 +779,7 @@ class InstrumentQueryBackEnd:
                            self.par_dic,
                            aliased=False)
 
-    def build_response_failed(self, message, extra_message):
+    def build_response_failed(self, message, extra_message, status_code=None):
         job = self.build_job()
         job.set_failed()
         job_monitor = job.monitor
@@ -794,8 +797,9 @@ class InstrumentQueryBackEnd:
         resp = self.build_dispatcher_response(query_new_status=query_status,
                                               query_out=query_out,
                                               job_monitor=job_monitor,
+                                              status_code=status_code,
                                               off_line=self.off_line,
-                                              api=self.api)
+                                              api=self.api,)
         return resp
 
     def validate_token_request_param(self, ):
@@ -1187,8 +1191,10 @@ class InstrumentQueryBackEnd:
                     # assess the permissions for the query execution
                     try:
                         self.instrument.check_instrument_query_role(query_name, roles)
-                    except RequestNotAuthorized:
-                        return self.build_response_failed('oda_api permissions failed', 'roles not authorized')
+                    except RequestNotAuthorized as e:
+                        return self.build_response_failed('oda_api permissions failed',
+                                                          'roles not authorized',
+                                                          status_code=e.status_code)
                 query_out = self.instrument.run_query(product_type,
                                                       query_name,
                                                       self.par_dic,

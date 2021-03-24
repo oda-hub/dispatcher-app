@@ -199,7 +199,6 @@ class QueryOutput(object):
 
         logger.error(traceback.format_exc())
 
-
         if logger is not None:
             logger.exception(e_message)
             logger.exception(debug_message)

@@ -177,7 +177,6 @@ class Instrument:
         if query_out.status_dictionary['status']==0:
             query_out=self.set_catalog_from_fronted(par_dic, request,back_end_query,logger=logger,verbose=verbose,sentry_client=sentry_client)
 
-
         #set input products
         if query_out.status_dictionary['status'] == 0:
             try:
@@ -252,7 +251,7 @@ class Instrument:
     def check_instrument_query_role(self, query_name, roles):
         query_obj = self.get_query_by_name(query_name)
         if not query_obj.check_query_roles(roles):
-            raise RequestNotAuthorized("Roles %s cannot execute query %s", roles, query_name)
+            raise RequestNotAuthorized(f"Roles {roles} cannot execute query {query_name}")
         else:
             return True
 

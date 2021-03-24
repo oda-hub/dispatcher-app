@@ -190,6 +190,7 @@ def test_authorization_user_roles(dispatcher_live_fixture, roles):
                     params,
                     expected_query_status=["failed"],
                     max_time_s=50,
+                    expected_status_code=403,
                     )
         assert jdata["exit_status"]["debug_message"] == ""
         assert jdata["exit_status"]["error_message"] == ""
