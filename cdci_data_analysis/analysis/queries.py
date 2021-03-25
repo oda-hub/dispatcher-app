@@ -254,7 +254,7 @@ class BaseQuery(object):
         return json.dumps(l)
 
     # Check if the given query cn be executed given a list of roles extracted from the token
-    def check_query_roles(self, roles):
+    def check_query_roles(self, roles, par_dic):
         return True, []
 
 

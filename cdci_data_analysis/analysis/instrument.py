@@ -248,9 +248,9 @@ class Instrument:
         else:
             return self.query_dictionary[product_type]
 
-    def check_instrument_query_role(self, query_name, product_type, roles):
+    def check_instrument_query_role(self, query_name, product_type, roles, par_dic):
         query_obj = self.get_query_by_name(query_name)
-        results = query_obj.check_query_roles(roles)
+        results = query_obj.check_query_roles(roles, par_dic)
         if not results[0]:
             raise RequestNotAuthorized(f"Roles {roles} not authorized to request the product {product_type}, {results[1]} roles are needed")
         else:

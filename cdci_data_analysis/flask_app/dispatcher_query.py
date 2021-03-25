@@ -1190,7 +1190,7 @@ class InstrumentQueryBackEnd:
                         roles = self.get_token_roles()
                     # assess the permissions for the query execution
                     try:
-                        self.instrument.check_instrument_query_role(query_name, product_type, roles)
+                        self.instrument.check_instrument_query_role(query_name, product_type, roles, self.par_dic)
                     except RequestNotAuthorized as e:
                         return self.build_response_failed('oda_api permissions failed',
                                                           # f'roles {roles} not authorized to request the product {product_type}',
