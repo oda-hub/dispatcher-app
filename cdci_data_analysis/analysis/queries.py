@@ -328,14 +328,11 @@ class ProductQuery(BaseQuery):
     def get_products(self, instrument,run_asynch, job=None,config=None,logger=None,**kwargs):
         raise RuntimeError('needs to be implemented in derived class')
 
-
     def get_dummy_products(self,instrument, config=None,**kwargs):
         raise RuntimeError('needs to be implemented in derived class')
 
-
     def get_data_server_query(self,instrument,config=None,**kwargs):
         raise RuntimeError('needs to be implemented in derived class')
-
 
     def get_parameters_list_as_json(self,prod_dict=None):
 
@@ -349,7 +346,6 @@ class ProductQuery(BaseQuery):
             l.append({'product_name':prod_name})
         else:
             l.append({'product_name': self.name})
-
 
         for par in self._parameters_list:
             l.append(par.reprJSON())

@@ -153,8 +153,9 @@ def test_invalid_token(dispatcher_live_fixture, ):
     logger.info(json.dumps(jdata, indent=4))
 
 
-@pytest.mark.parametrize("roles", ["soldier", "authenticated user, content manager, general, magic"])
-def test_authorization_user_roles(dispatcher_live_fixture, roles):
+@pytest.mark.parametrize("roles", ["soldier", "unige-hpc-full, general"])
+@pytest.mark.parametrize("product_type", ["dummy", "numerical"])
+def test_authorization_user_roles(dispatcher_live_fixture, roles, product_type):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
@@ -170,7 +171,7 @@ def test_authorization_user_roles(dispatcher_live_fixture, roles):
 
     params = {
         **default_params,
-        'product_type': 'dummy',
+        'product_type': product_type,
         'query_type': "Dummy",
         'instrument': 'empty',
         'token': encoded_token
@@ -181,10 +182,74 @@ def test_authorization_user_roles(dispatcher_live_fixture, roles):
     roles[:] = [r.strip() for r in roles]
 
     if 'general' in roles:
+        if 'unige-hpc-full' in roles:
+            params['p'] = 55
+            jdata = ask(server,
+                        params,
+                        expected_query_status=["done"],
+                        max_time_s=150,
+                        )
+            assert jdata["exit_status"]["debug_message"] == ""
+            assert jdata["exit_status"]["error_message"] == ""
+            assert jdata["exit_status"]["message"] == ""
+        else:
+            jdata = ask(server,
+                        params,
+                        expected_query_status=["done"],
+                        max_time_s=150,
+                        )
+            assert jdata["exit_status"]["debug_message"] == ""
+            assert jdata["exit_status"]["error_message"] == ""
+            assert jdata["exit_status"]["message"] == ""
+    else:
+        jdata = ask(server,
+                    params,
+                    expected_query_status=["failed"],
+                    max_time_s=150,
+                    expected_status_code=403,
+                    )
+        assert jdata["exit_status"]["debug_message"] == ""
+        assert jdata["exit_status"]["error_message"] == ""
+        assert jdata["exit_status"]["message"] == \
+               f"Roles {roles} not authorized to request the product {product_type}, [\'general\'] roles are needed"
+
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
+
+
+@pytest.mark.parametrize("roles", ["soldier, general", "unige-hpc-full, general"])
+def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    # let's generate a valid token
+    exp_time = int(time.time()) + 500
+    token_payload = {
+        "email": "mtm@mtmco.net",
+        "name": "mmeharga",
+        "roles": roles,
+        "exp": exp_time
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 55,
+        'token': encoded_token
+    }
+
+    # just for having the roles in a list
+    roles = roles.split(',')
+    roles[:] = [r.strip() for r in roles]
+
+    if 'unige-hpc-full' in roles:
         jdata = ask(server,
                     params,
                     expected_query_status=["done"],
-                    max_time_s=50,
+                    max_time_s=150,
                     )
         assert jdata["exit_status"]["debug_message"] == ""
         assert jdata["exit_status"]["error_message"] == ""
@@ -193,13 +258,14 @@ def test_authorization_user_roles(dispatcher_live_fixture, roles):
         jdata = ask(server,
                     params,
                     expected_query_status=["failed"],
-                    max_time_s=50,
+                    max_time_s=150,
                     expected_status_code=403,
                     )
         assert jdata["exit_status"]["debug_message"] == ""
         assert jdata["exit_status"]["error_message"] == ""
         assert jdata["exit_status"]["message"] == \
-               f"Roles {roles} not authorized to request the product dummy, [\'general\'] roles are needed"
+               f"Roles {roles} not authorized to request the product numerical, " \
+               f"[\'general\', \'unige-hpc-full\'] roles are needed"
 
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
@@ -301,6 +367,7 @@ def test_isgri_no_osa(dispatcher_live_fixture):
     assert c.status_code == 400
 
     assert jdata["error_message"] == "osa_version is needed"
+
 
 # why ~1 second? so long
 def ask(server, params, expected_query_status, expected_job_status=None, max_time_s=2.0, expected_status_code=200):
@@ -438,7 +505,8 @@ def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
             'scw_list': selection,
             'async_dispatcher': False,
         }
-
+    # let's make the request public for simplicity
+    params.pop('token')
     jdata = ask(server,
                 params,
                 expected_query_status=["failed"],
@@ -460,8 +528,15 @@ def test_isgri_image_fixed_done(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
 
+    params = {
+        **default_params,
+        'async_dispatcher': False,
+    }
+    # let's make the request public for simplicity
+    params.pop('token')
+
     jdata = ask(server,
-                {**default_params, "async_dispatcher": False},
+                params,
                 expected_query_status=["done"],
                 max_time_s=50,
                 )
@@ -485,6 +560,8 @@ def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
     params = {
        **default_params,
     }
+    # let's make the request public for simplicity
+    params.pop('token')
 
     jdata, tspent = loop_ask(server, params)
 
@@ -512,7 +589,8 @@ def test_isgri_image_random_emax(dispatcher_live_fixture):
        **default_params,
        'E2_keV':emax,
     }
-
+    # let's make the request public for simplicity
+    params.pop('token')
     jdata, tspent = loop_ask(server, params)
 
 

@@ -42,7 +42,7 @@ __author__ = "Andrea Tramacere"
 from cdci_data_analysis.analysis.instrument import Instrument
 from cdci_data_analysis.analysis.queries import  *
 
-from .data_server_dispatcher import DataServerQuery
+from .data_server_dispatcher import DataServerQuery, DataServerNumericQuery
 from .image_query import MyInstrMosaicQuery
 
 
@@ -50,10 +50,14 @@ def my_instr_factory():
     src_query = SourceQuery('src_query')
 
     # empty query
-    instr_query = InstrumentQuery(name='empty_parameters',)
+    instr_query = InstrumentQuery(name='empty_instrument_query',)
 
     # my_instr_image_query -> name given to this query
-    query = DataServerQuery('empty_parameters_query',)
+    empty_query = DataServerQuery('empty_parameters_dummy_query',)
+    # let's build a simple parameter to its list
+    p = Float(value=10., units='W', name='p',)
+    numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
+                                             parameters_list=[p])
 
     # this dicts binds the product query name to the product name from frontend
     # eg my_instr_image is the parameter passed by the fronted to access the
@@ -62,11 +66,11 @@ def my_instr_factory():
     query_dictionary = {}
     # the empty instrument does not effectively do anything and therefore support any particular query
     # nor product, only a simple query that does not return anything
-    query_dictionary['dummy'] = 'empty_parameters_query'
+    query_dictionary['dummy'] = 'empty_parameters_dummy_query'
+    query_dictionary['numerical'] = 'numerical_parameters_dummy_query'
 
     return Instrument('empty',
-                       src_query=src_query,
-                       instrumet_query=instr_query,
-                       product_queries_list=[query],
-                       query_dictionary=query_dictionary,)
-                       # data_server_query_class=DataServerQuery,)
+                      src_query=src_query,
+                      instrumet_query=instr_query,
+                      product_queries_list=[empty_query, numerical_query],
+                      query_dictionary=query_dictionary,)
