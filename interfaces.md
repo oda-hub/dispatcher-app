@@ -48,9 +48,7 @@ but they will be mainly used by the **dispatcher** as well as some **backends** 
 
 See current working definition of real roles [here](https://github.com/oda-hub/doc-multi-user/blob/main/plan-roles-users.md).
 
-* **Roles** will be used by **dispatcher** when filtering queries. **Dispatcher** may associate each query with required **Roles**, 
-  or establish filters for more complex request matching (e.g. restricting parameter ranges). 
-  We should be cautious to put too much configuration in dispatcher when other methods (below) are possible.
+* **Roles** will be used by the **dispatcher** when filtering queries. The **Dispatcher** may associate each query with the required **Roles**, or establish filters for more complex request matching (e.g. restricting parameter ranges). We should be cautious to put too much configuration in dispatcher when other methods (below) are possible.
 
 In general, backends should be able to control access to themselves by instructing dispatcher, see [interface](plugin-interface.md) for dispatcher to learn about role restrictions from backend:
 
