@@ -655,7 +655,10 @@ class InstrumentQueryBackEnd:
 
         disp_data_server_conf_dict = config.get_data_server_conf_dict(self.instrument_name)
 
-        if disp_data_server_conf_dict is None and self.instrument is not None and not isinstance(self.instrument, str):
+        # sometimes instrument is None here! TODO: in callback?
+        if disp_data_server_conf_dict is None and  \
+           getattr(self, instrument, None) is not None and \
+           not isinstance(getattr(self, 'instrument', None), str):
             disp_data_server_conf_dict = self.instrument.data_server_conf_dict
 
         logger.debug('--> App configuration for: %s', self.instrument_name)
