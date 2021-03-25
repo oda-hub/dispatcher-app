@@ -657,7 +657,7 @@ class InstrumentQueryBackEnd:
 
         # sometimes instrument is None here! TODO: in callback?
         if disp_data_server_conf_dict is None and  \
-           getattr(self, instrument, None) is not None and \
+           getattr(self, 'instrument', None) is not None and \
            not isinstance(getattr(self, 'instrument', None), str):
             disp_data_server_conf_dict = self.instrument.data_server_conf_dict
 
