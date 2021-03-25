@@ -63,6 +63,6 @@ class DataServerQuery(ProductQuery):
         return query_out
 
     # example with the general user role
-    def check_query_roles(self, roles):
+    def check_query_roles(self, roles, par_dic):
         return 'general' in roles, ['general']
 
