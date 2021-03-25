@@ -146,7 +146,6 @@ class Instrument:
             return self.data_server_query_class(config=config,instrument=self).test_has_input_products(instrument,logger=logger)
 
     def run_query(self, product_type,
-                  query_name,
                   par_dic,
                   request,
                   back_end_query,
@@ -202,6 +201,7 @@ class Instrument:
                 message = ''
                 debug_message = ''
                 try:
+                    query_name = self.instrument.get_product_query_name(product_type)
                     query_obj = self.get_query_by_name(query_name)
                     query_out = query_obj.run_query(self, out_dir, job, run_asynch,
                                                     query_type=query_type,
@@ -248,10 +248,11 @@ class Instrument:
         else:
             return self.query_dictionary[product_type]
 
-    def check_instrument_query_role(self, query_name, roles):
+    def check_instrument_query_role(self, query_name, product_type, roles):
         query_obj = self.get_query_by_name(query_name)
-        if not query_obj.check_query_roles(roles):
-            raise RequestNotAuthorized(f"Roles {roles} cannot execute query {query_name}")
+        results = query_obj.check_query_roles(roles)
+        if not results[0]:
+            raise RequestNotAuthorized(f"Roles {roles} not authorized to request the product {product_type}, {results[1]} roles are needed")
         else:
             return True
 

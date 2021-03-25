@@ -130,7 +130,7 @@ class InstrumentQueryBackEnd:
             else:
                 self.instrument_name = instrument_name
 
-            if get_meta_data == True:
+            if get_meta_data:
                 print("get_meta_data request: no scratch_dir")
                 self.set_instrument(self.instrument_name)
                 # TODO
@@ -283,7 +283,7 @@ class InstrumentQueryBackEnd:
 
             logger.addHandler(fileh)  # set the new handler
 
-        if verbose == True:
+        if verbose:
             print('logfile set to dir=', scratch_dir,
                   ' with name=', session_log_filename)
 
@@ -1190,13 +1190,13 @@ class InstrumentQueryBackEnd:
                         roles = self.get_token_roles()
                     # assess the permissions for the query execution
                     try:
-                        self.instrument.check_instrument_query_role(query_name, roles)
+                        self.instrument.check_instrument_query_role(query_name, product_type, roles)
                     except RequestNotAuthorized as e:
                         return self.build_response_failed('oda_api permissions failed',
-                                                          'roles not authorized',
+                                                          # f'roles {roles} not authorized to request the product {product_type}',
+                                                          e.message,
                                                           status_code=e.status_code)
                 query_out = self.instrument.run_query(product_type,
-                                                      query_name,
                                                       self.par_dic,
                                                       request,
                                                       self,  # this will change?

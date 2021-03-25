@@ -64,5 +64,5 @@ class DataServerQuery(ProductQuery):
 
     # example with the general user role
     def check_query_roles(self, roles):
-        return 'general' in roles
+        return 'general' in roles, ['general']
 

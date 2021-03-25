@@ -176,6 +176,10 @@ def test_authorization_user_roles(dispatcher_live_fixture, roles):
         'token': encoded_token
     }
 
+    # just for having the roles in a list
+    roles = roles.split(',')
+    roles[:] = [r.strip() for r in roles]
+
     if 'general' in roles:
         jdata = ask(server,
                     params,
@@ -194,7 +198,8 @@ def test_authorization_user_roles(dispatcher_live_fixture, roles):
                     )
         assert jdata["exit_status"]["debug_message"] == ""
         assert jdata["exit_status"]["error_message"] == ""
-        assert jdata["exit_status"]["message"] == "roles not authorized"
+        assert jdata["exit_status"]["message"] == \
+               f"Roles {roles} not authorized to request the product dummy, [\'general\'] roles are needed"
 
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
