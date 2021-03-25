@@ -201,7 +201,7 @@ class Instrument:
                 message = ''
                 debug_message = ''
                 try:
-                    query_name = self.instrument.get_product_query_name(product_type)
+                    query_name = self.get_product_query_name(product_type)
                     query_obj = self.get_query_by_name(query_name)
                     query_out = query_obj.run_query(self, out_dir, job, run_asynch,
                                                     query_type=query_type,
