@@ -6,7 +6,7 @@
 
 # Purpose
 
-To describe flow of the tokens in ODA. 
+To describe flow of the tokens in ODA.
 
 # User tokens
 
@@ -48,13 +48,11 @@ but they will be mainly used by the **dispatcher** as well as some **backends** 
 
 See current working definition of real roles [here](https://github.com/oda-hub/doc-multi-user/blob/main/plan-roles-users.md).
 
-* **Roles** will be used by **dispatcher** when filtering queries. **Dispatcher** may associate each query with required **Roles**, 
-  or establish filters for more complex request matching (e.g. restricting parameter ranges). 
-  We should be cautious to put too much configuration in dispatcher when other methods (below) are possible.
+* **Roles** will be used by the **dispatcher** when filtering queries. The **Dispatcher** may associate each query with the required **Roles**, or establish filters for more complex request matching (e.g. restricting parameter ranges). We should be cautious to put too much configuration in dispatcher when other methods (below) are possible.
 
-In general, backends should be able to control access to themselves by instructing dispatcher, see [interface]() for dispatcher to learn about role restrictions from backend:
+In general, backends should be able to control access to themselves by instructing dispatcher, see [interface](plugin-interface.md) for dispatcher to learn about role restrictions from backend:
 
-* Some **Backends** may **declare which roles they require**, and **dispatcher** will respect these requests. See [interface]() for dispatcher to learn about role restrictions from backend.
+* Some **Backends** may **declare which roles they require**, and **dispatcher** will respect these requests. See [interface](plugin-interface.md) for dispatcher to learn about role restrictions from backend.
 * Some **Backends** (e.g. integral) will declare that they can operate in role-restricted mode, and will themselves perform additional filtering based on the **Role** information provided.
 
 In the second case, a more restricted **Token** can be provided to the backend, to prevent backend gaining entire rights of the user. **Restricted Token** can be obtained (on a special service, or another authority source) in exchange for the User **Token**, specifying the narrowing down of the scope.

@@ -39,8 +39,10 @@ __author__ = "Andrea Tramacere"
 from cdci_data_analysis.analysis.queries import ProductQuery
 from cdci_data_analysis.analysis.products import QueryOutput
 
+
 class AysnchExcept(Exception):
     pass
+
 
 class DataServerQuery(ProductQuery):
 
