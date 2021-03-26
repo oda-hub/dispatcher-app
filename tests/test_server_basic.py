@@ -193,7 +193,7 @@ def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):
     logger.info(json.dumps(jdata, indent=4))
 
 
-@pytest.mark.parametrize("roles", ["soldier, general", "unige-hpc-full, general"])
+@pytest.mark.parametrize("roles", ["","soldier, general", "unige-hpc-full, general"])
 def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
     server = dispatcher_live_fixture
 
@@ -231,6 +231,9 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
         assert jdata["exit_status"]["error_message"] == ""
         assert jdata["exit_status"]["message"] == ""
     else:
+        # let's make  a public request
+        if len(roles) == 0:
+            params.pop('token')
         jdata = ask(server,
                     params,
                     expected_query_status=["failed"],
