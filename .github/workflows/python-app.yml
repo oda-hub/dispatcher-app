@@ -48,6 +48,7 @@ jobs:
       run: |
         pytest  tests/test_server_basic.py -sv --full-trace --log-cli-level=DEBUG -m 'not isgri_plugin and not dda'  --cov=./
 
+    # I wonder how this interacts with the Github App. But this is not only for PR. Also this does not always work
     - name: Codecov
       uses: codecov/codecov-action@v1.3.1
       with:
