@@ -186,8 +186,8 @@ class Instrument:
                                      sentry_client=sentry_client,
                                      excep=e)
 
-        self.logger.info('--> par dict', par_dic)
-        # logger.info('--> par dict', par_dic)
+        # self.logger.info('--> par dict', par_dic)
+        logger.info('--> par dict', par_dic)
 
         if dry_run:
             job.set_done()
