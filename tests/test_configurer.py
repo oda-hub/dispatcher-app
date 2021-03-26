@@ -76,7 +76,7 @@ def test_dsconf_pass_keys():
     with pytest.raises(KeyError):
         conf = DataServerConf.from_conf_dict(conf_dict, required_keys, allowed_keys)
 
-@pytest.mark.xfail
+
 def test_dsconf_legacy_plugin_keys(caplog):
     conf = DataServerConf(data_server_url="eggs",
                           data_server_port="bacon",

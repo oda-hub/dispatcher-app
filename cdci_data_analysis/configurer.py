@@ -64,6 +64,9 @@ class DataServerConf:
         if allowed_keys is None:
             #temporary hardcode smth to preserve interface
             allowed_optional_keys = ['data_server_cache']
+
+            # preserving interface requires listing these keys, currently provided by all plugins (to be updated)
+            allowed_optional_keys += ['data_server_remote_cache', 'dispatcher_mnt_point']
         else:
             allowed_optional_keys = [x for x in allowed_keys if x not in required_keys]
 
