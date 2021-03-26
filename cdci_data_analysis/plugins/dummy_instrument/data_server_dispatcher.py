@@ -61,3 +61,46 @@ class DataServerQuery(ProductQuery):
     def process_product_method(self, instrument, prod_list,api=False, **kw):
         query_out = QueryOutput()
         return query_out
+
+    # example with the general user role
+    def check_query_roles(self, roles, par_dic):
+        # if use_max_pointings > 50 or scw_list.split(",") > 50:
+        #     return 'unige-hpc-full' in roles:
+        #
+        # return True
+        results = dict(authorization=True, needed_roles=[])
+        return results
+
+
+class DataServerNumericQuery(ProductQuery):
+
+    def __init__(self, name, parameters_list=[],):
+        super(DataServerNumericQuery, self).__init__(name, parameters_list=parameters_list)
+
+    def test_connection(self):
+        pass
+
+    def test_has_input_products(self):
+        pass
+
+    def get_dummy_products(self, instrument, config=None, **kwargs):
+        return []
+
+    def process_product_method(self, instrument, prod_list, api=False, **kw):
+        query_out = QueryOutput()
+        return query_out
+
+    # example with the general user role
+    def check_query_roles(self, roles, par_dic):
+        param_p = self.get_par_by_name('p')
+        results = dict(authorization='general' in roles, needed_roles=['general'])
+        if 'p' in par_dic.keys():
+            # not sure this is actually the best way to obtain a certain parameter value
+            # p = float(par_dic['p'])
+            # better now, it extracts the value directly from the related parameter object
+            p = param_p.value
+            if p > 50:
+                results['authorization'] = 'general' and 'unige-hpc-full' in roles
+                results['needed_roles'] = ['general', 'unige-hpc-full']
+        return results
+

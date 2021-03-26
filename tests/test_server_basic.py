@@ -25,6 +25,24 @@ secret_key = 'secretkey_test'
 this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
 """
 
+default_params = dict(
+                    query_status="new",
+                    query_type="Real",
+                    instrument="isgri",
+                    product_type="isgri_image",
+                    osa_version="OSA10.2",
+                    E1_keV=20.,
+                    E2_keV=40.,
+                    T1="2008-01-01T11:11:11.0",
+                    T2="2009-01-01T11:11:11.0",
+                    max_pointings=2,
+                    RA=83,
+                    DEC=22,
+                    radius=6,
+                    async_dispatcher=False,
+                    token="fake-token",
+                 )
+
 
 def test_empty_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
@@ -135,6 +153,103 @@ def test_invalid_token(dispatcher_live_fixture, ):
     logger.info(json.dumps(jdata, indent=4))
 
 
+@pytest.mark.parametrize("roles", ["", "unige-hpc-full, general"])
+def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    # let's generate a valid token
+    exp_time = int(time.time()) + 500
+    token_payload = {
+        "email": "mtm@mtmco.net",
+        "name": "mmeharga",
+        "roles": roles,
+        "exp": exp_time
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': "dummy",
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token
+    }
+
+    # just for having the roles in a list
+    roles = roles.split(',')
+    roles[:] = [r.strip() for r in roles]
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == ""
+
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
+
+
+@pytest.mark.parametrize("roles", ["","soldier, general", "unige-hpc-full, general"])
+def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    # let's generate a valid token
+    exp_time = int(time.time()) + 500
+    token_payload = {
+        "email": "mtm@mtmco.net",
+        "name": "mmeharga",
+        "roles": roles,
+        "exp": exp_time
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 55,
+        'token': encoded_token
+    }
+
+    # just for having the roles in a list
+    roles = roles.split(',')
+    roles[:] = [r.strip() for r in roles]
+
+    if 'unige-hpc-full' in roles:
+        jdata = ask(server,
+                    params,
+                    expected_query_status=["done"],
+                    max_time_s=150,
+                    )
+        assert jdata["exit_status"]["debug_message"] == ""
+        assert jdata["exit_status"]["error_message"] == ""
+        assert jdata["exit_status"]["message"] == ""
+    else:
+        # let's make  a public request
+        if len(roles) == 0:
+            params.pop('token')
+        jdata = ask(server,
+                    params,
+                    expected_query_status=["failed"],
+                    max_time_s=150,
+                    expected_status_code=403,
+                    )
+        assert jdata["exit_status"]["debug_message"] == ""
+        assert jdata["exit_status"]["error_message"] == ""
+        assert jdata["exit_status"]["message"] == \
+               f"Roles {roles} not authorized to request the product numerical, " \
+               f"[\'general\', \'unige-hpc-full\'] roles are needed"
+
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
+
+
 @pytest.mark.isgri_plugin
 def test_isgri_dummy(dispatcher_live_fixture):
     server = dispatcher_live_fixture
@@ -231,25 +346,6 @@ def test_isgri_no_osa(dispatcher_live_fixture):
     assert c.status_code == 400
 
     assert jdata["error_message"] == "osa_version is needed"
-
-
-default_params = dict(
-                    query_status="new",
-                    query_type="Real",
-                    instrument="isgri",
-                    product_type="isgri_image",
-                    osa_version="OSA10.2",
-                    E1_keV=20.,
-                    E2_keV=40.,
-                    T1="2008-01-01T11:11:11.0",
-                    T2="2009-01-01T11:11:11.0",
-                    max_pointings=2,
-                    RA=83,
-                    DEC=22,
-                    radius=6,
-                    async_dispatcher=False,
-                    token="fake-token",
-                 )
 
 
 # why ~1 second? so long
@@ -388,7 +484,8 @@ def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
             'scw_list': selection,
             'async_dispatcher': False,
         }
-
+    # let's make the request public for simplicity
+    params.pop('token')
     jdata = ask(server,
                 params,
                 expected_query_status=["failed"],
@@ -410,8 +507,15 @@ def test_isgri_image_fixed_done(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
 
+    params = {
+        **default_params,
+        'async_dispatcher': False,
+    }
+    # let's make the request public for simplicity
+    params.pop('token')
+
     jdata = ask(server,
-                {**default_params, "async_dispatcher": False},
+                params,
                 expected_query_status=["done"],
                 max_time_s=50,
                 )
@@ -435,6 +539,8 @@ def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
     params = {
        **default_params,
     }
+    # let's make the request public for simplicity
+    params.pop('token')
 
     jdata, tspent = loop_ask(server, params)
 
@@ -462,7 +568,8 @@ def test_isgri_image_random_emax(dispatcher_live_fixture):
        **default_params,
        'E2_keV':emax,
     }
-
+    # let's make the request public for simplicity
+    params.pop('token')
     jdata, tspent = loop_ask(server, params)
 
 

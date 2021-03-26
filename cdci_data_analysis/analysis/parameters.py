@@ -175,12 +175,15 @@ class ParameterTuple(object):
         return self.p_list
 
 
-
-
-
-
 class Parameter(object):
-    def __init__(self,value=None,units=None,name=None,allowed_units=[],check_value=None,allowed_values=None,units_name=None):
+    def __init__(self,
+                 value=None,
+                 units=None,
+                 name=None,
+                 allowed_units=[],
+                 check_value=None,
+                 allowed_values=None,
+                 units_name=None):
         self.check_value=check_value
 
         self._allowed_units = allowed_units
@@ -191,14 +194,9 @@ class Parameter(object):
         self.units_name=units_name
         #self._wtform_dict=wtform_dict
 
-
-
-
     @property
     def value(self):
         return self._value
-
-
 
     @value.setter
     def value(self,v):
@@ -216,7 +214,6 @@ class Parameter(object):
                 self._value = v
         else:
             self._value=None
-
 
     @property
     def units(self):
@@ -254,15 +251,10 @@ class Parameter(object):
             if verbose is True:
                 print('setting par:', par_name, 'not in dictionary')
 
-
     def set_par(self,value,units=None):
         if units is not None:
             self.units=units
         self.value=value
-
-
-
-
 
     def get_form(self,wtform_cls,key,validators,defaults):
          return   wtform_cls('key', validators=validators, default=defaults)
@@ -311,8 +303,6 @@ class Parameter(object):
         #wtform_dict = {'iso': SelectField}
 
 
-
-
 class Name(Parameter):
     def __init__(self,value=None, name_format='str', name=None):
         _allowed_units = ['str']
@@ -356,7 +346,6 @@ class Float(Parameter):
         else:
             self._v=None
 
-
     @staticmethod
     def check_float_value(value, units=None,name=None):
         #print('check type of ',name,'value', value, 'type',type(value))
@@ -374,9 +363,6 @@ class Float(Parameter):
                 pass
             else:
                 raise RuntimeError('type of ', name, 'not valid', type(value))
-
-
-
 
 
 class Integer(Parameter):

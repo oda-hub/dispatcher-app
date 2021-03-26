@@ -25,8 +25,8 @@ from builtins import (bytes, str, open, super, range,
 
 import string
 import json
-import  logging
-import  re
+import logging
+import re
 import yaml
 
 import os
@@ -34,12 +34,12 @@ import  numpy as np
 from astropy.table import Table
 
 from cdci_data_analysis.analysis.queries import _check_is_base_query
+from ..analysis import tokenHelper
 from .catalog import BasicCatalog
 from .products import QueryOutput
 from .queries import ProductQuery, SourceQuery, InstrumentQuery
 from .io_helper import FilePath
-from .exceptions import RequestNotUnderstood
-
+from .exceptions import RequestNotUnderstood, RequestNotAuthorized
 
 __author__ = "Andrea Tramacere"
 
@@ -55,7 +55,6 @@ __author__ = "Andrea Tramacere"
 # relative import eg: from .mod import f
 
 
-
 class Instrument:
     def __init__(self,
                  instr_name,
@@ -69,26 +68,20 @@ class Instrument:
                  data_server_query_class=None,
                  query_dictionary={}):
 
-        #name
-        self.name=instr_name
-
+        # name
+        self.name = instr_name
+        # logger
+        self.logger = logging.getLogger(repr(self))
         #src query
         self.src_query=src_query
-
-
+        # asynch
         self.asynch=asynch
-
         #Instrument specific
         self.instrumet_query=instrumet_query
-
         #self.data_serve_conf_file=data_serve_conf_file
         self.set_data_server_conf_dict(data_serve_conf_file)
-
         self.product_queries_list=product_queries_list
-
         self._queries_list=[self.src_query,self.instrumet_query]
-
-
         self.data_server_query_class = data_server_query_class
 
         if product_queries_list is not None and product_queries_list !=[]:
@@ -117,30 +110,18 @@ class Instrument:
 
         self.data_server_conf_dict=conf_dict
 
-    def get_logger(self):
-        logger = logging.getLogger(__name__)
-        return logger
-
-
     def _check_names(self):
         pass
 
-
-
     def set_pars_from_dic(self,par_dic,verbose=False):
-
         for _query in self._queries_list:
 
             for par in _query._parameters_list:
                 par.set_from_form(par_dic,verbose=verbose)
 
-
     def set_par(self,par_name,value):
         p=self.get_par_by_name(par_name)
         p.value=value
-
-
-
 
     def get_query_by_name(self, prod_name):
         p=None
@@ -165,9 +146,7 @@ class Instrument:
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config,instrument=self).test_has_input_products(instrument,logger=logger)
 
-
-
-    def run_query(self,product_type,
+    def run_query(self, product_type,
                   par_dic,
                   request,
                   back_end_query,
@@ -181,69 +160,64 @@ class Instrument:
                   sentry_client=None,
                   dry_run=False,
                   api=False,
+                  decoded_token=None,
                   **kwargs):
-
-        #prod_dictionary={}
-
-        self._current_par_dic=par_dic
 
         if logger is None:
             logger = self.get_logger()
 
-        #set pars
-        query_out=self.set_pars_from_form(par_dic,verbose=verbose,sentry_client=sentry_client)
+        # set pars values from the input parameters
+        query_out = self.set_pars_from_form(par_dic, verbose=verbose, sentry_client=sentry_client)
 
-
-        if verbose ==True:
+        if verbose:
             self.show_parameters_list()
 
-
-
-
-        #set catalog
+        # set catalog
         if query_out.status_dictionary['status']==0:
-            query_out=self.set_catalog_from_fronted(par_dic, request,back_end_query,logger=logger,verbose=verbose,sentry_client=sentry_client)
+            query_out=self.set_catalog_from_fronted(par_dic, request,back_end_query, logger=logger, verbose=verbose,sentry_client=sentry_client)
 
-
-        #set input products
+        # set input products
         if query_out.status_dictionary['status'] == 0:
             try:
-                query_out=self.set_input_products_from_fronted(par_dic, request,back_end_query,logger=logger,verbose=verbose,sentry_client=sentry_client)
+                query_out = self.set_input_products_from_fronted(par_dic, request,back_end_query, logger=logger,verbose=verbose,sentry_client=sentry_client)
             except Exception as e:
                 # FAILED
-                query_out.set_failed(product_type,message='wrong parameter', logger=logger, sentry_client=sentry_client, excep=e)
+                query_out.set_failed(product_type,
+                                     message='wrong parameter',
+                                     logger=logger,
+                                     sentry_client=sentry_client,
+                                     excep=e)
 
+        # self.logger.info('--> par dict', par_dic)
+        logger.info('--> par dict', par_dic)
 
-        print('--> par dict',par_dic)
-
-        if dry_run == True:
+        if dry_run:
             job.set_done()
             if query_out.status_dictionary['status'] == 0:
                 query_out.set_done(message='dry-run',job_status=job.status)
                 query_out.set_instrument_parameters(self.get_parameters_list_as_json(prod_name=product_type))
-
         else:
             if query_out.status_dictionary['status'] == 0:
-                #print('--->CICCIO',self.query_dictionary)
-
                 query_out = QueryOutput()
-                message=''
-                debug_message=''
-
+                message = ''
+                debug_message = ''
                 try:
-                    if product_type not in self.query_dictionary:
-                        raise Exception(f"product type {product_type} not in query_dictionary {self.query_dictionary}")
-                    else:
-                        query_name = self.query_dictionary[product_type]
-                    #print ('=======> query_name',query_name)
+                    query_name = self.get_product_query_name(product_type)
+                    query_obj = self.get_query_by_name(query_name)
+                    roles = []
+                    if decoded_token is not None: # otherwise the request is public
+                        roles = tokenHelper.get_token_roles(decoded_token)
+                    # assess the permissions for the query execution
+                    self.check_instrument_query_role(query_obj, product_type, roles, par_dic)
+
                     query_obj = self.get_query_by_name(query_name)
                     query_out = query_obj.run_query(self, out_dir, job, run_asynch,
-                                                             query_type=query_type, config=config,
-                                                             logger=logger,
-                                                             sentry_client=sentry_client,
-                                                             api=api)
+                                                    query_type=query_type,
+                                                    config=config,
+                                                    logger=logger,
+                                                    sentry_client=sentry_client,
+                                                    api=api)
                     if query_out.status_dictionary['status'] == 0:
-                        #DONE
                         if 'comment' in query_out.status_dictionary.keys():
                             backend_comment = query_out.status_dictionary['comment']
                         else:
@@ -253,35 +227,43 @@ class Instrument:
                         else:
                             backend_warning = ''
 
-                        query_out.set_done(message=message,
+                        query_out.set_done(message = message,
                                            debug_message=str(debug_message),
                                            comment=backend_comment,
                                            warning=backend_warning)
                     else:
                         pass
-
+                except RequestNotAuthorized:
+                    raise
                 except RequestNotUnderstood as e:
                     logger.warning("bad request from user, passing through: %s", e)
                     raise
-
                 except Exception as e: # we shall not do that
                     logger.error("run_query failed: %s", e)
                     # logger.error("run_query failed: %s", traceback.format_exc())
                     query_out.set_failed(product_type, logger=logger, sentry_client=sentry_client, excep=e)
 
-
-
-        #adding query parameters to final products
+        # adding query parameters to final products
         query_out.set_analysis_parameters(par_dic)
         query_out.set_api_code(par_dic)
         query_out.dump_analysis_parameters(out_dir,par_dic)
 
         return query_out
 
+    def get_product_query_name(self, product_type):
+        if product_type not in self.query_dictionary:
+            raise Exception(f"product type {product_type} not in query_dictionary {self.query_dictionary}")
+        else:
+            return self.query_dictionary[product_type]
 
+    def check_instrument_query_role(self, query_obj, product_type, roles, par_dic):
+        results = query_obj.check_query_roles(roles, par_dic)
+        if not results['authorization']:
+            raise RequestNotAuthorized(f"Roles {roles} not authorized to request the product {product_type}, {results['needed_roles']} roles are needed")
+        else:
+            return True
 
     def get_html_draw(self, prod_name, image,image_header,catalog=None,**kwargs):
-
         return self.get_query_by_name(prod_name).get_html_draw( image,image_header,catalog=catalog,**kwargs)
 
     def get_par_by_name(self,par_name):
@@ -296,8 +278,6 @@ class Instrument:
 
         return p
 
-
-
     def show_parameters_list(self):
 
         print ("-------------")
@@ -305,9 +285,6 @@ class Instrument:
             print ('q:',_query.name)
             _query.show_parameters_list()
         print("-------------")
-
-
-
 
     def get_parameters_list_as_json(self,add_src_query=True,add_instr_query=True,prod_name=None):
 
