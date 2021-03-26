@@ -1193,7 +1193,6 @@ class InstrumentQueryBackEnd:
                         self.instrument.check_instrument_query_role(query_name, product_type, roles, self.par_dic)
                     except RequestNotAuthorized as e:
                         return self.build_response_failed('oda_api permissions failed',
-                                                          # f'roles {roles} not authorized to request the product {product_type}',
                                                           e.message,
                                                           status_code=e.status_code)
                 query_out = self.instrument.run_query(product_type,

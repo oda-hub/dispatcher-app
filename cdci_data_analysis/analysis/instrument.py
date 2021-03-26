@@ -161,25 +161,23 @@ class Instrument:
                   api=False,
                   **kwargs):
 
-        self._current_par_dic=par_dic
-
         if logger is None:
             logger = self.get_logger()
 
-        #set pars
-        query_out=self.set_pars_from_form(par_dic,verbose=verbose,sentry_client=sentry_client)
+        # set pars values from the input parameters
+        query_out = self.set_pars_from_form(par_dic, verbose=verbose, sentry_client=sentry_client)
 
-        if verbose ==True:
+        if verbose:
             self.show_parameters_list()
 
-        #set catalog
+        # set catalog
         if query_out.status_dictionary['status']==0:
-            query_out=self.set_catalog_from_fronted(par_dic, request,back_end_query,logger=logger,verbose=verbose,sentry_client=sentry_client)
+            query_out=self.set_catalog_from_fronted(par_dic, request,back_end_query, logger=logger, verbose=verbose,sentry_client=sentry_client)
 
-        #set input products
+        # set input products
         if query_out.status_dictionary['status'] == 0:
             try:
-                query_out = self.set_input_products_from_fronted(par_dic, request,back_end_query,logger=logger,verbose=verbose,sentry_client=sentry_client)
+                query_out = self.set_input_products_from_fronted(par_dic, request,back_end_query, logger=logger,verbose=verbose,sentry_client=sentry_client)
             except Exception as e:
                 # FAILED
                 query_out.set_failed(product_type,
@@ -189,6 +187,7 @@ class Instrument:
                                      excep=e)
 
         self.logger.info('--> par dict', par_dic)
+        # logger.info('--> par dict', par_dic)
 
         if dry_run:
             job.set_done()
@@ -235,7 +234,7 @@ class Instrument:
                     # logger.error("run_query failed: %s", traceback.format_exc())
                     query_out.set_failed(product_type, logger=logger, sentry_client=sentry_client, excep=e)
 
-        #adding query parameters to final products
+        # adding query parameters to final products
         query_out.set_analysis_parameters(par_dic)
         query_out.set_api_code(par_dic)
         query_out.dump_analysis_parameters(out_dir,par_dic)

@@ -55,7 +55,7 @@ def my_instr_factory():
     # my_instr_image_query -> name given to this query
     empty_query = DataServerQuery('empty_parameters_dummy_query',)
     # let's build a simple parameter to its list
-    p = Float(value=10., units='W', name='p',)
+    p = Float(value=10., name='p', units='W',)
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
                                              parameters_list=[p])
 

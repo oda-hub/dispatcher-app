@@ -368,7 +368,7 @@ class ProductQuery(BaseQuery):
 
         msg_str = '--> start dataserver communication test'
 
-        print(msg_str)
+        # print(msg_str)
         logger.info(msg_str)
         try:
 
@@ -400,11 +400,10 @@ class ProductQuery(BaseQuery):
                                  e_message=e_message,
                                  debug_message=debug_message)
 
-
-
-
-        msg_str = '--> data server communication status %d\n' %query_out.get_status()
-        msg_str += '--> end dataserver communication test'
+        status = query_out.get_status()
+        msg_str = '--> data server communication status: %d' %status
+        logger.info(msg_str)
+        msg_str = '--> end dataserver communication test'
         logger.info(msg_str)
 
         return query_out
@@ -420,7 +419,7 @@ class ProductQuery(BaseQuery):
         debug_message = ''
         msg_str = '--> start test has products'
 
-        print(msg_str)
+        # print(msg_str)
         logger.info(msg_str)
 
         prod_dictionary = {}
@@ -468,12 +467,8 @@ class ProductQuery(BaseQuery):
                                   e_message=e_message,
                                   debug_message=debug_message)
 
-
-        msg_str = '--> test has products status %d\n' % query_out.get_status()
-        msg_str += '--> end test has products test'
-        logger.info(msg_str)
-
-
+        logger.info('--> test has products status %d' % query_out.get_status())
+        logger.info('--> end test has products test')
         #print("-->input_prod_list",input_prod_list)
 
         return query_out
@@ -487,7 +482,7 @@ class ProductQuery(BaseQuery):
         message=''
         debug_message=''
         msg_str = '--> start get product query',query_type
-        print(msg_str)
+        # print(msg_str)
         logger.info(msg_str)
         backend_comment=''
         backend_warning=''
@@ -527,8 +522,6 @@ class ProductQuery(BaseQuery):
 
                 job.set_done()
             #DONE
-
-
             query_out.set_done(message=message, debug_message=str(debug_message),job_status=job.status,status=status,comment=backend_comment,warning=backend_warning)
             #print('-->', query_out.status_dictionary)
         except RequestNotUnderstood as e:
@@ -558,19 +551,15 @@ class ProductQuery(BaseQuery):
                                  e_message=e_message,
                                  debug_message=debug_message)
 
-
-        msg_str = '--> data_server_query_status %d\n' % query_out.get_status()
-        msg_str += '--> end product query '
-
-        logger.info(msg_str)
-
+        logger.info('--> data_server_query_status %d' % query_out.get_status())
+        logger.info('--> end product query ')
 
         return query_out
 
-    def process_product(self,instrument,query_prod_list, config=None,api=False,**kwargs):
+    def process_product(self, instrument, query_prod_list, config=None, api=False, **kwargs):
         query_out = QueryOutput()
         if self.process_product_method is not None and query_prod_list is not None:
-            query_out= self.process_product_method(instrument,query_prod_list,api=api,**kwargs)
+            query_out= self.process_product_method(instrument, query_prod_list, api=api, **kwargs)
         return query_out
 
     def process_query_product(self,
@@ -586,14 +575,12 @@ class ProductQuery(BaseQuery):
                               **kwargs):
         if logger is None:
             logger = self.get_logger()
-
-
         #status = 0
         message = ''
         debug_message = ''
 
-        msg_str = '--> start prodcut processing'
-        print(msg_str)
+        msg_str = '--> start product processing'
+        # print(msg_str)
         logger.info(msg_str)
 
         process_products_query_out = QueryOutput()
@@ -620,9 +607,8 @@ class ProductQuery(BaseQuery):
                                                   sentry_client=sentry_client,
                                                   excep=e)
 
-        msg_str = '==>prod_process_status %d\n' % process_products_query_out.get_status()
-        msg_str += '--> end product process'
-        logger.info(msg_str)
+        logger.info('==>prod_process_status %d' % process_products_query_out.get_status())
+        logger.info('--> end product process')
 
         return process_products_query_out
 
@@ -637,9 +623,11 @@ class ProductQuery(BaseQuery):
                   sentry_client=None,
                   api=False):
 
-        print ('--> running query for ',instrument.name,'with config',config)
+        # print ('--> running query for ',instrument.name,'with config',config)
         if logger is None:
             logger = self.get_logger()
+
+        logger.info(f'--> running query for {instrument.name} with config {config if config is not None else []}')
 
         self._t_query_steps = OrderedDict()
         self._t_query_steps['start'] = _time.time()
@@ -701,6 +689,7 @@ class ProductQuery(BaseQuery):
             print(f"\033[33m {s1} - {s2} : {self._t_query_steps[s2] - self._t_query_steps[s1]:3.2g}\033[0m")
 
         return query_out
+
 
 class PostProcessProductQuery(ProductQuery):
     def __init__(self,
