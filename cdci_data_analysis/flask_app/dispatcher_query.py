@@ -37,6 +37,7 @@ import jwt
 
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
+from ..analysis import tokenHelper
 from ..analysis.job_manager import Job, job_factory
 from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
@@ -115,6 +116,7 @@ class InstrumentQueryBackEnd:
             self.public = True
 
             self.token = None
+            self.decoded_token = None
             # if 'public' in self.par_dic:
             #     self.public = self.par_dic['public'] in ['true', 'True']
             if 'token' in self.par_dic.keys() and self.par_dic['token'] != "":
@@ -739,7 +741,7 @@ class InstrumentQueryBackEnd:
 
         return None  # it's good
 
-    def validate_query_from_token(self, encoded_token):
+    def validate_query_from_token(self,):
         """
         read base64 token
         decide if it is valid
@@ -750,24 +752,11 @@ class InstrumentQueryBackEnd:
         extract the various content of the token
         """
         # decode the token
-        self.decoded_token = self.get_decoded_token()
+        # self.decoded_token = self.get_decoded_token()
+        secret_key = self.app.config.get('conf').secret_key
+        self.decoded_token = tokenHelper.get_decoded_token(self.token, secret_key)
         self.logger.info("==> token %s", self.decoded_token)
         return True
-
-    def get_decoded_token(self):
-        if self.token is not None:
-            secret_key = self.app.config.get('conf').secret_key
-            return jwt.decode(self.token, secret_key, algorithms=['HS256'])
-
-    def get_token_roles(self):
-        # extract role(s)
-        roles = self.decoded_token['roles'].split(',') if 'roles' in self.decoded_token else []
-        roles[:] = [r.strip() for r in roles]
-        return roles
-
-    def get_token_user(self):
-        # extract user
-        return self.decoded_token['name'] if 'name' in self.decoded_token else ''
 
     def build_job(self):
         return job_factory(self.instrument_name,
@@ -809,7 +798,7 @@ class InstrumentQueryBackEnd:
 
         if self.token is not None:
             try:
-                validate = self.validate_query_from_token(self.token)
+                validate = self.validate_query_from_token()
                 if validate:
                     pass
             except jwt.exceptions.ExpiredSignatureError as e:
@@ -1183,32 +1172,26 @@ class InstrumentQueryBackEnd:
                 if job_monitor is None:
                     job_monitor = job.monitor
             else:
-                query_name = self.instrument.get_product_query_name(product_type)
-                if not self.public:
-                    roles = []
-                    if self.token is not None and self.decoded_token is not None:
-                        roles = self.get_token_roles()
-                    # assess the permissions for the query execution
-                    try:
-                        self.instrument.check_instrument_query_role(query_name, product_type, roles, self.par_dic)
-                    except RequestNotAuthorized as e:
-                        return self.build_response_failed('oda_api permissions failed',
-                                                          e.message,
-                                                          status_code=e.status_code)
-                query_out = self.instrument.run_query(product_type,
-                                                      self.par_dic,
-                                                      request,
-                                                      self,  # this will change?
-                                                      job,  # this will change
-                                                      run_asynch,
-                                                      out_dir=self.scratch_dir,
-                                                      config=self.config_data_server,
-                                                      query_type=query_type,
-                                                      logger=self.logger,
-                                                      sentry_client=self.sentry_client,
-                                                      verbose=verbose,
-                                                      dry_run=dry_run,
-                                                      api=api,)
+                try:
+                    query_out = self.instrument.run_query(product_type,
+                                                          self.par_dic,
+                                                          request,
+                                                          self,  # this will change?
+                                                          job,  # this will change
+                                                          run_asynch,
+                                                          out_dir=self.scratch_dir,
+                                                          config=self.config_data_server,
+                                                          query_type=query_type,
+                                                          logger=self.logger,
+                                                          sentry_client=self.sentry_client,
+                                                          verbose=verbose,
+                                                          dry_run=dry_run,
+                                                          api=api,
+                                                          decoded_token=self.decoded_token)
+                except RequestNotAuthorized as e:
+                    return self.build_response_failed('oda_api permissions failed',
+                                                      e.message,
+                                                      status_code=e.status_code)
 
                 self.logger.info('-----------------> job status after query: %s', job.status)
 

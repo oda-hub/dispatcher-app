@@ -255,7 +255,8 @@ class BaseQuery(object):
 
     # Check if the given query cn be executed given a list of roles extracted from the token
     def check_query_roles(self, roles, par_dic):
-        return True, []
+        results = dict(authorization=True, needed_roles=[])
+        return results
 
 
 class SourceQuery(BaseQuery):

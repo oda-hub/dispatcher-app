@@ -153,9 +153,8 @@ def test_invalid_token(dispatcher_live_fixture, ):
     logger.info(json.dumps(jdata, indent=4))
 
 
-@pytest.mark.parametrize("roles", ["soldier", "unige-hpc-full, general"])
-@pytest.mark.parametrize("product_type", ["dummy", "numerical"])
-def test_authorization_user_roles(dispatcher_live_fixture, roles, product_type):
+@pytest.mark.parametrize("roles", ["", "unige-hpc-full, general"])
+def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
@@ -171,7 +170,7 @@ def test_authorization_user_roles(dispatcher_live_fixture, roles, product_type):
 
     params = {
         **default_params,
-        'product_type': product_type,
+        'product_type': "dummy",
         'query_type': "Dummy",
         'instrument': 'empty',
         'token': encoded_token
@@ -181,37 +180,14 @@ def test_authorization_user_roles(dispatcher_live_fixture, roles, product_type):
     roles = roles.split(',')
     roles[:] = [r.strip() for r in roles]
 
-    if 'general' in roles:
-        if 'unige-hpc-full' in roles:
-            params['p'] = 55
-            jdata = ask(server,
-                        params,
-                        expected_query_status=["done"],
-                        max_time_s=150,
-                        )
-            assert jdata["exit_status"]["debug_message"] == ""
-            assert jdata["exit_status"]["error_message"] == ""
-            assert jdata["exit_status"]["message"] == ""
-        else:
-            jdata = ask(server,
-                        params,
-                        expected_query_status=["done"],
-                        max_time_s=150,
-                        )
-            assert jdata["exit_status"]["debug_message"] == ""
-            assert jdata["exit_status"]["error_message"] == ""
-            assert jdata["exit_status"]["message"] == ""
-    else:
-        jdata = ask(server,
-                    params,
-                    expected_query_status=["failed"],
-                    max_time_s=150,
-                    expected_status_code=403,
-                    )
-        assert jdata["exit_status"]["debug_message"] == ""
-        assert jdata["exit_status"]["error_message"] == ""
-        assert jdata["exit_status"]["message"] == \
-               f"Roles {roles} not authorized to request the product {product_type}, [\'general\'] roles are needed"
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == ""
 
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))

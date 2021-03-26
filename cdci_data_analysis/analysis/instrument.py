@@ -34,6 +34,7 @@ import  numpy as np
 from astropy.table import Table
 
 from cdci_data_analysis.analysis.queries import _check_is_base_query
+from ..analysis import tokenHelper
 from .catalog import BasicCatalog
 from .products import QueryOutput
 from .queries import ProductQuery, SourceQuery, InstrumentQuery
@@ -159,6 +160,7 @@ class Instrument:
                   sentry_client=None,
                   dry_run=False,
                   api=False,
+                  decoded_token=None,
                   **kwargs):
 
         if logger is None:
@@ -202,6 +204,13 @@ class Instrument:
                 try:
                     query_name = self.get_product_query_name(product_type)
                     query_obj = self.get_query_by_name(query_name)
+                    roles = []
+                    if decoded_token is not None: # otherwise the request is public
+                        roles = tokenHelper.get_token_roles(decoded_token)
+                    # assess the permissions for the query execution
+                    self.check_instrument_query_role(query_obj, product_type, roles, par_dic)
+
+                    query_obj = self.get_query_by_name(query_name)
                     query_out = query_obj.run_query(self, out_dir, job, run_asynch,
                                                     query_type=query_type,
                                                     config=config,
@@ -224,11 +233,11 @@ class Instrument:
                                            warning=backend_warning)
                     else:
                         pass
-
+                except RequestNotAuthorized:
+                    raise
                 except RequestNotUnderstood as e:
                     logger.warning("bad request from user, passing through: %s", e)
                     raise
-
                 except Exception as e: # we shall not do that
                     logger.error("run_query failed: %s", e)
                     # logger.error("run_query failed: %s", traceback.format_exc())
@@ -247,11 +256,10 @@ class Instrument:
         else:
             return self.query_dictionary[product_type]
 
-    def check_instrument_query_role(self, query_name, product_type, roles, par_dic):
-        query_obj = self.get_query_by_name(query_name)
+    def check_instrument_query_role(self, query_obj, product_type, roles, par_dic):
         results = query_obj.check_query_roles(roles, par_dic)
-        if not results[0]:
-            raise RequestNotAuthorized(f"Roles {roles} not authorized to request the product {product_type}, {results[1]} roles are needed")
+        if not results['authorization']:
+            raise RequestNotAuthorized(f"Roles {roles} not authorized to request the product {product_type}, {results['needed_roles']} roles are needed")
         else:
             return True
 

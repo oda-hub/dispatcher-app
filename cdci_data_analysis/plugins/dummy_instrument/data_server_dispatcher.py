@@ -68,8 +68,8 @@ class DataServerQuery(ProductQuery):
         #     return 'unige-hpc-full' in roles:
         #
         # return True
-
-        return 'general' in roles, ['general']
+        results = dict(authorization=True, needed_roles=[])
+        return results
 
 
 class DataServerNumericQuery(ProductQuery):
@@ -92,10 +92,15 @@ class DataServerNumericQuery(ProductQuery):
 
     # example with the general user role
     def check_query_roles(self, roles, par_dic):
+        param_p = self.get_par_by_name('p')
+        results = dict(authorization='general' in roles, needed_roles=['general'])
         if 'p' in par_dic.keys():
             # not sure this is actually the best way to obtain a certain parameter value
-            p = float(par_dic['p'])
+            # p = float(par_dic['p'])
+            # better now, it extracts the value directly from the related parameter object
+            p = param_p.value
             if p > 50:
-                return 'general' and 'unige-hpc-full' in roles, ['general', 'unige-hpc-full']
-        return 'general' in roles, ['general']
+                results['authorization'] = 'general' and 'unige-hpc-full' in roles
+                results['needed_roles'] = ['general', 'unige-hpc-full']
+        return results
 
