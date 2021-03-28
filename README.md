@@ -1,6 +1,8 @@
 ODA Dispatcher
 ==========================================
 
+[![codecov](https://codecov.io/gh/oda-hub/dispatcher-app/branch/master/graph/badge.svg?token=9A4QWsQNOo)](https://codecov.io/gh/oda-hub/dispatcher-app)
+
 A flexible python framework to bridge front-end and data-server for scientific online analysis of astrophysical data:
 
 * provides boilerplate code to implement interfaces to specific instument backends with [plugins](dispatcher-plugins).
