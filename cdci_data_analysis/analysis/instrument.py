@@ -162,6 +162,7 @@ class Instrument:
                   api=False,
                   decoded_token=None,
                   **kwargs):
+        self._current_par_dic = par_dic
 
         if logger is None:
             logger = self.logger

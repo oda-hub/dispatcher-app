@@ -1,5 +1,6 @@
 import jwt
 
+
 def get_token_roles(decoded_token):
     # extract role(s)
     roles = decoded_token['roles'].split(',') if 'roles' in decoded_token else []
