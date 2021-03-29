@@ -79,10 +79,15 @@ class InstrumentQueryBackEnd:
     def instrument_name(self, instrument_name):
         self._instrument_name = instrument_name
 
-    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False):
-        # self.instrument_name=instrument_name
+    def __init__(self, app,
+                 instrument_name=None,
+                 par_dic=None,
+                 config=None,
+                 data_server_call_back=False,
+                 verbose=False,
+                 get_meta_data=False):
 
-        self.logger = logging.getLogger(repr(self))
+        self.logger = logging.getLogger(__name__)
 
         if verbose:
             self.logger.setLevel(logging.DEBUG)
@@ -105,7 +110,7 @@ class InstrumentQueryBackEnd:
             """
                 async dispatcher operation avoids building QueryOutput in the sync request, and instead sends it in the queue
                 in the queue, the same request is repeated, same session id/job id, but requesting sync request
-                this immitates two repeated identical requests from the same client, which takes care of aliasing/etc complexity
+                this imitates two repeated identical requests from the same client, which takes care of aliasing/etc complexity
                 the remaining complexity is to send back a response which indicates "submitted" but not submitted job - only request
             """
 
@@ -123,25 +128,16 @@ class InstrumentQueryBackEnd:
                 self.token = self.par_dic['token']
                 self.public = False
 
-            if instrument_name is None:
-                if 'instrument' in self.par_dic:
-                    self.instrument_name = self.par_dic['instrument']
-                else:
-                    raise NoInstrumentSpecified(
-                        f"have paramters: {list(self.par_dic.keys())}")
-            else:
-                self.instrument_name = instrument_name
-
             if get_meta_data:
-                print("get_meta_data request: no scratch_dir")
-                self.set_instrument(self.instrument_name)
+                self.logger.info("get_meta_data request: no scratch_dir")
+                self.set_instrument(instrument_name,)
                 # TODO
                 # decide if it is worth to add the logger also in this case
                 #self.set_scratch_dir(self.par_dic['session_id'], verbose=verbose)
                 #self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
                 # self.set_sentry_client()
             else:
-                print("NOT get_meta_data request: yes scratch_dir")
+                self.logger.info("NOT get_meta_data request: yes scratch_dir")
 
                 # TODO: if not callback!
                 # if 'query_status' not in self.par_dic:
@@ -165,16 +161,14 @@ class InstrumentQueryBackEnd:
                 self.set_scratch_dir(
                     self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
 
-                self.set_session_logger(
-                    self.scratch_dir, verbose=verbose, config=config)
+                self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
                 self.set_sentry_client()
 
-                if data_server_call_back is False:
-                    self.set_instrument(self.instrument_name)
+                self.set_instrument(instrument_name, data_server_call_back)
 
                 self.config = config
 
-            print('==> found par dict', self.par_dic.keys())
+            self.logger.info('==> found par dict', self.par_dic.keys())
 
         except APIerror:
             raise
@@ -259,40 +253,33 @@ class InstrumentQueryBackEnd:
         self.logger.info('setting SESSION ID: %s', self.par_dic['session_id'])
 
     def set_session_logger(self, scratch_dir, verbose=False, config=None):
-        logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(repr(self))
 
         if verbose:
-            logger.setLevel(logging.DEBUG)
+            self.logger.setLevel(logging.DEBUG)
         else:
-            logger.setLevel(logging.INFO)
+            self.logger.setLevel(logging.INFO)
 
         session_log_filename = os.path.join(scratch_dir, 'session.log')
 
         have_handler = False
-        for handler in logger.handlers:
+        for handler in self.logger.handlers:
             if isinstance(handler, logging.FileHandler):
-                logger.info("found FileHandler: %s : %s",
-                            handler, handler.baseFilename)
+                self.logger.info("found FileHandler: %s : %s", handler, handler.baseFilename)
                 have_handler = True
                 #handler.baseFilename == session_log_filename
 
         if not have_handler:
-
             fileh = logging.FileHandler(session_log_filename, 'a')
-            formatter = logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             fileh.setFormatter(formatter)
-
-            logger.addHandler(fileh)  # set the new handler
+            self.logger.addHandler(fileh)  # set the new handler
 
         if verbose:
-            print('logfile set to dir=', scratch_dir,
-                  ' with name=', session_log_filename)
+            self.logger.info(f'logfile set to dir= {scratch_dir}, with name= {session_log_filename}')
 
         # if config is not None:
         #    logger=self.set_logstash(logger,logstash_host=config.logstash_host,logstash_port=config.logstash_port)
-
-        self.logger = logger
 
     def set_logstash(self, logger, logstash_host=None, logstash_port=None):
         _logger = logger
@@ -342,7 +329,7 @@ class InstrumentQueryBackEnd:
         self.args = args
 
     def set_scratch_dir(self, session_id, job_id=None, verbose=False):
-        if verbose == True:
+        if verbose:
             print('SETSCRATCH  ---->', session_id,
                   type(session_id), job_id, type(job_id))
 
@@ -632,26 +619,33 @@ class InstrumentQueryBackEnd:
 
         return out_dict
 
-    def set_instrument(self, instrument_name):
-        known_instruments = []
+    def set_instrument(self, instrument_name, data_server_call_back=False):
 
-        new_instrument = None
-        # TODO to get rid of the mock instrument option, we now have the empty instrument
-        if instrument_name == 'mock':
-            new_instrument = 'mock'
+        if instrument_name is None:
+            if 'instrument' in self.par_dic:
+                self.instrument_name = self.par_dic['instrument']
+            else:
+                raise NoInstrumentSpecified(
+                    f"have paramters: {list(self.par_dic.keys())}")
         else:
+            self.instrument_name = instrument_name
+
+        if not data_server_call_back:
+            known_instruments = []
+
+            new_instrument = None
             for instrument_factory in importer.instrument_factory_list:
                 instrument = instrument_factory()
-                if instrument.name == instrument_name:
-                    new_instrument = instrument  # multiple assignment? TODO
-
+                # name must be unique!
+                if instrument.name == self.instrument_name:
+                    new_instrument = instrument
                 known_instruments.append(instrument.name)
 
-        if new_instrument is None:
-            raise InstrumentNotRecognized(
-                f'instrument: "{instrument_name}", known: {known_instruments}')
-        else:
-            self.instrument = new_instrument
+            if new_instrument is None:
+                raise InstrumentNotRecognized(
+                    f'instrument: "{instrument_name}", known: {known_instruments}')
+            else:
+                self.instrument = new_instrument
 
     def set_config(self):
         if getattr(self, 'config', None) is None:
@@ -1182,7 +1176,7 @@ class InstrumentQueryBackEnd:
                                                           out_dir=self.scratch_dir,
                                                           config=self.config_data_server,
                                                           query_type=query_type,
-                                                          logger=self.logger,
+                                                          # logger=self.logger,
                                                           sentry_client=self.sentry_client,
                                                           verbose=verbose,
                                                           dry_run=dry_run,

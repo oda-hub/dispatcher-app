@@ -299,22 +299,18 @@ def test_empty_instrument_request(dispatcher_live_fixture):
 
 def test_no_instrument(dispatcher_live_fixture):
     server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    c=requests.get(server + "/run_analysis",
-                   params=dict(
-                   image_type="Real",
-                   product_type="image",
-                   E1_keV=20.,
-                   E2_keV=40.,
-                   T1="2008-01-01T11:11:11.0",
-                   T2="2008-06-01T11:11:11.0",
+    logger.info("constructed server:", server)
+    c = requests.get(server + "/run_analysis",
+                     params=dict(
+                         image_type="Real",
+                         product_type="image",
+                         E1_keV=20.,
+                         E2_keV=40.,
+                         T1="2008-01-01T11:11:11.0",
+                         T2="2008-06-01T11:11:11.0",
                 ))
 
-    print("content:", c.text)
-
-    jdata=c.json()
-
+    logger.info("content:", c.text)
     assert c.status_code == 400
 
 
