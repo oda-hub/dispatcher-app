@@ -73,7 +73,7 @@ class Instrument:
         # logger
         self.logger = logging.getLogger(repr(self))
         #src query
-        self.src_query=src_query
+        self.src_query = src_query
         # asynch
         self.asynch=asynch
         #Instrument specific

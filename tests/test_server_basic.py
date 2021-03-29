@@ -271,7 +271,7 @@ def test_isgri_dummy(dispatcher_live_fixture):
 
 def test_empty_instrument_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
-    print("constructed server:", server)
+    logger.info(f"constructed server: {server}")
 
     params = {
         **default_params,
@@ -299,9 +299,10 @@ def test_empty_instrument_request(dispatcher_live_fixture):
 
 def test_no_instrument(dispatcher_live_fixture):
     server = dispatcher_live_fixture
-    logger.info("constructed server:", server)
+    logger.info(f"constructed server: {server}")
     c = requests.get(server + "/run_analysis",
                      params=dict(
+                         query_status="new",
                          image_type="Real",
                          product_type="image",
                          E1_keV=20.,
@@ -310,7 +311,7 @@ def test_no_instrument(dispatcher_live_fixture):
                          T2="2008-06-01T11:11:11.0",
                 ))
 
-    logger.info("content:", c.text)
+    logger.info(f"content: {c.text}")
     assert c.status_code == 400
 
 

@@ -95,8 +95,6 @@ class DataServerNumericQuery(ProductQuery):
         param_p = self.get_par_by_name('p')
         results = dict(authorization='general' in roles, needed_roles=['general'])
         if 'p' in par_dic.keys():
-            # not sure this is actually the best way to obtain a certain parameter value
-            # p = float(par_dic['p'])
             # better now, it extracts the value directly from the related parameter object
             p = param_p.value
             if p > 50:
