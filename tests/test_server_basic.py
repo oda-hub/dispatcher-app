@@ -48,12 +48,19 @@ def test_meta_data_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     logger.info(f"constructed server: {server}")
 
-    c=requests.get(server + "/api/meta-data",
-                   params={**default_params},
-                )
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+
+    }
+    params.pop("token")
+    c = requests.get(server + "/run_analysis",
+                     params={**params},
+                     )
 
     logger.info(f"content: {c.text}")
-    jdata=c.json()
 
     assert c.status_code == 200
 
