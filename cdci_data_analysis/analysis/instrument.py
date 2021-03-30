@@ -282,8 +282,8 @@ class Instrument:
     def show_parameters_list(self, logger):
         logger.info("-------------")
         for _query in self._queries_list:
-            logger.info('q:',_query.name)
-            _query.show_parameters_list()
+            logger.info('q:', _query.name)
+            _query.show_parameters_list(logger)
         logger.info("-------------")
 
     def get_parameters_list_as_json(self,add_src_query=True,add_instr_query=True,prod_name=None):

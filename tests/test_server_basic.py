@@ -44,6 +44,20 @@ default_params = dict(
                  )
 
 
+def test_meta_data_request(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    logger.info(f"constructed server: {server}")
+
+    c=requests.get(server + "/api/meta-data",
+                   params={**default_params},
+                )
+
+    logger.info(f"content: {c.text}")
+    jdata=c.json()
+
+    assert c.status_code == 200
+
+
 def test_empty_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)

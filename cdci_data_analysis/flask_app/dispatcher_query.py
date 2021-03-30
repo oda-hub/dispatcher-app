@@ -129,12 +129,13 @@ class InstrumentQueryBackEnd:
                 self.public = False
 
             if get_meta_data:
-                self.logger.info("get_meta_data request: no scratch_dir")
+                self.logger.info("get_meta_data request")
                 self.set_instrument(instrument_name,)
-                # TODO
+                # this assumption might be completely wrong to be confirmed
+                self.job_id = None
                 # decide if it is worth to add the logger also in this case
-                #self.set_scratch_dir(self.par_dic['session_id'], verbose=verbose)
-                #self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
+                self.set_scratch_dir(self.par_dic['session_id'], verbose=verbose)
+                self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
                 # self.set_sentry_client()
             else:
                 self.logger.info("NOT get_meta_data request: yes scratch_dir")
@@ -145,7 +146,6 @@ class InstrumentQueryBackEnd:
 
                 if data_server_call_back is True:
                     self.job_id = self.par_dic['job_id']
-
                 else:
                     query_status = self.par_dic['query_status']
                     self.job_id = None
@@ -168,7 +168,7 @@ class InstrumentQueryBackEnd:
 
                 self.config = config
 
-            self.logger.info('==> found par dict', self.par_dic.keys())
+            self.logger.info(f'==> found par dict {self.par_dic.keys()}')
 
         except APIerror:
             raise
@@ -441,17 +441,17 @@ class InstrumentQueryBackEnd:
             if hasattr(self, 'instrument'):
                 l.append(self.instrument.get_parameters_list_as_json(
                     prod_name=prod_name))
-                src_query.show_parameters_list()
+                src_query.show_parameters_list(self.logger)
             else:
                 l = ['instrument not recognized']
 
         if meta_name == 'src_query':
             l = [src_query.get_parameters_list_as_json()]
-            src_query.show_parameters_list()
+            src_query.show_parameters_list(self.logger)
 
         if meta_name == 'instrument':
             l = [self.instrument.get_parameters_list_as_json()]
-            self.instrument.show_parameters_list()
+            self.instrument.show_parameters_list(self.logger)
 
         return jsonify(l)
 
@@ -683,6 +683,9 @@ class InstrumentQueryBackEnd:
 
     def get_existing_job_ID_path(self, wd):
         # exist same job_ID, different session ID
+        # if self.job_id is None:
+        #     dir_list = []
+        # else:
         dir_list = glob.glob('*_jid_%s' % (self.job_id))
         # print('dirs',dir_list)
         if dir_list != []:
