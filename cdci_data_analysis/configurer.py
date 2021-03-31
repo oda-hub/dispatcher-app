@@ -4,15 +4,16 @@ import traceback
 from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
 
-from cdci_data_analysis import conf_dir
-from cdci_data_analysis.analysis.io_helper import FilePath
-import yaml
+from typing import Union, List
 
 import sys
 import os
 import logging
 
 from typing import List, Union
+from cdci_data_analysis import conf_dir
+from cdci_data_analysis.analysis.io_helper import FilePath
+import yaml
 
 __author__ = "Andrea Tramacere"
 
@@ -47,7 +48,7 @@ class DataServerConf:
                 logger.warning("attempting to access obsolete key %s, returning None", k)
                 return None
         
-        return super().__getattr__(k)
+        raise AttributeError
 
     def __init__(self, 
                  required_keys: Union[List[str], None]=None, 

@@ -113,8 +113,6 @@ class BaseQuery(object):
             self._show_parameter(par,indent=2)
         print("-------------")
 
-
-
     def show_parameters_structure(self):
 
         print ("-------------")
@@ -165,7 +163,6 @@ class BaseQuery(object):
             self._show_parameter( p,indent+2, )
         print('')
 
-
     def _show_parameter(self,par,indent=0):
         s='%stype: par | name: %s |  value: %s| units: %s| units name:%s '%(' '*indent,par.name,par.value,par.units,par.units_name)
         print(s)
@@ -183,8 +180,6 @@ class BaseQuery(object):
 
             if isinstance(par, Parameter):
                 self._build_parameter_dic(par,  par_dictionary=self.par_dictionary_list[-1])
-
-
 
     def _build_parameter_group_dic(self,par_group,par_dictionary=None):
 
@@ -208,8 +203,6 @@ class BaseQuery(object):
             else:
                 raise RuntimeError('group of parameters can contain only range of parameters or parameters')
 
-
-
     def _build_parameter_range_dic(self, par_range,par_dictionary=None):
         if par_dictionary is not None:
             value=[{},{}]
@@ -221,8 +214,6 @@ class BaseQuery(object):
         self._build_parameter_dic( par_range.p1,par_dictionary=par_dictionary['field value'][0])
         self._build_parameter_dic( par_range.p2,par_dictionary=par_dictionary['field value'][1])
 
-
-
     def _build_parameter_dic(self,par,par_dictionary):
         if par_dictionary is not None:
             par_dictionary['field type'] = 'parameter'
@@ -230,11 +221,8 @@ class BaseQuery(object):
             par_dictionary['field name'] = par.name
             par_dictionary['field value']=par.value
 
-
-
     def print_list(self, l):
         return l
-
 
     def print_form_dictionary_list(self,l):
         print ('type l',type(l))
@@ -257,25 +245,27 @@ class BaseQuery(object):
         else:
             return l
 
-
-
     def get_parameters_list_as_json(self,prod_dict=None):
         l=[ {'query_name':self.name}]
 
         for par in self._parameters_list:
             l.append(par.reprJSON())
 
-
         return json.dumps(l)
+
+    # Check if the given query cn be executed given a list of roles extracted from the token
+    def check_query_roles(self, roles, par_dic):
+        results = dict(authorization=True, needed_roles=[])
+        return results
 
 
 class SourceQuery(BaseQuery):
     def __init__(self, name):
-        src_name = Name(name_format='str', name='src_name',value='test')
-        RA = Angle(value=0.,units='deg', name='RA', )
-        DEC = Angle(value=0.,units='deg', name='DEC')
+        src_name = Name(name_format='str', name='src_name', value='test')
+        RA = Angle(value=0., units='deg', name='RA', )
+        DEC = Angle(value=0., units='deg', name='DEC')
 
-        sky_coords=ParameterTuple([RA,DEC],'sky_coords')
+        sky_coords = ParameterTuple([RA,DEC],'sky_coords')
 
         t1 = Time(value='2001-12-11T00:00:00.0',name='T1',Time_format_name='T_format')
         t2 = Time(value='2001-12-11T00:00:00.0',name='T2',Time_format_name='T_format')
@@ -287,13 +277,9 @@ class SourceQuery(BaseQuery):
         #time_group = ParameterGroup([t_range_iso, t_range_mjd], 'time_range', selected='t_range_iso')
         #time_group_selector = time_group.build_selector('time_group_selector')
 
+        parameters_list=[src_name, sky_coords, t_range, token]
 
-        parameters_list=[src_name,sky_coords,t_range,token]
-
-
-        super(SourceQuery, self).__init__(name,parameters_list)
-
-
+        super(SourceQuery, self).__init__(name, parameters_list)
 
 
 
@@ -325,9 +311,6 @@ class InstrumentQuery(BaseQuery):
         super(InstrumentQuery, self).__init__(name,parameters_list)
 
 
-
-
-
 class ProductQuery(BaseQuery):
     def __init__(self,
                  name,
@@ -338,8 +321,6 @@ class ProductQuery(BaseQuery):
                  #process_product_method=None,
                  **kwargs):
 
-
-
         super(ProductQuery, self).__init__(name,parameters_list, **kwargs)
 
         self.job=None
@@ -348,14 +329,11 @@ class ProductQuery(BaseQuery):
     def get_products(self, instrument,run_asynch, job=None,config=None,logger=None,**kwargs):
         raise RuntimeError('needs to be implemented in derived class')
 
-
     def get_dummy_products(self,instrument, config=None,**kwargs):
         raise RuntimeError('needs to be implemented in derived class')
 
-
     def get_data_server_query(self,instrument,config=None,**kwargs):
         raise RuntimeError('needs to be implemented in derived class')
-
 
     def get_parameters_list_as_json(self,prod_dict=None):
 
@@ -370,22 +348,14 @@ class ProductQuery(BaseQuery):
         else:
             l.append({'product_name': self.name})
 
-
         for par in self._parameters_list:
             l.append(par.reprJSON())
 
         print(l)
         return json.dumps(l)
 
-
-
-
-
-
     def get_prod_by_name(self,name):
         return self.query_prod_list.get_prod_by_name(name)
-
-
 
     def test_communication(self, instrument, query_type='Real', logger=None, config=None, sentry_client=None):
         if logger is None:
@@ -399,7 +369,7 @@ class ProductQuery(BaseQuery):
 
         msg_str = '--> start dataserver communication test'
 
-        print(msg_str)
+        # print(msg_str)
         logger.info(msg_str)
         try:
 
@@ -431,18 +401,13 @@ class ProductQuery(BaseQuery):
                                  e_message=e_message,
                                  debug_message=debug_message)
 
-
-
-
-        msg_str = '--> data server communication status %d\n' %query_out.get_status()
-        msg_str += '--> end dataserver communication test'
+        status = query_out.get_status()
+        msg_str = '--> data server communication status: %d' %status
+        logger.info(msg_str)
+        msg_str = '--> end dataserver communication test'
         logger.info(msg_str)
 
-
-
-
         return query_out
-
 
     def test_has_products(self,instrument,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None):
         if logger is None:
@@ -455,7 +420,7 @@ class ProductQuery(BaseQuery):
         debug_message = ''
         msg_str = '--> start test has products'
 
-        print(msg_str)
+        # print(msg_str)
         logger.info(msg_str)
 
         prod_dictionary = {}
@@ -503,14 +468,9 @@ class ProductQuery(BaseQuery):
                                   e_message=e_message,
                                   debug_message=debug_message)
 
-
-        msg_str = '--> test has products status %d\n' % query_out.get_status()
-        msg_str += '--> end test has products test'
-        logger.info(msg_str)
-
-
+        logger.info('--> test has products status %d' % query_out.get_status())
+        logger.info('--> end test has products test')
         #print("-->input_prod_list",input_prod_list)
-
 
         return query_out
 
@@ -523,7 +483,7 @@ class ProductQuery(BaseQuery):
         message=''
         debug_message=''
         msg_str = '--> start get product query',query_type
-        print(msg_str)
+        # print(msg_str)
         logger.info(msg_str)
         backend_comment=''
         backend_warning=''
@@ -563,8 +523,6 @@ class ProductQuery(BaseQuery):
 
                 job.set_done()
             #DONE
-
-
             query_out.set_done(message=message, debug_message=str(debug_message),job_status=job.status,status=status,comment=backend_comment,warning=backend_warning)
             #print('-->', query_out.status_dictionary)
         except RequestNotUnderstood as e:
@@ -594,20 +552,15 @@ class ProductQuery(BaseQuery):
                                  e_message=e_message,
                                  debug_message=debug_message)
 
-
-        msg_str = '--> data_server_query_status %d\n' % query_out.get_status()
-        msg_str += '--> end product query '
-
-        logger.info(msg_str)
-
+        logger.info('--> data_server_query_status %d' % query_out.get_status())
+        logger.info('--> end product query ')
 
         return query_out
 
-
-    def process_product(self,instrument,query_prod_list, config=None,api=False,**kwargs):
+    def process_product(self, instrument, query_prod_list, config=None, api=False, **kwargs):
         query_out = QueryOutput()
         if self.process_product_method is not None and query_prod_list is not None:
-            query_out= self.process_product_method(instrument,query_prod_list,api=api,**kwargs)
+            query_out= self.process_product_method(instrument, query_prod_list, api=api, **kwargs)
         return query_out
 
     def process_query_product(self,
@@ -623,14 +576,12 @@ class ProductQuery(BaseQuery):
                               **kwargs):
         if logger is None:
             logger = self.get_logger()
-
-
         #status = 0
         message = ''
         debug_message = ''
 
-        msg_str = '--> start prodcut processing'
-        print(msg_str)
+        msg_str = '--> start product processing'
+        # print(msg_str)
         logger.info(msg_str)
 
         process_products_query_out = QueryOutput()
@@ -657,16 +608,10 @@ class ProductQuery(BaseQuery):
                                                   sentry_client=sentry_client,
                                                   excep=e)
 
-
-        msg_str = '==>prod_process_status %d\n' % process_products_query_out.get_status()
-        msg_str += '--> end product process'
-        logger.info(msg_str)
-
+        logger.info('==>prod_process_status %d' % process_products_query_out.get_status())
+        logger.info('--> end product process')
 
         return process_products_query_out
-
-
-
 
     def run_query(self, 
                   instrument, 
@@ -679,9 +624,11 @@ class ProductQuery(BaseQuery):
                   sentry_client=None,
                   api=False):
 
-        print ('--> running query for ',instrument.name,'with config',config)
+        # print ('--> running query for ',instrument.name,'with config',config)
         if logger is None:
             logger = self.get_logger()
+
+        logger.info(f'--> running query for {instrument.name} with config {config if config is not None else []}')
 
         self._t_query_steps = OrderedDict()
         self._t_query_steps['start'] = _time.time()
@@ -700,9 +647,6 @@ class ProductQuery(BaseQuery):
         if query_out.status_dictionary['status'] == 0:
             query_out = self.get_query_products(instrument,job,run_asynch, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client,api=api)
             self._t_query_steps['after_get_query_products'] = _time.time()
-
-
-
 
         if query_out.status_dictionary['status'] == 0:
             if job.status!='done':
@@ -748,11 +692,6 @@ class ProductQuery(BaseQuery):
         return query_out
 
 
-
-
-
-
-
 class PostProcessProductQuery(ProductQuery):
     def __init__(self,
                  name,
@@ -766,7 +705,6 @@ class PostProcessProductQuery(ProductQuery):
         super(PostProcessProductQuery, self).__init__(name, parameters_list, **kwargs)
 
         self.query_prod_list = None
-
 
     def check_file_exist(self,files_list,out_dir=None):
         if files_list==[''] or files_list==None:
@@ -786,7 +724,6 @@ class PostProcessProductQuery(ProductQuery):
 
     def process_product(self,instrument,job, config=None,out_dir=None,**kwargs):
         raise RuntimeError('this method has to be implemented in the derived class')
-
 
     def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None,api=False,**kwargs):
         if logger is None:
@@ -822,10 +759,7 @@ class PostProcessProductQuery(ProductQuery):
         msg_str += '--> end product process'
         logger.info(msg_str)
 
-
         return process_product_query_out
-
-
 
     def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_client=None,api=False):
 
@@ -840,8 +774,6 @@ class PostProcessProductQuery(ProductQuery):
 
         return query_out
 
-
-
 class ImageQuery(ProductQuery):
     def __init__(self,name,parameters_list=[],**kwargs):
         detection_th = DetectionThreshold(value=0.0,units='sigma', name='detection_threshold')
@@ -855,7 +787,6 @@ class ImageQuery(ProductQuery):
         parameters_list.extend([image_scale_min, image_scale_max])
         super(ImageQuery, self).__init__(name, parameters_list, **kwargs)
 
-
 class LightCurveQuery(ProductQuery):
     def __init__(self,name,parameters_list=[], **kwargs):
 
@@ -866,7 +797,6 @@ class LightCurveQuery(ProductQuery):
             parameters_list = [time_bin]
         super(LightCurveQuery, self).__init__(name, parameters_list, **kwargs)
 
-
 class SpectrumQuery(ProductQuery):
     def __init__(self, name,parameters_list=[], **kwargs):
 
@@ -876,9 +806,7 @@ class SpectrumQuery(ProductQuery):
         #else:
         #    parameters_list = [xspec_model]
 
-
         super(SpectrumQuery, self).__init__(name, parameters_list, **kwargs)
-
 
 class InputDataQuery(ProductQuery):
     def __init__(self, name,parameters_list=[], **kwargs):
@@ -888,7 +816,6 @@ class InputDataQuery(ProductQuery):
         #    parameters_list.append(xspec_model)
         #else:
         #    parameters_list = [xspec_model]
-
 
         super(InputDataQuery, self).__init__(name, parameters_list, **kwargs)
 
@@ -908,13 +835,11 @@ class SpectralFitQuery(PostProcessProductQuery):
         else:
             parameters_list = p_list[::]
 
-
         super(SpectralFitQuery, self).__init__(name,
                                                parameters_list,
                                                #get_products_method=None,
                                                #get_dummy_products_method=None,
                                                **kwargs)
-
 
     def process_product(self,instrument,job,out_dir=None,api=False):
 
@@ -928,8 +853,7 @@ class SpectralFitQuery(PostProcessProductQuery):
         e_min_kev=np.float(instrument.get_par_by_name('E1_keV').value)
         e_max_kev=np.float(instrument.get_par_by_name('E2_keV').value)
 
-
-        if instrument.name=='isgri':
+        if instrument.name == 'isgri':
             e_min_kev=30.
             e_max_kev=300.
 
@@ -948,9 +872,8 @@ class SpectralFitQuery(PostProcessProductQuery):
 
         query_out = QueryOutput()
         try:
-            query_out.prod_dictionary['image'] = SpectralFitProduct('spectral_fit',ph_file,arf_file,rmf_file,file_dir=out_dir).run_fit(e_min_kev=e_min_kev,
-                                                                                                                                       e_max_kev=e_max_kev,
-                                                                                                                                       xspec_model=instrument.get_par_by_name('xspec_model').value,)
+            query_out.prod_dictionary['image'] = SpectralFitProduct('spectral_fit',ph_file,arf_file,rmf_file,file_dir=out_dir)\
+                .run_fit(e_min_kev=e_min_kev, e_max_kev=e_max_kev, xspec_model=instrument.get_par_by_name('xspec_model').value,)
 
         except Exception as e:
 
@@ -969,8 +892,6 @@ class SpectralFitQuery(PostProcessProductQuery):
         query_out.prod_dictionary['prod_process_maessage'] = ''
 
         return query_out
-
-
 
 # class ImageProcessQuery(PostProcessProductQuery):
 #

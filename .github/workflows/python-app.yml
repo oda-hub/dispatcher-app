@@ -21,24 +21,36 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.8
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 pytest mypy pylint
+        pip install flake8 pytest mypy pylint coverage
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install . --upgrade
+
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || echo "failed lint"
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || echo "failed second lint"
+
     - name: PyLint - more lint
       run: |
         pylint -E cdci_data_analysis || echo 'this is fine!'
+
     - name: MyPy
       run: |
         mypy cdci_data_analysis --ignore-missing-imports || echo 'this is fine too!'
+
     - name: Test with pytest
       run: |
-        pytest tests/ -sv --full-trace --log-cli-level=DEBUG -m 'not isgri_plugin and not dda'
+        python -m coverage run -m pytest  tests/test_server_basic.py -sv --full-trace --log-cli-level=DEBUG -m 'not isgri_plugin and not dda'
+
+    # I wonder how this interacts with the Github App. But this is not only for PR. Also this does not always work
+    - name: Codecov
+      uses: codecov/codecov-action@v1.3.1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true

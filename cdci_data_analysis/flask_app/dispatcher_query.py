@@ -37,13 +37,14 @@ import jwt
 
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
+from ..analysis import tokenHelper
 from ..analysis.job_manager import Job, job_factory
 from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
-from ..analysis.exceptions import BadRequest, APIerror, MissingParameter, RequestNotUnderstood, ProblemDecodingStoredQueryOut
+from ..analysis.exceptions import BadRequest, APIerror, MissingParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut
 from . import tasks
 from oda_api.data_products import NumpyDataProduct
 import time as time_
@@ -114,6 +115,8 @@ class InstrumentQueryBackEnd:
             # In that case, validation is needed
             self.public = True
 
+            self.token = None
+            self.decoded_token = None
             # if 'public' in self.par_dic:
             #     self.public = self.par_dic['public'] in ['true', 'True']
             if 'token' in self.par_dic.keys() and self.par_dic['token'] != "":
@@ -129,7 +132,7 @@ class InstrumentQueryBackEnd:
             else:
                 self.instrument_name = instrument_name
 
-            if get_meta_data == True:
+            if get_meta_data:
                 print("get_meta_data request: no scratch_dir")
                 self.set_instrument(self.instrument_name)
                 # TODO
@@ -282,7 +285,7 @@ class InstrumentQueryBackEnd:
 
             logger.addHandler(fileh)  # set the new handler
 
-        if verbose == True:
+        if verbose:
             print('logfile set to dir=', scratch_dir,
                   ' with name=', session_log_filename)
 
@@ -566,9 +569,10 @@ class InstrumentQueryBackEnd:
     def build_dispatcher_response(self,
                                   query_new_status=None,
                                   query_out=None,
+                                  status_code=None,
                                   job_monitor=None,
                                   off_line=True,
-                                  api=False):
+                                  api=False,):
 
         out_dict = {}
 
@@ -587,15 +591,17 @@ class InstrumentQueryBackEnd:
 
         out_dict['session_id'] = self.par_dic['session_id']
 
-        if off_line == True:
+        if status_code is not None:
+            out_dict['status_code'] = status_code
+
+        if off_line:
             return out_dict
         else:
-
             try:
-                if api == True:
-                    return self.jsonify_api_response(out_dict)
+                if api:
+                    return self.jsonify_api_response(out_dict), status_code
                 else:
-                    return jsonify(out_dict)
+                    return jsonify(out_dict), status_code
 
             except Exception as e:
                 print('failed', e)
@@ -610,7 +616,7 @@ class InstrumentQueryBackEnd:
 
                 out_dict['exit_status'] = query_out.status_dictionary
 
-                return jsonify(out_dict)
+                return jsonify(out_dict), status_code
 
     def jsonify_api_response(self, out_dict):
         return jsonify(self.prep_jsonify_api_response(out_dict))
@@ -630,9 +636,9 @@ class InstrumentQueryBackEnd:
         known_instruments = []
 
         new_instrument = None
+        # TODO to get rid of the mock instrument option, we now have the empty instrument
         if instrument_name == 'mock':
             new_instrument = 'mock'
-
         else:
             for instrument_factory in importer.instrument_factory_list:
                 instrument = instrument_factory()
@@ -738,7 +744,7 @@ class InstrumentQueryBackEnd:
 
         return None  # it's good
 
-    def validate_query_from_token(self, encoded_token):
+    def validate_query_from_token(self):
         """
         read base64 token
         decide if it is valid
@@ -748,18 +754,11 @@ class InstrumentQueryBackEnd:
         """
         extract the various content of the token
         """
-        # dispatcher-app deployment cofiguration, will always be here ?
+        # decode the token
+        # self.decoded_token = self.get_decoded_token()
         secret_key = self.app.config.get('conf').secret_key
-        decoded_token = jwt.decode(encoded_token, secret_key, algorithms=['HS256'])
-
-        # extract user
-        user = decoded_token['name']
-        # extract role(s)
-        roles = decoded_token['roles'].split(',')
-        roles[:] = [r.strip() for r in roles]
-        # for i, role in enumerate(roles):
-        #     roles[i] = roles[i].strip()
-        self.logger.info("==> token %s", decoded_token)
+        self.decoded_token = tokenHelper.get_decoded_token(self.token, secret_key)
+        self.logger.info("==> token %s", self.decoded_token)
         return True
 
     def build_job(self):
@@ -772,7 +771,7 @@ class InstrumentQueryBackEnd:
                            self.par_dic,
                            aliased=False)
 
-    def build_response_failed(self, message, extra_message):
+    def build_response_failed(self, message, extra_message, status_code=None):
         job = self.build_job()
         job.set_failed()
         job_monitor = job.monitor
@@ -790,18 +789,19 @@ class InstrumentQueryBackEnd:
         resp = self.build_dispatcher_response(query_new_status=query_status,
                                               query_out=query_out,
                                               job_monitor=job_monitor,
+                                              status_code=status_code,
                                               off_line=self.off_line,
-                                              api=self.api)
+                                              api=self.api,)
         return resp
 
-    def validate_token_request_param(self,):
+    def validate_token_request_param(self, ):
         # if the request is public then authorize it, because the token is not there
         if self.public:
             return None
 
         if self.token is not None:
             try:
-                validate = self.validate_query_from_token(self.token)
+                validate = self.validate_query_from_token()
                 if validate:
                     pass
             except jwt.exceptions.ExpiredSignatureError as e:
@@ -834,7 +834,7 @@ class InstrumentQueryBackEnd:
         if 'token' in self.par_dic.keys():
             token = self.par_dic['token']
             if token is not None:
-                validate = self.validate_query_from_token(token)
+                validate = self.validate_query_from_token()
                 if validate is True:
                     pass
                 else:
@@ -1014,7 +1014,7 @@ class InstrumentQueryBackEnd:
         # resp = self.validate_token_env_var()
         resp = self.validate_token_request_param()
         if resp is not None:
-            self.logger.warn("query dismissed by token validation")
+            self.logger.warning("query dismissed by token validation")
             return resp
 
         if self.par_dic.pop('instrumet', None) is not None:
@@ -1175,24 +1175,28 @@ class InstrumentQueryBackEnd:
                 if job_monitor is None:
                     job_monitor = job.monitor
             else:
+                try:
+                    query_out = self.instrument.run_query(product_type,
+                                                          self.par_dic,
+                                                          request,
+                                                          self,  # this will change?
+                                                          job,  # this will change
+                                                          run_asynch,
+                                                          out_dir=self.scratch_dir,
+                                                          config=self.config_data_server,
+                                                          query_type=query_type,
+                                                          logger=self.logger,
+                                                          sentry_client=self.sentry_client,
+                                                          verbose=verbose,
+                                                          dry_run=dry_run,
+                                                          api=api,
+                                                          decoded_token=self.decoded_token)
+                except RequestNotAuthorized as e:
+                    return self.build_response_failed('oda_api permissions failed',
+                                                      e.message,
+                                                      status_code=e.status_code)
 
-                query_out = self.instrument.run_query(product_type,
-                                                      self.par_dic,
-                                                      request,
-                                                      self,  # this will change?
-                                                      job,  # this will change
-                                                      run_asynch,
-                                                      out_dir=self.scratch_dir,
-                                                      config=self.config_data_server,
-                                                      query_type=query_type,
-                                                      logger=self.logger,
-                                                      sentry_client=self.sentry_client,
-                                                      verbose=verbose,
-                                                      dry_run=dry_run,
-                                                      api=api)
-
-                self.logger.info(
-                    '-----------------> job status after query: %s', job.status)
+                self.logger.info('-----------------> job status after query: %s', job.status)
 
                 if query_out.status_dictionary['status'] == 0:
                     if job.status == 'done':
