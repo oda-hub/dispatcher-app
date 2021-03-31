@@ -202,9 +202,9 @@ class Parameter(object):
         self._allowed_units = allowed_units
         self._allowed_values = allowed_values
         self.name = name
-        self.units = units
+        self.units=units
         self.value = value
-        self.units_name = units_name
+        self.units_name=units_name
         #self._wtform_dict=wtform_dict
 
         logger.debug("initializing parameter %s name=%s", self, self.name)

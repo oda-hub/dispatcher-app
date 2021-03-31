@@ -114,10 +114,10 @@ class Instrument:
         pass
 
 
-    def set_pars_from_dic(self, par_dic, verbose=False):
+    def set_pars_from_dic(self,par_dic,verbose=False):
         for _query in self._queries_list:
             for par in _query._parameters_list:
-                par.set_from_form(par_dic, verbose=verbose)
+                par.set_from_form(par_dic,verbose=verbose)
 
     def set_par(self,par_name,value):
         p=self.get_par_by_name(par_name)
@@ -350,13 +350,13 @@ class Instrument:
         #print('setting form paramters')
         q=QueryOutput()
         #status=0
-        error_message = ''
-        debug_message = ''
+        error_message=''
+        debug_message=''
         if logger is None:
             logger = logging.getLogger(__name__)
 
         try:
-            self.set_pars_from_dic(par_dic, verbose=verbose)
+            self.set_pars_from_dic(par_dic,verbose=verbose)
             #DONE
             q.set_done(debug_message=str(debug_message))
         except Exception as e:
