@@ -741,7 +741,7 @@ class InstrumentQueryBackEnd:
 
         return None  # it's good
 
-    def validate_query_from_token(self,):
+    def validate_query_from_token(self):
         """
         read base64 token
         decide if it is valid
@@ -831,7 +831,7 @@ class InstrumentQueryBackEnd:
         if 'token' in self.par_dic.keys():
             token = self.par_dic['token']
             if token is not None:
-                validate = self.validate_query_from_token(token)
+                validate = self.validate_query_from_token()
                 if validate is True:
                     pass
                 else:
