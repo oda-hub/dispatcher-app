@@ -6,7 +6,17 @@
 
 # Purpose
 
-To describe flow of the tokens in ODA.
+To describe flow of the tokens in ODA and reference to roles and user definition
+
+# Users
+
+Users are generated in the Drupal web interface, reuired fields are in [the note](https://github.com/oda-hub/doc-multi-user/blob/CF_proposal/user-fields.md)
+
+# Roles
+
+Roles define ability to act in certain way. Assigning role means giving ability to act. 
+See [the roles](https://github.com/oda-hub/doc-multi-user/blob/CF_proposal/plan-roles-users.md)
+
 
 # User tokens
 
