@@ -136,7 +136,7 @@ class InstrumentQueryBackEnd:
                 # decide if it is worth to add the logger also in this case
                 self.set_scratch_dir(self.par_dic['session_id'], verbose=verbose)
                 self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
-                # self.set_sentry_client()
+                self.set_sentry_client()
             else:
                 self.logger.info("NOT get_meta_data request: yes scratch_dir")
 
@@ -225,7 +225,6 @@ class InstrumentQueryBackEnd:
         # oredered_dict=OrderedDict(self.par_dic)
 
         #self.job_id=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
-        # print('dict',self.par_dic)
 
         _dict = OrderedDict({
             k: v for k, v in self.par_dic.items()
@@ -317,8 +316,8 @@ class InstrumentQueryBackEnd:
             args = request.form
         self.par_dic = args.to_dict()
 
-        if verbose == True:
-            print('par_dic', self.par_dic)
+        if verbose:
+            self.logger.info(f'par_dic {self.par_dic}')
 
         if 'scw_list' in self.par_dic.keys():
             _p = request.args.getlist('scw_list')
@@ -470,7 +469,6 @@ class InstrumentQueryBackEnd:
         return jsonify(_l)
 
     def get_paramters_dict(self):
-        # print('CICCIO',self.par_dic)
         return jsonify(self.par_dic)
 
     def get_instr_list(self, name=None):
@@ -489,7 +487,6 @@ class InstrumentQueryBackEnd:
 
         try:
             config, self.config_data_server = self.set_config()
-            #print('dispatcher port', config.dispatcher_port)
         except Exception as e:
             query_out = QueryOutput()
             query_out.set_query_exception(e, 'run_call_back failed in %s' % self.__class__.__name__,
@@ -505,16 +502,11 @@ class InstrumentQueryBackEnd:
 
         self.logger.info("%s.run_call_back with args %s", self, self.par_dic)
 
-        # if 'node_id' in self.par_dic.keys():
-        #    print('node_id', self.par_dic['node_id'])
-        # else:
-        #    print('No! node_id')
-
         if job.status_kw_name in self.par_dic.keys():
             status = self.par_dic[job.status_kw_name]
         else:
             status = 'unknown'
-        print('-----> set status to ', status)
+        self.logger.info(f'-----> set status to {status}')
 
         job.write_dataserver_status(
             status_dictionary_value=status, full_dict=self.par_dic)
@@ -543,10 +535,7 @@ class InstrumentQueryBackEnd:
         self.logger.info('============================================================')
         self.logger.info('')
 
-        #print ('query doen with job status-->',job_status)
-
         if off_line == False:
-            #print('out', out_dict)
             response = jsonify(out_dict)
         else:
             response = out_dict
@@ -591,7 +580,7 @@ class InstrumentQueryBackEnd:
                     return jsonify(out_dict), status_code
 
             except Exception as e:
-                print('failed', e)
+                self.logger.error(f'Failed when building the output response: {e}')
                 if query_out is None:
                     query_out = QueryOutput()
                 else:
@@ -660,11 +649,8 @@ class InstrumentQueryBackEnd:
 
         logger.debug('--> App configuration for: %s', self.instrument_name)
         if disp_data_server_conf_dict is not None:
-            # print('-->',disp_data_server_conf_dict)
             if 'data_server' in disp_data_server_conf_dict.keys():
-                #print (disp_data_server_conf_dict)
                 if self.instrument.name in disp_data_server_conf_dict['data_server'].keys():
-                    # print('-->',disp_data_server_conf_dict['data_server'][self.instrument.name].keys(),self.instrument.name)
                     for k in disp_data_server_conf_dict['data_server'][self.instrument.name].keys():
                         if k in self.instrument.data_server_conf_dict.keys():
                             self.instrument.data_server_conf_dict[k] = disp_data_server_conf_dict[
@@ -687,7 +673,6 @@ class InstrumentQueryBackEnd:
         #     dir_list = []
         # else:
         dir_list = glob.glob('*_jid_%s' % (self.job_id))
-        # print('dirs',dir_list)
         if dir_list != []:
             dir_list = [d for d in dir_list if 'aliased' not in d]
 
@@ -785,7 +770,7 @@ class InstrumentQueryBackEnd:
                                               job_monitor=job_monitor,
                                               status_code=status_code,
                                               off_line=self.off_line,
-                                              api=self.api,)
+                                              api=self.api)
         return resp
 
     def validate_token_request_param(self, ):
@@ -1084,7 +1069,7 @@ class InstrumentQueryBackEnd:
         # TODO if query status== ready but you get delegation
         # TODO set query status to new and ignore alias
 
-        if job_is_aliased == True and query_status != 'ready':
+        if job_is_aliased and query_status != 'ready':
             job_is_aliased = True
 
             original_work_dir = job.work_dir
@@ -1100,29 +1085,28 @@ class InstrumentQueryBackEnd:
                 job_monitor = {}
                 job_monitor['status'] = 'failed'
 
-            print('==>updated job_monitor', job_monitor['status'])
+            self.logger.info('==>updated job_monitor %s', job_monitor['status'])
 
             if job_monitor['status'] == 'ready' or job_monitor['status'] == 'failed' or job_monitor['status'] == 'done':
                 # NOTE in this case if job is aliased but the original has failed
                 # NOTE it will be resubmitted anyhow
-                print('==>aliased job status', job_monitor['status'])
+                self.logger.info('==>aliased job status %s', job_monitor['status'])
                 job_is_aliased = False
                 job.work_dir = original_work_dir
                 job_monitor = job.updated_dataserver_monitor()
                 # Note this is necessary to avoid a never ending loop in the non-aliased job-status is set to progress
-                print('query_status', query_status)
+                self.logger.info('query_status', query_status)
 
                 query_status = 'new'
-                print('==>ALIASING switched off  for status',
-                      job_monitor['status'])
+                self.logger.info('==>ALIASING switched off  for status %s', job_monitor['status'])
 
                 if query_type == 'Dummy':
                     job_is_aliased = False
                     job.work_dir = original_work_dir
                     job_monitor = job.updated_dataserver_monitor()
-                    print('==>ALIASING switched off for Dummy query')
+                    self.logger.info('==>ALIASING switched off for Dummy query')
 
-        if job_is_aliased == True and query_status == 'ready':
+        if job_is_aliased and query_status == 'ready':
             original_work_dir = job.work_dir
             job.work_dir = alias_workdir
 
@@ -1131,7 +1115,7 @@ class InstrumentQueryBackEnd:
             job_monitor = job.updated_dataserver_monitor()
             self.logger.info('==>ALIASING switched off for status ready')
 
-        if job_is_aliased == True:
+        if job_is_aliased:
             delta_limit = 600
             try:
                 delta = self.get_file_mtime(
@@ -1146,7 +1130,7 @@ class InstrumentQueryBackEnd:
                 job_is_aliased = False
                 job.work_dir = original_work_dir
                 job_monitor = job.updated_dataserver_monitor()
-                print('==>ALIASING switched off for delta time >%f, delta=%f' %
+                self.logger.info('==>ALIASING switched off for delta time >%f, delta=%f' %
                       (delta_limit, delta))
 
         self.logger.info('==> aliased is %s', job_is_aliased)
@@ -1206,8 +1190,7 @@ class InstrumentQueryBackEnd:
 
                 job.write_dataserver_status()
 
-            print('-----------------> query status update for done/ready: ',
-                  query_new_status)
+            self.logger.info('-----------------> query status update for done/ready: %s', query_new_status)
 
         elif query_status == 'progress' or query_status == 'unaccessible' or query_status == 'unknown' or query_status == 'submitted':
             # we can not just avoid async here since the request still might be long
@@ -1235,9 +1218,9 @@ class InstrumentQueryBackEnd:
                 else:
                     query_new_status = job.get_status()
 
-            print('-----------------> job monitor updated',
+            self.logger.info('-----------------> job monitor updated %s',
                   job_monitor['status'])
-            print('-----------------> query status update for progress:',
+            self.logger.info('-----------------> query status update for progress: %s',
                   query_new_status)
 
         elif query_status == 'failed':
@@ -1247,9 +1230,9 @@ class InstrumentQueryBackEnd:
                 'submitted job', job_status=job_monitor['status'])
 
             query_new_status = 'failed'
-            print('-----------------> query status update for failed:',
+            self.logger.info('-----------------> query status update for failed: %s',
                   query_new_status)
-            print(
+            self.logger.info(
                 '==============================> query done <==============================')
 
         else:

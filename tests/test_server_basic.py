@@ -9,7 +9,7 @@ import random
 import traceback
 import logging
 import jwt
-
+import logging_tree
 from threading import Thread
 from time import sleep
 
@@ -56,14 +56,13 @@ def test_meta_data_request(dispatcher_live_fixture):
 
     }
     params.pop("token")
-    c = requests.get(server + "/run_analysis",
+    c = requests.get(server + "/meta-data",
                      params={**params},
                      )
 
-    logger.info(f"content: {c.text}")
-
+    jdata = c.json()
     assert c.status_code == 200
-
+    logging_tree.get
 
 def test_empty_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
