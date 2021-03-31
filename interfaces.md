@@ -10,12 +10,12 @@ To describe flow of the tokens in ODA and reference to roles and user definition
 
 # Users
 
-Users are generated in the Drupal web interface, reuired fields are in [the note](https://github.com/oda-hub/doc-multi-user/blob/CF_proposal/user-fields.md)
+Users are defined in the Drupal web interface, required fields are in [the note](https://github.com/oda-hub/doc-multi-user)
 
 # Roles
 
 Roles define ability to act in certain way. Assigning role means giving ability to act. 
-See [the roles](https://github.com/oda-hub/doc-multi-user/blob/CF_proposal/plan-roles-users.md)
+See [the note](https://github.com/oda-hub/doc-multi-user)
 
 
 # User tokens
