@@ -1,0 +1,9 @@
+gitlab
+github
+redmine
+bugfix
+hotfix
+bugfixes
+mattermost
+calver
+astro
