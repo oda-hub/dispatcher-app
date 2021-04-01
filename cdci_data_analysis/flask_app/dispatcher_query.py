@@ -658,9 +658,8 @@ class InstrumentQueryBackEnd:
 
         # sometimes instrument is None here! TODO: in callback?
 
-        #instrument = getattr(self, 'instrument', None)
-        instrument = self.instrument
-
+        instrument = getattr(self, 'instrument', None)
+        
         if disp_data_server_conf_dict is None:
             if instrument is not None and not isinstance(instrument, str):
                 logger.debug('provided instrument type %s', type(instrument))
