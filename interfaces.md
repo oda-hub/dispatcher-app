@@ -18,29 +18,29 @@ Users may fall in one of the two classes:
 | authenticated | the same exact rights as those of **anonymous**, but will receive e-mail notification when job is submitted and completed, can be tracked by developers for requests and errors following specific consent. |
 
 Note that priviledges are only set by roles, hence user types separation is orthogonal to role selection. I.e. in principle, any user type can have any role combination.
-Without explicit specification of roles, both **authenticated** and **anonymous** user have the same priveledges if not roles are set.
-But since roles are set with user attributes in the user **token**, generally only **authenticated** users can have additional roles.
-Note it is possible (and indeed necessary) to sometimes create different tokens with the same user id (email) but different role selection. It is not necessary to address this complexity with drupal.
+Without explicit specification of roles, both **authenticated** and **anonymous** user have the same priveledges if roles are not set.
+However, since roles are set with user attributes in the user **token**, generally only **authenticated** users can have additional roles.
+Note that it is possible (and indeed necessary) to sometimes create different tokens with the same user id (email) but different role selection. It is not necessary to address this complexity with drupal.
 
 Meaning of Roles and Source of Roles definition are described below.
 
 # Roles
 
-Roles are defined simple strings, case-insensitive, matching "`[a-z][0-9]\-`". They may be also referenced as URI, http://odahub.io/roles/XXXXX
+Roles are defined as simple strings, case-insensitive, matching "`[a-z][0-9]\-`". They may be also referenced as URI, http://odahub.io/roles/XXXXX
 
 ## Origin of Roles
 
 The belonging to groups in the Drupal can be used adapted to reflect roles.
-In Drupal, groups characterize users inside the CMS. Besides **anonymous** (not logged and identified) and **authenticated** (identified by the compulsory user attributes), we define a collection of necessary groups. Note **anonymous** and **authenticated** are not roles since they do not provide any priviledges by default.
+In Drupal, groups characterize users inside the CMS. Besides **anonymous** (not logged and identified) and **authenticated** (identified by the compulsory user attributes), we define a collection of necessary groups. Note **anonymous** and **authenticated** are not roles since they do not provide any priviledge by default.
 
 Roles can be also defined by other means, i.e in dispatcher. For most purposes, ultimate **origin** of  roles is defined by the consumer of the role they are used: dispatcher plugins and backends (see below).
 
 ## Meaning of Roles
 
-Note that roles define ability to act in certain way. Assigning role means giving ability to act, while the basic usage of the infrastructure is exploited without a specific role. Roles should be designed not overlap or inherit from each other. 
+Note that roles define ability to act in certain way. Assigning a role means giving ability to act, while the basic usage of the infrastructure is exploited without a specific role. Roles should be designed not to overlap or inherit from each other. 
 
 * Roles assigned to user are strictly **additive**: user which has a collection of roles, has added priviledges given by all of them.
-* Roles as used at validation  are  **multiplicative**: i.e. requesing a resource demanding a collection of roles needs each of them to be satistifed. Treatment of the roles is also often more complex, and uses combination of request parameters with roles, as implemented by dispatcher and instrument plugins.
+* Roles as used at validation  are  **multiplicative**: i.e. requesing a resource demanding a collection of roles needs each of them to be satistifed. Treatment of the roles is also often more complex, and uses a combination of request parameters with roles, as implemented by dispatcher and instrument plugins.
 
 ## Usage of Roles
 
@@ -54,7 +54,7 @@ Roles can be used by the frontend to hide some parts of the interface.
 
 
 In general, the authority to demand roles should be given to plugins when possible.
-They should be able to control access to themselves by instructing dispatcher, with default plugin roles set in **plugin configuriation**. 
+They should be able to control access to themselves by instructing the dispatcher, with default plugin roles set in **plugin configuriation**. 
 
 Dispatcher (and instrument plugin) treatment of the may be more complex, and uses combination of request parameters with roles by overriding dispatcher [method](https://github.com/oda-hub/dispatcher-app/blob/master/cdci_data_analysis/flask_app/dispatcher_query.py#L794).
 
