@@ -498,16 +498,11 @@ class InstrumentQueryBackEnd:
         return getattr(self, '_dispatcher_service_url',
                        getattr(self.config, 'dispatcher_service_url', None))
 
-    def run_call_back(self, status_kw_name='action'):
+    def run_call_back(self, status_kw_name='action') -> typing.Tuple[str, typing.Union[QueryOutput, None]]:
+        query_out = None
 
-        try:
-            config, self.config_data_server = self.set_config()
-            #print('dispatcher port', config.dispatcher_port)
-        except Exception as e:
-            query_out = QueryOutput()
-            query_out.set_query_exception(e, 'run_call_back failed in %s' % self.__class__.__name__,
-                                          extra_message='configuration failed')
-
+        _, self.config_data_server = self.set_config()
+        
         job = job_factory(self.par_dic['instrument_name'],
                           self.scratch_dir,
                           self.dispatcher_service_url,
@@ -532,7 +527,7 @@ class InstrumentQueryBackEnd:
         job.write_dataserver_status(
             status_dictionary_value=status, full_dict=self.par_dic)
 
-        return status
+        return status, query_out
 
     def run_query_mock(self, off_line=False):
 
@@ -663,11 +658,13 @@ class InstrumentQueryBackEnd:
 
         # sometimes instrument is None here! TODO: in callback?
 
-        if disp_data_server_conf_dict is None and self.instrument is not None and not isinstance(self.instrument, str):
-        #if disp_data_server_conf_dict is None and  \
-        #   getattr(self, 'instrument', None) is not None and \
-        #   not isinstance(getattr(self, 'instrument', None), str):
-            disp_data_server_conf_dict = self.instrument.data_server_conf_dict
+        #instrument = getattr(self, 'instrument', None)
+        instrument = self.instrument
+
+        if disp_data_server_conf_dict is None:
+            if instrument is not None and not isinstance(instrument, str):
+                logger.debug('provided instrument type %s', type(instrument))
+                disp_data_server_conf_dict = self.instrument.data_server_conf_dict
 
             
         logger.debug('--> App configuration for: %s', self.instrument_name)
