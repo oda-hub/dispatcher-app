@@ -57,56 +57,6 @@ In general, backends should be able to control access to themselves by instructi
 
 In the second case, a more restricted **Token** can be provided to the backend, to prevent backend gaining entire rights of the user. **Restricted Token** can be obtained (on a special service, or another authority source) in exchange for the User **Token**, specifying the narrowing down of the scope.
 
-## TODO: rescued definition part of the previously doc, to adapt
-
-users will be identified by JWT user **Token**. **Token** will container user identity (with email)
-**Token** will be signed (HMAC) with shared secret or (maybe better but a bit more elaborate) asymmetric encryption.
-
-**Token** will contain usual fields for validity time and scope of application.
-
-Example token (following the [standard](https://tools.ietf.org/html/rfc7519#section-4))
-
-```json
-{
- "sub": "user-name@host.name",
-}
-```
-
-Passing the token:
-
-* request header with [Bearer](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization)
-* *(optional)* request header with cookie, _oauth2_token
-
-**Token** will be complemneted by information about **Role** binding, schematically:
-
-```
-roleBinding:
-  subject: User 
-  role: Role
-```
-
-User may have many roles.
-**Role** information can be retrieved at any time from the **Registry** (probably at frontend level, but could be combined between frontend and additional dispatcher-level service, if frontend will not provide sufficient detail).
-
-**Roles** will correspond to particular actions on particular resources. 
-
-Example roles:
-
-* *unige-hpc-full* - will be granted full access to HPC clusters
-* *public-pool-hpc* 
-* *integral-private-qla* - access to private data for QLA purposes
-* *magic* - access magic backend
-
-See current working definition of real roles [here](https://github.com/oda-hub/doc-multi-user/blob/main/plan-roles-users.md).
-
-**Roles** will be used by **dispatcher** when filtering queries. **Dispatcher** may associate each query with required **Roles**, or establish filters for more complex request matching (e.g. restricting parameter ranges).
-
-Some **Backends** may declare which roles they require, and **dispatcher** will respect these requests. 
-
-Some **backends** (e.g. integral) will declare that they can operate in role-restricted mode, and will perform additional filtering based on the **Role** information provided.
-
-In this case, a more restricted **Token** can be provided to the backend, to prevent backend gaining entire rights of the user. **Restricted Token** can be obtained (on a special service, or another authority source) in exchange for the User **Token**, specifying the narrowing down of the scope.
-
 
 ## Actual roles
 
