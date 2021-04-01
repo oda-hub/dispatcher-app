@@ -13,6 +13,7 @@ def test_construct_for_callback(app):
     assert query
 
 
+@pytest.mark.xfail
 def test_callback_without_prior_run_analysis(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
