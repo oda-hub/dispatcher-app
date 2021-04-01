@@ -29,6 +29,8 @@ def test_callback_without_prior_run_analysis(dispatcher_live_fixture):
 
 
 def test_callback_after_run_analysis(dispatcher_live_fixture):
+    #TODO: for now, this is not very different from no-prior-run_analysis. This will improve
+
     server = dispatcher_live_fixture
     print("constructed server:", server)
 
@@ -37,11 +39,11 @@ def test_callback_after_run_analysis(dispatcher_live_fixture):
                         query_status="new",
                         query_type="Real",
                         instrument="empty",
-                        product_type="numerical",                        
+                        product_type="dummy",                        
                         async_dispatcher=False,
                     ))
 
-    print(c.text)    
+    print("response from run_analysis:", c.text)    
 
     assert c.status_code == 200        
 
