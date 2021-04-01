@@ -656,7 +656,7 @@ class InstrumentQueryBackEnd:
 
         disp_data_server_conf_dict = config.get_data_server_conf_dict(self.instrument_name)
 
-        # sometimes instrument is None here! TODO: in callback?
+        # instrument may be not set in callback call
 
         instrument = getattr(self, 'instrument', None)
         
