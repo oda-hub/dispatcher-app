@@ -60,7 +60,7 @@ def test_empty_request(dispatcher_live_fixture):
 
      # parameterize this
     assert jdata['installed_instruments'] == ['empty', 'isgri', 'jemx', 'osa_fake'] or \
-           jdata['installed_instruments'] == ['empty', 'spi_acs'] or \               
+           jdata['installed_instruments'] == ['empty', 'spi_acs'] or \
            jdata['installed_instruments'] == ['empty'] or \
            jdata['installed_instruments'] == []
 
