@@ -1,7 +1,4 @@
-
-
-from __future__ import absolute_import, division, print_function
-
+import os
 
 from builtins import (str, super, object)
 
@@ -381,15 +378,13 @@ class ProductQuery(BaseQuery):
 
             query_out.set_done(message=message, debug_message=str(debug_message),status=status)
 
-        except Exception as e:
+        except ConnectionError as e:
             e_message = f'test of communication with backend (instrument: {instrument}) failed!'
 
-            if hasattr(e, 'message'):
-                e_message = e_message + " : " + e.message
-
+            e_message += "\n" + repr(e)
+            
             if hasattr(e, 'debug_message'):
                 debug_message = e.debug_message
-                #debug_message = str(e)
             else:
                 debug_message = ''
 
@@ -529,7 +524,9 @@ class ProductQuery(BaseQuery):
             logger.error("passing request issue: %s", e)
             raise
 
-        except Exception as e: # noo!!!
+        except Exception as e: # TODO: could we avoid these? they make error tracking hard
+            logger.exception("failed to get query products")
+
             #status=1
             job.set_failed()
 
@@ -544,6 +541,9 @@ class ProductQuery(BaseQuery):
                 debug_message=e.debug_message
             else:
                 debug_message=''
+
+            if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
+                raise
 
             query_out.set_failed('get dataserver products ',
                                  logger=logger,
