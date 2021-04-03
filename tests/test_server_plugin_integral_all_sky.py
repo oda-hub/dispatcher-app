@@ -48,5 +48,7 @@ def test_integralallsky(dispatcher_live_fixture):
     logger.info(json.dumps(jdata, indent=4, sort_keys=True))
     logger.info(jdata)
     assert c.status_code == 200
+
+    assert jdata['job_status'] == 'done'
     
 
