@@ -5,16 +5,16 @@ ODA Dispatcher
 
 A flexible python framework to bridge front-end and data-server for scientific online analysis of astrophysical data:
 
-* provides boilerplate code to implement interfaces to specific instument backends with [plugins](dispatcher-plugins).
+* provides boilerplate code to implement interfaces to specific instrument backends with [plugins](dispatcher-plugins).
 * implements interface to [frontend](frontend).
 * explains [auth](interfaces.md)
 
-**this repository also contains much of relenvant documentations relevant to gluing these levels together**
+**this repository also contains much of relevant documentations to gluing these levels together**
 
 What's the license?
 -------------------
 
-cdci_data_analysis is distributed under the terms of [The MIT License](LICENSE).
+dispatcher-app is distributed under the terms of [The MIT License](LICENSE).
 
 Who's responsible?
 -------------------
