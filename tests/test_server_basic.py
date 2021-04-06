@@ -87,7 +87,7 @@ def test_valid_token(dispatcher_live_fixture,):
     # let's generate a valid token
     exp_time = int(time.time()) + 500
     token_payload = {
-        "email": "mtm@mtmco.net",
+        "sub": "mtm@mtmco.net",
         "name": "mmeharga",
         "roles": "authenticated user ,  content manager ,  general , magic",
         "exp": exp_time

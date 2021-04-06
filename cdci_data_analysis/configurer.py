@@ -225,6 +225,10 @@ class ConfigEnv(object):
                                      products_url,
                                      disp_dict['dispatcher_service_url'],
                                      disp_dict['secret_key'],
+                                     disp_dict['smtp_server'],
+                                     disp_dict['sender_mail'],
+                                     disp_dict['smtp_port'],
+                                     disp_dict['mail_password'],
                                      )
 
         # not used?
@@ -254,7 +258,20 @@ class ConfigEnv(object):
         self._data_server_conf_dict[instr_name] = _dict
         #self._data_server_conf_dict[instr_name] = DataServerConf.from_conf_dict(data_server_conf_dict)
 
-    def set_conf_dispatcher(self, dispatcher_url, dispatcher_port, sentry_url, logstash_host, logstash_port, products_url, dispatcher_service_url, secret_key):
+    def set_conf_dispatcher(self,
+                            dispatcher_url,
+                            dispatcher_port,
+                            sentry_url,
+                            logstash_host,
+                            logstash_port,
+                            products_url,
+                            dispatcher_service_url,
+                            secret_key,
+                            smtp_server,
+                            sender_mail,
+                            smtp_port,
+                            mail_password
+                            ):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
         self.dispatcher_url = dispatcher_url
@@ -265,6 +282,10 @@ class ConfigEnv(object):
         self.products_url = products_url
         self.dispatcher_service_url = dispatcher_service_url
         self.secret_key = secret_key
+        self.smtp_server = smtp_server
+        self.sender_mail = sender_mail
+        self.smtp_port = smtp_port
+        self.mail_password = mail_password
 
     def get_data_serve_conf(self, instr_name):
         if instr_name in self.data_server_conf_dict.keys():

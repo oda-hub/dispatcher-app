@@ -34,6 +34,8 @@ import logstash
 import hashlib
 import typing
 import jwt
+import smtplib
+import ssl
 
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
@@ -148,7 +150,9 @@ class InstrumentQueryBackEnd:
                 #    raise MissingRequestParameter('no query_status!')
 
                 if data_server_call_back is True:
-                    self.job_id = self.par_dic['job_id']
+                    self.job_id = None
+                    if 'job_id' in self.par_dic:
+                        self.job_id = self.par_dic['job_id']
 
                 else:
                     query_status = self.par_dic['query_status']
@@ -1211,6 +1215,9 @@ class InstrumentQueryBackEnd:
                     query_new_status = 'failed'
                     job.set_failed()
 
+                if not self.public:
+                    self.send_completion_mail()
+
                 job.write_dataserver_status()
 
             print('-----------------> query status update for done/ready: ',
@@ -1290,6 +1297,38 @@ class InstrumentQueryBackEnd:
                                               api=api)
 
         return resp
+
+    def send_completion_mail(self):
+        # send the mail with the status update to the mail provided with the token
+        # eg done/failed
+        # test with the local server
+        smtp_server = self.app.config.get('conf').smtp_server
+        port = self.app.config.get('conf').smtp_port
+        sender_email = self.app.config.get('conf').sender_mail
+        receiver_email = tokenHelper.get_token_user_mail(self.decoded_token)
+        message = f"""From: From Person {sender_email}
+                        To: To Person {receiver_email}
+                        Subject: SMTP e-mail test
+                        This is a test e-mail message.
+                        """
+        # msg = ("From: %s\r\nTo: %s\r\n\r\n"
+        #        % (fromaddr, ", ".join(toaddrs)))
+        # password = self.app.config.get('conf').mail_password
+        # TODO build an SSL context to send the mail "securely"
+        # # Create a secure SSL context
+        # context = ssl.create_default_context()
+        #
+        # Try to log in to server and send email
+        try:
+            server = smtplib.SMTP(smtp_server, port)
+            # server.starttls(context=context)  # Secure the connection
+            # server.login(sender_email, password)
+            server.sendmail(sender_email, receiver_email, message)
+        except Exception as e:
+            # Print any error messages to stdout
+            print(e)
+        finally:
+            server.quit()
 
     def async_dispatcher_query(self, query_status: str) -> tuple:
         self.logger.info("async dispatcher enabled, for %s", query_status)

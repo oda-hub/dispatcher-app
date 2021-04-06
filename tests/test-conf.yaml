@@ -8,3 +8,8 @@ dispatcher:
     logstash_host: 10.194.169.75
     logstash_port: 5001
     secret_key: 'secretkey_test'
+    smtp_server: 'localhost'
+    sender_mail: 'team@odahub.io'
+    smtp_port: 1025
+    mail_password: ''
+
