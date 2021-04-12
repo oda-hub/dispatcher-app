@@ -1,0 +1,15 @@
+gitlab
+github
+redmine
+bugfix
+hotfix
+bugfixes
+mattermost
+calver
+astro
+codecov
+Volodymyr
+Savchenko
+Tramacere
+Versoix
+Chemin

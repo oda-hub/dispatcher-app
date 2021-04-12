@@ -498,16 +498,11 @@ class InstrumentQueryBackEnd:
         return getattr(self, '_dispatcher_service_url',
                        getattr(self.config, 'dispatcher_service_url', None))
 
-    def run_call_back(self, status_kw_name='action'):
+    def run_call_back(self, status_kw_name='action') -> typing.Tuple[str, typing.Union[QueryOutput, None]]:
+        query_out = None
 
-        try:
-            config, self.config_data_server = self.set_config()
-            #print('dispatcher port', config.dispatcher_port)
-        except Exception as e:
-            query_out = QueryOutput()
-            query_out.set_query_exception(e, 'run_call_back failed in %s' % self.__class__.__name__,
-                                          extra_message='configuration failed')
-
+        _, self.config_data_server = self.set_config()
+        
         job = job_factory(self.par_dic['instrument_name'],
                           self.scratch_dir,
                           self.dispatcher_service_url,
@@ -532,7 +527,7 @@ class InstrumentQueryBackEnd:
         job.write_dataserver_status(
             status_dictionary_value=status, full_dict=self.par_dic)
 
-        return status
+        return status, query_out
 
     def run_query_mock(self, off_line=False):
 
@@ -661,12 +656,15 @@ class InstrumentQueryBackEnd:
 
         disp_data_server_conf_dict = config.get_data_server_conf_dict(self.instrument_name)
 
-        # sometimes instrument is None here! TODO: in callback?
-        if disp_data_server_conf_dict is None and  \
-           getattr(self, 'instrument', None) is not None and \
-           not isinstance(getattr(self, 'instrument', None), str):
-            disp_data_server_conf_dict = self.instrument.data_server_conf_dict
+        # instrument may be not set in callback call
 
+        instrument = getattr(self, 'instrument', None)
+        
+        if disp_data_server_conf_dict is None:
+            if instrument is not None and not isinstance(instrument, str):
+                logger.debug('provided instrument type %s', type(instrument))
+                disp_data_server_conf_dict = self.instrument.data_server_conf_dict
+            
         logger.debug('--> App configuration for: %s', self.instrument_name)
         if disp_data_server_conf_dict is not None:
             # print('-->',disp_data_server_conf_dict)
@@ -813,38 +811,6 @@ class InstrumentQueryBackEnd:
         else:
             self.logger.warning('==> NO TOKEN FOUND IN PARS')
             return self.build_response_failed('oda_api token is needed',
-                                              'you do not have permissions for this query, contact oda')
-
-        try:
-            query_status = self.par_dic['query_status']
-        except Exception as e:
-            query_out = QueryOutput()
-            query_out.set_query_exception(e,
-                                          'validate_token  failed in %s' % self.__class__.__name__,
-                                          extra_message='token validation failed unexplicably')
-            return query_out
-
-        return None
-
-    def validate_token_env_var(self, off_line=False, disp_conf=None, api=False) -> typing.Union[None, QueryOutput]:
-        if os.environ.get('DISPATCHER_ENFORCE_TOKEN', 'no') != 'yes': #TODO to config!
-            self.logger.info('dispatcher not configured to enforce token!')
-            return 
-
-        if 'token' in self.par_dic.keys():
-            token = self.par_dic['token']
-            if token is not None:
-                validate = self.validate_query_from_token()
-                if validate is True:
-                    pass
-                else:
-                    return self.build_response_failed('oda_api permissions failed', 
-                                                      'you do not have permissions for this query, contact oda')
-
-        else:
-            self.logger.warning('==> NO TOKEN FOUND IN PARS')
-
-            return self.build_response_failed('oda_api token is needed', 
                                               'you do not have permissions for this query, contact oda')
 
         try:
