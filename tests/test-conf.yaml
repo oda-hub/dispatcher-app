@@ -10,5 +10,6 @@ dispatcher:
     secret_key: 'secretkey_test'
     smtp_server: 'localhost'
     sender_mail: 'team@odahub.io'
+    cc_receivers_mail: ['team@odahub.io']
     smtp_port: 1025
     mail_password: ''

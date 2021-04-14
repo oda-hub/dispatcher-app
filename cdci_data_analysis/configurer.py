@@ -227,6 +227,7 @@ class ConfigEnv(object):
                                      disp_dict['secret_key'],
                                      disp_dict['smtp_server'],
                                      disp_dict['sender_mail'],
+                                     disp_dict['cc_receivers_mail'],
                                      disp_dict['smtp_port'],
                                      disp_dict['mail_password'],
                                      )
@@ -269,6 +270,7 @@ class ConfigEnv(object):
                             secret_key,
                             smtp_server,
                             sender_mail,
+                            cc_receivers_mail,
                             smtp_port,
                             mail_password,
                             ):
@@ -284,6 +286,7 @@ class ConfigEnv(object):
         self.secret_key = secret_key
         self.smtp_server = smtp_server
         self.sender_mail = sender_mail
+        self.cc_receivers_mail = cc_receivers_mail
         self.smtp_port = smtp_port
         self.mail_password = mail_password
 

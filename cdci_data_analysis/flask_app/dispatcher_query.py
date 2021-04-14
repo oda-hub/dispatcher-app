@@ -1294,9 +1294,12 @@ class InstrumentQueryBackEnd:
         smtp_server = self.app.config.get('conf').smtp_server
         port = self.app.config.get('conf').smtp_port
         sender_email = self.app.config.get('conf').sender_mail
+        cc_receivers_mail = self.app.config.get('conf').cc_receivers_mail
         receiver_email = tokenHelper.get_token_user_mail(self.decoded_token)
+        receivers_email = [receiver_email] + cc_receivers_mail
         message = f"""From: From Person {sender_email}
                         To: To Person {receiver_email}
+                        CC: {cc_receivers_mail}
                         Subject: Completion e-mail
                         Completion of the requested task with status {status}.
                         """
@@ -1312,7 +1315,7 @@ class InstrumentQueryBackEnd:
             server = smtplib.SMTP(smtp_server, port)
             if mail_password is not None and mail_password != '':
                 server.login(sender_email, mail_password)
-            server.sendmail(sender_email, receiver_email, message)
+            server.sendmail(sender_email, receivers_email, message)
         except Exception as e:
             raise
         finally:
