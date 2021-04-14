@@ -832,7 +832,6 @@ class InstrumentQueryBackEnd:
 
         return None
 
-
     @property
     def query_log_dir(self):
         return os.path.dirname(self.response_log_filename)
