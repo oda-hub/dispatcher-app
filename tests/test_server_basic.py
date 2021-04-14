@@ -41,7 +41,18 @@ default_params = dict(
                     radius=6,
                     async_dispatcher=False,
                     token="fake-token",
+                    mail_sending=False
                  )
+
+
+default_exp_time = int(time.time()) + 5000
+default_token_payload = dict(
+    sub="mtm@mtmco.net",
+    name="mmeharga",
+    roles="general",
+    exp=default_exp_time,
+    tem=0,
+)
 
 
 def test_empty_request(dispatcher_live_fixture):
@@ -87,12 +98,8 @@ def test_mail_sending_threshold(dispatcher_live_fixture, dispatcher_local_mail_s
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
-    exp_time = int(time.time()) + 5000
     token_payload = {
-        "sub": "mtm@mtmco.net",
-        "name": "mmeharga",
-        "roles": "authenticated user ,  content manager ,  general , magic",
-        "exp": exp_time,
+        **default_token_payload,
         "tem": threshold_mail,
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
@@ -128,13 +135,8 @@ def test_mail_sending(dispatcher_live_fixture, dispatcher_local_mail_server, mai
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
-    exp_time = int(time.time()) + 5000
     token_payload = {
-        "sub": "mtm@mtmco.net",
-        "name": "mmeharga",
-        "roles": "authenticated user ,  content manager ,  general , magic",
-        "exp": exp_time,
-        "tem": 0,
+        **default_token_payload,
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
     params = {
@@ -168,13 +170,8 @@ def test_mail_sending_no_server(dispatcher_live_fixture):
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
-    exp_time = int(time.time()) + 500
     token_payload = {
-        "sub": "mtm@mtmco.net",
-        "name": "mmeharga",
-        "roles": "authenticated user ,  content manager ,  general , magic",
-        "exp": exp_time,
-        "tem": 0,
+        **default_token_payload,
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
     params = {
@@ -205,12 +202,8 @@ def test_valid_token(dispatcher_live_fixture,):
 
     logger.info("constructed server: %s", server)
     # let's generate a valid token
-    exp_time = int(time.time()) + 500
     token_payload = {
-        "sub": "mtm@mtmco.net",
-        "name": "mmeharga",
-        "roles": "authenticated user ,  content manager ,  general , magic",
-        "exp": exp_time
+        **default_token_payload,
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
@@ -224,8 +217,8 @@ def test_valid_token(dispatcher_live_fixture,):
 
     jdata = ask(server,
                 params,
-                expected_query_status = ["done"],
-                max_time_s = 50,
+                expected_query_status=["done"],
+                max_time_s=50,
                 )
 
     assert jdata["exit_status"]["debug_message"] == ""
@@ -244,9 +237,7 @@ def test_invalid_token(dispatcher_live_fixture, ):
     exp_time = int(time.time()) - 500
     # expired token
     token_payload = {
-        "email": "mtm@mtmco.net",
-        "name": "mmeharga",
-        "roles": "authenticated user, content manager, general, magic",
+        **default_token_payload,
         "exp": exp_time
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
@@ -279,12 +270,9 @@ def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):
 
     logger.info("constructed server: %s", server)
     # let's generate a valid token
-    exp_time = int(time.time()) + 500
     token_payload = {
-        "email": "mtm@mtmco.net",
-        "name": "mmeharga",
+        **default_token_payload,
         "roles": roles,
-        "exp": exp_time
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
@@ -319,12 +307,9 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
 
     logger.info("constructed server: %s", server)
     # let's generate a valid token
-    exp_time = int(time.time()) + 500
     token_payload = {
-        "email": "mtm@mtmco.net",
-        "name": "mmeharga",
+        **default_token_payload,
         "roles": roles,
-        "exp": exp_time
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
