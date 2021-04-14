@@ -1,0 +1,32 @@
+# example configuration, please adapt!
+
+dispatcher:
+    dummy_cache: dummy-cache
+
+    # base for persistent urls for resulting product, should coincide with ingress for frontend
+    # necessary 
+    products_url: https://www.astro.unige.ch/cdci/astrooda_ 
+    
+    # for dispatcher to to bind, inside container please use 0.0.0.0, port should coincide with those in chart (TODO: try to avoid redundancy)
+    # necessary
+    dispatcher_url: 0.0.0.0 
+
+    # legacy, outdated
+    dispatcher_port: 8000 
+    
+    # register on sentry.io and  put here url for reporting issues!
+    # optional, but should be enforcable in "strict" mode
+    sentry_url:
+    
+    # can be ignored, install your own (https://www.elastic.co/logstash) or use external https://logz.io/
+    # optional, but may be be enforcable in "strict" mode
+    logstash_host: 
+    logstash_port: 
+    
+    # should coincide with those in chart, used backend interface calling back the dispatcher
+    # TODO: try to avoid redundancy
+    # necessary only for dda backend in some requests, otherwise optional. may be enforcable
+    dispatcher_service_url: http://oda-dispatcher:8000 
+
+    # used for token validation
+    secret_key:  YOUR_VERY_OWN_SECRET_KEY 
