@@ -205,9 +205,10 @@ class QueryOutput(object):
 
         if message is None:
             message = '%s' % message_prepend_str
-            message += 'failed: %s' % (failed_operation)
+            message += ' failed: %s' % (failed_operation)
             if extra_message is not None:
                 message += 'message: %s' % (extra_message)
+            message.strip()
         else:
             pass
 

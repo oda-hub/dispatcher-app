@@ -116,14 +116,15 @@ class InstrumentQueryBackEnd:
             # By default, a request is public, let's now check if a token has been included
             # In that case, validation is needed
             self.public = True
+            self.mail_sending = False
 
             self.token = None
             self.decoded_token = None
-            # if 'public' in self.par_dic:
-            #     self.public = self.par_dic['public'] in ['true', 'True']
             if 'token' in self.par_dic.keys() and self.par_dic['token'] != "":
                 self.token = self.par_dic['token']
                 self.public = False
+                if 'mail_sending' in self.par_dic:
+                    self.mail_sending = self.par_dic['mail_sending'] == 'True'
 
             if instrument_name is None:
                 if 'instrument' in self.par_dic:
@@ -1215,9 +1216,20 @@ class InstrumentQueryBackEnd:
                     query_new_status = 'failed'
                     job.set_failed()
 
-                if not self.public:
-                    self.send_completion_mail()
-
+                ## when the request is not public so a token is provided
+                ## and the request is long (?)
+                if self.mail_sending:
+                    try:
+                        self.send_completion_mail(query_new_status)
+                    except ConnectionRefusedError as e:
+                        query_out.set_query_exception(e,
+                                                      'sending of email failed',
+                                                      e_message=e.strerror,
+                                                      message_prepend_str='email sending', )
+                    except Exception as e:
+                        query_out.set_query_exception(e,
+                                                      'sending of email failed',
+                                                      message_prepend_str='email sending',)
                 job.write_dataserver_status()
 
             print('-----------------> query status update for done/ready: ',
@@ -1298,7 +1310,9 @@ class InstrumentQueryBackEnd:
 
         return resp
 
-    def send_completion_mail(self):
+    def send_completion_mail(self, status = "done"):
+        mail_sent = False
+        self.logger.info("Sending completion mail")
         # send the mail with the status update to the mail provided with the token
         # eg done/failed
         # test with the local server
@@ -1308,27 +1322,27 @@ class InstrumentQueryBackEnd:
         receiver_email = tokenHelper.get_token_user_mail(self.decoded_token)
         message = f"""From: From Person {sender_email}
                         To: To Person {receiver_email}
-                        Subject: SMTP e-mail test
-                        This is a test e-mail message.
+                        Subject: Completion e-mail
+                        Completion of the requested task with status {status}.
                         """
-        # msg = ("From: %s\r\nTo: %s\r\n\r\n"
-        #        % (fromaddr, ", ".join(toaddrs)))
-        # password = self.app.config.get('conf').mail_password
-        # TODO build an SSL context to send the mail "securely"
-        # # Create a secure SSL context
+        mail_password = self.app.config.get('conf').mail_password
+        # TODO build an SSL context to send the mail "securely", but it really depends on the
+        # type of server and the supported SSL
+        # Create a secure SSL context
         # context = ssl.create_default_context()
         #
         # Try to log in to server and send email
+        server = None
         try:
             server = smtplib.SMTP(smtp_server, port)
-            # server.starttls(context=context)  # Secure the connection
-            # server.login(sender_email, password)
+            if mail_password is not None and mail_password != '':
+                server.login(sender_email, mail_password)
             server.sendmail(sender_email, receiver_email, message)
         except Exception as e:
-            # Print any error messages to stdout
-            print(e)
+            raise
         finally:
-            server.quit()
+            if server:
+                server.quit()
 
     def async_dispatcher_query(self, query_status: str) -> tuple:
         self.logger.info("async dispatcher enabled, for %s", query_status)
