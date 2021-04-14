@@ -120,6 +120,7 @@ def test_mail_sending_threshold(dispatcher_live_fixture, dispatcher_local_mail_s
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
 
+
 @pytest.mark.parametrize("mail_sending", [True, False])
 def test_mail_sending(dispatcher_live_fixture, dispatcher_local_mail_server, mail_sending):
     server = dispatcher_live_fixture
@@ -173,7 +174,7 @@ def test_mail_sending_no_server(dispatcher_live_fixture):
         "name": "mmeharga",
         "roles": "authenticated user ,  content manager ,  general , magic",
         "exp": exp_time,
-        "timeout_mail": 0,
+        "tem": 0,
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
     params = {
