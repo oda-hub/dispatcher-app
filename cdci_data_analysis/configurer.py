@@ -270,7 +270,7 @@ class ConfigEnv(object):
                             smtp_server,
                             sender_mail,
                             smtp_port,
-                            mail_password
+                            mail_password,
                             ):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)

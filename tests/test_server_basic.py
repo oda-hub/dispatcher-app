@@ -80,19 +80,60 @@ def test_empty_request(dispatcher_live_fixture):
     logger.info(jdata['config'])
 
 
-@pytest.mark.parametrize("mail_sending", ["True", "False"])
+@pytest.mark.parametrize("threshold_mail", [0, 99999])
+def test_mail_sending_threshold(dispatcher_live_fixture, dispatcher_local_mail_server, threshold_mail):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    exp_time = int(time.time()) + 5000
+    token_payload = {
+        "sub": "mtm@mtmco.net",
+        "name": "mmeharga",
+        "roles": "authenticated user ,  content manager ,  general , magic",
+        "exp": exp_time,
+        "tem": threshold_mail,
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+        'mail_sending': True
+    }
+
+    exit_status_message = 'mail sent' if threshold_mail == 0 else ''
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=50,
+                )
+
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == exit_status_message
+
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
+
+@pytest.mark.parametrize("mail_sending", [True, False])
 def test_mail_sending(dispatcher_live_fixture, dispatcher_local_mail_server, mail_sending):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
-    exp_time = int(time.time()) + 500
+    exp_time = int(time.time()) + 5000
     token_payload = {
         "sub": "mtm@mtmco.net",
         "name": "mmeharga",
         "roles": "authenticated user ,  content manager ,  general , magic",
         "exp": exp_time,
+        "tem": 0,
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
     params = {
@@ -104,6 +145,8 @@ def test_mail_sending(dispatcher_live_fixture, dispatcher_local_mail_server, mai
         'mail_sending': mail_sending
     }
 
+    exit_status_message = 'mail sent' if mail_sending else ''
+
     jdata = ask(server,
                 params,
                 expected_query_status=["done"],
@@ -112,7 +155,7 @@ def test_mail_sending(dispatcher_live_fixture, dispatcher_local_mail_server, mai
 
     assert jdata["exit_status"]["debug_message"] == ""
     assert jdata["exit_status"]["error_message"] == ""
-    assert jdata["exit_status"]["message"] == ""
+    assert jdata["exit_status"]["message"] == exit_status_message
 
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
@@ -130,6 +173,7 @@ def test_mail_sending_no_server(dispatcher_live_fixture):
         "name": "mmeharga",
         "roles": "authenticated user ,  content manager ,  general , magic",
         "exp": exp_time,
+        "timeout_mail": 0,
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
     params = {
@@ -147,9 +191,9 @@ def test_mail_sending_no_server(dispatcher_live_fixture):
                 max_time_s=50,
                 )
 
-    assert jdata["exit_status"]["debug_message"] == ""
-    assert jdata["exit_status"]["error_message"] == "Connection refused"
-    assert jdata["exit_status"]["message"] == "email sending failed: sending of email failed"
+    assert jdata["exit_status"]["warning"] == "mail sending failed"
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == "mail not sent"
 
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))

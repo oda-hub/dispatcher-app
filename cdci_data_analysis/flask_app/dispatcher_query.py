@@ -24,18 +24,15 @@ from raven.contrib.flask import Sentry
 from flask import jsonify, send_from_directory, redirect
 from flask import Flask, request
 
-import json
 import tempfile
 import tarfile
 import gzip
-import logging
 import socket
 import logstash
 import hashlib
 import typing
 import jwt
 import smtplib
-import ssl
 
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
@@ -66,6 +63,7 @@ class InstrumentNotRecognized(BadRequest):
 
 class MissingRequestParameter(BadRequest):
     pass
+
 
 
 class InstrumentQueryBackEnd:
@@ -1036,7 +1034,7 @@ class InstrumentQueryBackEnd:
         if self.instrument.asynch == False:
             run_asynch = False
 
-        if alias_workdir is not None and run_asynch == True:
+        if alias_workdir is not None and run_asynch:
             job_is_aliased = True
 
         self.logger.info('--> is job aliased? : %s', job_is_aliased)
@@ -1150,6 +1148,8 @@ class InstrumentQueryBackEnd:
                     job_monitor = job.monitor
             else:
                 try:
+                    # Get the time in seconds, since the epoch
+                    started_query = time_.time()
                     query_out = self.instrument.run_query(product_type,
                                                           self.par_dic,
                                                           request,
@@ -1184,20 +1184,15 @@ class InstrumentQueryBackEnd:
                     query_new_status = 'failed'
                     job.set_failed()
 
-                ## when the request is not public so a token is provided
-                ## and the request is long (?)
-                if self.mail_sending:
-                    try:
-                        self.send_completion_mail(query_new_status)
-                    except ConnectionRefusedError as e:
-                        query_out.set_query_exception(e,
-                                                      'sending of email failed',
-                                                      e_message=e.strerror,
-                                                      message_prepend_str='email sending', )
-                    except Exception as e:
-                        query_out.set_query_exception(e,
-                                                      'sending of email failed',
-                                                      message_prepend_str='email sending',)
+                duration_query = time_.time() - started_query
+
+                # when a completion email is desired and the threshold is exceeded (if one is set)
+                # initially set this to infinite
+                threshold_mail = float("inf")
+                if self.decoded_token is not None:  # otherwise the request is public
+                    threshold_mail = tokenHelper.get_token_user_threshold_mail(self.decoded_token)
+                self.mail_sending = self.mail_sending and duration_query >= threshold_mail
+
                 job.write_dataserver_status()
 
             print('-----------------> query status update for done/ready: ',
@@ -1241,6 +1236,7 @@ class InstrumentQueryBackEnd:
                 'submitted job', job_status=job_monitor['status'])
 
             query_new_status = 'failed'
+            # will send an email with the failed state
             print('-----------------> query status update for failed:',
                   query_new_status)
             print(
@@ -1270,6 +1266,18 @@ class InstrumentQueryBackEnd:
             '\033[33;44m============================================================\033[0m')
         self.logger.info('')
 
+        if self.mail_sending and (query_new_status == 'done' or query_new_status == 'failed'):
+            try:
+                self.send_completion_mail(query_new_status)
+                query_out.set_status_message('mail sent')
+            except ConnectionRefusedError as e:
+                query_out.set_status_message('mail not sent')
+                query_out.set_status_warning('mail sending failed')
+            except Exception as e:
+                query_out.set_query_exception(e,
+                                              'sending of email failed',
+                                              message_prepend_str='email sending', )
+
         resp = self.build_dispatcher_response(query_new_status=query_new_status,
                                               query_out=query_out,
                                               job_monitor=job_monitor,
@@ -1279,7 +1287,6 @@ class InstrumentQueryBackEnd:
         return resp
 
     def send_completion_mail(self, status = "done"):
-        mail_sent = False
         self.logger.info("Sending completion mail")
         # send the mail with the status update to the mail provided with the token
         # eg done/failed

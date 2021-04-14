@@ -152,6 +152,21 @@ class QueryOutput(object):
         self.status_dictionary['comment'] = str(comment)
         self.status_dictionary['warning'] = str(warning)
 
+    def set_status_warning(self, warning):
+        self.status_dictionary['warning'] = str(warning)
+
+    def set_status_message(self, message):
+        self.status_dictionary['message'] = str(message)
+
+    def set_status_error_message(self, error_message):
+        self.status_dictionary['error_message'] = str(error_message)
+
+    def set_status_debug_message(self, debug_message):
+        self.status_dictionary['debug_message'] = str(debug_message)
+
+    def set_status_comment(self, comment):
+        self.status_dictionary['comment'] = str(comment)
+
     def get_status(self):
         return self.status_dictionary['status']
 

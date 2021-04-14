@@ -12,4 +12,3 @@ dispatcher:
     sender_mail: 'team@odahub.io'
     smtp_port: 1025
     mail_password: ''
-

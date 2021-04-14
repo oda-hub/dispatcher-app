@@ -18,6 +18,11 @@ def get_token_user_mail(decoded_token):
     return decoded_token['sub'] if 'sub' in decoded_token else ''
 
 
+def get_token_user_threshold_mail(decoded_token):
+    # extract user
+    return decoded_token['tem'] if 'tem' in decoded_token else ''
+
+
 def get_decoded_token(token, secret_key):
     # decode the encoded token
     if token is not None:
