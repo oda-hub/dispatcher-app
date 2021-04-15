@@ -319,7 +319,7 @@ class OsaJob(Job):
 
 
 def job_factory(instrument_name, scratch_dir, server_url, dispatcher_port, session_id, job_id, par_dic, aliased=False):
-    osa_list = ['jemx','isgri']
+    osa_list = ['jemx', 'isgri', 'empty-async']
 
     if instrument_name in osa_list:
         j = OsaJob(
