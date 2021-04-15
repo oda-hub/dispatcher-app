@@ -23,7 +23,7 @@ import gunicorn.app.base
 #from gunicorn.six import iteritems
 
 from cdci_data_analysis.app_logging import app_logging 
-from cdci_data_analysis.flask_app.app import run_app, app
+from cdci_data_analysis.flask_app.app import run_app, conf_app
 from cdci_data_analysis.configurer import ConfigEnv
 
 
@@ -34,11 +34,10 @@ def number_of_workers():
 
 
 class StandaloneApplication(gunicorn.app.base.BaseApplication):
-    def __init__(self, app, app_runner,options=None, app_conf=None):
+    def __init__(self, app, options=None, app_conf=None):
         self.options = options or {}
         self.application = app
         self.app_conf = app_conf
-        self.app_runner = app_runner
         super(StandaloneApplication, self).__init__()
 
     def load_config(self):
@@ -51,12 +50,6 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
 
     def load(self):
         return self.application
-
-    def run(self, conf, debug=False, threaded=False):
-        self.app_runner(conf, debug=debug, threaded=threaded)
-        #self.application.config['osaconf'] = conf
-        #self.application.run(host=conf.dispatcher_url, port=conf.dispatcher_port, debug=debug, threaded=threaded)
-
 
 def main(argv=None):
 
@@ -102,11 +95,13 @@ def main(argv=None):
             'workers': 2,
             'threads': 4,
         }
+        if debug:
+            options['loglevel'] = 'debug'
 
         if True:
-            StandaloneApplication(app, run_app, options).run(conf, debug=debug,threaded=True)
+            StandaloneApplication(conf_app(conf), options).run()
         else:
-            StandaloneApplication(micro_service, run_micro_service, options).run(conf, debug=debug, threaded=True)
+            StandaloneApplication(conf_micro_service(conf), options).run()
     else:
         run_app(conf, debug=debug, threaded=False)
 
