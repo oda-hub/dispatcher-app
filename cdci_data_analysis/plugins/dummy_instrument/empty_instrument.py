@@ -40,9 +40,9 @@ __author__ = "Andrea Tramacere"
 
 
 from cdci_data_analysis.analysis.instrument import Instrument
-from cdci_data_analysis.analysis.queries import  *
+from cdci_data_analysis.analysis.queries import  SourceQuery, InstrumentQuery, Float
 
-from .data_server_dispatcher import DataServerQuery, DataServerNumericQuery
+from .data_server_dispatcher import EmptyProductQuery, DataServerNumericQuery
 from .image_query import MyInstrMosaicQuery
 
 
@@ -53,7 +53,7 @@ def my_instr_factory():
     instr_query = InstrumentQuery(name='empty_instrument_query',)
 
     # my_instr_image_query -> name given to this query
-    empty_query = DataServerQuery('empty_parameters_dummy_query',)
+    empty_query = EmptyProductQuery('empty_parameters_dummy_query',)
     # let's build a simple parameter to its list
     p = Float(value=10., name='p', units='W',)
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
@@ -73,4 +73,4 @@ def my_instr_factory():
                       src_query=src_query,
                       instrumet_query=instr_query,
                       product_queries_list=[empty_query, numerical_query],
-                      query_dictionary=query_dictionary,)
+                      query_dictionary=query_dictionary)

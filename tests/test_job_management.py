@@ -1,5 +1,5 @@
 import requests
-
+import json
 import pytest
 
 def test_callback_without_prior_run_analysis(dispatcher_live_fixture):
@@ -28,12 +28,15 @@ def test_callback_after_run_analysis(dispatcher_live_fixture):
                      params=dict(
                         query_status="new",
                         query_type="Real",
-                        instrument="empty",
+                        instrument="empty-async",
                         product_type="dummy",                        
                         async_dispatcher=False,
                     ))
 
-    print("response from run_analysis:", c.text)    
+    print("response from run_analysis:", json.dumps(c.json(), indent=4))
+
+    session_id = c.json()['session_id']
+    job_id = c.json()['session_id']
 
     assert c.status_code == 200        
 
@@ -47,3 +50,4 @@ def test_callback_after_run_analysis(dispatcher_live_fixture):
     print(c.text)    
 
     assert c.status_code == 200
+

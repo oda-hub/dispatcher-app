@@ -41,6 +41,7 @@ def dispatcher_live_fixture(pytestconfig):
     cmd = [ 
             "python", 
             os.path.join(__this_dir__, "../bin/run_osa_cdci_server.py"),
+            "-d",
             "-conf_file", os.path.join(__this_dir__, "../tests/test-conf.yaml"),
             "-use_gunicorn"
           ] 
