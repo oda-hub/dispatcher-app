@@ -664,7 +664,6 @@ class InstrumentQueryBackEnd:
             if instrument is not None and not isinstance(instrument, str):
                 logger.debug('provided instrument type %s', type(instrument))
                 disp_data_server_conf_dict = self.instrument.data_server_conf_dict
-
             
         logger.debug('--> App configuration for: %s', self.instrument_name)
         if disp_data_server_conf_dict is not None:
