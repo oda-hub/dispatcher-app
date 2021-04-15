@@ -176,7 +176,7 @@ class Job(object):
 
         return self.monitor
 
-    def write_dataserver_status(self,status_dictionary_value=None,full_dict=None):
+    def write_dataserver_status(self, status_dictionary_value=None, full_dict=None):
         # TODO: write to specific name coming for call_back
 
         if status_dictionary_value is None:
@@ -188,10 +188,8 @@ class Job(object):
         if full_dict is not None:
             self.monitor['full_report_dict'] = full_dict
 
-        with open(self.file_path, 'w')  as outfile:
-            #print ("=====> writing to ",self.file_path)
+        with open(self.file_path, 'w') as outfile:
             my_json_str = json.dumps(self.monitor)
-            # if isinstance(my_json_str, str):
             outfile.write(u'%s' % my_json_str)
 
 
@@ -202,6 +200,7 @@ class Job(object):
         else:
             url = f'http://{self.server_url}:{self.server_port}/{self.callback_handle}'
 
+        # TODO: also pass token, to use it later to send email in callback
         url += "?" + urlencode({ k:getattr(self, k) for k in [
                 "session_id", "job_id", "work_dir", "file_name", "instrument_name"
             ]})
@@ -319,7 +318,7 @@ class OsaJob(Job):
 
 
 def job_factory(instrument_name, scratch_dir, server_url, dispatcher_port, session_id, job_id, par_dic, aliased=False):
-    osa_list = ['jemx','isgri']
+    osa_list = ['jemx', 'isgri', 'empty-async']
 
     if instrument_name in osa_list:
         j = OsaJob(

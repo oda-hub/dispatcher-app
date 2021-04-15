@@ -1,19 +1,19 @@
 """
 Overview
 --------
-   
+
 general info about this module
 
 
 Classes and Inheritance Structure
 ----------------------------------------------
-.. inheritance-diagram:: 
+.. inheritance-diagram::
 
 Summary
 ---------
 .. autosummary::
    list of the module you want
-    
+
 Module API
 ----------
 """
@@ -32,7 +32,7 @@ __author__ = "Andrea Tramacere"
 # absolute import rg:from copy import deepcopy
 
 # Dependencies
-# eg numpy 
+# eg numpy
 # absolute import eg: import numpy as np
 
 # Project
@@ -40,22 +40,24 @@ __author__ = "Andrea Tramacere"
 
 
 from cdci_data_analysis.analysis.instrument import Instrument
-from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float
+from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float, QueryOutput
 
-from .data_server_dispatcher import EmptyProductQuery, DataServerNumericQuery
+from .data_server_dispatcher import DataServerQuery, EmptyProductQuery, DataServerNumericQuery
 from .image_query import MyInstrMosaicQuery
+
+from typing import Tuple
 
 
 def my_instr_factory():
     src_query = SourceQuery('src_query')
 
     # empty query
-    instr_query = InstrumentQuery(name='empty_instrument_query',)
+    instr_query = InstrumentQuery(name='empty_async_instrument_query', )
 
     # my_instr_image_query -> name given to this query
-    empty_query = EmptyProductQuery('empty_parameters_dummy_query',)
+    empty_query = EmptyProductQuery('empty_parameters_dummy_query', )
     # let's build a simple parameter to its list
-    p = Float(value=10., name='p', units='W',)
+    p = Float(value=10., name='p', units='W', )
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
                                              parameters_list=[p])
 
@@ -69,8 +71,9 @@ def my_instr_factory():
     query_dictionary['dummy'] = 'empty_parameters_dummy_query'
     query_dictionary['numerical'] = 'numerical_parameters_dummy_query'
 
-    return Instrument('empty',
+    return Instrument('empty-async',
                       src_query=src_query,
                       instrumet_query=instr_query,
                       product_queries_list=[empty_query, numerical_query],
-                      query_dictionary=query_dictionary)
+                      query_dictionary=query_dictionary,
+                      data_server_query_class=DataServerQuery)

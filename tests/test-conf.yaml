@@ -13,3 +13,5 @@ dispatcher:
     cc_receivers_mail: ['team@odahub.io']
     smtp_port: 1025
     mail_password: ''
+    mail_sending_timeout: False
+    mail_sending_job_submitted: False

@@ -65,6 +65,9 @@ class MissingRequestParameter(BadRequest):
     pass
 
 
+class MailNotSent(BadRequest):
+    pass
+
 
 class InstrumentQueryBackEnd:
 
@@ -114,6 +117,7 @@ class InstrumentQueryBackEnd:
             # By default, a request is public, let's now check if a token has been included
             # In that case, validation is needed
             self.public = True
+            # TODO to adapt this parameter
             self.mail_sending = False
 
             self.token = None
@@ -519,7 +523,7 @@ class InstrumentQueryBackEnd:
                           self.job_id,
                           self.par_dic)
 
-        self.logger.info("%s.run_call_back with args %s", self, self.par_dic)
+        self.logger.info("%s.run_call_back built job %s", self, job)
 
         # if 'node_id' in self.par_dic.keys():
         #    print('node_id', self.par_dic['node_id'])
@@ -530,10 +534,23 @@ class InstrumentQueryBackEnd:
             status = self.par_dic[job.status_kw_name]
         else:
             status = 'unknown'
-        print('-----> set status to ', status)
 
-        job.write_dataserver_status(
-            status_dictionary_value=status, full_dict=self.par_dic)
+        logger.warn('-----> set status to %s', status)
+        # TODO also submitted ?
+        if self.token and (status == 'done' or status == ' failed'):
+            resp = self.validate_token_request_param()
+            if resp is not None:
+                self.logger.warning("query dismissed by token validation")
+                return resp
+            try:
+                self.send_completion_mail(status)
+                self.par_dic['mail_status'] = 'mail sent'
+                job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+            except MailNotSent:
+                self.par_dic['mail_status'] = 'mail not sent'
+                job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+        else:
+            job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
 
         return status
 
@@ -819,14 +836,14 @@ class InstrumentQueryBackEnd:
             return self.build_response_failed('oda_api token is needed',
                                               'you do not have permissions for this query, contact oda')
 
-        try:
-            query_status = self.par_dic['query_status']
-        except Exception as e:
-            query_out = QueryOutput()
-            query_out.set_query_exception(e,
-                                          'validate_token  failed in %s' % self.__class__.__name__,
-                                          extra_message='token validation failed unexplicably')
-            return query_out
+        # try:
+        #     query_status = self.par_dic['query_status']
+        # except Exception as e:
+        #     query_out = QueryOutput()
+        #     query_out.set_query_exception(e,
+        #                                   'validate_token  failed in %s' % self.__class__.__name__,
+        #                                   extra_message='token validation failed unexplicably')
+        #     return query_out
 
         return None
 
@@ -1269,7 +1286,6 @@ class InstrumentQueryBackEnd:
         if self.mail_sending and (query_new_status == 'done' or query_new_status == 'failed'):
             try:
                 self.send_completion_mail(query_new_status)
-                query_out.set_status_message('mail sent')
             except ConnectionRefusedError as e:
                 query_out.set_status_message('mail not sent')
                 query_out.set_status_warning('mail sending failed')
@@ -1287,37 +1303,37 @@ class InstrumentQueryBackEnd:
         return resp
 
     def send_completion_mail(self, status="done"):
-        self.logger.info("Sending completion mail")
-        # send the mail with the status update to the mail provided with the token
-        # eg done/failed
-        # test with the local server
-        smtp_server = self.app.config.get('conf').smtp_server
-        port = self.app.config.get('conf').smtp_port
-        sender_email = self.app.config.get('conf').sender_mail
-        cc_receivers_mail = self.app.config.get('conf').cc_receivers_mail
-        receiver_email = tokenHelper.get_token_user_mail(self.decoded_token)
-        receivers_email = [receiver_email] + cc_receivers_mail
-        message = f"""From: From Person {sender_email}
-                        To: To Person {receiver_email}
-                        CC: {cc_receivers_mail}
-                        Subject: Completion e-mail
-                        Completion of the requested task with status {status}.
-                        """
-        mail_password = self.app.config.get('conf').mail_password
-        # TODO build an SSL context to send the mail "securely", but it really depends on the
-        # type of server and the supported SSL
-        # Create a secure SSL context
-        # context = ssl.create_default_context()
-        #
-        # Try to log in to server and send email
         server = None
         try:
+            self.logger.info("Sending completion mail")
+            # send the mail with the status update to the mail provided with the token
+            # eg done/failed
+            # test with the local server
+            smtp_server = self.app.config.get('conf').smtp_server
+            port = self.app.config.get('conf').smtp_port
+            sender_email = self.app.config.get('conf').sender_mail
+            cc_receivers_mail = self.app.config.get('conf').cc_receivers_mail
+            receiver_email = tokenHelper.get_token_user_mail(self.decoded_token)
+            receivers_email = [receiver_email] + cc_receivers_mail
+            message = f"""From: From Person {sender_email}
+                            To: To Person {receiver_email}
+                            CC: {cc_receivers_mail}
+                            Subject: Completion e-mail
+                            Completion of the requested task with status {status}.
+                            """
+            mail_password = self.app.config.get('conf').mail_password
+            # TODO build an SSL context to send the mail "securely", but it really depends on the
+            # type of server and the supported SSL
+            # Create a secure SSL context
+            # context = ssl.create_default_context()
+            #
+            # Try to log in to server and send email
             server = smtplib.SMTP(smtp_server, port)
             if mail_password is not None and mail_password != '':
                 server.login(sender_email, mail_password)
             server.sendmail(sender_email, receivers_email, message)
         except Exception as e:
-            raise
+            raise MailNotSent(f"mail not sent {e}")
         finally:
             if server:
                 server.quit()

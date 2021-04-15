@@ -201,7 +201,9 @@ def common_exception_payload():
 
     if payload['debug_mode'] == "yes":
         payload['config'] = {
-            'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),  ['sentry_url', 'logstash_host', 'logstash_port', 'secret_key'])
+            'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),
+                                                    ['sentry_url', 'logstash_host', 'logstash_port', 'secret_key',
+                                                     'mail_password',])
         }
 
     plugins = {}
@@ -268,7 +270,7 @@ def dataserver_call_back():
     #app.logger.disabled = True
     print('===========================> dataserver_call_back')
     query = InstrumentQueryBackEnd(
-        app, instrument_name='empty', data_server_call_back=True)
+        app, instrument_name='mock', data_server_call_back=True)
     query.run_call_back()
     print('===========================>\n\n\n')
     return jsonify({})

@@ -54,6 +54,8 @@ __author__ = "Andrea Tramacere"
 # Project
 # relative import eg: from .mod import f
 
+class DataServerQueryClassNotSet(Exception):
+    pass
 
 class Instrument:
     def __init__(self,
@@ -136,13 +138,15 @@ class Instrument:
 
     def test_communication(self,config,logger=None):
         if self.data_server_query_class is not None:
-            return self.data_server_query_class(config=config, instrument=self).test_communication(logger=logger)
+            return self.data_server_query_class(name='unset-name', config=config, instrument=self).test_communication(logger=logger)
+        else:
+            raise DataServerQueryClassNotSet('in test_communication')
 
     def test_busy(self, config,logger=None):
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config).test_busy(logger=logger)
 
-    def test_has_input_products(self, config,instrument,logger=None):
+    def test_has_input_products(self, config, instrument, logger=None):
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config,instrument=self).test_has_input_products(instrument,logger=logger)
 
