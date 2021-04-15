@@ -202,6 +202,7 @@ class Job(object):
         else:
             url = f'http://{self.server_url}:{self.server_port}/{self.callback_handle}'
 
+        # TODO: also pass token, to use it later to send email in callback 
         url += "?" + urlencode({ k:getattr(self, k) for k in [
                 "session_id", "job_id", "work_dir", "file_name", "instrument_name"
             ]})

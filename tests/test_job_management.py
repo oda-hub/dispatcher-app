@@ -38,13 +38,16 @@ def test_callback_after_run_analysis(dispatcher_live_fixture):
     session_id = c.json()['session_id']
     job_id = c.json()['job_monitor']['job_id']
 
+    #TODO ensure it is submitted
+
     job_monitor_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor.json'
 
     assert os.path.exists(job_monitor_json_fn)
 
     assert c.status_code == 200        
 
-    for i in range(3):
+    for i in range(5):
+        # imitating what a backend would do
         c = requests.get(server + "/call_back",
                     params={
                         'job_id': job_id,
@@ -55,7 +58,7 @@ def test_callback_after_run_analysis(dispatcher_live_fixture):
                         'message': 'progressing',
                     })
 
-    # this should trigger email
+    #TODO: this should trigger email
     c = requests.get(server + "/call_back",
                 params={
                     'job_id': job_id,
@@ -65,10 +68,11 @@ def test_callback_after_run_analysis(dispatcher_live_fixture):
                     'node_id': 'final',
                     'message': 'done',
                 })
-
+    
     print(c.text)    
     assert c.status_code == 200
 
+    # I think this is not complete since DataServerQuery never returns done?
     c = requests.get(server + "/run_analysis",
                      params=dict(
                         query_status="ready", # whether query is new or not, this should work
@@ -84,7 +88,7 @@ def test_callback_after_run_analysis(dispatcher_live_fixture):
 
     #TODO: test that this returns entire log
     #full_report_dict_list = c.json()['job_monitor'].get('full_report_dict_list')
-    #assert len(full_report_dict_list) > 2
+    #assert len(full_report_dict_list) == 5 
 
     assert c.status_code == 200
 

@@ -79,6 +79,9 @@ class DataServerQuery:
                            comment="mock comment",
                            warning="mock warning")
 
+        #TODO: track somehow status of our mock job and return done after several requests
+        # otherwise not it never returns submitted
+
         return None, query_out
 
 
