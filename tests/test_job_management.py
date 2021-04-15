@@ -31,7 +31,6 @@ def test_callback_after_run_analysis(dispatcher_live_fixture):
                         query_type="Real",
                         instrument="empty-async",
                         product_type="dummy",                        
-                        async_dispatcher=False,
                     ))
 
     print("response from run_analysis:", json.dumps(c.json(), indent=4))
@@ -68,6 +67,7 @@ def test_callback_after_run_analysis(dispatcher_live_fixture):
                 })
 
     print(c.text)    
+    assert c.status_code == 200
 
     c = requests.get(server + "/run_analysis",
                      params=dict(
@@ -82,4 +82,10 @@ def test_callback_after_run_analysis(dispatcher_live_fixture):
 
     print("response from run_analysis:", json.dumps(c.json(), indent=4))
 
+    #TODO: test that this returns entire log
+    #full_report_dict_list = c.json()['job_monitor'].get('full_report_dict_list')
+    #assert len(full_report_dict_list) > 2
+
     assert c.status_code == 200
+
+    #TODO: test that this returns the result
