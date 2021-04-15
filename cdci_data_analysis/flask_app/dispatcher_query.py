@@ -1286,7 +1286,7 @@ class InstrumentQueryBackEnd:
 
         return resp
 
-    def send_completion_mail(self, status = "done"):
+    def send_completion_mail(self, status="done"):
         self.logger.info("Sending completion mail")
         # send the mail with the status update to the mail provided with the token
         # eg done/failed

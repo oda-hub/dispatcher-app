@@ -166,6 +166,8 @@ class Instrument:
         if logger is None:
             logger = self.get_logger()
 
+        self._current_par_dic=par_dic
+
         # set pars values from the input parameters
         query_out = self.set_pars_from_form(par_dic, verbose=verbose, sentry_client=sentry_client)
 

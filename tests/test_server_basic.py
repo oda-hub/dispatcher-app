@@ -526,6 +526,7 @@ def loop_ask(server, params):
 
     logger.info(f"\033[31m total request took {time.time() - t0} seconds\033[0m")
 
+
     return jdata, time.time() - t0
 
 

@@ -9,17 +9,17 @@ def get_token_roles(decoded_token):
 
 
 def get_token_user(decoded_token):
-    # extract user
+    # extract user name
     return decoded_token['name'] if 'name' in decoded_token else ''
 
 
 def get_token_user_mail(decoded_token):
-    # extract user
+    # extract user email address
     return decoded_token['sub'] if 'sub' in decoded_token else ''
 
 
 def get_token_user_threshold_mail(decoded_token):
-    # extract user
+    # extract user threshold
     return decoded_token['tem'] if 'tem' in decoded_token else ''
 
 
