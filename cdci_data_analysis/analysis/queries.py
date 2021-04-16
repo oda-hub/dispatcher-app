@@ -534,7 +534,7 @@ class ProductQuery(BaseQuery):
 
             e_message = getattr(e, 'message', '')
             debug_message = repr(e) + ' : ' + getattr(e, 'debug_message', '')
-            
+
             query_out.set_failed('get_dataserver_products found job failed',
                                  logger=logger,
                                  sentry_client=sentry_client,
