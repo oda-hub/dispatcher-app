@@ -534,13 +534,25 @@ class InstrumentQueryBackEnd:
 
         logger.warn('-----> set status to %s', status)
 
-        # TODO also submitted ?
+        if self.is_email_to_send_callback(status):
+            try:
+                self.send_completion_mail(status)
+                self.par_dic['mail_status'] = 'mail sent'
+                job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+            except MailNotSent:
+                self.par_dic['mail_status'] = 'mail not sent'
+                job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+        else:
+            job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+
+        return status
+
+    def is_email_to_send_callback(self, status):
         # get total request duration
         duration_query = -1
         if 'time_request' in self.par_dic:
             time_request = float(self.par_dic['time_request'])
             duration_query = time_.time() - time_request
-
         if self.token:
             resp = self.validate_token_request_param()
             if resp is not None:
@@ -548,22 +560,13 @@ class InstrumentQueryBackEnd:
                 return resp
             timeout_threshold_mail = tokenHelper.get_token_user_timeout_threshold_mail(self.decoded_token)
             if timeout_threshold_mail is None:
-                # set it to the a default value
+                # set it to the a default value, from the configuration
                 timeout_threshold_mail = self.app.config.get('conf').mail_sending_timeout_threshold
-            if (duration_query > timeout_threshold_mail and status == 'done') or status == ' failed':
-                try:
-                    self.send_completion_mail(status)
-                    self.par_dic['mail_status'] = 'mail sent'
-                    job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
-                except MailNotSent:
-                    self.par_dic['mail_status'] = 'mail not sent'
-                    job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
-            else:
-                job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
-        else:
-            job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
-
-        return status
+            # in case the request was long and 'done'
+            # or if failed
+            # or when the job was created ('submitted')
+            return (duration_query > timeout_threshold_mail and status == 'done') or status == 'submitted' or status == 'failed'
+        return False
 
     def run_query_mock(self, off_line=False):
 

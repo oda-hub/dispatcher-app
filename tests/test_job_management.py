@@ -96,7 +96,20 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                           'time_request': time_request
                      })
 
-    # TODO: this should trigger email
+    # this triggers email
+    c = requests.get(server + "/call_back",
+                     params={
+                         'job_id': job_id,
+                         'session_id': session_id,
+                         'instrument_name': "empty-async",
+                         'action': 'submitted',
+                         'node_id': 'node_submitted',
+                         'message': 'submitted',
+                         'token': encoded_token,
+                         'time_request': time_request
+                     })
+
+    # this triggers email
     c = requests.get(server + "/call_back",
                      params={
                          'job_id': job_id,
@@ -112,7 +125,8 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     job_monitor_call_back_done_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor_node_final_done_.json'
     # the aliased version might have been created
     job_monitor_call_back_done_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor_node_final_done_.json'
-    assert os.path.exists(job_monitor_call_back_done_json_fn) or os.path.exists(job_monitor_call_back_done_json_fn_aliased)
+    assert os.path.exists(job_monitor_call_back_done_json_fn) or \
+           os.path.exists(job_monitor_call_back_done_json_fn_aliased)
     assert c.status_code == 200
     # read the json file
     if os.path.exists(job_monitor_call_back_done_json_fn):
