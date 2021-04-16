@@ -52,12 +52,12 @@ def my_instr_factory():
     src_query = SourceQuery('src_query')
 
     # empty query
-    instr_query = InstrumentQuery(name='empty_async_instrument_query', )
+    instr_query = InstrumentQuery(name='empty_async_instrument_query',)
 
     # my_instr_image_query -> name given to this query
-    empty_query = EmptyProductQuery('empty_parameters_dummy_query', )
+    empty_query = EmptyProductQuery('empty_parameters_dummy_query',)
     # let's build a simple parameter to its list
-    p = Float(value=10., name='p', units='W', )
+    p = Float(value=10., name='p', units='W',)
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
                                              parameters_list=[p])
 
