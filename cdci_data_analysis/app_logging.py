@@ -17,7 +17,7 @@ class AppLogging:
         if tree is None:
             tree = logging_tree.tree()
 
-            if self.level_by_logger.get("", "info").upper() == "DEBUG":
+            if self.level_by_logger.get("logging_tree", "info").upper() == "DEBUG":
                 logging_tree.printout()
 
         for n, l in self.level_by_logger.items():

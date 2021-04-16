@@ -202,6 +202,7 @@ class Job(object):
         else:
             url = f'http://{self.server_url}:{self.server_port}/{self.callback_handle}'
 
+        # TODO: also pass token, to use it later to send email in callback 
         url += "?" + urlencode({ k:getattr(self, k) for k in [
                 "session_id", "job_id", "work_dir", "file_name", "instrument_name"
             ]})
@@ -319,7 +320,7 @@ class OsaJob(Job):
 
 
 def job_factory(instrument_name, scratch_dir, server_url, dispatcher_port, session_id, job_id, par_dic, aliased=False):
-    osa_list = ['jemx','isgri']
+    osa_list = ['jemx', 'isgri', 'empty-async']
 
     if instrument_name in osa_list:
         j = OsaJob(
