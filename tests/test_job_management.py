@@ -245,3 +245,31 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
 
     jdata = json.load(f)
     assert jdata['full_report_dict']['mail_status'] == 'mail not sent'
+
+    # this triggers email
+    c = requests.get(server + "/call_back",
+                     params={
+                         'job_id': job_id,
+                         'session_id': session_id,
+                         'instrument_name': "empty-async",
+                         'action': 'failed',
+                         'node_id': 'node_failed',
+                         'message': 'failed',
+                         'token': encoded_token,
+                         'time_request': time_request
+                     })
+    job_monitor_call_back_failed_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor_node_failed_failed_.json'
+    # the aliased version might have been created
+    job_monitor_call_back_failed_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor_node_failed_failed_.json'
+
+    assert os.path.exists(job_monitor_call_back_failed_json_fn) or os.path.exists(
+        job_monitor_call_back_failed_json_fn_aliased)
+    assert c.status_code == 200
+    # read the json file
+    if os.path.exists(job_monitor_call_back_failed_json_fn):
+        f = open(job_monitor_call_back_failed_json_fn)
+    else:
+        f = open(job_monitor_call_back_failed_json_fn_aliased)
+
+    jdata = json.load(f)
+    assert jdata['full_report_dict']['mail_status'] == 'mail not sent'
