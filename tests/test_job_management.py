@@ -135,7 +135,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                      ))
 
     print("response from run_analysis:", json.dumps(c.json(), indent=4))
-
+    jdata = c.json()
     # TODO: test that this returns entire log
     # full_report_dict_list = c.json()['job_monitor'].get('full_report_dict_list')
     # assert len(full_report_dict_list) == 5

@@ -193,7 +193,6 @@ class Job(object):
             outfile.write(u'%s' % my_json_str)
 
 
-
     def get_call_back_url(self):
         if self.server_port is None:
             url = f'{self.server_url}/{self.callback_handle}'

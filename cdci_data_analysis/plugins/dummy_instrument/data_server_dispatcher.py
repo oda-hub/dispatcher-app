@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
 class AsynchExcept(Exception):
     pass
 
+
 class DataServerQuery:
     def __init__(self, config=None, instrument=None):
         pass

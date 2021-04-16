@@ -822,9 +822,11 @@ class InstrumentQueryBackEnd:
 
         if self.token is not None:
             try:
-                validate = self.validate_query_from_token()
-                if validate:
-                    pass
+                if self.validate_query_from_token():
+                    return None
+                else:
+                    # in case the token is not valid returns an empty object
+                    return {}
             except jwt.exceptions.ExpiredSignatureError as e:
                 # expired token
                 return self.build_response_failed('oda_api permissions failed', 'token expired')
@@ -835,17 +837,6 @@ class InstrumentQueryBackEnd:
             self.logger.warning('==> NO TOKEN FOUND IN PARS')
             return self.build_response_failed('oda_api token is needed',
                                               'you do not have permissions for this query, contact oda')
-
-        # try:
-        #     query_status = self.par_dic['query_status']
-        # except Exception as e:
-        #     query_out = QueryOutput()
-        #     query_out.set_query_exception(e,
-        #                                   'validate_token  failed in %s' % self.__class__.__name__,
-        #                                   extra_message='token validation failed unexplicably')
-        #     return query_out
-
-        return None
 
     @property
     def query_log_dir(self):
@@ -1000,7 +991,6 @@ class InstrumentQueryBackEnd:
         except KeyError as e:
             raise MissingRequestParameter(repr(e))
 
-        # resp = self.validate_token_env_var()
         resp = self.validate_token_request_param()
         if resp is not None:
             self.logger.warning("query dismissed by token validation")
