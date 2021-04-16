@@ -536,10 +536,10 @@ class InstrumentQueryBackEnd:
 
         if self.is_email_to_send_callback(status):
             try:
-                self.send_completion_mail(status)
+                self.send_email(status)
                 self.par_dic['mail_status'] = 'mail sent'
                 job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
-            except MailNotSent:
+            except MailNotSent as e:
                 self.par_dic['mail_status'] = 'mail not sent'
                 job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
         else:
@@ -1169,8 +1169,6 @@ class InstrumentQueryBackEnd:
                     job_monitor = job.monitor
             else:
                 try:
-                    # Get the time in seconds, since the epoch
-                    started_query = time_.time()
                     query_out = self.instrument.run_query(product_type,
                                                           self.par_dic,
                                                           request,
@@ -1204,16 +1202,6 @@ class InstrumentQueryBackEnd:
                 else:
                     query_new_status = 'failed'
                     job.set_failed()
-
-                duration_query = time_.time() - started_query
-
-                # when a completion email is desired and the threshold is exceeded (if one is set)
-                # initially set this to infinite
-                threshold_mail = float("inf")
-                if self.decoded_token is not None:  # otherwise the request is public
-                    threshold_mail = tokenHelper.get_token_user_timeout_threshold_mail(self.decoded_token)
-                # get the mail_sending_timeout parameter
-                self.mail_sending = self.app.config.get('conf').mail_sending_timeout and duration_query >= threshold_mail
 
                 job.write_dataserver_status()
 
@@ -1288,23 +1276,14 @@ class InstrumentQueryBackEnd:
             '\033[33;44m============================================================\033[0m')
         self.logger.info('')
 
-        if self.mail_sending and (query_new_status == 'done' or query_new_status == 'failed'):
-            try:
-                self.send_completion_mail(query_new_status)
-                query_out.set_status_message('mail sent')
-            except MailNotSent:
-                query_out.set_status_message('mail not sent')
-                query_out.set_status_warning('mail sending failed')
-
         resp = self.build_dispatcher_response(query_new_status=query_new_status,
                                               query_out=query_out,
                                               job_monitor=job_monitor,
                                               off_line=off_line,
                                               api=api)
-
         return resp
 
-    def send_completion_mail(self, status="done"):
+    def send_email(self, status="done"):
         server = None
         try:
             self.logger.info("Sending completion mail")
@@ -1335,6 +1314,7 @@ class InstrumentQueryBackEnd:
                 server.login(sender_email, mail_password)
             server.sendmail(sender_email, receivers_email, message)
         except Exception as e:
+            self.logger.error(f'Exception while sending email {e}')
             raise MailNotSent(f"mail not sent {e}")
         finally:
             if server:
