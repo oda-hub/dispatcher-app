@@ -43,7 +43,7 @@ def dispatcher_live_fixture(pytestconfig):
             os.path.join(__this_dir__, "../bin/run_osa_cdci_server.py"),
             "-d",
             "-conf_file", os.path.join(__this_dir__, "../tests/test-conf.yaml"),
-            "-use_gunicorn"
+            #"-use_gunicorn" should not be used, as current implementation of follow_output is specific to flask development server
           ] 
 
     p = subprocess.Popen(
