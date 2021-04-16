@@ -115,9 +115,9 @@ class Instrument:
     def _check_names(self):
         pass
 
+
     def set_pars_from_dic(self,par_dic,verbose=False):
         for _query in self._queries_list:
-
             for par in _query._parameters_list:
                 par.set_from_form(par_dic,verbose=verbose)
 
@@ -367,7 +367,14 @@ class Instrument:
             q.set_done(debug_message=str(debug_message))
         except Exception as e:
             #FAILED
-            q.set_failed('setting form parameters',logger=logger,sentry_client=sentry_client,excep=e)
+
+            m = f'problem setting form parameters from dict: {par_dic}'
+            logger.error(m)
+
+            q.set_failed(m,
+                         logger=logger,
+                         sentry_client=sentry_client,
+                         excep=e)
 
             #status=1
             #error_message= 'error in form parameter'

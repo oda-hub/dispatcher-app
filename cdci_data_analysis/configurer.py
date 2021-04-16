@@ -10,6 +10,7 @@ import sys
 import os
 import logging
 
+from typing import List, Union
 from cdci_data_analysis import conf_dir
 from cdci_data_analysis.analysis.io_helper import FilePath
 import yaml
@@ -111,7 +112,7 @@ class DataServerConf:
                 self.__setattr__(key, value)
             except KeyError as e:
                 logger.error(
-                    f"problem constructing {self}: {key} configuration key is required")
+                    f"problem constructing {self}: {key} configuration key is required\n" + context_details_message)
                 raise e
 
         for key in self.obsolete_keys:
@@ -122,10 +123,9 @@ class DataServerConf:
         #optional config keys
         for key in conf:
             if key not in allowed_optional_keys:
-                logger.error(
-                             f"config key {key} is not allowed in this context")
-                raise KeyError(
-                    f"config key {key} is not allowed in this context")
+                m = f"config key {key} is not allowed in this context!'\n" + context_details_message                
+                logger.error(m)
+                raise KeyError(m)
             self.__setattr__(key, conf[key])
 
         #print(' --> DataServerConf')

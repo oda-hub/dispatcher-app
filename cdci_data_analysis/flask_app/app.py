@@ -418,13 +418,15 @@ class TestJS9Plot(Resource):
 #    # print('get_js9_plot path',file_path)
 #    return img.get_js9_html('dummy_prods/isgri_query_mosaic.fits')
 
-
-def run_app(conf, debug=False, threaded=False):
+def conf_app(conf):
     app.config['conf'] = conf
     if conf.sentry_url is not None:
         sentry = Sentry(app, dsn=conf.sentry_url)
         logger.warning("sentry not used")
+    return app
 
+def run_app(conf, debug=False, threaded=False):
+    conf_app(conf)
     app.run(host=conf.dispatcher_url, port=conf.dispatcher_port,
             debug=debug, threaded=threaded)
 
