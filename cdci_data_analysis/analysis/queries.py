@@ -390,8 +390,8 @@ class ProductQuery(BaseQuery):
             else:
                 debug_message = 'no exception default debug message'
 
-                debug_message += '\n' + repr(e)
-                debug_message += traceback.format_exc()
+            debug_message += '\n' + repr(e)
+            debug_message += traceback.format_exc()
 
             query_out.set_failed('dataserver communication test',
                                  extra_message=e_message,
@@ -430,7 +430,7 @@ class ProductQuery(BaseQuery):
         try:
 
             if query_type != 'Dummy':
-                test_has_input_products_query_out, input_prod_list = instrument.test_has_input_products(config, instrument, logger=logger)
+                test_has_input_products_query_out, input_prod_list = instrument.test_has_input_products(config,instrument,logger=logger)
 
                 status = test_has_input_products_query_out.get_status()
 
@@ -534,7 +534,7 @@ class ProductQuery(BaseQuery):
 
             e_message = getattr(e, 'message', '')
             debug_message = repr(e) + ' : ' + getattr(e, 'debug_message', '')
-
+            
             query_out.set_failed('get_dataserver_products found job failed',
                                  logger=logger,
                                  sentry_client=sentry_client,

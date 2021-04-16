@@ -146,7 +146,7 @@ class Instrument:
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config).test_busy(logger=logger)
 
-    def test_has_input_products(self, config, instrument, logger=None):
+    def test_has_input_products(self, config, instrument,logger=None):
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config,instrument=self).test_has_input_products(instrument,logger=logger)
 
