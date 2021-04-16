@@ -1,10 +1,16 @@
 import requests
 import json
 import os
-import pytest
 import time
 import jwt
+import logging
+import pytest
 
+# logger
+from tests.conftest import dispatcher_local_mail_server
+
+logger = logging.getLogger(__name__)
+# symmetric shared secret for the decoding of the token
 secret_key = 'secretkey_test'
 
 default_exp_time = int(time.time()) + 5000
@@ -108,6 +114,20 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                          'token': encoded_token,
                          'time_request': time_request
                      })
+    job_monitor_call_back_submitted_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor_node_submitted_submitted_.json'
+    # the aliased version might have been created
+    job_monitor_call_back_submitted_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor_node_submitted_submitted_.json'
+
+    assert os.path.exists(job_monitor_call_back_submitted_json_fn) or os.path.exists(job_monitor_call_back_submitted_json_fn_aliased)
+    assert c.status_code == 200
+    # read the json file
+    if os.path.exists(job_monitor_call_back_submitted_json_fn):
+        f = open(job_monitor_call_back_submitted_json_fn)
+    else:
+        f = open(job_monitor_call_back_submitted_json_fn_aliased)
+
+    jdata = json.load(f)
+    assert jdata['full_report_dict']['mail_status'] == 'mail sent'
 
     # this triggers email
     c = requests.get(server + "/call_back",
@@ -134,8 +154,6 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     else:
         f = open(job_monitor_call_back_done_json_fn_aliased)
 
-    # returns JSON object as
-    # a dictionary
     jdata = json.load(f)
     assert jdata['full_report_dict']['mail_status'] == 'mail sent'
 
@@ -153,7 +171,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                      ))
 
     print("response from run_analysis:", json.dumps(c.json(), indent=4))
-    jdata = c.json()
+    # jdata = c.json()
     # TODO: test that this returns entire log
     # full_report_dict_list = c.json()['job_monitor'].get('full_report_dict_list')
     # assert len(full_report_dict_list) == 5
@@ -161,3 +179,69 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     assert c.status_code == 200
 
     # TODO: test that this returns the result
+
+
+def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
+    # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
+
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "tem": 0
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    # set the time the request was initiated
+    time_request = time.time()
+    c = requests.get(server + "/run_analysis",
+                     params=dict(
+                         query_status="new",
+                         query_type="Real",
+                         instrument="empty-async",
+                         product_type="dummy",
+                         token=encoded_token
+                     ))
+
+    print("response from run_analysis:", json.dumps(c.json(), indent=4))
+
+    session_id = c.json()['session_id']
+    job_id = c.json()['job_monitor']['job_id']
+
+    # TODO ensure it is submitted
+
+    job_monitor_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor.json'
+    # the aliased version might have been created
+    job_monitor_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor.json'
+
+    assert os.path.exists(job_monitor_json_fn) or os.path.exists(job_monitor_json_fn_aliased)
+    assert c.status_code == 200
+
+    # this triggers email
+    c = requests.get(server + "/call_back",
+                     params={
+                         'job_id': job_id,
+                         'session_id': session_id,
+                         'instrument_name': "empty-async",
+                         'action': 'submitted',
+                         'node_id': 'node_submitted',
+                         'message': 'submitted',
+                         'token': encoded_token,
+                         'time_request': time_request
+                     })
+    job_monitor_call_back_submitted_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor_node_submitted_submitted_.json'
+    # the aliased version might have been created
+    job_monitor_call_back_submitted_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor_node_submitted_submitted_.json'
+
+    assert os.path.exists(job_monitor_call_back_submitted_json_fn) or os.path.exists(
+        job_monitor_call_back_submitted_json_fn_aliased)
+    assert c.status_code == 200
+    # read the json file
+    if os.path.exists(job_monitor_call_back_submitted_json_fn):
+        f = open(job_monitor_call_back_submitted_json_fn)
+    else:
+        f = open(job_monitor_call_back_submitted_json_fn_aliased)
+
+    jdata = json.load(f)
+    assert jdata['full_report_dict']['mail_status'] == 'mail not sent'

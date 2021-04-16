@@ -1314,7 +1314,7 @@ class InstrumentQueryBackEnd:
                 server.login(sender_email, mail_password)
             server.sendmail(sender_email, receivers_email, message)
         except Exception as e:
-            self.logger.error(f'Exception while sending email {e}')
+            self.logger.error(f'Exception while sending email: {e}')
             raise MailNotSent(f"mail not sent {e}")
         finally:
             if server:
