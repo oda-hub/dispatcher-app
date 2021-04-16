@@ -230,6 +230,9 @@ class ConfigEnv(object):
                                      disp_dict['cc_receivers_mail'],
                                      disp_dict['smtp_port'],
                                      disp_dict['mail_password'],
+                                     disp_dict['mail_sending_timeout'],
+                                     disp_dict['mail_sending_timeout_threshold'],
+                                     disp_dict['mail_sending_job_submitted']
                                      )
 
         # not used?
@@ -273,6 +276,9 @@ class ConfigEnv(object):
                             cc_receivers_mail,
                             smtp_port,
                             mail_password,
+                            mail_sending_timeout,
+                            mail_sending_timeout_threshold,
+                            mail_sending_job_submitted
                             ):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
@@ -289,6 +295,9 @@ class ConfigEnv(object):
         self.cc_receivers_mail = cc_receivers_mail
         self.smtp_port = smtp_port
         self.mail_password = mail_password
+        self.mail_sending_timeout = mail_sending_timeout
+        self.mail_sending_timeout_threshold = mail_sending_timeout_threshold
+        self.mail_sending_job_submitted = mail_sending_job_submitted
 
     def get_data_serve_conf(self, instr_name):
         if instr_name in self.data_server_conf_dict.keys():

@@ -117,7 +117,6 @@ class InstrumentQueryBackEnd:
             # By default, a request is public, let's now check if a token has been included
             # In that case, validation is needed
             self.public = True
-            # TODO to adapt this parameter
             self.mail_sending = False
 
             self.token = None
@@ -125,8 +124,6 @@ class InstrumentQueryBackEnd:
             if 'token' in self.par_dic.keys() and self.par_dic['token'] != "":
                 self.token = self.par_dic['token']
                 self.public = False
-                if 'mail_sending' in self.par_dic:
-                    self.mail_sending = self.par_dic['mail_sending'] == 'True'
 
             if instrument_name is None:
                 if 'instrument' in self.par_dic:
@@ -536,18 +533,32 @@ class InstrumentQueryBackEnd:
             status = 'unknown'
 
         logger.warn('-----> set status to %s', status)
+
         # TODO also submitted ?
-        if self.token and (status == 'done' or status == ' failed'):
+        # get total request duration
+        duration_query = -1
+        if 'time_request' in self.par_dic:
+            time_request = float(self.par_dic['time_request'])
+            duration_query = time_.time() - time_request
+
+        if self.token:
             resp = self.validate_token_request_param()
             if resp is not None:
                 self.logger.warning("query dismissed by token validation")
                 return resp
-            try:
-                self.send_completion_mail(status)
-                self.par_dic['mail_status'] = 'mail sent'
-                job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
-            except MailNotSent:
-                self.par_dic['mail_status'] = 'mail not sent'
+            timeout_threshold_mail = tokenHelper.get_token_user_timeout_threshold_mail(self.decoded_token)
+            if timeout_threshold_mail is None:
+                # set it to the a default value
+                timeout_threshold_mail = self.app.config.get('conf').mail_sending_timeout_threshold
+            if (duration_query > timeout_threshold_mail and status == 'done') or status == ' failed':
+                try:
+                    self.send_completion_mail(status)
+                    self.par_dic['mail_status'] = 'mail sent'
+                    job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+                except MailNotSent:
+                    self.par_dic['mail_status'] = 'mail not sent'
+                    job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+            else:
                 job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
         else:
             job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
@@ -1197,8 +1208,9 @@ class InstrumentQueryBackEnd:
                 # initially set this to infinite
                 threshold_mail = float("inf")
                 if self.decoded_token is not None:  # otherwise the request is public
-                    threshold_mail = tokenHelper.get_token_user_threshold_mail(self.decoded_token)
-                self.mail_sending = self.mail_sending and duration_query >= threshold_mail
+                    threshold_mail = tokenHelper.get_token_user_timeout_threshold_mail(self.decoded_token)
+                # get the mail_sending_timeout parameter
+                self.mail_sending = self.app.config.get('conf').mail_sending_timeout and duration_query >= threshold_mail
 
                 job.write_dataserver_status()
 
@@ -1276,13 +1288,10 @@ class InstrumentQueryBackEnd:
         if self.mail_sending and (query_new_status == 'done' or query_new_status == 'failed'):
             try:
                 self.send_completion_mail(query_new_status)
-            except ConnectionRefusedError as e:
+                query_out.set_status_message('mail sent')
+            except MailNotSent:
                 query_out.set_status_message('mail not sent')
                 query_out.set_status_warning('mail sending failed')
-            except Exception as e:
-                query_out.set_query_exception(e,
-                                              'sending of email failed',
-                                              message_prepend_str='email sending', )
 
         resp = self.build_dispatcher_response(query_new_status=query_new_status,
                                               query_out=query_out,

@@ -18,7 +18,7 @@ def get_token_user_mail(decoded_token):
     return decoded_token['sub'] if 'sub' in decoded_token else ''
 
 
-def get_token_user_threshold_mail(decoded_token):
+def get_token_user_timeout_threshold_mail(decoded_token):
     # extract user threshold
     return decoded_token['tem'] if 'tem' in decoded_token else ''
 

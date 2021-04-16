@@ -42,10 +42,11 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     # let's generate a valid token with high threshold
     token_payload = {
         **default_token_payload,
-        "tem": 1800
+        "tem": 0
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-
+    # set the time the request was initiated
+    time_request = time.time()
     c = requests.get(server + "/run_analysis",
                      params=dict(
                          query_status="new",
@@ -80,6 +81,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                              'node_id': f'node_{i}',
                              'message': 'progressing',
                              'token': encoded_token,
+                             'time_request': time_request
                          })
 
     c = requests.get(server + "/call_back",
@@ -91,6 +93,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                          'node_id': 'node_ready',
                          'message': 'ready',
                          'token': encoded_token,
+                          'time_request': time_request
                      })
 
     # TODO: this should trigger email
@@ -103,6 +106,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                          'node_id': 'node_final',
                          'message': 'done',
                          'token': encoded_token,
+                         'time_request': time_request
                      })
 
     job_monitor_call_back_done_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor_node_final_done_.json'
