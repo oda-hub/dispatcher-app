@@ -270,6 +270,7 @@ def dataserver_call_back():
     #app.logger.disabled = True
     print('===========================> dataserver_call_back')
     query = InstrumentQueryBackEnd(
+    # TODO get rid of the mock instrument
         app, instrument_name='mock', data_server_call_back=True)
     query.run_call_back()
     print('===========================>\n\n\n')
