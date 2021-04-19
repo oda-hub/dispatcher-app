@@ -10,9 +10,6 @@ import traceback
 import logging
 import jwt
 
-from threading import Thread
-from time import sleep
-
 import pytest
 
 #pytestmark = pytest.mark.skip("these tests still WIP")

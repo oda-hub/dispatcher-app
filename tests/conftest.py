@@ -45,8 +45,9 @@ def dispatcher_local_mail_server(pytestconfig):
             return '250 OK'
 
     handler = CustomHandler()
+
     controller = Controller(handler, hostname='127.0.0.1', port=1025)
-    # Run the event loop in a separate thread.
+    # Run the event loop in a separate thread
     controller.start()
 
     yield controller

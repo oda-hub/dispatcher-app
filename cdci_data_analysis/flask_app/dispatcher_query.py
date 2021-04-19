@@ -33,7 +33,10 @@ import hashlib
 import typing
 import jwt
 import smtplib
+import ssl
 
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
 from ..analysis import tokenHelper
@@ -456,8 +459,7 @@ class InstrumentQueryBackEnd:
             else:
                 prod_name = None
             if hasattr(self, 'instrument'):
-                l.append(self.instrument.get_parameters_list_as_json(
-                    prod_name=prod_name))
+                l.append(self.instrument.get_parameters_list_as_json(prod_name=prod_name))
                 src_query.show_parameters_list()
             else:
                 l = ['instrument not recognized']
@@ -506,8 +508,12 @@ class InstrumentQueryBackEnd:
         query_out = None
 
         _, self.config_data_server = self.set_config()
-        
-        job = job_factory(self.par_dic['instrument_name'],
+        instrument_name = time_request = ""
+        if 'instrument_name' in self.par_dic:
+            instrument_name = self.par_dic['instrument_name']
+        if 'time_request' in self.par_dic:
+            time_request = self.par_dic['time_request']
+        job = job_factory(instrument_name,
                           self.scratch_dir,
                           self.dispatcher_service_url,
                           None,
@@ -532,7 +538,9 @@ class InstrumentQueryBackEnd:
 
         if self.is_email_to_send_callback(status):
             try:
-                self.send_email(status)
+                self.send_email(status,
+                                instrument=instrument_name,
+                                time_request=time_request)
                 self.par_dic['mail_status'] = 'mail sent'
                 job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
             except MailNotSent as e:
@@ -1281,12 +1289,17 @@ class InstrumentQueryBackEnd:
                                               api=api)
         return resp
 
-    def send_email(self, status="done"):
+    def send_email(self, status="done",
+                   instrument="",
+                   time_request=""):
         server = None
+        self.logger.info("Sending completion mail")
+        time_request_str = ""
+        if time_request != "":
+            time_request_str = time_.strftime('%Y-%m-%d %H:%M:%S', time_.localtime(float(time_request)))
         try:
-            self.logger.info("Sending completion mail")
             # send the mail with the status update to the mail provided with the token
-            # eg done/failed
+            # eg done/failed/submitted
             # test with the local server
             smtp_server = self.app.config.get('conf').smtp_server
             port = self.app.config.get('conf').smtp_port
@@ -1294,23 +1307,52 @@ class InstrumentQueryBackEnd:
             cc_receivers_mail = self.app.config.get('conf').cc_receivers_mail
             receiver_email = tokenHelper.get_token_user_mail(self.decoded_token)
             receivers_email = [receiver_email] + cc_receivers_mail
-            message = f"""From: From Person {sender_email}
-                            To: To Person {receiver_email}
-                            CC: {cc_receivers_mail}
-                            Subject: Completion e-mail
-                            Completion of the requested task with status {status}.
-                            """
+            # creation of the message
+            message = MIMEMultipart("alternative")
+            message["Subject"] = "Request update"
+            message["From"] = sender_email
+            message["To"] = receiver_email
+            message["CC"] = ", ".join(cc_receivers_mail)
+
+            # Create the plain-text and HTML version of your message
+            text = f"""\
+                Update of the task submitted at {time_request_str}:
+                * instrument {instrument}
+                * status {status}
+            """
+            html = f"""\
+            <html>
+              <body>
+                <p>Update of the task submitted at {time_request_str}:<br>
+                    <ul>
+                        <li>instrument {instrument}</li>
+                        <li>status {status}</li>
+                    </ul>
+                </p>
+              </body>
+            </html>
+            """
+
+            # Turn these into plain/html MIMEText objects
+            part1 = MIMEText(text, "plain")
+            part2 = MIMEText(html, "html")
+
+            # Add HTML/plain-text parts to MIMEMultipart message
+            # The email client will try to render the last part first
+            message.attach(part1)
+            message.attach(part2)
             mail_password = self.app.config.get('conf').mail_password
-            # TODO build an SSL context to send the mail "securely", but it really depends on the
-            # type of server and the supported SSL
             # Create a secure SSL context
-            # context = ssl.create_default_context()
+            context = ssl.create_default_context()
             #
             # Try to log in to server and send email
             server = smtplib.SMTP(smtp_server, port)
+            # just for testing purposes, not ssl is established
+            if smtp_server != "localhost":
+                server.starttls(context=context)
             if mail_password is not None and mail_password != '':
                 server.login(sender_email, mail_password)
-            server.sendmail(sender_email, receivers_email, message)
+            server.sendmail(sender_email, receivers_email, message.as_string())
         except Exception as e:
             self.logger.error(f'Exception while sending email: {e}')
             raise MailNotSent(f"mail not sent {e}")

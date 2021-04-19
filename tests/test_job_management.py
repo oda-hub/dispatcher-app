@@ -4,10 +4,7 @@ import os
 import time
 import jwt
 import logging
-import pytest
 
-# logger
-from tests.conftest import dispatcher_local_mail_server
 
 logger = logging.getLogger(__name__)
 # symmetric shared secret for the decoding of the token
@@ -48,7 +45,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     # let's generate a valid token with high threshold
     token_payload = {
         **default_token_payload,
-        "tem": 0
+        "tem": 0,
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
     # set the time the request was initiated
@@ -79,41 +76,42 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     for i in range(5):
         # imitating what a backend would do
         c = requests.get(server + "/call_back",
-                         params={
-                             'job_id': job_id,
-                             'session_id': session_id,
-                             'instrument_name': "empty-async",
-                             'action': 'progress',
-                             'node_id': f'node_{i}',
-                             'message': 'progressing',
-                             'token': encoded_token,
-                             'time_request': time_request
-                         })
+                         params=dict(
+                             job_id=job_id,
+                             session_id=session_id,
+                             instrument_name="empty-async",
+                             action='progress',
+                             node_id=f'node_{i}',
+                             message='progressing',
+                             token=encoded_token,
+                             time_request=time_request
+                         ))
 
     c = requests.get(server + "/call_back",
-                     params={
-                         'job_id': job_id,
-                         'session_id': session_id,
-                         'instrument_name': "empty-async",
-                         'action': 'ready',
-                         'node_id': 'node_ready',
-                         'message': 'ready',
-                         'token': encoded_token,
-                          'time_request': time_request
-                     })
+                     params=dict(
+                         job_id=job_id,
+                         session_id=session_id,
+                         instrument_name="empty-async",
+                         action='ready',
+                         node_id='node_ready',
+                         message='ready',
+                         token=encoded_token,
+                         time_request=time_request
+                    ))
 
     # this triggers email
     c = requests.get(server + "/call_back",
-                     params={
-                         'job_id': job_id,
-                         'session_id': session_id,
-                         'instrument_name': "empty-async",
-                         'action': 'submitted',
-                         'node_id': 'node_submitted',
-                         'message': 'submitted',
-                         'token': encoded_token,
-                         'time_request': time_request
-                     })
+                     params=dict(
+                         job_id=job_id,
+                         session_id=session_id,
+                         instrument_name="empty-async",
+                         action='submitted',
+                         node_id='node_submitted',
+                         message='submitted',
+                         token=encoded_token,
+                         time_request=time_request
+                     ))
+
     job_monitor_call_back_submitted_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor_node_submitted_submitted_.json'
     # the aliased version might have been created
     job_monitor_call_back_submitted_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor_node_submitted_submitted_.json'
@@ -131,16 +129,16 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
     # this triggers email
     c = requests.get(server + "/call_back",
-                     params={
-                         'job_id': job_id,
-                         'session_id': session_id,
-                         'instrument_name': "empty-async",
-                         'action': 'done',
-                         'node_id': 'node_final',
-                         'message': 'done',
-                         'token': encoded_token,
-                         'time_request': time_request
-                     })
+                     params=dict(
+                         job_id=job_id,
+                         session_id=session_id,
+                         instrument_name="empty-async",
+                         action='done',
+                         node_id='node_final',
+                         message='done',
+                         token=encoded_token,
+                         time_request=time_request
+                     ))
 
     job_monitor_call_back_done_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor_node_final_done_.json'
     # the aliased version might have been created
@@ -156,6 +154,35 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
     jdata = json.load(f)
     assert jdata['full_report_dict']['mail_status'] == 'mail sent'
+
+    # this also triggers email (simulate a failed request)
+    c = requests.get(server + "/call_back",
+                     params={
+                         'job_id': job_id,
+                         'session_id': session_id,
+                         'instrument_name': "empty-async",
+                         'action': 'failed',
+                         'node_id': 'node_failed',
+                         'message': 'failed',
+                         'token': encoded_token,
+                         'time_request': time_request
+                     })
+    job_monitor_call_back_failed_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor_node_failed_failed_.json'
+    # the aliased version might have been created
+    job_monitor_call_back_failed_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor_node_failed_failed_.json'
+
+    assert os.path.exists(job_monitor_call_back_failed_json_fn) or os.path.exists(
+        job_monitor_call_back_failed_json_fn_aliased)
+    assert c.status_code == 200
+    # read the json file
+    if os.path.exists(job_monitor_call_back_failed_json_fn):
+        f = open(job_monitor_call_back_failed_json_fn)
+    else:
+        f = open(job_monitor_call_back_failed_json_fn_aliased)
+
+    jdata = json.load(f)
+    assert jdata['full_report_dict']['mail_status'] == 'mail sent'
+
 
     # I think this is not complete since DataServerQuery never returns done?
     c = requests.get(server + "/run_analysis",
