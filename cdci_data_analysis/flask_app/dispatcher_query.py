@@ -120,8 +120,6 @@ class InstrumentQueryBackEnd:
             # By default, a request is public, let's now check if a token has been included
             # In that case, validation is needed
             self.public = True
-            self.mail_sending = False
-
             self.token = None
             self.decoded_token = None
             if 'token' in self.par_dic.keys() and self.par_dic['token'] != "":
