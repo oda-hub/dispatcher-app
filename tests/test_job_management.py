@@ -125,7 +125,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         f = open(job_monitor_call_back_submitted_json_fn_aliased)
 
     jdata = json.load(f)
-    assert jdata['full_report_dict']['mail_status'] == 'mail sent'
+    assert jdata['email_status'] == 'email sent'
 
     # this triggers email
     c = requests.get(server + "/call_back",
@@ -153,7 +153,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         f = open(job_monitor_call_back_done_json_fn_aliased)
 
     jdata = json.load(f)
-    assert jdata['full_report_dict']['mail_status'] == 'mail sent'
+    assert jdata['email_status'] == 'email sent'
 
     # this also triggers email (simulate a failed request)
     c = requests.get(server + "/call_back",
@@ -181,7 +181,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         f = open(job_monitor_call_back_failed_json_fn_aliased)
 
     jdata = json.load(f)
-    assert jdata['full_report_dict']['mail_status'] == 'mail sent'
+    assert jdata['email_status'] == 'email sent'
 
 
     # I think this is not complete since DataServerQuery never returns done?
@@ -271,7 +271,7 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
         f = open(job_monitor_call_back_submitted_json_fn_aliased)
 
     jdata = json.load(f)
-    assert jdata['full_report_dict']['mail_status'] == 'mail not sent'
+    assert jdata['email_status'] == 'sending email failed'
 
     # this triggers email
     c = requests.get(server + "/call_back",
@@ -299,4 +299,4 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
         f = open(job_monitor_call_back_failed_json_fn_aliased)
 
     jdata = json.load(f)
-    assert jdata['full_report_dict']['mail_status'] == 'mail not sent'
+    assert jdata['email_status'] == 'sending email failed'
