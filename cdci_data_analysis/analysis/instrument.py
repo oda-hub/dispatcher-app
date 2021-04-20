@@ -138,7 +138,7 @@ class Instrument:
 
     def test_communication(self,config,logger=None):
         if self.data_server_query_class is not None:
-            return self.data_server_query_class(name='unset-name', config=config, instrument=self).test_communication(logger=logger)
+            return self.data_server_query_class(config=config, instrument=self).test_communication(logger=logger)
         else:
             raise DataServerQueryClassNotSet('in test_communication')
 
@@ -170,6 +170,7 @@ class Instrument:
         if logger is None:
             logger = self.get_logger()
 
+        #  this was removed by 2f5b5dfb7e but turns out it is used by some plugins, see test_server_plugin_integral_all_sky
         self._current_par_dic=par_dic
 
         # set pars values from the input parameters

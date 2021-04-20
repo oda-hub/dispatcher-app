@@ -377,17 +377,13 @@ class ProductQuery(BaseQuery):
 
             query_out.set_done(message=message, debug_message=str(debug_message),status=status)
 
-        except Exception as e:
+        except ConnectionError as e:
             e_message = f'test of communication with backend (instrument: {instrument}) failed!'
+            e_message += "\n" + repr(e)
 
-            logger.exception("exception: %s", e_message)
-
-            if hasattr(e, 'message'):
-                e_message = e_message + " : " + e.message
 
             if hasattr(e, 'debug_message'):
                 debug_message = e.debug_message
-                #debug_message = str(e)
             else:
                 debug_message = 'no exception default debug message'
 
@@ -527,11 +523,14 @@ class ProductQuery(BaseQuery):
             logger.error("passing request issue: %s", e)
             raise
 
-        except Exception as e: # noo!!!
-            traceback.print_exc()
+        except Exception as e: # TODO: could we avoid these? they make error tracking hard
+            logger.exception("failed to get query products")
 
             #status=1
             job.set_failed()
+
+            if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
+                raise
 
             e_message = getattr(e, 'message', '')
             debug_message = repr(e) + ' : ' + getattr(e, 'debug_message', '')
