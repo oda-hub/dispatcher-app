@@ -36,23 +36,61 @@ __author__ = "Andrea Tramacere"
 # Project
 # relative import eg: from .mod import f
 
+from typing import Tuple
+
 from cdci_data_analysis.analysis.queries import ProductQuery
 from cdci_data_analysis.analysis.products import QueryOutput
+from cdci_data_analysis.analysis.instrument import Instrument
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-class AysnchExcept(Exception):
+class AsynchExcept(Exception):
     pass
 
-
-class DataServerQuery(ProductQuery):
-
-    def __init__(self, name):
-        super(DataServerQuery, self).__init__(name)
-
-    def test_connection(self):
+class DataServerQuery:
+    def __init__(self, config=None, instrument=None):
         pass
 
-    def test_has_input_products(self):
+    def test_communication(self, 
+                           instrument: Instrument, 
+                           query_type='Real', 
+                           logger=None, 
+                           config=None, 
+                           sentry_client=None) -> QueryOutput:
+        query_out = QueryOutput()
+        query_out.set_done(message="mock ok message!", debug_message="mock ok debug_message")
+        return query_out
+        
+    def test_has_input_products(self, instrument: Instrument, logger) -> Tuple[QueryOutput, list]:
+        query_out = QueryOutput()
+        query_out.set_done(message="mock ok message!", debug_message="mock ok debug_message")
+        return query_out, []
+
+    def run_query(self, *args, **kwargs):
+        logger.warn('fake run_query in %s with %s, %s', self, args, kwargs)
+
+        query_out = QueryOutput()
+        query_out.set_done(message="job submitted mock", 
+                           debug_message="no message really", 
+                           job_status='submitted',
+                           comment="mock comment",
+                           warning="mock warning")
+
+        #TODO: track somehow status of our mock job and return done after several requests
+        # otherwise not it never returns submitted
+
+        return None, query_out
+
+
+class EmptyProductQuery(ProductQuery):
+
+    def __init__(self, name='unset-name', config=None, instrument=None):
+        super().__init__(name)
+
+    def test_connection(self):
         pass
 
     def get_dummy_products(self, instrument, config=None, **kwargs):
@@ -61,6 +99,24 @@ class DataServerQuery(ProductQuery):
     def process_product_method(self, instrument, prod_list,api=False, **kw):
         query_out = QueryOutput()
         return query_out
+
+    def test_communication(self, 
+                           instrument: Instrument, 
+                           query_type='Real', 
+                           logger=None, 
+                           config=None, 
+                           sentry_client=None) -> QueryOutput:
+        query_out = QueryOutput()
+        query_out.set_done(message="mock ok message!", debug_message="mock ok debug_message")
+        return query_out
+        
+    def test_has_input_products(self, instrument: Instrument, logger) -> Tuple[QueryOutput, list]:
+        query_out = QueryOutput()
+        query_out.set_done(message="mock ok message!", debug_message="mock ok debug_message")
+        return query_out, []
+
+    def get_data_server_query(self, instrument: Instrument, config=None):
+        return DataServerQuery()
 
     # example with the general user role
     def check_query_roles(self, roles, par_dic):

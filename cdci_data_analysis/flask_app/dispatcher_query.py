@@ -512,6 +512,7 @@ class InstrumentQueryBackEnd:
                           self.par_dic)
 
         self.logger.info("%s.run_call_back with args %s", self, self.par_dic)
+        self.logger.info("%s.run_call_back built job %s", self, job)
 
         # if 'node_id' in self.par_dic.keys():
         #    print('node_id', self.par_dic['node_id'])
@@ -522,7 +523,8 @@ class InstrumentQueryBackEnd:
             status = self.par_dic[job.status_kw_name]
         else:
             status = 'unknown'
-        print('-----> set status to ', status)
+
+        logger.warn('-----> set status to %s', status)
 
         job.write_dataserver_status(
             status_dictionary_value=status, full_dict=self.par_dic)
@@ -664,7 +666,6 @@ class InstrumentQueryBackEnd:
             if instrument is not None and not isinstance(instrument, str):
                 logger.debug('provided instrument type %s', type(instrument))
                 disp_data_server_conf_dict = self.instrument.data_server_conf_dict
-
             
         logger.debug('--> App configuration for: %s', self.instrument_name)
         if disp_data_server_conf_dict is not None:

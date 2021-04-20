@@ -54,6 +54,8 @@ __author__ = "Andrea Tramacere"
 # Project
 # relative import eg: from .mod import f
 
+class DataServerQueryClassNotSet(Exception):
+    pass
 
 class Instrument:
     def __init__(self,
@@ -113,9 +115,9 @@ class Instrument:
     def _check_names(self):
         pass
 
+
     def set_pars_from_dic(self,par_dic,verbose=False):
         for _query in self._queries_list:
-
             for par in _query._parameters_list:
                 par.set_from_form(par_dic,verbose=verbose)
 
@@ -136,13 +138,15 @@ class Instrument:
 
     def test_communication(self,config,logger=None):
         if self.data_server_query_class is not None:
-            return self.data_server_query_class(config=config, instrument=self).test_communication(logger=logger)
+            return self.data_server_query_class(name='unset-name', config=config, instrument=self).test_communication(logger=logger)
+        else:
+            raise DataServerQueryClassNotSet('in test_communication')
 
     def test_busy(self, config,logger=None):
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config).test_busy(logger=logger)
 
-    def test_has_input_products(self, config,instrument,logger=None):
+    def test_has_input_products(self, config, instrument,logger=None):
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config,instrument=self).test_has_input_products(instrument,logger=logger)
 
@@ -364,7 +368,14 @@ class Instrument:
             q.set_done(debug_message=str(debug_message))
         except Exception as e:
             #FAILED
-            q.set_failed('setting form parameters',logger=logger,sentry_client=sentry_client,excep=e)
+
+            m = f'problem setting form parameters from dict: {par_dic}'
+            logger.error(m)
+
+            q.set_failed(m,
+                         logger=logger,
+                         sentry_client=sentry_client,
+                         excep=e)
 
             #status=1
             #error_message= 'error in form parameter'
