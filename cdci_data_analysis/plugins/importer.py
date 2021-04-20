@@ -50,7 +50,8 @@ cdci_plugins_dict = {
     name: importlib.import_module(name)
     for finder, name, ispkg
     in pkgutil.iter_modules()
-    if (name.startswith('cdci') and name.endswith('plugin'))
+    if (name.startswith('cdci') and name.endswith('plugin')) or \
+       (name.startswith('dispatcher_plugin_'))
 }
 
 instrument_factory_list = []
