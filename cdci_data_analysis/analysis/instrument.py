@@ -138,7 +138,7 @@ class Instrument:
 
     def test_communication(self,config,logger=None):
         if self.data_server_query_class is not None:
-            return self.data_server_query_class(name='unset-name', config=config, instrument=self).test_communication(logger=logger)
+            return self.data_server_query_class(config=config, instrument=self).test_communication(logger=logger)
         else:
             raise DataServerQueryClassNotSet('in test_communication')
 
