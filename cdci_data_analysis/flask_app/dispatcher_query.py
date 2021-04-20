@@ -53,6 +53,12 @@ import time as time_
 
 import oda_api
 
+try:
+    from urllib.parse import urlencode
+except ImportError:
+    from urllib import urlencode
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -506,6 +512,7 @@ class InstrumentQueryBackEnd:
         query_out = None
 
         _, self.config_data_server = self.set_config()
+
         instrument_name = self.par_dic.get('instrument_name', '')
         time_request = self.par_dic.get('time_request', '')
         job = job_factory(instrument_name,
@@ -518,6 +525,9 @@ class InstrumentQueryBackEnd:
 
         self.logger.info("%s.run_call_back with args %s", self, self.par_dic)
         self.logger.info("%s.run_call_back built job %s", self, job)
+
+        # build the products URL
+
 
         # if 'node_id' in self.par_dic.keys():
         #    print('node_id', self.par_dic['node_id'])
@@ -536,11 +546,15 @@ class InstrumentQueryBackEnd:
                 self.send_email(status,
                                 instrument=instrument_name,
                                 time_request=time_request)
-                self.par_dic['mail_status'] = 'mail sent'
-                job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+                # self.par_dic['mail_status'] = 'mail sent'
+                job.write_dataserver_status(status_dictionary_value=status,
+                                            full_dict=self.par_dic,
+                                            email_status='email sent')
             except MailNotSent as e:
-                self.par_dic['mail_status'] = 'mail not sent'
-                job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+                # self.par_dic['mail_status'] = 'mail not sent'
+                job.write_dataserver_status(status_dictionary_value=status,
+                                            full_dict=self.par_dic,
+                                            email_status='sending email failed')
         else:
             job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
 
@@ -564,7 +578,9 @@ class InstrumentQueryBackEnd:
             # in case the request was long and 'done'
             # or if failed
             # or when the job was created ('submitted')
-            return (duration_query > timeout_threshold_mail and status == 'done') or status == 'submitted' or status == 'failed'
+            return (duration_query > timeout_threshold_mail and status == 'done') or status == 'failed' \
+                   or status == 'submitted'
+
         return False
 
     def run_query_mock(self, off_line=False):
@@ -1200,6 +1216,16 @@ class InstrumentQueryBackEnd:
                     else:
                         query_new_status = 'submitted'
                         job.set_submitted()
+                        # send submitted email
+                        try:
+                            time_request = self.par_dic.get('time_request', '')
+                            self.send_email('submitted',
+                                            instrument=self.instrument.name,
+                                            time_request=time_request)
+                            # self.par_dic['mail_status'] = 'mail sent'
+                        except MailNotSent as e:
+                            # self.par_dic['mail_status'] = 'mail not sent'
+                            pass
                 else:
                     query_new_status = 'failed'
                     job.set_failed()
@@ -1286,7 +1312,8 @@ class InstrumentQueryBackEnd:
 
     def send_email(self, status="done",
                    instrument="",
-                   time_request=""):
+                   time_request="",
+                   products_url=""):
         server = None
         self.logger.info("Sending email")
         time_request_str = ""
@@ -1314,18 +1341,18 @@ class InstrumentQueryBackEnd:
             # a plain-text version is included
             # TODO include the request URL
             text = f"""\
-                Update of the task submitted at {time_request_str}:
-                * instrument {instrument}
+                Update of the task submitted at {time_request_str}, for the instrument {instrument}:
                 * status {status}
+                Products url {products_url}
             """
             html = f"""\
             <html>
               <body>
-                <p>Update of the task submitted at {time_request_str}:<br>
+                <p>Update of the task submitted at {time_request_str}, for the instrument {instrument}:<br>
                     <ul>
-                        <li>instrument {instrument}</li>
                         <li>status {status}</li>
                     </ul>
+                    Products url {products_url}
                 </p>
               </body>
             </html>

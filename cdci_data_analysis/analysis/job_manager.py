@@ -176,13 +176,16 @@ class Job(object):
 
         return self.monitor
 
-    def write_dataserver_status(self, status_dictionary_value=None, full_dict=None):
+    def write_dataserver_status(self, status_dictionary_value=None, full_dict=None, email_status=None):
         # TODO: write to specific name coming for call_back
 
         if status_dictionary_value is None:
             pass
         else:
             self.monitor['status'] = status_dictionary_value
+
+        if email_status is not None:
+            self.monitor['email_status'] = email_status
 
         #print('writing job status to job_monitor', self.monitor['status'])
         if full_dict is not None:
