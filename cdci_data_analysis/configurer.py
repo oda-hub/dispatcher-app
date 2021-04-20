@@ -229,7 +229,7 @@ class ConfigEnv(object):
                                      disp_dict['sender_mail'],
                                      disp_dict['cc_receivers_mail'],
                                      disp_dict['smtp_port'],
-                                     disp_dict['mail_password'],
+                                     disp_dict['smtp_server_password'],
                                      disp_dict['mail_sending_timeout'],
                                      disp_dict['mail_sending_timeout_threshold'],
                                      disp_dict['mail_sending_job_submitted']
@@ -275,7 +275,7 @@ class ConfigEnv(object):
                             sender_mail,
                             cc_receivers_mail,
                             smtp_port,
-                            mail_password,
+                            smtp_server_password,
                             mail_sending_timeout,
                             mail_sending_timeout_threshold,
                             mail_sending_job_submitted
@@ -294,7 +294,7 @@ class ConfigEnv(object):
         self.sender_mail = sender_mail
         self.cc_receivers_mail = cc_receivers_mail
         self.smtp_port = smtp_port
-        self.mail_password = mail_password
+        self.smtp_server_password = smtp_server_password
         self.mail_sending_timeout = mail_sending_timeout
         self.mail_sending_timeout_threshold = mail_sending_timeout_threshold
         self.mail_sending_job_submitted = mail_sending_job_submitted

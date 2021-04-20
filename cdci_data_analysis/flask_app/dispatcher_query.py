@@ -506,11 +506,8 @@ class InstrumentQueryBackEnd:
         query_out = None
 
         _, self.config_data_server = self.set_config()
-        instrument_name = time_request = ""
-        if 'instrument_name' in self.par_dic:
-            instrument_name = self.par_dic['instrument_name']
-        if 'time_request' in self.par_dic:
-            time_request = self.par_dic['time_request']
+        instrument_name = self.par_dic.get('instrument_name', '')
+        time_request = self.par_dic.get('time_request', '')
         job = job_factory(instrument_name,
                           self.scratch_dir,
                           self.dispatcher_service_url,
@@ -1291,7 +1288,7 @@ class InstrumentQueryBackEnd:
                    instrument="",
                    time_request=""):
         server = None
-        self.logger.info("Sending completion mail")
+        self.logger.info("Sending email")
         time_request_str = ""
         if time_request != "":
             time_request_str = time_.strftime('%Y-%m-%d %H:%M:%S', time_.localtime(float(time_request)))
@@ -1312,7 +1309,10 @@ class InstrumentQueryBackEnd:
             message["To"] = receiver_email
             message["CC"] = ", ".join(cc_receivers_mail)
 
-            # Create the plain-text and HTML version of your message
+            # Create the plain-text and HTML version of your message,
+            # since enails with HTML content might be, sometimes, not supportenot
+            # a plain-text version is included
+            # TODO include the request URL
             text = f"""\
                 Update of the task submitted at {time_request_str}:
                 * instrument {instrument}
@@ -1331,15 +1331,11 @@ class InstrumentQueryBackEnd:
             </html>
             """
 
-            # Turn these into plain/html MIMEText objects
             part1 = MIMEText(text, "plain")
             part2 = MIMEText(html, "html")
-
-            # Add HTML/plain-text parts to MIMEMultipart message
-            # The email client will try to render the last part first
             message.attach(part1)
             message.attach(part2)
-            mail_password = self.app.config.get('conf').mail_password
+            smtp_server_password = self.app.config.get('conf').smtp_server_password
             # Create a secure SSL context
             context = ssl.create_default_context()
             #
@@ -1348,8 +1344,8 @@ class InstrumentQueryBackEnd:
             # just for testing purposes, not ssl is established
             if smtp_server != "localhost":
                 server.starttls(context=context)
-            if mail_password is not None and mail_password != '':
-                server.login(sender_email, mail_password)
+            if smtp_server_password is not None and smtp_server_password != '':
+                server.login(sender_email, smtp_server_password)
             server.sendmail(sender_email, receivers_email, message.as_string())
         except Exception as e:
             self.logger.error(f'Exception while sending email: {e}')
