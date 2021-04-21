@@ -13,14 +13,24 @@ def get_token_user(decoded_token):
     return decoded_token['name'] if 'name' in decoded_token else ''
 
 
-def get_token_user_mail(decoded_token):
+def get_token_user_email_address(decoded_token):
     # extract user email address
     return decoded_token['sub'] if 'sub' in decoded_token else ''
 
 
-def get_token_user_timeout_threshold_mail(decoded_token):
+def get_token_user_timeout_threshold_email(decoded_token):
     # extract user threshold
     return decoded_token['tem'] if 'tem' in decoded_token else ''
+
+
+def get_token_user_sending_timeout_email(decoded_token):
+    # extract user threshold
+    return decoded_token['mstout'] if 'mstout' in decoded_token else None
+
+
+def get_token_user_submitted_email(decoded_token):
+    # extract user threshold
+    return decoded_token['mssub'] if 'mssub' in decoded_token else None
 
 
 def get_decoded_token(token, secret_key):

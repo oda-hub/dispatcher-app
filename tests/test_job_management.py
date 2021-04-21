@@ -17,7 +17,8 @@ default_token_payload = dict(
     roles="general",
     exp=default_exp_time,
     tem=0,
-    
+    mstout=True,
+    mssub=True
 )
 
 
@@ -29,8 +30,7 @@ def test_callback_without_prior_run_analysis(dispatcher_live_fixture):
                      params={
                          'job_id': 'test-job-id',
                          'instrument_name': 'test-instrument_name',
-                     },
-                     )
+                     })
 
     print(c.text)
 
@@ -158,7 +158,6 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
     jdata = json.load(f)
     assert jdata['email_status'] == 'email sent'
-
 
     # This is not complete since DataServerQuery never returns done
     c = requests.get(server + "/run_analysis",

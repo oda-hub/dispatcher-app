@@ -569,7 +569,7 @@ class InstrumentQueryBackEnd:
                 request_url = '%s?%s' % (products_url, urlencode(request_par_dict))
         return request_url
 
-    def is_email_to_send_callback(self, status) -> bool:
+    def is_email_to_send_callback(self, status):
         # get total request duration
         duration_query = -1
         if 'time_request' in self.par_dic:
@@ -580,14 +580,18 @@ class InstrumentQueryBackEnd:
             if resp is not None:
                 self.logger.warning("query dismissed by token validation")
                 return resp
-            timeout_threshold_mail = tokenHelper.get_token_user_timeout_threshold_mail(self.decoded_token)
-            if timeout_threshold_mail is None:
+
+            timeout_threshold_email = tokenHelper.get_token_user_timeout_threshold_email(self.decoded_token)
+            if timeout_threshold_email is None:
                 # set it to the a default value, from the configuration
-                timeout_threshold_mail = self.app.config.get('conf').mail_sending_timeout_threshold
+                timeout_threshold_email = self.app.config.get('conf').email_sending_timeout_threshold
+            timeout_email_sending = tokenHelper.get_token_user_sending_timeout_email(self.decoded_token)
+            if timeout_email_sending:
+                timeout_email_sending = self.app.config.get('conf').email_sending_timeout
             # in case the request was long and 'done'
             # or if failed
             # or when the job was created ('submitted')
-            return (duration_query > timeout_threshold_mail and status == 'done') or status == 'failed'
+            return (timeout_email_sending and duration_query > timeout_threshold_email and status == 'done') or status == 'failed'
                    # or status == 'submitted'
 
         return False
@@ -1225,7 +1229,10 @@ class InstrumentQueryBackEnd:
                     else:
                         query_new_status = 'submitted'
                         job.set_submitted()
-                        mail_sending_job_submitted = self.app.config.get('conf').mail_sending_job_submitted
+                        mail_sending_job_submitted = tokenHelper.get_token_user_submitted_email(self.decoded_token)
+                        if mail_sending_job_submitted is None:
+                            # in case this didn't come with the token take the default value
+                            mail_sending_job_submitted = self.app.config.get('conf').email_sending_job_submitted
                         # send submitted email
                         if mail_sending_job_submitted:
                             try:
@@ -1344,7 +1351,7 @@ class InstrumentQueryBackEnd:
             port = self.app.config.get('conf').smtp_port
             sender_email = self.app.config.get('conf').sender_mail
             cc_receivers_mail = self.app.config.get('conf').cc_receivers_mail
-            receiver_email = tokenHelper.get_token_user_mail(self.decoded_token)
+            receiver_email = tokenHelper.get_token_user_email_address(self.decoded_token)
             receivers_email = [receiver_email] + cc_receivers_mail
             # creation of the message
             message = MIMEMultipart("alternative")
