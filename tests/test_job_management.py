@@ -97,35 +97,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                          message='ready',
                          token=encoded_token,
                          time_request=time_request
-                    ))
-
-    # this triggers email
-    c = requests.get(server + "/call_back",
-                     params=dict(
-                         job_id=job_id,
-                         session_id=session_id,
-                         instrument_name="empty-async",
-                         action='submitted',
-                         node_id='node_submitted',
-                         message='submitted',
-                         token=encoded_token,
-                         time_request=time_request
                      ))
-
-    job_monitor_call_back_submitted_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor_node_submitted_submitted_.json'
-    # the aliased version might have been created
-    job_monitor_call_back_submitted_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor_node_submitted_submitted_.json'
-
-    assert os.path.exists(job_monitor_call_back_submitted_json_fn) or os.path.exists(job_monitor_call_back_submitted_json_fn_aliased)
-    assert c.status_code == 200
-    # read the json file
-    if os.path.exists(job_monitor_call_back_submitted_json_fn):
-        f = open(job_monitor_call_back_submitted_json_fn)
-    else:
-        f = open(job_monitor_call_back_submitted_json_fn_aliased)
-
-    jdata = json.load(f)
-    assert jdata['email_status'] == 'email sent'
 
     # this triggers email
     c = requests.get(server + "/call_back",
@@ -184,7 +156,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     assert jdata['email_status'] == 'email sent'
 
 
-    # I think this is not complete since DataServerQuery never returns done?
+    # This is not complete since DataServerQuery never returns done
     c = requests.get(server + "/run_analysis",
                      params=dict(
                          query_status="ready",  # whether query is new or not, this should work
@@ -228,7 +200,8 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
                          query_type="Real",
                          instrument="empty-async",
                          product_type="dummy",
-                         token=encoded_token
+                         token=encoded_token,
+                         time_request=time_request
                      ))
 
     print("response from run_analysis:", json.dumps(c.json(), indent=4))
@@ -245,33 +218,8 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
     assert os.path.exists(job_monitor_json_fn) or os.path.exists(job_monitor_json_fn_aliased)
     assert c.status_code == 200
 
-    # this triggers email
-    c = requests.get(server + "/call_back",
-                     params={
-                         'job_id': job_id,
-                         'session_id': session_id,
-                         'instrument_name': "empty-async",
-                         'action': 'submitted',
-                         'node_id': 'node_submitted',
-                         'message': 'submitted',
-                         'token': encoded_token,
-                         'time_request': time_request
-                     })
-    job_monitor_call_back_submitted_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor_node_submitted_submitted_.json'
-    # the aliased version might have been created
-    job_monitor_call_back_submitted_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor_node_submitted_submitted_.json'
-
-    assert os.path.exists(job_monitor_call_back_submitted_json_fn) or os.path.exists(
-        job_monitor_call_back_submitted_json_fn_aliased)
-    assert c.status_code == 200
-    # read the json file
-    if os.path.exists(job_monitor_call_back_submitted_json_fn):
-        f = open(job_monitor_call_back_submitted_json_fn)
-    else:
-        f = open(job_monitor_call_back_submitted_json_fn_aliased)
-
-    jdata = json.load(f)
-    assert jdata['email_status'] == 'sending email failed'
+    jdata = c.json()
+    assert jdata['exit_status']['email_status'] == 'sending email failed'
 
     # this triggers email
     c = requests.get(server + "/call_back",

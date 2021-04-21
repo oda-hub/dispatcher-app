@@ -13,6 +13,8 @@ import traceback
 
 from collections import Counter, OrderedDict
 import copy
+
+import logging
 from werkzeug.utils import secure_filename
 
 import os
@@ -546,15 +548,14 @@ class InstrumentQueryBackEnd:
                 self.send_email(status,
                                 instrument=instrument_name,
                                 time_request=time_request)
-                # self.par_dic['mail_status'] = 'mail sent'
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
                                             email_status='email sent')
             except MailNotSent as e:
-                # self.par_dic['mail_status'] = 'mail not sent'
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
                                             email_status='sending email failed')
+                logging.warning(f'email sending failed: {e}')
         else:
             job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
 
@@ -578,8 +579,8 @@ class InstrumentQueryBackEnd:
             # in case the request was long and 'done'
             # or if failed
             # or when the job was created ('submitted')
-            return (duration_query > timeout_threshold_mail and status == 'done') or status == 'failed' \
-                   or status == 'submitted'
+            return (duration_query > timeout_threshold_mail and status == 'done') or status == 'failed'
+                   # or status == 'submitted'
 
         return False
 
@@ -1216,16 +1217,19 @@ class InstrumentQueryBackEnd:
                     else:
                         query_new_status = 'submitted'
                         job.set_submitted()
+                        mail_sending_job_submitted = self.app.config.get('conf').mail_sending_job_submitted
                         # send submitted email
-                        try:
-                            time_request = self.par_dic.get('time_request', '')
-                            self.send_email('submitted',
-                                            instrument=self.instrument.name,
-                                            time_request=time_request)
-                            # self.par_dic['mail_status'] = 'mail sent'
-                        except MailNotSent as e:
-                            # self.par_dic['mail_status'] = 'mail not sent'
-                            pass
+                        if mail_sending_job_submitted:
+                            try:
+                                time_request = self.par_dic.get('time_request', '')
+                                self.send_email('submitted',
+                                                instrument=self.instrument.name,
+                                                time_request=time_request)
+                                # store an additional information about the sent email
+                                query_out.set_status_field('email_status', 'email sent')
+                            except MailNotSent as e:
+                                query_out.set_status_field('email_status', 'sending email failed')
+                                logging.warning(f'email sending failed: {e}')
                 else:
                     query_new_status = 'failed'
                     job.set_failed()

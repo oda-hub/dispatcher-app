@@ -152,8 +152,8 @@ class QueryOutput(object):
         self.status_dictionary['comment'] = str(comment)
         self.status_dictionary['warning'] = str(warning)
 
-    # def set_status_field(self, field, message):
-    #     self.status_dictionary[field] = str(message)
+    def set_status_field(self, field, message):
+        self.status_dictionary[field] = str(message)
 
     def get_status(self):
         return self.status_dictionary['status']
