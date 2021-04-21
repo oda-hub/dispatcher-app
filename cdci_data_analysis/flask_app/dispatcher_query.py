@@ -25,6 +25,10 @@ from raven.contrib.flask import Sentry
 
 from flask import jsonify, send_from_directory, redirect
 from flask import Flask, request
+from urllib.parse import urlencode
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import time as time_
 
 import tempfile
 import tarfile
@@ -37,8 +41,6 @@ import jwt
 import smtplib
 import ssl
 
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
 from ..analysis import tokenHelper
@@ -51,14 +53,11 @@ from ..analysis.plot_tools import Image
 from ..analysis.exceptions import BadRequest, APIerror, MissingParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut
 from . import tasks
 from oda_api.data_products import NumpyDataProduct
-import time as time_
+
 
 import oda_api
 
-try:
-    from urllib.parse import urlencode
-except ImportError:
-    from urllib import urlencode
+
 
 
 logger = logging.getLogger(__name__)

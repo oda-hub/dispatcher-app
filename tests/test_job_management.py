@@ -50,6 +50,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
     # set the time the request was initiated
     time_request = time.time()
+    # this should return status submitted, so email sent
     c = requests.get(server + "/run_analysis",
                      params=dict(
                          query_status="new",
@@ -72,6 +73,9 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
     assert os.path.exists(job_monitor_json_fn) or os.path.exists(job_monitor_json_fn_aliased)
     assert c.status_code == 200
+
+    jdata = c.json()
+    assert jdata['exit_status']['email_status'] == 'email sent'
 
     for i in range(5):
         # imitating what a backend would do
