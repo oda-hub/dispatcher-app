@@ -75,7 +75,7 @@ class MissingRequestParameter(BadRequest):
     pass
 
 
-class MailNotSent(BadRequest):
+class EMailNotSent(BadRequest):
     pass
 
 
@@ -513,6 +513,8 @@ class InstrumentQueryBackEnd:
         query_out = None
 
         _, self.config_data_server = self.set_config()
+        if _.sentry_url is not None:
+            self.set_sentry_client(_.sentry_url)
         session_id = self.par_dic['session_id']
         instrument_name = self.par_dic.get('instrument_name', '')
         time_request = self.par_dic.get('time_request', '')
@@ -545,14 +547,14 @@ class InstrumentQueryBackEnd:
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
                                             email_status='email sent')
-            except MailNotSent as e:
+            except EMailNotSent as e:
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
                                             email_status='sending email failed')
                 logging.warning(f'email sending failed: {e}')
-                # TODO send to sentry
-                # if sentry_client is not None:
-                #     sentry_client.capture('raven.events.Message', message=e_message)
+                if self.sentry_client is not None:
+                    self.sentry_client.capture('raven.events.Message',
+                                               message=f'sending email failed {e}')
         else:
             job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
 
@@ -1244,12 +1246,12 @@ class InstrumentQueryBackEnd:
                                                 request_url=request_url)
                                 # store an additional information about the sent email
                                 query_out.set_status_field('email_status', 'email sent')
-                            except MailNotSent as e:
+                            except EMailNotSent as e:
                                 query_out.set_status_field('email_status', 'sending email failed')
                                 logging.warning(f'email sending failed: {e}')
-                                # TODO send to sentry
-                                # if sentry_client is not None:
-                                #     sentry_client.capture('raven.events.Message', message=e_message)
+                                if self.sentry_client is not None:
+                                    self.sentry_client.capture('raven.events.Message',
+                                                               message=f'sending email failed: {e.message}')
                 else:
                     query_new_status = 'failed'
                     job.set_failed()
@@ -1399,7 +1401,7 @@ class InstrumentQueryBackEnd:
             server.sendmail(sender_email, receivers_email, message.as_string())
         except Exception as e:
             self.logger.error(f'Exception while sending email: {e}')
-            raise MailNotSent(f"email not sent {e}")
+            raise EMailNotSent(f"email not sent {e}")
         finally:
             if server:
                 server.quit()
