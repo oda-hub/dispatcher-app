@@ -513,7 +513,7 @@ class InstrumentQueryBackEnd:
         query_out = None
 
         _, self.config_data_server = self.set_config()
-
+        session_id = self.par_dic['session_id']
         instrument_name = self.par_dic.get('instrument_name', '')
         time_request = self.par_dic.get('time_request', '')
         job = job_factory(instrument_name,
@@ -527,14 +527,6 @@ class InstrumentQueryBackEnd:
         self.logger.info("%s.run_call_back with args %s", self, self.par_dic)
         self.logger.info("%s.run_call_back built job %s", self, job)
 
-        # build the products URL
-
-
-        # if 'node_id' in self.par_dic.keys():
-        #    print('node_id', self.par_dic['node_id'])
-        # else:
-        #    print('No! node_id')
-
         if job.status_kw_name in self.par_dic.keys():
             status = self.par_dic[job.status_kw_name]
         else:
@@ -544,9 +536,12 @@ class InstrumentQueryBackEnd:
 
         if self.is_email_to_send_callback(status):
             try:
+                # build the products URL
+                request_url = self.generate_request_url_call_back()
                 self.send_email(status,
                                 instrument=instrument_name,
-                                time_request=time_request)
+                                time_request=time_request,
+                                request_url=request_url)
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
                                             email_status='email sent')
@@ -555,12 +550,26 @@ class InstrumentQueryBackEnd:
                                             full_dict=self.par_dic,
                                             email_status='sending email failed')
                 logging.warning(f'email sending failed: {e}')
+                # TODO send to sentry
+                # if sentry_client is not None:
+                #     sentry_client.capture('raven.events.Message', message=e_message)
         else:
             job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
 
         return status, query_out
 
-    def is_email_to_send_callback(self, status):
+    def generate_request_url_call_back(self, products_url, session_id, job_id) -> str:
+        job_monitor_status_json_file = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
+        request_url = ""
+        if os.path.exists(job_monitor_status_json_file):
+            file = open(job_monitor_status_json_file)
+            jdata = json.load(file)
+            if 'prod_dictionary' in jdata and 'analysis_parameters' in jdata['prod_dictionary']:
+                request_par_dict = jdata['prod_dictionary']['analysis_parameters']
+                request_url = '%s?%s' % (products_url, urlencode(request_par_dict))
+        return request_url
+
+    def is_email_to_send_callback(self, status) -> bool:
         # get total request duration
         duration_query = -1
         if 'time_request' in self.par_dic:
@@ -846,7 +855,7 @@ class InstrumentQueryBackEnd:
                                               api=self.api,)
         return resp
 
-    def validate_token_request_param(self, ):
+    def validate_token_request_param(self):
         # if the request is public then authorize it, because the token is not there
         if self.public:
             return None
@@ -1221,14 +1230,19 @@ class InstrumentQueryBackEnd:
                         if mail_sending_job_submitted:
                             try:
                                 time_request = self.par_dic.get('time_request', '')
+                                request_url = '%s?%s' % (self.app.config.get('conf').products_url, urlencode(self.par_dic))
                                 self.send_email('submitted',
                                                 instrument=self.instrument.name,
-                                                time_request=time_request)
+                                                time_request=time_request,
+                                                request_url=request_url)
                                 # store an additional information about the sent email
                                 query_out.set_status_field('email_status', 'email sent')
                             except MailNotSent as e:
                                 query_out.set_status_field('email_status', 'sending email failed')
                                 logging.warning(f'email sending failed: {e}')
+                                # TODO send to sentry
+                                # if sentry_client is not None:
+                                #     sentry_client.capture('raven.events.Message', message=e_message)
                 else:
                     query_new_status = 'failed'
                     job.set_failed()
@@ -1316,7 +1330,7 @@ class InstrumentQueryBackEnd:
     def send_email(self, status="done",
                    instrument="",
                    time_request="",
-                   products_url=""):
+                   request_url=""):
         server = None
         self.logger.info("Sending email")
         time_request_str = ""
@@ -1342,11 +1356,10 @@ class InstrumentQueryBackEnd:
             # Create the plain-text and HTML version of your message,
             # since enails with HTML content might be, sometimes, not supportenot
             # a plain-text version is included
-            # TODO include the request URL
             text = f"""\
                 Update of the task submitted at {time_request_str}, for the instrument {instrument}:
                 * status {status}
-                Products url {products_url}
+                Products url {request_url}
             """
             html = f"""\
             <html>
@@ -1355,7 +1368,7 @@ class InstrumentQueryBackEnd:
                     <ul>
                         <li>status {status}</li>
                     </ul>
-                    Products url {products_url}
+                    Products url {request_url}
                 </p>
               </body>
             </html>
@@ -1379,7 +1392,7 @@ class InstrumentQueryBackEnd:
             server.sendmail(sender_email, receivers_email, message.as_string())
         except Exception as e:
             self.logger.error(f'Exception while sending email: {e}')
-            raise MailNotSent(f"mail not sent {e}")
+            raise MailNotSent(f"email not sent {e}")
         finally:
             if server:
                 server.quit()

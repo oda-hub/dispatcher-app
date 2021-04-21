@@ -80,7 +80,7 @@ class QueryOutput(object):
         self.prod_dictionary['instrumet_parameters'] = o
 
     def set_analysis_parameters(self, query_dict):
-        self.prod_dictionary['analysis_paramters'] = query_dict
+        self.prod_dictionary['analysis_parameters'] = query_dict
 
     def set_api_code(self,query_dict):
         self.prod_dictionary['api_code'] = DispatcherAPI.set_api_code(query_dict)

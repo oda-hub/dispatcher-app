@@ -65,8 +65,6 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     session_id = c.json()['session_id']
     job_id = c.json()['job_monitor']['job_id']
 
-    # TODO ensure it is submitted
-
     job_monitor_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor.json'
     # the aliased version might have been created
     job_monitor_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor.json'
@@ -75,6 +73,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     assert c.status_code == 200
 
     jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
     assert jdata['exit_status']['email_status'] == 'email sent'
 
     for i in range(5):
