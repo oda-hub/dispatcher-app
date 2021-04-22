@@ -55,56 +55,50 @@ def dispatcher_local_mail_server(pytestconfig):
     print("will stop the mail server")
     controller.stop()
 
-    # # with subprocess
-    # import subprocess
-    # import os
-    # import copy
-    # import time
-    # from threading import Thread
-    #
-    # env = copy.deepcopy(dict(os.environ))
-    # print(("rootdir", str(pytestconfig.rootdir)))
-    # env['PYTHONPATH'] = str(pytestconfig.rootdir) + ":" + str(pytestconfig.rootdir) + "/tests:" + env.get('PYTHONPATH',
-    #                                                                                                       "")
-    # print(("pythonpath", env['PYTHONPATH']))
-    #
-    # cmd = [
-    #     "python",
-    #     " -m smtpd",
-    #     "-c DebuggingServer",
-    #     "-n localhost:1025"
-    # ]
-    #
-    # p = subprocess.Popen(
-    #     cmd,
-    #     stdout=subprocess.PIPE,
-    #     stderr=subprocess.STDOUT,
-    #     shell=False,
-    #     env=env,
-    # )
-    #
-    # def follow_output():
-    #     for line in iter(p.stdout):
-    #         line = line.decode()
-    #
-    #         NC = '\033[0m'
-    #         if 'ERROR' in line:
-    #             C = '\033[31m'
-    #         else:
-    #             C = '\033[34m'
-    #
-    #         print(f"{C}mail server: {line.rstrip()}{NC}")
-    #
-    # thread = Thread(target=follow_output, args=())
-    # thread.start()
-    #
-    # yield thread
-    #
-    # print("will stop local mail server")
-    # print(("child:", p.pid))
-    # import os, signal
-    # kill_child_processes(p.pid, signal.SIGKILL)
-    # os.kill(p.pid, signal.SIGKILL)
+
+@pytest.fixture
+def dispatcher_local_mail_server_subprocess(pytestconfig):
+    import subprocess
+    import os
+    import copy
+    from threading import Thread
+
+    env = copy.deepcopy(dict(os.environ))
+    print(("rootdir", str(pytestconfig.rootdir)))
+    env['PYTHONPATH'] = str(pytestconfig.rootdir) + ":" + str(pytestconfig.rootdir) + "/tests:" + env.get('PYTHONPATH',
+                                                                                                          "")
+    print(("pythonpath", env['PYTHONPATH']))
+
+    cmd = [
+        "python",
+        " -m smtpd",
+        "-c DebuggingServer",
+        "-n localhost:1025"
+    ]
+
+    p = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        shell=False,
+        env=env,
+    )
+
+    def follow_output():
+        for line in iter(p.stdout):
+            line = line.decode()
+            print(f"mail server: {line.rstrip()}")
+
+    thread = Thread(target=follow_output, args=())
+    thread.start()
+
+    yield thread
+
+    print("will stop local mail server")
+    print(("child:", p.pid))
+    import os, signal
+    kill_child_processes(p.pid, signal.SIGKILL)
+    os.kill(p.pid, signal.SIGKILL)
 
 
 @pytest.fixture

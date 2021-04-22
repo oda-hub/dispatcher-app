@@ -251,3 +251,44 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
 
     jdata = json.load(f)
     assert jdata['email_status'] == 'sending email failed'
+
+
+def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_live_fixture, dispatcher_local_mail_server_subprocess):
+    # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
+
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "tem": 0,
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    # set the time the request was initiated
+    time_request = time.time()
+    # this should return status submitted, so email sent
+    c = requests.get(server + "/run_analysis",
+                     params=dict(
+                         query_status="new",
+                         query_type="Real",
+                         instrument="empty-async",
+                         product_type="dummy",
+                         token=encoded_token
+                     ))
+
+    print("response from run_analysis:", json.dumps(c.json(), indent=4))
+
+    session_id = c.json()['session_id']
+    job_id = c.json()['job_monitor']['job_id']
+
+    job_monitor_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor.json'
+    # the aliased version might have been created
+    job_monitor_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor.json'
+
+    assert os.path.exists(job_monitor_json_fn) or os.path.exists(job_monitor_json_fn_aliased)
+    assert c.status_code == 200
+
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['email_status'] == 'email sent'
