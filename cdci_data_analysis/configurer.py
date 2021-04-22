@@ -225,14 +225,14 @@ class ConfigEnv(object):
                                      products_url,
                                      disp_dict['dispatcher_service_url'],
                                      disp_dict['secret_key'],
-                                     disp_dict['smtp_server'],
-                                     disp_dict['sender_mail'],
-                                     disp_dict['cc_receivers_mail'],
-                                     disp_dict['smtp_port'],
-                                     disp_dict['smtp_server_password'],
-                                     disp_dict['mail_sending_timeout'],
-                                     disp_dict['mail_sending_timeout_threshold'],
-                                     disp_dict['mail_sending_job_submitted']
+                                     disp_dict['mail_options']['smtp_server'],
+                                     disp_dict['mail_options']['sender_mail'],
+                                     disp_dict['mail_options']['cc_receivers_mail'],
+                                     disp_dict['mail_options']['smtp_port'],
+                                     disp_dict['mail_options']['smtp_server_password'],
+                                     disp_dict['mail_options']['mail_sending_timeout'],
+                                     disp_dict['mail_options']['mail_sending_timeout_threshold'],
+                                     disp_dict['mail_options']['mail_sending_job_submitted']
                                      )
 
         # not used?

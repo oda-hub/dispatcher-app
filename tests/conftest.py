@@ -147,11 +147,11 @@ def dispatcher_live_fixture(pytestconfig):
             m = re.search(r"Running on (.*?) \(Press CTRL\+C to quit\)", line)
             if m:
                 url_store[0] = m.group(1)[:-1]  # alaternatively get from configenv
-                print(("found url:", url_store[0]))
+                print(f"{C}following server: found url:{url_store[0]}")
 
             if re.search("\* Debugger PIN:.*?", line):
                 url_store[0] = url_store[0].replace("0.0.0.0", "127.0.0.1")
-                print("server ready, url", url_store[0])
+                print(f"{C}following server: server ready, url {url_store[0]}")
 
 
     thread = Thread(target=follow_output, args=())
