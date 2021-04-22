@@ -41,7 +41,9 @@ def dispatcher_live_fixture(pytestconfig):
     cmd = [ 
             "python", 
             os.path.join(__this_dir__, "../bin/run_osa_cdci_server.py"),
+            "-d",
             "-conf_file", os.path.join(__this_dir__, "../tests/test-conf.yaml"),
+            "-debug",
             #"-use_gunicorn" should not be used, as current implementation of follow_output is specific to flask development server
           ] 
 
@@ -67,7 +69,7 @@ def dispatcher_live_fixture(pytestconfig):
                 C = '\033[34m'
 
             print(f"{C}following server: {line.rstrip()}{NC}" )
-            m = re.search("Running on (.*?) \(Press CTRL\+C to quit\)", line)
+            m = re.search(r"Running on (.*?) \(Press CTRL\+C to quit\)", line)
             if m:
                 url_store[0] = m.group(1)[:-1]  # alaternatively get from configenv
                 print(("found url:", url_store[0]))

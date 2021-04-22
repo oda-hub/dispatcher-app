@@ -54,6 +54,8 @@ __author__ = "Andrea Tramacere"
 # Project
 # relative import eg: from .mod import f
 
+class DataServerQueryClassNotSet(Exception):
+    pass
 
 class Instrument:
     def __init__(self,
@@ -137,12 +139,14 @@ class Instrument:
     def test_communication(self,config,logger=None):
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config, instrument=self).test_communication(logger=logger)
+        else:
+            raise DataServerQueryClassNotSet('in test_communication')
 
     def test_busy(self, config,logger=None):
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config).test_busy(logger=logger)
 
-    def test_has_input_products(self, config,instrument,logger=None):
+    def test_has_input_products(self, config, instrument,logger=None):
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config,instrument=self).test_has_input_products(instrument,logger=logger)
 
@@ -165,6 +169,9 @@ class Instrument:
 
         if logger is None:
             logger = self.get_logger()
+
+        #  this was removed by 2f5b5dfb7e but turns out it is used by some plugins, see test_server_plugin_integral_all_sky
+        self._current_par_dic=par_dic
 
         # set pars values from the input parameters
         query_out = self.set_pars_from_form(par_dic, verbose=verbose, sentry_client=sentry_client)

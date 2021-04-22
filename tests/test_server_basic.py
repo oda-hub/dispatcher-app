@@ -59,8 +59,8 @@ def test_empty_request(dispatcher_live_fixture):
     assert c.status_code == 400
 
      # parameterize this
-    assert jdata['installed_instruments'] == ['empty', 'isgri', 'jemx', 'osa_fake'] or \
-           jdata['installed_instruments'] == ['empty'] or \
+    assert jdata['installed_instruments'] == ['empty', 'empty-async', 'isgri', 'jemx', 'osa_fake', 'spi_acs'] or \
+           jdata['installed_instruments'] == ['empty', 'empty-async', 'spi_acs'] or \
            jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"

@@ -1,9 +1,5 @@
-
-
-from __future__ import absolute_import, division, print_function
-
-
 from builtins import (str, super, object)
+
 
 
 __author__ = "Andrea Tramacere"
@@ -32,6 +28,7 @@ from .parameters import *
 from .products import SpectralFitProduct, QueryOutput, QueryProductList, ImageProduct
 from .io_helper import FilePath
 from .exceptions import RequestNotUnderstood
+import traceback
 
 
 @decorator.decorator
@@ -51,7 +48,7 @@ def _check_is_base_query(_list):
 
 class BaseQuery(object):
 
-    def __init__(self, name, _list):
+    def __init__(self, name, _list=None):
 
         if _list is None:
             _list=[]
@@ -321,19 +318,20 @@ class ProductQuery(BaseQuery):
                  #process_product_method=None,
                  **kwargs):
 
-        super(ProductQuery, self).__init__(name,parameters_list, **kwargs)
+        super(ProductQuery, self).__init__(name, parameters_list, **kwargs)
 
         self.job=None
         self.query_prod_list=[]
 
     def get_products(self, instrument,run_asynch, job=None,config=None,logger=None,**kwargs):
-        raise RuntimeError('needs to be implemented in derived class')
+        raise RuntimeError(f'{self}: get_products needs to be implemented in derived class')
 
     def get_dummy_products(self,instrument, config=None,**kwargs):
-        raise RuntimeError('needs to be implemented in derived class')
+        raise RuntimeError(f'{self}: get_dummy_products needs to be implemented in derived class')
 
     def get_data_server_query(self,instrument,config=None,**kwargs):
-        raise RuntimeError('needs to be implemented in derived class')
+        traceback.print_stack()
+        raise RuntimeError(f'{self}: get_data_server_query needs to be implemented in derived class')
 
     def get_parameters_list_as_json(self,prod_dict=None):
 
@@ -377,21 +375,23 @@ class ProductQuery(BaseQuery):
                 test_comm_query_out = instrument.test_communication(config,logger=logger)
                 status = test_comm_query_out.get_status()
             else:
-                status=0
+                status = 0
 
             query_out.set_done(message=message, debug_message=str(debug_message),status=status)
 
-        except Exception as e:
+        except ConnectionError as e:
             e_message = f'test of communication with backend (instrument: {instrument}) failed!'
 
-            if hasattr(e, 'message'):
-                e_message = e_message + " : " + e.message
+            e_message += "\n" + repr(e)
+            
 
             if hasattr(e, 'debug_message'):
                 debug_message = e.debug_message
-                #debug_message = str(e)
             else:
-                debug_message = ''
+                debug_message = 'no exception default debug message'
+
+            debug_message += '\n' + repr(e)
+            debug_message += traceback.format_exc()
 
             query_out.set_failed('dataserver communication test',
                                  extra_message=e_message,
@@ -430,7 +430,8 @@ class ProductQuery(BaseQuery):
         try:
 
             if query_type != 'Dummy':
-                test_has_input_products_query_out,input_prod_list = instrument.test_has_input_products(config,instrument,logger=logger)
+                test_has_input_products_query_out, input_prod_list = instrument.test_has_input_products(config,instrument,logger=logger)
+
                 status = test_has_input_products_query_out.get_status()
 
             else:
@@ -447,16 +448,12 @@ class ProductQuery(BaseQuery):
                                      sentry_client=sentry_client)
 
         except Exception as e:
-            if hasattr(e,'message'):
-                e_message=e.message
-            else:
-                e_message='no input products found'
+            traceback.print_exc()
+            print(traceback.format_exc())
+            raise
 
-
-            if hasattr(e,'debug_message'):
-                debug_message=e.debug_message
-            else:
-                debug_message=''
+            e_message = getattr(e, 'message', 'no input products found')
+            debug_message = getattr(e, 'debug_message', '')
 
             input_prod_list=[]
             query_out.set_products(['input_prod_list', 'len_prod_list'], [input_prod_list, len(input_prod_list)])
@@ -489,7 +486,7 @@ class ProductQuery(BaseQuery):
         backend_warning=''
         try:
             if query_type != 'Dummy':
-                q=self.get_data_server_query(instrument,config)
+                q = self.get_data_server_query(instrument,config)
 
                 res, data_server_query_out = q.run_query(call_back_url=job.get_call_back_url(), run_asynch=run_asynch, logger=logger)
 
@@ -529,23 +526,19 @@ class ProductQuery(BaseQuery):
             logger.error("passing request issue: %s", e)
             raise
 
-        except Exception as e: # noo!!!
+        except Exception as e: # TODO: could we avoid these? they make error tracking hard
+            logger.exception("failed to get query products")
+
             #status=1
             job.set_failed()
 
-            #FAILED
-            if hasattr(e,'message'):
-                e_message=e.message
-            else:
-                e_message=''
+            if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
+                raise
 
-
-            if hasattr(e,'debug_message'):
-                debug_message=e.debug_message
-            else:
-                debug_message=''
-
-            query_out.set_failed('get dataserver products ',
+            e_message = getattr(e, 'message', '')
+            debug_message = repr(e) + ' : ' + getattr(e, 'debug_message', '')
+            
+            query_out.set_failed('get_dataserver_products found job failed',
                                  logger=logger,
                                  sentry_client=sentry_client,
                                  excep=e,
