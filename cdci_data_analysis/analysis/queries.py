@@ -30,6 +30,7 @@ from .io_helper import FilePath
 from .exceptions import RequestNotUnderstood
 import traceback
 
+import os
 
 @decorator.decorator
 def check_is_base_query(func,prod_list,*args, **kwargs):
