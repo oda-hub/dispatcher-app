@@ -20,7 +20,7 @@ from raven.contrib.flask import Sentry
 import traceback
 
 from flask import jsonify, send_from_directory, redirect, Response
-from flask import Flask, request, make_response, abort
+from flask import Flask, request, make_response, abort, g
 from flask.json import JSONEncoder
 from flask_restx import Api, Resource, reqparse
 
@@ -74,6 +74,11 @@ api = Api(app=app, version='1.0', title='CDCI ODA API',
 
 
 ns_conf = api.namespace('api/v1.0/oda', description='api')
+
+
+@app.before_request
+def before_request():
+    g.request_start_time = _time.time()
 
 
 @app.route("/api/meta-data")
@@ -203,7 +208,7 @@ def common_exception_payload():
         payload['config'] = {
             'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),
                                                     ['sentry_url', 'logstash_host', 'logstash_port', 'secret_key',
-                                                     'smtp_server_password',])
+                                                     'smtp_server_password'])
         }
 
     plugins = {}
@@ -236,7 +241,8 @@ def run_analysis():
             description: 'something in request not understood - missing, unexpected values'
     """
     try:
-        t0 = _time.time()
+        # t0 = _time.time()
+        t0 = g.request_start_time
         query = InstrumentQueryBackEnd(app)
         r = query.run_query(disp_conf=app.config['conf'])
         logger.info("run_analysis for %s took %g seconds", request.args.get(

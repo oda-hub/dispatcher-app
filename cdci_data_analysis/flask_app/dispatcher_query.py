@@ -24,7 +24,7 @@ import random
 from raven.contrib.flask import Sentry
 
 from flask import jsonify, send_from_directory, redirect
-from flask import Flask, request
+from flask import Flask, request, g
 from urllib.parse import urlencode
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -53,12 +53,7 @@ from ..analysis.plot_tools import Image
 from ..analysis.exceptions import BadRequest, APIerror, MissingParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut
 from . import tasks
 from oda_api.data_products import NumpyDataProduct
-
-
 import oda_api
-
-
-
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +91,7 @@ class InstrumentQueryBackEnd:
         # self.instrument_name=instrument_name
 
         self.logger = logging.getLogger(repr(self))
-
+        self.request_start_time = g.get('request_start_time', None)
         if verbose:
             self.logger.setLevel(logging.DEBUG)
         else:
@@ -524,7 +519,8 @@ class InstrumentQueryBackEnd:
                           None,
                           self.par_dic['session_id'],
                           self.job_id,
-                          self.par_dic)
+                          self.par_dic,
+                          self.token)
 
         self.logger.info("%s.run_call_back with args %s", self, self.par_dic)
         self.logger.info("%s.run_call_back built job %s", self, job)
@@ -1098,7 +1094,8 @@ class InstrumentQueryBackEnd:
                           self.par_dic['session_id'],
                           self.job_id,
                           self.par_dic,
-                          aliased=job_is_aliased)
+                          aliased=job_is_aliased,
+                          token=self.token)
 
         job_monitor = job.monitor
 
