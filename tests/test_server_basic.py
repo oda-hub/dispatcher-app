@@ -142,14 +142,12 @@ def test_invalid_token(dispatcher_live_fixture, ):
 
     jdata = ask(server,
                 params,
-                expected_query_status=["failed"],
                 max_time_s=50,
+                expected_query_status=None,
+                expected_status_code=403
                 )
 
-    assert jdata["exit_status"]["debug_message"] == ""
-    assert jdata["exit_status"]["error_message"] == ""
-    assert jdata["exit_status"]["message"] == "token expired"
-
+    assert jdata['error_message'] == 'token expired'
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
 
