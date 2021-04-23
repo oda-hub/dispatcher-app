@@ -9,7 +9,7 @@ import random
 import traceback
 import logging
 import jwt
-
+import glob
 import pytest
 
 #pytestmark = pytest.mark.skip("these tests still WIP")
@@ -87,7 +87,76 @@ def test_empty_request(dispatcher_live_fixture):
     logger.info(jdata['config'])
 
 
-def test_valid_token(dispatcher_live_fixture,):
+def test_same_request_different_users(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+    # let's generate two valid tokens, for two different users
+    token_payload_1 = {
+        **default_token_payload,
+        "sub":"mtm1@mtmco.net"
+    }
+    encoded_token_1 = jwt.encode(token_payload_1, secret_key, algorithm='HS256')
+    token_payload_2 = {
+        **default_token_payload,
+        "sub": "mtm2@mtmco.net"
+    }
+    encoded_token_2 = jwt.encode(token_payload_2, secret_key, algorithm='HS256')
+
+    # issuing a request each, with the same set of parameters
+    params_1 = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token_1
+    }
+
+    jdata_1 = ask(server,
+                  params_1,
+                  expected_query_status=["done"],
+                  max_time_s=50,
+                  )
+
+    assert jdata_1["exit_status"]["debug_message"] == ""
+    assert jdata_1["exit_status"]["error_message"] == ""
+    assert jdata_1["exit_status"]["message"] == ""
+
+    session_id_1 = jdata_1['session_id']
+    job_id_1 = jdata_1['job_monitor']['job_id']
+
+    params_2 = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token_2
+    }
+    jdata_2 = ask(server,
+                  params_2,
+                  expected_query_status=["done"],
+                  max_time_s=50,
+                  )
+
+    assert jdata_2["exit_status"]["debug_message"] == ""
+    assert jdata_2["exit_status"]["error_message"] == ""
+    assert jdata_2["exit_status"]["message"] == ""
+
+    session_id_2 = jdata_2['session_id']
+    job_id_2 = jdata_2['job_monitor']['job_id']
+
+    assert job_id_1 != job_id_2
+
+    job_monitor_json_fn_1 = f'scratch_sid_{session_id_1}_jid_{job_id_1}'
+    job_monitor_json_fn_2 = f'scratch_sid_{session_id_2}_jid_{job_id_2}'
+
+    assert os.path.exists(job_monitor_json_fn_1) and os.path.exists(job_monitor_json_fn_2)
+
+    dir_list_1 = glob.glob('*_jid_%s_aliased' % job_id_1)
+    assert len(dir_list_1) == 0
+    dir_list_2 = glob.glob('*_jid_%s_aliased' % job_id_2)
+    assert len(dir_list_2) == 0
+
+def test_valid_token(dispatcher_live_fixture):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
