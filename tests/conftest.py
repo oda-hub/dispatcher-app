@@ -1,3 +1,5 @@
+from json import JSONDecodeError
+
 import pytest
 
 import cdci_data_analysis.flask_app.app
@@ -5,6 +7,9 @@ from cdci_data_analysis.configurer import ConfigEnv
 
 import os
 import re
+import json
+import string
+import random
 
 __this_dir__ = os.path.join(os.path.abspath(os.path.dirname(__file__)))
 
@@ -29,9 +34,23 @@ def app():
 def dispatcher_local_mail_server(pytestconfig):
     from aiosmtpd.controller import Controller
 
+    class CustomController(Controller):
+        def __init__(self, id, handler, hostname='127.0.0.1', port=1025):
+            self.id = id
+            super().__init__(handler, hostname=hostname, port=port)
+
+
     class CustomHandler:
+        def __init__(self, output_file_path):
+            self.output_file_path = output_file_path
+
         async def handle_DATA(self, server, session, envelope):
             try:
+                obj_email_data = dict(
+                    mail_from=envelope.mail_from,
+                    rcpt_tos=envelope.rcpt_tos,
+                    data=envelope.content.decode()
+                )
                 peer = session.peer
                 mail_from = envelope.mail_from
                 rcpt_tos = envelope.rcpt_tos
@@ -40,13 +59,28 @@ def dispatcher_local_mail_server(pytestconfig):
                 print(f"mail server: Message addressed from: {mail_from}")
                 print(f"mail server: Message addressed to: {rcpt_tos}")
                 print(f"mail server: Message length : {len(data)}")
-            except:
+
+                # log in a file
+                l = []
+                if os.path.exists(self.output_file_path):
+                    with open(self.output_file_path, 'r') as readfile:
+                        try:
+                            l = json.load(readfile)
+                        except JSONDecodeError as e:
+                            pass
+                with open(self.output_file_path, 'w+') as outfile:
+                    l.append(obj_email_data)
+                    json.dump(l, outfile)
+
+            except Exception as e:
                 return '500 Could not process your message'
             return '250 OK'
 
-    handler = CustomHandler()
-
-    controller = Controller(handler, hostname='127.0.0.1', port=1025)
+    id = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+    if not os.path.exists('local_smtp_log'):
+        os.makedirs('local_smtp_log')
+    handler = CustomHandler(f'local_smtp_log/{id}_local_smtp_output.json')
+    controller = CustomController(id, handler, hostname='127.0.0.1', port=1025)
     # Run the event loop in a separate thread
     controller.start()
 

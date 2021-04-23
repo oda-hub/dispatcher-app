@@ -28,6 +28,7 @@ from flask import Flask, request, g
 from urllib.parse import urlencode
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import email
 import time as time_
 
 import tempfile
@@ -91,7 +92,7 @@ class InstrumentQueryBackEnd:
         # self.instrument_name=instrument_name
 
         self.logger = logging.getLogger(repr(self))
-        self.request_start_time = g.get('request_start_time', None)
+
         if verbose:
             self.logger.setLevel(logging.DEBUG)
         else:
@@ -118,6 +119,13 @@ class InstrumentQueryBackEnd:
             """
 
             self.set_session_id()
+
+            self.time_request = None
+            if 'time_request' in self.par_dic:
+                self.time_request = float(self.par_dic['time_request'])
+                self.par_dic.pop('time_request')
+            else:
+                self.time_request = g.get('request_start_time', None)
 
             # By default, a request is public, let's now check if a token has been included
             # In that case, validation is needed
@@ -512,7 +520,6 @@ class InstrumentQueryBackEnd:
             self.set_sentry_client(_.sentry_url)
         session_id = self.par_dic['session_id']
         instrument_name = self.par_dic.get('instrument_name', '')
-        time_request = self.par_dic.get('time_request', '')
         job = job_factory(instrument_name,
                           self.scratch_dir,
                           self.dispatcher_service_url,
@@ -538,7 +545,7 @@ class InstrumentQueryBackEnd:
                 request_url = self.generate_request_url_call_back(_.products_url, session_id, self.job_id)
                 self.send_email(status,
                                 instrument=instrument_name,
-                                time_request=time_request,
+                                time_request=self.time_request,
                                 request_url=request_url)
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
@@ -570,26 +577,25 @@ class InstrumentQueryBackEnd:
     def is_email_to_send_callback(self, status):
         # get total request duration
         duration_query = -1
-        if 'time_request' in self.par_dic:
-            time_request = float(self.par_dic['time_request'])
-            duration_query = time_.time() - time_request
+        if self.time_request:
+            duration_query = time_.time() - self.time_request
         if self.token:
             resp = self.validate_token_request_param()
             if resp is not None:
                 self.logger.warning("query dismissed by token validation")
                 return resp
 
-            timeout_threshold_email = tokenHelper.get_token_user_timeout_threshold_email(self.decoded_token)
-            if timeout_threshold_email is None:
+            timeout_threshold_mail = tokenHelper.get_token_user_timeout_threshold_mail(self.decoded_token)
+            if timeout_threshold_mail is None:
                 # set it to the a default value, from the configuration
-                timeout_threshold_email = self.app.config.get('conf').email_sending_timeout_threshold
-            timeout_email_sending = tokenHelper.get_token_user_sending_timeout_email(self.decoded_token)
-            if timeout_email_sending:
-                timeout_email_sending = self.app.config.get('conf').email_sending_timeout
+                timeout_threshold_mail = self.app.config.get('conf').mail_sending_timeout_threshold
+            timeout_mail_sending = tokenHelper.get_token_user_sending_timeout_mail(self.decoded_token)
+            if timeout_mail_sending is None:
+                timeout_mail_sending = self.app.config.get('conf').mail_sending_timeout
             # in case the request was long and 'done'
             # or if failed
             # or when the job was created ('submitted')
-            return (timeout_email_sending and duration_query > timeout_threshold_email and status == 'done') or status == 'failed'
+            return (timeout_mail_sending and duration_query > timeout_threshold_mail and status == 'done') or status == 'failed'
                    # or status == 'submitted'
 
         return False
@@ -1235,7 +1241,7 @@ class InstrumentQueryBackEnd:
                         # send submitted email
                         if mail_sending_job_submitted:
                             try:
-                                time_request = self.par_dic.get('time_request', '')
+                                time_request = self.time_request
                                 request_url = '%s?%s' % (self.app.config.get('conf').products_url, urlencode(self.par_dic))
                                 self.send_email('submitted',
                                                 instrument=self.instrument.name,
@@ -1362,28 +1368,14 @@ class InstrumentQueryBackEnd:
             # Create the plain-text and HTML version of your message,
             # since enails with HTML content might be, sometimes, not supportenot
             # a plain-text version is included
-            text = f"""\
-                Update of the task submitted at {time_request_str}, for the instrument {instrument}:
-                * status {status}
-                Products url {request_url}
-            """
-            html = f"""\
-            <html>
-              <body>
-                <p>Update of the task submitted at {time_request_str}, for the instrument {instrument}:<br>
-                    <ul>
-                        <li>status {status}</li>
-                    </ul>
-                    Products url {request_url}
-                </p>
-              </body>
-            </html>
-            """
+            text = f"""Update of the task submitted at {time_request_str}, for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
+            html = f"""<html><body><p>Update of the task submitted at {time_request_str}, for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
 
             part1 = MIMEText(text, "plain")
             part2 = MIMEText(html, "html")
             message.attach(part1)
             message.attach(part2)
+
             smtp_server_password = self.app.config.get('conf').smtp_server_password
             # Create a secure SSL context
             context = ssl.create_default_context()
