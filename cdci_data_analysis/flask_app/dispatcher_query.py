@@ -135,6 +135,12 @@ class InstrumentQueryBackEnd:
             if 'token' in self.par_dic.keys() and self.par_dic['token'] != "":
                 self.token = self.par_dic['token']
                 self.public = False
+                # token validation and decoding can be done here, to check if the token is expired
+                try:
+                    if self.validate_query_from_token():
+                        pass
+                except jwt.exceptions.ExpiredSignatureError as e:
+                    raise RequestNotAuthorized("token expired")
 
             if instrument_name is None:
                 if 'instrument' in self.par_dic:
@@ -234,7 +240,7 @@ class InstrumentQueryBackEnd:
         return format_hash(json.dumps(o))
 
     # not job_id??
-    def generate_job_id(self, kw_black_list=['session_id', 'job_id']):
+    def generate_job_id(self, kw_black_list=['session_id', 'job_id', 'token']):
         self.logger.info("\033[31m---> GENERATING JOB ID <---\033[0m")
         self.logger.info(
             "\033[31m---> new job id for %s <---\033[0m", self.par_dic)
@@ -252,6 +258,9 @@ class InstrumentQueryBackEnd:
             k: v for k, v in self.par_dic.items()
             if k not in kw_black_list
         })
+        if not self.public:
+            # token has not been considered, but the user id will be (if availaable)
+            _dict['sub'] = tokenHelper.get_token_user_email_address(self.decoded_token)
 
         self.job_id = u'%s' % (self.make_hash(_dict))
 
@@ -565,9 +574,18 @@ class InstrumentQueryBackEnd:
 
     def generate_request_url_call_back(self, products_url, session_id, job_id) -> str:
         job_monitor_status_json_file = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
+        # to be handled now, with the job_id generated taking into account only the user_id
+        job_monitor_status_json_file_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
         request_url = ""
-        if os.path.exists(job_monitor_status_json_file):
-            file = open(job_monitor_status_json_file)
+        file = None
+        if self.scratch_dir:
+            file = open(self.scratch_dir + '/query_output.json')
+        else:
+            if os.path.exists(job_monitor_status_json_file_aliased):
+                file = open(job_monitor_status_json_file_aliased)
+            elif os.path.exists(job_monitor_status_json_file):
+                file = open(job_monitor_status_json_file)
+        if file:
             jdata = json.load(file)
             if 'prod_dictionary' in jdata and 'analysis_parameters' in jdata['prod_dictionary']:
                 request_par_dict = jdata['prod_dictionary']['analysis_parameters']
@@ -579,12 +597,11 @@ class InstrumentQueryBackEnd:
         duration_query = -1
         if self.time_request:
             duration_query = time_.time() - self.time_request
-        if self.token:
-            resp = self.validate_token_request_param()
-            if resp is not None:
-                self.logger.warning("query dismissed by token validation")
-                return resp
-
+        if not self.public:
+            # resp = self.validate_token_request_param()
+            # if resp is not None:
+            #     self.logger.warning("query dismissed by token validation")
+            #     return resp
             timeout_threshold_mail = tokenHelper.get_token_user_timeout_threshold_mail(self.decoded_token)
             if timeout_threshold_mail is None:
                 # set it to the a default value, from the configuration
@@ -1039,10 +1056,10 @@ class InstrumentQueryBackEnd:
         except KeyError as e:
             raise MissingRequestParameter(repr(e))
 
-        resp = self.validate_token_request_param()
-        if resp is not None:
-            self.logger.warning("query dismissed by token validation")
-            return resp
+        # resp = self.validate_token_request_param()
+        # if resp is not None:
+        #     self.logger.warning("query dismissed by token validation")
+        #     return resp
 
         if self.par_dic.pop('instrumet', None) is not None:
             self.logger.warning("someone is sending instrume(N!)ts?")
