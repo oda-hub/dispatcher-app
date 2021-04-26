@@ -29,4 +29,25 @@ dispatcher:
     dispatcher_service_url: http://oda-dispatcher:8000 
 
     # used for token validation
-    secret_key:  YOUR_VERY_OWN_SECRET_KEY 
+    secret_key:  YOUR_VERY_OWN_SECRET_KEY
+
+    # e-mail related configurations: a user might want to receive an eamil with an update of the status of the request in
+    # some cases (e.g. the request has failed)
+    mail_options:
+        # the smtp server to use in order to actually send the email
+        smtp_server: 'localhost'
+        smtp_port: 1025
+        smtp_server_password: SMTP_SERVER_PASSWORD
+        # address from which the email should be sent from
+        sender_mail: 'team@odahub.io'
+        # list of address to be put in cc
+        cc_receivers_mail: [ 'team@odahub.io' ]
+        # enable the sending of an email when a request is ''done'', and this took long to complete
+        mail_sending_timeout: True
+        # amount of time (in seconds) elapsed from the issuing of the request,
+        # that will trigger the email when the request is complete, if this time is exceeded
+        mail_sending_timeout_threshold: 1800
+        # sending of an email when a request has been submitted
+        mail_sending_job_submitted: True
+
+

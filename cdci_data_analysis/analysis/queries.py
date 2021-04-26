@@ -17,9 +17,8 @@ __author__ = "Andrea Tramacere"
 # relative import eg: from .mod import f
 
 
-import  logging
-
-
+import logging
+import os
 import time as _time
 import json
 from collections import OrderedDict
@@ -381,9 +380,8 @@ class ProductQuery(BaseQuery):
 
         except ConnectionError as e:
             e_message = f'test of communication with backend (instrument: {instrument}) failed!'
-
             e_message += "\n" + repr(e)
-            
+
 
             if hasattr(e, 'debug_message'):
                 debug_message = e.debug_message
@@ -537,7 +535,7 @@ class ProductQuery(BaseQuery):
 
             e_message = getattr(e, 'message', '')
             debug_message = repr(e) + ' : ' + getattr(e, 'debug_message', '')
-            
+
             query_out.set_failed('get_dataserver_products found job failed',
                                  logger=logger,
                                  sentry_client=sentry_client,
