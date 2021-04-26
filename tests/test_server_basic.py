@@ -10,9 +10,6 @@ import traceback
 import logging
 import jwt
 
-from threading import Thread
-from time import sleep
-
 import pytest
 
 #pytestmark = pytest.mark.skip("these tests still WIP")
@@ -42,6 +39,16 @@ default_params = dict(
                     async_dispatcher=False,
                     token="fake-token",
                  )
+
+
+default_exp_time = int(time.time()) + 5000
+default_token_payload = dict(
+    sub="mtm@mtmco.net",
+    name="mmeharga",
+    roles="general",
+    exp=default_exp_time,
+    tem=0,
+)
 
 
 def test_empty_request(dispatcher_live_fixture):
@@ -74,7 +81,7 @@ def test_empty_request(dispatcher_live_fixture):
     assert 'logstash_port' not in dispatcher_config['cfg_dict']['dispatcher']
     assert 'logstash_host' not in dispatcher_config['cfg_dict']['dispatcher']
     assert 'secret_key' not in dispatcher_config['cfg_dict']['dispatcher']
-
+    assert 'smtp_server_password' not in dispatcher_config['cfg_dict']['dispatcher']
     assert 'products_url' in dispatcher_config['cfg_dict']['dispatcher']
 
     logger.info(jdata['config'])
@@ -85,12 +92,8 @@ def test_valid_token(dispatcher_live_fixture,):
 
     logger.info("constructed server: %s", server)
     # let's generate a valid token
-    exp_time = int(time.time()) + 500
     token_payload = {
-        "email": "mtm@mtmco.net",
-        "name": "mmeharga",
-        "roles": "authenticated user ,  content manager ,  general , magic",
-        "exp": exp_time
+        **default_token_payload,
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
@@ -104,8 +107,8 @@ def test_valid_token(dispatcher_live_fixture,):
 
     jdata = ask(server,
                 params,
-                expected_query_status = ["done"],
-                max_time_s = 50,
+                expected_query_status=["done"],
+                max_time_s=50,
                 )
 
     assert jdata["exit_status"]["debug_message"] == ""
@@ -124,9 +127,7 @@ def test_invalid_token(dispatcher_live_fixture, ):
     exp_time = int(time.time()) - 500
     # expired token
     token_payload = {
-        "email": "mtm@mtmco.net",
-        "name": "mmeharga",
-        "roles": "authenticated user, content manager, general, magic",
+        **default_token_payload,
         "exp": exp_time
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
@@ -159,12 +160,9 @@ def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):
 
     logger.info("constructed server: %s", server)
     # let's generate a valid token
-    exp_time = int(time.time()) + 500
     token_payload = {
-        "email": "mtm@mtmco.net",
-        "name": "mmeharga",
+        **default_token_payload,
         "roles": roles,
-        "exp": exp_time
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
@@ -199,12 +197,9 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
 
     logger.info("constructed server: %s", server)
     # let's generate a valid token
-    exp_time = int(time.time()) + 500
     token_payload = {
-        "email": "mtm@mtmco.net",
-        "name": "mmeharga",
+        **default_token_payload,
         "roles": roles,
-        "exp": exp_time
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
@@ -420,6 +415,7 @@ def loop_ask(server, params):
         time.sleep(5)
 
     logger.info(f"\033[31m total request took {time.time() - t0} seconds\033[0m")
+
 
     return jdata, time.time() - t0
 

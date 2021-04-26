@@ -80,7 +80,7 @@ class QueryOutput(object):
         self.prod_dictionary['instrumet_parameters'] = o
 
     def set_analysis_parameters(self, query_dict):
-        self.prod_dictionary['analysis_paramters'] = query_dict
+        self.prod_dictionary['analysis_parameters'] = query_dict
 
     def set_api_code(self,query_dict):
         self.prod_dictionary['api_code'] = DispatcherAPI.set_api_code(query_dict)
@@ -152,6 +152,9 @@ class QueryOutput(object):
         self.status_dictionary['comment'] = str(comment)
         self.status_dictionary['warning'] = str(warning)
 
+    def set_status_field(self, field, message):
+        self.status_dictionary[field] = str(message)
+
     def get_status(self):
         return self.status_dictionary['status']
 
@@ -205,9 +208,10 @@ class QueryOutput(object):
 
         if message is None:
             message = '%s' % message_prepend_str
-            message += 'failed: %s' % (failed_operation)
+            message += ' failed: %s' % (failed_operation)
             if extra_message is not None:
                 message += 'message: %s' % (extra_message)
+            message = message.strip()
         else:
             pass
 

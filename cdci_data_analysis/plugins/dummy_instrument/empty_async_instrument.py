@@ -1,19 +1,19 @@
 """
 Overview
 --------
-   
+
 general info about this module
 
 
 Classes and Inheritance Structure
 ----------------------------------------------
-.. inheritance-diagram:: 
+.. inheritance-diagram::
 
 Summary
 ---------
 .. autosummary::
    list of the module you want
-    
+
 Module API
 ----------
 """
@@ -32,7 +32,7 @@ __author__ = "Andrea Tramacere"
 # absolute import rg:from copy import deepcopy
 
 # Dependencies
-# eg numpy 
+# eg numpy
 # absolute import eg: import numpy as np
 
 # Project
@@ -40,7 +40,7 @@ __author__ = "Andrea Tramacere"
 
 
 from cdci_data_analysis.analysis.instrument import Instrument
-from cdci_data_analysis.analysis.queries import  SourceQuery, InstrumentQuery, Float, QueryOutput
+from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float, QueryOutput
 
 from .data_server_dispatcher import DataServerQuery, EmptyProductQuery, DataServerNumericQuery
 from .image_query import MyInstrMosaicQuery
