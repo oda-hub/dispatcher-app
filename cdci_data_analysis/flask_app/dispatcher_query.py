@@ -592,15 +592,15 @@ class InstrumentQueryBackEnd:
                 request_url = '%s?%s' % (products_url, urlencode(request_par_dict))
         return request_url
 
-    def is_mail_to_send_run_completion(self, status):
+    def is_email_to_send_run_completion(self, status):
         # get total request duration
         if not self.public:
-            mail_sending_job_submitted = tokenHelper.get_token_user_submitted_email(self.decoded_token)
-            if mail_sending_job_submitted is None:
+            email_sending_job_submitted = tokenHelper.get_token_user_submitted_email(self.decoded_token)
+            if email_sending_job_submitted is None:
                 # in case this didn't come with the token take the default value
-                mail_sending_job_submitted = self.app.config.get('conf').mail_sending_job_submitted
+                email_sending_job_submitted = self.app.config.get('conf').email_sending_job_submitted
             # send submitted mail, status update
-            return mail_sending_job_submitted and status == 'submitted'
+            return email_sending_job_submitted and status == 'submitted'
 
         return False
 
@@ -1260,7 +1260,7 @@ class InstrumentQueryBackEnd:
                         query_new_status = 'submitted'
                         job.set_submitted()
                     # mail sending ?
-                    if self.is_mail_to_send_run_completion(query_new_status):
+                    if self.is_email_to_send_run_completion(query_new_status):
                         try:
                             request_url = '%s?%s' % (self.app.config.get('conf').products_url, urlencode(self.par_dic))
                             self.send_email('submitted',
