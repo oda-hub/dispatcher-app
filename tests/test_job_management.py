@@ -41,6 +41,52 @@ def test_callback_without_prior_run_analysis(dispatcher_live_fixture):
     assert c.status_code == 200
 
 
+def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_server):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    time_request = time.time()
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        # makes more sense to have it sent directly with the request,
+        # though it is not considered for the url encoding
+        # to confirm
+        time_request=time_request
+    )
+
+    # this should return status submitted, so email sent
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+
+    print("response from run_analysis:", json.dumps(c.json(), indent=4))
+
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert 'email_status' not in jdata['exit_status']
+
+    session_id = c.json()['session_id']
+    job_id = c.json()['job_monitor']['job_id']
+
+    c = requests.get(server + "/run_analysis",
+                     params=dict(
+                         query_status="ready",  # whether query is new or not, this should work
+                         query_type="Real",
+                         instrument="empty-async",
+                         product_type="dummy",
+                         async_dispatcher=False,
+                         session_id=session_id,
+                         job_id=job_id,
+                     ))
+
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert 'email_status' not in jdata['exit_status']
+
+
 def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_local_mail_server):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
 
