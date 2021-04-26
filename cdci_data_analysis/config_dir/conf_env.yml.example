@@ -46,8 +46,9 @@ dispatcher:
         mail_sending_timeout: True
         # amount of time (in seconds) elapsed from the issuing of the request,
         # that will trigger the email when the request is complete, if this time is exceeded
-        mail_sending_timeout_threshold: 1800
+        mail_sending_timeout_default_threshold: 1800
         # sending of an email when a request has been submitted
         mail_sending_job_submitted: True
+
 
 
