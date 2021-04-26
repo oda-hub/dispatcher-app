@@ -594,12 +594,11 @@ class InstrumentQueryBackEnd:
         duration_query = -1
         if self.time_request:
             duration_query = time_.time() - self.time_request
-        if self.token:
-            resp = self.validate_token_request_param()
-            if resp is not None:
-                self.logger.warning("query dismissed by token validation")
-                return resp
-
+        if not self.public:
+            # resp = self.validate_token_request_param()
+            # if resp is not None:
+            #     self.logger.warning("query dismissed by token validation")
+            #     return resp
             timeout_threshold_mail = tokenHelper.get_token_user_timeout_threshold_mail(self.decoded_token)
             if timeout_threshold_mail is None:
                 # set it to the a default value, from the configuration
