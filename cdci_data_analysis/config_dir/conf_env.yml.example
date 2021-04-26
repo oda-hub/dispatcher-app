@@ -33,7 +33,7 @@ dispatcher:
 
     # e-mail related configurations: a user might want to receive an eamil with an update of the status of the request in
     # some cases (e.g. the request has failed)
-    mail_options:
+    email_options:
         # the smtp server to use in order to actually send the email
         smtp_server: 'localhost'
         smtp_port: 1025
@@ -43,12 +43,12 @@ dispatcher:
         # list of address to be put in cc
         cc_receivers_mail: [ 'team@odahub.io' ]
         # enable the sending of an email when a request is ''done'', and this took long to complete
-        mail_sending_timeout: True
+        email_sending_timeout: True
         # amount of time (in seconds) elapsed from the issuing of the request,
         # that will trigger the email when the request is complete, if this time is exceeded
-        mail_sending_timeout_default_threshold: 1800
+        email_sending_timeout_default_threshold: 1800
         # sending of an email when a request has been submitted
-        mail_sending_job_submitted: True
+        email_sending_job_submitted: True
 
 
 

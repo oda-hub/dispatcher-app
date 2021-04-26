@@ -592,27 +592,35 @@ class InstrumentQueryBackEnd:
                 request_url = '%s?%s' % (products_url, urlencode(request_par_dict))
         return request_url
 
+    def is_email_to_send_run_completion(self, status):
+        # get total request duration
+        if not self.public:
+            email_sending_job_submitted = tokenHelper.get_token_user_submitted_email(self.decoded_token)
+            if email_sending_job_submitted is None:
+                # in case this didn't come with the token take the default value
+                email_sending_job_submitted = self.app.config.get('conf').email_sending_job_submitted
+            # send submitted mail, status update
+            return email_sending_job_submitted and status == 'submitted'
+
+        return False
+
     def is_email_to_send_callback(self, status):
         # get total request duration
         duration_query = -1
         if self.time_request:
             duration_query = time_.time() - self.time_request
         if not self.public:
-            # resp = self.validate_token_request_param()
-            # if resp is not None:
-            #     self.logger.warning("query dismissed by token validation")
-            #     return resp
-            timeout_threshold_mail = tokenHelper.get_token_user_timeout_threshold_mail(self.decoded_token)
-            if timeout_threshold_mail is None:
+            timeout_threshold_email = tokenHelper.get_token_user_timeout_threshold_email(self.decoded_token)
+            if timeout_threshold_email is None:
                 # set it to the a default value, from the configuration
-                timeout_threshold_mail = self.app.config.get('conf').mail_sending_timeout_threshold
-            timeout_mail_sending = tokenHelper.get_token_user_sending_timeout_mail(self.decoded_token)
-            if timeout_mail_sending is None:
-                timeout_mail_sending = self.app.config.get('conf').mail_sending_timeout
+                timeout_threshold_email = self.app.config.get('conf').email_sending_timeout_default_threshold
+            email_sending_timeout = tokenHelper.get_token_user_sending_timeout_email(self.decoded_token)
+            if email_sending_timeout is None:
+                email_sending_timeout = self.app.config.get('conf').email_sending_timeout
             # in case the request was long and 'done'
             # or if failed
             # or when the job was created ('submitted')
-            return (timeout_mail_sending and duration_query > timeout_threshold_mail and status == 'done') or status == 'failed'
+            return (email_sending_timeout and duration_query > timeout_threshold_email and status == 'done') or status == 'failed'
                    # or status == 'submitted'
 
         return False
@@ -1251,27 +1259,22 @@ class InstrumentQueryBackEnd:
                     else:
                         query_new_status = 'submitted'
                         job.set_submitted()
-                        mail_sending_job_submitted = tokenHelper.get_token_user_submitted_email(self.decoded_token)
-                        if mail_sending_job_submitted is None:
-                            # in case this didn't come with the token take the default value
-                            mail_sending_job_submitted = self.app.config.get('conf').email_sending_job_submitted
-                        # send submitted email
-                        if mail_sending_job_submitted:
-                            try:
-                                time_request = self.time_request
-                                request_url = '%s?%s' % (self.app.config.get('conf').products_url, urlencode(self.par_dic))
-                                self.send_email('submitted',
-                                                instrument=self.instrument.name,
-                                                time_request=time_request,
-                                                request_url=request_url)
-                                # store an additional information about the sent email
-                                query_out.set_status_field('email_status', 'email sent')
-                            except EMailNotSent as e:
-                                query_out.set_status_field('email_status', 'sending email failed')
-                                logging.warning(f'email sending failed: {e}')
-                                if self.sentry_client is not None:
-                                    self.sentry_client.capture('raven.events.Message',
-                                                               message=f'sending email failed: {e.message}')
+                    # mail sending ?
+                    if self.is_email_to_send_run_completion(query_new_status):
+                        try:
+                            request_url = '%s?%s' % (self.app.config.get('conf').products_url, urlencode(self.par_dic))
+                            self.send_email('submitted',
+                                            instrument=self.instrument.name,
+                                            time_request=self.time_request,
+                                            request_url=request_url)
+                            # store an additional information about the sent email
+                            query_out.set_status_field('email_status', 'email sent')
+                        except EMailNotSent as e:
+                            query_out.set_status_field('email_status', 'sending email failed')
+                            logging.warning(f'email sending failed: {e}')
+                            if self.sentry_client is not None:
+                                self.sentry_client.capture('raven.events.Message',
+                                                           message=f'sending email failed: {e.message}')
                 else:
                     query_new_status = 'failed'
                     job.set_failed()
