@@ -18,12 +18,12 @@ def get_token_user_email_address(decoded_token):
     return decoded_token['sub'] if 'sub' in decoded_token else ''
 
 
-def get_token_user_timeout_threshold_mail(decoded_token):
+def get_token_user_timeout_threshold_email(decoded_token):
     # extract user threshold
     return decoded_token['tem'] if 'tem' in decoded_token else ''
 
 
-def get_token_user_sending_timeout_mail(decoded_token):
+def get_token_user_sending_timeout_email(decoded_token):
     # extract user threshold
     return decoded_token['mstout'] if 'mstout' in decoded_token else None
 

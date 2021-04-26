@@ -225,14 +225,14 @@ class ConfigEnv(object):
                                      products_url,
                                      disp_dict['dispatcher_service_url'],
                                      disp_dict['secret_key'],
-                                     disp_dict['mail_options']['smtp_server'],
-                                     disp_dict['mail_options']['sender_mail'],
-                                     disp_dict['mail_options']['cc_receivers_mail'],
-                                     disp_dict['mail_options']['smtp_port'],
-                                     disp_dict['mail_options']['smtp_server_password'],
-                                     disp_dict['mail_options']['mail_sending_timeout'],
-                                     disp_dict['mail_options']['mail_sending_timeout_default_threshold'],
-                                     disp_dict['mail_options']['mail_sending_job_submitted']
+                                     disp_dict['email_options']['smtp_server'],
+                                     disp_dict['email_options']['sender_mail'],
+                                     disp_dict['email_options']['cc_receivers_mail'],
+                                     disp_dict['email_options']['smtp_port'],
+                                     disp_dict['email_options']['smtp_server_password'],
+                                     disp_dict['email_options']['email_sending_timeout'],
+                                     disp_dict['email_options']['email_sending_timeout_default_threshold'],
+                                     disp_dict['email_options']['email_sending_job_submitted']
                                      )
 
         # not used?
@@ -276,9 +276,9 @@ class ConfigEnv(object):
                             cc_receivers_mail,
                             smtp_port,
                             smtp_server_password,
-                            mail_sending_timeout,
-                            mail_sending_timeout_default_threshold,
-                            mail_sending_job_submitted
+                            email_sending_timeout,
+                            email_sending_timeout_default_threshold,
+                            email_sending_job_submitted
                             ):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
@@ -295,9 +295,9 @@ class ConfigEnv(object):
         self.cc_receivers_mail = cc_receivers_mail
         self.smtp_port = smtp_port
         self.smtp_server_password = smtp_server_password
-        self.mail_sending_timeout = mail_sending_timeout
-        self.mail_sending_timeout_default_threshold = mail_sending_timeout_default_threshold
-        self.mail_sending_job_submitted = mail_sending_job_submitted
+        self.email_sending_timeout = email_sending_timeout
+        self.email_sending_timeout_default_threshold = email_sending_timeout_default_threshold
+        self.email_sending_job_submitted = email_sending_job_submitted
 
     def get_data_serve_conf(self, instr_name):
         if instr_name in self.data_server_conf_dict.keys():

@@ -548,7 +548,7 @@ class InstrumentQueryBackEnd:
 
         logger.warn('-----> set status to %s', status)
 
-        if self.is_mail_to_send_callback(status):
+        if self.is_email_to_send_callback(status):
             try:
                 # build the products URL
                 request_url = self.generate_request_url_call_back(_.products_url, session_id, self.job_id)
@@ -604,27 +604,23 @@ class InstrumentQueryBackEnd:
 
         return False
 
-    def is_mail_to_send_callback(self, status):
+    def is_email_to_send_callback(self, status):
         # get total request duration
         duration_query = -1
         if self.time_request:
             duration_query = time_.time() - self.time_request
         if not self.public:
-            # resp = self.validate_token_request_param()
-            # if resp is not None:
-            #     self.logger.warning("query dismissed by token validation")
-            #     return resp
-            timeout_threshold_mail = tokenHelper.get_token_user_timeout_threshold_mail(self.decoded_token)
+            timeout_threshold_mail = tokenHelper.get_token_user_timeout_threshold_email(self.decoded_token)
             if timeout_threshold_mail is None:
                 # set it to the a default value, from the configuration
-                timeout_threshold_mail = self.app.config.get('conf').mail_sending_timeout_threshold
-            timeout_mail_sending = tokenHelper.get_token_user_sending_timeout_mail(self.decoded_token)
-            if timeout_mail_sending is None:
-                timeout_mail_sending = self.app.config.get('conf').mail_sending_timeout
+                timeout_threshold_mail = self.app.config.get('conf').email_sending_timeout_threshold
+            email_sending_timeout = tokenHelper.get_token_user_sending_timeout_email(self.decoded_token)
+            if email_sending_timeout is None:
+                email_sending_timeout = self.app.config.get('conf').email_sending_timeout
             # in case the request was long and 'done'
             # or if failed
             # or when the job was created ('submitted')
-            return (timeout_mail_sending and duration_query > timeout_threshold_mail and status == 'done') or status == 'failed'
+            return (email_sending_timeout and duration_query > timeout_threshold_mail and status == 'done') or status == 'failed'
                    # or status == 'submitted'
 
         return False
