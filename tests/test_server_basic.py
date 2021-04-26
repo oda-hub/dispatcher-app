@@ -146,15 +146,9 @@ def test_same_request_different_users(dispatcher_live_fixture):
 
     assert job_id_1 != job_id_2
 
-    job_monitor_json_fn_1 = f'scratch_sid_{session_id_1}_jid_{job_id_1}'
-    job_monitor_json_fn_2 = f'scratch_sid_{session_id_2}_jid_{job_id_2}'
-
-    assert os.path.exists(job_monitor_json_fn_1) and os.path.exists(job_monitor_json_fn_2)
-
-    dir_list_1 = glob.glob('*_jid_%s_aliased' % job_id_1)
-    assert len(dir_list_1) == 0
-    dir_list_2 = glob.glob('*_jid_%s_aliased' % job_id_2)
-    assert len(dir_list_2) == 0
+    dir_list_1 = glob.glob('*_jid_%s*' % job_id_1)
+    dir_list_2 = glob.glob('*_jid_%s*' % job_id_2)
+    assert len(dir_list_1) == len(dir_list_2)
 
 def test_valid_token(dispatcher_live_fixture):
     server = dispatcher_live_fixture

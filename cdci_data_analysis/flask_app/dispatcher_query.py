@@ -578,10 +578,13 @@ class InstrumentQueryBackEnd:
         job_monitor_status_json_file_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
         request_url = ""
         file = None
-        if os.path.exists(job_monitor_status_json_file):
-            file = open(job_monitor_status_json_file)
-        elif os.path.exists(job_monitor_status_json_file_aliased):
-            file = open(job_monitor_status_json_file_aliased)
+        if self.scratch_dir:
+            file = open(self.scratch_dir + '/query_output.json')
+        else:
+            if os.path.exists(job_monitor_status_json_file_aliased):
+                file = open(job_monitor_status_json_file_aliased)
+            elif os.path.exists(job_monitor_status_json_file):
+                file = open(job_monitor_status_json_file)
         if file:
             jdata = json.load(file)
             if 'prod_dictionary' in jdata and 'analysis_parameters' in jdata['prod_dictionary']:
