@@ -87,7 +87,8 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
     assert 'email_status' not in jdata['exit_status']
 
 
-def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_local_mail_server):
+@pytest.mark.parametrize("default_values", [True, False])
+def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_local_mail_server, default_values):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
 
     server = dispatcher_live_fixture
@@ -96,8 +97,14 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     # let's generate a valid token with high threshold
     token_payload = {
         **default_token_payload,
-        "tem": 0,
+        "tem": 0
     }
+
+    if default_values:
+        token_payload.pop('tem')
+        token_payload.pop('mstout')
+        token_payload.pop('mssub')
+
     # set the time the request was initiated
     time_request = time.time()
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
@@ -112,7 +119,6 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         # to confirm
         time_request=time_request
     )
-
 
     # this should return status submitted, so email sent
     c = requests.get(server + "/run_analysis",
@@ -221,31 +227,34 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         f = open(job_monitor_call_back_done_json_fn_aliased)
 
     jdata = json.load(f)
-    assert jdata['email_status'] == 'email sent'
-
-    # check the email in the log files
-    assert os.path.exists(smtp_server_log)
-    f_local_smtp = open(smtp_server_log)
-    f_local_smtp_jdata = json.load(f_local_smtp)
-    assert len(f_local_smtp_jdata) == 2
-    assert f_local_smtp_jdata[1]['mail_from'] == 'team@odahub.io'
-    assert f_local_smtp_jdata[1]['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io']
-    data_email = f_local_smtp_jdata[1]['data']
-    msg = email.message_from_string(data_email)
-    assert msg['Subject'] == 'Request update'
-    assert msg['From'] == 'team@odahub.io'
-    assert msg['To'] == 'mtm@mtmco.net'
-    assert msg['CC'] == ", ".join(['team@odahub.io'])
-    assert msg.is_multipart()
-    for part in msg.walk():
-        if part.get_content_type() == 'text/plain':
-            content_text_plain = part.get_payload().replace('\r', '').strip()
-            assert content_text_plain == plain_text_email.format(time_request_str=time_request_str, status="done",
-                                                                 request_url=request_url)
-        if part.get_content_type() == 'text/html':
-            content_text_html = part.get_payload().replace('\r', '').strip()
-            assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="done",
-                                                                 request_url=request_url)
+    if default_values:
+        # email not supposed to be sent (request is short)
+        assert 'email_status' not in jdata
+    else:
+        assert jdata['email_status'] == 'email sent'
+        # check the email in the log files
+        assert os.path.exists(smtp_server_log)
+        f_local_smtp = open(smtp_server_log)
+        f_local_smtp_jdata = json.load(f_local_smtp)
+        assert len(f_local_smtp_jdata) == 2
+        assert f_local_smtp_jdata[1]['mail_from'] == 'team@odahub.io'
+        assert f_local_smtp_jdata[1]['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io']
+        data_email = f_local_smtp_jdata[1]['data']
+        msg = email.message_from_string(data_email)
+        assert msg['Subject'] == 'Request update'
+        assert msg['From'] == 'team@odahub.io'
+        assert msg['To'] == 'mtm@mtmco.net'
+        assert msg['CC'] == ", ".join(['team@odahub.io'])
+        assert msg.is_multipart()
+        for part in msg.walk():
+            if part.get_content_type() == 'text/plain':
+                content_text_plain = part.get_payload().replace('\r', '').strip()
+                assert content_text_plain == plain_text_email.format(time_request_str=time_request_str, status="done",
+                                                                     request_url=request_url)
+            if part.get_content_type() == 'text/html':
+                content_text_html = part.get_payload().replace('\r', '').strip()
+                assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="done",
+                                                                   request_url=request_url)
 
     # this also triggers email (simulate a failed request)
     c = requests.get(server + "/call_back",
@@ -279,10 +288,16 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     assert os.path.exists(smtp_server_log)
     f_local_smtp = open(smtp_server_log)
     f_local_smtp_jdata = json.load(f_local_smtp)
-    assert len(f_local_smtp_jdata) == 3
-    assert f_local_smtp_jdata[2]['mail_from'] == 'team@odahub.io'
-    assert f_local_smtp_jdata[2]['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io']
-    data_email = f_local_smtp_jdata[2]['data']
+    if default_values:
+        assert len(f_local_smtp_jdata) == 2
+        assert f_local_smtp_jdata[1]['mail_from'] == 'team@odahub.io'
+        assert f_local_smtp_jdata[1]['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io']
+        data_email = f_local_smtp_jdata[1]['data']
+    else:
+        assert len(f_local_smtp_jdata) == 3
+        assert f_local_smtp_jdata[2]['mail_from'] == 'team@odahub.io'
+        assert f_local_smtp_jdata[2]['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io']
+        data_email = f_local_smtp_jdata[2]['data']
     msg = email.message_from_string(data_email)
     assert msg['Subject'] == 'Request update'
     assert msg['From'] == 'team@odahub.io'

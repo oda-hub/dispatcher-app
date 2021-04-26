@@ -20,7 +20,7 @@ def get_token_user_email_address(decoded_token):
 
 def get_token_user_timeout_threshold_email(decoded_token):
     # extract user threshold
-    return decoded_token['tem'] if 'tem' in decoded_token else ''
+    return decoded_token['tem'] if 'tem' in decoded_token else None
 
 
 def get_token_user_sending_timeout_email(decoded_token):

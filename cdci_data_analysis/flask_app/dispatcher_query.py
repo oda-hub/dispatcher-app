@@ -610,17 +610,17 @@ class InstrumentQueryBackEnd:
         if self.time_request:
             duration_query = time_.time() - self.time_request
         if not self.public:
-            timeout_threshold_mail = tokenHelper.get_token_user_timeout_threshold_email(self.decoded_token)
-            if timeout_threshold_mail is None:
+            timeout_threshold_email = tokenHelper.get_token_user_timeout_threshold_email(self.decoded_token)
+            if timeout_threshold_email is None:
                 # set it to the a default value, from the configuration
-                timeout_threshold_mail = self.app.config.get('conf').email_sending_timeout_threshold
+                timeout_threshold_email = self.app.config.get('conf').email_sending_timeout_default_threshold
             email_sending_timeout = tokenHelper.get_token_user_sending_timeout_email(self.decoded_token)
             if email_sending_timeout is None:
                 email_sending_timeout = self.app.config.get('conf').email_sending_timeout
             # in case the request was long and 'done'
             # or if failed
             # or when the job was created ('submitted')
-            return (email_sending_timeout and duration_query > timeout_threshold_mail and status == 'done') or status == 'failed'
+            return (email_sending_timeout and duration_query > timeout_threshold_email and status == 'done') or status == 'failed'
                    # or status == 'submitted'
 
         return False
