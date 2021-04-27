@@ -55,8 +55,9 @@ class Job(object):
     def __init__(self,
                  instrument_name,
                  work_dir,
-                 server_url,
-                 server_port,
+                 dispatcher_callback_url_base,
+                 dispatcher_host,
+                 dispatcher_port,
                  callback_handle,
                  file_name='job_monitor.json',
                  job_id=None,
@@ -79,8 +80,9 @@ class Job(object):
         self.instrument_name=instrument_name
         self.monitor={}
         self.callback_handle=callback_handle
-        self.server_url=server_url
-        self.server_port=server_port
+        self.dispatcher_callback_url_base = dispatcher_callback_url_base
+        self.dispatcher_host=dispatcher_host
+        self.dispatcher_port=dispatcher_port
         self._set_file_path(file_name=file_name,work_dir=work_dir)
         self.token=token
         self.time_request=time_request
@@ -194,6 +196,7 @@ class Job(object):
             my_json_str = json.dumps(self.monitor)
             outfile.write(u'%s' % my_json_str)
 
+    # TODO renamig get_dispatcher_call_back_url
     def get_call_back_url(self):
         # if self.server_port is None:
         #     url = f'{self.server_url}/{self.callback_handle}'
@@ -203,7 +206,7 @@ class Job(object):
         if self.dispatcher_callback_url_base is not None:
             url = f'{self.dispatcher_callback_url_base}/{self.callback_handle}'
         else:
-            url = f'http://{self.server_url}:{self.server_port}/{self.callback_handle}'
+            url = f'http://{self.dispatcher_host}:{self.dispatcher_port}/{self.callback_handle}'
 
 
         url += "?" + urlencode({ k:getattr(self, k) for k in [
@@ -222,8 +225,9 @@ class OsaJob(Job):
     def __init__(self,
                  instrument_name,
                  work_dir,
-                 server_url,
-                 server_port,
+                 dispatcher_callback_url_base,
+                 dispatcher_host,
+                 dispatcher_port,
                  callback_handle,
                  file_name='job_monitor.json',
                  job_id=None,
@@ -261,8 +265,9 @@ class OsaJob(Job):
 
         super(OsaJob, self).__init__(instrument_name,
                                   work_dir,
-                                  server_url,
-                                  server_port,
+                                  dispatcher_callback_url_base,
+                                  dispatcher_host,
+                                  dispatcher_port,
                                   callback_handle,
                                   file_name=file_name,
                                   job_id=job_id,
@@ -323,15 +328,16 @@ class OsaJob(Job):
         return self.monitor
 
 
-def job_factory(instrument_name, scratch_dir, server_url, dispatcher_port, session_id, job_id, par_dic, aliased=False, token=None, time_request=None):
+def job_factory(instrument_name, scratch_dir, dispatcher_host, dispatcher_port, dispatcher_callback_url_base, session_id, job_id, par_dic, aliased=False, token=None, time_request=None):
     osa_list = ['jemx', 'isgri', 'empty-async']
 
     if instrument_name in osa_list:
         j = OsaJob(
              instrument_name=instrument_name,
              work_dir=scratch_dir,
-             server_url=server_url,
-             server_port=dispatcher_port,
+             dispatcher_callback_url_base=dispatcher_callback_url_base,
+             dispatcher_host=dispatcher_host,
+             dispatcher_port=dispatcher_port,
              callback_handle='call_back',
              session_id=session_id,
              job_id=job_id,
@@ -344,8 +350,9 @@ def job_factory(instrument_name, scratch_dir, server_url, dispatcher_port, sessi
         j = Job(
              instrument_name=instrument_name,
              work_dir=scratch_dir,
-             server_url=server_url,
-             server_port=dispatcher_port,
+             dispatcher_callback_url_base=dispatcher_callback_url_base,
+             dispatcher_host=dispatcher_host,
+             dispatcher_port=dispatcher_port,
              callback_handle='call_back',
              session_id=session_id,
              job_id=job_id,
