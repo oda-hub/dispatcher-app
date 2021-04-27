@@ -136,9 +136,36 @@ def dispatcher_local_mail_server_subprocess(pytestconfig):
     kill_child_processes(p.pid, signal.SIGKILL)
     os.kill(p.pid, signal.SIGKILL)
 
+@pytest.fixture
+def dispatcher_test_conf(tmpdir):
+    fn = os.path.join(tmpdir, "test-dispatcher-conf.yaml")
+    with open(fn, "w") as f:
+        f.write("""
+dispatcher:
+    dummy_cache: dummy-cache
+    products_url: http://www.astro.unige.ch/cdci/astrooda_
+    dispatcher_url: 0.0.0.0
+    dispatcher_port: 8001
+    dispatcher_service_url: http://localhost:8001
+    sentry_url: "https://2ba7e5918358439485632251fa73658c@sentry.io/1467382"
+    logstash_host: 10.194.169.75
+    logstash_port: 5001
+    secret_key: 'secretkey_test'
+    email_options:
+        smtp_server: 'localhost'
+        sender_mail: 'team@odahub.io'
+        cc_receivers_mail: ['team@odahub.io']
+        smtp_port: 1025
+        smtp_server_password: ''
+        email_sending_timeout: True
+        email_sending_timeout_default_threshold: 1800
+        email_sending_job_submitted: True
+    """)
+
+    yield fn
 
 @pytest.fixture
-def dispatcher_live_fixture(pytestconfig):
+def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf):
     import subprocess
     import os
     import copy
@@ -149,12 +176,21 @@ def dispatcher_live_fixture(pytestconfig):
     print(("rootdir", str(pytestconfig.rootdir)))
     env['PYTHONPATH'] = str(pytestconfig.rootdir) + ":" + str(pytestconfig.rootdir) + "/tests:" + env.get('PYTHONPATH', "")
     print(("pythonpath", env['PYTHONPATH']))
+
+    fn = os.path.join(__this_dir__, "../bin/run_osa_cdci_server.py")
+    if os.path.exists(fn):
+        cmd = [
+                 "python", 
+                 fn
+              ]
+    else:
+        cmd = [
+                 "run_osa_cdci_server.py"
+              ]
         
-    cmd = [ 
-            "python", 
-            os.path.join(__this_dir__, "../bin/run_osa_cdci_server.py"),
+    cmd += [ 
             "-d",
-            "-conf_file", os.path.join(__this_dir__, "../tests/test-conf.yaml"),
+            "-conf_file", dispatcher_test_conf,
             "-debug",
             #"-use_gunicorn" should not be used, as current implementation of follow_output is specific to flask development server
           ] 
@@ -211,4 +247,5 @@ def dispatcher_live_fixture(pytestconfig):
     import os,signal
     kill_child_processes(p.pid,signal.SIGKILL)
     os.kill(p.pid, signal.SIGKILL)
+
 
