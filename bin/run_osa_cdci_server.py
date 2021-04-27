@@ -88,8 +88,8 @@ def main(argv=None):
 
     if use_gunicorn is True:
         # let's use the bind options configuration
-        dispatcher_bind_host = conf.bind_options.bind_host
-        dispatcher_bind_port = conf.bind_options.bind_port
+        dispatcher_bind_host = conf.bind_host
+        dispatcher_bind_port = conf.bind_port
         # dispatcher_url = conf.dispatcher_url
         # port = conf.dispatcher_port
 
