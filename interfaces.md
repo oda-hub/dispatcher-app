@@ -83,7 +83,8 @@ Example, showing minimal required set of fields in token payload:
   "roles": "magic,antares",
   "exp": 1613662947,
   "iss": "drupal",
-  "iat": 1613662847
+  "iat": 1613662847,
+  "tem": 1800
 }
 ```
 
@@ -99,6 +100,7 @@ Where "sub" field is unique user identified, defined as email.
 | issued-at | iat | ? |
 | issued-dy | iss | none |
 | audience, issued-for | aud | none |
+| email timeout | tem | none |
 
 Specific sites may specify more roles, as needed.
 
