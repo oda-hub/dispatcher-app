@@ -133,8 +133,8 @@ def dispatcher_local_mail_server_subprocess(pytestconfig):
     print("will stop local mail server")
     print(("child:", p.pid))
     import os, signal
-    kill_child_processes(p.pid, signal.SIGKILL)
-    os.kill(p.pid, signal.SIGKILL)
+    kill_child_processes(p.pid, signal.SIGTERM)
+    os.kill(p.pid, signal.SIGTERM)
 
 @pytest.fixture
 def dispatcher_test_conf(tmpdir):
@@ -191,7 +191,7 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf):
     cmd += [ 
             "-d",
             "-conf_file", dispatcher_test_conf,
-            "-debug",
+            #"-debug",
             #"-use_gunicorn" should not be used, as current implementation of follow_output is specific to flask development server
           ] 
 
@@ -245,7 +245,7 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf):
 
     print(("child:",p.pid))
     import os,signal
-    kill_child_processes(p.pid,signal.SIGKILL)
-    os.kill(p.pid, signal.SIGKILL)
+    kill_child_processes(p.pid,signal.SIGTERM)
+    os.kill(p.pid, signal.SIGTERM)
 
 
