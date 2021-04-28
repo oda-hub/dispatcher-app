@@ -534,9 +534,9 @@ class InstrumentQueryBackEnd:
     def run_call_back(self, status_kw_name='action') -> typing.Tuple[str, typing.Union[QueryOutput, None]]:
         query_out = None
 
-        _, self.config_data_server = self.set_config()
-        if _.sentry_url is not None:
-            self.set_sentry_client(_.sentry_url)
+        self.config, self.config_data_server = self.set_config()
+        if self.config.sentry_url is not None:
+            self.set_sentry_client(self.config.sentry_url)
         session_id = self.par_dic['session_id']
         instrument_name = self.par_dic.get('instrument_name', '')
         job = job_factory(instrument_name,
@@ -757,9 +757,9 @@ class InstrumentQueryBackEnd:
 
     def set_config(self):
         if getattr(self, 'config', None) is None:
-            self.config = self.app.config.get('conf')
-
-        config = self.config
+            config = self.app.config.get('conf')
+        else:
+            config = self.config
 
         disp_data_server_conf_dict = config.get_data_server_conf_dict(self.instrument_name)
 
@@ -1038,7 +1038,8 @@ class InstrumentQueryBackEnd:
             if config.sentry_url is not None:
                 self.set_sentry_client(config.sentry_url)
 
-            self._dispatcher_callback_url_base = config.dispatcher_callback_url_base
+            self.config = config
+
 
     def run_query(self, off_line=False, disp_conf=None):
         """
