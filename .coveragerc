@@ -1,0 +1,5 @@
+[run]
+
+source = cdci_data_analysis
+
+parallel = True
