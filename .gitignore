@@ -38,4 +38,5 @@ jdata.json
 /tests/data/dummy_prods/query_catalog.fits
 /tests/local_smtp_log
 .coverage.*
+.coverage
 *,cover
