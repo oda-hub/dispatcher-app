@@ -1,8 +1,6 @@
 dispatcher:
     dummy_cache: dummy-cache
     products_url: http://www.astro.unige.ch/cdci/astrooda_
-    dispatcher_host: 0.0.0.0
-    dispatcher_port: 8001
     dispatcher_callback_url_base: http://localhost:8001
     sentry_url: "https://2ba7e5918358439485632251fa73658c@sentry.io/1467382"
     logstash_host: 10.194.169.75

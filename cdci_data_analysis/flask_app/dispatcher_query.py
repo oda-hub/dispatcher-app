@@ -524,12 +524,12 @@ class InstrumentQueryBackEnd:
     @property
     def dispatcher_host(self):
         return getattr(self, '_dispatcher_host',
-                       getattr(self.config, 'dispatcher_host', None))
+                       getattr(self.config, 'bind_host', None))
 
     @property
     def dispatcher_port(self):
         return getattr(self, '_dispatcher_port',
-                       getattr(self.config, 'dispatcher_port', None))
+                       getattr(self.config, 'bind_port', None))
 
     def run_call_back(self, status_kw_name='action') -> typing.Tuple[str, typing.Union[QueryOutput, None]]:
         query_out = None
@@ -757,9 +757,9 @@ class InstrumentQueryBackEnd:
 
     def set_config(self):
         if getattr(self, 'config', None) is None:
-            config = self.app.config.get('conf')
-        else:
-            config = self.config
+            self.config = self.app.config.get('conf')
+
+        config = self.config
 
         disp_data_server_conf_dict = config.get_data_server_conf_dict(self.instrument_name)
 
@@ -1024,7 +1024,7 @@ class InstrumentQueryBackEnd:
             config, self.config_data_server = self.set_config()
             self.logger.info(
                 'loading config: %s config_data_server: %s', config, self.config_data_server)
-            self.logger.info('dispatcher port %s', config.dispatcher_port)
+            self.logger.info('dispatcher port %s', config.bind_port)
         except Exception as e:
             self.logger.error("problem setting config %s", e)
 
