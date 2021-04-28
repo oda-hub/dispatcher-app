@@ -6,14 +6,11 @@ dispatcher:
     # base for persistent urls for resulting product, should coincide with ingress for frontend
     # necessary 
     products_url: https://www.astro.unige.ch/cdci/astrooda_ 
-    
-    # for dispatcher to to bind, inside container please use 0.0.0.0, port should coincide with those in chart (TODO: try to avoid redundancy)
-    # necessary
-    dispatcher_url: 0.0.0.0 
 
-    # legacy, outdated
-    dispatcher_port: 8000 
-    
+    # base to build up the callback url for the various back-end to call-back the dispatcher
+    # might be also not known and in that case the bind options will be used
+    dispatcher_callback_url_base: http://localhost:8001
+
     # register on sentry.io and  put here url for reporting issues!
     # optional, but should be enforcable in "strict" mode
     sentry_url:
@@ -23,17 +20,19 @@ dispatcher:
     logstash_host: 
     logstash_port: 
     
-    # should coincide with those in chart, used backend interface calling back the dispatcher
-    # TODO: try to avoid redundancy
-    # necessary only for dda backend in some requests, otherwise optional. may be enforcable
-    dispatcher_service_url: http://oda-dispatcher:8000 
-
     # used for token validation
     secret_key:  YOUR_VERY_OWN_SECRET_KEY
 
+    # where the dispatcher binds, will be used for the flask app at start-up
+    # host and port are well distinguished for clarity
+    # necessary
+    bind_options:
+        bind_host: 0.0.0.0
+        bind_port: 8001
+
     # e-mail related configurations: a user might want to receive an eamil with an update of the status of the request in
     # some cases (e.g. the request has failed)
-    mail_options:
+    email_options:
         # the smtp server to use in order to actually send the email
         smtp_server: 'localhost'
         smtp_port: 1025
@@ -43,11 +42,12 @@ dispatcher:
         # list of address to be put in cc
         cc_receivers_mail: [ 'team@odahub.io' ]
         # enable the sending of an email when a request is ''done'', and this took long to complete
-        mail_sending_timeout: True
+        email_sending_timeout: True
         # amount of time (in seconds) elapsed from the issuing of the request,
         # that will trigger the email when the request is complete, if this time is exceeded
-        mail_sending_timeout_threshold: 1800
+        email_sending_timeout_default_threshold: 1800
         # sending of an email when a request has been submitted
-        mail_sending_job_submitted: True
+        email_sending_job_submitted: True
+
 
 

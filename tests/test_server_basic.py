@@ -68,6 +68,7 @@ def test_empty_request(dispatcher_live_fixture):
      # parameterize this
     assert jdata['installed_instruments'] == ['empty', 'empty-async', 'isgri', 'jemx', 'osa_fake', 'spi_acs'] or \
            jdata['installed_instruments'] == ['empty', 'empty-async', 'spi_acs'] or \
+           jdata['installed_instruments'] == ['empty', 'empty-async'] or \
            jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"
@@ -149,6 +150,7 @@ def test_same_request_different_users(dispatcher_live_fixture):
     dir_list_1 = glob.glob('*_jid_%s*' % job_id_1)
     dir_list_2 = glob.glob('*_jid_%s*' % job_id_2)
     assert len(dir_list_1) == len(dir_list_2)
+
 
 def test_valid_token(dispatcher_live_fixture):
     server = dispatcher_live_fixture
@@ -628,6 +630,4 @@ def test_isgri_image_random_emax(dispatcher_live_fixture):
     # let's make the request public for simplicity
     params.pop('token')
     jdata, tspent = loop_ask(server, params)
-
-
 

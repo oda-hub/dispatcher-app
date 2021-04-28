@@ -517,22 +517,33 @@ class InstrumentQueryBackEnd:
         return jsonify(_l)
 
     @property
-    def dispatcher_service_url(self):
-        return getattr(self, '_dispatcher_service_url',
-                       getattr(self.config, 'dispatcher_service_url', None))
+    def dispatcher_callback_url_base(self):
+        return getattr(self, '_dispatcher_callback_url_base',
+                       getattr(self.config, 'dispatcher_callback_url_base', None))
+
+    @property
+    def dispatcher_host(self):
+        return getattr(self, '_dispatcher_host',
+                       getattr(self.config, 'bind_host', None))
+
+    @property
+    def dispatcher_port(self):
+        return getattr(self, '_dispatcher_port',
+                       getattr(self.config, 'bind_port', None))
 
     def run_call_back(self, status_kw_name='action') -> typing.Tuple[str, typing.Union[QueryOutput, None]]:
         query_out = None
 
-        _, self.config_data_server = self.set_config()
-        if _.sentry_url is not None:
-            self.set_sentry_client(_.sentry_url)
+        self.config, self.config_data_server = self.set_config()
+        if self.config.sentry_url is not None:
+            self.set_sentry_client(self.config.sentry_url)
         session_id = self.par_dic['session_id']
         instrument_name = self.par_dic.get('instrument_name', '')
         job = job_factory(instrument_name,
                           self.scratch_dir,
-                          self.dispatcher_service_url,
-                          None,
+                          self.dispatcher_host,
+                          self.dispatcher_port,
+                          self.dispatcher_callback_url_base,
                           self.par_dic['session_id'],
                           self.job_id,
                           self.par_dic,
@@ -551,7 +562,7 @@ class InstrumentQueryBackEnd:
         if self.is_email_to_send_callback(status):
             try:
                 # build the products URL
-                request_url = self.generate_request_url_call_back(_.products_url, session_id, self.job_id)
+                request_url = self.generate_request_url_call_back(self.config.products_url, session_id, self.job_id)
                 self.send_email(status,
                                 instrument=instrument_name,
                                 time_request=self.time_request,
@@ -570,7 +581,6 @@ class InstrumentQueryBackEnd:
         else:
             job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
 
-        return status, query_out
 
     def generate_request_url_call_back(self, products_url, session_id, job_id) -> str:
         job_monitor_status_json_file = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
@@ -592,27 +602,35 @@ class InstrumentQueryBackEnd:
                 request_url = '%s?%s' % (products_url, urlencode(request_par_dict))
         return request_url
 
+    def is_email_to_send_run_completion(self, status):
+        # get total request duration
+        if not self.public:
+            email_sending_job_submitted = tokenHelper.get_token_user_submitted_email(self.decoded_token)
+            if email_sending_job_submitted is None:
+                # in case this didn't come with the token take the default value
+                email_sending_job_submitted = self.app.config.get('conf').email_sending_job_submitted
+            # send submitted mail, status update
+            return email_sending_job_submitted and status == 'submitted'
+
+        return False
+
     def is_email_to_send_callback(self, status):
         # get total request duration
         duration_query = -1
         if self.time_request:
             duration_query = time_.time() - self.time_request
         if not self.public:
-            # resp = self.validate_token_request_param()
-            # if resp is not None:
-            #     self.logger.warning("query dismissed by token validation")
-            #     return resp
-            timeout_threshold_mail = tokenHelper.get_token_user_timeout_threshold_mail(self.decoded_token)
-            if timeout_threshold_mail is None:
+            timeout_threshold_email = tokenHelper.get_token_user_timeout_threshold_email(self.decoded_token)
+            if timeout_threshold_email is None:
                 # set it to the a default value, from the configuration
-                timeout_threshold_mail = self.app.config.get('conf').mail_sending_timeout_threshold
-            timeout_mail_sending = tokenHelper.get_token_user_sending_timeout_mail(self.decoded_token)
-            if timeout_mail_sending is None:
-                timeout_mail_sending = self.app.config.get('conf').mail_sending_timeout
+                timeout_threshold_email = self.app.config.get('conf').email_sending_timeout_default_threshold
+            email_sending_timeout = tokenHelper.get_token_user_sending_timeout_email(self.decoded_token)
+            if email_sending_timeout is None:
+                email_sending_timeout = self.app.config.get('conf').email_sending_timeout
             # in case the request was long and 'done'
             # or if failed
             # or when the job was created ('submitted')
-            return (timeout_mail_sending and duration_query > timeout_threshold_mail and status == 'done') or status == 'failed'
+            return (email_sending_timeout and duration_query > timeout_threshold_email and status == 'done') or status == 'failed'
                    # or status == 'submitted'
 
         return False
@@ -850,8 +868,9 @@ class InstrumentQueryBackEnd:
     def build_job(self):
         return job_factory(self.instrument_name,
                            self.scratch_dir,
-                           self.dispatcher_service_url,
-                           None,
+                           self.dispatcher_host,
+                           self.dispatcher_port,
+                           self.dispatcher_callback_url_base,
                            self.par_dic['session_id'],
                            self.job_id,
                            self.par_dic,
@@ -977,7 +996,7 @@ class InstrumentQueryBackEnd:
 
         # TODO: here we might as well query from minio etc, but only if ready
         r = tasks.request_dispatcher.apply_async(
-            args=[self.dispatcher_service_url + "/run_analysis"], 
+            args=[self.dispatcher_callback_url_base + "/run_analysis"],
             kwargs={**self.par_dic, 'async_dispatcher': False}
         )
         self.logger.info("submitted celery job with pars %s", self.par_dic)
@@ -1004,7 +1023,7 @@ class InstrumentQueryBackEnd:
             config, self.config_data_server = self.set_config()
             self.logger.info(
                 'loading config: %s config_data_server: %s', config, self.config_data_server)
-            self.logger.info('dispatcher port %s', config.dispatcher_port)
+            self.logger.info('dispatcher port %s', config.bind_port)
         except Exception as e:
             self.logger.error("problem setting config %s", e)
 
@@ -1018,7 +1037,8 @@ class InstrumentQueryBackEnd:
             if config.sentry_url is not None:
                 self.set_sentry_client(config.sentry_url)
 
-            self._dispatcher_service_url = config.dispatcher_service_url
+            self.config = config
+
 
     def run_query(self, off_line=False, disp_conf=None):
         """
@@ -1112,8 +1132,9 @@ class InstrumentQueryBackEnd:
         self.logger.info('--> is job aliased? : %s', job_is_aliased)
         job = job_factory(self.instrument_name,
                           self.scratch_dir,
-                          self.dispatcher_service_url,
-                          None,
+                          self.dispatcher_host,
+                          self.dispatcher_port,
+                          self.dispatcher_callback_url_base,
                           self.par_dic['session_id'],
                           self.job_id,
                           self.par_dic,
@@ -1251,27 +1272,22 @@ class InstrumentQueryBackEnd:
                     else:
                         query_new_status = 'submitted'
                         job.set_submitted()
-                        mail_sending_job_submitted = tokenHelper.get_token_user_submitted_email(self.decoded_token)
-                        if mail_sending_job_submitted is None:
-                            # in case this didn't come with the token take the default value
-                            mail_sending_job_submitted = self.app.config.get('conf').email_sending_job_submitted
-                        # send submitted email
-                        if mail_sending_job_submitted:
-                            try:
-                                time_request = self.time_request
-                                request_url = '%s?%s' % (self.app.config.get('conf').products_url, urlencode(self.par_dic))
-                                self.send_email('submitted',
-                                                instrument=self.instrument.name,
-                                                time_request=time_request,
-                                                request_url=request_url)
-                                # store an additional information about the sent email
-                                query_out.set_status_field('email_status', 'email sent')
-                            except EMailNotSent as e:
-                                query_out.set_status_field('email_status', 'sending email failed')
-                                logging.warning(f'email sending failed: {e}')
-                                if self.sentry_client is not None:
-                                    self.sentry_client.capture('raven.events.Message',
-                                                               message=f'sending email failed: {e.message}')
+                    # mail sending ?
+                    if self.is_email_to_send_run_completion(query_new_status):
+                        try:
+                            request_url = '%s?%s' % (self.app.config.get('conf').products_url, urlencode(self.par_dic))
+                            self.send_email('submitted',
+                                            instrument=self.instrument.name,
+                                            time_request=self.time_request,
+                                            request_url=request_url)
+                            # store an additional information about the sent email
+                            query_out.set_status_field('email_status', 'email sent')
+                        except EMailNotSent as e:
+                            query_out.set_status_field('email_status', 'sending email failed')
+                            logging.warning(f'email sending failed: {e}')
+                            if self.sentry_client is not None:
+                                self.sentry_client.capture('raven.events.Message',
+                                                           message=f'sending email failed: {e.message}')
                 else:
                     query_new_status = 'failed'
                     job.set_failed()
@@ -1371,16 +1387,16 @@ class InstrumentQueryBackEnd:
             # test with the local server
             smtp_server = self.app.config.get('conf').smtp_server
             port = self.app.config.get('conf').smtp_port
-            sender_email = self.app.config.get('conf').sender_mail
-            cc_receivers_mail = self.app.config.get('conf').cc_receivers_mail
-            receiver_email = tokenHelper.get_token_user_email_address(self.decoded_token)
-            receivers_email = [receiver_email] + cc_receivers_mail
+            sender_email_address = self.app.config.get('conf').sender_email_address
+            cc_receivers_email_addresses = self.app.config.get('conf').cc_receivers_email_addresses
+            receiver_email_address = tokenHelper.get_token_user_email_address(self.decoded_token)
+            receivers_email_addresses = [receiver_email_address] + cc_receivers_email_addresses
             # creation of the message
             message = MIMEMultipart("alternative")
             message["Subject"] = "Request update"
-            message["From"] = sender_email
-            message["To"] = receiver_email
-            message["CC"] = ", ".join(cc_receivers_mail)
+            message["From"] = sender_email_address
+            message["To"] = receiver_email_address
+            message["CC"] = ", ".join(cc_receivers_email_addresses)
 
             # Create the plain-text and HTML version of your message,
             # since enails with HTML content might be, sometimes, not supportenot
@@ -1403,8 +1419,8 @@ class InstrumentQueryBackEnd:
             if smtp_server != "localhost":
                 server.starttls(context=context)
             if smtp_server_password is not None and smtp_server_password != '':
-                server.login(sender_email, smtp_server_password)
-            server.sendmail(sender_email, receivers_email, message.as_string())
+                server.login(sender_email_address, smtp_server_password)
+            server.sendmail(sender_email_address, receivers_email_addresses, message.as_string())
         except Exception as e:
             self.logger.error(f'Exception while sending email: {e}')
             raise EMailNotSent(f"email not sent {e}")
