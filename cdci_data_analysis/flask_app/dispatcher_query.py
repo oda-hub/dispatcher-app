@@ -517,22 +517,33 @@ class InstrumentQueryBackEnd:
         return jsonify(_l)
 
     @property
-    def dispatcher_service_url(self):
-        return getattr(self, '_dispatcher_service_url',
-                       getattr(self.config, 'dispatcher_service_url', None))
+    def dispatcher_callback_url_base(self):
+        return getattr(self, '_dispatcher_callback_url_base',
+                       getattr(self.config, 'dispatcher_callback_url_base', None))
+
+    @property
+    def dispatcher_host(self):
+        return getattr(self, '_dispatcher_host',
+                       getattr(self.config, 'bind_host', None))
+
+    @property
+    def dispatcher_port(self):
+        return getattr(self, '_dispatcher_port',
+                       getattr(self.config, 'bind_port', None))
 
     def run_call_back(self, status_kw_name='action') -> typing.Tuple[str, typing.Union[QueryOutput, None]]:
         query_out = None
 
-        _, self.config_data_server = self.set_config()
-        if _.sentry_url is not None:
-            self.set_sentry_client(_.sentry_url)
+        self.config, self.config_data_server = self.set_config()
+        if self.config.sentry_url is not None:
+            self.set_sentry_client(self.config.sentry_url)
         session_id = self.par_dic['session_id']
         instrument_name = self.par_dic.get('instrument_name', '')
         job = job_factory(instrument_name,
                           self.scratch_dir,
-                          self.dispatcher_service_url,
-                          None,
+                          self.dispatcher_host,
+                          self.dispatcher_port,
+                          self.dispatcher_callback_url_base,
                           self.par_dic['session_id'],
                           self.job_id,
                           self.par_dic,
@@ -551,7 +562,7 @@ class InstrumentQueryBackEnd:
         if self.is_email_to_send_callback(status):
             try:
                 # build the products URL
-                request_url = self.generate_request_url_call_back(_.products_url, session_id, self.job_id)
+                request_url = self.generate_request_url_call_back(self.config.products_url, session_id, self.job_id)
                 self.send_email(status,
                                 instrument=instrument_name,
                                 time_request=self.time_request,
@@ -858,8 +869,9 @@ class InstrumentQueryBackEnd:
     def build_job(self):
         return job_factory(self.instrument_name,
                            self.scratch_dir,
-                           self.dispatcher_service_url,
-                           None,
+                           self.dispatcher_host,
+                           self.dispatcher_port,
+                           self.dispatcher_callback_url_base,
                            self.par_dic['session_id'],
                            self.job_id,
                            self.par_dic,
@@ -985,7 +997,7 @@ class InstrumentQueryBackEnd:
 
         # TODO: here we might as well query from minio etc, but only if ready
         r = tasks.request_dispatcher.apply_async(
-            args=[self.dispatcher_service_url + "/run_analysis"], 
+            args=[self.dispatcher_callback_url_base + "/run_analysis"],
             kwargs={**self.par_dic, 'async_dispatcher': False}
         )
         self.logger.info("submitted celery job with pars %s", self.par_dic)
@@ -1012,7 +1024,7 @@ class InstrumentQueryBackEnd:
             config, self.config_data_server = self.set_config()
             self.logger.info(
                 'loading config: %s config_data_server: %s', config, self.config_data_server)
-            self.logger.info('dispatcher port %s', config.dispatcher_port)
+            self.logger.info('dispatcher port %s', config.bind_port)
         except Exception as e:
             self.logger.error("problem setting config %s", e)
 
@@ -1026,7 +1038,8 @@ class InstrumentQueryBackEnd:
             if config.sentry_url is not None:
                 self.set_sentry_client(config.sentry_url)
 
-            self._dispatcher_service_url = config.dispatcher_service_url
+            self.config = config
+
 
     def run_query(self, off_line=False, disp_conf=None):
         """
@@ -1120,8 +1133,9 @@ class InstrumentQueryBackEnd:
         self.logger.info('--> is job aliased? : %s', job_is_aliased)
         job = job_factory(self.instrument_name,
                           self.scratch_dir,
-                          self.dispatcher_service_url,
-                          None,
+                          self.dispatcher_host,
+                          self.dispatcher_port,
+                          self.dispatcher_callback_url_base,
                           self.par_dic['session_id'],
                           self.job_id,
                           self.par_dic,
@@ -1374,16 +1388,16 @@ class InstrumentQueryBackEnd:
             # test with the local server
             smtp_server = self.app.config.get('conf').smtp_server
             port = self.app.config.get('conf').smtp_port
-            sender_email = self.app.config.get('conf').sender_mail
-            cc_receivers_mail = self.app.config.get('conf').cc_receivers_mail
-            receiver_email = tokenHelper.get_token_user_email_address(self.decoded_token)
-            receivers_email = [receiver_email] + cc_receivers_mail
+            sender_email_address = self.app.config.get('conf').sender_email_address
+            cc_receivers_email_addresses = self.app.config.get('conf').cc_receivers_email_addresses
+            receiver_email_address = tokenHelper.get_token_user_email_address(self.decoded_token)
+            receivers_email_addresses = [receiver_email_address] + cc_receivers_email_addresses
             # creation of the message
             message = MIMEMultipart("alternative")
             message["Subject"] = "Request update"
-            message["From"] = sender_email
-            message["To"] = receiver_email
-            message["CC"] = ", ".join(cc_receivers_mail)
+            message["From"] = sender_email_address
+            message["To"] = receiver_email_address
+            message["CC"] = ", ".join(cc_receivers_email_addresses)
 
             # Create the plain-text and HTML version of your message,
             # since enails with HTML content might be, sometimes, not supportenot
@@ -1406,8 +1420,8 @@ class InstrumentQueryBackEnd:
             if smtp_server != "localhost":
                 server.starttls(context=context)
             if smtp_server_password is not None and smtp_server_password != '':
-                server.login(sender_email, smtp_server_password)
-            server.sendmail(sender_email, receivers_email, message.as_string())
+                server.login(sender_email_address, smtp_server_password)
+            server.sendmail(sender_email_address, receivers_email_addresses, message.as_string())
         except Exception as e:
             self.logger.error(f'Exception while sending email: {e}')
             raise EMailNotSent(f"email not sent {e}")

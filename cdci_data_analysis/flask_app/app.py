@@ -434,7 +434,7 @@ def conf_app(conf):
 
 def run_app(conf, debug=False, threaded=False):
     conf_app(conf)
-    app.run(host=conf.dispatcher_url, port=conf.dispatcher_port,
+    app.run(host=conf.bind_host, port=conf.bind_port,
             debug=debug, threaded=threaded)
 
 

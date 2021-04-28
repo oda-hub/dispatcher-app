@@ -1,3 +1,0 @@
-# I propose to remove this file in favor of a fixture with similar name
-# fixture can be constructed and written more easily, without current dir joining
-# also it can be imported elsewhere more easily
