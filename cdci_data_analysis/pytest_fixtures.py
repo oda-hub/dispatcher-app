@@ -191,7 +191,7 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf):
     cmd += [ 
             "-d",
             "-conf_file", dispatcher_test_conf,
-            #"-debug",
+            "-debug",
             #"-use_gunicorn" should not be used, as current implementation of follow_output is specific to flask development server
           ] 
 
