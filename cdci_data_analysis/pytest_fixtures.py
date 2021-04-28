@@ -1,6 +1,7 @@
 # this could be a separate package or/and a pytest plugin
 
 from json import JSONDecodeError
+import yaml
 
 import pytest
 
@@ -37,7 +38,7 @@ def dispatcher_local_mail_server(pytestconfig, dispatcher_test_conf):
     from aiosmtpd.controller import Controller
 
     class CustomController(Controller):
-        def __init__(self, id, handler, hostname='127.0.0.1', port=dispatcher_test_conf['email_options']['smtp_port'):
+        def __init__(self, id, handler, hostname='127.0.0.1', port=dispatcher_test_conf['email_options']['smtp_port']):
             self.id = id
             super().__init__(handler, hostname=hostname, port=port)
 
@@ -82,7 +83,7 @@ def dispatcher_local_mail_server(pytestconfig, dispatcher_test_conf):
     if not os.path.exists('local_smtp_log'):
         os.makedirs('local_smtp_log')
     handler = CustomHandler(f'local_smtp_log/{id}_local_smtp_output.json')
-    controller = CustomController(id, handler, hostname='127.0.0.1', port=dispatcher_test_conf['email_options']['smtp_port')
+    controller = CustomController(id, handler, hostname='127.0.0.1', port=dispatcher_test_conf['email_options']['smtp_port'])
     # Run the event loop in a separate thread
     controller.start()
 
@@ -136,10 +137,6 @@ def dispatcher_local_mail_server_subprocess(pytestconfig, dispatcher_test_conf):
     kill_child_processes(p.pid, signal.SIGINT)
     os.kill(p.pid, signal.SIGINT)
 
-@pytest.fixture
-def dispatcher_test_conf(dispatcher_test_conf_fn):
-    yield yaml.load(open(dispatcher_test_conf_fn))
-
 
 @pytest.fixture
 def dispatcher_test_conf_fn(tmpdir):
@@ -168,6 +165,10 @@ dispatcher:
     """)
 
     yield fn
+
+@pytest.fixture
+def dispatcher_test_conf(dispatcher_test_conf_fn):
+    yield yaml.load(open(dispatcher_test_conf_fn))['dispatcher']
 
 @pytest.fixture
 def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn):
