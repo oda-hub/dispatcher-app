@@ -562,7 +562,7 @@ class InstrumentQueryBackEnd:
         if self.is_email_to_send_callback(status):
             try:
                 # build the products URL
-                request_url = self.generate_request_url_call_back(_.products_url, session_id, self.job_id)
+                request_url = self.generate_request_url_call_back(self.config.products_url, session_id, self.job_id)
                 self.send_email(status,
                                 instrument=instrument_name,
                                 time_request=self.time_request,
