@@ -37,7 +37,7 @@ def dispatcher_local_mail_server(pytestconfig):
     from aiosmtpd.controller import Controller
 
     class CustomController(Controller):
-        def __init__(self, id, handler, hostname='127.0.0.1', port=1025):
+        def __init__(self, id, handler, hostname='127.0.0.1', port=61025):
             self.id = id
             super().__init__(handler, hostname=hostname, port=port)
 
