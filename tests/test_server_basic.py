@@ -631,5 +631,3 @@ def test_isgri_image_random_emax(dispatcher_live_fixture):
     params.pop('token')
     jdata, tspent = loop_ask(server, params)
 
-
-
