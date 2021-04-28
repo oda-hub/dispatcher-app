@@ -108,9 +108,10 @@ def dispatcher_local_mail_server_subprocess(pytestconfig, dispatcher_test_conf):
 
     cmd = [
         "python",
-        " -m smtpd",
-        "-c DebuggingServer",
-        f"-n localhost:{dispatcher_test_conf['email_options']['smtp_port']}"
+        "-m", "smtpd",
+        "-c", "DebuggingServer",
+        "-n", 
+        f"localhost:{dispatcher_test_conf['email_options']['smtp_port']}"
     ]
 
     p = subprocess.Popen(
