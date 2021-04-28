@@ -1,6 +1,7 @@
 # this could be a separate package or/and a pytest plugin
 
 from json import JSONDecodeError
+import yaml
 
 import pytest
 
@@ -16,7 +17,7 @@ import random
 __this_dir__ = os.path.join(os.path.abspath(os.path.dirname(__file__)))
 
 import signal, psutil
-def kill_child_processes(parent_pid, sig=signal.SIGTERM):
+def kill_child_processes(parent_pid, sig=signal.SIGINT):
     try:
         parent = psutil.Process(parent_pid)
         children = parent.children(recursive=True)
@@ -33,11 +34,11 @@ def app():
 
 
 @pytest.fixture
-def dispatcher_local_mail_server(pytestconfig):
+def dispatcher_local_mail_server(pytestconfig, dispatcher_test_conf):
     from aiosmtpd.controller import Controller
 
     class CustomController(Controller):
-        def __init__(self, id, handler, hostname='127.0.0.1', port=1025):
+        def __init__(self, id, handler, hostname='127.0.0.1', port=dispatcher_test_conf['email_options']['smtp_port']):
             self.id = id
             super().__init__(handler, hostname=hostname, port=port)
 
@@ -82,7 +83,7 @@ def dispatcher_local_mail_server(pytestconfig):
     if not os.path.exists('local_smtp_log'):
         os.makedirs('local_smtp_log')
     handler = CustomHandler(f'local_smtp_log/{id}_local_smtp_output.json')
-    controller = CustomController(id, handler, hostname='127.0.0.1', port=1025)
+    controller = CustomController(id, handler, hostname='127.0.0.1', port=dispatcher_test_conf['email_options']['smtp_port'])
     # Run the event loop in a separate thread
     controller.start()
 
@@ -93,7 +94,7 @@ def dispatcher_local_mail_server(pytestconfig):
 
 
 @pytest.fixture
-def dispatcher_local_mail_server_subprocess(pytestconfig):
+def dispatcher_local_mail_server_subprocess(pytestconfig, dispatcher_test_conf):
     import subprocess
     import os
     import copy
@@ -107,9 +108,10 @@ def dispatcher_local_mail_server_subprocess(pytestconfig):
 
     cmd = [
         "python",
-        " -m smtpd",
-        "-c DebuggingServer",
-        "-n localhost:1025"
+        "-m", "smtpd",
+        "-c", "DebuggingServer",
+        "-n", 
+        f"localhost:{dispatcher_test_conf['email_options']['smtp_port']}"
     ]
 
     p = subprocess.Popen(
@@ -133,11 +135,12 @@ def dispatcher_local_mail_server_subprocess(pytestconfig):
     print("will stop local mail server")
     print(("child:", p.pid))
     import os, signal
-    kill_child_processes(p.pid, signal.SIGKILL)
-    os.kill(p.pid, signal.SIGKILL)
+    kill_child_processes(p.pid, signal.SIGINT)
+    os.kill(p.pid, signal.SIGINT)
+
 
 @pytest.fixture
-def dispatcher_test_conf(tmpdir):
+def dispatcher_test_conf_fn(tmpdir):
     fn = os.path.join(tmpdir, "test-dispatcher-conf.yaml")
     with open(fn, "w") as f:
         f.write("""
@@ -156,7 +159,7 @@ dispatcher:
         smtp_server: 'localhost'
         sender_email_address: 'team@odahub.io'
         cc_receivers_email_addresses: ['team@odahub.io']
-        smtp_port: 1025
+        smtp_port: 61025
         smtp_server_password: ''
         email_sending_timeout: True
         email_sending_timeout_default_threshold: 1800
@@ -166,7 +169,11 @@ dispatcher:
     yield fn
 
 @pytest.fixture
-def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf):
+def dispatcher_test_conf(dispatcher_test_conf_fn):
+    yield yaml.load(open(dispatcher_test_conf_fn))['dispatcher']
+
+@pytest.fixture
+def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn):
     import subprocess
     import os
     import copy
@@ -191,7 +198,7 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf):
         
     cmd += [ 
             "-d",
-            "-conf_file", dispatcher_test_conf,
+            "-conf_file", dispatcher_test_conf_fn,
             "-debug",
             #"-use_gunicorn" should not be used, as current implementation of follow_output is specific to flask development server
           ] 
@@ -246,7 +253,7 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf):
 
     print(("child:",p.pid))
     import os,signal
-    kill_child_processes(p.pid,signal.SIGKILL)
-    os.kill(p.pid, signal.SIGKILL)
+    kill_child_processes(p.pid,signal.SIGINT)
+    os.kill(p.pid, signal.SIGINT)
 
 
