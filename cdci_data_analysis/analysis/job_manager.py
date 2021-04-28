@@ -298,7 +298,8 @@ class OsaJob(Job):
                             progress = True
                             n_progress += 1
 
-            except Exception as e:
+            except Exception:
+                #TODO add sentry here
                 self.set_unaccessible()
 
         print(f"found {n_progress} PROGRESS entries in {len(job_files_list)} job_files ({work_dir}/job_monitor*.json)")

@@ -570,7 +570,6 @@ class InstrumentQueryBackEnd:
         else:
             job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
 
-        return status, query_out
 
     def generate_request_url_call_back(self, products_url, session_id, job_id) -> str:
         job_monitor_status_json_file = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
