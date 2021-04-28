@@ -7,11 +7,8 @@ dispatcher:
     # necessary 
     products_url: https://www.astro.unige.ch/cdci/astrooda_ 
 
-    # for dispatcher to bind with the plugins
-    # necessary
-    dispatcher_host: 0.0.0.0
-    dispatcher_port: 8001
-    # base to build up the callback url for the various plugins
+    # base to build up the callback url for the various back-end to call-back the dispatcher
+    # might be also not known and in that case the bind options will be used
     dispatcher_callback_url_base: http://localhost:8001
 
     # register on sentry.io and  put here url for reporting issues!
@@ -23,14 +20,11 @@ dispatcher:
     logstash_host: 
     logstash_port: 
     
-    # should coincide with those in chart, used backend interface calling back the dispatcher
-    # TODO: try to avoid redundancy
-    # necessary only for dda backend in some requests, otherwise optional. may be enforcable
-
     # used for token validation
     secret_key:  YOUR_VERY_OWN_SECRET_KEY
 
-    # to start the flask app, host and port are well distinguished for clarity
+    # where the dispatcher binds, will be used for the flask app at start-up
+    # host and port are well distinguished for clarity
     # necessary
     bind_options:
         bind_host: 0.0.0.0

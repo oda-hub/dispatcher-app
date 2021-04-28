@@ -1038,7 +1038,7 @@ class InstrumentQueryBackEnd:
             if config.sentry_url is not None:
                 self.set_sentry_client(config.sentry_url)
 
-            self._dispatcher_service_url = config.dispatcher_callback_url_base
+            self._dispatcher_callback_url_base = config.dispatcher_callback_url_base
 
     def run_query(self, off_line=False, disp_conf=None):
         """
