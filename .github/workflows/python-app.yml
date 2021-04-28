@@ -48,9 +48,10 @@ jobs:
 
     - name: Test with pytest
       run: |
-        export COVERAGE_PROCESS_START=$PWD/.coveragerc
-        touch $COVERAGE_PROCESS_START # it needs an empty file at least
+        export COVERAGE_PROCESS_START=$PWD/.coveragerc # let's just provide the
         python -m coverage run --source=cdci_data_analysis -m pytest tests -sv --full-trace --log-cli-level=DEBUG -m 'not isgri_plugin and not dda'
+        python -m coverage combine
+        python -m coverage report 
 
     # I wonder how this interacts with the Github App. But this is not only for PR. Also this does not always work
     - name: Codecov
