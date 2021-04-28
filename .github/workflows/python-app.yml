@@ -25,7 +25,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 pytest mypy pylint coverage
+        pip install flake8 pytest mypy pylint pytest-cov
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install . --upgrade
         pip install --upgrade git+https://github.com/oda-hub/dispatcher-plugin-integral-all-sky.git
