@@ -63,7 +63,9 @@ class Job(object):
                  session_id=None,
                  status='unaccessible',
                  status_kw_name='action',
-                 aliased=False):
+                 aliased=False,
+                 token=None,
+                 time_request=None):
 
         #if aliased is False:
         #
@@ -80,6 +82,8 @@ class Job(object):
         self.server_url=server_url
         self.server_port=server_port
         self._set_file_path(file_name=file_name,work_dir=work_dir)
+        self.token=token
+        self.time_request=time_request
 
         #self.job_id=job_id
         #self.session_id=session_id
@@ -95,7 +99,6 @@ class Job(object):
         self.monitor['job_id']=job_id
         self.monitor['session_id'] = session_id
         self.monitor['status']=status
-
 
     def _set_file_path(self,file_name,work_dir):
         self._file_path=FilePath(file_dir=work_dir,file_name=file_name)
@@ -115,9 +118,6 @@ class Job(object):
     @property
     def session_id(self):
         return self.monitor['session_id']
-
-
-
 
     @property
     def file_path(self):
@@ -160,7 +160,6 @@ class Job(object):
     def get_status(self):
         return self.monitor['status']
 
-
     def updated_dataserver_monitor(self,):
         # TODO: combine all files
 
@@ -176,7 +175,7 @@ class Job(object):
 
         return self.monitor
 
-    def write_dataserver_status(self,status_dictionary_value=None,full_dict=None):
+    def write_dataserver_status(self, status_dictionary_value=None, full_dict=None, email_status=None):
         # TODO: write to specific name coming for call_back
 
         if status_dictionary_value is None:
@@ -184,17 +183,16 @@ class Job(object):
         else:
             self.monitor['status'] = status_dictionary_value
 
+        if email_status is not None:
+            self.monitor['email_status'] = email_status
+
         #print('writing job status to job_monitor', self.monitor['status'])
         if full_dict is not None:
             self.monitor['full_report_dict'] = full_dict
 
-        with open(self.file_path, 'w')  as outfile:
-            #print ("=====> writing to ",self.file_path)
+        with open(self.file_path, 'w') as outfile:
             my_json_str = json.dumps(self.monitor)
-            # if isinstance(my_json_str, str):
             outfile.write(u'%s' % my_json_str)
-
-
 
     def get_call_back_url(self):
         if self.server_port is None:
@@ -203,7 +201,8 @@ class Job(object):
             url = f'http://{self.server_url}:{self.server_port}/{self.callback_handle}'
 
         url += "?" + urlencode({ k:getattr(self, k) for k in [
-                "session_id", "job_id", "work_dir", "file_name", "instrument_name"
+                "session_id", "job_id", "work_dir", "file_name", "instrument_name",
+                "token", "time_request"
             ]})
 
         url += '&progressing'
@@ -226,7 +225,9 @@ class OsaJob(Job):
                  status='unaccessible',
                  status_kw_name='action',
                  par_dic=None,
-                 aliased=False):
+                 aliased=False,
+                 token=None,
+                 time_request=None):
 
         file_id=None
         file_message=None
@@ -252,8 +253,6 @@ class OsaJob(Job):
         if file_flag !='':
             file_name = 'job_monitor%s_.json' %file_flag
 
-
-
         super(OsaJob, self).__init__(instrument_name,
                                   work_dir,
                                   server_url,
@@ -264,7 +263,9 @@ class OsaJob(Job):
                                   session_id=session_id,
                                   status=status,
                                   status_kw_name=status_kw_name,
-                                  aliased=aliased)
+                                  aliased=aliased,
+                                  token=token,
+                                  time_request=time_request)
 
     def updated_dataserver_monitor(self,work_dir=None):
         if work_dir is None:
@@ -311,15 +312,13 @@ class OsaJob(Job):
         if job_failed == True:
             self.monitor['status'] = 'failed'
 
-
         self.monitor['full_report_dict_list']=full_report_dict_list
         print('\033[32mfinal status', self.monitor['status'], '\033[0m')
-        return  self.monitor
+        return self.monitor
 
 
-
-def job_factory(instrument_name, scratch_dir, server_url, dispatcher_port, session_id, job_id, par_dic, aliased=False):
-    osa_list = ['jemx','isgri']
+def job_factory(instrument_name, scratch_dir, server_url, dispatcher_port, session_id, job_id, par_dic, aliased=False, token=None, time_request=None):
+    osa_list = ['jemx', 'isgri', 'empty-async']
 
     if instrument_name in osa_list:
         j = OsaJob(
@@ -331,7 +330,10 @@ def job_factory(instrument_name, scratch_dir, server_url, dispatcher_port, sessi
              session_id=session_id,
              job_id=job_id,
              par_dic=par_dic,
-             aliased=aliased)
+             aliased=aliased,
+             token=token,
+             time_request=time_request)
+
     else:
         j = Job(
              instrument_name=instrument_name,
@@ -341,6 +343,8 @@ def job_factory(instrument_name, scratch_dir, server_url, dispatcher_port, sessi
              callback_handle='call_back',
              session_id=session_id,
              job_id=job_id,
-             aliased=aliased)
+             aliased=aliased,
+             token=token,
+             time_request=time_request)
 
     return j

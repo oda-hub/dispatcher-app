@@ -25,9 +25,11 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 pytest pytest-cov mypy pylint
+        pip install flake8 pytest mypy pylint coverage
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install . --upgrade
+        pip install --upgrade git+https://github.com/oda-hub/dispatcher-plugin-integral-all-sky.git
+        ls -lotRr /opt/hostedtoolcache/Python/*/x64/lib/*/site-packages/dispatcher_plugin_integral_all_sky/
 
     - name: Lint with flake8
       run: |
@@ -46,7 +48,7 @@ jobs:
 
     - name: Test with pytest
       run: |
-        pytest  tests/test_server_basic.py -sv --full-trace --log-cli-level=DEBUG -m 'not isgri_plugin and not dda'  --cov=./
+        python -m coverage run --source=cdci_data_analysis -m pytest tests -sv --full-trace --log-cli-level=DEBUG -m 'not isgri_plugin and not dda'
 
     # I wonder how this interacts with the Github App. But this is not only for PR. Also this does not always work
     - name: Codecov

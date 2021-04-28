@@ -13,6 +13,8 @@ import traceback
 
 from collections import Counter, OrderedDict
 import copy
+
+import logging
 from werkzeug.utils import secure_filename
 
 import os
@@ -22,18 +24,23 @@ import random
 from raven.contrib.flask import Sentry
 
 from flask import jsonify, send_from_directory, redirect
-from flask import Flask, request
+from flask import Flask, request, g
+from urllib.parse import urlencode
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import email
+import time as time_
 
-import json
 import tempfile
 import tarfile
 import gzip
-import logging
 import socket
 import logstash
 import hashlib
 import typing
 import jwt
+import smtplib
+import ssl
 
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
@@ -47,8 +54,6 @@ from ..analysis.plot_tools import Image
 from ..analysis.exceptions import BadRequest, APIerror, MissingParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut
 from . import tasks
 from oda_api.data_products import NumpyDataProduct
-import time as time_
-
 import oda_api
 
 logger = logging.getLogger(__name__)
@@ -63,6 +68,10 @@ class InstrumentNotRecognized(BadRequest):
 
 
 class MissingRequestParameter(BadRequest):
+    pass
+
+
+class EMailNotSent(BadRequest):
     pass
 
 
@@ -116,17 +125,27 @@ class InstrumentQueryBackEnd:
 
             self.set_session_id()
 
+            self.time_request = None
+            if 'time_request' in self.par_dic:
+                self.time_request = float(self.par_dic['time_request'])
+                self.par_dic.pop('time_request')
+            else:
+                self.time_request = g.get('request_start_time', None)
+
             # By default, a request is public, let's now check if a token has been included
             # In that case, validation is needed
             self.public = True
-
             self.token = None
             self.decoded_token = None
-            # if 'public' in self.par_dic:
-            #     self.public = self.par_dic['public'] in ['true', 'True']
             if 'token' in self.par_dic.keys() and self.par_dic['token'] != "":
                 self.token = self.par_dic['token']
                 self.public = False
+                # token validation and decoding can be done here, to check if the token is expired
+                try:
+                    if self.validate_query_from_token():
+                        pass
+                except jwt.exceptions.ExpiredSignatureError as e:
+                    raise RequestNotAuthorized("token expired")
 
             if get_meta_data:
                 self.logger.info("get_meta_data request")
@@ -145,7 +164,10 @@ class InstrumentQueryBackEnd:
                 #    raise MissingRequestParameter('no query_status!')
 
                 if data_server_call_back is True:
-                    self.job_id = self.par_dic['job_id']
+                    self.job_id = None
+                    if 'job_id' in self.par_dic:
+                        self.job_id = self.par_dic['job_id']
+
                 else:
                     query_status = self.par_dic['query_status']
                     self.job_id = None
@@ -213,7 +235,7 @@ class InstrumentQueryBackEnd:
         return format_hash(json.dumps(o))
 
     # not job_id??
-    def generate_job_id(self, kw_black_list=['session_id', 'job_id']):
+    def generate_job_id(self, kw_black_list=['session_id', 'job_id', 'token']):
         self.logger.info("\033[31m---> GENERATING JOB ID <---\033[0m")
         self.logger.info(
             "\033[31m---> new job id for %s <---\033[0m", self.par_dic)
@@ -230,6 +252,9 @@ class InstrumentQueryBackEnd:
             k: v for k, v in self.par_dic.items()
             if k not in kw_black_list
         })
+        if not self.public:
+            # token has not been considered, but the user id will be (if availaable)
+            _dict['sub'] = tokenHelper.get_token_user_email_address(self.decoded_token)
 
         self.job_id = u'%s' % (self.make_hash(_dict))
 
@@ -492,26 +517,106 @@ class InstrumentQueryBackEnd:
             query_out.set_query_exception(e, 'run_call_back failed in %s' % self.__class__.__name__,
                                           extra_message='configuration failed')
 
-        job = job_factory(self.par_dic['instrument_name'],
+        _, self.config_data_server = self.set_config()
+        if _.sentry_url is not None:
+            self.set_sentry_client(_.sentry_url)
+        session_id = self.par_dic['session_id']
+        instrument_name = self.par_dic.get('instrument_name', '')
+        job = job_factory(instrument_name,
                           self.scratch_dir,
                           self.dispatcher_service_url,
                           None,
                           self.par_dic['session_id'],
                           self.job_id,
-                          self.par_dic)
+                          self.par_dic,
+                          self.token)
 
         self.logger.info("%s.run_call_back with args %s", self, self.par_dic)
+        self.logger.info("%s.run_call_back built job %s", self, job)
 
         if job.status_kw_name in self.par_dic.keys():
             status = self.par_dic[job.status_kw_name]
         else:
             status = 'unknown'
+            
         self.logger.info(f'-----> set status to {status}')
 
-        job.write_dataserver_status(
-            status_dictionary_value=status, full_dict=self.par_dic)
+        if self.is_email_to_send_callback(status):
+            try:
+                # build the products URL
+                request_url = self.generate_request_url_call_back(_.products_url, session_id, self.job_id)
+                self.send_email(status,
+                                instrument=instrument_name,
+                                time_request=self.time_request,
+                                request_url=request_url)
+                job.write_dataserver_status(status_dictionary_value=status,
+                                            full_dict=self.par_dic,
+                                            email_status='email sent')
+            except EMailNotSent as e:
+                job.write_dataserver_status(status_dictionary_value=status,
+                                            full_dict=self.par_dic,
+                                            email_status='sending email failed')
+                logging.warning(f'email sending failed: {e}')
+                if self.sentry_client is not None:
+                    self.sentry_client.capture('raven.events.Message',
+                                               message=f'sending email failed {e}')
+        else:
+            job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
 
-        return status
+        return status, query_out
+
+    def generate_request_url_call_back(self, products_url, session_id, job_id) -> str:
+        job_monitor_status_json_file = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
+        # to be handled now, with the job_id generated taking into account only the user_id
+        job_monitor_status_json_file_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
+        request_url = ""
+        file = None
+        if self.scratch_dir:
+            file = open(self.scratch_dir + '/query_output.json')
+        else:
+            if os.path.exists(job_monitor_status_json_file_aliased):
+                file = open(job_monitor_status_json_file_aliased)
+            elif os.path.exists(job_monitor_status_json_file):
+                file = open(job_monitor_status_json_file)
+        if file:
+            jdata = json.load(file)
+            if 'prod_dictionary' in jdata and 'analysis_parameters' in jdata['prod_dictionary']:
+                request_par_dict = jdata['prod_dictionary']['analysis_parameters']
+                request_url = '%s?%s' % (products_url, urlencode(request_par_dict))
+        return request_url
+
+    def is_email_to_send_run_completion(self, status):
+        # get total request duration
+        if not self.public:
+            email_sending_job_submitted = tokenHelper.get_token_user_submitted_email(self.decoded_token)
+            if email_sending_job_submitted is None:
+                # in case this didn't come with the token take the default value
+                email_sending_job_submitted = self.app.config.get('conf').email_sending_job_submitted
+            # send submitted mail, status update
+            return email_sending_job_submitted and status == 'submitted'
+
+        return False
+
+    def is_email_to_send_callback(self, status):
+        # get total request duration
+        duration_query = -1
+        if self.time_request:
+            duration_query = time_.time() - self.time_request
+        if not self.public:
+            timeout_threshold_email = tokenHelper.get_token_user_timeout_threshold_email(self.decoded_token)
+            if timeout_threshold_email is None:
+                # set it to the a default value, from the configuration
+                timeout_threshold_email = self.app.config.get('conf').email_sending_timeout_default_threshold
+            email_sending_timeout = tokenHelper.get_token_user_sending_timeout_email(self.decoded_token)
+            if email_sending_timeout is None:
+                email_sending_timeout = self.app.config.get('conf').email_sending_timeout
+            # in case the request was long and 'done'
+            # or if failed
+            # or when the job was created ('submitted')
+            return (email_sending_timeout and duration_query > timeout_threshold_email and status == 'done') or status == 'failed'
+                   # or status == 'submitted'
+
+        return False
 
     def run_query_mock(self, off_line=False):
 
@@ -644,9 +749,15 @@ class InstrumentQueryBackEnd:
 
         disp_data_server_conf_dict = config.get_data_server_conf_dict(self.instrument_name)
 
-        if disp_data_server_conf_dict is None and self.instrument is not None and not isinstance(self.instrument, str):
-            disp_data_server_conf_dict = self.instrument.data_server_conf_dict
+        # instrument may be not set in callback call
 
+        instrument = getattr(self, 'instrument', None)
+        
+        if disp_data_server_conf_dict is None:
+            if instrument is not None and not isinstance(instrument, str):
+                logger.debug('provided instrument type %s', type(instrument))
+                disp_data_server_conf_dict = self.instrument.data_server_conf_dict
+            
         logger.debug('--> App configuration for: %s', self.instrument_name)
         if disp_data_server_conf_dict is not None:
             if 'data_server' in disp_data_server_conf_dict.keys():
@@ -723,7 +834,7 @@ class InstrumentQueryBackEnd:
 
         return None  # it's good
 
-    def validate_query_from_token(self,):
+    def validate_query_from_token(self):
         """
         read base64 token
         decide if it is valid
@@ -773,16 +884,18 @@ class InstrumentQueryBackEnd:
                                               api=self.api)
         return resp
 
-    def validate_token_request_param(self, ):
+    def validate_token_request_param(self):
         # if the request is public then authorize it, because the token is not there
         if self.public:
             return None
 
         if self.token is not None:
             try:
-                validate = self.validate_query_from_token()
-                if validate:
-                    pass
+                if self.validate_query_from_token():
+                    return None
+                else:
+                    # in case the token is not valid returns an empty object
+                    return {}
             except jwt.exceptions.ExpiredSignatureError as e:
                 # expired token
                 return self.build_response_failed('oda_api permissions failed', 'token expired')
@@ -793,49 +906,6 @@ class InstrumentQueryBackEnd:
             self.logger.warning('==> NO TOKEN FOUND IN PARS')
             return self.build_response_failed('oda_api token is needed',
                                               'you do not have permissions for this query, contact oda')
-
-        try:
-            query_status = self.par_dic['query_status']
-        except Exception as e:
-            query_out = QueryOutput()
-            query_out.set_query_exception(e,
-                                          'validate_token  failed in %s' % self.__class__.__name__,
-                                          extra_message='token validation failed unexplicably')
-            return query_out
-
-        return None
-
-    def validate_token_env_var(self, off_line=False, disp_conf=None, api=False) -> typing.Union[None, QueryOutput]:
-        if os.environ.get('DISPATCHER_ENFORCE_TOKEN', 'no') != 'yes': #TODO to config!
-            self.logger.info('dispatcher not configured to enforce token!')
-            return 
-
-        if 'token' in self.par_dic.keys():
-            token = self.par_dic['token']
-            if token is not None:
-                validate = self.validate_query_from_token(token)
-                if validate is True:
-                    pass
-                else:
-                    return self.build_response_failed('oda_api permissions failed', 
-                                                      'you do not have permissions for this query, contact oda')
-
-        else:
-            self.logger.warning('==> NO TOKEN FOUND IN PARS')
-
-            return self.build_response_failed('oda_api token is needed', 
-                                              'you do not have permissions for this query, contact oda')
-
-        try:
-            query_status = self.par_dic['query_status']
-        except Exception as e:
-            query_out = QueryOutput()
-            query_out.set_query_exception(e,
-                                          'validate_token  failed in %s' % self.__class__.__name__,
-                                          extra_message='token validation failed unexplicably')
-            return query_out
-
-        return None
 
     @property
     def query_log_dir(self):
@@ -990,11 +1060,10 @@ class InstrumentQueryBackEnd:
         except KeyError as e:
             raise MissingRequestParameter(repr(e))
 
-        # resp = self.validate_token_env_var()
-        resp = self.validate_token_request_param()
-        if resp is not None:
-            self.logger.warning("query dismissed by token validation")
-            return resp
+        # resp = self.validate_token_request_param()
+        # if resp is not None:
+        #     self.logger.warning("query dismissed by token validation")
+        #     return resp
 
         if self.par_dic.pop('instrumet', None) is not None:
             self.logger.warning("someone is sending instrume(N!)ts?")
@@ -1041,7 +1110,7 @@ class InstrumentQueryBackEnd:
         if self.instrument.asynch == False:
             run_asynch = False
 
-        if alias_workdir is not None and run_asynch == True:
+        if alias_workdir is not None and run_asynch:
             job_is_aliased = True
 
         self.logger.info('--> is job aliased? : %s', job_is_aliased)
@@ -1052,7 +1121,8 @@ class InstrumentQueryBackEnd:
                           self.par_dic['session_id'],
                           self.job_id,
                           self.par_dic,
-                          aliased=job_is_aliased)
+                          aliased=job_is_aliased,
+                          token=self.token)
 
         job_monitor = job.monitor
 
@@ -1184,6 +1254,22 @@ class InstrumentQueryBackEnd:
                     else:
                         query_new_status = 'submitted'
                         job.set_submitted()
+                    # mail sending ?
+                    if self.is_email_to_send_run_completion(query_new_status):
+                        try:
+                            request_url = '%s?%s' % (self.app.config.get('conf').products_url, urlencode(self.par_dic))
+                            self.send_email('submitted',
+                                            instrument=self.instrument.name,
+                                            time_request=self.time_request,
+                                            request_url=request_url)
+                            # store an additional information about the sent email
+                            query_out.set_status_field('email_status', 'email sent')
+                        except EMailNotSent as e:
+                            query_out.set_status_field('email_status', 'sending email failed')
+                            logging.warning(f'email sending failed: {e}')
+                            if self.sentry_client is not None:
+                                self.sentry_client.capture('raven.events.Message',
+                                                           message=f'sending email failed: {e.message}')
                 else:
                     query_new_status = 'failed'
                     job.set_failed()
@@ -1264,8 +1350,63 @@ class InstrumentQueryBackEnd:
                                               job_monitor=job_monitor,
                                               off_line=off_line,
                                               api=api)
-
         return resp
+
+    def send_email(self, status="done",
+                   instrument="",
+                   time_request="",
+                   request_url=""):
+        server = None
+        self.logger.info("Sending email")
+        time_request_str = ""
+        if time_request != "":
+            time_request_str = time_.strftime('%Y-%m-%d %H:%M:%S', time_.localtime(float(time_request)))
+        try:
+            # send the mail with the status update to the mail provided with the token
+            # eg done/failed/submitted
+            # test with the local server
+            smtp_server = self.app.config.get('conf').smtp_server
+            port = self.app.config.get('conf').smtp_port
+            sender_email = self.app.config.get('conf').sender_mail
+            cc_receivers_mail = self.app.config.get('conf').cc_receivers_mail
+            receiver_email = tokenHelper.get_token_user_email_address(self.decoded_token)
+            receivers_email = [receiver_email] + cc_receivers_mail
+            # creation of the message
+            message = MIMEMultipart("alternative")
+            message["Subject"] = "Request update"
+            message["From"] = sender_email
+            message["To"] = receiver_email
+            message["CC"] = ", ".join(cc_receivers_mail)
+
+            # Create the plain-text and HTML version of your message,
+            # since enails with HTML content might be, sometimes, not supportenot
+            # a plain-text version is included
+            text = f"""Update of the task submitted at {time_request_str}, for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
+            html = f"""<html><body><p>Update of the task submitted at {time_request_str}, for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+
+            part1 = MIMEText(text, "plain")
+            part2 = MIMEText(html, "html")
+            message.attach(part1)
+            message.attach(part2)
+
+            smtp_server_password = self.app.config.get('conf').smtp_server_password
+            # Create a secure SSL context
+            context = ssl.create_default_context()
+            #
+            # Try to log in to server and send email
+            server = smtplib.SMTP(smtp_server, port)
+            # just for testing purposes, not ssl is established
+            if smtp_server != "localhost":
+                server.starttls(context=context)
+            if smtp_server_password is not None and smtp_server_password != '':
+                server.login(sender_email, smtp_server_password)
+            server.sendmail(sender_email, receivers_email, message.as_string())
+        except Exception as e:
+            self.logger.error(f'Exception while sending email: {e}')
+            raise EMailNotSent(f"email not sent {e}")
+        finally:
+            if server:
+                server.quit()
 
     def async_dispatcher_query(self, query_status: str) -> tuple:
         self.logger.info("async dispatcher enabled, for %s", query_status)

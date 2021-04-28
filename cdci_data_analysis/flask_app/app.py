@@ -20,7 +20,7 @@ from raven.contrib.flask import Sentry
 import traceback
 
 from flask import jsonify, send_from_directory, redirect, Response
-from flask import Flask, request, make_response, abort
+from flask import Flask, request, make_response, abort, g
 from flask.json import JSONEncoder
 from flask_restx import Api, Resource, reqparse
 
@@ -74,6 +74,11 @@ api = Api(app=app, version='1.0', title='CDCI ODA API',
 
 
 ns_conf = api.namespace('api/v1.0/oda', description='api')
+
+
+@app.before_request
+def before_request():
+    g.request_start_time = _time.time()
 
 
 @app.route("/api/meta-data")
@@ -201,7 +206,9 @@ def common_exception_payload():
 
     if payload['debug_mode'] == "yes":
         payload['config'] = {
-            'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),  ['sentry_url', 'logstash_host', 'logstash_port', 'secret_key'])
+            'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),
+                                                    ['sentry_url', 'logstash_host', 'logstash_port', 'secret_key',
+                                                     'smtp_server_password'])
         }
 
     plugins = {}
@@ -234,7 +241,8 @@ def run_analysis():
             description: 'something in request not understood - missing, unexpected values'
     """
     try:
-        t0 = _time.time()
+        # t0 = _time.time()
+        t0 = g.request_start_time
         query = InstrumentQueryBackEnd(app)
         r = query.run_query(disp_conf=app.config['conf'])
         logger.info("run_analysis for %s took %g seconds", request.args.get(
@@ -268,6 +276,7 @@ def dataserver_call_back():
     #app.logger.disabled = True
     print('===========================> dataserver_call_back')
     query = InstrumentQueryBackEnd(
+    # TODO get rid of the mock instrument
         app, instrument_name='mock', data_server_call_back=True)
     query.run_call_back()
     print('===========================>\n\n\n')
@@ -416,13 +425,15 @@ class TestJS9Plot(Resource):
 #    # print('get_js9_plot path',file_path)
 #    return img.get_js9_html('dummy_prods/isgri_query_mosaic.fits')
 
-
-def run_app(conf, debug=False, threaded=False):
+def conf_app(conf):
     app.config['conf'] = conf
     if conf.sentry_url is not None:
         sentry = Sentry(app, dsn=conf.sentry_url)
         logger.warning("sentry not used")
+    return app
 
+def run_app(conf, debug=False, threaded=False):
+    conf_app(conf)
     app.run(host=conf.dispatcher_url, port=conf.dispatcher_port,
             debug=debug, threaded=threaded)
 
