@@ -16,7 +16,7 @@ import random
 __this_dir__ = os.path.join(os.path.abspath(os.path.dirname(__file__)))
 
 import signal, psutil
-def kill_child_processes(parent_pid, sig=signal.SIGTERM):
+def kill_child_processes(parent_pid, sig=signal.SIGINT):
     try:
         parent = psutil.Process(parent_pid)
         children = parent.children(recursive=True)
@@ -133,8 +133,8 @@ def dispatcher_local_mail_server_subprocess(pytestconfig):
     print("will stop local mail server")
     print(("child:", p.pid))
     import os, signal
-    kill_child_processes(p.pid, signal.SIGKILL)
-    os.kill(p.pid, signal.SIGKILL)
+    kill_child_processes(p.pid, signal.SIGINT)
+    os.kill(p.pid, signal.SIGINT)
 
 @pytest.fixture
 def dispatcher_test_conf(tmpdir):
@@ -245,7 +245,7 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf):
 
     print(("child:",p.pid))
     import os,signal
-    kill_child_processes(p.pid,signal.SIGKILL)
-    os.kill(p.pid, signal.SIGKILL)
+    kill_child_processes(p.pid,signal.SIGINT)
+    os.kill(p.pid, signal.SIGINT)
 
 
