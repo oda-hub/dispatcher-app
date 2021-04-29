@@ -1,6 +1,7 @@
 # this could be a separate package or/and a pytest plugin
 
 from json import JSONDecodeError
+import yaml
 
 import pytest
 
@@ -37,7 +38,7 @@ def dispatcher_local_mail_server(pytestconfig, dispatcher_test_conf):
     from aiosmtpd.controller import Controller
 
     class CustomController(Controller):
-        def __init__(self, id, handler, hostname='127.0.0.1', port=dispatcher_test_conf['email_options']['smtp_port'):
+        def __init__(self, id, handler, hostname='127.0.0.1', port=dispatcher_test_conf['email_options']['smtp_port']):
             self.id = id
             super().__init__(handler, hostname=hostname, port=port)
 
@@ -82,7 +83,7 @@ def dispatcher_local_mail_server(pytestconfig, dispatcher_test_conf):
     if not os.path.exists('local_smtp_log'):
         os.makedirs('local_smtp_log')
     handler = CustomHandler(f'local_smtp_log/{id}_local_smtp_output.json')
-    controller = CustomController(id, handler, hostname='127.0.0.1', port=dispatcher_test_conf['email_options']['smtp_port')
+    controller = CustomController(id, handler, hostname='127.0.0.1', port=dispatcher_test_conf['email_options']['smtp_port'])
     # Run the event loop in a separate thread
     controller.start()
 
@@ -107,9 +108,10 @@ def dispatcher_local_mail_server_subprocess(pytestconfig, dispatcher_test_conf):
 
     cmd = [
         "python",
-        " -m smtpd",
-        "-c DebuggingServer",
-        f"-n localhost:{dispatcher_test_conf['email_options']['smtp_port']}"
+        "-m", "smtpd",
+        "-c", "DebuggingServer",
+        "-n", 
+        f"localhost:{dispatcher_test_conf['email_options']['smtp_port']}"
     ]
 
     p = subprocess.Popen(
@@ -136,10 +138,6 @@ def dispatcher_local_mail_server_subprocess(pytestconfig, dispatcher_test_conf):
     kill_child_processes(p.pid, signal.SIGINT)
     os.kill(p.pid, signal.SIGINT)
 
-@pytest.fixture
-def dispatcher_test_conf(dispatcher_test_conf_fn):
-    yield yaml.load(open(dispatcher_test_conf_fn))
-
 
 @pytest.fixture
 def dispatcher_test_conf_fn(tmpdir):
@@ -149,17 +147,18 @@ def dispatcher_test_conf_fn(tmpdir):
 dispatcher:
     dummy_cache: dummy-cache
     products_url: http://www.astro.unige.ch/cdci/astrooda_
-    dispatcher_url: 0.0.0.0
-    dispatcher_port: 8001
-    dispatcher_service_url: http://localhost:8001
+    dispatcher_callback_url_base: http://localhost:8001
     sentry_url: "https://2ba7e5918358439485632251fa73658c@sentry.io/1467382"
     logstash_host: 10.194.169.75
     logstash_port: 5001
     secret_key: 'secretkey_test'
+    bind_options:
+        bind_host: 0.0.0.0
+        bind_port: 8001
     email_options:
         smtp_server: 'localhost'
-        sender_mail: 'team@odahub.io'
-        cc_receivers_mail: ['team@odahub.io']
+        sender_email_address: 'team@odahub.io'
+        cc_receivers_email_addresses: ['team@odahub.io']
         smtp_port: 61025
         smtp_server_password: ''
         email_sending_timeout: True
@@ -168,6 +167,10 @@ dispatcher:
     """)
 
     yield fn
+
+@pytest.fixture
+def dispatcher_test_conf(dispatcher_test_conf_fn):
+    yield yaml.load(open(dispatcher_test_conf_fn))['dispatcher']
 
 @pytest.fixture
 def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn):

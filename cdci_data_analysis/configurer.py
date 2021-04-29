@@ -217,17 +217,17 @@ class ConfigEnv(object):
             disp_dict = cfg_dict['dispatcher']
             products_url = disp_dict.get('products_url', None)
 
-            self.set_conf_dispatcher(disp_dict['dispatcher_url'],
-                                     disp_dict['dispatcher_port'],
+            self.set_conf_dispatcher(disp_dict['bind_options']['bind_host'],
+                                     disp_dict['bind_options']['bind_port'],
                                      disp_dict['sentry_url'],
                                      disp_dict['logstash_host'],
                                      disp_dict['logstash_port'],
                                      products_url,
-                                     disp_dict['dispatcher_service_url'],
+                                     disp_dict['dispatcher_callback_url_base'],
                                      disp_dict['secret_key'],
                                      disp_dict['email_options']['smtp_server'],
-                                     disp_dict['email_options']['sender_mail'],
-                                     disp_dict['email_options']['cc_receivers_mail'],
+                                     disp_dict['email_options']['sender_email_address'],
+                                     disp_dict['email_options']['cc_receivers_email_addresses'],
                                      disp_dict['email_options']['smtp_port'],
                                      disp_dict['email_options']['smtp_server_password'],
                                      disp_dict['email_options']['email_sending_timeout'],
@@ -263,17 +263,17 @@ class ConfigEnv(object):
         #self._data_server_conf_dict[instr_name] = DataServerConf.from_conf_dict(data_server_conf_dict)
 
     def set_conf_dispatcher(self,
-                            dispatcher_url,
-                            dispatcher_port,
+                            bind_host,
+                            bind_port,
                             sentry_url,
                             logstash_host,
                             logstash_port,
                             products_url,
-                            dispatcher_service_url,
+                            dispatcher_callback_url_base,
                             secret_key,
                             smtp_server,
-                            sender_mail,
-                            cc_receivers_mail,
+                            sender_email_address,
+                            cc_receivers_email_addresses,
                             smtp_port,
                             smtp_server_password,
                             email_sending_timeout,
@@ -282,17 +282,17 @@ class ConfigEnv(object):
                             ):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
-        self.dispatcher_url = dispatcher_url
-        self.dispatcher_port = dispatcher_port
+        self.bind_host = bind_host
+        self.bind_port = bind_port
         self.sentry_url = sentry_url
         self.logstash_host = logstash_host
         self.logstash_port = logstash_port
         self.products_url = products_url
-        self.dispatcher_service_url = dispatcher_service_url
+        self.dispatcher_callback_url_base = dispatcher_callback_url_base
         self.secret_key = secret_key
         self.smtp_server = smtp_server
-        self.sender_mail = sender_mail
-        self.cc_receivers_mail = cc_receivers_mail
+        self.sender_email_address = sender_email_address
+        self.cc_receivers_email_addresses = cc_receivers_email_addresses
         self.smtp_port = smtp_port
         self.smtp_server_password = smtp_server_password
         self.email_sending_timeout = email_sending_timeout
