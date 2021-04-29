@@ -532,13 +532,14 @@ class InstrumentQueryBackEnd:
                        getattr(self.config, 'bind_port', None))
 
     def run_call_back(self, status_kw_name='action') -> typing.Tuple[str, typing.Union[QueryOutput, None]]:
-        query_out = None
 
         self.config, self.config_data_server = self.set_config()
         if self.config.sentry_url is not None:
             self.set_sentry_client(self.config.sentry_url)
         session_id = self.par_dic['session_id']
         instrument_name = self.par_dic.get('instrument_name', '')
+        # the time the request was sent should be used
+        time_original_request = self.par_dic.get('time_original_request', None)
         job = job_factory(instrument_name,
                           self.scratch_dir,
                           self.dispatcher_host,
@@ -559,28 +560,33 @@ class InstrumentQueryBackEnd:
 
         logger.warn('-----> set status to %s', status)
 
-        if self.is_email_to_send_callback(status):
-            try:
+        try:
+            if self.is_email_to_send_callback(status, time_original_request):
+
                 # build the products URL
                 request_url = self.generate_request_url_call_back(self.config.products_url, session_id, self.job_id)
                 self.send_email(status,
                                 instrument=instrument_name,
-                                time_request=self.time_request,
+                                time_request=time_original_request,
                                 request_url=request_url)
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
                                             email_status='email sent')
-            except EMailNotSent as e:
-                job.write_dataserver_status(status_dictionary_value=status,
-                                            full_dict=self.par_dic,
-                                            email_status='sending email failed')
-                logging.warning(f'email sending failed: {e}')
-                if self.sentry_client is not None:
-                    self.sentry_client.capture('raven.events.Message',
-                                               message=f'sending email failed {e}')
-        else:
-            job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
-
+            else:
+                job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+        except EMailNotSent as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        email_status='sending email failed')
+            logging.warning(f'email sending failed: {e}')
+            if self.sentry_client is not None:
+                self.sentry_client.capture('raven.events.Message',
+                                       message=f'sending email failed {e}')
+        except MissingRequestParameter as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        call_back_status=f'parameter missing during call back: {e.message}')
+            logging.warning(f'parameter missing during call back: {e}')
 
     def generate_request_url_call_back(self, products_url, session_id, job_id) -> str:
         job_monitor_status_json_file = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
@@ -614,24 +620,29 @@ class InstrumentQueryBackEnd:
 
         return False
 
-    def is_email_to_send_callback(self, status):
-        # get total request duration
-        duration_query = -1
-        if self.time_request:
-            duration_query = time_.time() - self.time_request
+    def is_email_to_send_callback(self, status, time_original_request):
         if not self.public:
-            timeout_threshold_email = tokenHelper.get_token_user_timeout_threshold_email(self.decoded_token)
-            if timeout_threshold_email is None:
-                # set it to the a default value, from the configuration
-                timeout_threshold_email = self.app.config.get('conf').email_sending_timeout_default_threshold
-            email_sending_timeout = tokenHelper.get_token_user_sending_timeout_email(self.decoded_token)
-            if email_sending_timeout is None:
-                email_sending_timeout = self.app.config.get('conf').email_sending_timeout
             # in case the request was long and 'done'
+            if status == 'done':
+                # get total request duration
+                duration_query = -1
+                if time_original_request:
+                    duration_query = time_.time() - float(time_original_request)
+                else:
+                    raise MissingRequestParameter('original request time not available')
+                timeout_threshold_email = tokenHelper.get_token_user_timeout_threshold_email(self.decoded_token)
+                if timeout_threshold_email is None:
+                    # set it to the a default value, from the configuration
+                    timeout_threshold_email = self.app.config.get('conf').email_sending_timeout_default_threshold
+                email_sending_timeout = tokenHelper.get_token_user_sending_timeout_email(self.decoded_token)
+                if email_sending_timeout is None:
+                    email_sending_timeout = self.app.config.get('conf').email_sending_timeout
+
+                return email_sending_timeout and duration_query > timeout_threshold_email and status == 'done'
+
             # or if failed
-            # or when the job was created ('submitted')
-            return (email_sending_timeout and duration_query > timeout_threshold_email and status == 'done') or status == 'failed'
-                   # or status == 'submitted'
+            elif status == 'failed':
+                return True
 
         return False
 

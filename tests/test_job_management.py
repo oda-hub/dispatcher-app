@@ -87,6 +87,70 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
     assert 'email_status' not in jdata['exit_status']
 
 
+def test_time_request(dispatcher_live_fixture, dispatcher_local_mail_server):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    token_payload = {
+        **default_token_payload,
+        "tem": 0
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+        # no time request input parameter
+    )
+
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+
+    print("response from run_analysis:", json.dumps(c.json(), indent=4))
+    assert c.status_code == 200
+
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    session_id = c.json()['session_id']
+    job_id = c.json()['job_monitor']['job_id']
+
+    # this triggers email, since threshold timeout is 0
+    c = requests.get(server + "/call_back",
+                     params=dict(
+                         job_id=job_id,
+                         session_id=session_id,
+                         instrument_name="empty-async",
+                         action='done',
+                         node_id='node_final',
+                         message='done',
+                         token=encoded_token
+                     ))
+
+    assert c.status_code == 200
+    job_monitor_call_back_done_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor_node_final_done_.json'
+    # the aliased version might have been created
+    job_monitor_call_back_done_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor_node_final_done_.json'
+    assert os.path.exists(job_monitor_call_back_done_json_fn) or \
+           os.path.exists(job_monitor_call_back_done_json_fn_aliased)
+
+    # read the json file
+    if os.path.exists(job_monitor_call_back_done_json_fn):
+        f = open(job_monitor_call_back_done_json_fn)
+    else:
+        f = open(job_monitor_call_back_done_json_fn_aliased)
+
+    jdata = json.load(f)
+    assert 'email_status' not in jdata
+    assert 'call_back_status' in jdata
+    assert jdata['call_back_status'] == 'parameter missing during call back: original request time not available'
+
+
 @pytest.mark.parametrize("default_values", [True, False])
 def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_local_mail_server, default_values):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
@@ -116,7 +180,6 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         token=encoded_token,
         # makes more sense to have it sent directly with the request,
         # though it is not considered for the url encoding
-        # to confirm
         time_request=time_request
     )
 
@@ -185,7 +248,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                              node_id=f'node_{i}',
                              message='progressing',
                              token=encoded_token,
-                             time_request=time_request
+                             time_original_request=time_request
                          ))
 
     c = requests.get(server + "/call_back",
@@ -197,7 +260,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                          node_id='node_ready',
                          message='ready',
                          token=encoded_token,
-                         time_request=time_request
+                         time_original_request=time_request
                      ))
 
     # this triggers email
@@ -210,7 +273,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                          node_id='node_final',
                          message='done',
                          token=encoded_token,
-                         time_request=time_request
+                         time_original_request=time_request
                      ))
 
     # TODO build a test that effectively test both paths
@@ -266,7 +329,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                          'node_id': 'node_failed',
                          'message': 'failed',
                          'token': encoded_token,
-                         'time_request': time_request
+                         'time_original_request': time_request
                      })
     job_monitor_call_back_failed_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor_node_failed_failed_.json'
     # the aliased version might have been created
@@ -389,7 +452,7 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
                          'node_id': 'node_failed',
                          'message': 'failed',
                          'token': encoded_token,
-                         'time_request': time_request
+                         'time_original_request': time_request
                      })
     job_monitor_call_back_failed_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor_node_failed_failed_.json'
     # the aliased version might have been created
