@@ -132,7 +132,7 @@ class InstrumentQueryBackEnd:
             self.public = True
             self.token = None
             self.decoded_token = None
-            if 'token' in self.par_dic.keys() and self.par_dic['token'] != "":
+            if 'token' in self.par_dic.keys() and self.par_dic['token'] not in ["", None]:
                 self.token = self.par_dic['token']
                 self.public = False
                 # token validation and decoding can be done here, to check if the token is expired
@@ -532,8 +532,6 @@ class InstrumentQueryBackEnd:
                        getattr(self.config, 'bind_port', None))
 
     def run_call_back(self, status_kw_name='action') -> typing.Tuple[str, typing.Union[QueryOutput, None]]:
-        query_out = None
-
         self.config, self.config_data_server = self.set_config()
         if self.config.sentry_url is not None:
             self.set_sentry_client(self.config.sentry_url)

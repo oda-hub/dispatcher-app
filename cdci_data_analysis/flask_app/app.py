@@ -274,12 +274,15 @@ def dataserver_call_back():
     #log = logging.getLogger('werkzeug')
     #log.disabled = True
     #app.logger.disabled = True
-    print('===========================> dataserver_call_back')
+    logger.info('\033[32m===========================> dataserver_call_back\033[0m')
+
+    logger.info('\033[33m raw request values: %s \033[0m', dict(request.values))
+
     query = InstrumentQueryBackEnd(
     # TODO get rid of the mock instrument
         app, instrument_name='mock', data_server_call_back=True)
     query.run_call_back()
-    print('===========================>\n\n\n')
+    logger.info('\033[32m===========================> dataserver_call_back DONE\033[0m')    
     return jsonify({})
 
 
