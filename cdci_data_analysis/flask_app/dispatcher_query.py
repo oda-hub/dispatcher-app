@@ -627,7 +627,6 @@ class InstrumentQueryBackEnd:
             # in case the request was long and 'done'
             if status == 'done':
                 # get total request duration
-                duration_query = -1
                 if time_original_request:
                     duration_query = time_.time() - float(time_original_request)
                 else:
