@@ -203,11 +203,6 @@ class Job(object):
             outfile.write(u'%s' % my_json_str)
 
     def get_call_back_url(self):
-        # if self.server_port is None:
-        #     url = f'{self.server_url}/{self.callback_handle}'
-        # else:
-        #     url = f'http://{self.server_url}:{self.server_port}/{self.callback_handle}'
-
         if self.dispatcher_callback_url_base is not None:
             url = f'{self.dispatcher_callback_url_base}/{self.callback_handle}'
         else:
