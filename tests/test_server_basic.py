@@ -1,3 +1,4 @@
+import glob
 import subprocess
 import requests
 import time
@@ -9,7 +10,10 @@ import random
 import traceback
 import logging
 import jwt
-import glob
+import logging_tree
+from threading import Thread
+from time import sleep
+
 import pytest
 
 #pytestmark = pytest.mark.skip("these tests still WIP")
@@ -40,6 +44,26 @@ default_params = dict(
                     token="fake-token",
                  )
 
+
+def test_meta_data_request(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    logger.info(f"constructed server: {server}")
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+    }
+    
+    params.pop("token")
+    c = requests.get(server + "/meta-data",
+                     params={**params},
+                     )
+
+    jdata = c.json()
+    assert c.status_code == 200
+    
 
 default_exp_time = int(time.time()) + 5000
 default_token_payload = dict(
@@ -329,7 +353,7 @@ def test_isgri_dummy(dispatcher_live_fixture):
 
 def test_empty_instrument_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
-    print("constructed server:", server)
+    logger.info(f"constructed server: {server}")
 
     params = {
         **default_params,
@@ -357,22 +381,19 @@ def test_empty_instrument_request(dispatcher_live_fixture):
 
 def test_no_instrument(dispatcher_live_fixture):
     server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    c=requests.get(server + "/run_analysis",
-                   params=dict(
-                   image_type="Real",
-                   product_type="image",
-                   E1_keV=20.,
-                   E2_keV=40.,
-                   T1="2008-01-01T11:11:11.0",
-                   T2="2008-06-01T11:11:11.0",
+    logger.info(f"constructed server: {server}")
+    c = requests.get(server + "/run_analysis",
+                     params=dict(
+                         query_status="new",
+                         image_type="Real",
+                         product_type="image",
+                         E1_keV=20.,
+                         E2_keV=40.,
+                         T1="2008-01-01T11:11:11.0",
+                         T2="2008-06-01T11:11:11.0",
                 ))
 
-    print("content:", c.text)
-
-    jdata=c.json()
-
+    logger.info(f"content: {c.text}")
     assert c.status_code == 400
 
 

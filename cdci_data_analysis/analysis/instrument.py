@@ -75,7 +75,7 @@ class Instrument:
         # logger
         self.logger = logging.getLogger(repr(self))
         #src query
-        self.src_query=src_query
+        self.src_query = src_query
         # asynch
         self.asynch=asynch
         #Instrument specific
@@ -166,9 +166,10 @@ class Instrument:
                   api=False,
                   decoded_token=None,
                   **kwargs):
+        self._current_par_dic = par_dic
 
         if logger is None:
-            logger = self.get_logger()
+            logger = self.logger
 
         #  this was removed by 2f5b5dfb7e but turns out it is used by some plugins, see test_server_plugin_integral_all_sky
         self._current_par_dic=par_dic
@@ -177,7 +178,7 @@ class Instrument:
         query_out = self.set_pars_from_form(par_dic, verbose=verbose, sentry_client=sentry_client)
 
         if verbose:
-            self.show_parameters_list()
+            self.show_parameters_list(logger)
 
         # set catalog
         if query_out.status_dictionary['status']==0:
@@ -285,13 +286,12 @@ class Instrument:
 
         return p
 
-    def show_parameters_list(self):
-
-        print ("-------------")
+    def show_parameters_list(self, logger):
+        logger.info("-------------")
         for _query in self._queries_list:
-            print ('q:',_query.name)
-            _query.show_parameters_list()
-        print("-------------")
+            logger.info('q:', _query.name)
+            _query.show_parameters_list(logger)
+        logger.info("-------------")
 
     def get_parameters_list_as_json(self,add_src_query=True,add_instr_query=True,prod_name=None):
 

@@ -70,12 +70,12 @@ class BaseQuery(object):
         return [p1.name for p1 in self._parameters_list ]
 
     def get_par_by_name(self,name):
-        p=None
+        p = None
         for p1 in self._parameters_list:
-            if p1.name==name:
-                p=p1
+            if p1.name == name:
+                p = p1
         if p is None:
-            raise  Warning('parameter',name,'not found')
+            raise Warning('parameter', name, 'not found')
         return p
 
     def get_logger(self):
@@ -102,12 +102,11 @@ class BaseQuery(object):
                     _l.extend(p.to_list())
         return _l
 
-    def show_parameters_list(self):
-
-        print ("-------------")
+    def show_parameters_list(self, logger):
+        logger.info("-------------")
         for par in self._parameters_list:
             self._show_parameter(par,indent=2)
-        print("-------------")
+        logger.info("-------------")
 
     def show_parameters_structure(self):
 
