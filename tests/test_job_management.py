@@ -121,7 +121,6 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     else:
         time_request = time.time() 
         time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
-
     
     dict_param = dict(
         query_status="new",
@@ -257,7 +256,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         f = open(job_monitor_call_back_done_json_fn_aliased)
 
     jdata = json.load(f)
-    if default_values or token_none:
+    if default_values or token_none or time_request_none:
         # email not supposed to be sent (request is short) or public request
         assert 'email_status' not in jdata
     else:
@@ -317,44 +316,36 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
     jdata = json.load(f)
 
-    if  token_none:
+    if token_none:
         # email not supposed to be sent for public request
         assert 'email_status' not in jdata
     else:
         assert jdata['email_status'] == 'email sent'
-
         # check the email in the log files
         assert os.path.exists(smtp_server_log)
         f_local_smtp = open(smtp_server_log)
         f_local_smtp_jdata = json.load(f_local_smtp)
-        if default_values:
+        if default_values or time_request_none:
             assert len(f_local_smtp_jdata) == 2
-            assert f_local_smtp_jdata[1]['mail_from'] == 'team@odahub.io'
-            assert f_local_smtp_jdata[1]['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io']
-            data_email = f_local_smtp_jdata[1]['data']
         else:
             assert len(f_local_smtp_jdata) == 3
-            assert f_local_smtp_jdata[2]['mail_from'] == 'team@odahub.io'
-            assert f_local_smtp_jdata[2]['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io']
-            data_email = f_local_smtp_jdata[2]['data']
+        assert f_local_smtp_jdata[len(f_local_smtp_jdata) - 1]['mail_from'] == 'team@odahub.io'
+        assert f_local_smtp_jdata[len(f_local_smtp_jdata) - 1]['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io']
+        data_email = f_local_smtp_jdata[len(f_local_smtp_jdata) - 1]['data']
         msg = email.message_from_string(data_email)
         assert msg['Subject'] == 'Request update'
         assert msg['From'] == 'team@odahub.io'
         assert msg['To'] == 'mtm@mtmco.net'
         assert msg['CC'] == ", ".join(['team@odahub.io'])
         assert msg.is_multipart()
-
-        if time_request_none:
-            pass
-        else:
-            for part in msg.walk():
-                if part.get_content_type() == 'text/plain':
-                    content_text_plain = part.get_payload().replace('\r', '').strip()
-                    assert content_text_plain == plain_text_email.format(time_request_str=time_request_str, status="failed",
-                                                                        request_url=request_url)
-                if part.get_content_type() == 'text/html':
-                    content_text_html = part.get_payload().replace('\r', '').strip()
-                    assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="failed",
+        for part in msg.walk():
+            if part.get_content_type() == 'text/plain':
+                content_text_plain = part.get_payload().replace('\r', '').strip()
+                assert content_text_plain == plain_text_email.format(time_request_str=time_request_str, status="failed",
+                                                                    request_url=request_url)
+            if part.get_content_type() == 'text/html':
+                content_text_html = part.get_payload().replace('\r', '').strip()
+                assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="failed",
                                                                     request_url=request_url)
 
     # This is not complete since DataServerQuery never returns done
