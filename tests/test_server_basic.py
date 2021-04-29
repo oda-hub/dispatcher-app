@@ -11,6 +11,8 @@ import logging
 import jwt
 import glob
 import pytest
+from functools import reduce
+import yaml
 
 #pytestmark = pytest.mark.skip("these tests still WIP")
 
@@ -631,3 +633,34 @@ def test_isgri_image_random_emax(dispatcher_live_fixture):
     params.pop('token')
     jdata, tspent = loop_ask(server, params)
 
+def flatten_nested_structure(structure, mapping, path=[]):
+    if isinstance(structure, list):
+        r=[flatten_nested_structure(a, mapping, path=path + [i]) for i, a in enumerate(structure)]
+        return reduce(lambda x, y: x + y, r) if len(r) > 0 else r
+
+    if isinstance(structure, dict):
+        r=[flatten_nested_structure(a, mapping, path=path + [k]) for k, a in list(structure.items())]
+        return reduce(lambda x,y:x+y,r) if len(r)>0 else r
+
+    return [mapping(path, structure)]
+
+def test_example_config(dispatcher_test_conf):
+    import cdci_data_analysis.config_dir
+
+
+    example_config_fn = os.path.join(
+        os.path.dirname(cdci_data_analysis.__file__),
+        "config_dir/conf_env.yml.example"
+    )
+
+    example_config = yaml.load(open(example_config_fn))['dispatcher']
+
+    mapper = lambda x,y:".".join(map(str, x))
+    example_config_keys = flatten_nested_structure(example_config, mapper)
+    test_config_keys = flatten_nested_structure(dispatcher_test_conf, mapper)
+
+    print("\n\n\nexample_config_keys", example_config_keys)
+    print("\n\n\ntest_config_keys", test_config_keys)
+
+    assert set(example_config_keys) == set(test_config_keys)
+    
