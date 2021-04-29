@@ -155,8 +155,9 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
 
 @pytest.mark.parametrize("default_values", [True, False])
-def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_local_mail_server, default_values):
->>>>>>> d33b3be25e99e64dd854a2e7e57a6198f3079f71
+@pytest.mark.parametrize("time_request_none", [True, False])
+def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_local_mail_server, default_values, time_request_none):
+# >>>>>>> d33b3be25e99e64dd854a2e7e57a6198f3079f71
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
 
     server = dispatcher_live_fixture
@@ -300,8 +301,9 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         f = open(job_monitor_call_back_done_json_fn_aliased)
 
     jdata = json.load(f)
-    if default_values:
-        # email not supposed to be sent (request is short)
+    if default_values or time_request_none:
+        # email not supposed to be sent because request is too short
+        # or the time of the original request was not sent
         assert 'email_status' not in jdata
     else:
         assert jdata['email_status'] == 'email sent'
@@ -361,7 +363,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     assert os.path.exists(smtp_server_log)
     f_local_smtp = open(smtp_server_log)
     f_local_smtp_jdata = json.load(f_local_smtp)
-    if default_values:
+    if default_values or time_request_none:
         assert len(f_local_smtp_jdata) == 2
         assert f_local_smtp_jdata[1]['mail_from'] == 'team@odahub.io'
         assert f_local_smtp_jdata[1]['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io']

@@ -124,8 +124,8 @@ class InstrumentQueryBackEnd:
                     
             if self.par_dic.get('time_request', None) not in [ None, 'None' ]:
                 self.time_request = float(self.par_dic.pop('time_request'))
-            else:
-                self.time_request = g.get('request_start_time', None)
+            # else:
+            #     self.time_request = g.get('request_start_time', None)
 
             # By default, a request is public, let's now check if a token has been included
             # In that case, validation is needed
@@ -1388,12 +1388,12 @@ class InstrumentQueryBackEnd:
 
     def send_email(self, status="done",
                    instrument="",
-                   time_request="",
+                   time_request=None,
                    request_url=""):
         server = None
         self.logger.info("Sending email")
-        time_request_str = ""
-        if time_request != "":
+        time_request_str = None
+        if time_request:
             time_request_str = time_.strftime('%Y-%m-%d %H:%M:%S', time_.localtime(float(time_request)))
         try:
             # send the mail with the status update to the mail provided with the token
