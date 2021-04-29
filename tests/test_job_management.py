@@ -168,10 +168,10 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     assert jdata['exit_status']['job_status'] == 'submitted'
 
     if token_none:
+        # email not supposed to be sent for public request
         assert 'email_status' not in jdata
     else:
         assert jdata['exit_status']['email_status'] == 'email sent'
-
         smtp_server_log = f'local_smtp_log/{dispatcher_local_mail_server.id}_local_smtp_output.json'
         assert os.path.exists(smtp_server_log)
         f_local_smtp = open(smtp_server_log)
@@ -187,21 +187,15 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         assert msg['To'] == 'mtm@mtmco.net'
         assert msg['CC'] == ", ".join(['team@odahub.io'])
         assert msg.is_multipart()
-
-        if time_request_none:
-            #TODO: what does it mean there is not time but there is token? is there a problem then?
-            pass
-        else:
-            for part in msg.walk():
-                if part.get_content_type() == 'text/plain':
-                    content_text_plain = part.get_payload().replace('\r', '').strip()
-                    assert content_text_plain == plain_text_email.format(time_request_str=time_request_str, status="submitted",
+        for part in msg.walk():
+            if part.get_content_type() == 'text/plain':
+                content_text_plain = part.get_payload().replace('\r', '').strip()
+                assert content_text_plain == plain_text_email.format(time_request_str=time_request_str, status="submitted",
+                                                                    request_url=request_url)
+            if part.get_content_type() == 'text/html':
+                content_text_html = part.get_payload().replace('\r', '').strip()
+                assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="submitted",
                                                                         request_url=request_url)
-                if part.get_content_type() == 'text/html':
-                    content_text_html = part.get_payload().replace('\r', '').strip()
-                    assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="submitted",
-                                                                        request_url=request_url)
-
 
     for i in range(5):
         # imitating what a backend would do
@@ -257,7 +251,8 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
     jdata = json.load(f)
     if default_values or token_none or time_request_none:
-        # email not supposed to be sent (request is short) or public request
+        # for this case, email not supposed to be sent if request is short and/or no time information are available
+        # or public request
         assert 'email_status' not in jdata
     else:
         assert jdata['email_status'] == 'email sent'
@@ -275,19 +270,15 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         assert msg['To'] == 'mtm@mtmco.net'
         assert msg['CC'] == ", ".join(['team@odahub.io'])
         assert msg.is_multipart()
-
-        if time_request_none:
-            pass
-        else:
-            for part in msg.walk():
-                if part.get_content_type() == 'text/plain':
-                    content_text_plain = part.get_payload().replace('\r', '').strip()
-                    assert content_text_plain == plain_text_email.format(time_request_str=time_request_str, status="done",
-                                                                        request_url=request_url)
-                if part.get_content_type() == 'text/html':
-                    content_text_html = part.get_payload().replace('\r', '').strip()
-                    assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="done",
+        for part in msg.walk():
+            if part.get_content_type() == 'text/plain':
+                content_text_plain = part.get_payload().replace('\r', '').strip()
+                assert content_text_plain == plain_text_email.format(time_request_str=time_request_str, status="done",
                                                                     request_url=request_url)
+            if part.get_content_type() == 'text/html':
+                content_text_html = part.get_payload().replace('\r', '').strip()
+                assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="done",
+                                                                request_url=request_url)
 
     # this also triggers email (simulate a failed request)
     c = requests.get(server + "/call_back",
