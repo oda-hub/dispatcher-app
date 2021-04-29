@@ -132,7 +132,7 @@ class InstrumentQueryBackEnd:
             self.public = True
             self.token = None
             self.decoded_token = None
-            if 'token' in self.par_dic.keys() and self.par_dic['token'] not in ["", None]:
+            if 'token' in self.par_dic.keys() and self.par_dic['token'] not in ["", "None", None]:
                 self.token = self.par_dic['token']
                 self.public = False
                 # token validation and decoding can be done here, to check if the token is expired
@@ -216,6 +216,8 @@ class InstrumentQueryBackEnd:
                 query_new_status='failed', query_out=query_out)
 
             # return jsonify(out_dict)
+
+        logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
     def make_hash(self, o):
         """
@@ -533,6 +535,7 @@ class InstrumentQueryBackEnd:
 
     def run_call_back(self, status_kw_name='action') -> typing.Tuple[str, typing.Union[QueryOutput, None]]:
         self.config, self.config_data_server = self.set_config()
+
         if self.config.sentry_url is not None:
             self.set_sentry_client(self.config.sentry_url)
         session_id = self.par_dic['session_id']
