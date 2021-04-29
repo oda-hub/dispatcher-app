@@ -120,8 +120,9 @@ class InstrumentQueryBackEnd:
 
             self.set_session_id()
 
-            self.time_request = None
-            if 'time_request' in self.par_dic:
+            self.time_request = None            
+                    
+            if self.par_dic.get('time_request', None) is not None:
                 self.time_request = float(self.par_dic['time_request'])
                 self.par_dic.pop('time_request')
             else:
