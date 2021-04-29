@@ -122,9 +122,8 @@ class InstrumentQueryBackEnd:
 
             self.time_request = None            
                     
-            if self.par_dic.get('time_request', None) is not None:
-                self.time_request = float(self.par_dic['time_request'])
-                self.par_dic.pop('time_request')
+            if self.par_dic.get('time_request', None) not in [ None, 'None' ]:
+                self.time_request = float(self.par_dic.pop('time_request'))
             else:
                 self.time_request = g.get('request_start_time', None)
 

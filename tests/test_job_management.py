@@ -87,8 +87,9 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
     assert 'email_status' not in jdata['exit_status']
 
 
-@pytest.mark.parametrize("default_values", [True, False])
-def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_local_mail_server, default_values):
+@pytest.mark.parametrize("default_values", [(True), False])
+@pytest.mark.parametrize("time_request_none", [True, False])
+def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_local_mail_server, default_values, time_request_none):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
 
     server = dispatcher_live_fixture
@@ -106,7 +107,13 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         token_payload.pop('mssub')
 
     # set the time the request was initiated
-    time_request = time.time()
+    if time_request_none:
+        time_request = None
+        time_request_str = 'None'
+    else:
+        time_request = time.time() 
+        time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
     dict_param = dict(
         query_status="new",
@@ -132,7 +139,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     dict_param_complete = dict_param.copy()
     dict_param_complete['session_id'] = session_id
     dict_param_complete.pop('time_request')
-    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+    
     request_url = '%s?%s' % ('http://www.astro.unige.ch/cdci/astrooda_', urlencode(dict_param_complete))
     # email content in text and hmtl format
     plain_text_email = "Update of the task submitted at {time_request_str}, for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
