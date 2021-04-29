@@ -1392,9 +1392,17 @@ class InstrumentQueryBackEnd:
                    request_url=""):
         server = None
         self.logger.info("Sending email")
-        time_request_str = None
+        # Create the plain-text and HTML version of your message,
+        # since emails with HTML content might be, sometimes, not supported
+        # a plain-text version is included
+        text = f"""Update of the task for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
+        html = f"""<html><body><p>Update of the task for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+
         if time_request:
             time_request_str = time_.strftime('%Y-%m-%d %H:%M:%S', time_.localtime(float(time_request)))
+            text = f"""Update of the task submitted at {time_request_str}, for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
+            html = f"""<html><body><p>Update of the task submitted at {time_request_str}, for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+
         try:
             # send the mail with the status update to the mail provided with the token
             # eg done/failed/submitted
@@ -1411,12 +1419,6 @@ class InstrumentQueryBackEnd:
             message["From"] = sender_email_address
             message["To"] = receiver_email_address
             message["CC"] = ", ".join(cc_receivers_email_addresses)
-
-            # Create the plain-text and HTML version of your message,
-            # since enails with HTML content might be, sometimes, not supportenot
-            # a plain-text version is included
-            text = f"""Update of the task submitted at {time_request_str}, for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
-            html = f"""<html><body><p>Update of the task submitted at {time_request_str}, for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
 
             part1 = MIMEText(text, "plain")
             part2 = MIMEText(html, "html")

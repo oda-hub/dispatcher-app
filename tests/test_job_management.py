@@ -208,9 +208,14 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     dict_param_complete.pop('time_request')
     
     request_url = '%s?%s' % ('http://www.astro.unige.ch/cdci/astrooda_', urlencode(dict_param_complete))
-    # email content in text and hmtl format
-    plain_text_email = "Update of the task submitted at {time_request_str}, for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
-    html_text_email = "<html><body><p>Update of the task submitted at {time_request_str}, for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+    # email content in text and html format
+    if time_request_none:
+        plain_text_email = "Update of the task for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
+        html_text_email = "<html><body><p>Update of the task for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+    else:
+        plain_text_email = "Update of the task submitted at {time_request_str}, for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
+        html_text_email = "<html><body><p>Update of the task submitted at {time_request_str}, for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+
     job_monitor_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor.json'
     # the aliased version might have been created
     job_monitor_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor.json'
