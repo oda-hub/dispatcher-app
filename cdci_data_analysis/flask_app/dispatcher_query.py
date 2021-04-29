@@ -539,6 +539,7 @@ class InstrumentQueryBackEnd:
         session_id = self.par_dic['session_id']
         instrument_name = self.par_dic.get('instrument_name', '')
         # the time the request was sent should be used
+        # the time_request contains the time the call_back as issued
         time_original_request = self.par_dic.get('time_original_request', None)
         job = job_factory(instrument_name,
                           self.scratch_dir,
@@ -548,7 +549,8 @@ class InstrumentQueryBackEnd:
                           self.par_dic['session_id'],
                           self.job_id,
                           self.par_dic,
-                          self.token)
+                          token=self.token,
+                          time_request=time_original_request)
 
         self.logger.info("%s.run_call_back with args %s", self, self.par_dic)
         self.logger.info("%s.run_call_back built job %s", self, job)
@@ -885,7 +887,9 @@ class InstrumentQueryBackEnd:
                            self.par_dic['session_id'],
                            self.job_id,
                            self.par_dic,
-                           aliased=False)
+                           aliased=False,
+                           token=self.token,
+                           time_request=self.time_request)
 
     def build_response_failed(self, message, extra_message, status_code=None):
         job = self.build_job()
@@ -1150,7 +1154,8 @@ class InstrumentQueryBackEnd:
                           self.job_id,
                           self.par_dic,
                           aliased=job_is_aliased,
-                          token=self.token)
+                          token=self.token,
+                          time_request=self.time_request)
 
         job_monitor = job.monitor
 
