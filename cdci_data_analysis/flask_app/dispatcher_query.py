@@ -120,11 +120,6 @@ class InstrumentQueryBackEnd:
 
             self.set_session_id()
 
-            self.time_request = None            
-                    
-            # if self.par_dic.get('time_request', None) not in [ None, 'None' ]:
-            #     self.time_request = float(self.par_dic.pop('time_request'))
-            # else:
             self.time_request = g.get('request_start_time', None)
 
             # By default, a request is public, let's now check if a token has been included
@@ -1366,8 +1361,6 @@ class InstrumentQueryBackEnd:
                 '-----------------> query status now: %s', query_new_status)
             self.logger.info(
                 '==============================> query done <==============================')
-
-        query_out.set_time_request(self.time_request)
 
         if not job_is_aliased:
             job.write_dataserver_status()

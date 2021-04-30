@@ -151,8 +151,8 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
-    assert 'time_request' in jdata['prod_dictionary']
-    time_request = jdata['prod_dictionary']['time_request']
+    assert 'time_request' in jdata
+    time_request = jdata['time_request']
     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
 
     if token_none:
