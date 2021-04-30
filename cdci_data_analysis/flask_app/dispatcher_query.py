@@ -120,19 +120,19 @@ class InstrumentQueryBackEnd:
 
             self.set_session_id()
 
-            self.time_request = None
-            if 'time_request' in self.par_dic:
-                self.time_request = float(self.par_dic['time_request'])
-                self.par_dic.pop('time_request')
-            else:
-                self.time_request = g.get('request_start_time', None)
+            self.time_request = None            
+                    
+            if self.par_dic.get('time_request', None) not in [ None, 'None' ]:
+                self.time_request = float(self.par_dic.pop('time_request'))
+            # else:
+            #     self.time_request = g.get('request_start_time', None)
 
             # By default, a request is public, let's now check if a token has been included
             # In that case, validation is needed
             self.public = True
             self.token = None
             self.decoded_token = None
-            if 'token' in self.par_dic.keys() and self.par_dic['token'] != "":
+            if 'token' in self.par_dic.keys() and self.par_dic['token'] not in ["", "None", None]:
                 self.token = self.par_dic['token']
                 self.public = False
                 # token validation and decoding can be done here, to check if the token is expired
@@ -216,6 +216,8 @@ class InstrumentQueryBackEnd:
                 query_new_status='failed', query_out=query_out)
 
             # return jsonify(out_dict)
+
+        logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
     def make_hash(self, o):
         """
@@ -532,8 +534,8 @@ class InstrumentQueryBackEnd:
                        getattr(self.config, 'bind_port', None))
 
     def run_call_back(self, status_kw_name='action') -> typing.Tuple[str, typing.Union[QueryOutput, None]]:
-
         self.config, self.config_data_server = self.set_config()
+
         if self.config.sentry_url is not None:
             self.set_sentry_client(self.config.sentry_url)
         session_id = self.par_dic['session_id']
@@ -1389,13 +1391,21 @@ class InstrumentQueryBackEnd:
 
     def send_email(self, status="done",
                    instrument="",
-                   time_request="",
+                   time_request=None,
                    request_url=""):
         server = None
         self.logger.info("Sending email")
-        time_request_str = ""
-        if time_request != "":
+        # Create the plain-text and HTML version of your message,
+        # since emails with HTML content might be, sometimes, not supported
+        # a plain-text version is included
+        text = f"""Update of the task for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
+        html = f"""<html><body><p>Update of the task for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+
+        if time_request:
             time_request_str = time_.strftime('%Y-%m-%d %H:%M:%S', time_.localtime(float(time_request)))
+            text = f"""Update of the task submitted at {time_request_str}, for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
+            html = f"""<html><body><p>Update of the task submitted at {time_request_str}, for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+
         try:
             # send the mail with the status update to the mail provided with the token
             # eg done/failed/submitted
@@ -1412,12 +1422,6 @@ class InstrumentQueryBackEnd:
             message["From"] = sender_email_address
             message["To"] = receiver_email_address
             message["CC"] = ", ".join(cc_receivers_email_addresses)
-
-            # Create the plain-text and HTML version of your message,
-            # since enails with HTML content might be, sometimes, not supportenot
-            # a plain-text version is included
-            text = f"""Update of the task submitted at {time_request_str}, for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
-            html = f"""<html><body><p>Update of the task submitted at {time_request_str}, for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
 
             part1 = MIMEText(text, "plain")
             part2 = MIMEText(html, "html")

@@ -213,6 +213,9 @@ class Job(object):
                 "token", "time_request"
             ]})
 
+        # properly setting the original time of the request
+        url = url.replace('time_request', 'time_original_request')
+
         url += '&progressing'
 
         logger.debug("callback url: %s", url)
