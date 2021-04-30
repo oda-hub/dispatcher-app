@@ -88,9 +88,9 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
 
 
 @pytest.mark.parametrize("default_values", [True, False])
-@pytest.mark.parametrize("time_request_none", [True, False])
+# @pytest.mark.parametrize("time_request_none", [True, False])
 @pytest.mark.parametrize("request_cred", ['public', 'private'])
-def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_local_mail_server, default_values, time_request_none, request_cred):
+def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_local_mail_server, default_values, request_cred):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
 
     token_none = ( request_cred == 'public' )
@@ -114,13 +114,13 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
         encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    # set the time the request was initiated
-    if time_request_none:
-        time_request = None
-        time_request_str = 'None'
-    else:
-        time_request = time.time() 
-        time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+    # # set the time the request was initiated
+    # if time_request_none:
+    #     time_request = None
+    #     time_request_str = 'None'
+    # else:
+    #     time_request = time.time()
+    #     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
     
     dict_param = dict(
         query_status="new",
@@ -149,13 +149,13 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     # dict_param_complete.pop('time_request')
     
     request_url = '%s?%s' % ('http://www.astro.unige.ch/cdci/astrooda_', urlencode(dict_param_complete))
-    # email content in text and html format
-    if time_request_none:
-        plain_text_email = "Update of the task for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
-        html_text_email = "<html><body><p>Update of the task for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
-    else:
-        plain_text_email = "Update of the task submitted at {time_request_str}, for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
-        html_text_email = "<html><body><p>Update of the task submitted at {time_request_str}, for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+    # # email content in text and html format
+    # if time_request_none:
+    #     plain_text_email = "Update of the task for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
+    #     html_text_email = "<html><body><p>Update of the task for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+    # else:
+    plain_text_email = "Update of the task submitted at {time_request_str}, for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
+    html_text_email = "<html><body><p>Update of the task submitted at {time_request_str}, for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
 
     job_monitor_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor.json'
     # the aliased version might have been created
@@ -173,6 +173,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
     jdata = json.load(f)
     assert 'prod_dictionary' in jdata and 'time_request' in jdata['prod_dictionary']
+    # get the original time the request was made
     time_request = jdata['prod_dictionary']['time_request']
     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
 
@@ -263,7 +264,8 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         f = open(job_monitor_call_back_done_json_fn_aliased)
 
     jdata = json.load(f)
-    if default_values or token_none or time_request_none:
+    # if default_values or token_none or time_request_none:
+    if default_values or token_none:
         # for this case, email not supposed to be sent if request is short and/or no time information are available
         # or public request
         assert 'email_status' not in jdata
@@ -329,7 +331,8 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         assert os.path.exists(smtp_server_log)
         f_local_smtp = open(smtp_server_log)
         f_local_smtp_jdata = json.load(f_local_smtp)
-        if default_values or time_request_none:
+        # if default_values or time_request_none:
+        if default_values:
             assert len(f_local_smtp_jdata) == 2
         else:
             assert len(f_local_smtp_jdata) == 3
@@ -352,6 +355,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                 assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="failed",
                                                                     request_url=request_url)
 
+    # TODO this will rwrite the valuer of the time_request in the query output, but it shouldn't be a problem?
     # This is not complete since DataServerQuery never returns done
     c = requests.get(server + "/run_analysis",
                      params=dict(

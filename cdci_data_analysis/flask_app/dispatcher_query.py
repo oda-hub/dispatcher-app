@@ -1282,8 +1282,6 @@ class InstrumentQueryBackEnd:
 
                 self.logger.info('-----------------> job status after query: %s', job.status)
 
-                query_out.set_time_request(self.time_request)
-
                 if query_out.status_dictionary['status'] == 0:
                     if job.status == 'done':
                         query_new_status = 'done'
@@ -1320,9 +1318,7 @@ class InstrumentQueryBackEnd:
         elif query_status == 'progress' or query_status == 'unaccessible' or query_status == 'unknown' or query_status == 'submitted':
             # we can not just avoid async here since the request still might be long
             if self.async_dispatcher:
-                query_out, job_monitor, query_new_status = self.async_dispatcher_query(
-                    query_status)
-
+                query_out, job_monitor, query_new_status = self.async_dispatcher_query(query_status)
                 if job_monitor is None:
                     job_monitor = job.monitor
             else:
@@ -1330,8 +1326,7 @@ class InstrumentQueryBackEnd:
 
                 job_monitor = job.updated_dataserver_monitor()
 
-                self.logger.info(
-                    '-----------------> job monitor from data server: %s', job_monitor['status'])
+                self.logger.info('-----------------> job monitor from data server: %s', job_monitor['status'])
 
                 if job_monitor['status'] == 'done':
                     job.set_ready()
@@ -1373,6 +1368,8 @@ class InstrumentQueryBackEnd:
                 '-----------------> query status now: %s', query_new_status)
             self.logger.info(
                 '==============================> query done <==============================')
+
+        query_out.set_time_request(self.time_request)
 
         if not job_is_aliased:
             job.write_dataserver_status()
