@@ -28,7 +28,7 @@ default_token_payload = dict(
 
 def test_callback_without_prior_run_analysis(dispatcher_live_fixture):
     server = dispatcher_live_fixture
-    print("constructed server:", server)
+    logger.info("constructed server: %s", server)
 
     c = requests.get(server + "/call_back",
                      params={
@@ -36,25 +36,20 @@ def test_callback_without_prior_run_analysis(dispatcher_live_fixture):
                          'instrument_name': 'test-instrument_name',
                      })
 
-    print(c.text)
+    logger.info(c.text)
 
     assert c.status_code == 200
 
 
 def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_server):
     server = dispatcher_live_fixture
-    print("constructed server:", server)
+    logger.info("constructed server: %s", server)
 
-    time_request = time.time()
     dict_param = dict(
         query_status="new",
         query_type="Real",
         instrument="empty-async",
-        product_type="dummy",
-        # makes more sense to have it sent directly with the request,
-        # though it is not considered for the url encoding
-        # to confirm
-        time_request=time_request
+        product_type="dummy"
     )
 
     # this should return status submitted, so email sent
@@ -62,7 +57,7 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
                      dict_param
                      )
 
-    print("response from run_analysis:", json.dumps(c.json(), indent=4))
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
@@ -96,7 +91,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     token_none = ( request_cred == 'public' )
         
     server = dispatcher_live_fixture
-    print("constructed server:", server)
+    logger.info("constructed server: %s", server)
 
     # email content in plain text and html format
     plain_text_email = "Update of the task submitted at {time_request_str}, for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
@@ -131,7 +126,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                      dict_param
                      )
 
-    print("response from run_analysis:", json.dumps(c.json(), indent=4))
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
     session_id = c.json()['session_id']
     job_id = c.json()['job_monitor']['job_id']
@@ -350,7 +345,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                          token=encoded_token
                      ))
 
-    print("response from run_analysis:", json.dumps(c.json(), indent=4))
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
     # jdata = c.json()
     # TODO: test that this returns entire log
     # full_report_dict_list = c.json()['job_monitor'].get('full_report_dict_list')
@@ -365,7 +360,7 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
 
     server = dispatcher_live_fixture
-    print("constructed server:", server)
+    logger.info("constructed server: %s", server)
 
     # let's generate a valid token with high threshold
     token_payload = {
@@ -385,7 +380,7 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
                          time_request=time_request
                      ))
 
-    print("response from run_analysis:", json.dumps(c.json(), indent=4))
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
     session_id = c.json()['session_id']
     job_id = c.json()['job_monitor']['job_id']
@@ -435,7 +430,7 @@ def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_liv
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
 
     server = dispatcher_live_fixture
-    print("constructed server:", server)
+    logger.info("constructed server: %s", server)
 
     # let's generate a valid token with high threshold
     token_payload = {
@@ -455,7 +450,7 @@ def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_liv
                          token=encoded_token
                      ))
 
-    print("response from run_analysis:", json.dumps(c.json(), indent=4))
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
     session_id = c.json()['session_id']
     job_id = c.json()['job_monitor']['job_id']
