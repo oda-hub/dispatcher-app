@@ -88,9 +88,9 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
 
 
 @pytest.mark.parametrize("default_values", [True, False])
-# @pytest.mark.parametrize("time_request_none", [True, False])
+@pytest.mark.parametrize("time_original_request_none", [True, False])
 @pytest.mark.parametrize("request_cred", ['public', 'private'])
-def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_local_mail_server, default_values, request_cred):
+def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_local_mail_server, default_values, request_cred, time_original_request_none):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
 
     token_none = ( request_cred == 'public' )
@@ -146,12 +146,12 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
     assert os.path.exists(job_monitor_json_fn) or os.path.exists(job_monitor_json_fn_aliased)
 
-
     assert c.status_code == 200
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
     assert 'time_request' in jdata
+    # set the time the request was initiated
     time_request = jdata['time_request']
     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
 
@@ -184,6 +184,13 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                 content_text_html = part.get_payload().replace('\r', '').strip()
                 assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="submitted",
                                                                         request_url=request_url)
+
+    # for the call_back(s) in case the time of the original request is not provided
+    if time_original_request_none:
+        time_request = None
+        time_request_str = 'None'
+        plain_text_email = "Update of the task for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
+        html_text_email = "<html><body><p>Update of the task for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
 
     for i in range(5):
         # imitating what a backend would do
@@ -239,7 +246,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
     jdata = json.load(f)
     # if default_values or token_none or time_request_none:
-    if default_values or token_none:
+    if default_values or token_none or time_original_request_none:
         # for this case, email not supposed to be sent if request is short and/or no time information are available
         # or public request
         assert 'email_status' not in jdata
@@ -306,7 +313,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         f_local_smtp = open(smtp_server_log)
         f_local_smtp_jdata = json.load(f_local_smtp)
         # if default_values or time_request_none:
-        if default_values:
+        if default_values or time_original_request_none:
             assert len(f_local_smtp_jdata) == 2
         else:
             assert len(f_local_smtp_jdata) == 3
