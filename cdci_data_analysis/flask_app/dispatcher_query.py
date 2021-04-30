@@ -201,8 +201,7 @@ class InstrumentQueryBackEnd:
             raise
 
         except Exception as e:
-            self.logger.error(
-                '\033[31mexception in constructor of %s %s\033[0m', self, repr(e))
+            self.logger.error('\033[31mexception in constructor of %s %s\033[0m', self, repr(e))
             self.logger.error("traceback: %s", traceback.format_exc())
 
             query_out = QueryOutput()
@@ -765,8 +764,7 @@ class InstrumentQueryBackEnd:
                 known_instruments.append(instrument.name)
 
         if new_instrument is None:
-            raise InstrumentNotRecognized(
-                f'instrument: "{instrument_name}", known: {known_instruments}')
+            raise InstrumentNotRecognized(f'instrument: "{instrument_name}", known: {known_instruments}')
         else:
             self.instrument = new_instrument
 

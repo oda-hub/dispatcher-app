@@ -98,6 +98,10 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     server = dispatcher_live_fixture
     print("constructed server:", server)
 
+    # email content in plain text and html format
+    plain_text_email = "Update of the task submitted at {time_request_str}, for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
+    html_text_email = "<html><body><p>Update of the task submitted at {time_request_str}, for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+
     if token_none:
         encoded_token = None
     else:
@@ -114,25 +118,12 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
         encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    # # set the time the request was initiated
-    # if time_request_none:
-    #     time_request = None
-    #     time_request_str = 'None'
-    # else:
-    #     time_request = time.time()
-    #     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
-    
     dict_param = dict(
         query_status="new",
         query_type="Real",
         instrument="empty-async",
         product_type="dummy",
-        token=encoded_token,
-        # makes more sense to have it sent directly with the request,
-        # though it is not considered for the url encoding
-        # to confirm
-        # VS: I do not really understand, why is it useful in the request? can dispatcher not compute it? Relying on time from another locations may cause issues
-        # time_request=time_request
+        token=encoded_token
     )
 
     # this should return status submitted, so email sent
@@ -146,16 +137,8 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     job_id = c.json()['job_monitor']['job_id']
     dict_param_complete = dict_param.copy()
     dict_param_complete['session_id'] = session_id
-    # dict_param_complete.pop('time_request')
-    
+
     request_url = '%s?%s' % ('http://www.astro.unige.ch/cdci/astrooda_', urlencode(dict_param_complete))
-    # # email content in text and html format
-    # if time_request_none:
-    #     plain_text_email = "Update of the task for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
-    #     html_text_email = "<html><body><p>Update of the task for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
-    # else:
-    plain_text_email = "Update of the task submitted at {time_request_str}, for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
-    html_text_email = "<html><body><p>Update of the task submitted at {time_request_str}, for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
 
     job_monitor_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor.json'
     # the aliased version might have been created
@@ -163,23 +146,14 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
     assert os.path.exists(job_monitor_json_fn) or os.path.exists(job_monitor_json_fn_aliased)
 
-    query_output_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
-    query_output_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
-    assert os.path.exists(query_output_json_fn) or os.path.exists(query_output_json_fn_aliased)
-    if os.path.exists(query_output_json_fn):
-        f = open(query_output_json_fn)
-    else:
-        f = open(query_output_json_fn_aliased)
-
-    jdata = json.load(f)
-    assert 'prod_dictionary' in jdata and 'time_request' in jdata['prod_dictionary']
-    # get the original time the request was made
-    time_request = jdata['prod_dictionary']['time_request']
-    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
 
     assert c.status_code == 200
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
+    # get the original time the request was made
+    assert 'time_request' in jdata['prod_dictionary']
+    time_request = jdata['prod_dictionary']['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
 
     if token_none:
         # email not supposed to be sent for public request
@@ -355,7 +329,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                 assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="failed",
                                                                     request_url=request_url)
 
-    # TODO this will rwrite the valuer of the time_request in the query output, but it shouldn't be a problem?
+    # TODO this will rewrite the value of the time_request in the query output, but it shouldn't be a problem?
     # This is not complete since DataServerQuery never returns done
     c = requests.get(server + "/run_analysis",
                      params=dict(
