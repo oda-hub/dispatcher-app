@@ -122,10 +122,10 @@ class InstrumentQueryBackEnd:
 
             self.time_request = None            
                     
-            if self.par_dic.get('time_request', None) not in [ None, 'None' ]:
-                self.time_request = float(self.par_dic.pop('time_request'))
+            # if self.par_dic.get('time_request', None) not in [ None, 'None' ]:
+            #     self.time_request = float(self.par_dic.pop('time_request'))
             # else:
-            #     self.time_request = g.get('request_start_time', None)
+            self.time_request = g.get('request_start_time', None)
 
             # By default, a request is public, let's now check if a token has been included
             # In that case, validation is needed
@@ -709,6 +709,8 @@ class InstrumentQueryBackEnd:
         if status_code is not None:
             out_dict['status_code'] = status_code
 
+        out_dict['time_request'] = self.time_request
+
         if off_line:
             return out_dict
         else:
@@ -1055,7 +1057,6 @@ class InstrumentQueryBackEnd:
 
             self.config = config
 
-
     def run_query(self, off_line=False, disp_conf=None):
         """
         this is the principal function to respond to the requests
@@ -1280,6 +1281,8 @@ class InstrumentQueryBackEnd:
                                                       status_code=e.status_code)
 
                 self.logger.info('-----------------> job status after query: %s', job.status)
+
+                query_out.set_time_request(self.time_request)
 
                 if query_out.status_dictionary['status'] == 0:
                     if job.status == 'done':

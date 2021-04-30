@@ -132,7 +132,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         # though it is not considered for the url encoding
         # to confirm
         # VS: I do not really understand, why is it useful in the request? can dispatcher not compute it? Relying on time from another locations may cause issues
-        time_request=time_request
+        # time_request=time_request
     )
 
     # this should return status submitted, so email sent
@@ -146,7 +146,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     job_id = c.json()['job_monitor']['job_id']
     dict_param_complete = dict_param.copy()
     dict_param_complete['session_id'] = session_id
-    dict_param_complete.pop('time_request')
+    # dict_param_complete.pop('time_request')
     
     request_url = '%s?%s' % ('http://www.astro.unige.ch/cdci/astrooda_', urlencode(dict_param_complete))
     # email content in text and html format
@@ -162,8 +162,21 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     job_monitor_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor.json'
 
     assert os.path.exists(job_monitor_json_fn) or os.path.exists(job_monitor_json_fn_aliased)
-    assert c.status_code == 200
 
+    query_output_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
+    query_output_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
+    assert os.path.exists(query_output_json_fn) or os.path.exists(query_output_json_fn_aliased)
+    if os.path.exists(query_output_json_fn):
+        f = open(query_output_json_fn)
+    else:
+        f = open(query_output_json_fn_aliased)
+
+    jdata = json.load(f)
+    assert 'prod_dictionary' in jdata and 'time_request' in jdata['prod_dictionary']
+    time_request = jdata['prod_dictionary']['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    assert c.status_code == 200
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
 

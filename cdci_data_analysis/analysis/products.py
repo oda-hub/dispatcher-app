@@ -75,7 +75,6 @@ class QueryOutput(object):
 
         self.set_status(0, job_status='unknown')
 
-
     def set_instrument_parameters(self,o):
         self.prod_dictionary['instrumet_parameters'] = o
 
@@ -84,6 +83,9 @@ class QueryOutput(object):
 
     def set_api_code(self,query_dict):
         self.prod_dictionary['api_code'] = DispatcherAPI.set_api_code(query_dict)
+
+    def set_time_request(self, time_request):
+        self.prod_dictionary['time_request'] = time_request
 
     def dump_analysis_parameters(self,work_dir,query_dict):
         file_path=FilePath(file_dir=work_dir, file_name='analysis_parameters.json')
