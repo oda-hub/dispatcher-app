@@ -84,7 +84,9 @@ Example, showing minimal required set of fields in token payload:
   "exp": 1613662947,
   "iss": "drupal",
   "iat": 1613662847,
-  "tem": 1800
+  "tem": 1800,
+  "mstout": True,
+  "mssub": True
 }
 ```
 
@@ -101,6 +103,8 @@ Where "sub" field is unique user identified, defined as email.
 | issued-dy | iss | none |
 | audience, issued-for | aud | none |
 | email timeout | tem | none |
+| email sent upon completion of a request that sxceeded the established timeout| mstout | none |
+| email sent once a query has been submitted | mssub | none |
 
 Specific sites may specify more roles, as needed.
 
@@ -132,5 +136,6 @@ But they See current working definition of real roles [here](https://github.com/
 |||
 | :-- | :-- |
 | Meetings | [2021-02-22](https://github.com/oda-hub/meetings/blob/main/2021-02-22/MoM.md) |
+
 
 
