@@ -28,7 +28,7 @@ default_token_payload = dict(
 
 def test_callback_without_prior_run_analysis(dispatcher_live_fixture):
     server = dispatcher_live_fixture
-    print("constructed server:", server)
+    logger.info("constructed server: %s", server)
 
     c = requests.get(server + "/call_back",
                      params={
@@ -36,25 +36,20 @@ def test_callback_without_prior_run_analysis(dispatcher_live_fixture):
                          'instrument_name': 'test-instrument_name',
                      })
 
-    print(c.text)
+    logger.info(c.text)
 
     assert c.status_code == 200
 
 
 def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_server):
     server = dispatcher_live_fixture
-    print("constructed server:", server)
+    logger.info("constructed server: %s", server)
 
-    time_request = time.time()
     dict_param = dict(
         query_status="new",
         query_type="Real",
         instrument="empty-async",
-        product_type="dummy",
-        # makes more sense to have it sent directly with the request,
-        # though it is not considered for the url encoding
-        # to confirm
-        time_request=time_request
+        product_type="dummy"
     )
 
     # this should return status submitted, so email sent
@@ -62,7 +57,7 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
                      dict_param
                      )
 
-    print("response from run_analysis:", json.dumps(c.json(), indent=4))
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
@@ -88,15 +83,19 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
 
 
 @pytest.mark.parametrize("default_values", [True, False])
-@pytest.mark.parametrize("time_request_none", [True, False])
+@pytest.mark.parametrize("time_original_request_none", [True, False])
 @pytest.mark.parametrize("request_cred", ['public', 'private'])
-def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_local_mail_server, default_values, time_request_none, request_cred):
+def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_local_mail_server, default_values, request_cred, time_original_request_none):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
 
     token_none = ( request_cred == 'public' )
         
     server = dispatcher_live_fixture
-    print("constructed server:", server)
+    logger.info("constructed server: %s", server)
+
+    # email content in plain text and html format
+    plain_text_email = "Update of the task submitted at {time_request_str}, for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
+    html_text_email = "<html><body><p>Update of the task submitted at {time_request_str}, for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
 
     if token_none:
         encoded_token = None
@@ -114,25 +113,12 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
         encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    # set the time the request was initiated
-    if time_request_none:
-        time_request = None
-        time_request_str = 'None'
-    else:
-        time_request = time.time() 
-        time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
-    
     dict_param = dict(
         query_status="new",
         query_type="Real",
         instrument="empty-async",
         product_type="dummy",
-        token=encoded_token,
-        # makes more sense to have it sent directly with the request,
-        # though it is not considered for the url encoding
-        # to confirm
-        # VS: I do not really understand, why is it useful in the request? can dispatcher not compute it? Relying on time from another locations may cause issues
-        time_request=time_request
+        token=encoded_token
     )
 
     # this should return status submitted, so email sent
@@ -140,32 +126,29 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                      dict_param
                      )
 
-    print("response from run_analysis:", json.dumps(c.json(), indent=4))
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
     session_id = c.json()['session_id']
     job_id = c.json()['job_monitor']['job_id']
     dict_param_complete = dict_param.copy()
     dict_param_complete['session_id'] = session_id
-    dict_param_complete.pop('time_request')
-    
+
     request_url = '%s?%s' % ('http://www.astro.unige.ch/cdci/astrooda_', urlencode(dict_param_complete))
-    # email content in text and html format
-    if time_request_none:
-        plain_text_email = "Update of the task for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
-        html_text_email = "<html><body><p>Update of the task for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
-    else:
-        plain_text_email = "Update of the task submitted at {time_request_str}, for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
-        html_text_email = "<html><body><p>Update of the task submitted at {time_request_str}, for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
 
     job_monitor_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor.json'
     # the aliased version might have been created
     job_monitor_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor.json'
 
     assert os.path.exists(job_monitor_json_fn) or os.path.exists(job_monitor_json_fn_aliased)
-    assert c.status_code == 200
 
+    assert c.status_code == 200
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
+    # get the original time the request was made
+    assert 'time_request' in jdata
+    # set the time the request was initiated
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
 
     if token_none:
         # email not supposed to be sent for public request
@@ -196,6 +179,13 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                 content_text_html = part.get_payload().replace('\r', '').strip()
                 assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="submitted",
                                                                         request_url=request_url)
+
+    # for the call_back(s) in case the time of the original request is not provided
+    if time_original_request_none:
+        time_request = None
+        time_request_str = 'None'
+        plain_text_email = "Update of the task for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
+        html_text_email = "<html><body><p>Update of the task for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
 
     for i in range(5):
         # imitating what a backend would do
@@ -250,7 +240,8 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         f = open(job_monitor_call_back_done_json_fn_aliased)
 
     jdata = json.load(f)
-    if default_values or token_none or time_request_none:
+    # if default_values or token_none or time_request_none:
+    if default_values or token_none or time_original_request_none:
         # for this case, email not supposed to be sent if request is short and/or no time information are available
         # or public request
         assert 'email_status' not in jdata
@@ -316,7 +307,8 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         assert os.path.exists(smtp_server_log)
         f_local_smtp = open(smtp_server_log)
         f_local_smtp_jdata = json.load(f_local_smtp)
-        if default_values or time_request_none:
+        # if default_values or time_request_none:
+        if default_values or time_original_request_none:
             assert len(f_local_smtp_jdata) == 2
         else:
             assert len(f_local_smtp_jdata) == 3
@@ -339,6 +331,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                 assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="failed",
                                                                     request_url=request_url)
 
+    # TODO this will rewrite the value of the time_request in the query output, but it shouldn't be a problem?
     # This is not complete since DataServerQuery never returns done
     c = requests.get(server + "/run_analysis",
                      params=dict(
@@ -352,7 +345,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
                          token=encoded_token
                      ))
 
-    print("response from run_analysis:", json.dumps(c.json(), indent=4))
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
     # jdata = c.json()
     # TODO: test that this returns entire log
     # full_report_dict_list = c.json()['job_monitor'].get('full_report_dict_list')
@@ -367,7 +360,7 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
 
     server = dispatcher_live_fixture
-    print("constructed server:", server)
+    logger.info("constructed server: %s", server)
 
     # let's generate a valid token with high threshold
     token_payload = {
@@ -387,7 +380,7 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
                          time_request=time_request
                      ))
 
-    print("response from run_analysis:", json.dumps(c.json(), indent=4))
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
     session_id = c.json()['session_id']
     job_id = c.json()['job_monitor']['job_id']
@@ -437,7 +430,7 @@ def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_liv
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
 
     server = dispatcher_live_fixture
-    print("constructed server:", server)
+    logger.info("constructed server: %s", server)
 
     # let's generate a valid token with high threshold
     token_payload = {
@@ -457,7 +450,7 @@ def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_liv
                          token=encoded_token
                      ))
 
-    print("response from run_analysis:", json.dumps(c.json(), indent=4))
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
     session_id = c.json()['session_id']
     job_id = c.json()['job_monitor']['job_id']
