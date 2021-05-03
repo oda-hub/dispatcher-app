@@ -407,13 +407,25 @@ def test_isgri_no_osa(dispatcher_live_fixture):
 
     assert jdata["error_message"] == "osa_version is needed"
 
+def run_analysis(server, params, method='get'):
+    if method == 'get':
+        return requests.get(server + "/run_analysis",
+                    params={**params},
+                    )
+
+    elif method == 'post':
+        return requests.post(server + "/run_analysis",
+                    data={**params},
+                    )
+    else:
+        raise NotImplementedError
 
 # why ~1 second? so long
-def ask(server, params, expected_query_status, expected_job_status=None, max_time_s=2.0, expected_status_code=200):
+def ask(server, params, expected_query_status, expected_job_status=None, max_time_s=2.0, expected_status_code=200, method='get'):
     t0 = time.time()
-    c=requests.get(server + "/run_analysis",
-                   params={**params},
-                  )
+
+    c = run_analysis(server, params, method=method)
+
     logger.info(f"\033[31m request took {time.time() - t0} seconds\033[0m")
     t_spent = time.time() - t0
     assert t_spent < max_time_s
@@ -438,13 +450,15 @@ def ask(server, params, expected_query_status, expected_job_status=None, max_tim
     return jdata
 
 
-def loop_ask(server, params):
+def loop_ask(server, params, method='get'):
     jdata = ask(server,
                 {**params, 
                  'async_dispatcher': True,
                  'query_status': 'new',
                 },
-                expected_query_status=["submitted"])
+                expected_query_status=["submitted"],
+                method=method,
+                )
 
     last_status = jdata["query_status"]
 
@@ -494,7 +508,7 @@ def validate_no_data_products(jdata):
 
 @pytest.mark.skip(reason="old, replaced by new tests")
 @pytest.mark.parametrize("async_dispatcher", [False, True])
-def test_no_token(dispatcher_live_fixture, async_dispatcher):
+def test_no_token(dispatcher_live_fixture, async_dispatcher, method):
     server = dispatcher_live_fixture
     print("constructed server:", server)
 
@@ -510,6 +524,7 @@ def test_no_token(dispatcher_live_fixture, async_dispatcher):
                 params,
                 expected_query_status=["failed"],
                 max_time_s=50,
+                method=method,
                 )
 
     print(json.dumps(jdata, indent=4))
@@ -520,10 +535,11 @@ def test_no_token(dispatcher_live_fixture, async_dispatcher):
 
 
 @pytest.mark.parametrize("selection", ["range", "280200470010.001"])
+@pytest.mark.parametrize("method", ['get', 'post'])
 @pytest.mark.dda
 @pytest.mark.isgri_plugin
 @pytest.mark.xfail
-def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
+def test_isgri_image_no_pointings(dispatcher_live_fixture, selection, method):
     """
     this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
     """
@@ -551,6 +567,7 @@ def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
                 params,
                 expected_query_status=["failed"],
                 max_time_s=50,
+                method=method,
                 )
     
     print(list(jdata.keys()))
@@ -560,7 +577,8 @@ def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
 
 @pytest.mark.dda
 @pytest.mark.isgri_plugin
-def test_isgri_image_fixed_done(dispatcher_live_fixture):
+@pytest.mark.parametrize("method", ['get', 'post'])
+def test_isgri_image_fixed_done(dispatcher_live_fixture, method):
     """
     something already done at backend
     """
@@ -579,6 +597,7 @@ def test_isgri_image_fixed_done(dispatcher_live_fixture):
                 params,
                 expected_query_status=["done"],
                 max_time_s=50,
+                method=method,
                 )
 
     print(jdata)
