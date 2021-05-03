@@ -120,12 +120,7 @@ class InstrumentQueryBackEnd:
 
             self.set_session_id()
 
-            self.time_request = None            
-                    
-            if self.par_dic.get('time_request', None) not in [ None, 'None' ]:
-                self.time_request = float(self.par_dic.pop('time_request'))
-            # else:
-            #     self.time_request = g.get('request_start_time', None)
+            self.time_request = g.get('request_start_time', None)
 
             # By default, a request is public, let's now check if a token has been included
             # In that case, validation is needed
@@ -201,8 +196,7 @@ class InstrumentQueryBackEnd:
             raise
 
         except Exception as e:
-            self.logger.error(
-                '\033[31mexception in constructor of %s %s\033[0m', self, repr(e))
+            self.logger.error('\033[31mexception in constructor of %s %s\033[0m', self, repr(e))
             self.logger.error("traceback: %s", traceback.format_exc())
 
             query_out = QueryOutput()
@@ -709,6 +703,8 @@ class InstrumentQueryBackEnd:
         if status_code is not None:
             out_dict['status_code'] = status_code
 
+        out_dict['time_request'] = self.time_request
+
         if off_line:
             return out_dict
         else:
@@ -763,8 +759,7 @@ class InstrumentQueryBackEnd:
                 known_instruments.append(instrument.name)
 
         if new_instrument is None:
-            raise InstrumentNotRecognized(
-                f'instrument: "{instrument_name}", known: {known_instruments}')
+            raise InstrumentNotRecognized(f'instrument: "{instrument_name}", known: {known_instruments}')
         else:
             self.instrument = new_instrument
 
@@ -1055,7 +1050,6 @@ class InstrumentQueryBackEnd:
 
             self.config = config
 
-
     def run_query(self, off_line=False, disp_conf=None):
         """
         this is the principal function to respond to the requests
@@ -1317,9 +1311,7 @@ class InstrumentQueryBackEnd:
         elif query_status == 'progress' or query_status == 'unaccessible' or query_status == 'unknown' or query_status == 'submitted':
             # we can not just avoid async here since the request still might be long
             if self.async_dispatcher:
-                query_out, job_monitor, query_new_status = self.async_dispatcher_query(
-                    query_status)
-
+                query_out, job_monitor, query_new_status = self.async_dispatcher_query(query_status)
                 if job_monitor is None:
                     job_monitor = job.monitor
             else:
@@ -1327,8 +1319,7 @@ class InstrumentQueryBackEnd:
 
                 job_monitor = job.updated_dataserver_monitor()
 
-                self.logger.info(
-                    '-----------------> job monitor from data server: %s', job_monitor['status'])
+                self.logger.info('-----------------> job monitor from data server: %s', job_monitor['status'])
 
                 if job_monitor['status'] == 'done':
                     job.set_ready()
