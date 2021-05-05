@@ -421,14 +421,16 @@ def run_analysis(server, params, method='get'):
         raise NotImplementedError
 
 # why ~1 second? so long
-def ask(server, params, expected_query_status, expected_job_status=None, max_time_s=2.0, expected_status_code=200, method='get'):
+def ask(server, params, expected_query_status, expected_job_status=None, max_time_s=None, expected_status_code=200, method='get'):
     t0 = time.time()
 
     c = run_analysis(server, params, method=method)
 
     logger.info(f"\033[31m request took {time.time() - t0} seconds\033[0m")
     t_spent = time.time() - t0
-    assert t_spent < max_time_s
+
+    if max_time_s is not None:
+        assert t_spent < max_time_s
 
     logger.info("content: %s", c.text[:1000])
     if len(c.text) > 1000:
@@ -450,13 +452,13 @@ def ask(server, params, expected_query_status, expected_job_status=None, max_tim
     return jdata
 
 
-def loop_ask(server, params, method='get'):
+def loop_ask(server, params, method='get', max_time_s=None, async_dispatcher=False):
     jdata = ask(server,
                 {**params, 
-                 'async_dispatcher': True,
+                 'async_dispatcher': async_dispatcher,
                  'query_status': 'new',
                 },
-                expected_query_status=["submitted"],
+                expected_query_status=["submitted", "done"],
                 method=method,
                 )
 
@@ -476,19 +478,19 @@ def loop_ask(server, params, method='get'):
             tries_till_reset -= 1
 
         jdata = ask(server,
-                    {**params, "async_dispatcher": True,
+                    {**params, "async_dispatcher": async_dispatcher,
                                'query_status': next_query_status,
                                'job_id': jdata['job_monitor']['job_id'],
                                'session_id': jdata['session_id']},
                     expected_query_status=["submitted", "done"],
-                    max_time_s=3,
+                    max_time_s=max_time_s,
                     )
 
         if jdata["query_status"] in ["ready", "done"]:
-            logger.info("query READY:", jdata["query_status"])
+            logger.info("query READY: %s", jdata["query_status"])
             break
 
-        logger.info("query NOT-READY:", jdata["query_status"], jdata["job_monitor"])
+        logger.info("query NOT-READY: %s monitor %s", jdata["query_status"], jdata["job_monitor"])
         logger.info("looping...")
 
         time.sleep(5)
