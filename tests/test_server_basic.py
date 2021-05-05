@@ -16,6 +16,9 @@ import yaml
 
 #pytestmark = pytest.mark.skip("these tests still WIP")
 
+from cdci_data_analysis.pytest_fixtures import loop_ask, ask
+
+
 # logger
 logger = logging.getLogger(__name__)
 # symmetric shared secret for the decoding of the token
@@ -407,105 +410,6 @@ def test_isgri_no_osa(dispatcher_live_fixture):
 
     assert jdata["error_message"] == "osa_version is needed"
 
-def run_analysis(server, params, method='get'):
-    if method == 'get':
-        return requests.get(server + "/run_analysis",
-                    params={**params},
-                    )
-
-    elif method == 'post':
-        return requests.post(server + "/run_analysis",
-                    data={**params},
-                    )
-    else:
-        raise NotImplementedError
-
-# why ~1 second? so long
-def ask(server, params, expected_query_status, expected_job_status=None, max_time_s=None, expected_status_code=200, method='get'):
-    t0 = time.time()
-
-    c = run_analysis(server, params, method=method)
-
-    logger.info(f"\033[31m request took {time.time() - t0} seconds\033[0m")
-    t_spent = time.time() - t0
-
-    if max_time_s is not None:
-        assert t_spent < max_time_s
-
-    logger.info("content: %s", c.text[:1000])
-    if len(c.text) > 1000:
-        print(".... (truncated)")
-
-    jdata=c.json()
-
-    if expected_status_code is not None:
-        assert c.status_code == expected_status_code
-
-    logger.info(list(jdata.keys()))
-
-    if expected_job_status is not None:
-        assert jdata["exit_status"]["job_status"] in expected_job_status
-
-    if expected_query_status is not None:
-        assert jdata["query_status"] in expected_query_status
-
-    return jdata
-
-
-def loop_ask(server, params, method='get', max_time_s=None, async_dispatcher=False):
-    jdata = ask(server,
-                {**params, 
-                 'async_dispatcher': async_dispatcher,
-                 'query_status': 'new',
-                },
-                expected_query_status=["submitted", "done"],
-                method=method,
-                )
-
-    last_status = jdata["query_status"]
-
-    t0 = time.time()
-
-    tries_till_reset = 20
-
-    while True:
-        if tries_till_reset <= 0:
-            next_query_status = "ready"
-            print("\033[1;31;46mresetting query status to new, too long!\033[0m")
-            tries_till_reset = 20
-        else:
-            next_query_status = jdata['query_status']
-            tries_till_reset -= 1
-
-        jdata = ask(server,
-                    {**params, "async_dispatcher": async_dispatcher,
-                               'query_status': next_query_status,
-                               'job_id': jdata['job_monitor']['job_id'],
-                               'session_id': jdata['session_id']},
-                    expected_query_status=["submitted", "done"],
-                    max_time_s=max_time_s,
-                    )
-
-        if jdata["query_status"] in ["ready", "done"]:
-            logger.info("query READY: %s", jdata["query_status"])
-            break
-
-        logger.info("query NOT-READY: %s monitor %s", jdata["query_status"], jdata["job_monitor"])
-        logger.info("looping...")
-
-        time.sleep(5)
-
-    logger.info(f"\033[31m total request took {time.time() - t0} seconds\033[0m")
-
-
-    return jdata, time.time() - t0
-
-
-def validate_no_data_products(jdata):
-    assert jdata["exit_status"]["debug_message"] == "{\"node\": \"dataanalysis.core.AnalysisException\", \"exception\": \"{}\", \"exception_kind\": \"handled\"}"
-    assert jdata["exit_status"]["error_message"] == "AnalysisException:{}"
-    assert jdata["exit_status"]["message"] == "failed: get dataserver products "
-    assert jdata["job_status"] == "failed"
 
 
 @pytest.mark.skip(reason="old, replaced by new tests")
