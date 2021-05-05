@@ -313,25 +313,6 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
     logger.info(json.dumps(jdata, indent=4))
 
 
-@pytest.mark.isgri_plugin
-def test_isgri_dummy(dispatcher_live_fixture):
-    server = dispatcher_live_fixture
-
-    logger.info("constructed server: %s", server)
-    c = requests.get(server + "/run_analysis",
-                      params = dict(
-                          query_status = "new",
-                          query_type = "Dummy",
-                          instrument = "isgri",
-                          product_type = "isgri_image",
-                      ))
-    logger.info("content: %s", c.text)
-    jdata = c.json()
-    logger.info(list(jdata.keys()))
-    logger.info(jdata)
-    assert c.status_code == 200
-
-
 def test_empty_instrument_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
@@ -410,8 +391,6 @@ def test_isgri_no_osa(dispatcher_live_fixture):
 
     assert jdata["error_message"] == "osa_version is needed"
 
-
-
 @pytest.mark.skip(reason="old, replaced by new tests")
 @pytest.mark.parametrize("async_dispatcher", [False, True])
 def test_no_token(dispatcher_live_fixture, async_dispatcher, method):
@@ -440,123 +419,6 @@ def test_no_token(dispatcher_live_fixture, async_dispatcher, method):
     assert jdata["exit_status"]["message"] == "you do not have permissions for this query, contact oda"
 
 
-@pytest.mark.parametrize("selection", ["range", "280200470010.001"])
-@pytest.mark.parametrize("method", ['get', 'post'])
-@pytest.mark.dda
-@pytest.mark.isgri_plugin
-@pytest.mark.xfail
-def test_isgri_image_no_pointings(dispatcher_live_fixture, selection, method):
-    """
-    this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
-    """
-
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    if selection == "range":
-        params = {
-            **default_params,
-            'T1': "2008-01-01T11:11:11.0",
-            'T2': "2009-01-01T11:11:11.0",
-            'max_pointings': 1,
-            'async_dispatcher': False,
-        }
-    else:
-        params = {
-            **default_params,
-            'scw_list': selection,
-            'async_dispatcher': False,
-        }
-    # let's make the request public for simplicity
-    params.pop('token')
-    jdata = ask(server,
-                params,
-                expected_query_status=["failed"],
-                max_time_s=50,
-                method=method,
-                )
-    
-    print(list(jdata.keys()))
-
-    validate_no_data_products(jdata)
-
-
-@pytest.mark.dda
-@pytest.mark.isgri_plugin
-@pytest.mark.parametrize("method", ['get', 'post'])
-def test_isgri_image_fixed_done(dispatcher_live_fixture, method):
-    """
-    something already done at backend
-    """
-
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    params = {
-        **default_params,
-        'async_dispatcher': False,
-    }
-    # let's make the request public for simplicity
-    params.pop('token')
-
-    jdata = ask(server,
-                params,
-                expected_query_status=["done"],
-                max_time_s=50,
-                method=method,
-                )
-
-    print(jdata)
-
-    json.dump(jdata, open("jdata.json", "w"))
-
-
-@pytest.mark.dda
-@pytest.mark.isgri_plugin
-def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
-    """
-    something already done at backend
-    new session every time, hence re-do post-process
-    """
-
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    params = {
-       **default_params,
-    }
-    # let's make the request public for simplicity
-    params.pop('token')
-
-    jdata, tspent = loop_ask(server, params)
-
-    assert  20 < tspent < 40
-
-
-@pytest.mark.dda
-@pytest.mark.isgri_plugin
-def test_isgri_image_random_emax(dispatcher_live_fixture):
-    """
-    something already done at backend
-    """
-
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    try:
-        emax = int(open("emax-last", "rt").read())
-    except:
-        emax = random.randint(30, 800) # but sometimes it's going to be done
-        open("emax-last", "wt").write("%d"%emax)
-                   
-    
-    params = {
-       **default_params,
-       'E2_keV':emax,
-    }
-    # let's make the request public for simplicity
-    params.pop('token')
-    jdata, tspent = loop_ask(server, params)
 
 def flatten_nested_structure(structure, mapping, path=[]):
     if isinstance(structure, list):
@@ -569,9 +431,9 @@ def flatten_nested_structure(structure, mapping, path=[]):
 
     return [mapping(path, structure)]
 
+
 def test_example_config(dispatcher_test_conf):
     import cdci_data_analysis.config_dir
-
 
     example_config_fn = os.path.join(
         os.path.dirname(cdci_data_analysis.__file__),
@@ -588,4 +450,3 @@ def test_example_config(dispatcher_test_conf):
     print("\n\n\ntest_config_keys", test_config_keys)
 
     assert set(example_config_keys) == set(test_config_keys)
-    

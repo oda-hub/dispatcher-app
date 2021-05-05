@@ -17,7 +17,6 @@ develop-eggs
 lib
 lib64
 /.svn
-/.idea
 /run_tests
 /diagrams
 .mypy_cache
