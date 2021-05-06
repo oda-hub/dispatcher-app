@@ -754,12 +754,18 @@ class InstrumentQueryBackEnd:
         if instrument_name == 'mock':
             new_instrument = 'mock'
         else:
-            for instrument_factory in importer.instrument_factory_list:
-                instrument = instrument_factory()
-                if instrument.name == instrument_name:
+            # for instrument_factory in importer.instrument_factory_list:
+            #     instrument = instrument_factory()
+            #     if instrument.name == instrument_name:
+            #         new_instrument = instrument  # multiple assignment? TODO
+            #
+            #     known_instruments.append(instrument.name)
+            for instrument_factory_name in importer.instrument_name_dict.keys():
+                if instrument_factory_name == instrument_name:
+                    instrument = importer.instrument_name_dict[instrument_factory_name]()
                     new_instrument = instrument  # multiple assignment? TODO
 
-                known_instruments.append(instrument.name)
+                known_instruments.append(instrument_factory_name)
 
         if new_instrument is None:
             raise InstrumentNotRecognized(f'instrument: "{instrument_name}", known: {known_instruments}')

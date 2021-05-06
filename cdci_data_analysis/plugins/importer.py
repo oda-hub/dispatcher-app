@@ -55,16 +55,20 @@ cdci_plugins_dict = {
 }
 
 instrument_factory_list = []
+instrument_name_dict = {}
 # pre-load the empty instrument factory
 
 instrument_factory_list.append(empty_instrument.my_instr_factory)
 instrument_factory_list.append(empty_async_instrument.my_instr_factory)
+instrument_name_dict['empty'] = empty_instrument.my_instr_factory
+instrument_name_dict['empty-async'] = empty_async_instrument.my_instr_factory
 
 for plugin_name in cdci_plugins_dict:
     logger.info("found plugin: %s", plugin_name)
 
     try:
         e = importlib.import_module(plugin_name+'.exposer')
+        instrument_name_dict.update(e.instr_name_dict)
         instrument_factory_list.extend(e.instr_factory_list)
         logger.info(render('{GREEN}imported plugin: %s{/}'), plugin_name)
 
