@@ -235,6 +235,54 @@ def test_invalid_token(dispatcher_live_fixture, ):
     assert number_scartch_dirs == len(dir_list)
 
 
+@pytest.mark.odaapi
+def test_valid_token_oda_api(dispatcher_live_fixture):
+    import oda_api.api
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    disp = oda_api.api.DispatcherAPI(
+        url=dispatcher_live_fixture)
+    product = disp.get_product(
+        query_status="new",
+        product_type="Dummy",
+        instrument="empty",
+        product="dummy",
+        osa_version="OSA10.2",
+        E1_keV=40.0,
+        E2_keV=200.0,
+        scw_list=["066500220010.001"],
+        token=encoded_token
+    )
+
+    logger.info("product: %s", product)
+    logger.info("product show %s", product.show())
+
+    session_id = disp.session_id
+    job_id = disp.job_id
+
+    # check query output are generated
+    query_output_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
+    # the aliased version might have been created
+    query_output_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
+    assert os.path.exists(query_output_json_fn) or os.path.exists(query_output_json_fn_aliased)
+    # get the query output
+    if os.path.exists(query_output_json_fn):
+        f = open(query_output_json_fn)
+    else:
+        f = open(query_output_json_fn_aliased)
+
+    jdata = json.load(f)
+
+    assert jdata["status_dictionary"]["debug_message"] == ""
+    assert jdata["status_dictionary"]["error_message"] == ""
+    assert jdata["status_dictionary"]["message"] == ""
+
+
 @pytest.mark.parametrize("roles", ["", "unige-hpc-full, general", ["unige-hpc-full", "general"]])
 def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):
     server = dispatcher_live_fixture
