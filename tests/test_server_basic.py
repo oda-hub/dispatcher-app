@@ -189,6 +189,7 @@ def test_valid_token(dispatcher_live_fixture):
     logger.info(json.dumps(jdata, indent=4))
 
 
+@pytest.mark.not_safe_parallel
 def test_invalid_token(dispatcher_live_fixture, ):
     server = dispatcher_live_fixture
 
@@ -210,6 +211,10 @@ def test_invalid_token(dispatcher_live_fixture, ):
         'token': encoded_token
     }
 
+    # count the number of scratch folders
+    dir_list = glob.glob('scratch_*')
+    number_scartch_dirs = len(dir_list)
+
     jdata = ask(server,
                 params,
                 max_time_s=50,
@@ -220,6 +225,14 @@ def test_invalid_token(dispatcher_live_fixture, ):
     assert jdata['error_message'] == 'token expired'
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
+
+    # certain output information should not even returned
+    assert 'session_id' not in jdata
+    assert 'job_monitor' not in jdata
+
+    # count again
+    dir_list = glob.glob('scratch_*')
+    assert number_scartch_dirs == len(dir_list)
 
 
 @pytest.mark.parametrize("roles", ["", "unige-hpc-full, general"])
@@ -390,6 +403,7 @@ def test_isgri_no_osa(dispatcher_live_fixture):
     assert c.status_code == 400
 
     assert jdata["error_message"] == "osa_version is needed"
+
 
 @pytest.mark.skip(reason="old, replaced by new tests")
 @pytest.mark.parametrize("async_dispatcher", [False, True])

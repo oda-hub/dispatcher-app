@@ -38,7 +38,6 @@ def app():
     return app
 
 
-
 def run_analysis(server, params, method='get'):
     if method == 'get':
         return requests.get(server + "/run_analysis",
@@ -51,6 +50,7 @@ def run_analysis(server, params, method='get'):
                     )
     else:
         raise NotImplementedError
+
 
 def ask(server, params, expected_query_status, expected_job_status=None, max_time_s=None, expected_status_code=200, method='get'):
     t0 = time.time()
