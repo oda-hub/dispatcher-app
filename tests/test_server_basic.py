@@ -189,6 +189,45 @@ def test_valid_token(dispatcher_live_fixture):
     logger.info(json.dumps(jdata, indent=4))
 
 
+@pytest.mark.xfail
+def test_invalid_token_scartch_dir_creation(dispatcher_live_fixture, ):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    # let's generate an expired token
+    exp_time = int(time.time()) - 500
+    # expired token
+    token_payload = {
+        **default_token_payload,
+        "exp": exp_time
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                max_time_s=50,
+                expected_query_status=None,
+                expected_status_code=403
+                )
+
+    assert jdata['error_message'] == 'token expired'
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
+
+    # certain output information are not even returned
+    assert 'session_id' in jdata
+    assert 'job_monitor' in jdata
+    assert 'job_id' in jdata['job_monitor']
+
+
 def test_invalid_token(dispatcher_live_fixture, ):
     server = dispatcher_live_fixture
 
