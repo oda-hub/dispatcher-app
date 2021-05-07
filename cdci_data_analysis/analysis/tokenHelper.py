@@ -3,8 +3,12 @@ import jwt
 
 def get_token_roles(decoded_token):
     # extract role(s)
-    roles = decoded_token['roles'].split(',') if 'roles' in decoded_token else []
-    roles[:] = [r.strip() for r in roles]
+    if isinstance(decoded_token['roles'], str):
+        roles = decoded_token['roles'].split(',') if 'roles' in decoded_token else []
+        roles[:] = [r.strip() for r in roles]
+    elif isinstance(decoded_token['roles'], list):
+        roles = decoded_token['roles'] if 'roles' in decoded_token else []
+        roles[:] = [r.strip() for r in roles]
     return roles
 
 
