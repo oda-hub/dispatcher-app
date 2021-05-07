@@ -189,6 +189,7 @@ def test_valid_token(dispatcher_live_fixture):
     logger.info(json.dumps(jdata, indent=4))
 
 
+@pytest.mark.not_safe_parallel
 def test_invalid_token(dispatcher_live_fixture, ):
     server = dispatcher_live_fixture
 
@@ -232,6 +233,7 @@ def test_invalid_token(dispatcher_live_fixture, ):
     # count again
     dir_list = glob.glob('scratch_*')
     assert number_scartch_dirs == len(dir_list)
+
 
 @pytest.mark.parametrize("roles", ["", "unige-hpc-full, general"])
 def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):
@@ -401,6 +403,7 @@ def test_isgri_no_osa(dispatcher_live_fixture):
     assert c.status_code == 400
 
     assert jdata["error_message"] == "osa_version is needed"
+
 
 @pytest.mark.skip(reason="old, replaced by new tests")
 @pytest.mark.parametrize("async_dispatcher", [False, True])
