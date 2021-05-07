@@ -235,7 +235,7 @@ def test_invalid_token(dispatcher_live_fixture, ):
     assert number_scartch_dirs == len(dir_list)
 
 
-@pytest.mark.parametrize("roles", ["", "unige-hpc-full, general"])
+@pytest.mark.parametrize("roles", ["", "unige-hpc-full, general", ["unige-hpc-full", "general"]])
 def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):
     server = dispatcher_live_fixture
 
@@ -254,10 +254,6 @@ def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):
         'instrument': 'empty',
         'token': encoded_token
     }
-
-    # just for having the roles in a list
-    roles = roles.split(',')
-    roles[:] = [r.strip() for r in roles]
 
     jdata = ask(server,
                 params,
