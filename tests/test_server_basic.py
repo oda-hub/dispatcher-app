@@ -210,6 +210,10 @@ def test_invalid_token(dispatcher_live_fixture, ):
         'token': encoded_token
     }
 
+    # count the number of scratch folders
+    dir_list = glob.glob('scratch_*')
+    number_scartch_dirs = len(dir_list)
+
     jdata = ask(server,
                 params,
                 max_time_s=50,
@@ -225,6 +229,9 @@ def test_invalid_token(dispatcher_live_fixture, ):
     assert 'session_id' not in jdata
     assert 'job_monitor' not in jdata
 
+    # count again
+    dir_list = glob.glob('scratch_*')
+    assert number_scartch_dirs == len(dir_list)
 
 @pytest.mark.parametrize("roles", ["", "unige-hpc-full, general"])
 def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):
