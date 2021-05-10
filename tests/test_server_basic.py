@@ -16,6 +16,9 @@ import yaml
 
 #pytestmark = pytest.mark.skip("these tests still WIP")
 
+from cdci_data_analysis.pytest_fixtures import loop_ask, ask
+
+
 # logger
 logger = logging.getLogger(__name__)
 # symmetric shared secret for the decoding of the token
@@ -186,6 +189,7 @@ def test_valid_token(dispatcher_live_fixture):
     logger.info(json.dumps(jdata, indent=4))
 
 
+@pytest.mark.not_safe_parallel
 def test_invalid_token(dispatcher_live_fixture, ):
     server = dispatcher_live_fixture
 
@@ -207,6 +211,10 @@ def test_invalid_token(dispatcher_live_fixture, ):
         'token': encoded_token
     }
 
+    # count the number of scratch folders
+    dir_list = glob.glob('scratch_*')
+    number_scartch_dirs = len(dir_list)
+
     jdata = ask(server,
                 params,
                 max_time_s=50,
@@ -218,8 +226,16 @@ def test_invalid_token(dispatcher_live_fixture, ):
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
 
+    # certain output information should not even returned
+    assert 'session_id' not in jdata
+    assert 'job_monitor' not in jdata
 
-@pytest.mark.parametrize("roles", ["", "unige-hpc-full, general"])
+    # count again
+    dir_list = glob.glob('scratch_*')
+    assert number_scartch_dirs == len(dir_list)
+
+
+@pytest.mark.parametrize("roles", ["", "unige-hpc-full, general", ["unige-hpc-full", "general"]])
 def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):
     server = dispatcher_live_fixture
 
@@ -238,10 +254,6 @@ def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):
         'instrument': 'empty',
         'token': encoded_token
     }
-
-    # just for having the roles in a list
-    roles = roles.split(',')
-    roles[:] = [r.strip() for r in roles]
 
     jdata = ask(server,
                 params,
@@ -308,25 +320,6 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
 
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
-
-
-@pytest.mark.isgri_plugin
-def test_isgri_dummy(dispatcher_live_fixture):
-    server = dispatcher_live_fixture
-
-    logger.info("constructed server: %s", server)
-    c = requests.get(server + "/run_analysis",
-                      params = dict(
-                          query_status = "new",
-                          query_type = "Dummy",
-                          instrument = "isgri",
-                          product_type = "isgri_image",
-                      ))
-    logger.info("content: %s", c.text)
-    jdata = c.json()
-    logger.info(list(jdata.keys()))
-    logger.info(jdata)
-    assert c.status_code == 200
 
 
 def test_empty_instrument_request(dispatcher_live_fixture):
@@ -408,93 +401,9 @@ def test_isgri_no_osa(dispatcher_live_fixture):
     assert jdata["error_message"] == "osa_version is needed"
 
 
-# why ~1 second? so long
-def ask(server, params, expected_query_status, expected_job_status=None, max_time_s=2.0, expected_status_code=200):
-    t0 = time.time()
-    c=requests.get(server + "/run_analysis",
-                   params={**params},
-                  )
-    logger.info(f"\033[31m request took {time.time() - t0} seconds\033[0m")
-    t_spent = time.time() - t0
-    assert t_spent < max_time_s
-
-    logger.info("content: %s", c.text[:1000])
-    if len(c.text) > 1000:
-        print(".... (truncated)")
-
-    jdata=c.json()
-
-    if expected_status_code is not None:
-        assert c.status_code == expected_status_code
-
-    logger.info(list(jdata.keys()))
-
-    if expected_job_status is not None:
-        assert jdata["exit_status"]["job_status"] in expected_job_status
-
-    if expected_query_status is not None:
-        assert jdata["query_status"] in expected_query_status
-
-    return jdata
-
-
-def loop_ask(server, params):
-    jdata = ask(server,
-                {**params, 
-                 'async_dispatcher': True,
-                 'query_status': 'new',
-                },
-                expected_query_status=["submitted"])
-
-    last_status = jdata["query_status"]
-
-    t0 = time.time()
-
-    tries_till_reset = 20
-
-    while True:
-        if tries_till_reset <= 0:
-            next_query_status = "ready"
-            print("\033[1;31;46mresetting query status to new, too long!\033[0m")
-            tries_till_reset = 20
-        else:
-            next_query_status = jdata['query_status']
-            tries_till_reset -= 1
-
-        jdata = ask(server,
-                    {**params, "async_dispatcher": True,
-                               'query_status': next_query_status,
-                               'job_id': jdata['job_monitor']['job_id'],
-                               'session_id': jdata['session_id']},
-                    expected_query_status=["submitted", "done"],
-                    max_time_s=3,
-                    )
-
-        if jdata["query_status"] in ["ready", "done"]:
-            logger.info("query READY:", jdata["query_status"])
-            break
-
-        logger.info("query NOT-READY:", jdata["query_status"], jdata["job_monitor"])
-        logger.info("looping...")
-
-        time.sleep(5)
-
-    logger.info(f"\033[31m total request took {time.time() - t0} seconds\033[0m")
-
-
-    return jdata, time.time() - t0
-
-
-def validate_no_data_products(jdata):
-    assert jdata["exit_status"]["debug_message"] == "{\"node\": \"dataanalysis.core.AnalysisException\", \"exception\": \"{}\", \"exception_kind\": \"handled\"}"
-    assert jdata["exit_status"]["error_message"] == "AnalysisException:{}"
-    assert jdata["exit_status"]["message"] == "failed: get dataserver products "
-    assert jdata["job_status"] == "failed"
-
-
 @pytest.mark.skip(reason="old, replaced by new tests")
 @pytest.mark.parametrize("async_dispatcher", [False, True])
-def test_no_token(dispatcher_live_fixture, async_dispatcher):
+def test_no_token(dispatcher_live_fixture, async_dispatcher, method):
     server = dispatcher_live_fixture
     print("constructed server:", server)
 
@@ -510,6 +419,7 @@ def test_no_token(dispatcher_live_fixture, async_dispatcher):
                 params,
                 expected_query_status=["failed"],
                 max_time_s=50,
+                method=method,
                 )
 
     print(json.dumps(jdata, indent=4))
@@ -519,119 +429,6 @@ def test_no_token(dispatcher_live_fixture, async_dispatcher):
     assert jdata["exit_status"]["message"] == "you do not have permissions for this query, contact oda"
 
 
-@pytest.mark.parametrize("selection", ["range", "280200470010.001"])
-@pytest.mark.dda
-@pytest.mark.isgri_plugin
-@pytest.mark.xfail
-def test_isgri_image_no_pointings(dispatcher_live_fixture, selection):
-    """
-    this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
-    """
-
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    if selection == "range":
-        params = {
-            **default_params,
-            'T1': "2008-01-01T11:11:11.0",
-            'T2': "2009-01-01T11:11:11.0",
-            'max_pointings': 1,
-            'async_dispatcher': False,
-        }
-    else:
-        params = {
-            **default_params,
-            'scw_list': selection,
-            'async_dispatcher': False,
-        }
-    # let's make the request public for simplicity
-    params.pop('token')
-    jdata = ask(server,
-                params,
-                expected_query_status=["failed"],
-                max_time_s=50,
-                )
-    
-    print(list(jdata.keys()))
-
-    validate_no_data_products(jdata)
-
-
-@pytest.mark.dda
-@pytest.mark.isgri_plugin
-def test_isgri_image_fixed_done(dispatcher_live_fixture):
-    """
-    something already done at backend
-    """
-
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    params = {
-        **default_params,
-        'async_dispatcher': False,
-    }
-    # let's make the request public for simplicity
-    params.pop('token')
-
-    jdata = ask(server,
-                params,
-                expected_query_status=["done"],
-                max_time_s=50,
-                )
-
-    print(jdata)
-
-    json.dump(jdata, open("jdata.json", "w"))
-
-
-@pytest.mark.dda
-@pytest.mark.isgri_plugin
-def test_isgri_image_fixed_done_async_postproc(dispatcher_live_fixture):
-    """
-    something already done at backend
-    new session every time, hence re-do post-process
-    """
-
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    params = {
-       **default_params,
-    }
-    # let's make the request public for simplicity
-    params.pop('token')
-
-    jdata, tspent = loop_ask(server, params)
-
-    assert  20 < tspent < 40
-
-
-@pytest.mark.dda
-@pytest.mark.isgri_plugin
-def test_isgri_image_random_emax(dispatcher_live_fixture):
-    """
-    something already done at backend
-    """
-
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    try:
-        emax = int(open("emax-last", "rt").read())
-    except:
-        emax = random.randint(30, 800) # but sometimes it's going to be done
-        open("emax-last", "wt").write("%d"%emax)
-                   
-    
-    params = {
-       **default_params,
-       'E2_keV':emax,
-    }
-    # let's make the request public for simplicity
-    params.pop('token')
-    jdata, tspent = loop_ask(server, params)
 
 def flatten_nested_structure(structure, mapping, path=[]):
     if isinstance(structure, list):
@@ -644,9 +441,9 @@ def flatten_nested_structure(structure, mapping, path=[]):
 
     return [mapping(path, structure)]
 
+
 def test_example_config(dispatcher_test_conf):
     import cdci_data_analysis.config_dir
-
 
     example_config_fn = os.path.join(
         os.path.dirname(cdci_data_analysis.__file__),
@@ -663,4 +460,3 @@ def test_example_config(dispatcher_test_conf):
     print("\n\n\ntest_config_keys", test_config_keys)
 
     assert set(example_config_keys) == set(test_config_keys)
-    

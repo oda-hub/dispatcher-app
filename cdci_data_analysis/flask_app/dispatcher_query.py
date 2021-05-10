@@ -120,19 +120,14 @@ class InstrumentQueryBackEnd:
 
             self.set_session_id()
 
-            self.time_request = None
-            if 'time_request' in self.par_dic:
-                self.time_request = float(self.par_dic['time_request'])
-                self.par_dic.pop('time_request')
-            else:
-                self.time_request = g.get('request_start_time', None)
+            self.time_request = g.get('request_start_time', None)
 
             # By default, a request is public, let's now check if a token has been included
             # In that case, validation is needed
             self.public = True
             self.token = None
             self.decoded_token = None
-            if 'token' in self.par_dic.keys() and self.par_dic['token'] != "":
+            if 'token' in self.par_dic.keys() and self.par_dic['token'] not in ["", "None", None]:
                 self.token = self.par_dic['token']
                 self.public = False
                 # token validation and decoding can be done here, to check if the token is expired
@@ -201,8 +196,7 @@ class InstrumentQueryBackEnd:
             raise
 
         except Exception as e:
-            self.logger.error(
-                '\033[31mexception in constructor of %s %s\033[0m', self, repr(e))
+            self.logger.error('\033[31mexception in constructor of %s %s\033[0m', self, repr(e))
             self.logger.error("traceback: %s", traceback.format_exc())
 
             query_out = QueryOutput()
@@ -216,6 +210,8 @@ class InstrumentQueryBackEnd:
                 query_new_status='failed', query_out=query_out)
 
             # return jsonify(out_dict)
+
+        logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
     def make_hash(self, o):
         """
@@ -348,20 +344,23 @@ class InstrumentQueryBackEnd:
         return socket.gethostbyname(socket.gethostname())
 
     def set_args(self, request, verbose=False):
-        if request.method == 'GET':
-            args = request.args
-        if request.method == 'POST':
-            args = request.form
+        if request.method in ['GET', 'POST']:
+            args = request.values
+        else:
+            raise NotImplementedError
+
         self.par_dic = args.to_dict()
+
+        if 'scw_list' in self.par_dic.keys():
+            _p = request.values.getlist('scw_list')
+            if len(_p) > 1:
+                self.par_dic['scw_list'] = _p
+            print('=======> scw_list',  self.par_dic['scw_list'], _p, len(_p))
+
 
         if verbose == True:
             print('par_dic', self.par_dic)
 
-        if 'scw_list' in self.par_dic.keys():
-            _p = request.args.getlist('scw_list')
-            if len(_p) > 1:
-                self.par_dic['scw_list'] = _p
-            print('=======> scw_list',  self.par_dic['scw_list'], _p, len(_p))
 
         self.args = args
 
@@ -532,13 +531,15 @@ class InstrumentQueryBackEnd:
                        getattr(self.config, 'bind_port', None))
 
     def run_call_back(self, status_kw_name='action') -> typing.Tuple[str, typing.Union[QueryOutput, None]]:
-        query_out = None
-
         self.config, self.config_data_server = self.set_config()
+
         if self.config.sentry_url is not None:
             self.set_sentry_client(self.config.sentry_url)
         session_id = self.par_dic['session_id']
         instrument_name = self.par_dic.get('instrument_name', '')
+        # the time the request was sent should be used
+        # the time_request contains the time the call_back as issued
+        time_original_request = self.par_dic.get('time_original_request', None)
         job = job_factory(instrument_name,
                           self.scratch_dir,
                           self.dispatcher_host,
@@ -547,7 +548,8 @@ class InstrumentQueryBackEnd:
                           self.par_dic['session_id'],
                           self.job_id,
                           self.par_dic,
-                          self.token)
+                          token=self.token,
+                          time_request=time_original_request)
 
         self.logger.info("%s.run_call_back with args %s", self, self.par_dic)
         self.logger.info("%s.run_call_back built job %s", self, job)
@@ -559,28 +561,33 @@ class InstrumentQueryBackEnd:
 
         logger.warn('-----> set status to %s', status)
 
-        if self.is_email_to_send_callback(status):
-            try:
+        try:
+            if self.is_email_to_send_callback(status, time_original_request):
+
                 # build the products URL
                 request_url = self.generate_request_url_call_back(self.config.products_url, session_id, self.job_id)
                 self.send_email(status,
                                 instrument=instrument_name,
-                                time_request=self.time_request,
+                                time_request=time_original_request,
                                 request_url=request_url)
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
                                             email_status='email sent')
-            except EMailNotSent as e:
-                job.write_dataserver_status(status_dictionary_value=status,
-                                            full_dict=self.par_dic,
-                                            email_status='sending email failed')
-                logging.warning(f'email sending failed: {e}')
-                if self.sentry_client is not None:
-                    self.sentry_client.capture('raven.events.Message',
-                                               message=f'sending email failed {e}')
-        else:
-            job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
-
+            else:
+                job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+        except EMailNotSent as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        email_status='sending email failed')
+            logging.warning(f'email sending failed: {e}')
+            if self.sentry_client is not None:
+                self.sentry_client.capture('raven.events.Message',
+                                       message=f'sending email failed {e}')
+        except MissingRequestParameter as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        call_back_status=f'parameter missing during call back: {e.message}')
+            logging.warning(f'parameter missing during call back: {e}')
 
     def generate_request_url_call_back(self, products_url, session_id, job_id) -> str:
         job_monitor_status_json_file = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
@@ -614,24 +621,28 @@ class InstrumentQueryBackEnd:
 
         return False
 
-    def is_email_to_send_callback(self, status):
-        # get total request duration
-        duration_query = -1
-        if self.time_request:
-            duration_query = time_.time() - self.time_request
+    def is_email_to_send_callback(self, status, time_original_request):
         if not self.public:
-            timeout_threshold_email = tokenHelper.get_token_user_timeout_threshold_email(self.decoded_token)
-            if timeout_threshold_email is None:
-                # set it to the a default value, from the configuration
-                timeout_threshold_email = self.app.config.get('conf').email_sending_timeout_default_threshold
-            email_sending_timeout = tokenHelper.get_token_user_sending_timeout_email(self.decoded_token)
-            if email_sending_timeout is None:
-                email_sending_timeout = self.app.config.get('conf').email_sending_timeout
             # in case the request was long and 'done'
+            if status == 'done':
+                # get total request duration
+                if time_original_request:
+                    duration_query = time_.time() - float(time_original_request)
+                else:
+                    raise MissingRequestParameter('original request time not available')
+                timeout_threshold_email = tokenHelper.get_token_user_timeout_threshold_email(self.decoded_token)
+                if timeout_threshold_email is None:
+                    # set it to the a default value, from the configuration
+                    timeout_threshold_email = self.app.config.get('conf').email_sending_timeout_default_threshold
+                email_sending_timeout = tokenHelper.get_token_user_sending_timeout_email(self.decoded_token)
+                if email_sending_timeout is None:
+                    email_sending_timeout = self.app.config.get('conf').email_sending_timeout
+
+                return email_sending_timeout and duration_query > timeout_threshold_email and status == 'done'
+
             # or if failed
-            # or when the job was created ('submitted')
-            return (email_sending_timeout and duration_query > timeout_threshold_email and status == 'done') or status == 'failed'
-                   # or status == 'submitted'
+            elif status == 'failed':
+                return True
 
         return False
 
@@ -695,6 +706,8 @@ class InstrumentQueryBackEnd:
         if status_code is not None:
             out_dict['status_code'] = status_code
 
+        out_dict['time_request'] = self.time_request
+
         if off_line:
             return out_dict
         else:
@@ -749,8 +762,7 @@ class InstrumentQueryBackEnd:
                 known_instruments.append(instrument.name)
 
         if new_instrument is None:
-            raise InstrumentNotRecognized(
-                f'instrument: "{instrument_name}", known: {known_instruments}')
+            raise InstrumentNotRecognized(f'instrument: "{instrument_name}", known: {known_instruments}')
         else:
             self.instrument = new_instrument
 
@@ -874,7 +886,9 @@ class InstrumentQueryBackEnd:
                            self.par_dic['session_id'],
                            self.job_id,
                            self.par_dic,
-                           aliased=False)
+                           aliased=False,
+                           token=self.token,
+                           time_request=self.time_request)
 
     def build_response_failed(self, message, extra_message, status_code=None):
         job = self.build_job()
@@ -1039,7 +1053,6 @@ class InstrumentQueryBackEnd:
 
             self.config = config
 
-
     def run_query(self, off_line=False, disp_conf=None):
         """
         this is the principal function to respond to the requests
@@ -1139,7 +1152,8 @@ class InstrumentQueryBackEnd:
                           self.job_id,
                           self.par_dic,
                           aliased=job_is_aliased,
-                          token=self.token)
+                          token=self.token,
+                          time_request=self.time_request)
 
         job_monitor = job.monitor
 
@@ -1300,9 +1314,7 @@ class InstrumentQueryBackEnd:
         elif query_status == 'progress' or query_status == 'unaccessible' or query_status == 'unknown' or query_status == 'submitted':
             # we can not just avoid async here since the request still might be long
             if self.async_dispatcher:
-                query_out, job_monitor, query_new_status = self.async_dispatcher_query(
-                    query_status)
-
+                query_out, job_monitor, query_new_status = self.async_dispatcher_query(query_status)
                 if job_monitor is None:
                     job_monitor = job.monitor
             else:
@@ -1310,8 +1322,7 @@ class InstrumentQueryBackEnd:
 
                 job_monitor = job.updated_dataserver_monitor()
 
-                self.logger.info(
-                    '-----------------> job monitor from data server: %s', job_monitor['status'])
+                self.logger.info('-----------------> job monitor from data server: %s', job_monitor['status'])
 
                 if job_monitor['status'] == 'done':
                     job.set_ready()
@@ -1374,13 +1385,21 @@ class InstrumentQueryBackEnd:
 
     def send_email(self, status="done",
                    instrument="",
-                   time_request="",
+                   time_request=None,
                    request_url=""):
         server = None
         self.logger.info("Sending email")
-        time_request_str = ""
-        if time_request != "":
+        # Create the plain-text and HTML version of your message,
+        # since emails with HTML content might be, sometimes, not supported
+        # a plain-text version is included
+        text = f"""Update of the task for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
+        html = f"""<html><body><p>Update of the task for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+
+        if time_request:
             time_request_str = time_.strftime('%Y-%m-%d %H:%M:%S', time_.localtime(float(time_request)))
+            text = f"""Update of the task submitted at {time_request_str}, for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
+            html = f"""<html><body><p>Update of the task submitted at {time_request_str}, for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+
         try:
             # send the mail with the status update to the mail provided with the token
             # eg done/failed/submitted
@@ -1397,12 +1416,6 @@ class InstrumentQueryBackEnd:
             message["From"] = sender_email_address
             message["To"] = receiver_email_address
             message["CC"] = ", ".join(cc_receivers_email_addresses)
-
-            # Create the plain-text and HTML version of your message,
-            # since enails with HTML content might be, sometimes, not supportenot
-            # a plain-text version is included
-            text = f"""Update of the task submitted at {time_request_str}, for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
-            html = f"""<html><body><p>Update of the task submitted at {time_request_str}, for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
 
             part1 = MIMEText(text, "plain")
             part2 = MIMEText(html, "html")
