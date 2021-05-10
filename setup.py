@@ -20,7 +20,27 @@ import json
 
 install_req = [
     'oda_api',
-
+    "numpy",
+    "pyyaml",
+    "simplejson",
+    "flask",
+    "astropy>=2.0.3",
+    "pathlib",
+    "gunicorn",
+    "decorator",
+    "python-logstash",
+    "raven",
+    "blinker",
+    "bokeh==0.12.16",
+    "json_tricks",
+    "flask-restx",
+    "six",
+    "werkzeug<=0.16.1",
+    "python-shell-colors",
+    "logging_tree",
+    "celery",
+    "redis",
+    "pyjwt"
 ]
 
 test_req = [
