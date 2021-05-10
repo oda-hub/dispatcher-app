@@ -13,7 +13,6 @@ blinker
 bokeh==0.12.16
 json_tricks
 flask-restx
-oda_api>=1.0.1
 six
 werkzeug<=0.16.1
 python-shell-colors
@@ -23,3 +22,5 @@ redis
 psutil
 pyjwt
 aiosmtpd
+-e git+https://github.com/oda-hub/oda_api.git#egg=oda_api
+-e git+https://github.com/oda-hub/dispatcher-plugin-integral-all-sky.git#egg=dispatcher-plugin-integral-all-sky
