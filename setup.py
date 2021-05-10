@@ -13,13 +13,15 @@ from setuptools import setup, find_packages
 import glob
 import json
 
+# f = open("./requirements.txt",'r')
+# install_req=f.readlines()
+# f.close()
+# install_req = [x for x in install_req if not x.startswith('-e git+h')]
 
-f = open("./requirements.txt",'r')
-install_req=f.readlines()
-f.close()
+install_req = [
+    'oda_api',
 
-install_req = [x for x in install_req if not x.startswith('-e git+h')]
-install_req += ['oda_api', 'dispatcher-plugin-integral-all-sky']
+]
 
 test_req = [
     'psutil',
