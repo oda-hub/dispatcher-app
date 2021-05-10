@@ -16,8 +16,10 @@ import json
 
 f = open("./requirements.txt",'r')
 install_req=f.readlines()
-# install_req = [req.replace('\n', '').strip() for req in install_req]
 f.close()
+
+
+install_req += ['oda_api', 'dispatcher-plugin-integral-all-sky']
 
 test_req = [
     'psutil',
