@@ -13,7 +13,7 @@ blinker
 bokeh==0.12.16
 json_tricks
 flask-restx
-oda_api>=1.0.1
+oda_api>=1.1.7
 six
 werkzeug<=0.16.1
 python-shell-colors
