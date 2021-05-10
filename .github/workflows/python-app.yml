@@ -28,8 +28,6 @@ jobs:
         pip install flake8 pytest mypy pylint pytest-cov
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install . --upgrade
-        pip install --upgrade git+https://github.com/oda-hub/dispatcher-plugin-integral-all-sky.git
-        pip install --upgrade git+https://github.com/oda-hub/oda_api.git
 
     - name: Lint with flake8
       run: |
