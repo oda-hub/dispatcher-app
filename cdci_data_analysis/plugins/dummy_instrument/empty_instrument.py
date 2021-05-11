@@ -40,7 +40,7 @@ __author__ = "Andrea Tramacere"
 
 
 from cdci_data_analysis.analysis.instrument import Instrument
-from cdci_data_analysis.analysis.queries import  SourceQuery, InstrumentQuery, Float
+from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float, Integer, Name
 
 from .data_server_dispatcher import EmptyProductQuery, DataServerNumericQuery
 from .image_query import MyInstrMosaicQuery
@@ -56,8 +56,12 @@ def my_instr_factory():
     empty_query = EmptyProductQuery('empty_parameters_dummy_query',)
     # let's build a simple parameter to its list
     p = Float(value=10., name='p', units='W',)
+    max_pointings = Integer(value=500, name='max_pointings')
+    osa_version = Name(name_format='str', name='osa_version')
+    data_rights = Name(name_format='str', name='integral_data_rights')
+    data_rights._allowed_values = ["public", "all-private"]
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
-                                             parameters_list=[p])
+                                             parameters_list=[p, max_pointings, osa_version, data_rights])
 
     # this dicts binds the product query name to the product name from frontend
     # eg my_instr_image is the parameter passed by the fronted to access the
