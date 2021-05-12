@@ -1,6 +1,7 @@
 # this could be a separate package or/and a pytest plugin
 
 from json import JSONDecodeError
+from requests.api import delete
 import yaml
 
 import pytest
@@ -362,4 +363,33 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn):
     kill_child_processes(p.pid,signal.SIGINT)
     os.kill(p.pid, signal.SIGINT)
 
+
+def dispatcher_fetch_dummy_products(dummy_product_pack: str):
+    import shutil
+    import tempfile
+
+    url_base = "https://www.isdc.unige.ch/~savchenk" # TODO: to move somewhere to github
+    url = f"{url_base}/dispatcher-plugin-integral-data-dummy_prods-{dummy_product_pack}.tgz"
+
+    
+    temp_handle, temp_file_name = tempfile.mkstemp(suffix=f"dummy_product_pack-{dummy_product_pack}")
+    
+    with os.fdopen(temp_handle, "wb") as f:        
+        logging.info("\033[32mdownloading %s\033[0m", url)
+        response = requests.get(url)
+
+        if response.status_code != 200:
+            raise RuntimeError(f"can not file dummy_pack {dummy_product_pack} at {url}")
+
+        logging.info("\033[32mfound content length %s\033[0m", len(response.content))
+        
+        #map(f.write, response.iter_content(1024))
+
+        f.write(response.content)
+
+    dummy_base_dir = os.getcwd()
+    shutil.unpack_archive(temp_file_name, extract_dir=dummy_base_dir, format="gztar")
+    logging.info("\033[32munpacked to %s\033[0m", dummy_base_dir)
+
+    os.remove(temp_file_name)
 
