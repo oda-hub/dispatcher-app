@@ -489,7 +489,8 @@ def log_run_query_request():
         logger.info("request_summary: %s", request_summary_json)
         logstash_message(request_summary_json)
     except Exception as e:
-        logger.error("failed to output request %s", e)
+        logger.error("failed to logstash request in log_run_query_request %s", e)
+        raise
 
     return request_summary
     
