@@ -452,12 +452,15 @@ import pylogstash
 def logstash_message(message_json):
     conf = app.config['conf']
 
-    pylogstash.LogStasher(f"{conf.logstash_host}:{conf.logstash_port}").log(
-        message_json
-    )
+    if conf.logstash_host is not None and conf.logstash_host is not None:
+        url = f"{conf.logstash_host}:{conf.logstash_port}"
 
-    print(f"\033[35m stashing to {conf.logstash_host}:{conf.logstash_port}\033[0m")
-    print(f"\033[35m{message_json}\033[0m")
+        pylogstash.LogStasher(url).log(
+            message_json
+        )
+
+    logger.debug(f"\033[35m stashing to {conf.logstash_host}:{conf.logstash_port}\033[0m")
+    logger.debug(f"\033[35m{message_json}\033[0m")
     
 
 
