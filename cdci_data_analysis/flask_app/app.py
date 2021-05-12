@@ -452,7 +452,7 @@ import pylogstash
 def logstash_message(message_json):
     conf = app.config['conf']
 
-    if conf.logstash_host is not None and conf.logstash_host is not None:
+    if conf.logstash_host not in [None, "None"] and conf.logstash_port not in [None, "None"]:
         url = f"{conf.logstash_host}:{conf.logstash_port}"
 
         pylogstash.LogStasher(url).log(
