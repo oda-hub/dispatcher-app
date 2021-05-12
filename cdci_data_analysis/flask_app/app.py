@@ -251,6 +251,8 @@ def run_analysis():
         logger.info("run_analysis for %s took %g seconds", request.args.get(
             'client-name', 'unknown'), _time.time() - t0)
 
+        logger.info("towards log_run_query_result")
+
         log_run_query_result(request_summary, r[0])
 
         return r
@@ -495,10 +497,11 @@ def log_run_query_request():
     return request_summary
     
 def log_run_query_result(request_summary, result):
+    logger.info("IN log_run_query_result")
     try:
         request_summary['dispatcher-state'] = 'returning'
 
-        logger.debug("returning data %s", result.data[:100])
+        logger.info("returning data %s", result.data[:100])
 
         try:
             result_json=json.loads(result.data)
