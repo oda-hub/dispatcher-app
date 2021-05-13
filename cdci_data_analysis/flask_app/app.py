@@ -240,6 +240,9 @@ def run_analysis():
         400: 
             description: 'something in request not understood - missing, unexpected values'
     """
+
+    request_summary = log_run_query_request()
+
     try:
         # t0 = _time.time()
         t0 = g.request_start_time
@@ -247,6 +250,10 @@ def run_analysis():
         r = query.run_query(disp_conf=app.config['conf'])
         logger.info("run_analysis for %s took %g seconds", request.args.get(
             'client-name', 'unknown'), _time.time() - t0)
+
+        logger.info("towards log_run_query_result")
+
+        log_run_query_result(request_summary, r[0])
 
         return r
     except APIerror as e:
@@ -439,6 +446,82 @@ def run_app(conf, debug=False, threaded=False):
     conf_app(conf)
     app.run(host=conf.bind_host, port=conf.bind_port,
             debug=debug, threaded=threaded)
+
+import pylogstash
+
+def logstash_message(message_json):
+    conf = app.config['conf']
+
+    if conf.logstash_host not in [None, "None"] and conf.logstash_port not in [None, "None"]:
+        url = f"{conf.logstash_host}:{conf.logstash_port}"
+
+        pylogstash.LogStasher(url).log(
+            message_json
+        )
+
+    logger.debug(f"\033[35m stashing to {conf.logstash_host}:{conf.logstash_port}\033[0m")
+    logger.debug(f"\033[35m{message_json}\033[0m")
+    
+
+
+def log_run_query_request():
+    request_summary={}
+
+    try:
+        logger.debug("output json request")
+        logger.debug("request.args: %s", request.args)
+        logger.debug("request.host: %s", request.host)
+        request_summary['dispatcher-state'] = 'requested'
+        request_summary = {'origin': 'dispatcher-run-analysis',
+                     'request-data': {
+                        'headers': dict(request.headers),
+                        'host_url': request.host_url,
+                        'host': request.host,
+                        'args': dict(request.args),
+                        'json-data': dict(request.json or {}),
+                        'form-data': dict(request.form or {}),
+                        'raw-data': dict(request.data or ""),
+                    }}
+
+
+        try:
+            request_summary['clientip']=request_summary['request-data']['headers']['X-Forwarded-For'].split(",")[0]
+            logger.info("extracted client: %s", request_summary['clientip'] )
+        except Exception as e:
+            logger.warning("unable to extract client")
+
+        request_summary_json = json.dumps(request_summary)
+        logger.info("request_summary: %s", request_summary_json)
+        logstash_message(request_summary_json)
+    except Exception as e:
+        logger.error("failed to logstash request in log_run_query_request %s", e)
+        raise
+
+    return request_summary
+    
+def log_run_query_result(request_summary, result):
+    logger.info("IN log_run_query_result")
+    try:
+        request_summary['dispatcher-state'] = 'returning'
+
+        logger.info("returning data %s", result.data[:100])
+
+        try:
+            result_json=json.loads(result.data)
+            logger.debug("query result keys: %s", result_json.keys())
+            request_summary['return_exit_status']=result_json['exit_status']
+            request_summary['return_job_status']=result_json['job_status']
+        except Exception:
+            logger.warning("not returning json")
+
+        request_summary_json = json.dumps(request_summary)
+        logger.debug("request_summary: %s", request_summary_json)
+        logstash_message(request_summary_json)
+    except Exception as e:
+        logger.warning("failed to output request %s", e)
+        raise
+
+    return result
 
 
 if __name__ == "__main__":

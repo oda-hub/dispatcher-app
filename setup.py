@@ -20,6 +20,7 @@ import json
 
 install_req = [
     'oda_api',
+    'pylogstash_context>=0.1.19',
     "numpy",
     "pyyaml",
     "simplejson",

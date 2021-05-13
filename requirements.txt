@@ -23,4 +23,3 @@ psutil
 pyjwt
 aiosmtpd
 -e git+https://github.com/oda-hub/oda_api.git#egg=oda_api
--e git+https://github.com/oda-hub/dispatcher-plugin-integral-all-sky.git#egg=dispatcher-plugin-integral-all-sky
