@@ -1368,7 +1368,7 @@ class InstrumentQueryBackEnd:
         if not job_is_aliased:
             job.write_dataserver_status()
 
-        if not self.async_dispatcher:
+        if self.async_dispatcher:
             # should we store entire reponse, before it is serialized?..
             self.store_response(query_out, job_monitor)
 
