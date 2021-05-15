@@ -30,9 +30,9 @@ import tarfile
 import gzip
 import logging
 import socket
-import logstash
 import time as _time
 
+from .logstash import logstash_message
 
 from ..plugins import importer
 
@@ -447,21 +447,6 @@ def run_app(conf, debug=False, threaded=False):
     app.run(host=conf.bind_host, port=conf.bind_port,
             debug=debug, threaded=threaded)
 
-import pylogstash
-
-def logstash_message(message_json):
-    conf = app.config['conf']
-
-    if conf.logstash_host not in [None, "None"] and conf.logstash_port not in [None, "None"]:
-        url = f"{conf.logstash_host}:{conf.logstash_port}"
-
-        pylogstash.LogStasher(url).log(
-            message_json
-        )
-
-    logger.debug(f"\033[35m stashing to {conf.logstash_host}:{conf.logstash_port}\033[0m")
-    logger.debug(f"\033[35m{message_json}\033[0m")
-    
 
 
 def log_run_query_request():
@@ -492,7 +477,7 @@ def log_run_query_request():
 
         request_summary_json = json.dumps(request_summary)
         logger.info("request_summary: %s", request_summary_json)
-        logstash_message(request_summary_json)
+        logstash_message(app, request_summary_json)
     except Exception as e:
         logger.error("failed to logstash request in log_run_query_request %s", e)
         raise
@@ -516,7 +501,7 @@ def log_run_query_result(request_summary, result):
 
         request_summary_json = json.dumps(request_summary)
         logger.debug("request_summary: %s", request_summary_json)
-        logstash_message(request_summary_json)
+        logstash_message(app, request_summary_json)
     except Exception as e:
         logger.warning("failed to output request %s", e)
         raise

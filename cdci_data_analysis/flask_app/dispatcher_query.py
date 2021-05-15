@@ -53,6 +53,9 @@ from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
 from ..analysis.exceptions import BadRequest, APIerror, MissingParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut
 from . import tasks
+
+from .logstash import logstash_message
+
 from oda_api.data_products import NumpyDataProduct
 import oda_api
 
@@ -135,7 +138,10 @@ class InstrumentQueryBackEnd:
                     if self.validate_query_from_token():
                         pass
                 except jwt.exceptions.ExpiredSignatureError as e:
+                    logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-expired'})
                     raise RequestNotAuthorized("token expired")
+
+                logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
 
             if instrument_name is None:
                 if 'instrument' in self.par_dic:
