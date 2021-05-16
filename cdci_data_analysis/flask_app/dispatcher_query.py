@@ -1436,7 +1436,10 @@ class InstrumentQueryBackEnd:
             server = smtplib.SMTP(smtp_server, port)
             # just for testing purposes, not ssl is established
             if smtp_server != "localhost":
-                server.starttls(context=context)
+                try:
+                    server.starttls(context=context)
+                except Exception as e:
+                    self.logger.warning(f'unable to start TLS: {e}')
             if smtp_server_password is not None and smtp_server_password != '':
                 server.login(sender_email_address, smtp_server_password)
             server.sendmail(sender_email_address, receivers_email_addresses, message.as_string())
