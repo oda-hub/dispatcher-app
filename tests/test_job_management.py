@@ -134,6 +134,10 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     # dict_param_complete['session_id'] = session_id
     dict_param_complete.pop("token")
 
+    assert 'session_id' not in dict_param_complete
+    assert 'job_id' not in dict_param_complete
+    assert 'token' not in dict_param_complete
+
     products_url = '%s?%s' % ('http://www.astro.unige.ch/cdci/astrooda_', urlencode(dict_param_complete))
 
     job_monitor_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor.json'
