@@ -1,5 +1,5 @@
 import logging
-import pylogstash
+import PyLogStash
 
 logger = logging.getLogger(__name__)
 
@@ -9,7 +9,7 @@ def logstash_message(app, message_json: dict):
     if conf.logstash_host not in [None, "None"] and conf.logstash_port not in [None, "None"]:
         url = f"{conf.logstash_host}:{conf.logstash_port}"
 
-        pylogstash.LogStasher(url).log(
+        PyLogStash.LogStasher(url).log(
             message_json
         )
 

@@ -571,11 +571,11 @@ class InstrumentQueryBackEnd:
             if self.is_email_to_send_callback(status, time_original_request):
 
                 # build the products URL
-                request_url = self.generate_request_url_call_back(self.config.products_url, session_id, self.job_id)
+                products_url = self.generate_products_url_from_file(self.config.products_url, session_id, self.job_id)
                 self.send_email(status,
                                 instrument=instrument_name,
                                 time_request=time_original_request,
-                                request_url=request_url)
+                                request_url=products_url)
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
                                             email_status='email sent')
@@ -595,7 +595,21 @@ class InstrumentQueryBackEnd:
                                         call_back_status=f'parameter missing during call back: {e.message}')
             logging.warning(f'parameter missing during call back: {e}')
 
-    def generate_request_url_call_back(self, products_url, session_id, job_id) -> str:
+    def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
+        par_dict = par_dict.copy()
+        # remove token if present
+        if "token" in par_dict:
+            par_dict.pop("token")
+        # remove session_id if present
+        if "session_id" in par_dict:
+            par_dict.pop("session_id")
+        # remove job_id if present
+        if "job_id" in par_dict:
+            par_dict.pop("job_id")
+        request_url = '%s?%s' % (products_url, urlencode(par_dict))
+        return request_url
+
+    def generate_products_url_from_file(self, products_url, session_id, job_id) -> str:
         job_monitor_status_json_file = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
         # to be handled now, with the job_id generated taking into account only the user_id
         job_monitor_status_json_file_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
@@ -612,7 +626,8 @@ class InstrumentQueryBackEnd:
             jdata = json.load(file)
             if 'prod_dictionary' in jdata and 'analysis_parameters' in jdata['prod_dictionary']:
                 request_par_dict = jdata['prod_dictionary']['analysis_parameters']
-                request_url = '%s?%s' % (products_url, urlencode(request_par_dict))
+                request_url = self.generate_products_url_from_par_dict(products_url, request_par_dict)
+
         return request_url
 
     def is_email_to_send_run_completion(self, status):
@@ -1295,11 +1310,11 @@ class InstrumentQueryBackEnd:
                     # mail sending ?
                     if self.is_email_to_send_run_completion(query_new_status):
                         try:
-                            request_url = '%s?%s' % (self.app.config.get('conf').products_url, urlencode(self.par_dic))
+                            products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url, self.par_dic)
                             self.send_email('submitted',
                                             instrument=self.instrument.name,
                                             time_request=self.time_request,
-                                            request_url=request_url)
+                                            request_url=products_url)
                             # store an additional information about the sent email
                             query_out.set_status_field('email_status', 'email sent')
                         except EMailNotSent as e:
