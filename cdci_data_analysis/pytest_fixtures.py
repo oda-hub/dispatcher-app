@@ -1,5 +1,7 @@
 # this could be a separate package or/and a pytest plugin
 
+from _pytest.fixtures import yield_fixture
+from cdci_data_analysis.flask_app import dispatcher_query
 from json import JSONDecodeError
 from requests.api import delete
 import yaml
@@ -11,12 +13,27 @@ from cdci_data_analysis.configurer import ConfigEnv
 
 import os
 import re
+import signal
 import json
 import string
 import random
 import requests
 import time
 import logging
+import shutil
+import tempfile
+
+
+import subprocess
+import os
+import copy
+import time
+import hashlib
+import glob
+
+from threading import Thread
+
+    
 
 __this_dir__ = os.path.join(os.path.abspath(os.path.dirname(__file__)))
 
@@ -279,17 +296,13 @@ dispatcher:
 def dispatcher_test_conf(dispatcher_test_conf_fn):
     yield yaml.load(open(dispatcher_test_conf_fn))['dispatcher']
 
-@pytest.fixture
-def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn):
-    import subprocess
-    import os
-    import copy
-    import time
-    from threading import Thread
+
+def start_dispatcher(rootdir, test_conf_fn):
+    clean_test_dispatchers()
 
     env = copy.deepcopy(dict(os.environ))
-    print(("rootdir", str(pytestconfig.rootdir)))
-    env['PYTHONPATH'] = str(pytestconfig.rootdir) + ":" + str(pytestconfig.rootdir) + "/tests:" + env.get('PYTHONPATH', "")
+    print(("rootdir", str(rootdir)))
+    env['PYTHONPATH'] = str(rootdir) + ":" + str(rootdir) + "/tests:" + env.get('PYTHONPATH', "")
     print(("pythonpath", env['PYTHONPATH']))
 
     fn = os.path.join(__this_dir__, "../bin/run_osa_cdci_server.py")
@@ -305,10 +318,12 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn):
         
     cmd += [ 
             "-d",
-            "-conf_file", dispatcher_test_conf_fn,
+            "-conf_file", test_conf_fn,
             "-debug",
             #"-use_gunicorn" should not be used, as current implementation of follow_output is specific to flask development server
           ] 
+
+    print(f"\033[33mcommand: {cmd}\033[0m")
 
     p = subprocess.Popen(
         cmd,
@@ -352,27 +367,78 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn):
 
     service=url_store[0]
 
+    return dict(
+        url=service, 
+        pid=p.pid
+        )        
+
+@pytest.fixture
+def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn):
+    dispatcher_state_fn = "/tmp/dispatcher-test-fixture-state-{}.json".format(
+        hashlib.md5(open(dispatcher_test_conf_fn, "rb").read()).hexdigest()[:8]
+        )
+
+    if os.path.exists(dispatcher_state_fn):
+        dispatcher_state = json.load(open(dispatcher_state_fn))
+    else:
+        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+        json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
+
+    yield dispatcher_state['url']
+
+
+@pytest.fixture
+def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
     yield service
-
-    
-    print("will keep service alive a bit, for async")
-    time.sleep(0.5)
-
-    print(("child:",p.pid))
+        
+    print(("child:", pid))
     import os,signal
-    kill_child_processes(p.pid,signal.SIGINT)
-    os.kill(p.pid, signal.SIGINT)
+    kill_child_processes(pid,signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
 
 
-def dispatcher_fetch_dummy_products(dummy_product_pack: str):
-    import shutil
-    import tempfile
+dispatcher_dummy_product_pack_state_fn = "/tmp/dispatcher-dummy-product-pack-ready"
 
+
+def clean_test_dispatchers():
+    for fn in glob.glob("/tmp/dispatcher-test-fixture-state*json"):
+        dispatcher_state = json.load(open(fn))
+        pid = dispatcher_state['pid']
+
+        try:
+            print("child:", pid)
+            kill_child_processes(pid,signal.SIGINT)
+            os.kill(pid, signal.SIGINT)
+        except Exception as e:
+            print("unable to cleanup dispatcher", dispatcher_state)
+
+        os.remove(fn)
+
+    if os.path.exists(dispatcher_dummy_product_pack_state_fn):
+        os.remove(dispatcher_dummy_product_pack_state_fn)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup(request):    
+    request.addfinalizer(clean_test_dispatchers)
+    
+
+
+def dispatcher_fetch_dummy_products(dummy_product_pack: str, reuse=False):
     url_base = "https://www.isdc.unige.ch/~savchenk" # TODO: to move somewhere to github
     url = f"{url_base}/dispatcher-plugin-integral-data-dummy_prods-{dummy_product_pack}.tgz"
 
+    if reuse:
+        if os.path.exists(dispatcher_dummy_product_pack_state_fn):
+            logging.info("dispatcher_dummy_product_pack_state_fn: %s found, returning", dispatcher_dummy_product_pack_state_fn)
+            return
     
-    temp_handle, temp_file_name = tempfile.mkstemp(suffix=f"dummy_product_pack-{dummy_product_pack}")
+    temp_handle, temp_file_name = tempfile.mkstemp(suffix=f"dummy_product_pack-{dummy_product_pack}")    
     
     with os.fdopen(temp_handle, "wb") as f:        
         logging.info("\033[32mdownloading %s\033[0m", url)
@@ -392,4 +458,6 @@ def dispatcher_fetch_dummy_products(dummy_product_pack: str):
     logging.info("\033[32munpacked to %s\033[0m", dummy_base_dir)
 
     os.remove(temp_file_name)
+
+    open(dispatcher_dummy_product_pack_state_fn, "w").write("%s"%time.time())
 
