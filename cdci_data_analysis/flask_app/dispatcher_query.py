@@ -604,11 +604,11 @@ class InstrumentQueryBackEnd:
         query_output_json_file = f'scratch_sid_{session_id}_jid_{job_id}'
         # to be handled now, with the job_id generated taking into account only the user_id
         query_output_json_file_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased'
-        if os.path.exists(query_output_json_file_aliased) and not os.path.exists(query_output_json_file_aliased + '/email_history'):
+        if os.path.exists(query_output_json_file_aliased):
             path_email_history_folder = query_output_json_file_aliased + '/email_history'
-            os.makedirs(path_email_history_folder)
-        elif os.path.exists(query_output_json_file) and not os.path.exists(query_output_json_file + '/email_history'):
+        elif os.path.exists(query_output_json_file):
             path_email_history_folder = query_output_json_file + '/email_history'
+        if not os.path.exists(path_email_history_folder):
             os.makedirs(path_email_history_folder)
         email_files_list = glob.glob(path_email_history_folder + '/email_*')
         number_scartch_dirs = len(email_files_list)
@@ -1335,10 +1335,13 @@ class InstrumentQueryBackEnd:
                     if self.is_email_to_send_run_completion(query_new_status):
                         try:
                             products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url, self.par_dic)
-                            self.send_email('submitted',
+                            msg_sent = self.send_email(query_new_status,
                                             instrument=self.instrument.name,
                                             time_request=self.time_request,
                                             request_url=products_url)
+                            if msg_sent is not None:
+                                # store the sent email in the scratch folder
+                                self.store_email_info(msg_sent, self.par_dic['session_id'], self.job_id)
                             # store an additional information about the sent email
                             query_out.set_status_field('email_status', 'email sent')
                         except EMailNotSent as e:
