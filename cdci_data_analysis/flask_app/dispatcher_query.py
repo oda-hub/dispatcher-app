@@ -572,10 +572,14 @@ class InstrumentQueryBackEnd:
 
                 # build the products URL
                 products_url = self.generate_products_url_from_file(self.config.products_url, session_id, self.job_id)
-                self.send_email(status,
+                msg_sent = self.send_email(status,
                                 instrument=instrument_name,
                                 time_request=time_original_request,
                                 request_url=products_url)
+                if msg_sent is not None:
+                    #store the sent email in the scratch folder
+                    self.store_email_info(msg_sent, session_id, self.job_id)
+
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
                                             email_status='email sent')
@@ -595,6 +599,25 @@ class InstrumentQueryBackEnd:
                                         call_back_status=f'parameter missing during call back: {e.message}')
             logging.warning(f'parameter missing during call back: {e}')
 
+    def store_email_info(self, message, session_id, job_id):
+        path_email_history_folder = ''
+        query_output_json_file = f'scratch_sid_{session_id}_jid_{job_id}'
+        # to be handled now, with the job_id generated taking into account only the user_id
+        query_output_json_file_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased'
+        if os.path.exists(query_output_json_file_aliased) and not os.path.exists(query_output_json_file_aliased + '/email_history'):
+            path_email_history_folder = query_output_json_file_aliased + '/email_history'
+            os.makedirs(path_email_history_folder)
+        elif os.path.exists(query_output_json_file) and not os.path.exists(query_output_json_file + '/email_history'):
+            path_email_history_folder = query_output_json_file + '/email_history'
+            os.makedirs(path_email_history_folder)
+        email_files_list = glob.glob(path_email_history_folder + '/email_*')
+        number_scartch_dirs = len(email_files_list)
+        sending_time = time_.time()
+        # record the email just sent in a dedicated file
+        with open(path_email_history_folder + '/email_' + str(number_scartch_dirs) + '_' + str(sending_time) +'.email', 'w+') as outfile:
+            outfile.write(message.as_string())
+
+
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
         par_dict = par_dict.copy()
@@ -611,18 +634,18 @@ class InstrumentQueryBackEnd:
         return request_url
 
     def generate_products_url_from_file(self, products_url, session_id, job_id) -> str:
-        job_monitor_status_json_file = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
+        query_output_json_file = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
         # to be handled now, with the job_id generated taking into account only the user_id
-        job_monitor_status_json_file_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
+        query_output_json_file_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
         request_url = ""
         file = None
         if self.scratch_dir:
             file = open(self.scratch_dir + '/query_output.json')
         else:
-            if os.path.exists(job_monitor_status_json_file_aliased):
-                file = open(job_monitor_status_json_file_aliased)
-            elif os.path.exists(job_monitor_status_json_file):
-                file = open(job_monitor_status_json_file)
+            if os.path.exists(query_output_json_file_aliased):
+                file = open(query_output_json_file_aliased)
+            elif os.path.exists(query_output_json_file):
+                file = open(query_output_json_file)
         if file:
             jdata = json.load(file)
             if 'prod_dictionary' in jdata and 'analysis_parameters' in jdata['prod_dictionary']:
@@ -1465,6 +1488,8 @@ class InstrumentQueryBackEnd:
         finally:
             if server:
                 server.quit()
+
+        return message
 
     def async_dispatcher_query(self, query_status: str) -> tuple:
         self.logger.info("async dispatcher enabled, for %s", query_status)
