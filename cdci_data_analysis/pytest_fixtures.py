@@ -298,6 +298,8 @@ def dispatcher_test_conf(dispatcher_test_conf_fn):
 
 
 def start_dispatcher(rootdir, test_conf_fn):
+    clean_test_dispatchers()
+
     env = copy.deepcopy(dict(os.environ))
     print(("rootdir", str(rootdir)))
     env['PYTHONPATH'] = str(rootdir) + ":" + str(rootdir) + "/tests:" + env.get('PYTHONPATH', "")
@@ -402,28 +404,28 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn):
 
 dispatcher_dummy_product_pack_state_fn = "/tmp/dispatcher-dummy-product-pack-ready"
 
+
+def clean_test_dispatchers():
+    for fn in glob.glob("/tmp/dispatcher-test-fixture-state*json"):
+        dispatcher_state = json.load(open(fn))
+        pid = dispatcher_state['pid']
+
+        try:
+            print("child:", pid)
+            kill_child_processes(pid,signal.SIGINT)
+            os.kill(pid, signal.SIGINT)
+        except Exception as e:
+            print("unable to cleanup dispatcher", dispatcher_state)
+
+        os.remove(fn)
+
+    if os.path.exists(dispatcher_dummy_product_pack_state_fn):
+        os.remove(dispatcher_dummy_product_pack_state_fn)
+
+
 @pytest.fixture(scope="session", autouse=True)
-def cleanup(request):
-    """Cleanup a testing directory once we are finished."""
-
-    def kill_dispatchers():
-        for fn in glob.glob("/tmp/dispatcher-test-fixture-state*json"):
-            dispatcher_state = json.load(open(fn))
-            pid = dispatcher_state['pid']
-
-            try:
-                print("child:", pid)
-                kill_child_processes(pid,signal.SIGINT)
-                os.kill(pid, signal.SIGINT)
-            except Exception as e:
-                print("unable to cleanup dispatcher", dispatcher_state)
-
-            os.remove(fn)
-
-        if os.path.exists(dispatcher_dummy_product_pack_state_fn):
-            os.remove(dispatcher_dummy_product_pack_state_fn)
-
-    request.addfinalizer(kill_dispatchers)
+def cleanup(request):    
+    request.addfinalizer(clean_test_dispatchers)
     
 
 
