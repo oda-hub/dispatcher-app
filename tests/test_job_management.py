@@ -131,9 +131,14 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     session_id = c.json()['session_id']
     job_id = c.json()['job_monitor']['job_id']
     dict_param_complete = dict_param.copy()
-    dict_param_complete['session_id'] = session_id
+    # dict_param_complete['session_id'] = session_id
+    dict_param_complete.pop("token")
 
-    request_url = '%s?%s' % ('http://www.astro.unige.ch/cdci/astrooda_', urlencode(dict_param_complete))
+    assert 'session_id' not in dict_param_complete
+    assert 'job_id' not in dict_param_complete
+    assert 'token' not in dict_param_complete
+
+    products_url = '%s?%s' % ('http://www.astro.unige.ch/cdci/astrooda_', urlencode(dict_param_complete))
 
     job_monitor_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor.json'
     # the aliased version might have been created
@@ -174,11 +179,11 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
             if part.get_content_type() == 'text/plain':
                 content_text_plain = part.get_payload().replace('\r', '').strip()
                 assert content_text_plain == plain_text_email.format(time_request_str=time_request_str, status="submitted",
-                                                                    request_url=request_url)
+                                                                    request_url=products_url)
             if part.get_content_type() == 'text/html':
                 content_text_html = part.get_payload().replace('\r', '').strip()
                 assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="submitted",
-                                                                        request_url=request_url)
+                                                                        request_url=products_url)
 
     # for the call_back(s) in case the time of the original request is not provided
     if time_original_request_none:
@@ -265,11 +270,11 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
             if part.get_content_type() == 'text/plain':
                 content_text_plain = part.get_payload().replace('\r', '').strip()
                 assert content_text_plain == plain_text_email.format(time_request_str=time_request_str, status="done",
-                                                                    request_url=request_url)
+                                                                    request_url=products_url)
             if part.get_content_type() == 'text/html':
                 content_text_html = part.get_payload().replace('\r', '').strip()
                 assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="done",
-                                                                request_url=request_url)
+                                                                request_url=products_url)
 
     # this also triggers email (simulate a failed request)
     c = requests.get(server + "/call_back",
@@ -325,11 +330,11 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
             if part.get_content_type() == 'text/plain':
                 content_text_plain = part.get_payload().replace('\r', '').strip()
                 assert content_text_plain == plain_text_email.format(time_request_str=time_request_str, status="failed",
-                                                                    request_url=request_url)
+                                                                    request_url=products_url)
             if part.get_content_type() == 'text/html':
                 content_text_html = part.get_payload().replace('\r', '').strip()
                 assert content_text_html == html_text_email.format(time_request_str=time_request_str, status="failed",
-                                                                    request_url=request_url)
+                                                                    request_url=products_url)
 
     # TODO this will rewrite the value of the time_request in the query output, but it shouldn't be a problem?
     # This is not complete since DataServerQuery never returns done

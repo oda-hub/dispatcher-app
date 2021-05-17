@@ -4,6 +4,7 @@ pyyaml
 simplejson
 flask
 astropy>=2.0.3
+pylogstash_context>=0.1.19
 pathlib
 gunicorn
 decorator
