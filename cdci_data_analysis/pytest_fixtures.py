@@ -273,8 +273,8 @@ dispatcher:
     products_url: http://www.astro.unige.ch/cdci/astrooda_
     dispatcher_callback_url_base: http://localhost:8001
     sentry_url: "https://2ba7e5918358439485632251fa73658c@sentry.io/1467382"
-    logstash_host: 10.194.169.75
-    logstash_port: 5001
+    logstash_host: 
+    logstash_port: 
     secret_key: 'secretkey_test'
     bind_options:
         bind_host: 0.0.0.0

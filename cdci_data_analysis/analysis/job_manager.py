@@ -285,6 +285,9 @@ class OsaJob(Job):
             work_dir=self.work_dir
 
         job_files_list = sorted(glob.glob(work_dir + '/job_monitor*.json'), key=os.path.getmtime)
+
+        logger.info("\033[33m found %s job jog files in %s", len(job_files_list), work_dir)
+
         #print('OSA JOB get data server status form files',job_files_list)
         job_done=False
         job_failed=False
