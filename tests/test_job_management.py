@@ -23,7 +23,8 @@ default_token_payload = dict(
     exp=default_exp_time,
     tem=0,
     mstout=True,
-    mssub=True
+    mssub=True,
+    intsub=5
 )
 
 
@@ -152,7 +153,6 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     else:
         email_history_folder_path = f'scratch_sid_{session_id}_jid_{job_id}_aliased/email_history'
 
-
     assert c.status_code == 200
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
@@ -171,7 +171,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         # check the email in the email folders, and that the first one was produced
         assert os.path.exists(email_history_folder_path)
         assert os.path.exists(email_history_folder_path)
-        list_email_files = glob.glob(email_history_folder_path + '/email_0_*.email')
+        list_email_files = glob.glob(email_history_folder_path + '/email_0_submitted_*.email')
         assert len(list_email_files) == 1
 
         assert os.path.exists(smtp_server_log)
@@ -268,7 +268,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
         # check the email in the email folders, and that the first one was produced
         assert os.path.exists(email_history_folder_path)
-        list_email_files = glob.glob(email_history_folder_path + '/email_1_*.email')
+        list_email_files = glob.glob(email_history_folder_path + '/email_1_done_*.email')
         assert len(list_email_files) == 1
 
         # check the email in the log files
@@ -331,10 +331,10 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         # check the email in the email folders, and that the first one was produced
         assert os.path.exists(email_history_folder_path)
         if default_values or time_original_request_none:
-            list_email_files = glob.glob(email_history_folder_path + '/email_1_*.email')
+            list_email_files = glob.glob(email_history_folder_path + '/email_1_failed_*.email')
             assert len(list_email_files) == 1
         else:
-            list_email_files = glob.glob(email_history_folder_path + '/email_2_*.email')
+            list_email_files = glob.glob(email_history_folder_path + '/email_2_failed_*.email')
             assert len(list_email_files) == 1
 
         # check the email in the log files

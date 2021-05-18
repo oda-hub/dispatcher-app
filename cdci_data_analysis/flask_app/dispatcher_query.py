@@ -578,7 +578,7 @@ class InstrumentQueryBackEnd:
                                 request_url=products_url)
                 if msg_sent is not None:
                     #store the sent email in the scratch folder
-                    self.store_email_info(msg_sent, session_id, self.job_id)
+                    self.store_email_info(msg_sent, session_id, self.job_id, status)
 
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
@@ -599,7 +599,7 @@ class InstrumentQueryBackEnd:
                                         call_back_status=f'parameter missing during call back: {e.message}')
             logging.warning(f'parameter missing during call back: {e}')
 
-    def store_email_info(self, message, session_id, job_id):
+    def store_email_info(self, message, session_id, job_id, status):
         path_email_history_folder = ''
         query_output_json_file = f'scratch_sid_{session_id}_jid_{job_id}'
         # to be handled now, with the job_id generated taking into account only the user_id
@@ -611,10 +611,10 @@ class InstrumentQueryBackEnd:
         if not os.path.exists(path_email_history_folder):
             os.makedirs(path_email_history_folder)
         email_files_list = glob.glob(path_email_history_folder + '/email_*')
-        number_scartch_dirs = len(email_files_list)
+        number_emails_scartch_dirs = len(email_files_list)
         sending_time = time_.time()
         # record the email just sent in a dedicated file
-        with open(path_email_history_folder + '/email_' + str(number_scartch_dirs) + '_' + str(sending_time) +'.email', 'w+') as outfile:
+        with open(path_email_history_folder + '/email_' + str(number_emails_scartch_dirs) + '_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
             outfile.write(message.as_string())
 
 
@@ -659,10 +659,25 @@ class InstrumentQueryBackEnd:
         if not self.public:
             email_sending_job_submitted = tokenHelper.get_token_user_submitted_email(self.decoded_token)
             if email_sending_job_submitted is None:
-                # in case this didn't come with the token take the default value
+                # in case this didn't come with the token take the default value from the configuration
                 email_sending_job_submitted = self.app.config.get('conf').email_sending_job_submitted
+            # get the amount of time passed from when the last email was sent
+            interval_ok = True
+            email_sending_job_submitted_interval = tokenHelper.get_token_user_sending_submitted_interval_email(self.decoded_token)
+            if email_sending_job_submitted_interval is None:
+                # in case this didn't come with the token take the default value from the configuration
+                email_sending_job_submitted_interval = self.app.config.get('conf').email_sending_job_submitted_default_interval
+            if os.path.exists(self.scratch_dir + '/email_history'):
+                submitted_email_files = glob.glob(self.scratch_dir + '/email_history/email_*_submitted_*.email')
+                if len(submitted_email_files) >= 1:
+                    last_submitted_email_sent = submitted_email_files[len(submitted_email_files) - 1]
+                    f_name, f_ext = os.path.splitext(os.path.basename(last_submitted_email_sent))
+                    time_last_email_submitted_sent = float(f_name.split('_')[3])
+                    time_from_last_submitted_email = time_.time() - float(time_last_email_submitted_sent)
+                    interval_ok = time_from_last_submitted_email > email_sending_job_submitted_interval
+
             # send submitted mail, status update
-            return email_sending_job_submitted and status == 'submitted'
+            return email_sending_job_submitted and interval_ok and status == 'submitted'
 
         return False
 
@@ -1341,7 +1356,7 @@ class InstrumentQueryBackEnd:
                                             request_url=products_url)
                             if msg_sent is not None:
                                 # store the sent email in the scratch folder
-                                self.store_email_info(msg_sent, self.par_dic['session_id'], self.job_id)
+                                self.store_email_info(msg_sent, self.par_dic['session_id'], self.job_id, query_new_status)
                             # store an additional information about the sent email
                             query_out.set_status_field('email_status', 'email sent')
                         except EMailNotSent as e:
