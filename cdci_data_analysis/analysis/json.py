@@ -21,8 +21,11 @@ class CustomJSONEncoder(JSONEncoder):
 
         if isinstance(obj, ConfigEnv):
             return obj.as_dict()
+        
+        if isinstance(obj, bytes):
+            return obj.decode()
 
-        logging.error("problem encoding %s, will send as string", obj) # TODO: dangerous probably, fix!
-        return 'unencodable ' + str(obj)
+        logging.error("problem encoding %s, will NOT send as string", obj) # TODO: dangerous probably, fix!
+        raise RuntimeError('unencodable ' + str(obj))
 
         #return JSONEncoder.default(self, obj)
