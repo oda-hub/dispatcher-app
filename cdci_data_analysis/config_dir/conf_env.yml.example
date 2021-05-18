@@ -50,7 +50,7 @@ dispatcher:
         email_sending_job_submitted: True
         # amount of time (in seconds) elapsed from the sending of the last email
         # for when a request has been submitted
-        email_sending_job_submitted_default_interval: True
+        email_sending_job_submitted_default_interval: 5
 
 
 

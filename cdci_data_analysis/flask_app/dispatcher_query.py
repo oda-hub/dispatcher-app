@@ -611,10 +611,10 @@ class InstrumentQueryBackEnd:
         if not os.path.exists(path_email_history_folder):
             os.makedirs(path_email_history_folder)
         email_files_list = glob.glob(path_email_history_folder + '/email_*')
-        number_emails_scartch_dirs = len(email_files_list)
+        number_emails_scratch_dir = len(email_files_list)
         sending_time = time_.time()
         # record the email just sent in a dedicated file
-        with open(path_email_history_folder + '/email_' + str(number_emails_scartch_dirs) + '_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
+        with open(path_email_history_folder + '/email_' + str(number_emails_scratch_dir) + '_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
             outfile.write(message.as_string())
 
 
