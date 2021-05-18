@@ -113,6 +113,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
             token_payload.pop('tem')
             token_payload.pop('mstout')
             token_payload.pop('mssub')
+            token_payload.pop('intsub')
 
         encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
