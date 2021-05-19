@@ -571,9 +571,8 @@ class InstrumentQueryBackEnd:
 
                 # build the products URL and get also the original requested product
                 original_request_par_dic = self.get_request_par_dic()
-                if original_request_par_dic:
-                    products_url = self.generate_products_url_from_file(self.config.products_url, request_par_dict=original_request_par_dic)
-                    product_type = original_request_par_dic.get('product_type', '')
+                products_url = self.generate_products_url_from_file(self.config.products_url, request_par_dict=original_request_par_dic)
+                product_type = original_request_par_dic.get('product_type', '')
                 msg_sent = self.send_email(status,
                                            instrument=instrument_name,
                                            product_type=product_type,
