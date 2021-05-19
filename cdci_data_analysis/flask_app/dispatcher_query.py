@@ -578,7 +578,7 @@ class InstrumentQueryBackEnd:
                                 request_url=products_url)
                 if msg_sent is not None:
                     #store the sent email in the scratch folder
-                    self.store_email_info(msg_sent, session_id, self.job_id, status)
+                    self.store_email_info(msg_sent, status)
 
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
@@ -599,15 +599,8 @@ class InstrumentQueryBackEnd:
                                         call_back_status=f'parameter missing during call back: {e.message}')
             logging.warning(f'parameter missing during call back: {e}')
 
-    def store_email_info(self, message, session_id, job_id, status):
-        path_email_history_folder = ''
-        query_output_json_file = f'scratch_sid_{session_id}_jid_{job_id}'
-        # to be handled now, with the job_id generated taking into account only the user_id
-        query_output_json_file_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased'
-        if os.path.exists(query_output_json_file_aliased):
-            path_email_history_folder = query_output_json_file_aliased + '/email_history'
-        elif os.path.exists(query_output_json_file):
-            path_email_history_folder = query_output_json_file + '/email_history'
+    def store_email_info(self, message, status):
+        path_email_history_folder = self.scratch_dir + '/email_history'
         if not os.path.exists(path_email_history_folder):
             os.makedirs(path_email_history_folder)
         email_files_list = glob.glob(path_email_history_folder + '/email_*')
@@ -634,18 +627,8 @@ class InstrumentQueryBackEnd:
         return request_url
 
     def generate_products_url_from_file(self, products_url, session_id, job_id) -> str:
-        query_output_json_file = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
-        # to be handled now, with the job_id generated taking into account only the user_id
-        query_output_json_file_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
         request_url = ""
-        file = None
-        if self.scratch_dir:
-            file = open(self.scratch_dir + '/query_output.json')
-        else:
-            if os.path.exists(query_output_json_file_aliased):
-                file = open(query_output_json_file_aliased)
-            elif os.path.exists(query_output_json_file):
-                file = open(query_output_json_file)
+        file = open(self.scratch_dir + '/query_output.json')
         if file:
             jdata = json.load(file)
             if 'prod_dictionary' in jdata and 'analysis_parameters' in jdata['prod_dictionary']:
@@ -1356,7 +1339,7 @@ class InstrumentQueryBackEnd:
                                             request_url=products_url)
                             if msg_sent is not None:
                                 # store the sent email in the scratch folder
-                                self.store_email_info(msg_sent, self.par_dic['session_id'], self.job_id, query_new_status)
+                                self.store_email_info(msg_sent, query_new_status)
                             # store an additional information about the sent email
                             query_out.set_status_field('email_status', 'email sent')
                         except EMailNotSent as e:
