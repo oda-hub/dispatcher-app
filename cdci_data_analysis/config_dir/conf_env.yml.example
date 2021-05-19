@@ -29,7 +29,7 @@ dispatcher:
     bind_options:
         bind_host: 0.0.0.0
         bind_port: 8001
-
+    
     # e-mail related configurations: a user might want to receive an eamil with an update of the status of the request in
     # some cases (e.g. the request has failed)
     email_options:
