@@ -344,7 +344,14 @@ class JS9(Resource):
         serves the js9 library
         """
         try:
-            return send_from_directory(os.path.abspath('static/js9/'), path)
+            # would like to use config here, but it's not really loaded here
+            js9_path = os.environ.get("DISPATCHER_JS9_STATIC_DIR", "static/js9/")
+            logger.info("sending js9 from %s %s", js9_path, path)
+
+            if not os.path.exists(os.path.join(js9_path, path)):
+                raise Exception(f"js9 not installed on the server, expected in {js9_path}")
+
+            return send_from_directory(js9_path, path)
         except Exception as e:
             # print('qui',e)
             raise APIerror('problem with local file delivery: %s' %
