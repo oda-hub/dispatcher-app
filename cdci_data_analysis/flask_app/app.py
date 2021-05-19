@@ -230,11 +230,11 @@ def common_exception_payload():
 
 class ExitStatus(Schema):
     status = fields.Int(validate=OneOf([0, 1]))
-    message = fields.Str(desciption="if query_status == 'failed', shown in waitingDialog in red")     
-    error_message = fields.Str(desciption="if query_status == 'failed', shown in waitingDialog in red")     
-    debug_message = fields.Str(desciption="if query_status == 'done' but exit_status.status != 0, shown in waitingDialog in red")     
-    comment = fields.Str(desciption="always, shown in waitingDialog in yellow")     
-    warning = fields.Str(desciption="")     
+    message = fields.Str(description="if query_status == 'failed', shown in waitingDialog in red")     
+    error_message = fields.Str(description="if query_status == 'failed', shown in waitingDialog in red")     
+    debug_message = fields.Str(description="if query_status == 'done' but exit_status.status != 0, shown in waitingDialog in red")     
+    comment = fields.Str(description="always, shown in waitingDialog in yellow")     
+    warning = fields.Str(description="")     
     
 
 class QueryOutJSON(Schema):
