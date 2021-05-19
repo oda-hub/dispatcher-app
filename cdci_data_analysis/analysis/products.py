@@ -171,7 +171,7 @@ class QueryOutput(object):
                             status=1,
                             sentry_client=None,
                             job_status=None,
-                            e_message=None, # takes 
+                            e_message=None,
                             debug_message=''):
 
         if logger is None:
