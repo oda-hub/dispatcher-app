@@ -229,7 +229,7 @@ def common_exception_payload():
 
 
 class ExitStatus(Schema):
-    status = fields.Int(OneOf([0, 1]))
+    status = fields.Int(validate=OneOf([0, 1]))
     message = fields.Str(desciption="if query_status == 'failed', shown in waitingDialog in red")     
     error_message = fields.Str(desciption="if query_status == 'failed', shown in waitingDialog in red")     
     debug_message = fields.Str(desciption="if query_status == 'done' but exit_status.status != 0, shown in waitingDialog in red")     
