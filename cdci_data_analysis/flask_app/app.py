@@ -24,6 +24,12 @@ from flask import Flask, request, make_response, abort, g
 from flask.json import JSONEncoder
 from flask_restx import Api, Resource, reqparse
 
+# restx not really used
+# we could do validation and API generation with this, but let's not yet
+#from flasgger import Swagger, SwaggerView, Schema, fields # type: ignore
+from marshmallow import Schema, fields # type: ignore
+from marshmallow.validate import OneOf # type: ignore
+
 
 import tempfile
 import tarfile
@@ -221,6 +227,26 @@ def common_exception_payload():
     return payload
 
 
+
+class ExitStatus(Schema):
+    status = fields.Int(validate=OneOf([0, 1]))
+    message = fields.Str(description="if query_status == 'failed', shown in waitingDialog in red")     
+    error_message = fields.Str(description="if query_status == 'failed', shown in waitingDialog in red")     
+    debug_message = fields.Str(description="if query_status == 'done' but exit_status.status != 0, shown in waitingDialog in red")     
+    comment = fields.Str(description="always, shown in waitingDialog in yellow")     
+    warning = fields.Str(description="")     
+    
+
+class QueryOutJSON(Schema):
+    query_status = fields.Str(
+                        validate=OneOf(["done", "failed"]),
+                        description=""
+                    )
+    exit_status = ExitStatus
+    session_id = fields.Str()
+    job_id = fields.Str()
+
+
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
     """
@@ -233,12 +259,14 @@ def run_analysis():
       required: false
       type: 'string'
     responses:
-        200: 
-            description: 'analysis done'
-        202: 
-            description: 'request accepted but not done yet' 
-        400: 
-            description: 'something in request not understood - missing, unexpected values'
+      200: 
+        description: 'analysis done'
+        schema:
+          $ref: '#/definitions/QueryOutJSON'
+      202: 
+        description: 'request accepted but not done yet' 
+      400: 
+        description: 'something in request not understood - missing, unexpected values'
     """
 
     request_summary = log_run_query_request()

@@ -76,7 +76,7 @@ class QueryOutput(object):
         self.set_status(0, job_status='unknown')
 
     def set_instrument_parameters(self,o):
-        self.prod_dictionary['instrumet_parameters'] = o
+        self.prod_dictionary['instrument_parameters'] = o
 
     def set_analysis_parameters(self, query_dict):
         self.prod_dictionary['analysis_parameters'] = query_dict
@@ -160,9 +160,10 @@ class QueryOutput(object):
     def get_job_status(self):
         return self.status_dictionary['job_status']
 
-    def set_query_exception(self, excep,
+    def set_query_exception(self, 
+                            excep: Union[Exception, None], # used as `error_message`, as repr, only if `e_message` is None
                             failed_operation,
-                            message_prepend_str='',
+                            message_prepend_str='', # used in `message`
                             extra_message=None,
                             message=None,
                             logger_prepend_str='==>',
