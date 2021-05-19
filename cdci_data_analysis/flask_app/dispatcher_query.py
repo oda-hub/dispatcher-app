@@ -572,7 +572,7 @@ class InstrumentQueryBackEnd:
                 # build the products URL and get also the original requested product
                 original_request_par_dic = self.get_request_par_dic()
                 products_url = self.generate_products_url_from_file(self.config.products_url, request_par_dict=original_request_par_dic)
-                product_type = original_request_par_dic.get('product_type', '')
+                product_type = original_request_par_dic['product_type']
                 msg_sent = self.send_email(status,
                                            instrument=instrument_name,
                                            product_type=product_type,
@@ -613,10 +613,9 @@ class InstrumentQueryBackEnd:
 
     # TODO perhaps move it somewhere else?
     def get_request_par_dic(self):
-        with open(self.scratch_dir + '/query_output.json') as file:
+        with open(self.scratch_dir + '/analysis_parameters.json') as file:
             jdata = json.load(file)
-            if 'prod_dictionary' in jdata and 'analysis_parameters' in jdata['prod_dictionary']:
-                return jdata['prod_dictionary']['analysis_parameters']
+            return jdata
         return None
 
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
