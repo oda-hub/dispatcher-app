@@ -576,9 +576,8 @@ class InstrumentQueryBackEnd:
                                 instrument=instrument_name,
                                 time_request=time_original_request,
                                 request_url=products_url)
-                if msg_sent is not None:
-                    #store the sent email in the scratch folder
-                    self.store_email_info(msg_sent, status)
+                #store the sent email in the scratch folder
+                self.store_email_info(msg_sent, status)
 
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
@@ -1337,9 +1336,8 @@ class InstrumentQueryBackEnd:
                                             instrument=self.instrument.name,
                                             time_request=self.time_request,
                                             request_url=products_url)
-                            if msg_sent is not None:
-                                # store the sent email in the scratch folder
-                                self.store_email_info(msg_sent, query_new_status)
+                            # store the sent email in the scratch folder
+                            self.store_email_info(msg_sent, query_new_status)
                             # store an additional information about the sent email
                             query_out.set_status_field('email_status', 'email sent')
                         except EMailNotSent as e:
