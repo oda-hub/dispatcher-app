@@ -278,7 +278,7 @@ class ConfigEnv(object):
                             smtp_server_password,
                             email_sending_timeout,
                             email_sending_timeout_default_threshold,
-                            email_sending_job_submitted,
+                            email_sending_job_submitted
                             ):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
