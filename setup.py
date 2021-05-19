@@ -41,7 +41,8 @@ install_req = [
     "logging_tree",
     "celery",
     "redis",
-    "pyjwt"
+    "pyjwt",
+    "marshmallow"
 ]
 
 test_req = [
