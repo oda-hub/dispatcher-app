@@ -569,10 +569,13 @@ class InstrumentQueryBackEnd:
         try:
             if self.is_email_to_send_callback(status, time_original_request):
 
+                try:
+                    original_request_par_dic = self.get_request_par_dic()
+                    product_type = original_request_par_dic['product_type']
+                except KeyError as e:
+                    raise MissingRequestParameter(repr(e))
                 # build the products URL and get also the original requested product
-                original_request_par_dic = self.get_request_par_dic()
                 products_url = self.generate_products_url_from_file(self.config.products_url, request_par_dict=original_request_par_dic)
-                product_type = original_request_par_dic['product_type']
                 msg_sent = self.send_email(status,
                                            instrument=instrument_name,
                                            product_type=product_type,
