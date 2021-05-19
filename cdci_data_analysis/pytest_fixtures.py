@@ -288,6 +288,7 @@ dispatcher:
         email_sending_timeout: True
         email_sending_timeout_default_threshold: 1800
         email_sending_job_submitted: True
+        email_sending_job_submitted_default_interval: 60
     """)
 
     yield fn

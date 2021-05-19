@@ -572,10 +572,13 @@ class InstrumentQueryBackEnd:
 
                 # build the products URL
                 products_url = self.generate_products_url_from_file(self.config.products_url, session_id, self.job_id)
-                self.send_email(status,
+                msg_sent = self.send_email(status,
                                 instrument=instrument_name,
                                 time_request=time_original_request,
                                 request_url=products_url)
+                #store the sent email in the scratch folder
+                self.store_email_info(msg_sent, status)
+
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
                                             email_status='email sent')
@@ -595,6 +598,18 @@ class InstrumentQueryBackEnd:
                                         call_back_status=f'parameter missing during call back: {e.message}')
             logging.warning(f'parameter missing during call back: {e}')
 
+    def store_email_info(self, message, status):
+        path_email_history_folder = self.scratch_dir + '/email_history'
+        if not os.path.exists(path_email_history_folder):
+            os.makedirs(path_email_history_folder)
+        email_files_list = glob.glob(path_email_history_folder + '/email_*')
+        number_emails_scratch_dir = len(email_files_list)
+        sending_time = time_.time()
+        # record the email just sent in a dedicated file
+        with open(path_email_history_folder + '/email_' + str(number_emails_scratch_dir) + '_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
+            outfile.write(message.as_string())
+
+
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
         par_dict = par_dict.copy()
@@ -611,18 +626,8 @@ class InstrumentQueryBackEnd:
         return request_url
 
     def generate_products_url_from_file(self, products_url, session_id, job_id) -> str:
-        job_monitor_status_json_file = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
-        # to be handled now, with the job_id generated taking into account only the user_id
-        job_monitor_status_json_file_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
         request_url = ""
-        file = None
-        if self.scratch_dir:
-            file = open(self.scratch_dir + '/query_output.json')
-        else:
-            if os.path.exists(job_monitor_status_json_file_aliased):
-                file = open(job_monitor_status_json_file_aliased)
-            elif os.path.exists(job_monitor_status_json_file):
-                file = open(job_monitor_status_json_file)
+        file = open(self.scratch_dir + '/query_output.json')
         if file:
             jdata = json.load(file)
             if 'prod_dictionary' in jdata and 'analysis_parameters' in jdata['prod_dictionary']:
@@ -636,10 +641,25 @@ class InstrumentQueryBackEnd:
         if not self.public:
             email_sending_job_submitted = tokenHelper.get_token_user_submitted_email(self.decoded_token)
             if email_sending_job_submitted is None:
-                # in case this didn't come with the token take the default value
+                # in case this didn't come with the token take the default value from the configuration
                 email_sending_job_submitted = self.app.config.get('conf').email_sending_job_submitted
+            # get the amount of time passed from when the last email was sent
+            interval_ok = True
+            email_sending_job_submitted_interval = tokenHelper.get_token_user_sending_submitted_interval_email(self.decoded_token)
+            if email_sending_job_submitted_interval is None:
+                # in case this didn't come with the token take the default value from the configuration
+                email_sending_job_submitted_interval = self.app.config.get('conf').email_sending_job_submitted_default_interval
+            if os.path.exists(self.scratch_dir + '/email_history'):
+                submitted_email_files = glob.glob(self.scratch_dir + '/email_history/email_*_submitted_*.email')
+                if len(submitted_email_files) >= 1:
+                    last_submitted_email_sent = submitted_email_files[len(submitted_email_files) - 1]
+                    f_name, f_ext = os.path.splitext(os.path.basename(last_submitted_email_sent))
+                    time_last_email_submitted_sent = float(f_name.split('_')[3])
+                    time_from_last_submitted_email = time_.time() - float(time_last_email_submitted_sent)
+                    interval_ok = time_from_last_submitted_email > email_sending_job_submitted_interval
+
             # send submitted mail, status update
-            return email_sending_job_submitted and status == 'submitted'
+            return email_sending_job_submitted and interval_ok and status == 'submitted'
 
         return False
 
@@ -1312,10 +1332,12 @@ class InstrumentQueryBackEnd:
                     if self.is_email_to_send_run_completion(query_new_status):
                         try:
                             products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url, self.par_dic)
-                            self.send_email('submitted',
+                            msg_sent = self.send_email(query_new_status,
                                             instrument=self.instrument.name,
                                             time_request=self.time_request,
                                             request_url=products_url)
+                            # store the sent email in the scratch folder
+                            self.store_email_info(msg_sent, query_new_status)
                             # store an additional information about the sent email
                             query_out.set_status_field('email_status', 'email sent')
                         except EMailNotSent as e:
@@ -1465,6 +1487,8 @@ class InstrumentQueryBackEnd:
         finally:
             if server:
                 server.quit()
+
+        return message
 
     def async_dispatcher_query(self, query_status: str) -> tuple:
         self.logger.info("async dispatcher enabled, for %s", query_status)

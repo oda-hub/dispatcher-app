@@ -9,6 +9,7 @@ import jwt
 import logging
 import email
 from urllib.parse import urlencode
+import glob
 
 logger = logging.getLogger(__name__)
 # symmetric shared secret for the decoding of the token
@@ -22,7 +23,8 @@ default_token_payload = dict(
     exp=default_exp_time,
     tem=0,
     mstout=True,
-    mssub=True
+    mssub=True,
+    intsub=5
 )
 
 
@@ -96,6 +98,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     # email content in plain text and html format
     plain_text_email = "Update of the task submitted at {time_request_str}, for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
     html_text_email = "<html><body><p>Update of the task submitted at {time_request_str}, for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+    smtp_server_log = f'local_smtp_log/{dispatcher_local_mail_server.id}_local_smtp_output.json'
 
     if token_none:
         encoded_token = None
@@ -110,6 +113,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
             token_payload.pop('tem')
             token_payload.pop('mstout')
             token_payload.pop('mssub')
+            token_payload.pop('intsub')
 
         encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
@@ -143,8 +147,11 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     job_monitor_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor.json'
     # the aliased version might have been created
     job_monitor_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor.json'
-
     assert os.path.exists(job_monitor_json_fn) or os.path.exists(job_monitor_json_fn_aliased)
+    if os.path.exists(job_monitor_json_fn):
+        email_history_folder_path = f'scratch_sid_{session_id}_jid_{job_id}/email_history'
+    else:
+        email_history_folder_path = f'scratch_sid_{session_id}_jid_{job_id}_aliased/email_history'
 
     assert c.status_code == 200
     jdata = c.json()
@@ -160,7 +167,12 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         assert 'email_status' not in jdata
     else:
         assert jdata['exit_status']['email_status'] == 'email sent'
-        smtp_server_log = f'local_smtp_log/{dispatcher_local_mail_server.id}_local_smtp_output.json'
+
+        # check the email in the email folders, and that the first one was produced
+        assert os.path.exists(email_history_folder_path)
+        list_email_files = glob.glob(email_history_folder_path + '/email_0_submitted_*.email')
+        assert len(list_email_files) == 1
+
         assert os.path.exists(smtp_server_log)
         f_local_smtp = open(smtp_server_log)
         f_local_smtp_jdata = json.load(f_local_smtp)
@@ -252,6 +264,12 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         assert 'email_status' not in jdata
     else:
         assert jdata['email_status'] == 'email sent'
+
+        # check the email in the email folders, and that the first one was produced
+        assert os.path.exists(email_history_folder_path)
+        list_email_files = glob.glob(email_history_folder_path + '/email_1_done_*.email')
+        assert len(list_email_files) == 1
+
         # check the email in the log files
         assert os.path.exists(smtp_server_log)
         f_local_smtp = open(smtp_server_log)
@@ -308,6 +326,16 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         assert 'email_status' not in jdata
     else:
         assert jdata['email_status'] == 'email sent'
+
+        # check the email in the email folders, and that the first one was produced
+        assert os.path.exists(email_history_folder_path)
+        if default_values or time_original_request_none:
+            list_email_files = glob.glob(email_history_folder_path + '/email_1_failed_*.email')
+            assert len(list_email_files) == 1
+        else:
+            list_email_files = glob.glob(email_history_folder_path + '/email_2_failed_*.email')
+            assert len(list_email_files) == 1
+
         # check the email in the log files
         assert os.path.exists(smtp_server_log)
         f_local_smtp = open(smtp_server_log)
@@ -359,6 +387,124 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     assert c.status_code == 200
 
     # TODO: test that this returns the result
+
+
+def test_email_submitted(dispatcher_live_fixture, dispatcher_local_mail_server):
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # email content in plain text and html format
+    smtp_server_log = f'local_smtp_log/{dispatcher_local_mail_server.id}_local_smtp_output.json'
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "tem": 0,
+        "intsub": 15
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    # this should return status submitted, so email sent
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+
+    session_id = c.json()['session_id']
+    job_id = c.json()['job_monitor']['job_id']
+    dict_param_complete = dict_param.copy()
+    # dict_param_complete['session_id'] = session_id
+    dict_param_complete.pop("token")
+
+    job_monitor_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor.json'
+    # the aliased version might have been created
+    job_monitor_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor.json'
+    assert os.path.exists(job_monitor_json_fn) or os.path.exists(job_monitor_json_fn_aliased)
+    if os.path.exists(job_monitor_json_fn):
+        email_history_folder_path = f'scratch_sid_{session_id}_jid_{job_id}/email_history'
+    else:
+        email_history_folder_path = f'scratch_sid_{session_id}_jid_{job_id}_aliased/email_history'
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    # check the email in the email folders, and that the first one was produced
+    assert os.path.exists(email_history_folder_path)
+    list_email_files = glob.glob(email_history_folder_path + '/email_0_submitted_*.email')
+    assert len(list_email_files) == 1
+
+    assert os.path.exists(smtp_server_log)
+    f_local_smtp = open(smtp_server_log)
+    f_local_smtp_jdata = json.load(f_local_smtp)
+
+    assert len(f_local_smtp_jdata) == 1
+
+    # re-submit the very same request, in order to produce a sequence of submitted status
+    # and verify not a sequence of emails are generated
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        session_id=session_id,
+        job_id=job_id,
+        token=encoded_token
+    )
+
+    for i in range(5):
+        c = requests.get(server + "/run_analysis",
+                         dict_param
+                         )
+
+        assert c.status_code == 200
+        jdata = c.json()
+        assert jdata['exit_status']['job_status'] == 'submitted'
+        assert 'email_status' not in jdata['exit_status']
+
+        # check the email in the email folders, and that the first one was produced
+        assert os.path.exists(email_history_folder_path)
+        list_email_files = glob.glob(email_history_folder_path + '/email_1_submitted_*.email')
+        assert len(list_email_files) == 0
+
+        assert os.path.exists(smtp_server_log)
+        f_local_smtp = open(smtp_server_log)
+        f_local_smtp_jdata = json.load(f_local_smtp)
+
+        assert len(f_local_smtp_jdata) == 1
+
+    # let the interval time pass, so that a new email si sent
+    time.sleep(16)
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    # check the email in the email folders, and that the first one was produced
+    assert os.path.exists(email_history_folder_path)
+    list_email_files = glob.glob(email_history_folder_path + '/email_1_submitted_*.email')
+    assert len(list_email_files) == 1
+
+    assert os.path.exists(smtp_server_log)
+    f_local_smtp = open(smtp_server_log)
+    f_local_smtp_jdata = json.load(f_local_smtp)
+
+    assert len(f_local_smtp_jdata) == 2
 
 
 def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
@@ -420,15 +566,19 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
 
     assert os.path.exists(job_monitor_call_back_failed_json_fn) or os.path.exists(
         job_monitor_call_back_failed_json_fn_aliased)
+
     assert c.status_code == 200
-    # read the json file
+    # read the json file and get the path for the email history
     if os.path.exists(job_monitor_call_back_failed_json_fn):
         f = open(job_monitor_call_back_failed_json_fn)
+        email_history_folder_path = f'scratch_sid_{session_id}_jid_{job_id}/email_history'
     else:
         f = open(job_monitor_call_back_failed_json_fn_aliased)
+        email_history_folder_path = f'scratch_sid_{session_id}_jid_{job_id}_aliased/email_history'
 
     jdata = json.load(f)
     assert jdata['email_status'] == 'sending email failed'
+    assert not os.path.exists(email_history_folder_path)
 
 
 def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_live_fixture, dispatcher_local_mail_server_subprocess):
@@ -443,8 +593,6 @@ def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_liv
         "tem": 0,
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-    # set the time the request was initiated
-    time_request = time.time()
     # this should return status submitted, so email sent
     c = requests.get(server + "/run_analysis",
                      params=dict(
@@ -467,6 +615,16 @@ def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_liv
     assert os.path.exists(job_monitor_json_fn) or os.path.exists(job_monitor_json_fn_aliased)
     assert c.status_code == 200
 
+    # read the json file and get the path for the email history
+    if os.path.exists(job_monitor_json_fn):
+        email_history_folder_path = f'scratch_sid_{session_id}_jid_{job_id}/email_history'
+    else:
+        email_history_folder_path = f'scratch_sid_{session_id}_jid_{job_id}_aliased/email_history'
+
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
     assert jdata['exit_status']['email_status'] == 'email sent'
+
+    assert os.path.exists(email_history_folder_path)
+    list_email_files = glob.glob(email_history_folder_path + '/email_0_*.email')
+    assert len(list_email_files) == 1

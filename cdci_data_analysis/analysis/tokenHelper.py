@@ -32,6 +32,11 @@ def get_token_user_sending_timeout_email(decoded_token):
     return decoded_token['mstout'] if 'mstout' in decoded_token else None
 
 
+def get_token_user_sending_submitted_interval_email(decoded_token):
+    # extract user threshold
+    return decoded_token['intsub'] if 'intsub' in decoded_token else None
+
+
 def get_token_user_submitted_email(decoded_token):
     # extract user threshold
     return decoded_token['mssub'] if 'mssub' in decoded_token else None
