@@ -1,5 +1,3 @@
-import email
-
 import pytest
 import requests
 import json
@@ -99,6 +97,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     plain_text_email = "Update of the task submitted at {time_request_str}, for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
     html_text_email = "<html><body><p>Update of the task submitted at {time_request_str}, for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
     smtp_server_log = f'local_smtp_log/{dispatcher_local_mail_server.id}_local_smtp_output.json'
+    email_subject = "[ODA][{status}] Request for {product_type} created at {time_request_str} {job_id}"
 
     if token_none:
         encoded_token = None
@@ -182,7 +181,8 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         assert f_local_smtp_jdata[0]['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io']
         data_email = f_local_smtp_jdata[0]['data']
         msg = email.message_from_string(data_email)
-        assert msg['Subject'] == 'Request update'
+        assert msg['Subject'] == email_subject.format(time_request_str=time_request_str, status="submitted",
+                                                      product_type="dummy", job_id=job_id[:8])
         assert msg['From'] == 'team@odahub.io'
         assert msg['To'] == 'mtm@mtmco.net'
         assert msg['CC'] == ", ".join(['team@odahub.io'])
@@ -203,6 +203,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         time_request_str = 'None'
         plain_text_email = "Update of the task for the instrument empty-async:\n* status {status}\nProducts url {request_url}"
         html_text_email = "<html><body><p>Update of the task for the instrument empty-async:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+        email_subject = "[ODA][{status}] Request for {product_type} {job_id}"
 
     for i in range(5):
         # imitating what a backend would do
@@ -279,7 +280,8 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         assert f_local_smtp_jdata[1]['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io']
         data_email = f_local_smtp_jdata[1]['data']
         msg = email.message_from_string(data_email)
-        assert msg['Subject'] == 'Request update'
+        assert msg['Subject'] == email_subject.format(time_request_str=time_request_str, status="done",
+                                                      product_type="dummy", job_id=job_id[:8])
         assert msg['From'] == 'team@odahub.io'
         assert msg['To'] == 'mtm@mtmco.net'
         assert msg['CC'] == ", ".join(['team@odahub.io'])
@@ -349,7 +351,8 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
         assert f_local_smtp_jdata[len(f_local_smtp_jdata) - 1]['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io']
         data_email = f_local_smtp_jdata[len(f_local_smtp_jdata) - 1]['data']
         msg = email.message_from_string(data_email)
-        assert msg['Subject'] == 'Request update'
+        assert msg['Subject'] == email_subject.format(time_request_str=time_request_str, status="failed",
+                                                      product_type="dummy", job_id=job_id[:8])
         assert msg['From'] == 'team@odahub.io'
         assert msg['To'] == 'mtm@mtmco.net'
         assert msg['CC'] == ", ".join(['team@odahub.io'])

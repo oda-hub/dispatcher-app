@@ -541,7 +541,6 @@ class InstrumentQueryBackEnd:
 
         if self.config.sentry_url is not None:
             self.set_sentry_client(self.config.sentry_url)
-        session_id = self.par_dic['session_id']
         instrument_name = self.par_dic.get('instrument_name', '')
         # the time the request was sent should be used
         # the time_request contains the time the call_back as issued
@@ -570,12 +569,16 @@ class InstrumentQueryBackEnd:
         try:
             if self.is_email_to_send_callback(status, time_original_request):
 
-                # build the products URL
-                products_url = self.generate_products_url_from_file(self.config.products_url, session_id, self.job_id)
+                # build the products URL and get also the original requested product
+                original_request_par_dic = self.get_request_par_dic()
+                if original_request_par_dic:
+                    products_url = self.generate_products_url_from_file(self.config.products_url, request_par_dict=original_request_par_dic)
+                    product_type = original_request_par_dic.get('product_type', '')
                 msg_sent = self.send_email(status,
-                                instrument=instrument_name,
-                                time_request=time_original_request,
-                                request_url=products_url)
+                                           instrument=instrument_name,
+                                           product_type=product_type,
+                                           time_request=time_original_request,
+                                           request_url=products_url)
                 #store the sent email in the scratch folder
                 self.store_email_info(msg_sent, status)
 
@@ -609,6 +612,13 @@ class InstrumentQueryBackEnd:
         with open(path_email_history_folder + '/email_' + str(number_emails_scratch_dir) + '_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
             outfile.write(message.as_string())
 
+    # TODO perhaps move it somewhere else?
+    def get_request_par_dic(self):
+        with open(self.scratch_dir + '/query_output.json') as file:
+            jdata = json.load(file)
+            if 'prod_dictionary' in jdata and 'analysis_parameters' in jdata['prod_dictionary']:
+                return jdata['prod_dictionary']['analysis_parameters']
+        return None
 
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
@@ -625,16 +635,8 @@ class InstrumentQueryBackEnd:
         request_url = '%s?%s' % (products_url, urlencode(par_dict))
         return request_url
 
-    def generate_products_url_from_file(self, products_url, session_id, job_id) -> str:
-        request_url = ""
-        file = open(self.scratch_dir + '/query_output.json')
-        if file:
-            jdata = json.load(file)
-            if 'prod_dictionary' in jdata and 'analysis_parameters' in jdata['prod_dictionary']:
-                request_par_dict = jdata['prod_dictionary']['analysis_parameters']
-                request_url = self.generate_products_url_from_par_dict(products_url, request_par_dict)
-
-        return request_url
+    def generate_products_url_from_file(self, products_url, request_par_dict) -> str:
+        return self.generate_products_url_from_par_dict(products_url, request_par_dict)
 
     def is_email_to_send_run_completion(self, status):
         # get total request duration
@@ -1333,9 +1335,10 @@ class InstrumentQueryBackEnd:
                         try:
                             products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url, self.par_dic)
                             msg_sent = self.send_email(query_new_status,
-                                            instrument=self.instrument.name,
-                                            time_request=self.time_request,
-                                            request_url=products_url)
+                                                       instrument=self.instrument.name,
+                                                       product_type=product_type,
+                                                       time_request=self.time_request,
+                                                       request_url=products_url)
                             # store the sent email in the scratch folder
                             self.store_email_info(msg_sent, query_new_status)
                             # store an additional information about the sent email
@@ -1429,6 +1432,7 @@ class InstrumentQueryBackEnd:
 
     def send_email(self, status="done",
                    instrument="",
+                   product_type="",
                    time_request=None,
                    request_url=""):
         server = None
@@ -1438,11 +1442,13 @@ class InstrumentQueryBackEnd:
         # a plain-text version is included
         text = f"""Update of the task for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
         html = f"""<html><body><p>Update of the task for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+        email_subject = f"[ODA][{status}] Request for {product_type} {self.job_id[:8]}"
 
         if time_request:
             time_request_str = time_.strftime('%Y-%m-%d %H:%M:%S', time_.localtime(float(time_request)))
             text = f"""Update of the task submitted at {time_request_str}, for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
             html = f"""<html><body><p>Update of the task submitted at {time_request_str}, for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+            email_subject = f"[ODA][{status}] Request for {product_type} created at {time_request_str} {self.job_id[:8]}"
 
         try:
             # send the mail with the status update to the mail provided with the token
@@ -1456,7 +1462,7 @@ class InstrumentQueryBackEnd:
             receivers_email_addresses = [receiver_email_address] + cc_receivers_email_addresses
             # creation of the message
             message = MIMEMultipart("alternative")
-            message["Subject"] = "Request update"
+            message["Subject"] = email_subject
             message["From"] = sender_email_address
             message["To"] = receiver_email_address
             message["CC"] = ", ".join(cc_receivers_email_addresses)
