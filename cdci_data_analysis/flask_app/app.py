@@ -344,6 +344,7 @@ class JS9(Resource):
         serves the js9 library
         """
         try:
+            logger.info("sending js9 from %s %s", os.path.abspath('static/js9/'), path)
             return send_from_directory(os.path.abspath('static/js9/'), path)
         except Exception as e:
             # print('qui',e)
