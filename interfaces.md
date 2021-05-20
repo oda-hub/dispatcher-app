@@ -78,6 +78,7 @@ Example, showing minimal required set of fields in token payload:
 ```json
 {
   "sub": "mtm@mtmco.net",
+  "email": "mtm@mtmco.net",
   "name": "mmeharga",
   "aud": "dispatcher",
   "roles": "magic,antares",
@@ -90,12 +91,12 @@ Example, showing minimal required set of fields in token payload:
 }
 ```
 
-Where "sub" field is unique user identified, defined as email.
+Where "sub" field is unique user identified, defined as email. In some cases, email may be passed
 
 
 | Description | token field | drupal field |
 | :--  | :-- | :-- |
-| email |  sub   | ? | 
+| email |  sub or email   | ? | 
 | full name |  name   | ? | 
 | roles, coma-separated | roles |  ? |
 | expiration | exp | ? |
