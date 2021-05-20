@@ -24,6 +24,12 @@ from flask import Flask, request, make_response, abort, g
 from flask.json import JSONEncoder
 from flask_restx import Api, Resource, reqparse
 
+# restx not really used
+# we could do validation and API generation with this, but let's not yet
+#from flasgger import Swagger, SwaggerView, Schema, fields # type: ignore
+from marshmallow import Schema, fields # type: ignore
+from marshmallow.validate import OneOf # type: ignore
+
 
 import tempfile
 import tarfile
@@ -252,12 +258,14 @@ def run_analysis():
       required: false
       type: 'string'
     responses:
-        200: 
-            description: 'analysis done'
-        202: 
-            description: 'request accepted but not done yet' 
-        400: 
-            description: 'something in request not understood - missing, unexpected values'
+      200: 
+        description: 'analysis done'
+        schema:
+          $ref: '#/definitions/QueryOutJSON'
+      202: 
+        description: 'request accepted but not done yet' 
+      400: 
+        description: 'something in request not understood - missing, unexpected values'
     """
 
     request_summary = log_run_query_request()
