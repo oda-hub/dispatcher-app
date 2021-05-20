@@ -369,6 +369,12 @@ class Instrument:
             self.set_pars_from_dic(par_dic,verbose=verbose)
             #DONE
             q.set_done(debug_message=str(debug_message))
+        except RequestNotUnderstood as e:
+           q.set_failed(f"please adjust request parameters: {e.message}",
+                        logger=logger,
+                        sentry_client=None,
+                        excep=e)
+
         except Exception as e:
             #FAILED
 
