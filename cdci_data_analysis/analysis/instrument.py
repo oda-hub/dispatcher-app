@@ -274,7 +274,7 @@ class Instrument:
         return self.get_query_by_name(prod_name).get_html_draw( image,image_header,catalog=catalog,**kwargs)
 
     #def get_par_by_name(self,par_name, validate=False):
-    def get_par_by_name(self,par_name, validate=False):
+    def get_par_by_name(self,par_name):
         p=None
 
         for _query in self._queries_list:
