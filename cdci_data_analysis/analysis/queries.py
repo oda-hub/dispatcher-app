@@ -500,6 +500,8 @@ class ProductQuery(BaseQuery):
 
                 if job_status=='done':
                     job.set_done()
+                elif job_status == 'failed':
+                    job.set_failed()
                 else:
                     job.set_submitted()
 

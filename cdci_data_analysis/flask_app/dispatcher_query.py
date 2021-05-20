@@ -209,9 +209,6 @@ class InstrumentQueryBackEnd:
             query_out.set_query_exception(
                 e, 'InstrumentQueryBackEnd constructor', extra_message='InstrumentQueryBackEnd constructor failed')
 
-            #out_dict = {}
-            #out_dict['query_status'] = 1
-            #out_dict['exit_status'] = query_out.status_dictionary
             self.build_dispatcher_response(
                 query_new_status='failed', query_out=query_out)
 
@@ -619,7 +616,6 @@ class InstrumentQueryBackEnd:
         with open(self.scratch_dir + '/analysis_parameters.json') as file:
             jdata = json.load(file)
             return jdata
-        return None
 
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
