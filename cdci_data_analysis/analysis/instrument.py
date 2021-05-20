@@ -273,6 +273,7 @@ class Instrument:
     def get_html_draw(self, prod_name, image,image_header,catalog=None,**kwargs):
         return self.get_query_by_name(prod_name).get_html_draw( image,image_header,catalog=catalog,**kwargs)
 
+    #def get_par_by_name(self,par_name, validate=False):
     def get_par_by_name(self,par_name, validate=False):
         p=None
 
@@ -283,8 +284,8 @@ class Instrument:
         if p is None:
             raise Warning('parameter', par_name, 'not found')
 
-        if validate and hasattr(p, 'check_value'):
-            p.check_value(p.value)
+     #   if validate and hasattr(p, 'check_value'):
+     #       p.check_value(p.value)
 
         return p
 
