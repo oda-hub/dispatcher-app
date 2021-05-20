@@ -669,7 +669,7 @@ class InstrumentQueryBackEnd:
     def is_email_to_send_callback(self, status, time_original_request):
         if not self.public:
             # in case the request was long and 'done'
-            if status == 'done':
+            if status in ['done', 'task_complete']:
                 # get total request duration
                 if time_original_request:
                     duration_query = time_.time() - float(time_original_request)
