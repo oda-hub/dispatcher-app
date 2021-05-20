@@ -53,6 +53,9 @@ from ..configurer import DataServerConf
 from ..analysis.plot_tools import Image
 from ..analysis.exceptions import BadRequest, APIerror, MissingParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut
 from . import tasks
+
+from .logstash import logstash_message
+
 from oda_api.data_products import NumpyDataProduct
 import oda_api
 
@@ -135,7 +138,10 @@ class InstrumentQueryBackEnd:
                     if self.validate_query_from_token():
                         pass
                 except jwt.exceptions.ExpiredSignatureError as e:
+                    logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-expired'})
                     raise RequestNotAuthorized("token expired")
+
+                logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
 
             if instrument_name is None:
                 if 'instrument' in self.par_dic:
@@ -535,7 +541,6 @@ class InstrumentQueryBackEnd:
 
         if self.config.sentry_url is not None:
             self.set_sentry_client(self.config.sentry_url)
-        session_id = self.par_dic['session_id']
         instrument_name = self.par_dic.get('instrument_name', '')
         # the time the request was sent should be used
         # the time_request contains the time the call_back as issued
@@ -564,12 +569,21 @@ class InstrumentQueryBackEnd:
         try:
             if self.is_email_to_send_callback(status, time_original_request):
 
-                # build the products URL
-                request_url = self.generate_request_url_call_back(self.config.products_url, session_id, self.job_id)
-                self.send_email(status,
-                                instrument=instrument_name,
-                                time_request=time_original_request,
-                                request_url=request_url)
+                try:
+                    original_request_par_dic = self.get_request_par_dic()
+                    product_type = original_request_par_dic['product_type']
+                except KeyError as e:
+                    raise MissingRequestParameter(repr(e))
+                # build the products URL and get also the original requested product
+                products_url = self.generate_products_url_from_file(self.config.products_url, request_par_dict=original_request_par_dic)
+                msg_sent = self.send_email(status,
+                                           instrument=instrument_name,
+                                           product_type=product_type,
+                                           time_request=time_original_request,
+                                           request_url=products_url)
+                #store the sent email in the scratch folder
+                self.store_email_info(msg_sent, status)
+
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
                                             email_status='email sent')
@@ -589,35 +603,66 @@ class InstrumentQueryBackEnd:
                                         call_back_status=f'parameter missing during call back: {e.message}')
             logging.warning(f'parameter missing during call back: {e}')
 
-    def generate_request_url_call_back(self, products_url, session_id, job_id) -> str:
-        job_monitor_status_json_file = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
-        # to be handled now, with the job_id generated taking into account only the user_id
-        job_monitor_status_json_file_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
-        request_url = ""
-        file = None
-        if self.scratch_dir:
-            file = open(self.scratch_dir + '/query_output.json')
-        else:
-            if os.path.exists(job_monitor_status_json_file_aliased):
-                file = open(job_monitor_status_json_file_aliased)
-            elif os.path.exists(job_monitor_status_json_file):
-                file = open(job_monitor_status_json_file)
-        if file:
+    def store_email_info(self, message, status):
+        path_email_history_folder = self.scratch_dir + '/email_history'
+        if not os.path.exists(path_email_history_folder):
+            os.makedirs(path_email_history_folder)
+        email_files_list = glob.glob(path_email_history_folder + '/email_*')
+        number_emails_scratch_dir = len(email_files_list)
+        sending_time = time_.time()
+        # record the email just sent in a dedicated file
+        with open(path_email_history_folder + '/email_' + str(number_emails_scratch_dir) + '_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
+            outfile.write(message.as_string())
+
+    # TODO perhaps move it somewhere else?
+    def get_request_par_dic(self):
+        with open(self.scratch_dir + '/analysis_parameters.json') as file:
             jdata = json.load(file)
-            if 'prod_dictionary' in jdata and 'analysis_parameters' in jdata['prod_dictionary']:
-                request_par_dict = jdata['prod_dictionary']['analysis_parameters']
-                request_url = '%s?%s' % (products_url, urlencode(request_par_dict))
+            return jdata
+        return None
+
+    # TODO make sure that the list of parameters to ignore in the frontend is synchronized
+    def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
+        par_dict = par_dict.copy()
+        # remove token if present
+        if "token" in par_dict:
+            par_dict.pop("token")
+        # remove session_id if present
+        if "session_id" in par_dict:
+            par_dict.pop("session_id")
+        # remove job_id if present
+        if "job_id" in par_dict:
+            par_dict.pop("job_id")
+        request_url = '%s?%s' % (products_url, urlencode(par_dict))
         return request_url
+
+    def generate_products_url_from_file(self, products_url, request_par_dict) -> str:
+        return self.generate_products_url_from_par_dict(products_url, request_par_dict)
 
     def is_email_to_send_run_completion(self, status):
         # get total request duration
         if not self.public:
             email_sending_job_submitted = tokenHelper.get_token_user_submitted_email(self.decoded_token)
             if email_sending_job_submitted is None:
-                # in case this didn't come with the token take the default value
+                # in case this didn't come with the token take the default value from the configuration
                 email_sending_job_submitted = self.app.config.get('conf').email_sending_job_submitted
+            # get the amount of time passed from when the last email was sent
+            interval_ok = True
+            email_sending_job_submitted_interval = tokenHelper.get_token_user_sending_submitted_interval_email(self.decoded_token)
+            if email_sending_job_submitted_interval is None:
+                # in case this didn't come with the token take the default value from the configuration
+                email_sending_job_submitted_interval = self.app.config.get('conf').email_sending_job_submitted_default_interval
+            if os.path.exists(self.scratch_dir + '/email_history'):
+                submitted_email_files = glob.glob(self.scratch_dir + '/email_history/email_*_submitted_*.email')
+                if len(submitted_email_files) >= 1:
+                    last_submitted_email_sent = submitted_email_files[len(submitted_email_files) - 1]
+                    f_name, f_ext = os.path.splitext(os.path.basename(last_submitted_email_sent))
+                    time_last_email_submitted_sent = float(f_name.split('_')[3])
+                    time_from_last_submitted_email = time_.time() - float(time_last_email_submitted_sent)
+                    interval_ok = time_from_last_submitted_email > email_sending_job_submitted_interval
+
             # send submitted mail, status update
-            return email_sending_job_submitted and status == 'submitted'
+            return email_sending_job_submitted and interval_ok and status == 'submitted'
 
         return False
 
@@ -1289,11 +1334,14 @@ class InstrumentQueryBackEnd:
                     # mail sending ?
                     if self.is_email_to_send_run_completion(query_new_status):
                         try:
-                            request_url = '%s?%s' % (self.app.config.get('conf').products_url, urlencode(self.par_dic))
-                            self.send_email('submitted',
-                                            instrument=self.instrument.name,
-                                            time_request=self.time_request,
-                                            request_url=request_url)
+                            products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url, self.par_dic)
+                            msg_sent = self.send_email(query_new_status,
+                                                       instrument=self.instrument.name,
+                                                       product_type=product_type,
+                                                       time_request=self.time_request,
+                                                       request_url=products_url)
+                            # store the sent email in the scratch folder
+                            self.store_email_info(msg_sent, query_new_status)
                             # store an additional information about the sent email
                             query_out.set_status_field('email_status', 'email sent')
                         except EMailNotSent as e:
@@ -1385,6 +1433,7 @@ class InstrumentQueryBackEnd:
 
     def send_email(self, status="done",
                    instrument="",
+                   product_type="",
                    time_request=None,
                    request_url=""):
         server = None
@@ -1394,11 +1443,13 @@ class InstrumentQueryBackEnd:
         # a plain-text version is included
         text = f"""Update of the task for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
         html = f"""<html><body><p>Update of the task for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+        email_subject = f"[ODA][{status}] Request for {product_type} {self.job_id[:8]}"
 
         if time_request:
             time_request_str = time_.strftime('%Y-%m-%d %H:%M:%S', time_.localtime(float(time_request)))
             text = f"""Update of the task submitted at {time_request_str}, for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
             html = f"""<html><body><p>Update of the task submitted at {time_request_str}, for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
+            email_subject = f"[ODA][{status}] Request for {product_type} created at {time_request_str} {self.job_id[:8]}"
 
         try:
             # send the mail with the status update to the mail provided with the token
@@ -1412,7 +1463,7 @@ class InstrumentQueryBackEnd:
             receivers_email_addresses = [receiver_email_address] + cc_receivers_email_addresses
             # creation of the message
             message = MIMEMultipart("alternative")
-            message["Subject"] = "Request update"
+            message["Subject"] = email_subject
             message["From"] = sender_email_address
             message["To"] = receiver_email_address
             message["CC"] = ", ".join(cc_receivers_email_addresses)
@@ -1430,7 +1481,10 @@ class InstrumentQueryBackEnd:
             server = smtplib.SMTP(smtp_server, port)
             # just for testing purposes, not ssl is established
             if smtp_server != "localhost":
-                server.starttls(context=context)
+                try:
+                    server.starttls(context=context)
+                except Exception as e:
+                    self.logger.warning(f'unable to start TLS: {e}')
             if smtp_server_password is not None and smtp_server_password != '':
                 server.login(sender_email_address, smtp_server_password)
             server.sendmail(sender_email_address, receivers_email_addresses, message.as_string())
@@ -1440,6 +1494,8 @@ class InstrumentQueryBackEnd:
         finally:
             if server:
                 server.quit()
+
+        return message
 
     def async_dispatcher_query(self, query_status: str) -> tuple:
         self.logger.info("async dispatcher enabled, for %s", query_status)

@@ -24,15 +24,21 @@ from flask import Flask, request, make_response, abort, g
 from flask.json import JSONEncoder
 from flask_restx import Api, Resource, reqparse
 
+# restx not really used
+# we could do validation and API generation with this, but let's not yet
+#from flasgger import Swagger, SwaggerView, Schema, fields # type: ignore
+from marshmallow import Schema, fields # type: ignore
+from marshmallow.validate import OneOf # type: ignore
+
 
 import tempfile
 import tarfile
 import gzip
 import logging
 import socket
-import logstash
 import time as _time
 
+from .logstash import logstash_message
 
 from ..plugins import importer
 
@@ -221,6 +227,26 @@ def common_exception_payload():
     return payload
 
 
+
+class ExitStatus(Schema):
+    status = fields.Int(validate=OneOf([0, 1]))
+    message = fields.Str(description="if query_status == 'failed', shown in waitingDialog in red")     
+    error_message = fields.Str(description="if query_status == 'failed', shown in waitingDialog in red")     
+    debug_message = fields.Str(description="if query_status == 'done' but exit_status.status != 0, shown in waitingDialog in red")     
+    comment = fields.Str(description="always, shown in waitingDialog in yellow")     
+    warning = fields.Str(description="")     
+    
+
+class QueryOutJSON(Schema):
+    query_status = fields.Str(
+                        validate=OneOf(["done", "failed"]),
+                        description=""
+                    )
+    exit_status = ExitStatus
+    session_id = fields.Str()
+    job_id = fields.Str()
+
+
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
     """
@@ -233,13 +259,18 @@ def run_analysis():
       required: false
       type: 'string'
     responses:
-        200: 
-            description: 'analysis done'
-        202: 
-            description: 'request accepted but not done yet' 
-        400: 
-            description: 'something in request not understood - missing, unexpected values'
+      200: 
+        description: 'analysis done'
+        schema:
+          $ref: '#/definitions/QueryOutJSON'
+      202: 
+        description: 'request accepted but not done yet' 
+      400: 
+        description: 'something in request not understood - missing, unexpected values'
     """
+
+    request_summary = log_run_query_request()
+
     try:
         # t0 = _time.time()
         t0 = g.request_start_time
@@ -247,6 +278,10 @@ def run_analysis():
         r = query.run_query(disp_conf=app.config['conf'])
         logger.info("run_analysis for %s took %g seconds", request.args.get(
             'client-name', 'unknown'), _time.time() - t0)
+
+        logger.info("towards log_run_query_result")
+
+        log_run_query_result(request_summary, r[0])
 
         return r
     except APIerror as e:
@@ -337,7 +372,14 @@ class JS9(Resource):
         serves the js9 library
         """
         try:
-            return send_from_directory(os.path.abspath('static/js9/'), path)
+            # would like to use config here, but it's not really loaded here
+            js9_path = os.environ.get("DISPATCHER_JS9_STATIC_DIR", "static/js9/")
+            logger.info("sending js9 from %s %s", js9_path, path)
+
+            if not os.path.exists(os.path.join(js9_path, path)):
+                raise Exception(f"js9 not installed on the server, expected in {js9_path}")
+
+            return send_from_directory(js9_path, path)
         except Exception as e:
             # print('qui',e)
             raise APIerror('problem with local file delivery: %s' %
@@ -439,6 +481,67 @@ def run_app(conf, debug=False, threaded=False):
     conf_app(conf)
     app.run(host=conf.bind_host, port=conf.bind_port,
             debug=debug, threaded=threaded)
+
+
+
+def log_run_query_request():
+    request_summary={}
+
+    try:
+        logger.debug("output json request")
+        logger.debug("request.args: %s", request.args)
+        logger.debug("request.host: %s", request.host)
+        request_summary['dispatcher-state'] = 'requested'
+        request_summary = {'origin': 'dispatcher-run-analysis',
+                     'request-data': {
+                        'headers': dict(request.headers),
+                        'host_url': request.host_url,
+                        'host': request.host,
+                        'args': dict(request.args),
+                        'json-data': dict(request.json or {}),
+                        'form-data': dict(request.form or {}),
+                        'raw-data': dict(request.data or ""),
+                    }}
+
+
+        try:
+            request_summary['clientip']=request_summary['request-data']['headers']['X-Forwarded-For'].split(",")[0]
+            logger.info("extracted client: %s", request_summary['clientip'] )
+        except Exception as e:
+            logger.warning("unable to extract client")
+
+        request_summary_json = json.dumps(request_summary)
+        logger.info("request_summary: %s", request_summary_json)
+        logstash_message(app, request_summary_json)
+    except Exception as e:
+        logger.error("failed to logstash request in log_run_query_request %s", e)
+        raise
+
+    return request_summary
+    
+def log_run_query_result(request_summary, result):
+    logger.info("IN log_run_query_result")
+    try:
+        request_summary['dispatcher-state'] = 'returning'
+
+        logger.info("returning data %s", result.data[:100])
+
+        try:
+            result_json=json.loads(result.data)
+            logger.debug("query result keys: %s", result_json.keys())
+            request_summary['return_exit_status']=result_json['exit_status']
+            request_summary['return_job_status']=result_json['job_status']
+        except Exception:
+            logger.warning("not returning json")
+
+        request_summary_json = json.dumps(request_summary)
+        logger.debug("request_summary: %s", request_summary_json)
+        logstash_message(app, request_summary_json)
+    except Exception as e:
+        logger.warning("failed to output request %s", e)
+        raise
+
+    return result
 
 
 if __name__ == "__main__":

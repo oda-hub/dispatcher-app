@@ -232,7 +232,8 @@ class ConfigEnv(object):
                                      disp_dict['email_options']['smtp_server_password'],
                                      disp_dict['email_options']['email_sending_timeout'],
                                      disp_dict['email_options']['email_sending_timeout_default_threshold'],
-                                     disp_dict['email_options']['email_sending_job_submitted']
+                                     disp_dict['email_options']['email_sending_job_submitted'],
+                                     disp_dict['email_options']['email_sending_job_submitted_default_interval']
                                      )
 
         # not used?
@@ -278,7 +279,8 @@ class ConfigEnv(object):
                             smtp_server_password,
                             email_sending_timeout,
                             email_sending_timeout_default_threshold,
-                            email_sending_job_submitted
+                            email_sending_job_submitted,
+                            email_sending_job_submitted_default_interval
                             ):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
@@ -298,6 +300,7 @@ class ConfigEnv(object):
         self.email_sending_timeout = email_sending_timeout
         self.email_sending_timeout_default_threshold = email_sending_timeout_default_threshold
         self.email_sending_job_submitted = email_sending_job_submitted
+        self.email_sending_job_submitted_default_interval = email_sending_job_submitted_default_interval
 
     def get_data_serve_conf(self, instr_name):
         if instr_name in self.data_server_conf_dict.keys():

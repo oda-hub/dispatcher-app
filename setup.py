@@ -7,30 +7,56 @@ from builtins import (bytes, str, open, super, range,
 __author__ = 'andrea tramacere'
 
 
-
-
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
-import  glob
+import glob
 import json
 
+# f = open("./requirements.txt",'r')
+# install_req=f.readlines()
+# f.close()
+# install_req = [x for x in install_req if not x.startswith('-e git+h')]
 
-f = open("./requirements.txt",'r')
-install_req=f.readlines()
-f.close()
+install_req = [
+    'oda_api',
+    'pylogstash_context>=0.1.19',
+    "numpy",
+    "pyyaml",
+    "simplejson",
+    "flask",
+    "astropy>=2.0.3",
+    "pathlib",
+    "gunicorn",
+    "decorator",
+    "python-logstash",
+    "raven",
+    "blinker",
+    "bokeh==0.12.16",
+    "json_tricks",
+    "flask-restx",
+    "six",
+    "werkzeug<=0.16.1",
+    "python-shell-colors",
+    "logging_tree",
+    "celery",
+    "redis",
+    "pyjwt",
+    "marshmallow"
+]
 
+test_req = [
+    'psutil',
+]
 
-packs=find_packages()
+packs = find_packages()
 
 print ('packs',packs)
+
 with open('cdci_data_analysis/pkg_info.json') as fp:
     _info = json.load(fp)
 
 __version__ = _info['version']
-
-
-
 
 include_package_data=True
 
@@ -45,10 +71,7 @@ setup(name='cdci_data_analysis',
       packages=packs,
       include_package_data=True,
       install_requires=install_req,
-      tests_require=[
-            "psutil",
-          ]
-)
-
-
-
+      extras_require={
+          'test': test_req
+      }
+      )
