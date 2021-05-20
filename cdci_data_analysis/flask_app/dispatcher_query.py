@@ -209,10 +209,6 @@ class InstrumentQueryBackEnd:
             query_out.set_query_exception(
                 e, 'InstrumentQueryBackEnd constructor', extra_message='InstrumentQueryBackEnd constructor failed')
 
-            #TODO I guess these comments are no longer needed
-            #out_dict = {}
-            #out_dict['query_status'] = 1
-            #out_dict['exit_status'] = query_out.status_dictionary
             self.build_dispatcher_response(
                 query_new_status='failed', query_out=query_out)
 
