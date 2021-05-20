@@ -585,8 +585,6 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
 
 
 def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_live_fixture, dispatcher_local_mail_server_subprocess):
-    # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
-
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
