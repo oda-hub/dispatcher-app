@@ -97,7 +97,13 @@ class DataServerQuerySemiAsync(DataServerQuery):
 
         p_value = self.instrument.get_par_by_name('p').value
 
-        if p_value < 4:
+        if p_value == -1:
+            query_out.set_done(message="job failed mock",
+                               debug_message="no message really",
+                               job_status='failed',
+                               comment="mock comment",
+                               warning="mock warning")
+        elif 0 <= p_value < 4:
             query_out.set_done(message="job submitted mock",
                                debug_message="no message really",
                                job_status='submitted',

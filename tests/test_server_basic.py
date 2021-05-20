@@ -250,7 +250,7 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
         wait=False)
 
     for i in range(4):
-        product = disp.get_product(
+        disp.get_product(
             product_type="Real",
             instrument="empty-semi-async",
             product="dummy",
@@ -271,30 +271,26 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
     if os.path.exists(email_folder_path):
         list_email_files = glob.glob(email_folder_path + '/email_*.email')
         assert len(list_email_files) == 1
-        list_email_files = glob.glob(email_folder_path + '/email_0_*.email')
+        list_email_files = glob.glob(email_folder_path + '/email_0_submitted_*.email')
         assert len(list_email_files) == 1
     else:
         list_email_files = glob.glob(email_folder_path_aliased + '/email_*.email')
         assert len(list_email_files) == 1
-        list_email_files = glob.glob(email_folder_path_aliased + '/email_0_*.email')
+        list_email_files = glob.glob(email_folder_path_aliased + '/email_0_submitted_*.email')
         assert len(list_email_files) == 1
 
     disp = oda_api.api.DispatcherAPI(
         url=dispatcher_live_fixture,
         session_id=disp.session_id,
         wait=False)
-    product = disp.get_product(
+    disp.get_product(
         product_type="Real",
         instrument="empty-semi-async",
         product="dummy",
         osa_version="OSA10.2",
         token=encoded_token,
-        p=4,
-        session_id=session_id
+        p=4
     )
-
-    logger.info("product: %s", product)
-    logger.info("product show %s", product.show())
 
     done_job_id = disp.job_id
 
@@ -305,6 +301,27 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
     # verify no email folder was created (so no email was sent)
     assert not os.path.exists(email_folder_path) and not os.path.exists(email_folder_path_aliased)
 
+    disp = oda_api.api.DispatcherAPI(
+        url=dispatcher_live_fixture,
+        session_id=disp.session_id,
+        wait=False)
+    with pytest.raises(oda_api.api.RemoteException):
+        disp.get_product(
+                product_type="Real",
+                instrument="empty-semi-async",
+                product="dummy",
+                osa_version="OSA10.2",
+                token=encoded_token,
+                p=-1
+            )
+
+    failed_job_id = disp.job_id
+    session_id = disp.session_id
+    # check query output are generated and no email was sent in case job was done
+    email_folder_path = f'scratch_sid_{session_id}_jid_{failed_job_id}/email_history'
+    # the aliased version might have been created
+    email_folder_path_aliased = f'scratch_sid_{session_id}_jid_{failed_job_id}_aliased/email_history'
+    assert not os.path.exists(email_folder_path) and not os.path.exists(email_folder_path_aliased)
 
 
 @pytest.mark.odaapi
