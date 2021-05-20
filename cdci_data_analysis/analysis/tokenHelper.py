@@ -19,7 +19,11 @@ def get_token_user(decoded_token):
 
 def get_token_user_email_address(decoded_token):
     # extract user email address
-    return decoded_token['sub'] if 'sub' in decoded_token else ''
+    if 'sub' in decoded_token:
+        return decoded_token['sub']
+    if 'email' in decoded_token:
+        return decoded_token['email']
+    return ''
 
 
 def get_token_user_timeout_threshold_email(decoded_token):

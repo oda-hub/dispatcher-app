@@ -227,7 +227,6 @@ def common_exception_payload():
     return payload
 
 
-
 class ExitStatus(Schema):
     status = fields.Int(validate=OneOf([0, 1]))
     message = fields.Str(description="if query_status == 'failed', shown in waitingDialog in red")     
@@ -239,7 +238,7 @@ class ExitStatus(Schema):
 
 class QueryOutJSON(Schema):
     query_status = fields.Str(
-                        validate=OneOf(["done", "failed"]),
+                        validate=OneOf(["done", "failed", "submitted"]),
                         description=""
                     )
     exit_status = ExitStatus

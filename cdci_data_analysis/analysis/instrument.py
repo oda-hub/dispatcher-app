@@ -273,6 +273,7 @@ class Instrument:
     def get_html_draw(self, prod_name, image,image_header,catalog=None,**kwargs):
         return self.get_query_by_name(prod_name).get_html_draw( image,image_header,catalog=catalog,**kwargs)
 
+    #def get_par_by_name(self,par_name, validate=False):
     def get_par_by_name(self,par_name):
         p=None
 
@@ -282,6 +283,9 @@ class Instrument:
 
         if p is None:
             raise Warning('parameter', par_name, 'not found')
+
+     #   if validate and hasattr(p, 'check_value'):
+     #       p.check_value(p.value)
 
         return p
 
@@ -366,6 +370,12 @@ class Instrument:
             self.set_pars_from_dic(par_dic,verbose=verbose)
             #DONE
             q.set_done(debug_message=str(debug_message))
+        except RequestNotUnderstood as e:
+           q.set_failed(f"please adjust request parameters: {e.message}",
+                        logger=logger,
+                        sentry_client=None,
+                        excep=e)
+
         except Exception as e:
             #FAILED
 
