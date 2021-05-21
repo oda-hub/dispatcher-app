@@ -452,8 +452,12 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
         assert jdata["exit_status"]["debug_message"] == ""
         assert jdata["exit_status"]["error_message"] == ""
         assert jdata["exit_status"]["message"] == \
-               f"Roles {roles} not authorized to request the product numerical, " \
-               f"[\'general\', \'unige-hpc-full\'] roles are needed"
+               "Unfortunately, your priviledges are not sufficient to make the request for this particular product and parameter combination.\n"\
+               f"- Your priviledge roles include {roles}\n- "\
+               "You are lacking all of the following roles:\n" \
+               + (" - general: general role is needed for p>50\n" if "general" not in roles else "" ) + \
+               " - unige-hpc-full: unige-hpc-full role is needed for p>50 as well\n"\
+               "You can request support if you think you should be able to make this request."
 
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
