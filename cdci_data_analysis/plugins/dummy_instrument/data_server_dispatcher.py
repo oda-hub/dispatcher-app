@@ -205,4 +205,8 @@ class DataServerNumericQuery(ProductQuery):
             if p > 50:
                 results['authorization'] = 'general' and 'unige-hpc-full' in roles
                 results['needed_roles'] = ['general', 'unige-hpc-full']
+                results['needed_roles_with_comments'] = {
+                    'general': 'general role is needed for p>50',
+                    'unige-hpc-full': 'unige-hpc-full role is needed for p>50 as well'
+                }
         return results
