@@ -605,10 +605,10 @@ class InstrumentQueryBackEnd:
         if not os.path.exists(path_email_history_folder):
             os.makedirs(path_email_history_folder)
         email_files_list = glob.glob(path_email_history_folder + '/email_*')
-        number_emails_scratch_dir = len(email_files_list)
+        # number_emails_scratch_dir = len(email_files_list)
         sending_time = time_.time()
         # record the email just sent in a dedicated file
-        with open(path_email_history_folder + '/email_' + str(number_emails_scratch_dir) + '_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
+        with open(path_email_history_folder + '/email_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
             outfile.write(message.as_string())
 
     # TODO perhaps move it somewhere else?
@@ -649,11 +649,15 @@ class InstrumentQueryBackEnd:
                 # in case this didn't come with the token take the default value from the configuration
                 email_sending_job_submitted_interval = self.app.config.get('conf').email_sending_job_submitted_default_interval
             if os.path.exists(self.scratch_dir + '/email_history'):
-                submitted_email_files = glob.glob(self.scratch_dir + '/email_history/email_*_submitted_*.email')
+                submitted_email_files = glob.glob(self.scratch_dir + '/email_history/email_submitted_*.email')
                 if len(submitted_email_files) >= 1:
-                    last_submitted_email_sent = submitted_email_files[len(submitted_email_files) - 1]
-                    f_name, f_ext = os.path.splitext(os.path.basename(last_submitted_email_sent))
-                    time_last_email_submitted_sent = float(f_name.split('_')[3])
+                    # last_submitted_email_sent = submitted_email_files[len(submitted_email_files) - 1]
+                    times = []
+                    [times.append(float(os.path.splitext(os.path.basename(f))[0].split('_')[2])) for f in submitted_email_files]
+                    time_last_email_submitted_sent = max(times)
+
+                    # f_name, f_ext = os.path.splitext(os.path.basename(last_submitted_email_sent))
+                    # time_last_email_submitted_sent = float(f_name.split('_')[2])
                     time_from_last_submitted_email = time_.time() - float(time_last_email_submitted_sent)
                     interval_ok = time_from_last_submitted_email > email_sending_job_submitted_interval
 
@@ -691,7 +695,7 @@ class InstrumentQueryBackEnd:
 
                 number_done_emails_ok = True
                 if os.path.exists(self.scratch_dir + '/email_history'):
-                    done_email_files = glob.glob(self.scratch_dir + '/email_history/email_*_done_*.email')
+                    done_email_files = glob.glob(self.scratch_dir + '/email_history/email_done_*.email')
                     if len(done_email_files) >= 1:
                         logger.info("number of done emails sent: %s", len(done_email_files))
                         number_done_emails_ok = False

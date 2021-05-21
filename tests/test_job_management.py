@@ -169,7 +169,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
         # check the email in the email folders, and that the first one was produced
         assert os.path.exists(email_history_folder_path)
-        list_email_files = glob.glob(email_history_folder_path + '/email_0_submitted_*.email')
+        list_email_files = glob.glob(email_history_folder_path + '/email_submitted_*.email')
         assert len(list_email_files) == 1
 
         assert os.path.exists(smtp_server_log)
@@ -268,7 +268,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
         # check the email in the email folders, and that the first one was produced
         assert os.path.exists(email_history_folder_path)
-        list_email_files = glob.glob(email_history_folder_path + '/email_1_done_*.email')
+        list_email_files = glob.glob(email_history_folder_path + '/email_done_*.email')
         assert len(list_email_files) == 1
 
         # check the email in the log files
@@ -331,12 +331,12 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
         # check the email in the email folders, and that the first one was produced
         assert os.path.exists(email_history_folder_path)
-        if default_values or time_original_request_none:
-            list_email_files = glob.glob(email_history_folder_path + '/email_1_failed_*.email')
-            assert len(list_email_files) == 1
-        else:
-            list_email_files = glob.glob(email_history_folder_path + '/email_2_failed_*.email')
-            assert len(list_email_files) == 1
+        # if default_values or time_original_request_none:
+        #     list_email_files = glob.glob(email_history_folder_path + '/email_1_failed_*.email')
+        #     assert len(list_email_files) == 1
+        # else:
+        list_email_files = glob.glob(email_history_folder_path + '/email_failed_*.email')
+        assert len(list_email_files) == 1
 
         # check the email in the log files
         assert os.path.exists(smtp_server_log)
@@ -445,7 +445,7 @@ def test_email_submitted(dispatcher_live_fixture, dispatcher_local_mail_server):
 
     # check the email in the email folders, and that the first one was produced
     assert os.path.exists(email_history_folder_path)
-    list_email_files = glob.glob(email_history_folder_path + '/email_0_submitted_*.email')
+    list_email_files = glob.glob(email_history_folder_path + '/email_submitted_*.email')
     assert len(list_email_files) == 1
 
     assert os.path.exists(smtp_server_log)
@@ -478,8 +478,8 @@ def test_email_submitted(dispatcher_live_fixture, dispatcher_local_mail_server):
 
         # check the email in the email folders, and that the first one was produced
         assert os.path.exists(email_history_folder_path)
-        list_email_files = glob.glob(email_history_folder_path + '/email_1_submitted_*.email')
-        assert len(list_email_files) == 0
+        list_email_files = glob.glob(email_history_folder_path + '/email_submitted_*.email')
+        assert len(list_email_files) == 1
 
         assert os.path.exists(smtp_server_log)
         f_local_smtp = open(smtp_server_log)
@@ -500,14 +500,99 @@ def test_email_submitted(dispatcher_live_fixture, dispatcher_local_mail_server):
 
     # check the email in the email folders, and that the first one was produced
     assert os.path.exists(email_history_folder_path)
-    list_email_files = glob.glob(email_history_folder_path + '/email_1_submitted_*.email')
-    assert len(list_email_files) == 1
+    list_email_files = glob.glob(email_history_folder_path + '/email_submitted_*.email')
+    assert len(list_email_files) == 2
 
     assert os.path.exists(smtp_server_log)
     f_local_smtp = open(smtp_server_log)
     f_local_smtp_jdata = json.load(f_local_smtp)
 
     assert len(f_local_smtp_jdata) == 2
+
+    # let the interval time pass again, so that a new email si sent
+    time.sleep(16)
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    # check the email in the email folders, and that the first one was produced
+    assert os.path.exists(email_history_folder_path)
+    list_email_files = glob.glob(email_history_folder_path + '/email_submitted_*.email')
+    assert len(list_email_files) == 3
+
+    assert os.path.exists(smtp_server_log)
+    f_local_smtp = open(smtp_server_log)
+    f_local_smtp_jdata = json.load(f_local_smtp)
+
+    assert len(f_local_smtp_jdata) == 3
+
+
+def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    token_payload = {
+        **default_token_payload,
+        "tem": 0
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    # this should return status submitted, so email sent
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+    jdata = c.json()
+    session_id = jdata['session_id']
+    job_id = jdata['job_monitor']['job_id']
+    time_request = jdata['time_request']
+
+    scratch_dir_path = f'scratch_sid_{session_id}_jid_{job_id}/'
+    # the aliased version might have been created
+    scratch_dir_path_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor.json'
+    assert os.path.exists(scratch_dir_path) or os.path.exists(scratch_dir_path_aliased)
+    if os.path.exists(scratch_dir_path):
+        email_history_folder_path = f'scratch_sid_{session_id}_jid_{job_id}/email_history'
+    else:
+        email_history_folder_path = f'scratch_sid_{session_id}_jid_{job_id}_aliased/email_history'
+
+    # a number of done call_backs, but only one should trigger the email sending
+    for i in range(5):
+        requests.get(server + "/call_back",
+                     params=dict(
+                         job_id=job_id,
+                         session_id=session_id,
+                         instrument_name="empty-async",
+                         action='done',
+                         node_id='node_final',
+                         message='done',
+                         token=encoded_token,
+                         time_original_request=time_request
+                         ))
+
+    # check the email in the email folders, and that the first one was produced
+    assert os.path.exists(email_history_folder_path)
+    list_email_files = glob.glob(email_history_folder_path + '/email_submitted_*.email')
+    assert len(list_email_files) == 1
+
+    assert os.path.exists(email_history_folder_path)
+    list_email_files = glob.glob(email_history_folder_path + '/email_done_*.email')
+    assert len(list_email_files) == 1
 
 
 def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
@@ -627,5 +712,5 @@ def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_liv
     assert jdata['exit_status']['email_status'] == 'email sent'
 
     assert os.path.exists(email_history_folder_path)
-    list_email_files = glob.glob(email_history_folder_path + '/email_0_*.email')
+    list_email_files = glob.glob(email_history_folder_path + '/email_*.email')
     assert len(list_email_files) == 1
