@@ -671,7 +671,8 @@ class InstrumentQueryBackEnd:
             # in case the request was long and 'done'
             logger.info("considering email sending, status: %s, time_original_request: %s", status, time_original_request)
 
-            if status in ['done', 'task_done', 'task_complete']:
+            # TODO: could be good to have this configurable
+            if status == 'done':
                 # get total request duration
                 if time_original_request:
                     duration_query = time_.time() - float(time_original_request)
