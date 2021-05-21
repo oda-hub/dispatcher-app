@@ -303,14 +303,13 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
     # verify only one email was actually sent, and with the proper ixdex
     if os.path.exists(email_folder_path):
         list_email_files = glob.glob(email_folder_path + '/email_*.email')
-        assert len(list_email_files) == 1
-        list_email_files = glob.glob(email_folder_path + '/email_0_submitted_*.email')
-        assert len(list_email_files) == 1
+        list_email_files_submitted = glob.glob(email_folder_path + '/email_submitted_*.email')
     else:
         list_email_files = glob.glob(email_folder_path_aliased + '/email_*.email')
-        assert len(list_email_files) == 1
-        list_email_files = glob.glob(email_folder_path_aliased + '/email_0_submitted_*.email')
-        assert len(list_email_files) == 1
+        list_email_files_submitted = glob.glob(email_folder_path_aliased + '/email_submitted_*.email')
+
+    assert len(list_email_files) == 1
+    assert len(list_email_files_submitted) == 1
 
     disp = oda_api.api.DispatcherAPI(
         url=dispatcher_live_fixture,
