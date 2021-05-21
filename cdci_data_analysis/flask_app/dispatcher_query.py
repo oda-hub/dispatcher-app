@@ -689,7 +689,13 @@ class InstrumentQueryBackEnd:
                 logger.info("duration_query > timeout_threshold_email %s", duration_query > timeout_threshold_email)
                 logger.info("email_sending_timeout and duration_query > timeout_threshold_email %s", email_sending_timeout and duration_query > timeout_threshold_email)
 
-                return email_sending_timeout and duration_query > timeout_threshold_email
+                number_done_emails_ok = True
+                if os.path.exists(self.scratch_dir + '/email_history'):
+                    done_email_files = glob.glob(self.scratch_dir + '/email_history/email_*_done_*.email')
+                    if len(done_email_files) >= 1:
+                        logger.info("number of done emails sent: %s", len(done_email_files))
+                        number_done_emails_ok = False
+                return number_done_emails_ok and email_sending_timeout and duration_query > timeout_threshold_email
 
             # or if failed
             elif status == 'failed':
