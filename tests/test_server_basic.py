@@ -71,9 +71,8 @@ def test_empty_request(dispatcher_live_fixture):
     assert c.status_code == 400
 
      # parameterize this
-    assert jdata['installed_instruments'] == ['empty', 'empty-async', 'empty-semi-async', 'isgri', 'jemx', 'osa_fake', 'spi_acs'] or \
-           jdata['installed_instruments'] == ['empty', 'empty-async', 'empty-semi-async', 'spi_acs'] or \
-           jdata['installed_instruments'] == ['empty', 'empty-async', 'empty-semi-async',] or \
+    assert jdata['installed_instruments'] == ['empty', 'empty-async', 'empty-semi-async'] or \
+           jdata['installed_instruments'] == ['empty', 'empty-async', 'empty-semi-async'] or \
            jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"
@@ -108,8 +107,7 @@ def test_no_debug_mode_empty_request(dispatcher_live_fixture_no_debug_mode):
     assert c.status_code == 400
 
      # parameterize this
-    assert jdata['installed_instruments'] == [] or \
-           jdata['installed_instruments'] == ['spi_acs']
+    assert jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "no"
     assert 'dispatcher-config' in jdata['config']
