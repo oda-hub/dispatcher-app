@@ -266,7 +266,22 @@ class Instrument:
     def check_instrument_query_role(self, query_obj, product_type, roles, par_dic):
         results = query_obj.check_query_roles(roles, par_dic)
         if not results['authorization']:
-            raise RequestNotAuthorized(f"Roles {roles} not authorized to request the product {product_type}, {results['needed_roles']} roles are needed")
+            results['needed_roles']
+
+            lacking_roles = sorted(list(set(results['needed_roles']) - set(roles)))
+
+            lacking_roles_comment = "\n".join([
+                f" - {role}: {results.get('needed_roles_with_comments', {}).get(role, 'please refer to support for details')}"
+                for role in lacking_roles
+            ])
+
+            raise RequestNotAuthorized(
+                f"Unfortunately, your priviledges are not sufficient to make the request for this particular product and parameter combination.\n"
+                f"- Your priviledge roles include {roles}\n"
+                f"- You are lacking all of the following roles:\n"
+                f"{lacking_roles_comment}\n"
+                f"You can request support if you think you should be able to make this request."
+            )
         else:
             return True
 
