@@ -665,6 +665,9 @@ class InstrumentQueryBackEnd:
     def is_email_to_send_callback(self, status, time_original_request):
         if not self.public:
             # in case the request was long and 'done'
+            logger.info("considering email sending, status: %s, time_original_request: %s", status, time_original_request)
+
+            # TODO: could be good to have this configurable
             if status == 'done':
                 # get total request duration
                 if time_original_request:
@@ -675,11 +678,18 @@ class InstrumentQueryBackEnd:
                 if timeout_threshold_email is None:
                     # set it to the a default value, from the configuration
                     timeout_threshold_email = self.app.config.get('conf').email_sending_timeout_default_threshold
+
+                logger.info("timeout_threshold_email: %s", timeout_threshold_email)
+
                 email_sending_timeout = tokenHelper.get_token_user_sending_timeout_email(self.decoded_token)
                 if email_sending_timeout is None:
                     email_sending_timeout = self.app.config.get('conf').email_sending_timeout
 
-                return email_sending_timeout and duration_query > timeout_threshold_email and status == 'done'
+                logger.info("email_sending_timeout: %s", email_sending_timeout)
+                logger.info("duration_query > timeout_threshold_email %s", duration_query > timeout_threshold_email)
+                logger.info("email_sending_timeout and duration_query > timeout_threshold_email %s", email_sending_timeout and duration_query > timeout_threshold_email)
+
+                return email_sending_timeout and duration_query > timeout_threshold_email
 
             # or if failed
             elif status == 'failed':
