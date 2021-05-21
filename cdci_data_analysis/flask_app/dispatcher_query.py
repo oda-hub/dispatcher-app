@@ -648,16 +648,15 @@ class InstrumentQueryBackEnd:
             if email_sending_job_submitted_interval is None:
                 # in case this didn't come with the token take the default value from the configuration
                 email_sending_job_submitted_interval = self.app.config.get('conf').email_sending_job_submitted_default_interval
-            if os.path.exists(self.scratch_dir + '/email_history'):
-                submitted_email_files = glob.glob(self.scratch_dir + '/email_history/email_submitted_*.email')
+
+            email_jobs_folders = glob.glob(f'scratch_sid_*_jid_{self.job_id}*/email_history')
+            if len(email_jobs_folders) >= 1:
+            # if os.path.exists(self.scratch_dir + '/email_history'):
+                submitted_email_files = glob.glob(f'scratch_sid_*_jid_{self.job_id}*/email_history/email_submitted_*.email')
                 if len(submitted_email_files) >= 1:
-                    # last_submitted_email_sent = submitted_email_files[len(submitted_email_files) - 1]
                     times = []
                     [times.append(float(os.path.splitext(os.path.basename(f))[0].split('_')[2])) for f in submitted_email_files]
                     time_last_email_submitted_sent = max(times)
-
-                    # f_name, f_ext = os.path.splitext(os.path.basename(last_submitted_email_sent))
-                    # time_last_email_submitted_sent = float(f_name.split('_')[2])
                     time_from_last_submitted_email = time_.time() - float(time_last_email_submitted_sent)
                     interval_ok = time_from_last_submitted_email > email_sending_job_submitted_interval
 

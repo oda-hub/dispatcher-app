@@ -1,3 +1,5 @@
+import shutil
+
 import pytest
 import requests
 import json
@@ -82,11 +84,16 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
     assert 'email_status' not in jdata['exit_status']
 
 
+@pytest.mark.not_safe_parallel
 @pytest.mark.parametrize("default_values", [True, False])
 @pytest.mark.parametrize("time_original_request_none", [True, False])
 @pytest.mark.parametrize("request_cred", ['public', 'private'])
 def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_local_mail_server, default_values, request_cred, time_original_request_none):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
+
+    # remove all the current scratch folders
+    dir_list = glob.glob('scratch_*')
+    [shutil.rmtree(d) for d in dir_list]
 
     token_none = ( request_cred == 'public' )
         
@@ -392,7 +399,12 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
     # TODO: test that this returns the result
 
 
+@pytest.mark.not_safe_parallel
 def test_email_submitted(dispatcher_live_fixture, dispatcher_local_mail_server):
+    # remove all the current scratch folders
+    dir_list = glob.glob('scratch_*')
+    [shutil.rmtree(d) for d in dir_list]
+
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
@@ -532,7 +544,12 @@ def test_email_submitted(dispatcher_live_fixture, dispatcher_local_mail_server):
     assert len(f_local_smtp_jdata) == 3
 
 
+@pytest.mark.not_safe_parallel
 def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
+    # remove all the current scratch folders
+    dir_list = glob.glob('scratch_*')
+    [shutil.rmtree(d) for d in dir_list]
+
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
@@ -669,7 +686,12 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
     assert not os.path.exists(email_history_folder_path)
 
 
+@pytest.mark.not_safe_parallel
 def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_live_fixture, dispatcher_local_mail_server_subprocess):
+    # remove all the current scratch folders
+    dir_list = glob.glob('scratch_*')
+    [shutil.rmtree(d) for d in dir_list]
+
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
