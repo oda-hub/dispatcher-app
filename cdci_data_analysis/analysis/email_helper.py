@@ -6,12 +6,29 @@ import smtplib
 import ssl
 import os
 import glob
+from jinja2 import Environment, FileSystemLoader
 
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
 
 
 class EMailNotSent(BadRequest):
     pass
+
+
+data = {
+     "format_done": {
+             "description": ''
+         },
+    "format_submitted": {
+             "description": ''
+         },
+    "format_failed": {
+             "description": ''
+         }
+}
+
+def get_data_for_email(format):
+    return data[format]
 
 
 def send_email(
@@ -24,6 +41,20 @@ def send_email(
         product_type="",
         time_request=None,
         request_url=""):
+
+    # let's get the needed email template
+    rendered_email_body = ''
+    env = Environment(loader=FileSystemLoader('%s/templates/' % os.path.dirname(__file__)))
+    if status == 'done':
+        template = env.get_template('done.html')
+        rendered_email_body = template.render(get_data_for_email('format_done'))
+    elif status == 'submitted':
+        template = env.get_template('submitted.html')
+        rendered_email_body = template.render(get_data_for_email('format_submitted'))
+    elif status == 'failed':
+        template = env.get_template('failed.html')
+        rendered_email_body = template.render(get_data_for_email('format_failed'))
+
     server = None
     logger.info("Sending email")
     # Create the plain-text and HTML version of your message,
@@ -57,7 +88,7 @@ def send_email(
         message["CC"] = ", ".join(cc_receivers_email_addresses)
 
         part1 = MIMEText(text, "plain")
-        part2 = MIMEText(html, "html")
+        part2 = MIMEText(rendered_email_body, "html")
         message.attach(part1)
         message.attach(part2)
 
