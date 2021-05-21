@@ -208,14 +208,16 @@ def common_exception_payload():
     payload['installed_instruments'] = _l
 
     payload['debug_mode'] = os.environ.get(
-        'DISPATCHER_DEBUG_MODE', 'yes')  # change the default
+        'DISPATCHER_DEBUG_MODE', 'no')  # change the default
 
-    if payload['debug_mode'] == "yes":
-        payload['config'] = {
-            'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),
-                                                    ['sentry_url', 'logstash_host', 'logstash_port', 'secret_key',
-                                                     'smtp_server_password'])
-        }
+    # TODO why only in debug_mode ?
+    # if payload['debug_mode'] == "yes":
+
+    payload['config'] = {
+        'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),
+                                                ['sentry_url', 'logstash_host', 'logstash_port', 'secret_key',
+                                                 'smtp_server_password'])
+    }
 
     plugins = {}
     payload['config']['plugins'] = plugins

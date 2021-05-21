@@ -4,7 +4,10 @@ from cdci_data_analysis.pytest_fixtures import (
             dispatcher_local_mail_server,
             dispatcher_local_mail_server_subprocess,
             dispatcher_live_fixture,
+            dispatcher_live_fixture_no_debug_mode,
             dispatcher_test_conf,
-            dispatcher_test_conf_fn
+            dispatcher_test_conf_fn,
+            dispatcher_debug,
+            dispatcher_nodebug
         )
 

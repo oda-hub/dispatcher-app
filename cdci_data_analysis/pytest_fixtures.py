@@ -1,7 +1,7 @@
 # this could be a separate package or/and a pytest plugin
 
 from _pytest.fixtures import yield_fixture
-from cdci_data_analysis.flask_app import dispatcher_query
+# from cdci_data_analysis.flask_app import dispatcher_query
 from json import JSONDecodeError
 from requests.api import delete
 import yaml
@@ -22,6 +22,7 @@ import time
 import logging
 import shutil
 import tempfile
+import pytest
 
 
 import subprocess
@@ -55,6 +56,16 @@ def app():
     app = cdci_data_analysis.flask_app.app.app
     return app
 
+
+@pytest.fixture
+def dispatcher_debug(monkeypatch):
+    monkeypatch.setenv('DISPATCHER_DEBUG_MODE', 'yes')
+
+
+@pytest.fixture
+def dispatcher_nodebug(monkeypatch):
+    monkeypatch.delenv('DISPATCHER_DEBUG_MODE', raising=False)
+    # monkeypatch.setenv('DISPATCHER_DEBUG_MODE', 'no')
 
 def run_analysis(server, params, method='get'):
     if method == 'get':
@@ -374,7 +385,7 @@ def start_dispatcher(rootdir, test_conf_fn):
         )        
 
 @pytest.fixture
-def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn):
+def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
     dispatcher_state_fn = "/tmp/dispatcher-test-fixture-state-{}.json".format(
         hashlib.md5(open(dispatcher_test_conf_fn, "rb").read()).hexdigest()[:8]
         )
@@ -382,14 +393,14 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn):
     if os.path.exists(dispatcher_state_fn):
         dispatcher_state = json.load(open(dispatcher_state_fn))
     else:
-        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, dispatcher_debug)
         json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
 
     yield dispatcher_state['url']
 
 
 @pytest.fixture
-def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn):
+def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
 
     service = dispatcher_state['url']
@@ -400,6 +411,21 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn):
     print(("child:", pid))
     import os,signal
     kill_child_processes(pid,signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_no_debug_mode(pytestconfig, dispatcher_test_conf_fn, dispatcher_nodebug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    print(("child:", pid))
+    import os, signal
+    kill_child_processes(pid, signal.SIGINT)
     os.kill(pid, signal.SIGINT)
 
 
