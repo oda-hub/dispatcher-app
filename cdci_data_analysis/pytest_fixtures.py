@@ -65,7 +65,7 @@ def dispatcher_debug(monkeypatch):
 @pytest.fixture
 def dispatcher_nodebug(monkeypatch):
     monkeypatch.delenv('DISPATCHER_DEBUG_MODE', raising=False)
-
+    # monkeypatch.setenv('DISPATCHER_DEBUG_MODE', 'no')
 
 def run_analysis(server, params, method='get'):
     if method == 'get':
@@ -411,6 +411,21 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_de
     print(("child:", pid))
     import os,signal
     kill_child_processes(pid,signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_no_debug_mode(pytestconfig, dispatcher_test_conf_fn, dispatcher_nodebug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    print(("child:", pid))
+    import os, signal
+    kill_child_processes(pid, signal.SIGINT)
     os.kill(pid, signal.SIGINT)
 
 
