@@ -58,3 +58,7 @@ class ProblemDecodingStoredQueryOut(Exception):
     """
     problem with storage? race?
     """
+
+
+class MissingRequestParameter(BadRequest):
+    pass
