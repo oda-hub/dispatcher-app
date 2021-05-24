@@ -400,7 +400,7 @@ def test_email_callback_after_run_analysis(dispatcher_live_fixture, dispatcher_l
 
 
 @pytest.mark.not_safe_parallel
-def test_email_submitted(dispatcher_live_fixture, dispatcher_local_mail_server):
+def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail_server):
     # remove all the current scratch folders
     dir_list = glob.glob('scratch_*')
     [shutil.rmtree(d) for d in dir_list]
@@ -414,7 +414,6 @@ def test_email_submitted(dispatcher_live_fixture, dispatcher_local_mail_server):
     # let's generate a valid token with high threshold
     token_payload = {
         **default_token_payload,
-        "tem": 0,
         "intsub": 15
     }
 
@@ -542,6 +541,101 @@ def test_email_submitted(dispatcher_live_fixture, dispatcher_local_mail_server):
     f_local_smtp_jdata = json.load(f_local_smtp)
 
     assert len(f_local_smtp_jdata) == 3
+
+
+@pytest.mark.not_safe_parallel
+def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_local_mail_server):
+    # remove all the current scratch folders
+    dir_list = glob.glob('scratch_*')
+    [shutil.rmtree(d) for d in dir_list]
+
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # email content in plain text and html format
+    smtp_server_log = f'local_smtp_log/{dispatcher_local_mail_server.id}_local_smtp_output.json'
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "intsub": 15
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    # this should return status submitted, so email sent
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+
+    session_id = c.json()['session_id']
+    job_id = c.json()['job_monitor']['job_id']
+
+    assert os.path.exists(f'scratch_sid_{session_id}_jid_{job_id}')
+    email_history_folder_path = f'scratch_sid_{session_id}_jid_{job_id}/email_history'
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    # check the email in the email folders, and that the first one was produced
+    assert os.path.exists(email_history_folder_path)
+    list_email_files = glob.glob(email_history_folder_path + '/email_submitted_*.email')
+    assert len(list_email_files) == 1
+
+    # re-submit the same request (so that the same job_id will be generated) but as a different session,
+    # in order to produce a sequence of submitted status
+    # and verify not a sequence of submitted-status emails are generated
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    for i in range(5):
+        c = requests.get(server + "/run_analysis",
+                         dict_param
+                         )
+
+        assert c.status_code == 200
+        jdata = c.json()
+        assert jdata['exit_status']['job_status'] == 'submitted'
+        assert 'email_status' not in jdata['exit_status']
+    # jobs will be aliased
+    list_email_files = glob.glob(f'scratch_sid_*_jid_{job_id}_*/email_history/email_submitted_*.email')
+    assert len(list_email_files) == 0
+
+    # let the interval time pass, so that a new email si sent
+    time.sleep(16)
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['email_status'] == 'email sent'
+    session_id = jdata['session_id']
+
+    # check the email in the email folders, and that the first one was produced
+    assert os.path.exists(f'scratch_sid_{session_id}_jid_{job_id}_aliased')
+    list_email_files_last_request = glob.glob(f'scratch_sid_{session_id}_jid_{job_id}_aliased/email_history/email_submitted_*.email')
+    assert len(list_email_files_last_request) == 1
+    list_overall_email_files = glob.glob(f'scratch_sid_*_jid_{job_id}*/email_history/email_submitted_*.email')
+    assert len(list_overall_email_files) == 2
 
 
 @pytest.mark.not_safe_parallel
