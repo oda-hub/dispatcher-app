@@ -552,9 +552,6 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
-    # email content in plain text and html format
-    smtp_server_log = f'local_smtp_log/{dispatcher_local_mail_server.id}_local_smtp_output.json'
-
     # let's generate a valid token with high threshold
     token_payload = {
         **default_token_payload,
@@ -597,6 +594,7 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
     # re-submit the same request (so that the same job_id will be generated) but as a different session,
     # in order to produce a sequence of submitted status
     # and verify not a sequence of submitted-status emails are generated
+    # a sequence of clicks of the link provided with the email is simulated
     dict_param = dict(
         query_status="new",
         query_type="Real",
