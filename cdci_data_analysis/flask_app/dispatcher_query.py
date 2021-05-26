@@ -78,6 +78,10 @@ class EMailNotSent(BadRequest):
     pass
 
 
+class MultipleDoneEmail(BadRequest):
+    pass
+
+
 class InstrumentQueryBackEnd:
 
     def __repr__(self):
@@ -586,6 +590,11 @@ class InstrumentQueryBackEnd:
                                             email_status='email sent')
             else:
                 job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+        except MultipleDoneEmail as e:
+            logging.warning(f'repeated sending of completion email detected: {e}')
+            if self.sentry_client is not None:
+                self.sentry_client.capture('raven.events.Message',
+                                       message=f'sending email failed {e}')
         except EMailNotSent as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
@@ -651,11 +660,14 @@ class InstrumentQueryBackEnd:
 
             email_jobs_folders = glob.glob(f'scratch_sid_*_jid_{self.job_id}*/email_history')
             if len(email_jobs_folders) >= 1:
-            # if os.path.exists(self.scratch_dir + '/email_history'):
                 submitted_email_files = glob.glob(f'scratch_sid_*_jid_{self.job_id}*/email_history/email_submitted_*.email')
                 if len(submitted_email_files) >= 1:
                     times = []
-                    [times.append(float(os.path.splitext(os.path.basename(f))[0].split('_')[2])) for f in submitted_email_files]
+                    for f in submitted_email_files:
+                        f_name, f_ext = os.path.splitext(os.path.basename(f))
+                        if f_ext == '.email' and f_name:
+                            times.append(float(f_name.split('_')[2]))
+
                     time_last_email_submitted_sent = max(times)
                     time_from_last_submitted_email = time_.time() - float(time_last_email_submitted_sent)
                     interval_ok = time_from_last_submitted_email > email_sending_job_submitted_interval
@@ -692,13 +704,12 @@ class InstrumentQueryBackEnd:
                 logger.info("duration_query > timeout_threshold_email %s", duration_query > timeout_threshold_email)
                 logger.info("email_sending_timeout and duration_query > timeout_threshold_email %s", email_sending_timeout and duration_query > timeout_threshold_email)
 
-                number_done_emails_ok = True
                 if os.path.exists(self.scratch_dir + '/email_history'):
                     done_email_files = glob.glob(self.scratch_dir + '/email_history/email_done_*.email')
                     if len(done_email_files) >= 1:
                         logger.info("number of done emails sent: %s", len(done_email_files))
-                        number_done_emails_ok = False
-                return number_done_emails_ok and email_sending_timeout and duration_query > timeout_threshold_email
+                        raise MultipleDoneEmail
+                return email_sending_timeout and duration_query > timeout_threshold_email
 
             # or if failed
             elif status == 'failed':
