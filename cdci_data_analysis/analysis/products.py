@@ -81,8 +81,8 @@ class QueryOutput(object):
     def set_analysis_parameters(self, query_dict):
         self.prod_dictionary['analysis_parameters'] = query_dict
 
-    def set_api_code(self,query_dict):
-        self.prod_dictionary['api_code'] = DispatcherAPI.set_api_code(query_dict)
+    def set_api_code(self, query_dict, url=None):
+        self.prod_dictionary['api_code'] = DispatcherAPI.set_api_code(query_dict, url=url)
 
     def dump_analysis_parameters(self,work_dir,query_dict):
         file_path=FilePath(file_dir=work_dir, file_name='analysis_parameters.json')
