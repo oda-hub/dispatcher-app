@@ -23,4 +23,4 @@ redis
 psutil
 pyjwt
 aiosmtpd
--e git+https://github.com/oda-hub/oda_api.git#egg=oda_api
+-e git+https://github.com/oda-hub/oda_api.git@reasonable-set_api_code#egg=oda_api

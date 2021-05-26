@@ -268,6 +268,30 @@ def test_invalid_token(dispatcher_live_fixture, ):
     assert number_scartch_dirs == len(dir_list)
 
 
+def test_api_code(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty'
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=50,
+                )
+
+    assert 'products' in jdata
+    assert 'api_code' in jdata['products']
+
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
+
+
 @pytest.mark.odaapi
 def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
     import oda_api.api
