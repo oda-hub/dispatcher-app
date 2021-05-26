@@ -591,6 +591,9 @@ class InstrumentQueryBackEnd:
             else:
                 job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
         except MultipleDoneEmail as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        email_status='multiple completion email detected')
             logging.warning(f'repeated sending of completion email detected: {e}')
             if self.sentry_client is not None:
                 self.sentry_client.capture('raven.events.Message',
@@ -708,7 +711,7 @@ class InstrumentQueryBackEnd:
                     done_email_files = glob.glob(self.scratch_dir + '/email_history/email_done_*.email')
                     if len(done_email_files) >= 1:
                         logger.info("number of done emails sent: %s", len(done_email_files))
-                        raise MultipleDoneEmail
+                        raise MultipleDoneEmail("multiple completion email detected")
                 return email_sending_timeout and duration_query > timeout_threshold_email
 
             # or if failed

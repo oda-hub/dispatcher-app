@@ -680,9 +680,37 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     else:
         email_history_folder_path = f'scratch_sid_{session_id}_jid_{job_id}_aliased/email_history'
 
-    # a number of done call_backs, but only one should trigger the email sending
+    c = requests.get(server + "/call_back",
+                     params=dict(
+                         job_id=job_id,
+                         session_id=session_id,
+                         instrument_name="empty-async",
+                         action='done',
+                         node_id='node_final',
+                         message='done',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+    assert c.status_code == 200
+
+    job_monitor_call_back_done_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor_node_final_done_.json'
+    job_monitor_call_back_done_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor_node_final_done_.json'
+    assert os.path.exists(job_monitor_call_back_done_json_fn) or \
+           os.path.exists(job_monitor_call_back_done_json_fn_aliased)
+
+    # read the json file
+    if os.path.exists(job_monitor_call_back_done_json_fn):
+        f = open(job_monitor_call_back_done_json_fn)
+    else:
+        f = open(job_monitor_call_back_done_json_fn_aliased)
+
+    jdata = json.load(f)
+    assert 'email_status' in jdata
+    assert jdata['email_status'] == 'email sent'
+
+    # a number of done call_backs, but none should trigger the email sending since this already happened
     for i in range(5):
-        requests.get(server + "/call_back",
+        c = requests.get(server + "/call_back",
                      params=dict(
                          job_id=job_id,
                          session_id=session_id,
@@ -693,6 +721,22 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
                          token=encoded_token,
                          time_original_request=time_request
                          ))
+        assert c.status_code == 200
+
+        job_monitor_call_back_done_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/job_monitor_node_final_done_.json'
+        job_monitor_call_back_done_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/job_monitor_node_final_done_.json'
+        assert os.path.exists(job_monitor_call_back_done_json_fn) or \
+               os.path.exists(job_monitor_call_back_done_json_fn_aliased)
+
+        # read the json file
+        if os.path.exists(job_monitor_call_back_done_json_fn):
+            f = open(job_monitor_call_back_done_json_fn)
+        else:
+            f = open(job_monitor_call_back_done_json_fn_aliased)
+
+        jdata = json.load(f)
+        assert 'email_status' in jdata
+        assert jdata['email_status'] == 'multiple completion email detected'
 
     # check the email in the email folders, and that the first one was produced
     assert os.path.exists(email_history_folder_path)
