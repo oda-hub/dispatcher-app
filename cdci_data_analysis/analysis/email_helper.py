@@ -5,31 +5,20 @@ from ..analysis import tokenHelper
 import smtplib
 import ssl
 import os
+import re
 import glob
 from jinja2 import Environment, FileSystemLoader
+from flask import Markup
 
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
 
+from datetime import datetime
 
 class EMailNotSent(BadRequest):
     pass
 
-
-data = {
-     "format_done": {
-             "description": ''
-         },
-    "format_submitted": {
-             "description": ''
-         },
-    "format_failed": {
-             "description": ''
-         }
-}
-
-def get_data_for_email(format):
-    return data[format]
-
+def timestamp2isot(timestamp):
+    return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
 def send_email(
         config,
@@ -42,34 +31,37 @@ def send_email(
         time_request=None,
         request_url=""):
 
-    # let's get the needed email template
-    rendered_email_body = ''
-    env = Environment(loader=FileSystemLoader('%s/templates/' % os.path.dirname(__file__)))
-    if status == 'done':
-        template = env.get_template('done.html')
-        rendered_email_body = template.render(get_data_for_email('format_done'))
-    elif status == 'submitted':
-        template = env.get_template('submitted.html')
-        rendered_email_body = template.render(get_data_for_email('format_submitted'))
-    elif status == 'failed':
-        template = env.get_template('failed.html')
-        rendered_email_body = template.render(get_data_for_email('format_failed'))
+    # let's get the needed email template; 
+    # TODO: should get from pkgresources or so
+    env = Environment(loader=FileSystemLoader('%s/../flask_app/templates/' % os.path.dirname(__file__)))
+    env.filters['timestamp2isot'] = timestamp2isot
+    
+    email_data = {
+        'oda_site': { 
+            #TODO: get from config
+            'site_name': 'University of Geneva',
+            'frontend_url': 'https://www.astro.unige.ch/mmoda', 
+        },
+        'request': {
+            'job_id': job_id,
+            'status': status,
+            'instrument': instrument,
+            'product_type': product_type,
+            'time_request': time_request
+        }
+    }
 
+    template = env.get_template('email.html')
+    email_body_html = template.render(**email_data)
+    
+    email_subject = re.search("<title>(.*?)</title>", email_body_html).groups()[0]
+    email_text = Markup(email_body_html).striptags()
+   
     server = None
     logger.info("Sending email")
     # Create the plain-text and HTML version of your message,
     # since emails with HTML content might be, sometimes, not supported
-    # a plain-text version is included
-    text = f"""Update of the task for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
-    html = f"""<html><body><p>Update of the task for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
-    email_subject = f"[ODA][{status}] Request for {product_type} {job_id[:8]}"
-
-    if time_request:
-        time_request_str = time_.strftime('%Y-%m-%d %H:%M:%S', time_.localtime(float(time_request)))
-        text = f"""Update of the task submitted at {time_request_str}, for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
-        html = f"""<html><body><p>Update of the task submitted at {time_request_str}, for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
-        email_subject = f"[ODA][{status}] Request for {product_type} created at {time_request_str} {job_id[:8]}"
-
+        
     try:
         # send the mail with the status update to the mail provided with the token
         # eg done/failed/submitted
@@ -87,8 +79,8 @@ def send_email(
         message["To"] = receiver_email_address
         message["CC"] = ", ".join(cc_receivers_email_addresses)
 
-        part1 = MIMEText(text, "plain")
-        part2 = MIMEText(rendered_email_body, "html")
+        part1 = MIMEText(email_text, "plain")
+        part2 = MIMEText(email_body_html, "html")
         message.attach(part1)
         message.attach(part2)
 
