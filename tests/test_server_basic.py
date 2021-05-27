@@ -311,10 +311,10 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
         list_email_files = glob.glob(email_folder_path_aliased + '/email_0_submitted_*.email')
         assert len(list_email_files) == 1
 
-    # disp = oda_api.api.DispatcherAPI(
-    #     url=dispatcher_live_fixture,
-    #     session_id=disp.session_id,
-    #     wait=False)
+    disp = oda_api.api.DispatcherAPI(
+        url=dispatcher_live_fixture,
+        session_id=disp.session_id,
+        wait=False)
     disp.get_product(
         product_type="Real",
         instrument="empty-semi-async",
