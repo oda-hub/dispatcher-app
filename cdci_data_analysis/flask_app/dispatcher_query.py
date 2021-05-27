@@ -78,6 +78,10 @@ class EMailNotSent(BadRequest):
     pass
 
 
+class MultipleDoneEmail(BadRequest):
+    pass
+
+
 class InstrumentQueryBackEnd:
 
     def __repr__(self):
@@ -586,6 +590,14 @@ class InstrumentQueryBackEnd:
                                             email_status='email sent')
             else:
                 job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+        except MultipleDoneEmail as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        email_status='multiple completion email detected')
+            logging.warning(f'repeated sending of completion email detected: {e}')
+            if self.sentry_client is not None:
+                self.sentry_client.capture('raven.events.Message',
+                                       message=f'sending email failed {e}')
         except EMailNotSent as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
@@ -604,11 +616,11 @@ class InstrumentQueryBackEnd:
         path_email_history_folder = self.scratch_dir + '/email_history'
         if not os.path.exists(path_email_history_folder):
             os.makedirs(path_email_history_folder)
-        email_files_list = glob.glob(path_email_history_folder + '/email_*')
-        number_emails_scratch_dir = len(email_files_list)
+        # email_files_list = glob.glob(path_email_history_folder + '/email_*')
+        # number_emails_scratch_dir = len(email_files_list)
         sending_time = time_.time()
         # record the email just sent in a dedicated file
-        with open(path_email_history_folder + '/email_' + str(number_emails_scratch_dir) + '_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
+        with open(path_email_history_folder + '/email_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
             outfile.write(message.as_string())
 
     # TODO perhaps move it somewhere else?
@@ -648,12 +660,18 @@ class InstrumentQueryBackEnd:
             if email_sending_job_submitted_interval is None:
                 # in case this didn't come with the token take the default value from the configuration
                 email_sending_job_submitted_interval = self.app.config.get('conf').email_sending_job_submitted_default_interval
-            if os.path.exists(self.scratch_dir + '/email_history'):
-                submitted_email_files = glob.glob(self.scratch_dir + '/email_history/email_*_submitted_*.email')
+
+            email_jobs_folders = glob.glob(f'scratch_sid_*_jid_{self.job_id}*/email_history')
+            if len(email_jobs_folders) >= 1:
+                submitted_email_files = glob.glob(f'scratch_sid_*_jid_{self.job_id}*/email_history/email_submitted_*.email')
                 if len(submitted_email_files) >= 1:
-                    last_submitted_email_sent = submitted_email_files[len(submitted_email_files) - 1]
-                    f_name, f_ext = os.path.splitext(os.path.basename(last_submitted_email_sent))
-                    time_last_email_submitted_sent = float(f_name.split('_')[3])
+                    times = []
+                    for f in submitted_email_files:
+                        f_name, f_ext = os.path.splitext(os.path.basename(f))
+                        if f_ext == '.email' and f_name:
+                            times.append(float(f_name.split('_')[2]))
+
+                    time_last_email_submitted_sent = max(times)
                     time_from_last_submitted_email = time_.time() - float(time_last_email_submitted_sent)
                     interval_ok = time_from_last_submitted_email > email_sending_job_submitted_interval
 
@@ -689,6 +707,11 @@ class InstrumentQueryBackEnd:
                 logger.info("duration_query > timeout_threshold_email %s", duration_query > timeout_threshold_email)
                 logger.info("email_sending_timeout and duration_query > timeout_threshold_email %s", email_sending_timeout and duration_query > timeout_threshold_email)
 
+                if os.path.exists(self.scratch_dir + '/email_history'):
+                    done_email_files = glob.glob(self.scratch_dir + '/email_history/email_done_*.email')
+                    if len(done_email_files) >= 1:
+                        logger.info("number of done emails sent: %s", len(done_email_files))
+                        raise MultipleDoneEmail("multiple completion email detected")
                 return email_sending_timeout and duration_query > timeout_threshold_email
 
             # or if failed
