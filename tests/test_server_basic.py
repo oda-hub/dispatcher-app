@@ -41,8 +41,7 @@ default_params = dict(
                     RA=83,
                     DEC=22,
                     radius=6,
-                    async_dispatcher=False,
-                    token="fake-token",
+                    async_dispatcher=False
                  )
 
 
@@ -531,9 +530,6 @@ def test_empty_instrument_request(dispatcher_live_fixture):
         'instrument': 'empty',
     }
 
-    # let's keep the request public
-    params.pop('token')
-
     jdata = ask(server,
                 params,
                 expected_query_status=["done"],
@@ -563,8 +559,6 @@ def test_no_instrument(dispatcher_live_fixture):
                 ))
 
     print("content:", c.text)
-
-    jdata=c.json()
 
     assert c.status_code == 400
 
@@ -625,7 +619,6 @@ def test_no_token(dispatcher_live_fixture, async_dispatcher, method):
     assert jdata["exit_status"]["debug_message"] == ""
     assert jdata["exit_status"]["error_message"] == ""
     assert jdata["exit_status"]["message"] == "you do not have permissions for this query, contact oda"
-
 
 
 def flatten_nested_structure(structure, mapping, path=[]):
