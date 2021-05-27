@@ -20,6 +20,15 @@ class EMailNotSent(BadRequest):
 def timestamp2isot(timestamp):
     return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
+def textify_email(html):
+    text = re.sub(
+                "<br>",
+                r"\n",
+                html
+           )
+   
+    return Markup(text).striptags()
+
 def send_email(
         config,
         logger,
@@ -29,7 +38,8 @@ def send_email(
         instrument="",
         product_type="",
         time_request=None,
-        request_url=""):
+        request_url="",
+        api_code=""):
 
     # let's get the needed email template; 
     # TODO: should get from pkgresources or so
@@ -47,7 +57,9 @@ def send_email(
             'status': status,
             'instrument': instrument,
             'product_type': product_type,
-            'time_request': time_request
+            'time_request': time_request,
+            'request_url': request_url,
+            'api_code': api_code,
         }
     }
 
@@ -55,7 +67,7 @@ def send_email(
     email_body_html = template.render(**email_data)
     
     email_subject = re.search("<title>(.*?)</title>", email_body_html).groups()[0]
-    email_text = Markup(email_body_html).striptags()
+    email_text = textify_email(email_body_html)
    
     server = None
     logger.info("Sending email")

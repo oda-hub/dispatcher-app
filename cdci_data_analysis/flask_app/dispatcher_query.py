@@ -47,6 +47,8 @@ from ..configurer import DataServerConf
 from ..analysis.exceptions import BadRequest, APIerror, MissingRequestParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut
 from . import tasks
 
+from  oda_api.api import  DispatcherAPI
+
 from .logstash import logstash_message
 
 from oda_api.data_products import NumpyDataProduct
@@ -566,7 +568,9 @@ class InstrumentQueryBackEnd:
                     instrument=instrument_name,
                     product_type=product_type,
                     time_request=time_original_request,
-                    request_url=products_url)
+                    request_url=products_url,
+                    api_code=DispatcherAPI.set_api_code(original_request_par_dic),
+                    )
                 #store the sent email in the scratch folder
                 email_helper.store_email_info(msg_sent, status, self.scratch_dir)
 
@@ -1268,7 +1272,8 @@ class InstrumentQueryBackEnd:
                                 instrument=self.instrument.name,
                                 product_type=product_type,
                                 time_request=self.time_request,
-                                request_url=products_url)
+                                request_url=products_url,
+                                api_code=DispatcherAPI.set_api_code(self.par_dic))
                             # store the sent email in the scratch folder
                             email_helper.store_email_info(msg_sent, query_new_status, self.scratch_dir)
                             # store an additional information about the sent email
