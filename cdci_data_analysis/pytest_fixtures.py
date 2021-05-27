@@ -393,7 +393,7 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
     if os.path.exists(dispatcher_state_fn):
         dispatcher_state = json.load(open(dispatcher_state_fn))
     else:
-        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, dispatcher_debug)
+        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
         json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
 
     yield dispatcher_state['url']
