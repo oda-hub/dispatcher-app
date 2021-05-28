@@ -65,6 +65,9 @@ class InstrumentNotRecognized(BadRequest):
     pass
 
 
+class MissingRequestParameter(BadRequest):
+    pass
+
 class InstrumentQueryBackEnd:
 
     def __repr__(self):
@@ -551,7 +554,12 @@ class InstrumentQueryBackEnd:
         logger.warn('-----> set status to %s', status)
 
         try:
-            if email_helper.is_email_to_send_callback(self.logger, status, time_original_request, self.app.config['conf'], decoded_token=self.decoded_token):
+            if email_helper.is_email_to_send_callback(self.logger, 
+                                                      status, 
+                                                      time_original_request, 
+                                                      self.app.config['conf'], 
+                                                      self.job_id, 
+                                                      decoded_token=self.decoded_token):
                 try:
                     original_request_par_dic = self.get_request_par_dic()
                     product_type = original_request_par_dic['product_type']
@@ -570,15 +578,22 @@ class InstrumentQueryBackEnd:
                     time_request=time_original_request,
                     request_url=products_url,
                     api_code=DispatcherAPI.set_api_code(original_request_par_dic),
-                    )
-                #store the sent email in the scratch folder
-                email_helper.store_email_info(msg_sent, status, self.scratch_dir)
+                    scratch_dir=self.scratch_dir,
+                    )                
 
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
                                             email_status='email sent')
             else:
                 job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+        except email_helper.MultipleDoneEmail as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        email_status='multiple completion email detected')
+            logging.warning(f'repeated sending of completion email detected: {e}')
+            if self.sentry_client is not None:
+                self.sentry_client.capture('raven.events.Message',
+                                       message=f'sending email failed {e}')
         except email_helper.EMailNotSent as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
@@ -592,8 +607,6 @@ class InstrumentQueryBackEnd:
                                         full_dict=self.par_dic,
                                         call_back_status=f'parameter missing during call back: {e.message}')
             logging.warning(f'parameter missing during call back: {e}')
-
-
 
     # TODO perhaps move it somewhere else?
     def get_request_par_dic(self):
@@ -1260,10 +1273,18 @@ class InstrumentQueryBackEnd:
                     else:
                         query_new_status = 'submitted'
                         job.set_submitted()
-                    if email_helper.is_email_to_send_run_completion(self.logger, query_new_status, self.time_request, self.scratch_dir, self.app.config['conf'], decoded_token=self.decoded_token):
+
+                    if email_helper.is_email_to_send_run_query(self.logger, 
+                                                               query_new_status, 
+                                                               self.time_request, 
+                                                               self.scratch_dir, 
+                                                               self.job_id,
+                                                               self.app.config['conf'], 
+                                                               decoded_token=self.decoded_token):
                         try:
                             products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url, self.par_dic)
-                            msg_sent = email_helper.send_email(
+
+                            email_helper.send_email(
                                 config=self.app.config['conf'],
                                 logger=self.logger,
                                 decoded_token=self.decoded_token,
@@ -1273,9 +1294,9 @@ class InstrumentQueryBackEnd:
                                 product_type=product_type,
                                 time_request=self.time_request,
                                 request_url=products_url,
-                                api_code=DispatcherAPI.set_api_code(self.par_dic))
-                            # store the sent email in the scratch folder
-                            email_helper.store_email_info(msg_sent, query_new_status, self.scratch_dir)
+                                api_code=DispatcherAPI.set_api_code(self.par_dic),
+                                scratch_dir=self.scratch_dir)
+                            
                             # store an additional information about the sent email
                             query_out.set_status_field('email_status', 'email sent')
                         except email_helper.EMailNotSent as e:

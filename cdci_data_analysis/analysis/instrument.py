@@ -252,8 +252,9 @@ class Instrument:
 
         # adding query parameters to final products
         query_out.set_analysis_parameters(par_dic)
-        query_out.set_api_code(par_dic)
-        query_out.dump_analysis_parameters(out_dir,par_dic)
+        # TODO perhaps this will change
+        query_out.set_api_code(par_dic, url=back_end_query.config.products_url)
+        query_out.dump_analysis_parameters(out_dir, par_dic)
 
         return query_out
 

@@ -9,11 +9,13 @@ import os
 import re
 import glob
 from jinja2 import Environment, FileSystemLoader
-from flask import Markup
 
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
 
 from datetime import datetime
+
+class MultipleDoneEmail(BadRequest):
+    pass
 
 class EMailNotSent(BadRequest):
     pass
@@ -38,7 +40,6 @@ def textify_email(html):
 
     return re.sub('<.*?>', '', text)
    
-    #return Markup(text).striptags()
 
 def send_email(
         config,
@@ -50,7 +51,8 @@ def send_email(
         product_type="",
         time_request=None,
         request_url="",
-        api_code=""):
+        api_code="",
+        scratch_dir=None):
 
     # let's get the needed email template; 
     # TODO: should get from pkgresources or so
@@ -135,6 +137,8 @@ def send_email(
         if server:
             server.quit()
 
+    store_email_info(message, status, scratch_dir)
+
     return message
 
 
@@ -150,17 +154,20 @@ def store_email_info(message, status, scratch_dir):
         outfile.write(message.as_string())
 
 
-def is_email_to_send_run_completion(logger, status, time_original_request, scratch_dir, config, decoded_token=None):
+def is_email_to_send_run_query(logger, status, time_original_request, scratch_dir, job_id, config, decoded_token=None):
     # get total request duration
     if decoded_token:
-        # in case the request was long and 'done'
+        # in case the job is just submitted and was not submitted before, at least since some time
         logger.info("considering email sending, status: %s, time_original_request: %s", status, time_original_request)
+        
         email_sending_job_submitted = tokenHelper.get_token_user_submitted_email(decoded_token)
         if email_sending_job_submitted is None:
             # in case this didn't come with the token take the default value from the configuration
             email_sending_job_submitted = config.email_sending_job_submitted
+
         # get the amount of time passed from when the last email was sent
         interval_ok = True
+        
         email_sending_job_submitted_interval = tokenHelper.get_token_user_sending_submitted_interval_email(decoded_token)
         if email_sending_job_submitted_interval is None:
             # in case this didn't come with the token take the default value from the configuration
@@ -168,15 +175,29 @@ def is_email_to_send_run_completion(logger, status, time_original_request, scrat
 
         logger.info("email_sending_job_submitted_interval: %s", email_sending_job_submitted_interval)
 
-        if os.path.exists(scratch_dir + '/email_history'):
-            submitted_email_files = glob.glob(scratch_dir + '/email_history/email_*_submitted_*.email')
-            logger.info("submitted_email_files: %s", len(submitted_email_files))
-            if len(submitted_email_files) >= 1:
-                last_submitted_email_sent = submitted_email_files[len(submitted_email_files) - 1]
-                f_name, f_ext = os.path.splitext(os.path.basename(last_submitted_email_sent))
-                time_last_email_submitted_sent = float(f_name.split('_')[3])
-                time_from_last_submitted_email = time_.time() - float(time_last_email_submitted_sent)
-                interval_ok = time_from_last_submitted_email > email_sending_job_submitted_interval
+        email_history_dir = os.path.join(scratch_dir + '/email_history')
+        logger.info("email_history_dir: %s", email_history_dir)
+        
+        email_history_dirs_same_job_id = f"scratch_*_{job_id}*/email_history"
+        logger.info("email_history_dirs_same_job_id: %s", email_history_dirs_same_job_id)
+
+        # find all
+        submitted_email_pattern = os.path.join(
+                email_history_dirs_same_job_id,
+                'email_*_submitted_*.email'
+            )
+        submitted_email_files = glob.glob(submitted_email_pattern)
+        logger.info("submitted_email_files: %s as %s", len(submitted_email_files), submitted_email_pattern)
+        
+        if len(submitted_email_files) >= 1:
+            last_submitted_email_sent = submitted_email_files[len(submitted_email_files) - 1]
+            f_name, f_ext = os.path.splitext(os.path.basename(last_submitted_email_sent))
+            time_last_email_submitted_sent = float(f_name.split('_')[3])
+            time_from_last_submitted_email = time_.time() - float(time_last_email_submitted_sent)
+            interval_ok = time_from_last_submitted_email > email_sending_job_submitted_interval        
+
+        logger.info("email_sending_job_submitted: %s", email_sending_job_submitted)
+        logger.info("interval_ok: %s", interval_ok)
 
         # send submitted mail, status update
         return email_sending_job_submitted and interval_ok and status == 'submitted'
@@ -184,7 +205,7 @@ def is_email_to_send_run_completion(logger, status, time_original_request, scrat
     return False
 
 
-def is_email_to_send_callback(logger, status, time_original_request, config, decoded_token=None):
+def is_email_to_send_callback(logger, status, time_original_request, config, job_id, decoded_token=None):
     if decoded_token:
         # in case the request was long and 'done'
         logger.info("considering email sending, status: %s, time_original_request: %s", status, time_original_request)
@@ -211,8 +232,14 @@ def is_email_to_send_callback(logger, status, time_original_request, config, dec
             logger.info("duration_query > timeout_threshold_email %s", duration_query > timeout_threshold_email)
             logger.info("email_sending_timeout and duration_query > timeout_threshold_email %s", email_sending_timeout and duration_query > timeout_threshold_email)
 
+            done_email_files = glob.glob(f'scratch_*_jid_{job_id}*/email_history')
+            if len(done_email_files) >= 1:
+                logger.info("number of done emails sent: %s", len(done_email_files))
+                raise MultipleDoneEmail("multiple completion email detected")
+
             return email_sending_timeout and duration_query > timeout_threshold_email
 
+            
         # or if failed
         elif status == 'failed':
             return True

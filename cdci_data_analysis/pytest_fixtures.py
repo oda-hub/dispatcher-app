@@ -556,7 +556,7 @@ class DispatcherJobState:
 
     def assert_email(self, serial_number, state, number=1):
         list_email_files = glob.glob(self.email_history_folder + f'/email_{serial_number}_{state}_*.email')
-        assert len(list_email_files) == number
+        assert len(list_email_files) == number, f"expected {number} emails, found {len(list_email_files)}: {list_email_files}"
 
     def load_job_state_record(self, state, message):
-        return json.load(open(f'{self.scratch_dir}/job_monitor_node_{state}_{message}_.json'))
+        return json.load(open(f'{self.scratch_dir}/job_monitor_{state}_{message}_.json'))
