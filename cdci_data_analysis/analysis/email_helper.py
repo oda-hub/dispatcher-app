@@ -30,7 +30,7 @@ def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
     return timestamp_or_string
 
 def textify_email(html):
-    text = re.search('<body>(.*?)</body>', html, re.S).groups()[0]
+    text = re.search('<body>(.*?)</body>', html, re.S).group(1)
 
     text = re.sub('<title>.*?</title>', '', text)
 

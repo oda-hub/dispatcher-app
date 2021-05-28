@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>[ODA][{{request.status}}] {{request.product_type}} first requested at {{ request.time_request | timestamp2isot }} job_id: {{request.job_id[:8]}}</title>
+</head>
+
+<body>
+Dear User,<br>
+<br>
+you receive this message because at {{ request.time_request | timestamp2isot }} you submitted a request <br>
+for a {{ request.product_type }} from the service provided by {{ oda_site.site_name }}<br>
+available at the URL {{ oda_site.frontend_url }}.<br>
+<br>
+{% if request.status == "submitted" %}
+Once products will be ready, you will receive a new email.<br>
+<br>
+{% elif request.status == "done" %}
+Your request is now <b>ready</b>.<br>
+{% elif request.status == "failed" %}
+Your request has <b>failed<b>. Sorry for that! You will be further contacted by our team.<br>
+{% endif %}
+<br>
+You can inspect the status of your job using the following <br>
+<a href="{{ request.request_url }}">url</a> or repeating the request 
+(either with frontend or with python API query).<br>
+<br>
+In case you have questions or issues you can contact us at <a href="mailto:{{ oda_site.contact }}">this email</a>.<br>
+<br>
+<br>
+You can also use this python code to request the request:
+<div>
+    {{ request.api_code_no_token }}
+</div>
+<br>
+Kind regards,<br>
+<br>
+The ODA team.<br>
+</body>
+</html>

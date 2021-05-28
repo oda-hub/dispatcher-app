@@ -39,3 +39,4 @@ jdata.json
 .coverage.*
 .coverage
 *,cover
+cdci_data_analysis/config_dir/conf_env.yml
