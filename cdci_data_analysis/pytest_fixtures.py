@@ -177,6 +177,28 @@ def dispatcher_local_mail_server(pytestconfig, dispatcher_test_conf):
             self.id = id
             super().__init__(handler, hostname=hostname, port=port)
 
+        @property
+        def local_smtp_output_json_fn(self):
+            return self.handler.output_file_path
+
+        @property
+        def local_smtp_output(self):
+            return json.load(open(self.local_smtp_output_json_fn))
+
+        def assert_email_number(self, N):
+            f_local_smtp_jdata = self.local_smtp_output
+            assert len(f_local_smtp_jdata) == N
+
+        def get_email_record(self, i=0, N=None):
+            if N is not None:
+                assert i < N
+                self.assert_email_number(N)
+
+            return self.local_smtp_output[i]
+            
+            
+
+
 
     class CustomHandler:
         def __init__(self, output_file_path):
@@ -217,7 +239,9 @@ def dispatcher_local_mail_server(pytestconfig, dispatcher_test_conf):
     id = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
     if not os.path.exists('local_smtp_log'):
         os.makedirs('local_smtp_log')
-    handler = CustomHandler(f'local_smtp_log/{id}_local_smtp_output.json')
+
+    fn =f'local_smtp_log/{id}_local_smtp_output.json'
+    handler = CustomHandler(fn)
     controller = CustomController(id, handler, hostname='127.0.0.1', port=dispatcher_test_conf['email_options']['smtp_port'])
     # Run the event loop in a separate thread
     controller.start()
@@ -392,11 +416,24 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
 
     if os.path.exists(dispatcher_state_fn):
         dispatcher_state = json.load(open(dispatcher_state_fn))
-    else:
-        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, dispatcher_debug)
-        json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
+        logger.info("found dispatcher state: %s", dispatcher_state)
 
+        try:
+            r = requests.get(dispatcher_state['url'] + "/run_analysis")
+            logger.info("dispatcher returns: %s, %s", r.status_code, r.text)
+            if r.status_code == 200:
+                logger.info("dispatcher is live and responsive")
+                yield dispatcher_state['url']                
+        except requests.exceptions.ConnectionError as e:
+            logger.warning("dispatcher connection failed %s", e)        
+        
+        logger.warning("dispatcher is dead or unresponsive")
+
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+    json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
     yield dispatcher_state['url']
+
+    
 
 
 @pytest.fixture
@@ -488,3 +525,38 @@ def dispatcher_fetch_dummy_products(dummy_product_pack: str, reuse=False):
 
     open(dispatcher_dummy_product_pack_state_fn, "w").write("%s"%time.time())
 
+
+class DispatcherJobState:
+    @classmethod
+    def from_run_analysis_response(cls, r):
+        return cls(
+            session_id = r.json()['session_id'],
+            job_id = r.json()['job_monitor']['job_id']
+        )
+    
+    def __init__(self, session_id, job_id) -> None:
+        self.session_id = session_id
+        self.job_id = job_id
+    
+    @property
+    def scratch_dir(self):
+        return glob.glob(f'scratch_sid_{self.session_id}_jid_{self.job_id}*')[0]
+    
+
+    @property
+    def job_monitor_json_fn(self):
+        job_monitor_json_fn = f'{self.scratch_dir}/job_monitor.json'
+        assert os.path.exists(job_monitor_json_fn) 
+
+        return job_monitor_json_fn
+
+    @property
+    def email_history_folder(self):
+        return f'{self.scratch_dir}/email_history'
+
+    def assert_email(self, serial_number, state, number=1):
+        list_email_files = glob.glob(self.email_history_folder + f'/email_{serial_number}_{state}_*.email')
+        assert len(list_email_files) == number
+
+    def load_job_state_record(self, state, message):
+        return json.load(open(f'{self.scratch_dir}/job_monitor_node_{state}_{message}_.json'))

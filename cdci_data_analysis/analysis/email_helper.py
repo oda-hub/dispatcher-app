@@ -1,6 +1,7 @@
 import time as time_
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import typing
 from ..analysis import tokenHelper
 import smtplib
 import ssl
@@ -17,17 +18,27 @@ from datetime import datetime
 class EMailNotSent(BadRequest):
     pass
 
-def timestamp2isot(timestamp):
-    return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
+    try:
+        timestamp_or_string = float(timestamp_or_string)
+    except ValueError:
+        pass
+
+    if isinstance(timestamp_or_string, float):
+        return datetime.fromtimestamp(float(timestamp_or_string)).strftime("%Y-%m-%d %H:%M:%S")
+        
+    return timestamp_or_string
 
 def textify_email(html):
-    text = re.sub(
-                "<br>",
-                r"\n",
-                html
-           )
+    text = re.search('<body>(.*?)</body>', html, re.S).groups()[0]
+
+    text = re.sub('<title>.*?</title>', '', text)
+
+    text = re.sub('<a href=(.*?)>(.*?)</a>', r'\2: \1', text)
+
+    return re.sub('<.*?>', '', text)
    
-    return Markup(text).striptags()
+    #return Markup(text).striptags()
 
 def send_email(
         config,
@@ -51,6 +62,7 @@ def send_email(
             #TODO: get from config
             'site_name': 'University of Geneva',
             'frontend_url': 'https://www.astro.unige.ch/mmoda', 
+            'contact': 'conact@odahub.io'
         },
         'request': {
             'job_id': job_id,
@@ -59,16 +71,17 @@ def send_email(
             'product_type': product_type,
             'time_request': time_request,
             'request_url': request_url,
-            'api_code': api_code,
+            'api_code_no_token': re.sub('"token": ".*?"', '"token": "<PLEASE-INSERT-YOUR-TOKEN-HERE>"', api_code).strip(),
         }
     }
 
     template = env.get_template('email.html')
     email_body_html = template.render(**email_data)
     
-    email_subject = re.search("<title>(.*?)</title>", email_body_html).groups()[0]
+    email_subject = re.search("<title>(.*?)</title>", email_body_html).groups()[0]    
+
     email_text = textify_email(email_body_html)
-   
+    
     server = None
     logger.info("Sending email")
     # Create the plain-text and HTML version of your message,
