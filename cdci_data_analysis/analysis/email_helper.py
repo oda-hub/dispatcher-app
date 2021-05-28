@@ -56,13 +56,17 @@ def send_email(
     # TODO: should get from pkgresources or so
     env = Environment(loader=FileSystemLoader('%s/../flask_app/templates/' % os.path.dirname(__file__)))
     env.filters['timestamp2isot'] = timestamp2isot
+
+    api_code_no_token = re.sub('"token": ".*?"', '"token": "<PLEASE-INSERT-YOUR-TOKEN-HERE>"', api_code)\
+                        .strip()\
+                        .replace("\n", "<br>\n")
     
     email_data = {
         'oda_site': { 
             #TODO: get from config
             'site_name': 'University of Geneva',
             'frontend_url': 'https://www.astro.unige.ch/mmoda', 
-            'contact': 'conact@odahub.io'
+            'contact': 'contact@odahub.io'
         },
         'request': {
             'job_id': job_id,
@@ -71,7 +75,7 @@ def send_email(
             'product_type': product_type,
             'time_request': time_request,
             'request_url': request_url,
-            'api_code_no_token': re.sub('"token": ".*?"', '"token": "<PLEASE-INSERT-YOUR-TOKEN-HERE>"', api_code).strip(),
+            'api_code_no_token': api_code_no_token,
         }
     }
 
