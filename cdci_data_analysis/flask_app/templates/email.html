@@ -14,7 +14,6 @@ available at the URL {{ oda_site.frontend_url }}.<br>
 <br>
 {% if request.status == "submitted" %}
 Once products will be ready, you will receive a new email.<br>
-<br>
 {% elif request.status == "done" %}
 Your request is now <b>ready</b>.<br>
 {% elif request.status == "failed" %}
@@ -27,13 +26,20 @@ You can inspect the status of your job using the following <br>
 <br>
 In case you have questions or issues you can contact us at <a href="mailto:{{ oda_site.contact }}">this email</a>.<br>
 <br>
-You can also use this python code to request the request:<br>
-<div style="background-color: bisque">
-    {{ request.api_code_no_token }}
-</div>
-<br>
 Kind regards,<br>
 <br>
 The ODA team.<br>
+<br>
+P.S.
+<br>
+You can also use this python code to request the request:<br>
+<br>
+<div style="background-color: lightgray; display: inline-block; padding: 5px;">
+{{ request.api_code_no_token }}
+</div>
+<br>
+
+
 </body>
 </html>
+
