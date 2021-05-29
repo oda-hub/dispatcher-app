@@ -232,7 +232,7 @@ def is_email_to_send_callback(logger, status, time_original_request, config, job
             logger.info("duration_query > timeout_threshold_email %s", duration_query > timeout_threshold_email)
             logger.info("email_sending_timeout and duration_query > timeout_threshold_email %s", email_sending_timeout and duration_query > timeout_threshold_email)
 
-            done_email_files = glob.glob(f'scratch_*_jid_{job_id}*/email_history')
+            done_email_files = glob.glob(f'scratch_*_jid_{job_id}*/email_history/*_done_*')
             if len(done_email_files) >= 1:
                 logger.info("number of done emails sent: %s", len(done_email_files))
                 raise MultipleDoneEmail("multiple completion email detected")

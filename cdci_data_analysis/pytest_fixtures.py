@@ -187,7 +187,7 @@ def dispatcher_local_mail_server(pytestconfig, dispatcher_test_conf):
 
         def assert_email_number(self, N):
             f_local_smtp_jdata = self.local_smtp_output
-            assert len(f_local_smtp_jdata) == N
+            assert len(f_local_smtp_jdata) == N, f"found {len(f_local_smtp_jdata)} emails, expected == {N}"
 
         def get_email_record(self, i=0, N=None):
             if N is not None:
@@ -527,6 +527,16 @@ def dispatcher_fetch_dummy_products(dummy_product_pack: str, reuse=False):
 
 
 class DispatcherJobState:
+    """
+    manages state stored in scratch_* directories
+    """
+
+    @staticmethod
+    def remove_scratch_folders():
+        dir_list = glob.glob('scratch_*')
+        for d in dir_list:
+            shutil.rmtree(d)
+
     @classmethod
     def from_run_analysis_response(cls, r):
         return cls(
@@ -554,9 +564,9 @@ class DispatcherJobState:
     def email_history_folder(self):
         return f'{self.scratch_dir}/email_history'
 
-    def assert_email(self, serial_number, state, number=1):
+    def assert_email(self, serial_number, state, number=1, comment=""):
         list_email_files = glob.glob(self.email_history_folder + f'/email_{serial_number}_{state}_*.email')
-        assert len(list_email_files) == number, f"expected {number} emails, found {len(list_email_files)}: {list_email_files}"
+        assert len(list_email_files) == number, f"expected {number} emails, found {len(list_email_files)}: {list_email_files} in {self.email_history_folder}; {comment}"
 
     def load_job_state_record(self, state, message):
         return json.load(open(f'{self.scratch_dir}/job_monitor_{state}_{message}_.json'))
