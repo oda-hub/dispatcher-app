@@ -1,4 +1,3 @@
-from genericpath import exists
 import shutil
 
 import pytest
@@ -218,6 +217,10 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     server = dispatcher_long_living_fixture
     
     DispatcherJobState.remove_scratch_folders()
+
+    # remove all the current scratch folders
+    dir_list = glob.glob('scratch_*')
+    [shutil.rmtree(d) for d in dir_list]
 
     token_none = ( request_cred == 'public' )
         
