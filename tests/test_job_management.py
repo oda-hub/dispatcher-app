@@ -1,3 +1,4 @@
+from genericpath import exists
 import shutil
 
 import pytest
@@ -88,13 +89,66 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
     assert jdata['exit_status']['job_status'] == 'submitted'
     assert 'email_status' not in jdata['exit_status']
 
-def get_reference_emails():
-    fn = "tests/reference_data/*.html"                
 
-    return open(fn).read() 
+# we want to be able to view, in browser, fully formed emails. So storing templates does not do.
+# but every test will generate them a bit differently, due to time embedded in them
+# so just this time recored should be adapted for every test
 
-        
+generalized_email_patterns = {
+    'time_request_str': [
+        r'(because at )([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.*?)( \()',
+        '(first requested at )(.*? .*?)( job_id:)'
+    ],
+    'products_url': [
+        '(href=")(.*?)(">url)',
+    ]
+}
 
+ignore_email_patterns = [
+    '\( .*?ago \)'
+]
+
+
+def email_args_to_filename(**email_args):    
+    fn = "tests/{email_collection}_emails/{state}.html".format(**email_args)
+    os.makedirs(os.path.dirname(fn), exist_ok=True)
+    return fn
+
+def get_reference_email(**email_args):
+    try:
+        html = open(email_args_to_filename(**{**email_args, 'email_collection': 'reference'})).read() 
+        return adapt_html(html, **email_args)
+    except FileNotFoundError:
+        return None
+
+# substitute several patterns for comparison
+def adapt_html(html, **email_args):
+    for arg, patterns in generalized_email_patterns.items():
+        if email_args[arg] is not None:
+            for pattern in patterns:
+                html = re.sub(pattern, r"\g<1>" + email_args[arg] + r"\g<3>", html)    
+            
+    return html
+
+# ignore patterns which we are too lazy to substiture
+def ignore_html_patterns(html):
+    for pattern in ignore_email_patterns:
+        html = re.sub(pattern, "<IGNORES>", html)
+
+    return html
+
+
+def store_email(email_html, **email_args):
+    # example for viewing
+    fn = email_args_to_filename(**{**email_args, 'email_collection': 'to_review'})
+    with open(fn, "w") as f:
+        f.write(email_html)     
+
+    open("to_review_email.html", "w").write(ignore_html_patterns(email_html))
+
+    return fn
+
+    
 def validate_email_content(
                    message_record, 
                    state: str,
@@ -102,7 +156,8 @@ def validate_email_content(
                    time_request_str: str=None,
                    products_url=None,
                    ):
-    reference_emails = 
+
+    reference_email = get_reference_email(state=state, time_request_str=time_request_str, products_url=products_url)
     
     assert message_record['mail_from'] == 'team@odahub.io'
     assert message_record['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io']
@@ -127,6 +182,13 @@ def validate_email_content(
 
             if products_url is not None:                
                 assert re.search(f'<a href="(.*)">.*?</a>', content_text_html, re.M).group(1) == products_url
+
+            fn = store_email(content_text_html, state=state, time_request_str=time_request_str, products_url=products_url)
+
+            if reference_email is not None:
+                open("adapted_reference.html", "w").write(reference_email)
+                assert ignore_html_patterns(reference_email) == ignore_html_patterns(content_text_html), f"please inspect {fn} and possibly copy it to {fn.replace('to_review', 'reference')}"
+
 
         if content_text is not None:
             assert re.search(f'Dear User', content_text, re.IGNORECASE)

@@ -31,6 +31,18 @@ def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
         
     return timestamp_or_string
 
+def humanize_age(time_interval_s: float):
+    #TODO!
+
+    age_s = time_.time() - float(time_interval_s)
+
+    if age_s < 120:
+        return f"{age_s:.1f} seconds"
+    elif age_s/60 < 120:
+        return f"{age_s/60:.1f} minutes"
+    else:
+        return f"{age_s/60/60:.1f} hours"
+
 def textify_email(html):
     text = re.search('<body>(.*?)</body>', html, re.S).group(1)
 
@@ -58,6 +70,7 @@ def send_email(
     # TODO: should get from pkgresources or so
     env = Environment(loader=FileSystemLoader('%s/../flask_app/templates/' % os.path.dirname(__file__)))
     env.filters['timestamp2isot'] = timestamp2isot
+    env.filters['humanize_age'] = humanize_age
 
     api_code_no_token = re.sub('"token": ".*?"', '"token": "<PLEASE-INSERT-YOUR-TOKEN-HERE>"', api_code)\
                         .strip()\
@@ -84,7 +97,7 @@ def send_email(
     template = env.get_template('email.html')
     email_body_html = template.render(**email_data)
     
-    email_subject = re.search("<title>(.*?)</title>", email_body_html).groups()[0]    
+    email_subject = re.search("<title>(.*?)</title>", email_body_html).group(1)
 
     email_text = textify_email(email_body_html)
     

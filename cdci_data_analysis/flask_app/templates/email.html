@@ -8,7 +8,7 @@
 <body>
 Dear User,<br>
 <br>
-you receive this message because at {{ request.time_request | timestamp2isot }} you submitted a request <br>
+you receive this message because at {{ request.time_request | timestamp2isot }} ( {{ request.time_request | humanize_age  }} ago ) you submitted a request <br>
 for a {{ request.product_type }} from the service provided by {{ oda_site.site_name }}<br>
 available at the URL {{ oda_site.frontend_url }}.<br>
 <br>
