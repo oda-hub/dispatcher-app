@@ -221,6 +221,31 @@ def test_valid_token(dispatcher_live_fixture):
     logger.info(json.dumps(jdata, indent=4))
 
 
+def test_download_products(dispatcher_live_fixture, empty_products_files_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    params = {
+            **default_params,
+            'product_type': 'dummy',
+            'query_type': "Dummy",
+            'instrument': 'empty',
+            'query_status': 'ready',
+            'file_list': 'test.fits.gz.recovered',
+            'download_file_name': 'output_test',
+            'session_id': empty_products_files_fixture['session_id'],
+            'job_id': empty_products_files_fixture['job_id']
+        }
+
+    c = requests.get(server + "/download_products",
+                     params=params)
+
+    print("content:", c.text)
+
+    assert c.status_code == 200
+
+
 @pytest.mark.not_safe_parallel
 def test_invalid_token(dispatcher_live_fixture, ):
     server = dispatcher_live_fixture

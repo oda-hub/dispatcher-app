@@ -11,7 +11,8 @@ from cdci_data_analysis.pytest_fixtures import (
             dispatcher_test_conf_fn,
             dispatcher_debug,
             dispatcher_nodebug,
-            cleanup
+            cleanup,
+            empty_products_files_fixture
         )
 
 

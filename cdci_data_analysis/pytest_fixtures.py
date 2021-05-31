@@ -33,7 +33,7 @@ import hashlib
 import glob
 
 from threading import Thread
-
+from pathlib import Path
     
 
 __this_dir__ = os.path.join(os.path.abspath(os.path.dirname(__file__)))
@@ -434,6 +434,25 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
     yield dispatcher_state['url']
 
     
+@pytest.fixture
+def empty_products_files_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
+    # generate random job_id
+    job_id = hashlib.md5(json.dumps({}).encode()).hexdigest()[:16]
+    # generate random session_id
+    session_id = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+    scratch_params = dict(
+        job_id=job_id,
+        session_id= session_id
+    )
+    DispatcherJobState.remove_scratch_folders(job_id=job_id)
+    scratch_dir_path = f'scratch_sid_{session_id}_jid_{job_id}'
+    # set the scratch directory
+    os.makedirs(scratch_dir_path)
+
+    with open(scratch_dir_path + '/test.fits.gz.recovered', 'wb') as fout:
+        fout.write(os.urandom(20))
+
+    yield scratch_params
 
 
 @pytest.fixture
@@ -532,8 +551,11 @@ class DispatcherJobState:
     """
 
     @staticmethod
-    def remove_scratch_folders():
-        dir_list = glob.glob('scratch_*')
+    def remove_scratch_folders(job_id=None):
+        if job_id is None:
+            dir_list = glob.glob('scratch_*')
+        else:
+            dir_list = glob.glob(f'scratch_*_jid_{job_id}*')
         for d in dir_list:
             shutil.rmtree(d)
 
