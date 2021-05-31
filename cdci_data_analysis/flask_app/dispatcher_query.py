@@ -567,7 +567,7 @@ class InstrumentQueryBackEnd:
                     raise MissingRequestParameter(repr(e))
                 # build the products URL and get also the original requested product
                 products_url = self.generate_products_url_from_file(self.config.products_url, request_par_dict=original_request_par_dic)
-                msg_sent = email_helper.send_email(
+                email_helper.send_email(
                     config=self.app.config['conf'],
                     logger=self.logger,
                     decoded_token=self.decoded_token,
