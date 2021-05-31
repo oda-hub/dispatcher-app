@@ -134,7 +134,7 @@ class InstrumentQueryBackEnd:
                 logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
 
             if download_products:
-                self.instrument_name = 'mock'
+                instrument_name = 'mock'
 
             if instrument_name is None:
                 if 'instrument' in self.par_dic:
