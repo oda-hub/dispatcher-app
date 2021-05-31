@@ -617,15 +617,12 @@ class InstrumentQueryBackEnd:
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
         par_dict = par_dict.copy()
-        # remove token if present
-        if "token" in par_dict:
-            par_dict.pop("token")
-        # remove session_id if present
-        if "session_id" in par_dict:
-            par_dict.pop("session_id")
-        # remove job_id if present
-        if "job_id" in par_dict:
-            par_dict.pop("job_id")
+        _skip_list_ = ['token', 'session_id', 'job_id']
+
+        for key, value in dict(par_dict).items():
+            if key in _skip_list_ or value is None:
+                par_dict.pop(key)
+
         request_url = '%s?%s' % (products_url, urlencode(par_dict))
         return request_url
 

@@ -202,11 +202,17 @@ def validate_email_content(
 
 def get_expected_products_url(dict_param):
     dict_param_complete = dict_param.copy()    
-    dict_param_complete.pop("token")
+    dict_param_complete.pop("token", None)
+    dict_param_complete.pop("session_id", None)
+    dict_param_complete.pop("job_id", None)
 
     assert 'session_id' not in dict_param_complete
     assert 'job_id' not in dict_param_complete
     assert 'token' not in dict_param_complete
+
+    for key, value in dict(dict_param_complete).items():
+        if value is None:
+            dict_param_complete.pop(key)
 
     return '%s?%s' % ('http://www.astro.unige.ch/cdci/astrooda_', urlencode(dict_param_complete))
 
