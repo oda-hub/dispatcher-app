@@ -347,7 +347,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
         assert jdata['email_status'] == 'email sent'
 
         # check the email in the email folders, and that the first one was produced
-        dispatcher_job_state.assert_email("*", state="done", number=1)
+        dispatcher_job_state.assert_email(state="done")
         
         # check the email in the log files
         validate_email_content(
@@ -383,10 +383,10 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
 
         # check the email in the email folders, and that the first one was produced        
         if default_values or time_original_request_none:
-            dispatcher_job_state.assert_email("*", 'failed', comment="expected one email in total, failed")                        
+            dispatcher_job_state.assert_email('failed', comment="expected one email in total, failed")
             dispatcher_local_mail_server.assert_email_number(2)
         else:
-            dispatcher_job_state.assert_email("*", 'failed', comment="expected two emails in total, second failed")
+            dispatcher_job_state.assert_email('failed', comment="expected two emails in total, second failed")
             dispatcher_local_mail_server.assert_email_number(3)
  
         validate_email_content(
@@ -464,9 +464,8 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
 
     # check the email in the email folders, and that the first one was produced
     
-    dispatcher_job_state.assert_email(serial_number=0, state="submitted")
+    dispatcher_job_state.assert_email(state="submitted")
     dispatcher_local_mail_server.assert_email_number(1)
-
     
     # re-submit the very same request, in order to produce a sequence of submitted status
     # and verify not a sequence of emails are generated
@@ -491,7 +490,7 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
         assert 'email_status' not in jdata['exit_status']
 
         # check the email in the email folders, and that the first one was produced
-        dispatcher_job_state.assert_email(serial_number=1, state="submitted", number=0)
+        dispatcher_job_state.assert_email(state="submitted", number=1)
         dispatcher_local_mail_server.assert_email_number(1)
 
     # let the interval time pass, so that a new email si sent
@@ -512,7 +511,7 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
 
     # check the email in the email folders, and that the first one was produced
     
-    dispatcher_job_state.assert_email(serial_number=1, state="submitted", number=1)
+    dispatcher_job_state.assert_email(state="submitted", number=2)
     dispatcher_local_mail_server.assert_email_number(2)
     
 
@@ -572,7 +571,7 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
     assert jdata['exit_status']['email_status'] == 'email sent'
 
     # check the email in the email folders, and that the first one was produced
-    dispatcher_job_state.assert_email(0, 'submitted', number=1)
+    dispatcher_job_state.assert_email('submitted')
 
     # re-submit the same request (so that the same job_id will be generated) but as a different session,
     # in order to produce a sequence of submitted status
@@ -597,7 +596,7 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
         assert 'email_status' not in jdata['exit_status']
 
     # jobs will be aliased
-    dispatcher_job_state.assert_email('*', 'submitted', 1)
+    dispatcher_job_state.assert_email('submitted')
     
 
     # let the interval time pass, so that a new email si sent
@@ -614,9 +613,9 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
 
     # check the email in the email folders, and that the first one was produced
     assert os.path.exists(f'scratch_sid_{session_id}_jid_{dispatcher_job_state.job_id}_aliased')
-    list_email_files_last_request = glob.glob(f'scratch_sid_{session_id}_jid_{dispatcher_job_state.job_id}_aliased/email_history/email_0_submitted_*.email')
+    list_email_files_last_request = glob.glob(f'scratch_sid_{session_id}_jid_{dispatcher_job_state.job_id}_aliased/email_history/email_submitted_*.email')
     assert len(list_email_files_last_request) == 1
-    list_overall_email_files = glob.glob(f'scratch_sid_*_jid_{dispatcher_job_state.job_id}*/email_history/email_*_submitted_*.email')
+    list_overall_email_files = glob.glob(f'scratch_sid_*_jid_{dispatcher_job_state.job_id}*/email_history/email_submitted_*.email')
     assert len(list_overall_email_files) == 2
 
 
@@ -693,8 +692,8 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
 
     # check the email in the email folders, and that the first one was produced
 
-    dispatcher_job_state.assert_email("*", "submitted", number=1)
-    dispatcher_job_state.assert_email("*", "done", number=1)
+    dispatcher_job_state.assert_email("submitted")
+    dispatcher_job_state.assert_email("done")
         
 
 def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):

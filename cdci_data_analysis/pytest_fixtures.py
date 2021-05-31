@@ -564,8 +564,8 @@ class DispatcherJobState:
     def email_history_folder(self):
         return f'{self.scratch_dir}/email_history'
 
-    def assert_email(self, serial_number, state, number=1, comment=""):
-        list_email_files = glob.glob(self.email_history_folder + f'/email_{serial_number}_{state}_*.email')
+    def assert_email(self, state, number=1, comment=""):
+        list_email_files = glob.glob(self.email_history_folder + f'/email_{state}_*.email')
         assert len(list_email_files) == number, f"expected {number} emails, found {len(list_email_files)}: {list_email_files} in {self.email_history_folder}; {comment}"
 
     def load_job_state_record(self, state, message):

@@ -296,7 +296,7 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
     
     dispatcher_job_state = DispatcherJobState(disp.session_id, disp.job_id)
 
-    dispatcher_job_state.assert_email("*", "submitted", 1)
+    dispatcher_job_state.assert_email("submitted")
 
     disp = oda_api.api.DispatcherAPI(
         url=dispatcher_live_fixture,
@@ -313,7 +313,7 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
     )
     
     dispatcher_job_state = DispatcherJobState(disp.session_id, disp.job_id)
-    dispatcher_job_state.assert_email("*", "*", 0)
+    dispatcher_job_state.assert_email("*", number=0)
 
     disp = oda_api.api.DispatcherAPI(
         url=dispatcher_live_fixture,
@@ -331,7 +331,7 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
             )
 
     dispatcher_job_state = DispatcherJobState(disp.session_id, disp.job_id)
-    dispatcher_job_state.assert_email("*", "*", 0)
+    dispatcher_job_state.assert_email("*", number=0)
 
 
 @pytest.mark.odaapi

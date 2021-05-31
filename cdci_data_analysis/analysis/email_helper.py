@@ -159,11 +159,9 @@ def store_email_info(message, status, scratch_dir):
     path_email_history_folder = scratch_dir + '/email_history'
     if not os.path.exists(path_email_history_folder):
         os.makedirs(path_email_history_folder)
-    email_files_list = glob.glob(path_email_history_folder + '/email_*')
-    number_emails_scratch_dir = len(email_files_list)
     sending_time = time_.time()
     # record the email just sent in a dedicated file
-    with open(path_email_history_folder + '/email_' + str(number_emails_scratch_dir) + '_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
+    with open(path_email_history_folder + '/email_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
         outfile.write(message.as_string())
 
 
@@ -197,17 +195,21 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
         # find all
         submitted_email_pattern = os.path.join(
                 email_history_dirs_same_job_id,
-                'email_*_submitted_*.email'
+                'email_submitted_*.email'
             )
         submitted_email_files = glob.glob(submitted_email_pattern)
         logger.info("submitted_email_files: %s as %s", len(submitted_email_files), submitted_email_pattern)
         
         if len(submitted_email_files) >= 1:
-            last_submitted_email_sent = submitted_email_files[len(submitted_email_files) - 1]
-            f_name, f_ext = os.path.splitext(os.path.basename(last_submitted_email_sent))
-            time_last_email_submitted_sent = float(f_name.split('_')[3])
+            times = []
+            for f in submitted_email_files:
+                f_name, f_ext = os.path.splitext(os.path.basename(f))
+                if f_ext == '.email' and f_name:
+                    times.append(float(f_name.split('_')[2]))
+
+            time_last_email_submitted_sent = max(times)
             time_from_last_submitted_email = time_.time() - float(time_last_email_submitted_sent)
-            interval_ok = time_from_last_submitted_email > email_sending_job_submitted_interval        
+            interval_ok = time_from_last_submitted_email > email_sending_job_submitted_interval
 
         logger.info("email_sending_job_submitted: %s", email_sending_job_submitted)
         logger.info("interval_ok: %s", interval_ok)
@@ -252,7 +254,6 @@ def is_email_to_send_callback(logger, status, time_original_request, config, job
 
             return email_sending_timeout and duration_query > timeout_threshold_email
 
-            
         # or if failed
         elif status == 'failed':
             return True
