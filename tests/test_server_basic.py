@@ -244,7 +244,7 @@ def test_download_products(dispatcher_live_fixture, empty_products_files_fixture
 
     assert c.status_code == 200
 
-    # write the output and then compare
+    # download the output, read it and then compare it
     with gzip.open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'wb') as fout:
         fout.write(empty_products_files_fixture['content'])
     data_downloaded = ''
@@ -252,7 +252,6 @@ def test_download_products(dispatcher_live_fixture, empty_products_files_fixture
         data_downloaded = fout.read()
 
     assert data_downloaded == empty_products_files_fixture['content']
-
 
 
 @pytest.mark.not_safe_parallel
