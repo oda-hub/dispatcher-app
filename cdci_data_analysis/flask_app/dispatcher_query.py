@@ -81,7 +81,7 @@ class InstrumentQueryBackEnd:
     def instrument_name(self, instrument_name):
         self._instrument_name = instrument_name
 
-    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False):
+    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False):
         # self.instrument_name=instrument_name
 
         self.logger = logging.getLogger(repr(self))
@@ -132,6 +132,9 @@ class InstrumentQueryBackEnd:
                     raise RequestNotAuthorized("token expired")
 
                 logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
+
+            if download_products:
+                self.instrument_name = 'mock'
 
             if instrument_name is None:
                 if 'instrument' in self.par_dic:
