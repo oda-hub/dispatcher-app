@@ -16,7 +16,7 @@ import yaml
 
 #pytestmark = pytest.mark.skip("these tests still WIP")
 
-from cdci_data_analysis.pytest_fixtures import loop_ask, ask
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, loop_ask, ask
 
 
 # logger
@@ -269,6 +269,8 @@ def test_invalid_token(dispatcher_live_fixture, ):
 
 @pytest.mark.odaapi
 def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
+    DispatcherJobState.remove_scratch_folders()
+
     import oda_api.api
 
     # let's generate a valid token
@@ -291,29 +293,16 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
             p=0,
             session_id=disp.session_id
         )
+    
+    dispatcher_job_state = DispatcherJobState(disp.session_id, disp.job_id)
 
-    submitted_job_id = disp.job_id
-    session_id = disp.session_id
-    # check query output are generated and no email was sent in case job was done
-    email_folder_path = f'scratch_sid_{session_id}_jid_{submitted_job_id}/email_history'
-    # the aliased version might have been created
-    email_folder_path_aliased = f'scratch_sid_{session_id}_jid_{submitted_job_id}_aliased/email_history'
-    assert os.path.exists(email_folder_path) or os.path.exists(email_folder_path_aliased)
-    # verify only one email was actually sent, and with the proper ixdex
-    if os.path.exists(email_folder_path):
-        list_email_files = glob.glob(email_folder_path + '/email_*.email')
-        list_email_files_submitted = glob.glob(email_folder_path + '/email_submitted_*.email')
-    else:
-        list_email_files = glob.glob(email_folder_path_aliased + '/email_*.email')
-        list_email_files_submitted = glob.glob(email_folder_path_aliased + '/email_submitted_*.email')
-
-    assert len(list_email_files) == 1
-    assert len(list_email_files_submitted) == 1
+    dispatcher_job_state.assert_email("submitted")
 
     disp = oda_api.api.DispatcherAPI(
         url=dispatcher_live_fixture,
         session_id=disp.session_id,
         wait=False)
+
     disp.get_product(
         product_type="Real",
         instrument="empty-semi-async",
@@ -322,20 +311,15 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
         token=encoded_token,
         p=4
     )
-
-    done_job_id = disp.job_id
-
-    # check query output are generated and no email was sent in case job was done
-    email_folder_path = f'scratch_sid_{session_id}_jid_{done_job_id}/email_history'
-    # the aliased version might have been created
-    email_folder_path_aliased = f'scratch_sid_{session_id}_jid_{done_job_id}_aliased/email_history'
-    # verify no email folder was created (so no email was sent)
-    assert not os.path.exists(email_folder_path) and not os.path.exists(email_folder_path_aliased)
+    
+    dispatcher_job_state = DispatcherJobState(disp.session_id, disp.job_id)
+    dispatcher_job_state.assert_email("*", number=0)
 
     disp = oda_api.api.DispatcherAPI(
         url=dispatcher_live_fixture,
         session_id=disp.session_id,
         wait=False)
+
     with pytest.raises(oda_api.api.RemoteException):
         disp.get_product(
                 product_type="Real",
@@ -346,13 +330,8 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
                 p=-1
             )
 
-    failed_job_id = disp.job_id
-    session_id = disp.session_id
-    # check query output are generated and no email was sent in case job was done
-    email_folder_path = f'scratch_sid_{session_id}_jid_{failed_job_id}/email_history'
-    # the aliased version might have been created
-    email_folder_path_aliased = f'scratch_sid_{session_id}_jid_{failed_job_id}_aliased/email_history'
-    assert not os.path.exists(email_folder_path) and not os.path.exists(email_folder_path_aliased)
+    dispatcher_job_state = DispatcherJobState(disp.session_id, disp.job_id)
+    dispatcher_job_state.assert_email("*", number=0)
 
 
 @pytest.mark.odaapi
