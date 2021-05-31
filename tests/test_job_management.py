@@ -104,7 +104,9 @@ generalized_email_patterns = {
 }
 
 ignore_email_patterns = [
-    '\( .*?ago \)'
+    '\( .*?ago \)',
+    '"token": ".*?"',
+    'expire in .*? .*?\.'
 ]
 
 
@@ -114,6 +116,7 @@ def email_args_to_filename(**email_args):
     return fn
 
 def get_reference_email(**email_args):
+    #TODO: does it actually find it in CI?
     try:
         html = open(email_args_to_filename(**{**email_args, 'email_collection': 'reference'})).read() 
         return adapt_html(html, **email_args)
@@ -185,7 +188,7 @@ def validate_email_content(
             fn = store_email(content_text_html, state=state, time_request_str=time_request_str, products_url=products_url)
 
             if reference_email is not None:
-                open("adapted_reference.html", "w").write(reference_email)
+                open("adapted_reference.html", "w").write(ignore_html_patterns(reference_email))
                 assert ignore_html_patterns(reference_email) == ignore_html_patterns(content_text_html), f"please inspect {fn} and possibly copy it to {fn.replace('to_review', 'reference')}"
 
 

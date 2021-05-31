@@ -31,17 +31,23 @@ def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
         
     return timestamp_or_string
 
-def humanize_age(time_interval_s: float):
-    #TODO!
-
-    age_s = time_.time() - float(time_interval_s)
-
-    if age_s < 120:
-        return f"{age_s:.1f} seconds"
-    elif age_s/60 < 120:
-        return f"{age_s/60:.1f} minutes"
+def humanize_interval(time_interval_s: float):
+    if time_interval_s < 120:
+        return f"{time_interval_s:.1f} seconds"
+    elif time_interval_s/60 < 120:
+        return f"{time_interval_s/60:.1f} minutes"
     else:
-        return f"{age_s/60/60:.1f} hours"
+        return f"{time_interval_s/60/60:.1f} hours"
+
+
+def humanize_age(timestamp: float):
+    return humanize_interval(time_.time() - float(timestamp))
+
+
+def humanize_future(timestamp: float):
+    return humanize_interval(float(timestamp) - time_.time())
+    
+
 
 def textify_email(html):
     text = re.search('<body>(.*?)</body>', html, re.S).group(1)
@@ -71,17 +77,21 @@ def send_email(
     env = Environment(loader=FileSystemLoader('%s/../flask_app/templates/' % os.path.dirname(__file__)))
     env.filters['timestamp2isot'] = timestamp2isot
     env.filters['humanize_age'] = humanize_age
+    env.filters['humanize_future'] = humanize_future
 
-    api_code_no_token = re.sub('"token": ".*?"', '"token": "<PLEASE-INSERT-YOUR-TOKEN-HERE>"', api_code)\
-                        .strip()\
-                        .replace("\n", "<br>\n")
+    api_code = api_code.strip().replace("\n", "<br>\n")
+
+    api_code_no_token = re.sub('"token": ".*?"', '"token": "<PLEASE-INSERT-YOUR-TOKEN-HERE>"', api_code)
+
+    
     
     email_data = {
         'oda_site': { 
             #TODO: get from config
             'site_name': 'University of Geneva',
             'frontend_url': 'https://www.astro.unige.ch/mmoda', 
-            'contact': 'contact@odahub.io'
+            'contact': 'contact@odahub.io',
+            'manual_reference': 'possibly-non-site-specific-link',
         },
         'request': {
             'job_id': job_id,
@@ -91,6 +101,8 @@ def send_email(
             'time_request': time_request,
             'request_url': request_url,
             'api_code_no_token': api_code_no_token,
+            'api_code': api_code,
+            'decoded_token': decoded_token,
         }
     }
 

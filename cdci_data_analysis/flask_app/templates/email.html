@@ -35,8 +35,13 @@ P.S.
 You can also use this python code to request the request:<br>
 <br>
 <div style="background-color: lightgray; display: inline-block; padding: 5px;">
-{{ request.api_code_no_token }}
+{{ request.api_code }}
 </div>
+<br>
+<br>
+Note that this code contains your private token. Be careful how you share it!<br>
+This token is short-lived, and will expire in {{ request.decoded_token.exp | humanize_future }}.<br>
+To learn how to get a new token, please refer to <a href="{{ oda_site.manual_reference }}">these instructions</a>.<br>
 <br>
 
 
