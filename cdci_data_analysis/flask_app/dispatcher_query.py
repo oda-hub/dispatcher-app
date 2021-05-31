@@ -577,7 +577,8 @@ class InstrumentQueryBackEnd:
                     product_type=product_type,
                     time_request=time_original_request,
                     request_url=products_url,
-                    api_code=DispatcherAPI.set_api_code(original_request_par_dic),
+                    api_code=DispatcherAPI.set_api_code(original_request_par_dic, 
+                                                        url=self.app.config['conf'].products_url),
                     scratch_dir=self.scratch_dir,
                     )                
 
@@ -1291,7 +1292,9 @@ class InstrumentQueryBackEnd:
                                 product_type=product_type,
                                 time_request=self.time_request,
                                 request_url=products_url,
-                                api_code=DispatcherAPI.set_api_code(self.par_dic),
+                                api_code=DispatcherAPI.set_api_code(self.par_dic,
+                                                                    url=self.app.config['conf'].products_url
+                                                                    ),
                                 scratch_dir=self.scratch_dir)
                             
                             # store an additional information about the sent email
