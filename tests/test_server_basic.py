@@ -221,10 +221,24 @@ def test_valid_token(dispatcher_live_fixture):
 
 
 @pytest.mark.parametrize("instrument", ["", "None", None, "undefined"])
-def test_download_products(dispatcher_live_fixture, empty_products_files_fixture, instrument):
+@pytest.mark.parametrize("public_request", [True, False])
+def test_download_products(dispatcher_live_fixture, empty_products_files_fixture, instrument, public_request):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
+
+    if public_request:
+        encoded_token = None
+    else:
+        # let's generate a valid token with high threshold
+        token_payload = dict(
+            **default_token_payload,
+            mstout=True,
+            mssub=True,
+            intsub=5
+        )
+
+        encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
     session_id = empty_products_files_fixture['session_id']
     job_id = empty_products_files_fixture['job_id']
@@ -236,7 +250,8 @@ def test_download_products(dispatcher_live_fixture, empty_products_files_fixture
             'file_list': 'test.fits.gz.recovered',
             'download_file_name': 'output_test',
             'session_id': session_id,
-            'job_id': job_id
+            'job_id': job_id,
+            'token': encoded_token
         }
 
     c = requests.get(server + "/download_products",
