@@ -1,24 +1,15 @@
 # this could be a separate package or/and a pytest plugin
 
-from _pytest.fixtures import yield_fixture
-# from cdci_data_analysis.flask_app import dispatcher_query
 from json import JSONDecodeError
-from requests.api import delete
 import yaml
 
-import pytest
-
 import cdci_data_analysis.flask_app.app
-from cdci_data_analysis.configurer import ConfigEnv
 
-import os
 import re
-import signal
 import json
 import string
 import random
 import requests
-import time
 import logging
 import shutil
 import tempfile
@@ -33,8 +24,6 @@ import hashlib
 import glob
 
 from threading import Thread
-from pathlib import Path
-    
 
 __this_dir__ = os.path.join(os.path.abspath(os.path.dirname(__file__)))
 
