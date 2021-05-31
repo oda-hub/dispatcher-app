@@ -220,7 +220,8 @@ def test_valid_token(dispatcher_live_fixture):
     logger.info(json.dumps(jdata, indent=4))
 
 
-def test_download_products(dispatcher_live_fixture, empty_products_files_fixture):
+@pytest.mark.parametrize("instrument", ["", "None", None, "undefined"])
+def test_download_products(dispatcher_live_fixture, empty_products_files_fixture, instrument):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
@@ -229,6 +230,7 @@ def test_download_products(dispatcher_live_fixture, empty_products_files_fixture
     job_id = empty_products_files_fixture['job_id']
 
     params = {
+            'instrument': instrument,
             # since we are passing a job_id
             'query_status': 'ready',
             'file_list': 'test.fits.gz.recovered',
@@ -239,8 +241,6 @@ def test_download_products(dispatcher_live_fixture, empty_products_files_fixture
 
     c = requests.get(server + "/download_products",
                      params=params)
-
-    print("content:", c.text.encode())
 
     assert c.status_code == 200
 
