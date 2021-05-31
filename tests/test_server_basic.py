@@ -13,8 +13,7 @@ import glob
 import pytest
 from functools import reduce
 import yaml
-
-#pytestmark = pytest.mark.skip("these tests still WIP")
+import gzip
 
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, loop_ask, ask
 
@@ -226,24 +225,34 @@ def test_download_products(dispatcher_live_fixture, empty_products_files_fixture
 
     logger.info("constructed server: %s", server)
 
+    session_id = empty_products_files_fixture['session_id']
+    job_id = empty_products_files_fixture['job_id']
+
     params = {
-            **default_params,
-            'product_type': 'dummy',
-            'query_type': "Dummy",
-            'instrument': 'empty',
+            # since we are passing a job_id
             'query_status': 'ready',
             'file_list': 'test.fits.gz.recovered',
             'download_file_name': 'output_test',
-            'session_id': empty_products_files_fixture['session_id'],
-            'job_id': empty_products_files_fixture['job_id']
+            'session_id': session_id,
+            'job_id': job_id
         }
 
     c = requests.get(server + "/download_products",
                      params=params)
 
-    print("content:", c.text)
+    print("content:", c.text.encode())
 
     assert c.status_code == 200
+
+    # write the output and then compare
+    with gzip.open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'wb') as fout:
+        fout.write(empty_products_files_fixture['content'])
+    data_downloaded = ''
+    with gzip.open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'rb') as fout:
+        data_downloaded = fout.read()
+
+    assert data_downloaded == empty_products_files_fixture['content']
+
 
 
 @pytest.mark.not_safe_parallel

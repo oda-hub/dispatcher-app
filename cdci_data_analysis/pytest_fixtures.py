@@ -450,7 +450,8 @@ def empty_products_files_fixture(pytestconfig, dispatcher_test_conf_fn, dispatch
     os.makedirs(scratch_dir_path)
 
     with open(scratch_dir_path + '/test.fits.gz.recovered', 'wb') as fout:
-        fout.write(os.urandom(20))
+        scratch_params['content'] = os.urandom(20)
+        fout.write(scratch_params['content'])
 
     yield scratch_params
 
