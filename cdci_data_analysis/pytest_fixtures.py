@@ -73,6 +73,23 @@ def default_params_dict():
 
 
 @pytest.fixture
+def default_token_payload():
+    default_exp_time = int(time.time()) + 5000
+    default_token_payload = dict(
+        sub="mtm@mtmco.net",
+        name="mmeharga",
+        roles="general",
+        exp=default_exp_time,
+        tem=0,
+        mstout=True,
+        mssub=True,
+        intsub=5
+    )
+
+    yield default_token_payload
+
+
+@pytest.fixture
 def dispatcher_nodebug(monkeypatch):
     monkeypatch.delenv('DISPATCHER_DEBUG_MODE', raising=False)
     # monkeypatch.setenv('DISPATCHER_DEBUG_MODE', 'no')
@@ -471,9 +488,10 @@ def empty_products_files_fixture(default_params_dict):
 
 
 @pytest.fixture
-def empty_products_user_files_fixture(default_params_dict):
+def empty_products_user_files_fixture(default_params_dict, default_token_payload):
+    sub = default_token_payload['sub']
     # generate job_id related to a certain user
-    job_id = hashlib.md5(json.dumps({**default_params_dict, "sub":"mtm@mtmco.net",}).encode()).hexdigest()[:16]
+    job_id = hashlib.md5(json.dumps({**default_params_dict, "sub": sub}).encode()).hexdigest()[:16]
     # generate random session_id
     session_id = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
     scratch_params = dict(
