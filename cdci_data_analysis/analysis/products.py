@@ -629,11 +629,18 @@ class SpectralFitProduct(BaseQueryProduct):
 
         if rmf_file is not None and rmf_file!='None':
             self.rmf_file = FilePath(file_name=rmf_file, file_dir=file_dir).path
+        else:
+            logger.warning("\033[31mrmf_file %s is not good!\033[0m", rmf_file)
+
         if arf_file is not None and arf_file!='None':
             self.arf_file = FilePath(file_name=arf_file, file_dir=file_dir).path
+        else:
+            logger.warning("\033[31marf_file %s is not good!\033[0m", arf_file)
+
         if spec_file is not None and spec_file!='None' :
             self.spec_file = FilePath(file_name=spec_file, file_dir=file_dir).path
-
+        else:
+            logger.warning("\033[31mspec_file %s is not good!\033[0m", spec_file)
 
         self.chain_file_path = FilePath(file_name='xspec_fit.chain', file_dir=file_dir)
         self.work_dir = file_dir
@@ -709,9 +716,17 @@ class SpectralFitProduct(BaseQueryProduct):
         s = xsp.Spectrum(self.spec_file)
 
         if self.rmf_file is not None:
-            s.response = self.rmf_file.encode('utf-8')
+            s.response = self.rmf_file
+            logger.info("\033[32mrmf_file %s is good!\033[0m", self.rmf_file)
+        else:
+            logger.warning("\033[31mrmf_file %s is not good!\033[0m", self.rmf_file)
+
+
         if self.arf_file is not None:
-            s.response.arf = self.arf_file.encode('utf-8')
+            s.response.arf = self.arf_file
+            logger.info("\033[32marf_file %s is good!\033[0m", self.arf_file)
+        else:
+            logger.warning("\033[31marf_file %s is not good!\033[0m", self.arf_file)
 
         #s.ignore('**-15.')
         #s.ignore('300.-**')
