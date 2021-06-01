@@ -15,7 +15,7 @@ import shutil
 import tempfile
 import pytest
 
-
+import gzip
 import subprocess
 import os
 import copy
@@ -438,7 +438,7 @@ def empty_products_files_fixture(pytestconfig, dispatcher_test_conf_fn, dispatch
     # set the scratch directory
     os.makedirs(scratch_dir_path)
 
-    with open(scratch_dir_path + '/test.fits.gz.recovered', 'wb') as fout:
+    with open(scratch_dir_path + '/test.fits.gz', 'wb') as fout:
         scratch_params['content'] = os.urandom(20)
         fout.write(scratch_params['content'])
 

@@ -247,7 +247,7 @@ def test_download_products(dispatcher_live_fixture, empty_products_files_fixture
             'instrument': instrument,
             # since we are passing a job_id
             'query_status': 'ready',
-            'file_list': 'test.fits.gz.recovered',
+            'file_list': 'test.fits.gz',
             'download_file_name': 'output_test',
             'session_id': session_id,
             'job_id': job_id,
@@ -260,9 +260,9 @@ def test_download_products(dispatcher_live_fixture, empty_products_files_fixture
     assert c.status_code == 200
 
     # download the output, read it and then compare it
-    with gzip.open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'wb') as fout:
-        fout.write(empty_products_files_fixture['content'])
-    data_downloaded = ''
+    with open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'wb') as fout:
+        fout.write(c.content)
+
     with gzip.open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'rb') as fout:
         data_downloaded = fout.read()
 
