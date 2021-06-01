@@ -14,8 +14,6 @@ import logging
 import shutil
 import tempfile
 import pytest
-
-import gzip
 import subprocess
 import os
 import copy
