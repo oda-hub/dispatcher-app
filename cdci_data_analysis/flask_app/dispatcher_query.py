@@ -430,16 +430,20 @@ class InstrumentQueryBackEnd:
             self.off_line = False
             self.api = False
 
+            request_par_dic = self.get_request_par_dic()
             if not self.public:
-                request_par_dic = self.get_request_par_dic()
                 dict_job_id = {
                     **request_par_dic,
                     "sub": tokenHelper.get_token_user_email_address(self.decoded_token)
                 }
                 calculated_job_id = self.calculate_job_id(dict_job_id)
-                if self.par_dic['job_id'] != calculated_job_id:
-                    logstash_message(self.app, {'origin': 'dispatcher-run-analysis', 'event': 'unauthorized-user'})
-                    raise RequestNotAuthorized("user not authorized to download the requested product")
+            else:
+                request_par_dic = self.get_request_par_dic()
+                calculated_job_id = self.calculate_job_id(request_par_dic)
+
+            if self.par_dic['job_id'] != calculated_job_id:
+                logstash_message(self.app, {'origin': 'dispatcher-run-analysis', 'event': 'unauthorized-user'})
+                raise RequestNotAuthorized("user not authorized to download the requested product")
 
             file_list = self.args.get('file_list').split(',')
             file_name = self.args.get('download_file_name')

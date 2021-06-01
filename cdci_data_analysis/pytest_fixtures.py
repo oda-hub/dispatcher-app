@@ -1,5 +1,5 @@
 # this could be a separate package or/and a pytest plugin
-
+from collections import OrderedDict
 from json import JSONDecodeError
 import yaml
 
@@ -353,9 +353,24 @@ dispatcher:
 
     yield fn
 
+
 @pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
     yield yaml.load(open(dispatcher_test_conf_fn))['dispatcher']
+
+
+def make_hash(o):
+    def format_hash(x): return hashlib.md5(
+        json.dumps(sorted(x)).encode()
+    ).hexdigest()[:16]
+
+    if isinstance(o, (set, tuple, list)):
+        return format_hash(tuple(map(make_hash, o)))
+
+    elif isinstance(o, (dict, OrderedDict)):
+        return make_hash(tuple(o.items()))
+
+    return format_hash(json.dumps(o))
 
 
 def start_dispatcher(rootdir, test_conf_fn):
@@ -458,11 +473,11 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
     json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
     yield dispatcher_state['url']
 
-    
+
 @pytest.fixture
 def empty_products_files_fixture(default_params_dict):
     # generate job_id
-    job_id = hashlib.md5(json.dumps(default_params_dict).encode()).hexdigest()[:16]
+    job_id = u'%s' % (make_hash(default_params_dict))
     # generate random session_id
     session_id = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
     scratch_params = dict(
@@ -470,6 +485,7 @@ def empty_products_files_fixture(default_params_dict):
         session_id= session_id
     )
     DispatcherJobState.remove_scratch_folders(job_id=job_id)
+    DispatcherJobState.remove_download_folders()
     scratch_dir_path = f'scratch_sid_{session_id}_jid_{job_id}'
     # set the scratch directory
     os.makedirs(scratch_dir_path)
@@ -489,7 +505,7 @@ def empty_products_files_fixture(default_params_dict):
 def empty_products_user_files_fixture(default_params_dict, default_token_payload):
     sub = default_token_payload['sub']
     # generate job_id related to a certain user
-    job_id = hashlib.md5(json.dumps({**default_params_dict, "sub": sub}).encode()).hexdigest()[:16]
+    job_id = u'%s' % (make_hash({**default_params_dict, "sub": sub}))
     # generate random session_id
     session_id = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
     scratch_params = dict(
@@ -497,6 +513,7 @@ def empty_products_user_files_fixture(default_params_dict, default_token_payload
         session_id= session_id
     )
     DispatcherJobState.remove_scratch_folders(job_id=job_id)
+    DispatcherJobState.remove_download_folders()
     scratch_dir_path = f'scratch_sid_{session_id}_jid_{job_id}'
     # set the scratch directory
     os.makedirs(scratch_dir_path)
@@ -613,6 +630,15 @@ class DispatcherJobState:
             dir_list = glob.glob('scratch_*')
         else:
             dir_list = glob.glob(f'scratch_*_jid_{job_id}*')
+        for d in dir_list:
+            shutil.rmtree(d)
+
+    @staticmethod
+    def remove_download_folders(id=None):
+        if id is None:
+            dir_list = glob.glob('download_*')
+        else:
+            dir_list = glob.glob(f'download_{id}')
         for d in dir_list:
             shutil.rmtree(d)
 

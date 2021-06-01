@@ -267,6 +267,8 @@ def test_download_products_authorized_user(dispatcher_live_fixture, empty_produc
         "intsub": 5
     }
 
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
     session_id = empty_products_user_files_fixture['session_id']
     job_id = empty_products_user_files_fixture['job_id']
 
@@ -276,7 +278,8 @@ def test_download_products_authorized_user(dispatcher_live_fixture, empty_produc
         'file_list': 'test.fits.gz',
         'download_file_name': 'output_test',
         'session_id': session_id,
-        'job_id': job_id
+        'job_id': job_id,
+        'token': encoded_token
     }
 
     c = requests.get(server + "/download_products",
