@@ -13,8 +13,7 @@ import glob
 import pytest
 from functools import reduce
 import yaml
-
-#pytestmark = pytest.mark.skip("these tests still WIP")
+import gzip
 
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, loop_ask, ask
 
@@ -71,7 +70,6 @@ def test_empty_request(dispatcher_live_fixture):
 
      # parameterize this
     assert jdata['installed_instruments'] == ['empty', 'empty-async', 'empty-semi-async'] or \
-           jdata['installed_instruments'] == ['empty', 'empty-async', 'empty-semi-async'] or \
            jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"
@@ -105,7 +103,7 @@ def test_no_debug_mode_empty_request(dispatcher_live_fixture_no_debug_mode):
 
     assert c.status_code == 400
 
-     # parameterize this
+    # parameterize this
     assert jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "no"
@@ -219,6 +217,124 @@ def test_valid_token(dispatcher_live_fixture):
 
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
+
+
+@pytest.mark.parametrize("instrument", ["", "None", None, "undefined"])
+def test_download_products_public(dispatcher_live_fixture, empty_products_files_fixture, instrument):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    session_id = empty_products_files_fixture['session_id']
+    job_id = empty_products_files_fixture['job_id']
+
+    params = {
+            'instrument': instrument,
+            # since we are passing a job_id
+            'query_status': 'ready',
+            'file_list': 'test.fits.gz',
+            'download_file_name': 'output_test',
+            'session_id': session_id,
+            'job_id': job_id
+        }
+
+    c = requests.get(server + "/download_products",
+                     params=params)
+
+    assert c.status_code == 200
+
+    # download the output, read it and then compare it
+    with open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'wb') as fout:
+        fout.write(c.content)
+
+    with gzip.open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'rb') as fout:
+        data_downloaded = fout.read()
+
+    assert data_downloaded == empty_products_files_fixture['content']
+
+
+def test_download_products_authorized_user(dispatcher_live_fixture, empty_products_user_files_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "sub": "mtm@mtmco.net",
+        "mstout": True,
+        "mssub": True,
+        "intsub": 5
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    session_id = empty_products_user_files_fixture['session_id']
+    job_id = empty_products_user_files_fixture['job_id']
+
+    params = {
+        # since we are passing a job_id
+        'query_status': 'ready',
+        'file_list': 'test.fits.gz',
+        'download_file_name': 'output_test',
+        'session_id': session_id,
+        'job_id': job_id,
+        'token': encoded_token
+    }
+
+    c = requests.get(server + "/download_products",
+                     params=params)
+
+    assert c.status_code == 200
+
+    # download the output, read it and then compare it
+    with open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'wb') as fout:
+        fout.write(c.content)
+
+    with gzip.open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'rb') as fout:
+        data_downloaded = fout.read()
+
+    assert data_downloaded == empty_products_user_files_fixture['content']
+
+
+def test_download_products_unauthorized_user(dispatcher_live_fixture, empty_products_user_files_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "sub": "mtm1@mtmco.net",
+        "mstout": True,
+        "mssub": True,
+        "intsub": 5
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    session_id = empty_products_user_files_fixture['session_id']
+    job_id = empty_products_user_files_fixture['job_id']
+
+    params = {
+        # since we are passing a job_id
+        'query_status': 'ready',
+        'file_list': 'test.fits.gz',
+        'download_file_name': 'output_test',
+        'session_id': session_id,
+        'job_id': job_id,
+        'token': encoded_token
+    }
+
+    c = requests.get(server + "/download_products",
+                     params=params)
+
+    assert c.status_code == 403
+
+    jdata = c.json()
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == "user not authorized to download the requested product"
 
 
 @pytest.mark.not_safe_parallel

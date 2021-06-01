@@ -81,7 +81,7 @@ class InstrumentQueryBackEnd:
     def instrument_name(self, instrument_name):
         self._instrument_name = instrument_name
 
-    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False):
+    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False):
         # self.instrument_name=instrument_name
 
         self.logger = logging.getLogger(repr(self))
@@ -132,6 +132,9 @@ class InstrumentQueryBackEnd:
                     raise RequestNotAuthorized("token expired")
 
                 logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
+
+            if download_products:
+                instrument_name = 'mock'
 
             if instrument_name is None:
                 if 'instrument' in self.par_dic:
@@ -228,6 +231,9 @@ class InstrumentQueryBackEnd:
         # this takes care of various strange objects which can not be properly represented
         return format_hash(json.dumps(o))
 
+    def calculate_job_id(self, par_dic):
+        return u'%s' % (self.make_hash(par_dic))
+
     # not job_id??
     def generate_job_id(self, kw_black_list=['session_id', 'job_id', 'token']):
         self.logger.info("\033[31m---> GENERATING JOB ID <---\033[0m")
@@ -251,7 +257,7 @@ class InstrumentQueryBackEnd:
             # token has not been considered, but the user id will be (if availaable)
             _dict['sub'] = tokenHelper.get_token_user_email_address(self.decoded_token)
 
-        self.job_id = u'%s' % (self.make_hash(_dict))
+        self.job_id = self.calculate_job_id(_dict)
 
         self.logger.info(
             '\033[31mgenerated NEW job_id %s \033[0m', self.job_id)
@@ -419,19 +425,37 @@ class InstrumentQueryBackEnd:
         return tmp_dir, file_name
 
     def download_products(self,):
-        #print('in url file_list', self.args.get('file_list'))
-        #scratch_dir, logger = set_session(self.args.get('session_id'))
-
-        file_list = self.args.get('file_list').split(',')
-        #print('used file_list', file_list)
-        file_name = self.args.get('download_file_name')
-
-        tmp_dir, target_file = self.prepare_download(
-            file_list, file_name, self.scratch_dir)
-        #print('downlaoding scratch dir', self.scratch_dir)
         try:
+            # TODO not entirely sure about these
+            self.off_line = False
+            self.api = False
+
+            request_par_dic = self.get_request_par_dic()
+            if not self.public:
+                dict_job_id = {
+                    **request_par_dic,
+                    "sub": tokenHelper.get_token_user_email_address(self.decoded_token)
+                }
+                calculated_job_id = self.calculate_job_id(dict_job_id)
+            else:
+                request_par_dic = self.get_request_par_dic()
+                calculated_job_id = self.calculate_job_id(request_par_dic)
+
+            if self.par_dic['job_id'] != calculated_job_id:
+                logstash_message(self.app, {'origin': 'dispatcher-run-analysis', 'event': 'unauthorized-user'})
+                raise RequestNotAuthorized("user not authorized to download the requested product")
+
+            file_list = self.args.get('file_list').split(',')
+            file_name = self.args.get('download_file_name')
+
+            tmp_dir, target_file = self.prepare_download(
+                file_list, file_name, self.scratch_dir)
             return send_from_directory(directory=tmp_dir, filename=target_file, attachment_filename=target_file,
                                        as_attachment=True)
+        except RequestNotAuthorized as e:
+            return self.build_response_failed('oda_api permissions failed',
+                                              e.message,
+                                              status_code=e.status_code)
         except Exception as e:
             return e
 

@@ -1,30 +1,19 @@
 # this could be a separate package or/and a pytest plugin
-
-from _pytest.fixtures import yield_fixture
-# from cdci_data_analysis.flask_app import dispatcher_query
+from collections import OrderedDict
 from json import JSONDecodeError
-from requests.api import delete
 import yaml
 
-import pytest
-
 import cdci_data_analysis.flask_app.app
-from cdci_data_analysis.configurer import ConfigEnv
 
-import os
 import re
-import signal
 import json
 import string
 import random
 import requests
-import time
 import logging
 import shutil
 import tempfile
 import pytest
-
-
 import subprocess
 import os
 import copy
@@ -33,8 +22,6 @@ import hashlib
 import glob
 
 from threading import Thread
-
-    
 
 __this_dir__ = os.path.join(os.path.abspath(os.path.dirname(__file__)))
 
@@ -60,6 +47,44 @@ def app():
 @pytest.fixture
 def dispatcher_debug(monkeypatch):
     monkeypatch.setenv('DISPATCHER_DEBUG_MODE', 'yes')
+
+
+@pytest.fixture
+def default_params_dict():
+    params = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="isgri",
+        product_type="isgri_image",
+        osa_version="OSA10.2",
+        E1_keV=20.,
+        E2_keV=40.,
+        T1="2008-01-01T11:11:11.0",
+        T2="2009-01-01T11:11:11.0",
+        max_pointings=2,
+        RA=83,
+        DEC=22,
+        radius=6,
+        async_dispatcher=False
+    )
+    yield params
+
+
+@pytest.fixture
+def default_token_payload():
+    default_exp_time = int(time.time()) + 5000
+    default_token_payload = dict(
+        sub="mtm@mtmco.net",
+        name="mmeharga",
+        roles="general",
+        exp=default_exp_time,
+        tem=0,
+        mstout=True,
+        mssub=True,
+        intsub=5
+    )
+
+    yield default_token_payload
 
 
 @pytest.fixture
@@ -328,9 +353,24 @@ dispatcher:
 
     yield fn
 
+
 @pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
     yield yaml.load(open(dispatcher_test_conf_fn))['dispatcher']
+
+
+def make_hash(o):
+    def format_hash(x): return hashlib.md5(
+        json.dumps(sorted(x)).encode()
+    ).hexdigest()[:16]
+
+    if isinstance(o, (set, tuple, list)):
+        return format_hash(tuple(map(make_hash, o)))
+
+    elif isinstance(o, (dict, OrderedDict)):
+        return make_hash(tuple(o.items()))
+
+    return format_hash(json.dumps(o))
 
 
 def start_dispatcher(rootdir, test_conf_fn):
@@ -433,7 +473,60 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
     json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
     yield dispatcher_state['url']
 
-    
+
+@pytest.fixture
+def empty_products_files_fixture(default_params_dict):
+    # generate job_id
+    job_id = u'%s' % (make_hash(default_params_dict))
+    # generate random session_id
+    session_id = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+    scratch_params = dict(
+        job_id=job_id,
+        session_id= session_id
+    )
+    DispatcherJobState.remove_scratch_folders(job_id=job_id)
+    DispatcherJobState.remove_download_folders()
+    scratch_dir_path = f'scratch_sid_{session_id}_jid_{job_id}'
+    # set the scratch directory
+    os.makedirs(scratch_dir_path)
+
+    with open(scratch_dir_path + '/test.fits.gz', 'wb') as fout:
+        scratch_params['content'] = os.urandom(20)
+        fout.write(scratch_params['content'])
+
+    with open(scratch_dir_path + '/analysis_parameters.json', 'w') as outfile:
+        my_json_str = json.dumps(default_params_dict, indent=4)
+        outfile.write(u'%s' % my_json_str)
+
+    yield scratch_params
+
+
+@pytest.fixture
+def empty_products_user_files_fixture(default_params_dict, default_token_payload):
+    sub = default_token_payload['sub']
+    # generate job_id related to a certain user
+    job_id = u'%s' % (make_hash({**default_params_dict, "sub": sub}))
+    # generate random session_id
+    session_id = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+    scratch_params = dict(
+        job_id=job_id,
+        session_id= session_id
+    )
+    DispatcherJobState.remove_scratch_folders(job_id=job_id)
+    DispatcherJobState.remove_download_folders()
+    scratch_dir_path = f'scratch_sid_{session_id}_jid_{job_id}'
+    # set the scratch directory
+    os.makedirs(scratch_dir_path)
+
+    with open(scratch_dir_path + '/test.fits.gz', 'wb') as fout:
+        scratch_params['content'] = os.urandom(20)
+        fout.write(scratch_params['content'])
+
+    with open(scratch_dir_path + '/analysis_parameters.json', 'w') as outfile:
+        my_json_str = json.dumps(default_params_dict, indent=4)
+        outfile.write(u'%s' % my_json_str)
+
+    yield scratch_params
 
 
 @pytest.fixture
@@ -532,8 +625,20 @@ class DispatcherJobState:
     """
 
     @staticmethod
-    def remove_scratch_folders():
-        dir_list = glob.glob('scratch_*')
+    def remove_scratch_folders(job_id=None):
+        if job_id is None:
+            dir_list = glob.glob('scratch_*')
+        else:
+            dir_list = glob.glob(f'scratch_*_jid_{job_id}*')
+        for d in dir_list:
+            shutil.rmtree(d)
+
+    @staticmethod
+    def remove_download_folders(id=None):
+        if id is None:
+            dir_list = glob.glob('download_*')
+        else:
+            dir_list = glob.glob(f'download_{id}')
         for d in dir_list:
             shutil.rmtree(d)
 
