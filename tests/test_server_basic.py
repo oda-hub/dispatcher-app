@@ -220,24 +220,10 @@ def test_valid_token(dispatcher_live_fixture):
 
 
 @pytest.mark.parametrize("instrument", ["", "None", None, "undefined"])
-@pytest.mark.parametrize("public_request", [True, False])
-def test_download_products(dispatcher_live_fixture, empty_products_files_fixture, instrument, public_request):
+def test_download_products_public(dispatcher_live_fixture, empty_products_files_fixture, instrument):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
-
-    if public_request:
-        encoded_token = None
-    else:
-        # let's generate a valid token with high threshold
-        token_payload = dict(
-            **default_token_payload,
-            mstout=True,
-            mssub=True,
-            intsub=5
-        )
-
-        encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
     session_id = empty_products_files_fixture['session_id']
     job_id = empty_products_files_fixture['job_id']
@@ -249,8 +235,7 @@ def test_download_products(dispatcher_live_fixture, empty_products_files_fixture
             'file_list': 'test.fits.gz',
             'download_file_name': 'output_test',
             'session_id': session_id,
-            'job_id': job_id,
-            'token': encoded_token
+            'job_id': job_id
         }
 
     c = requests.get(server + "/download_products",
@@ -266,6 +251,47 @@ def test_download_products(dispatcher_live_fixture, empty_products_files_fixture
         data_downloaded = fout.read()
 
     assert data_downloaded == empty_products_files_fixture['content']
+
+
+def test_download_products_authorized_user(dispatcher_live_fixture, empty_products_user_files_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "sub": "mtm@mtmco.net",
+        "mstout": True,
+        "mssub": True,
+        "intsub": 5
+    }
+
+    session_id = empty_products_user_files_fixture['session_id']
+    job_id = empty_products_user_files_fixture['job_id']
+
+    params = {
+        # since we are passing a job_id
+        'query_status': 'ready',
+        'file_list': 'test.fits.gz',
+        'download_file_name': 'output_test',
+        'session_id': session_id,
+        'job_id': job_id
+    }
+
+    c = requests.get(server + "/download_products",
+                     params=params)
+
+    assert c.status_code == 200
+
+    # download the output, read it and then compare it
+    with open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'wb') as fout:
+        fout.write(c.content)
+
+    with gzip.open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'rb') as fout:
+        data_downloaded = fout.read()
+
+    assert data_downloaded == empty_products_user_files_fixture['content']
 
 
 def test_download_products_unauthorized_user(dispatcher_live_fixture, empty_products_user_files_fixture):

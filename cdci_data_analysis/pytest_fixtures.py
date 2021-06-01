@@ -445,9 +445,9 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
 
     
 @pytest.fixture
-def empty_products_files_fixture():
+def empty_products_files_fixture(default_params_dict):
     # generate job_id
-    job_id = hashlib.md5(json.dumps({}).encode()).hexdigest()[:16]
+    job_id = hashlib.md5(json.dumps(default_params_dict).encode()).hexdigest()[:16]
     # generate random session_id
     session_id = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
     scratch_params = dict(
@@ -462,6 +462,10 @@ def empty_products_files_fixture():
     with open(scratch_dir_path + '/test.fits.gz', 'wb') as fout:
         scratch_params['content'] = os.urandom(20)
         fout.write(scratch_params['content'])
+
+    with open(scratch_dir_path + '/analysis_parameters.json', 'w') as outfile:
+        my_json_str = json.dumps(default_params_dict, indent=4)
+        outfile.write(u'%s' % my_json_str)
 
     yield scratch_params
 
