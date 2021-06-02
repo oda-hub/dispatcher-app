@@ -586,6 +586,8 @@ class InstrumentQueryBackEnd:
         logger.warn('-----> set status to %s', status)
 
         try:
+            # TODO for a future implementation
+            # self.validate_job_id()
             if email_helper.is_email_to_send_callback(self.logger,
                                                       status,
                                                       time_original_request,
@@ -640,6 +642,15 @@ class InstrumentQueryBackEnd:
                                         full_dict=self.par_dic,
                                         call_back_status=f'parameter missing during call back: {e.message}')
             logging.warning(f'parameter missing during call back: {e}')
+        # TODO for a future implementation
+        # except RequestNotAuthorized as e:
+        #     job.write_dataserver_status(status_dictionary_value=status,
+        #                                 full_dict=self.par_dic,
+        #                                 call_back_status=f'unauthorized request detected during call back: {e.message}')
+        #     if self.sentry_client is not None:
+        #         self.sentry_client.capture('raven.events.Message',
+        #                                message=f'attempted call_back with worng job_id {e.message}')
+        #     logging.warning(f'unauthorized request detected during call back: {e.message}')
 
 
     # TODO perhaps move it somewhere else?
