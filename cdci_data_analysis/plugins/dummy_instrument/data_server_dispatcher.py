@@ -56,7 +56,7 @@ class DataServerQuery:
         pass
 
     def test_communication(self,
-                           instrument: Instrument,
+                           instrument: Instrument=None,
                            query_type='Real',
                            logger=None,
                            config=None,

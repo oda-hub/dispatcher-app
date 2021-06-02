@@ -8,11 +8,15 @@ import ssl
 import os
 import re
 import glob
+import base64
+import logging
 from jinja2 import Environment, FileSystemLoader
 
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
 
 from datetime import datetime
+
+logger = logging.getLogger()
 
 class MultipleDoneEmail(BadRequest):
     pass
@@ -57,7 +61,55 @@ def textify_email(html):
     text = re.sub('<a href=(.*?)>(.*?)</a>', r'\2: \1', text)
 
     return re.sub('<.*?>', '', text)
-   
+
+from urllib import parse
+import zlib
+import json
+
+def invalid_email_line_length(body):
+    for line in body.split(r'\n'):
+        if len(line) > 999:
+            return True
+    return False
+
+def compress_request_url_params(request_url, consider_args=['selected_catalog', 'string_like_name']):
+    parsed_url = parse.urlparse(request_url)
+
+    parsed_qs = parse.parse_qs(parsed_url.query)
+
+    compressed_qs = {}
+    for k, v in parsed_qs.items():
+        if k in consider_args:
+            v_json = json.dumps(v)
+            
+            if len(v_json) > 100:
+                v = "z:" + base64.b64encode(zlib.compress(v_json.encode())).decode()
+                logger.info("compressing long %.50s...", v)
+
+        compressed_qs[k] = v    
+        
+    
+    return parse.urlunparse(parsed_url.__class__(**{
+        **parsed_url._asdict(),
+        'query': parse.urlencode(compressed_qs)
+    }))
+
+def adapt_line_length_api_code(api_code, max_length=100, line_break="\n", add_line_continuation=r"\\"):
+    api_code_short_lines = ""
+    for line in api_code.split(line_break):
+        print("line:", line)
+        while len(line) > 0:
+            print("line is not empty:", line)
+            sub_line = line[:max_length]
+            line = line[max_length:]
+
+            print("subline:", sub_line)
+            print("line:", line)
+
+            api_code_short_lines += sub_line + add_line_continuation + line_break
+
+    return api_code_short_lines
+
 
 def send_email(
         config,
@@ -80,10 +132,11 @@ def send_email(
     env.filters['humanize_future'] = humanize_future
 
     api_code = api_code.strip().replace("\n", "<br>\n")
+    api_code = adapt_line_length_api_code(api_code)
 
     api_code_no_token = re.sub('"token": ".*?"', '"token": "<PLEASE-INSERT-YOUR-TOKEN-HERE>"', api_code)
 
-    
+    compressed_request_url = compress_request_url_params(request_url)
     
     email_data = {
         'oda_site': { 
@@ -99,7 +152,7 @@ def send_email(
             'instrument': instrument,
             'product_type': product_type,
             'time_request': time_request,
-            'request_url': request_url,
+            'request_url': compressed_request_url,
             'api_code_no_token': api_code_no_token,
             'api_code': api_code,
             'decoded_token': decoded_token,
@@ -110,8 +163,10 @@ def send_email(
     email_body_html = template.render(**email_data)
     
     email_subject = re.search("<title>(.*?)</title>", email_body_html).group(1)
-
     email_text = textify_email(email_body_html)
+
+    if invalid_email_line_length(email_text) or invalid_email_line_length(email_body_html):
+        raise EMailNotSent(f"email not sent, lines too long!")
     
     server = None
     logger.info("Sending email")
@@ -157,6 +212,7 @@ def send_email(
         server.sendmail(sender_email_address, receivers_email_addresses, message.as_string())
     except Exception as e:
         logger.error(f'Exception while sending email: {e}')
+        open("debug_email_not_sent.html", "w").write(email_body_html)
         raise EMailNotSent(f"email not sent {e}")
     finally:
         if server:

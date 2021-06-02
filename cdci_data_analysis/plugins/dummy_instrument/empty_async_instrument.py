@@ -35,7 +35,7 @@ __author__ = "Andrea Tramacere"
 
 
 from cdci_data_analysis.analysis.instrument import Instrument
-from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float, QueryOutput
+from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float, Name
 
 from .data_server_dispatcher import DataServerQuery, EmptyProductQuery, DataServerNumericQuery
 
@@ -50,8 +50,9 @@ def my_instr_factory():
     empty_query = EmptyProductQuery('empty_parameters_dummy_query',)
     # let's build a simple parameter to its list
     p = Float(value=10., name='p', units='W',)
+    string_parameter = Name(value="default-name", name='string_like_name')
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
-                                             parameters_list=[p])
+                                             parameters_list=[p, string_parameter])
 
     # this dicts binds the product query name to the product name from frontend
     # eg my_instr_image is the parameter passed by the fronted to access the

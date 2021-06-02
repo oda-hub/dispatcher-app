@@ -666,7 +666,7 @@ class DispatcherJobState:
         return job_monitor_json_fn
 
     @property
-    def email_history_folder(self):
+    def email_history_folder(self) -> str:
         return f'{self.scratch_dir}/email_history'
 
     def assert_email(self, state, number=1, comment=""):
@@ -675,3 +675,6 @@ class DispatcherJobState:
 
     def load_job_state_record(self, state, message):
         return json.load(open(f'{self.scratch_dir}/job_monitor_{state}_{message}_.json'))
+
+    def load_emails(self):
+        return [ open(fn).read() for fn in glob.glob(f"{self.email_history_folder}/*") ]

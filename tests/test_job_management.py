@@ -808,3 +808,82 @@ def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_liv
     assert os.path.exists(email_history_folder_path)
     list_email_files = glob.glob(email_history_folder_path + '/email_*.email')
     assert len(list_email_files) == 1
+
+
+def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_local_mail_server):
+    # emails generally can not contain lines longer than 999 characters.
+    # different SMTP servers will deal with these differently: 
+    #  * some will respond with error, 
+    #  * some, apparently, automatically introduce new line 
+    # 
+    # The latter  may cause an issue if it is added in the middle of data, 
+    # e.g. in some random place in json 
+    # we need:
+    #  * to detect this and be clear we can not send these long lines. they are not often usable as URLs anyway
+    #  * compress long parameters, e.g. selected_catalog
+    #  * request by shortcut (job_d): but it is clear that it is not generally possible to derive parameters from job_id
+
+    server = dispatcher_long_living_fixture
+    
+    DispatcherJobState.remove_scratch_folders()
+
+     # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "tem": 0
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    # set the time the request was initiated
+    time_request = time.time()
+
+    name_parameter_value = "01"*1000
+
+    c = requests.get(server + "/run_analysis",
+                     params=dict(
+                         query_status="new",
+                         query_type="Real",
+                         instrument="empty-async",
+                         product_type="numerical",
+                         string_like_name=name_parameter_value,
+                         token=encoded_token,
+                         time_request=time_request
+                     ))
+
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)    
+
+    jdata = c.json()
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    dispatcher_job_state.assert_email("submitted")
+
+    email_data = dispatcher_job_state.load_emails()[0]
+
+    print(email_data)
+
+    assert name_parameter_value in email_data
+
+def test_email_compress_request_url():    
+    from cdci_data_analysis.analysis.email_helper import compress_request_url_params
+
+    url = "http://localhost:8000/?" + urlencode(dict(
+        par_int=123,
+        par_str="01"*10000,
+    ))
+
+    compressed_url = compress_request_url_params(url, consider_args=['par_str'])
+
+    assert len(compressed_url) < 200
+    assert len(url) > 10000
+
+def test_adapt_line_length_api_code():
+    from cdci_data_analysis.analysis.email_helper import adapt_line_length_api_code
+
+    line_break = '\n'
+    long_line_code = "01"*1000
+    adapted = adapt_line_length_api_code(long_line_code, max_length=100, line_break=line_break)
+
+    assert len(adapted.split(line_break)) > 10
+
+    assert adapted.replace(line_break, '') == long_line_code
