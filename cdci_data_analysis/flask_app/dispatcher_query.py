@@ -1304,7 +1304,8 @@ class InstrumentQueryBackEnd:
                 except RequestNotAuthorized as e:
                     return self.build_response_failed('oda_api permissions failed',
                                                       e.message,
-                                                      status_code=e.status_code)
+                                                      status_code=e.status_code,
+                                                      debug_message=e.debug_message)
 
                 self.logger.info('-----------------> job status after query: %s', job.status)
 
