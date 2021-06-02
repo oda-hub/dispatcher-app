@@ -157,7 +157,6 @@ def test_same_request_different_users(dispatcher_live_fixture):
     assert jdata_1["exit_status"]["error_message"] == ""
     assert jdata_1["exit_status"]["message"] == ""
 
-    session_id_1 = jdata_1['session_id']
     job_id_1 = jdata_1['job_monitor']['job_id']
 
     params_2 = {
@@ -177,7 +176,6 @@ def test_same_request_different_users(dispatcher_live_fixture):
     assert jdata_2["exit_status"]["error_message"] == ""
     assert jdata_2["exit_status"]["message"] == ""
 
-    session_id_2 = jdata_2['session_id']
     job_id_2 = jdata_2['job_monitor']['job_id']
 
     assert job_id_1 != job_id_2
