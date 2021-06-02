@@ -440,8 +440,12 @@ class InstrumentQueryBackEnd:
                 calculated_job_id = self.calculate_job_id(request_par_dic)
 
             if self.job_id != calculated_job_id:
+                debug_message = f"The provided job_id={self.job_id} does not match with the job_id={calculated_job_id} " \
+                                f"derived from the request parameters"
+                if not self.public:
+                    debug_message += " for your user account email"
                 logstash_message(self.app, {'origin': 'dispatcher-call-back', 'event': 'unauthorized-user'})
-                raise RequestNotAuthorized("user not authorized to download the requested product")
+                raise RequestNotAuthorized("user not authorized to download the requested product", debug_message=debug_message)
 
     def download_products(self,):
         try:
@@ -460,7 +464,8 @@ class InstrumentQueryBackEnd:
         except RequestNotAuthorized as e:
             return self.build_response_failed('oda_api permissions failed',
                                               e.message,
-                                              status_code=e.status_code)
+                                              status_code=e.status_code,
+                                              debug_message=e.debug_message)
         except Exception as e:
             return e
 
@@ -913,7 +918,7 @@ class InstrumentQueryBackEnd:
                            token=self.token,
                            time_request=self.time_request)
 
-    def build_response_failed(self, message, extra_message, status_code=None):
+    def build_response_failed(self, message, extra_message, status_code=None, debug_message=''):
         job = self.build_job()
         job.set_failed()
         job_monitor = job.monitor
@@ -926,7 +931,8 @@ class InstrumentQueryBackEnd:
 
         query_out.set_failed(failed_task,
                              message=extra_message,
-                             job_status=job_monitor['status'])
+                             job_status=job_monitor['status'],
+                             debug_message=debug_message)
 
         resp = self.build_dispatcher_response(query_new_status=query_status,
                                               query_out=query_out,
@@ -1108,7 +1114,8 @@ class InstrumentQueryBackEnd:
         except RequestNotAuthorized as e:
             return self.build_response_failed('oda_api permissions failed',
                                               e.message,
-                                              status_code=e.status_code)
+                                              status_code=e.status_code,
+                                              debug_message=e.debug_message)
 
         try:
             query_type = self.par_dic['query_type']

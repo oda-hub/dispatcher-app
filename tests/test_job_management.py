@@ -12,7 +12,7 @@ import email
 from urllib.parse import urlencode
 import glob
 
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash
 
 from flask import Markup
 
@@ -217,7 +217,7 @@ def get_expected_products_url(dict_param):
     return '%s?%s' % ('http://www.astro.unige.ch/cdci/astrooda_', urlencode(dict_param_complete))
 
 
-def test_validation_job_id(dispatcher_live_fixture, empty_products_files_fixture):
+def test_validation_job_id(dispatcher_live_fixture):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
@@ -262,18 +262,26 @@ def test_validation_job_id(dispatcher_live_fixture, empty_products_files_fixture
         token=encoded_token
     )
 
+
     # this should return status submitted, so email sent
     c = requests.get(server + "/run_analysis",
                      dict_param
                      )
+    dict_param.pop('token')
+    dict_param.pop('session_id')
+    dict_param.pop('job_id')
+    dict_param['query_status'] = 'new'
+    wrong_job_id = u'%s' % (make_hash({**dict_param, "sub": "mtm1@mtmco.net"}))
     assert c.status_code == 403
     jdata = c.json()
-    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["debug_message"] == \
+           f'The provided job_id={dispatcher_job_state.job_id} does not match with the ' \
+           f'job_id={wrong_job_id} derived from the request parameters for your user account email'
     assert jdata["exit_status"]["error_message"] == ""
     assert jdata["exit_status"]["message"] == "user not authorized to download the requested product"
 
 
-def test_validation_job_id_call_back(dispatcher_live_fixture, empty_products_files_fixture):
+def test_validation_job_id_call_back(dispatcher_live_fixture):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
