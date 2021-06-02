@@ -154,13 +154,13 @@ class InstrumentQueryBackEnd:
                 #self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
                 # self.set_sentry_client()
             else:
-                print("NOT get_meta_data request: yes scratch_dir")
+                logger.debug("NOT get_meta_data request: yes scratch_dir")
 
                 # TODO: if not callback!
                 # if 'query_status' not in self.par_dic:
                 #    raise MissingRequestParameter('no query_status!')
 
-                if data_server_call_back is True:
+                if data_server_call_back or resolve_job_url:
                     self.job_id = None
                     if 'job_id' in self.par_dic:
                         self.job_id = self.par_dic['job_id']
@@ -426,13 +426,16 @@ class InstrumentQueryBackEnd:
 
     def resolve_job_url(self):        
         request_par_dic = self.get_request_par_dic()
-        calculated_job_id = self.calculate_job_id(request_par_dic)
-
-        if self.par_dic['job_id'] != calculated_job_id:
-            logstash_message(self.app, {'origin': 'dispatcher-run-analysis', 'event': 'unauthorized-user'})
-            raise RequestNotAuthorized("user not authorized to download the requested product")
         
-        return self.generate_products_url_from_par_dict(self.config.products_url, request_par_dict=original_request_par_dic)
+        # TODO:
+        # calculated_job_id = self.calculate_job_id(request_par_dic)
+        # if self.par_dic['job_id'] != calculated_job_id:
+        #    logstash_message(self.app, {'origin': 'dispatcher-run-analysis', 'event': 'unauthorized-user'})
+        #    raise RequestNotAuthorized("user not authorized to download the requested product")
+        
+        return self.generate_products_url_from_par_dict(
+            self.app.config['conf'].products_url, 
+            par_dict=request_par_dic)
 
 
     def download_products(self):
@@ -609,6 +612,7 @@ class InstrumentQueryBackEnd:
                     logger=self.logger,
                     decoded_token=self.decoded_token,
                     job_id=self.job_id,
+                    session_id=self.par_dic['session_id'],
                     status=status,
                     instrument=instrument_name,
                     product_type=product_type,
@@ -1324,6 +1328,7 @@ class InstrumentQueryBackEnd:
                                 logger=self.logger,
                                 decoded_token=self.decoded_token,
                                 job_id=self.job_id,
+                                session_id=self.par_dic['session_id'],
                                 status=query_new_status,
                                 instrument=self.instrument.name,
                                 product_type=product_type,

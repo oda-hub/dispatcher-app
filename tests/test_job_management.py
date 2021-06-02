@@ -866,7 +866,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
 
     print(email_data)
 
-    short_url = f'PRODUCTS_URL/dispatch-data/resolve-job-url/{dispatcher_job_state.job_id}'
+    short_url = f'PRODUCTS_URL/dispatch-data/resolve-job-url?job_id={dispatcher_job_state.job_id}&session_id={dispatcher_job_state.session_id}'
 
     assert short_url in email_data
 
@@ -874,11 +874,11 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
 
     print("url", url)
 
-    c = requests.get(url)
+    c = requests.get(url, allow_redirects=False)
 
     assert c.status_code == 302
 
-    redirect_url = parse.urlparse(c.url)
+    redirect_url = parse.urlparse(c.headers['Location'])
     print(redirect_url)
         
     # TODO: complete this

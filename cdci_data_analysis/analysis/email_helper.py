@@ -98,14 +98,9 @@ def compress_request_url_params(request_url, consider_args=['selected_catalog', 
 def adapt_line_length_api_code(api_code, max_length=120, line_break="\n", add_line_continuation=r"\\"):
     api_code_short_lines = ""
     for line in api_code.split(line_break):
-        print("line:", line)
         while len(line) > 0:
-            print("line is not empty:", line)
             sub_line = line[:max_length]
             line = line[max_length:]
-
-            print("subline:", sub_line)
-            print("line:", line)
 
             api_code_short_lines += sub_line + add_line_continuation + line_break
 
@@ -117,6 +112,7 @@ def send_email(
         logger,
         decoded_token,
         job_id,
+        session_id,
         status="done",
         instrument="",
         product_type="",
@@ -141,7 +137,7 @@ def send_email(
     #   compressed_request_url = compress_request_url_params(request_url)
 
     if len(request_url) > 600:
-        compressed_request_url = f"{config.products_url}/dispatch-data/resolve-job-url/{job_id}"
+        compressed_request_url = f"{config.products_url}/dispatch-data/resolve-job-url?job_id={job_id}&session_id={session_id}"
     
     email_data = {
         'oda_site': { 

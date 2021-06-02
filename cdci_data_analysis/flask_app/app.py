@@ -314,7 +314,8 @@ def resolve_job_url():
     query = InstrumentQueryBackEnd(app, instrument_name='mock', resolve_job_url=True)
     location = query.resolve_job_url()
     
-    return redirect(location, 302, "this job_id is known to correspond to the following parameters")
+    return redirect(location, 302)
+    #, Response("this job_id is known to correspond to the following parameters"))
 
 @app.route('/call_back', methods=['POST', 'GET'])
 def dataserver_call_back():
