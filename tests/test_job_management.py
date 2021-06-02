@@ -170,6 +170,7 @@ def validate_email_content(
     assert msg['From'] == 'team@odahub.io'
     assert msg['To'] == 'mtm@mtmco.net'
     assert msg['CC'] == ", ".join(['team@odahub.io'])
+    assert msg['Reply-To'] == "contact@odahub.io"
     assert msg.is_multipart()
     
     for part in msg.walk():
