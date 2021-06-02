@@ -81,7 +81,7 @@ class InstrumentQueryBackEnd:
     def instrument_name(self, instrument_name):
         self._instrument_name = instrument_name
 
-    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False):
+    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False, resolve_job_url=False):
         # self.instrument_name=instrument_name
 
         self.logger = logging.getLogger(repr(self))
@@ -133,7 +133,7 @@ class InstrumentQueryBackEnd:
 
                 logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
 
-            if download_products:
+            if download_products or resolve_job_url:
                 instrument_name = 'mock'
 
             if instrument_name is None:
@@ -424,12 +424,24 @@ class InstrumentQueryBackEnd:
 
         return tmp_dir, file_name
 
-    def download_products(self,):
+    def resolve_job_url(self):        
+        request_par_dic = self.get_request_par_dic()
+        calculated_job_id = self.calculate_job_id(request_par_dic)
+
+        if self.par_dic['job_id'] != calculated_job_id:
+            logstash_message(self.app, {'origin': 'dispatcher-run-analysis', 'event': 'unauthorized-user'})
+            raise RequestNotAuthorized("user not authorized to download the requested product")
+        
+        return self.generate_products_url_from_par_dict(self.config.products_url, request_par_dict=original_request_par_dic)
+
+
+    def download_products(self):
         try:
             # TODO not entirely sure about these
             self.off_line = False
             self.api = False
 
+            # TODO: extract this into separate call?            
             request_par_dic = self.get_request_par_dic()
             if not self.public:
                 dict_job_id = {
@@ -458,6 +470,7 @@ class InstrumentQueryBackEnd:
                                               status_code=e.status_code)
         except Exception as e:
             return e
+    
 
     def upload_file(self, name, scratch_dir):
         #print('upload  file')

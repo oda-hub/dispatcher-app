@@ -1,4 +1,5 @@
 import shutil
+from urllib import parse
 
 import pytest
 import requests
@@ -7,6 +8,8 @@ import os
 import re
 import time
 import jwt
+import base64
+import zlib
 import logging
 import email
 from urllib.parse import urlencode
@@ -822,6 +825,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
     #  * to detect this and be clear we can not send these long lines. they are not often usable as URLs anyway
     #  * compress long parameters, e.g. selected_catalog
     #  * request by shortcut (job_d): but it is clear that it is not generally possible to derive parameters from job_id
+    #  * make this or some other kind of URL shortener
 
     server = dispatcher_long_living_fixture
     
@@ -862,7 +866,24 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
 
     print(email_data)
 
-    assert name_parameter_value in email_data
+    short_url = f'PRODUCTS_URL/dispatch-data/resolve-job-url/{dispatcher_job_state.job_id}'
+
+    assert short_url in email_data
+
+    url = short_url.replace('PRODUCTS_URL/dispatch-data', server)
+
+    print("url", url)
+
+    c = requests.get(url)
+
+    assert c.status_code == 302
+
+    redirect_url = parse.urlparse(c.url)
+    print(redirect_url)
+        
+    # TODO: complete this
+    # compressed = "z%3A" + base64.b64encode(zlib.compress(json.dumps(name_parameter_value).encode())).decode()
+    # assert compressed in email_data
 
 def test_email_compress_request_url():    
     from cdci_data_analysis.analysis.email_helper import compress_request_url_params

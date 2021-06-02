@@ -61,6 +61,8 @@ import oda_api
 
 from astropy.io.fits.card import Undefined as astropyUndefined
 
+from cdci_data_analysis.flask_app import dispatcher_query
+
 
 #UPLOAD_FOLDER = '/path/to/the/uploads'
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
@@ -304,6 +306,15 @@ def test_mock():
     query = InstrumentQueryBackEnd(app)
     return query.run_query_mock()
 
+
+@app.route('/resolve-job-url', methods=['GET'])
+def resolve_job_url():
+    logger.info('\033[32m===========================> resolve_job_url\033[0m')
+
+    query = InstrumentQueryBackEnd(app, instrument_name='mock', resolve_job_url=True)
+    location = query.resolve_job_url()
+    
+    return redirect(location, 302, "this job_id is known to correspond to the following parameters")
 
 @app.route('/call_back', methods=['POST', 'GET'])
 def dataserver_call_back():

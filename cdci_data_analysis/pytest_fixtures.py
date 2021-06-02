@@ -330,7 +330,7 @@ def dispatcher_test_conf_fn(tmpdir):
         f.write("""
 dispatcher:
     dummy_cache: dummy-cache
-    products_url: http://www.astro.unige.ch/cdci/astrooda_
+    products_url: PRODUCTS_URL
     dispatcher_callback_url_base: http://localhost:8001
     sentry_url: "https://2ba7e5918358439485632251fa73658c@sentry.io/1467382"
     logstash_host: 

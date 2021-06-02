@@ -67,7 +67,7 @@ import zlib
 import json
 
 def invalid_email_line_length(body):
-    for line in body.split(r'\n'):
+    for line in body.split('\n'):
         if len(line) > 999:
             return True
     return False
@@ -84,7 +84,8 @@ def compress_request_url_params(request_url, consider_args=['selected_catalog', 
             
             if len(v_json) > 100:
                 v = "z:" + base64.b64encode(zlib.compress(v_json.encode())).decode()
-                logger.info("compressing long %.50s...", v)
+                logger.info("compressing long %.50s...", v_json)
+                logger.info("compressed into %.500s...", v)
 
         compressed_qs[k] = v    
         
@@ -94,7 +95,7 @@ def compress_request_url_params(request_url, consider_args=['selected_catalog', 
         'query': parse.urlencode(compressed_qs)
     }))
 
-def adapt_line_length_api_code(api_code, max_length=100, line_break="\n", add_line_continuation=r"\\"):
+def adapt_line_length_api_code(api_code, max_length=120, line_break="\n", add_line_continuation=r"\\"):
     api_code_short_lines = ""
     for line in api_code.split(line_break):
         print("line:", line)
@@ -131,12 +132,16 @@ def send_email(
     env.filters['humanize_age'] = humanize_age
     env.filters['humanize_future'] = humanize_future
 
+    api_code = adapt_line_length_api_code(api_code, line_break="\n", add_line_continuation="\\")
     api_code = api_code.strip().replace("\n", "<br>\n")
-    api_code = adapt_line_length_api_code(api_code)
 
     api_code_no_token = re.sub('"token": ".*?"', '"token": "<PLEASE-INSERT-YOUR-TOKEN-HERE>"', api_code)
 
-    compressed_request_url = compress_request_url_params(request_url)
+    #  TODO: enable this sometimes
+    #   compressed_request_url = compress_request_url_params(request_url)
+
+    if len(request_url) > 600:
+        compressed_request_url = f"{config.products_url}/dispatch-data/resolve-job-url/{job_id}"
     
     email_data = {
         'oda_site': { 
@@ -166,6 +171,8 @@ def send_email(
     email_text = textify_email(email_body_html)
 
     if invalid_email_line_length(email_text) or invalid_email_line_length(email_body_html):
+        open("debug_email_not_sent.html", "w").write(email_body_html)
+        open("debug_email_not_sent.text", "w").write(email_text)
         raise EMailNotSent(f"email not sent, lines too long!")
     
     server = None
