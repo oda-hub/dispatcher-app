@@ -137,6 +137,7 @@ def send_email(
     #   compressed_request_url = compress_request_url_params(request_url)
 
     if len(request_url) > 600:
+        #TODO: add a warning when compressing
         compressed_request_url = f"{config.products_url}/dispatch-data/resolve-job-url?job_id={job_id}&session_id={session_id}"
     else:
         compressed_request_url = request_url
