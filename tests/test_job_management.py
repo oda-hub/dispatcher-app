@@ -281,61 +281,6 @@ def test_validation_job_id(dispatcher_live_fixture):
     assert jdata["exit_status"]["message"] == "user not authorized to download the requested product"
 
 
-def test_validation_job_id_call_back(dispatcher_live_fixture):
-    server = dispatcher_live_fixture
-
-    logger.info("constructed server: %s", server)
-
-    # let's generate a valid token
-    token_payload = {
-        **default_token_payload,
-    }
-    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-
-    dict_param = dict(
-        query_status="new",
-        query_type="Real",
-        instrument="empty-async",
-        product_type="dummy",
-        token=encoded_token
-    )
-
-    # this should return status submitted, so email sent
-    c = requests.get(server + "/run_analysis",
-                     dict_param
-                     )
-    assert c.status_code == 200
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
-    jdata = c.json()
-    assert jdata['exit_status']['job_status'] == 'submitted'
-    # set the time the request was initiated
-    time_request = jdata['time_request']
-
-    # let's generate another valid token, just for a different user
-    token_payload = {
-        **default_token_payload,
-        "sub":"mtm1@mtmco.net"
-    }
-    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-
-    params = dict(
-        job_id=dispatcher_job_state.job_id,
-        session_id=dispatcher_job_state.session_id,
-        instrument_name="empty-async",
-        action='progress',
-        node_id=f'node_0',
-        message='progressing',
-        token=encoded_token,
-        time_original_request=time_request
-    )
-
-    # this should return status submitted, so email sent
-    c = requests.get(server + "/call_back",
-                     params=params)
-    jdata = dispatcher_job_state.load_job_state_record('node_0', 'progressing')
-    assert jdata["call_back_status"] == "unauthorized request detected during call back: user not authorized to download the requested product"
-
-
 @pytest.mark.parametrize("default_values", [True, False])
 @pytest.mark.parametrize("time_original_request_none", [False])
 #why is it None sometimes, and should we really send an email in this case?..
