@@ -138,6 +138,8 @@ def send_email(
 
     if len(request_url) > 600:
         compressed_request_url = f"{config.products_url}/dispatch-data/resolve-job-url?job_id={job_id}&session_id={session_id}"
+    else:
+        compressed_request_url = request_url
     
     email_data = {
         'oda_site': { 
