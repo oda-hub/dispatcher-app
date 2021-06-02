@@ -903,8 +903,9 @@ def test_adapt_line_length_api_code():
 
     line_break = '\n'
     long_line_code = "01"*1000
-    adapted = adapt_line_length_api_code(long_line_code, max_length=100, line_break=line_break)
+    add_line_continuation = "\\"
+    adapted = adapt_line_length_api_code(long_line_code, max_length=100, line_break=line_break, add_line_continuation=add_line_continuation)
 
     assert len(adapted.split(line_break)) > 10
 
-    assert adapted.replace(line_break, '') == long_line_code
+    assert adapted.replace(line_break, '').replace(add_line_continuation, '') == long_line_code
