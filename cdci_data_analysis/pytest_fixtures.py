@@ -1,29 +1,19 @@
 # this could be a separate package or/and a pytest plugin
-
-from _pytest.fixtures import yield_fixture
-from cdci_data_analysis.flask_app import dispatcher_query
+from collections import OrderedDict
 from json import JSONDecodeError
-from requests.api import delete
 import yaml
 
-import pytest
-
 import cdci_data_analysis.flask_app.app
-from cdci_data_analysis.configurer import ConfigEnv
 
-import os
 import re
-import signal
 import json
 import string
 import random
 import requests
-import time
 import logging
 import shutil
 import tempfile
-
-
+import pytest
 import subprocess
 import os
 import copy
@@ -32,8 +22,6 @@ import hashlib
 import glob
 
 from threading import Thread
-
-    
 
 __this_dir__ = os.path.join(os.path.abspath(os.path.dirname(__file__)))
 
@@ -55,6 +43,54 @@ def app():
     app = cdci_data_analysis.flask_app.app.app
     return app
 
+
+@pytest.fixture
+def dispatcher_debug(monkeypatch):
+    monkeypatch.setenv('DISPATCHER_DEBUG_MODE', 'yes')
+
+
+@pytest.fixture
+def default_params_dict():
+    params = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="isgri",
+        product_type="isgri_image",
+        osa_version="OSA10.2",
+        E1_keV=20.,
+        E2_keV=40.,
+        T1="2008-01-01T11:11:11.0",
+        T2="2009-01-01T11:11:11.0",
+        max_pointings=2,
+        RA=83,
+        DEC=22,
+        radius=6,
+        async_dispatcher=False
+    )
+    yield params
+
+
+@pytest.fixture
+def default_token_payload():
+    default_exp_time = int(time.time()) + 5000
+    default_token_payload = dict(
+        sub="mtm@mtmco.net",
+        name="mmeharga",
+        roles="general",
+        exp=default_exp_time,
+        tem=0,
+        mstout=True,
+        mssub=True,
+        intsub=5
+    )
+
+    yield default_token_payload
+
+
+@pytest.fixture
+def dispatcher_nodebug(monkeypatch):
+    monkeypatch.delenv('DISPATCHER_DEBUG_MODE', raising=False)
+    # monkeypatch.setenv('DISPATCHER_DEBUG_MODE', 'no')
 
 def run_analysis(server, params, method='get'):
     if method == 'get':
@@ -166,6 +202,28 @@ def dispatcher_local_mail_server(pytestconfig, dispatcher_test_conf):
             self.id = id
             super().__init__(handler, hostname=hostname, port=port)
 
+        @property
+        def local_smtp_output_json_fn(self):
+            return self.handler.output_file_path
+
+        @property
+        def local_smtp_output(self):
+            return json.load(open(self.local_smtp_output_json_fn))
+
+        def assert_email_number(self, N):
+            f_local_smtp_jdata = self.local_smtp_output
+            assert len(f_local_smtp_jdata) == N, f"found {len(f_local_smtp_jdata)} emails, expected == {N}"
+
+        def get_email_record(self, i=0, N=None):
+            if N is not None:
+                assert i < N
+                self.assert_email_number(N)
+
+            return self.local_smtp_output[i]
+            
+            
+
+
 
     class CustomHandler:
         def __init__(self, output_file_path):
@@ -206,7 +264,9 @@ def dispatcher_local_mail_server(pytestconfig, dispatcher_test_conf):
     id = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
     if not os.path.exists('local_smtp_log'):
         os.makedirs('local_smtp_log')
-    handler = CustomHandler(f'local_smtp_log/{id}_local_smtp_output.json')
+
+    fn =f'local_smtp_log/{id}_local_smtp_output.json'
+    handler = CustomHandler(fn)
     controller = CustomController(id, handler, hostname='127.0.0.1', port=dispatcher_test_conf['email_options']['smtp_port'])
     # Run the event loop in a separate thread
     controller.start()
@@ -293,9 +353,24 @@ dispatcher:
 
     yield fn
 
+
 @pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
     yield yaml.load(open(dispatcher_test_conf_fn))['dispatcher']
+
+
+def make_hash(o):
+    def format_hash(x): return hashlib.md5(
+        json.dumps(sorted(x)).encode()
+    ).hexdigest()[:16]
+
+    if isinstance(o, (set, tuple, list)):
+        return format_hash(tuple(map(make_hash, o)))
+
+    elif isinstance(o, (dict, OrderedDict)):
+        return make_hash(tuple(o.items()))
+
+    return format_hash(json.dumps(o))
 
 
 def start_dispatcher(rootdir, test_conf_fn):
@@ -374,22 +449,88 @@ def start_dispatcher(rootdir, test_conf_fn):
         )        
 
 @pytest.fixture
-def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn):
+def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
     dispatcher_state_fn = "/tmp/dispatcher-test-fixture-state-{}.json".format(
         hashlib.md5(open(dispatcher_test_conf_fn, "rb").read()).hexdigest()[:8]
         )
 
     if os.path.exists(dispatcher_state_fn):
         dispatcher_state = json.load(open(dispatcher_state_fn))
-    else:
-        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
-        json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
+        logger.info("found dispatcher state: %s", dispatcher_state)
 
+        try:
+            r = requests.get(dispatcher_state['url'] + "/run_analysis")
+            logger.info("dispatcher returns: %s, %s", r.status_code, r.text)
+            if r.status_code == 200:
+                logger.info("dispatcher is live and responsive")
+                yield dispatcher_state['url']                
+        except requests.exceptions.ConnectionError as e:
+            logger.warning("dispatcher connection failed %s", e)        
+        
+        logger.warning("dispatcher is dead or unresponsive")
+
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+    json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
     yield dispatcher_state['url']
 
 
 @pytest.fixture
-def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn):
+def empty_products_files_fixture(default_params_dict):
+    # generate job_id
+    job_id = u'%s' % (make_hash(default_params_dict))
+    # generate random session_id
+    session_id = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+    scratch_params = dict(
+        job_id=job_id,
+        session_id= session_id
+    )
+    DispatcherJobState.remove_scratch_folders(job_id=job_id)
+    DispatcherJobState.remove_download_folders()
+    scratch_dir_path = f'scratch_sid_{session_id}_jid_{job_id}'
+    # set the scratch directory
+    os.makedirs(scratch_dir_path)
+
+    with open(scratch_dir_path + '/test.fits.gz', 'wb') as fout:
+        scratch_params['content'] = os.urandom(20)
+        fout.write(scratch_params['content'])
+
+    with open(scratch_dir_path + '/analysis_parameters.json', 'w') as outfile:
+        my_json_str = json.dumps(default_params_dict, indent=4)
+        outfile.write(u'%s' % my_json_str)
+
+    yield scratch_params
+
+
+@pytest.fixture
+def empty_products_user_files_fixture(default_params_dict, default_token_payload):
+    sub = default_token_payload['sub']
+    # generate job_id related to a certain user
+    job_id = u'%s' % (make_hash({**default_params_dict, "sub": sub}))
+    # generate random session_id
+    session_id = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+    scratch_params = dict(
+        job_id=job_id,
+        session_id= session_id
+    )
+    DispatcherJobState.remove_scratch_folders(job_id=job_id)
+    DispatcherJobState.remove_download_folders()
+    scratch_dir_path = f'scratch_sid_{session_id}_jid_{job_id}'
+    # set the scratch directory
+    os.makedirs(scratch_dir_path)
+
+    with open(scratch_dir_path + '/test.fits.gz', 'wb') as fout:
+        scratch_params['content'] = os.urandom(20)
+        fout.write(scratch_params['content'])
+
+    with open(scratch_dir_path + '/analysis_parameters.json', 'w') as outfile:
+        my_json_str = json.dumps(default_params_dict, indent=4)
+        outfile.write(u'%s' % my_json_str)
+
+    yield scratch_params
+
+
+@pytest.fixture
+def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
 
     service = dispatcher_state['url']
@@ -400,6 +541,21 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn):
     print(("child:", pid))
     import os,signal
     kill_child_processes(pid,signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_no_debug_mode(pytestconfig, dispatcher_test_conf_fn, dispatcher_nodebug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    print(("child:", pid))
+    import os, signal
+    kill_child_processes(pid, signal.SIGINT)
     os.kill(pid, signal.SIGINT)
 
 
@@ -462,3 +618,60 @@ def dispatcher_fetch_dummy_products(dummy_product_pack: str, reuse=False):
 
     open(dispatcher_dummy_product_pack_state_fn, "w").write("%s"%time.time())
 
+
+class DispatcherJobState:
+    """
+    manages state stored in scratch_* directories
+    """
+
+    @staticmethod
+    def remove_scratch_folders(job_id=None):
+        if job_id is None:
+            dir_list = glob.glob('scratch_*')
+        else:
+            dir_list = glob.glob(f'scratch_*_jid_{job_id}*')
+        for d in dir_list:
+            shutil.rmtree(d)
+
+    @staticmethod
+    def remove_download_folders(id=None):
+        if id is None:
+            dir_list = glob.glob('download_*')
+        else:
+            dir_list = glob.glob(f'download_{id}')
+        for d in dir_list:
+            shutil.rmtree(d)
+
+    @classmethod
+    def from_run_analysis_response(cls, r):
+        return cls(
+            session_id = r.json()['session_id'],
+            job_id = r.json()['job_monitor']['job_id']
+        )
+    
+    def __init__(self, session_id, job_id) -> None:
+        self.session_id = session_id
+        self.job_id = job_id
+    
+    @property
+    def scratch_dir(self):
+        return glob.glob(f'scratch_sid_{self.session_id}_jid_{self.job_id}*')[0]
+    
+
+    @property
+    def job_monitor_json_fn(self):
+        job_monitor_json_fn = f'{self.scratch_dir}/job_monitor.json'
+        assert os.path.exists(job_monitor_json_fn) 
+
+        return job_monitor_json_fn
+
+    @property
+    def email_history_folder(self):
+        return f'{self.scratch_dir}/email_history'
+
+    def assert_email(self, state, number=1, comment=""):
+        list_email_files = glob.glob(self.email_history_folder + f'/email_{state}_*.email')
+        assert len(list_email_files) == number, f"expected {number} emails, found {len(list_email_files)}: {list_email_files} in {self.email_history_folder}; {comment}"
+
+    def load_job_state_record(self, state, message):
+        return json.load(open(f'{self.scratch_dir}/job_monitor_{state}_{message}_.json'))

@@ -17,6 +17,7 @@ Module API
 
 from __future__ import absolute_import, division, print_function
 
+import urllib
 from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
 
@@ -34,6 +35,8 @@ __author__ = "Andrea Tramacere"
 # relative import eg: from .mod import f
 
 from typing import Tuple
+
+from raven.utils.urlparse import urlparse
 
 from cdci_data_analysis.analysis.queries import ProductQuery
 from cdci_data_analysis.analysis.products import QueryOutput
@@ -83,6 +86,39 @@ class DataServerQuery:
         return None, query_out
 
 
+class DataServerQuerySemiAsync(DataServerQuery):
+    def __init__(self, config=None, instrument=None):
+        self.instrument = instrument
+        super(DataServerQuerySemiAsync, self).__init__()
+
+    def run_query(self, *args, **kwargs):
+        logger.warn('fake run_query in %s with %s, %s', self, args, kwargs)
+        query_out = QueryOutput()
+
+        p_value = self.instrument.get_par_by_name('p').value
+
+        if p_value == -1:
+            query_out.set_done(message="job failed mock",
+                               debug_message="no message really",
+                               job_status='failed',
+                               comment="mock comment",
+                               warning="mock warning")
+        elif 0 <= p_value < 4:
+            query_out.set_done(message="job submitted mock",
+                               debug_message="no message really",
+                               job_status='submitted',
+                               comment="mock comment",
+                               warning="mock warning")
+        else:
+            query_out.set_done(message="job done mock",
+                               debug_message="no message really",
+                               job_status='done',
+                               comment="mock comment",
+                               warning="mock warning")
+
+        return None, query_out
+
+
 class EmptyProductQuery(ProductQuery):
 
     def __init__(self, name='unset-name', config=None, instrument=None):
@@ -97,6 +133,9 @@ class EmptyProductQuery(ProductQuery):
     def process_product_method(self, instrument, prod_list,api=False, **kw):
         query_out = QueryOutput()
         return query_out
+
+    def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
+        return []
 
     def test_communication(self,
                            instrument: Instrument,
@@ -114,6 +153,8 @@ class EmptyProductQuery(ProductQuery):
         return query_out, []
 
     def get_data_server_query(self, instrument: Instrument, config=None):
+        if instrument.data_server_query_class:
+            return instrument.data_server_query_class(instrument=instrument, config=config)
         return DataServerQuery()
 
     # example with the general user role
@@ -140,9 +181,17 @@ class DataServerNumericQuery(ProductQuery):
     def get_dummy_products(self, instrument, config=None, **kwargs):
         return []
 
+    def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
+        return []
+
     def process_product_method(self, instrument, prod_list, api=False, **kw):
         query_out = QueryOutput()
         return query_out
+
+    def get_data_server_query(self, instrument: Instrument, config=None):
+        if instrument.data_server_query_class:
+            return instrument.data_server_query_class(instrument=instrument, config=config)
+        return DataServerQuery()
 
     # example with the general user role
     def check_query_roles(self, roles, par_dic):
@@ -156,4 +205,8 @@ class DataServerNumericQuery(ProductQuery):
             if p > 50:
                 results['authorization'] = 'general' and 'unige-hpc-full' in roles
                 results['needed_roles'] = ['general', 'unige-hpc-full']
+                results['needed_roles_with_comments'] = {
+                    'general': 'general role is needed for p>50',
+                    'unige-hpc-full': 'unige-hpc-full role is needed for p>50 as well'
+                }
         return results

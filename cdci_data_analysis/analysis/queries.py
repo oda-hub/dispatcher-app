@@ -499,6 +499,8 @@ class ProductQuery(BaseQuery):
 
                 if job_status=='done':
                     job.set_done()
+                elif job_status == 'failed':
+                    job.set_failed()
                 else:
                     job.set_submitted()
 
@@ -839,6 +841,10 @@ class SpectralFitQuery(PostProcessProductQuery):
         ph_file=instrument.get_par_by_name('ph_file_name').value
         rmf_file=instrument.get_par_by_name('rmf_file_name').value
         arf_file=instrument.get_par_by_name('arf_file_name').value
+
+        logger.info("\033[31mprocess_product: ph_file: %s\033[0m", ph_file)
+        logger.info("\033[31mprocess_product: rmf_file: %s\033[0m", rmf_file)
+        logger.info("\033[31mprocess_product: arf_file: %s\033[0m", arf_file)        
 
         e_min_kev=np.float(instrument.get_par_by_name('E1_keV').value)
         e_max_kev=np.float(instrument.get_par_by_name('E2_keV').value)

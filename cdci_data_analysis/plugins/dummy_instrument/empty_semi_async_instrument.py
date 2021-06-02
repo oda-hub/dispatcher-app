@@ -35,9 +35,9 @@ __author__ = "Andrea Tramacere"
 
 
 from cdci_data_analysis.analysis.instrument import Instrument
-from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float, QueryOutput
+from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float
 
-from .data_server_dispatcher import DataServerQuery, EmptyProductQuery, DataServerNumericQuery
+from .data_server_dispatcher import DataServerQuerySemiAsync, EmptyProductQuery, DataServerNumericQuery
 
 
 def my_instr_factory():
@@ -63,9 +63,9 @@ def my_instr_factory():
     query_dictionary['dummy'] = 'empty_parameters_dummy_query'
     query_dictionary['numerical'] = 'numerical_parameters_dummy_query'
 
-    return Instrument('empty-async',
+    return Instrument('empty-semi-async',
                       src_query=src_query,
                       instrumet_query=instr_query,
                       product_queries_list=[empty_query, numerical_query],
                       query_dictionary=query_dictionary,
-                      data_server_query_class=DataServerQuery)
+                      data_server_query_class=DataServerQuerySemiAsync)

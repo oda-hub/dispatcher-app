@@ -17,18 +17,14 @@ import copy
 import logging
 from werkzeug.utils import secure_filename
 
-import os
 import glob
 import string
 import random
 from raven.contrib.flask import Sentry
 
-from flask import jsonify, send_from_directory, redirect
-from flask import Flask, request, g
+from flask import jsonify, send_from_directory
+from flask import request, g
 from urllib.parse import urlencode
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import email
 import time as time_
 
 import tempfile
@@ -39,20 +35,19 @@ import logstash
 import hashlib
 import typing
 import jwt
-import smtplib
-import ssl
 
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
-from ..analysis import tokenHelper
+from ..analysis import tokenHelper, email_helper
 from ..analysis.job_manager import Job, job_factory
 from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
-from ..analysis.plot_tools import Image
-from ..analysis.exceptions import BadRequest, APIerror, MissingParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut
+from ..analysis.exceptions import BadRequest, APIerror, MissingRequestParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut
 from . import tasks
+
+from  oda_api.api import  DispatcherAPI
 
 from .logstash import logstash_message
 
@@ -73,11 +68,6 @@ class InstrumentNotRecognized(BadRequest):
 class MissingRequestParameter(BadRequest):
     pass
 
-
-class EMailNotSent(BadRequest):
-    pass
-
-
 class InstrumentQueryBackEnd:
 
     def __repr__(self):
@@ -91,7 +81,7 @@ class InstrumentQueryBackEnd:
     def instrument_name(self, instrument_name):
         self._instrument_name = instrument_name
 
-    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False):
+    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False):
         # self.instrument_name=instrument_name
 
         self.logger = logging.getLogger(repr(self))
@@ -142,6 +132,9 @@ class InstrumentQueryBackEnd:
                     raise RequestNotAuthorized("token expired")
 
                 logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
+
+            if download_products:
+                instrument_name = 'mock'
 
             if instrument_name is None:
                 if 'instrument' in self.par_dic:
@@ -209,9 +202,6 @@ class InstrumentQueryBackEnd:
             query_out.set_query_exception(
                 e, 'InstrumentQueryBackEnd constructor', extra_message='InstrumentQueryBackEnd constructor failed')
 
-            #out_dict = {}
-            #out_dict['query_status'] = 1
-            #out_dict['exit_status'] = query_out.status_dictionary
             self.build_dispatcher_response(
                 query_new_status='failed', query_out=query_out)
 
@@ -241,6 +231,9 @@ class InstrumentQueryBackEnd:
         # this takes care of various strange objects which can not be properly represented
         return format_hash(json.dumps(o))
 
+    def calculate_job_id(self, par_dic):
+        return u'%s' % (self.make_hash(par_dic))
+
     # not job_id??
     def generate_job_id(self, kw_black_list=['session_id', 'job_id', 'token']):
         self.logger.info("\033[31m---> GENERATING JOB ID <---\033[0m")
@@ -264,7 +257,7 @@ class InstrumentQueryBackEnd:
             # token has not been considered, but the user id will be (if availaable)
             _dict['sub'] = tokenHelper.get_token_user_email_address(self.decoded_token)
 
-        self.job_id = u'%s' % (self.make_hash(_dict))
+        self.job_id = self.calculate_job_id(_dict)
 
         self.logger.info(
             '\033[31mgenerated NEW job_id %s \033[0m', self.job_id)
@@ -432,19 +425,37 @@ class InstrumentQueryBackEnd:
         return tmp_dir, file_name
 
     def download_products(self,):
-        #print('in url file_list', self.args.get('file_list'))
-        #scratch_dir, logger = set_session(self.args.get('session_id'))
-
-        file_list = self.args.get('file_list').split(',')
-        #print('used file_list', file_list)
-        file_name = self.args.get('download_file_name')
-
-        tmp_dir, target_file = self.prepare_download(
-            file_list, file_name, self.scratch_dir)
-        #print('downlaoding scratch dir', self.scratch_dir)
         try:
+            # TODO not entirely sure about these
+            self.off_line = False
+            self.api = False
+
+            request_par_dic = self.get_request_par_dic()
+            if not self.public:
+                dict_job_id = {
+                    **request_par_dic,
+                    "sub": tokenHelper.get_token_user_email_address(self.decoded_token)
+                }
+                calculated_job_id = self.calculate_job_id(dict_job_id)
+            else:
+                request_par_dic = self.get_request_par_dic()
+                calculated_job_id = self.calculate_job_id(request_par_dic)
+
+            if self.par_dic['job_id'] != calculated_job_id:
+                logstash_message(self.app, {'origin': 'dispatcher-run-analysis', 'event': 'unauthorized-user'})
+                raise RequestNotAuthorized("user not authorized to download the requested product")
+
+            file_list = self.args.get('file_list').split(',')
+            file_name = self.args.get('download_file_name')
+
+            tmp_dir, target_file = self.prepare_download(
+                file_list, file_name, self.scratch_dir)
             return send_from_directory(directory=tmp_dir, filename=target_file, attachment_filename=target_file,
                                        as_attachment=True)
+        except RequestNotAuthorized as e:
+            return self.build_response_failed('oda_api permissions failed',
+                                              e.message,
+                                              status_code=e.status_code)
         except Exception as e:
             return e
 
@@ -567,8 +578,12 @@ class InstrumentQueryBackEnd:
         logger.warn('-----> set status to %s', status)
 
         try:
-            if self.is_email_to_send_callback(status, time_original_request):
-
+            if email_helper.is_email_to_send_callback(self.logger, 
+                                                      status, 
+                                                      time_original_request, 
+                                                      self.app.config['conf'], 
+                                                      self.job_id, 
+                                                      decoded_token=self.decoded_token):
                 try:
                     original_request_par_dic = self.get_request_par_dic()
                     product_type = original_request_par_dic['product_type']
@@ -576,20 +591,35 @@ class InstrumentQueryBackEnd:
                     raise MissingRequestParameter(repr(e))
                 # build the products URL and get also the original requested product
                 products_url = self.generate_products_url_from_file(self.config.products_url, request_par_dict=original_request_par_dic)
-                msg_sent = self.send_email(status,
-                                           instrument=instrument_name,
-                                           product_type=product_type,
-                                           time_request=time_original_request,
-                                           request_url=products_url)
-                #store the sent email in the scratch folder
-                self.store_email_info(msg_sent, status)
+                email_helper.send_email(
+                    config=self.app.config['conf'],
+                    logger=self.logger,
+                    decoded_token=self.decoded_token,
+                    job_id=self.job_id,
+                    status=status,
+                    instrument=instrument_name,
+                    product_type=product_type,
+                    time_request=time_original_request,
+                    request_url=products_url,
+                    api_code=DispatcherAPI.set_api_code(original_request_par_dic, 
+                                                        url=self.app.config['conf'].products_url),
+                    scratch_dir=self.scratch_dir,
+                    )                
 
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
                                             email_status='email sent')
             else:
                 job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
-        except EMailNotSent as e:
+        except email_helper.MultipleDoneEmail as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        email_status='multiple completion email detected')
+            logging.warning(f'repeated sending of completion email detected: {e}')
+            if self.sentry_client is not None:
+                self.sentry_client.capture('raven.events.Message',
+                                       message=f'sending email failed {e}')
+        except email_helper.EMailNotSent as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
                                         email_status='sending email failed')
@@ -603,93 +633,27 @@ class InstrumentQueryBackEnd:
                                         call_back_status=f'parameter missing during call back: {e.message}')
             logging.warning(f'parameter missing during call back: {e}')
 
-    def store_email_info(self, message, status):
-        path_email_history_folder = self.scratch_dir + '/email_history'
-        if not os.path.exists(path_email_history_folder):
-            os.makedirs(path_email_history_folder)
-        email_files_list = glob.glob(path_email_history_folder + '/email_*')
-        number_emails_scratch_dir = len(email_files_list)
-        sending_time = time_.time()
-        # record the email just sent in a dedicated file
-        with open(path_email_history_folder + '/email_' + str(number_emails_scratch_dir) + '_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
-            outfile.write(message.as_string())
-
     # TODO perhaps move it somewhere else?
     def get_request_par_dic(self):
         with open(self.scratch_dir + '/analysis_parameters.json') as file:
             jdata = json.load(file)
             return jdata
-        return None
 
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
         par_dict = par_dict.copy()
-        # remove token if present
-        if "token" in par_dict:
-            par_dict.pop("token")
-        # remove session_id if present
-        if "session_id" in par_dict:
-            par_dict.pop("session_id")
-        # remove job_id if present
-        if "job_id" in par_dict:
-            par_dict.pop("job_id")
+        _skip_list_ = ['token', 'session_id', 'job_id']
+
+        for key, value in dict(par_dict).items():
+            if key in _skip_list_ or value is None:
+                par_dict.pop(key)
+
         request_url = '%s?%s' % (products_url, urlencode(par_dict))
         return request_url
 
     def generate_products_url_from_file(self, products_url, request_par_dict) -> str:
         return self.generate_products_url_from_par_dict(products_url, request_par_dict)
 
-    def is_email_to_send_run_completion(self, status):
-        # get total request duration
-        if not self.public:
-            email_sending_job_submitted = tokenHelper.get_token_user_submitted_email(self.decoded_token)
-            if email_sending_job_submitted is None:
-                # in case this didn't come with the token take the default value from the configuration
-                email_sending_job_submitted = self.app.config.get('conf').email_sending_job_submitted
-            # get the amount of time passed from when the last email was sent
-            interval_ok = True
-            email_sending_job_submitted_interval = tokenHelper.get_token_user_sending_submitted_interval_email(self.decoded_token)
-            if email_sending_job_submitted_interval is None:
-                # in case this didn't come with the token take the default value from the configuration
-                email_sending_job_submitted_interval = self.app.config.get('conf').email_sending_job_submitted_default_interval
-            if os.path.exists(self.scratch_dir + '/email_history'):
-                submitted_email_files = glob.glob(self.scratch_dir + '/email_history/email_*_submitted_*.email')
-                if len(submitted_email_files) >= 1:
-                    last_submitted_email_sent = submitted_email_files[len(submitted_email_files) - 1]
-                    f_name, f_ext = os.path.splitext(os.path.basename(last_submitted_email_sent))
-                    time_last_email_submitted_sent = float(f_name.split('_')[3])
-                    time_from_last_submitted_email = time_.time() - float(time_last_email_submitted_sent)
-                    interval_ok = time_from_last_submitted_email > email_sending_job_submitted_interval
-
-            # send submitted mail, status update
-            return email_sending_job_submitted and interval_ok and status == 'submitted'
-
-        return False
-
-    def is_email_to_send_callback(self, status, time_original_request):
-        if not self.public:
-            # in case the request was long and 'done'
-            if status == 'done':
-                # get total request duration
-                if time_original_request:
-                    duration_query = time_.time() - float(time_original_request)
-                else:
-                    raise MissingRequestParameter('original request time not available')
-                timeout_threshold_email = tokenHelper.get_token_user_timeout_threshold_email(self.decoded_token)
-                if timeout_threshold_email is None:
-                    # set it to the a default value, from the configuration
-                    timeout_threshold_email = self.app.config.get('conf').email_sending_timeout_default_threshold
-                email_sending_timeout = tokenHelper.get_token_user_sending_timeout_email(self.decoded_token)
-                if email_sending_timeout is None:
-                    email_sending_timeout = self.app.config.get('conf').email_sending_timeout
-
-                return email_sending_timeout and duration_query > timeout_threshold_email and status == 'done'
-
-            # or if failed
-            elif status == 'failed':
-                return True
-
-        return False
 
     def run_query_mock(self, off_line=False):
 
@@ -1331,20 +1295,35 @@ class InstrumentQueryBackEnd:
                     else:
                         query_new_status = 'submitted'
                         job.set_submitted()
-                    # mail sending ?
-                    if self.is_email_to_send_run_completion(query_new_status):
+
+                    if email_helper.is_email_to_send_run_query(self.logger, 
+                                                               query_new_status, 
+                                                               self.time_request, 
+                                                               self.scratch_dir, 
+                                                               self.job_id,
+                                                               self.app.config['conf'], 
+                                                               decoded_token=self.decoded_token):
                         try:
                             products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url, self.par_dic)
-                            msg_sent = self.send_email(query_new_status,
-                                                       instrument=self.instrument.name,
-                                                       product_type=product_type,
-                                                       time_request=self.time_request,
-                                                       request_url=products_url)
-                            # store the sent email in the scratch folder
-                            self.store_email_info(msg_sent, query_new_status)
+
+                            email_helper.send_email(
+                                config=self.app.config['conf'],
+                                logger=self.logger,
+                                decoded_token=self.decoded_token,
+                                job_id=self.job_id,
+                                status=query_new_status,
+                                instrument=self.instrument.name,
+                                product_type=product_type,
+                                time_request=self.time_request,
+                                request_url=products_url,
+                                api_code=DispatcherAPI.set_api_code(self.par_dic,
+                                                                    url=self.app.config['conf'].products_url
+                                                                    ),
+                                scratch_dir=self.scratch_dir)
+                            
                             # store an additional information about the sent email
                             query_out.set_status_field('email_status', 'email sent')
-                        except EMailNotSent as e:
+                        except email_helper.EMailNotSent as e:
                             query_out.set_status_field('email_status', 'sending email failed')
                             logging.warning(f'email sending failed: {e}')
                             if self.sentry_client is not None:
@@ -1430,72 +1409,6 @@ class InstrumentQueryBackEnd:
                                               off_line=off_line,
                                               api=api)
         return resp
-
-    def send_email(self, status="done",
-                   instrument="",
-                   product_type="",
-                   time_request=None,
-                   request_url=""):
-        server = None
-        self.logger.info("Sending email")
-        # Create the plain-text and HTML version of your message,
-        # since emails with HTML content might be, sometimes, not supported
-        # a plain-text version is included
-        text = f"""Update of the task for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
-        html = f"""<html><body><p>Update of the task for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
-        email_subject = f"[ODA][{status}] Request for {product_type} {self.job_id[:8]}"
-
-        if time_request:
-            time_request_str = time_.strftime('%Y-%m-%d %H:%M:%S', time_.localtime(float(time_request)))
-            text = f"""Update of the task submitted at {time_request_str}, for the instrument {instrument}:\n* status {status}\nProducts url {request_url}"""
-            html = f"""<html><body><p>Update of the task submitted at {time_request_str}, for the instrument {instrument}:<br><ul><li>status {status}</li></ul>Products url {request_url}</p></body></html>"""
-            email_subject = f"[ODA][{status}] Request for {product_type} created at {time_request_str} {self.job_id[:8]}"
-
-        try:
-            # send the mail with the status update to the mail provided with the token
-            # eg done/failed/submitted
-            # test with the local server
-            smtp_server = self.app.config.get('conf').smtp_server
-            port = self.app.config.get('conf').smtp_port
-            sender_email_address = self.app.config.get('conf').sender_email_address
-            cc_receivers_email_addresses = self.app.config.get('conf').cc_receivers_email_addresses
-            receiver_email_address = tokenHelper.get_token_user_email_address(self.decoded_token)
-            receivers_email_addresses = [receiver_email_address] + cc_receivers_email_addresses
-            # creation of the message
-            message = MIMEMultipart("alternative")
-            message["Subject"] = email_subject
-            message["From"] = sender_email_address
-            message["To"] = receiver_email_address
-            message["CC"] = ", ".join(cc_receivers_email_addresses)
-
-            part1 = MIMEText(text, "plain")
-            part2 = MIMEText(html, "html")
-            message.attach(part1)
-            message.attach(part2)
-
-            smtp_server_password = self.app.config.get('conf').smtp_server_password
-            # Create a secure SSL context
-            context = ssl.create_default_context()
-            #
-            # Try to log in to server and send email
-            server = smtplib.SMTP(smtp_server, port)
-            # just for testing purposes, not ssl is established
-            if smtp_server != "localhost":
-                try:
-                    server.starttls(context=context)
-                except Exception as e:
-                    self.logger.warning(f'unable to start TLS: {e}')
-            if smtp_server_password is not None and smtp_server_password != '':
-                server.login(sender_email_address, smtp_server_password)
-            server.sendmail(sender_email_address, receivers_email_addresses, message.as_string())
-        except Exception as e:
-            self.logger.error(f'Exception while sending email: {e}')
-            raise EMailNotSent(f"email not sent {e}")
-        finally:
-            if server:
-                server.quit()
-
-        return message
 
     def async_dispatcher_query(self, query_status: str) -> tuple:
         self.logger.info("async dispatcher enabled, for %s", query_status)

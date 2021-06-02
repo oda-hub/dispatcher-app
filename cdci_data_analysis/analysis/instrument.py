@@ -252,8 +252,9 @@ class Instrument:
 
         # adding query parameters to final products
         query_out.set_analysis_parameters(par_dic)
-        query_out.set_api_code(par_dic)
-        query_out.dump_analysis_parameters(out_dir,par_dic)
+        # TODO perhaps this will change
+        query_out.set_api_code(par_dic, url=back_end_query.config.products_url)
+        query_out.dump_analysis_parameters(out_dir, par_dic)
 
         return query_out
 
@@ -266,13 +267,29 @@ class Instrument:
     def check_instrument_query_role(self, query_obj, product_type, roles, par_dic):
         results = query_obj.check_query_roles(roles, par_dic)
         if not results['authorization']:
-            raise RequestNotAuthorized(f"Roles {roles} not authorized to request the product {product_type}, {results['needed_roles']} roles are needed")
+            results['needed_roles']
+
+            lacking_roles = sorted(list(set(results['needed_roles']) - set(roles)))
+
+            lacking_roles_comment = "\n".join([
+                f" - {role}: {results.get('needed_roles_with_comments', {}).get(role, 'please refer to support for details')}"
+                for role in lacking_roles
+            ])
+
+            raise RequestNotAuthorized(
+                f"Unfortunately, your priviledges are not sufficient to make the request for this particular product and parameter combination.\n"
+                f"- Your priviledge roles include {roles}\n"
+                f"- You are lacking all of the following roles:\n"
+                f"{lacking_roles_comment}\n"
+                f"You can request support if you think you should be able to make this request."
+            )
         else:
             return True
 
     def get_html_draw(self, prod_name, image,image_header,catalog=None,**kwargs):
         return self.get_query_by_name(prod_name).get_html_draw( image,image_header,catalog=catalog,**kwargs)
 
+    #def get_par_by_name(self,par_name, validate=False):
     def get_par_by_name(self,par_name):
         p=None
 
@@ -282,6 +299,9 @@ class Instrument:
 
         if p is None:
             raise Warning('parameter', par_name, 'not found')
+
+     #   if validate and hasattr(p, 'check_value'):
+     #       p.check_value(p.value)
 
         return p
 
@@ -366,6 +386,12 @@ class Instrument:
             self.set_pars_from_dic(par_dic,verbose=verbose)
             #DONE
             q.set_done(debug_message=str(debug_message))
+        except RequestNotUnderstood as e:
+           q.set_failed(f"please adjust request parameters: {e.message}",
+                        logger=logger,
+                        sentry_client=None,
+                        excep=e)
+
         except Exception as e:
             #FAILED
 

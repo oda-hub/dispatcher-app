@@ -2,14 +2,6 @@ from cdci_data_analysis.configurer import DataServerConf
 import os
 import pytest
 
-@pytest.fixture
-def dispatcher_debug(monkeypatch):
-    monkeypatch.setenv('DISPATCHER_DEBUG_MODE', 'yes')
-
-@pytest.fixture
-def dispatcher_nodebug(monkeypatch):
-    monkeypatch.delenv('DISPATCHER_DEBUG_MODE', raising=False)
-
 def test_dsconf_integral_osa(tmpdir):
     conf_dict = {'data_server_url': 'https://data-server:5000',
             'dispatcher_mnt_point': 'data',

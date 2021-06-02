@@ -140,7 +140,7 @@ def meta_data_src():
 @app.route("/download_products", methods=['POST', 'GET'])
 def download_products():
     #instrument_name = 'ISGRI'
-    query = InstrumentQueryBackEnd(app)
+    query = InstrumentQueryBackEnd(app, download_products=True)
     return query.download_products()
 
 
@@ -208,14 +208,16 @@ def common_exception_payload():
     payload['installed_instruments'] = _l
 
     payload['debug_mode'] = os.environ.get(
-        'DISPATCHER_DEBUG_MODE', 'yes')  # change the default
+        'DISPATCHER_DEBUG_MODE', 'no')  # change the default
 
-    if payload['debug_mode'] == "yes":
-        payload['config'] = {
-            'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),
-                                                    ['sentry_url', 'logstash_host', 'logstash_port', 'secret_key',
-                                                     'smtp_server_password'])
-        }
+    # TODO why only in debug_mode ?
+    # if payload['debug_mode'] == "yes":
+
+    payload['config'] = {
+        'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),
+                                                ['sentry_url', 'logstash_host', 'logstash_port', 'secret_key',
+                                                 'smtp_server_password'])
+    }
 
     plugins = {}
     payload['config']['plugins'] = plugins
@@ -225,7 +227,6 @@ def common_exception_payload():
         }
 
     return payload
-
 
 
 class ExitStatus(Schema):
@@ -239,7 +240,7 @@ class ExitStatus(Schema):
 
 class QueryOutJSON(Schema):
     query_status = fields.Str(
-                        validate=OneOf(["done", "failed"]),
+                        validate=OneOf(["done", "failed", "submitted"]),
                         description=""
                     )
     exit_status = ExitStatus

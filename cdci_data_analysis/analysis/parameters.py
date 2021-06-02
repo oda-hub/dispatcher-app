@@ -207,9 +207,6 @@ class Parameter(object):
         self.units_name=units_name
         #self._wtform_dict=wtform_dict
 
-        logger.debug("initializing parameter %s name=%s", self, self.name)
-
-
 
     @property
     def value(self):

@@ -13,10 +13,9 @@ import glob
 import pytest
 from functools import reduce
 import yaml
+import gzip
 
-#pytestmark = pytest.mark.skip("these tests still WIP")
-
-from cdci_data_analysis.pytest_fixtures import loop_ask, ask
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, loop_ask, ask
 
 
 # logger
@@ -41,8 +40,7 @@ default_params = dict(
                     RA=83,
                     DEC=22,
                     radius=6,
-                    async_dispatcher=False,
-                    token="fake-token",
+                    async_dispatcher=False
                  )
 
 
@@ -71,12 +69,44 @@ def test_empty_request(dispatcher_live_fixture):
     assert c.status_code == 400
 
      # parameterize this
-    assert jdata['installed_instruments'] == ['empty', 'empty-async', 'isgri', 'jemx', 'osa_fake', 'spi_acs'] or \
-           jdata['installed_instruments'] == ['empty', 'empty-async', 'spi_acs'] or \
-           jdata['installed_instruments'] == ['empty', 'empty-async'] or \
+    assert jdata['installed_instruments'] == ['empty', 'empty-async', 'empty-semi-async'] or \
            jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"
+    assert 'dispatcher-config' in jdata['config']
+
+    dispatcher_config = jdata['config']['dispatcher-config']
+
+    assert 'origin' in dispatcher_config
+
+    assert 'sentry_url' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'logstash_port' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'logstash_host' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'secret_key' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'smtp_server_password' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'products_url' in dispatcher_config['cfg_dict']['dispatcher']
+
+    logger.info(jdata['config'])
+
+
+def test_no_debug_mode_empty_request(dispatcher_live_fixture_no_debug_mode):
+    server = dispatcher_live_fixture_no_debug_mode
+    print("constructed server:", server)
+
+    c=requests.get(server + "/run_analysis",
+                   params={},
+                )
+
+    print("content:", c.text)
+
+    jdata=c.json()
+
+    assert c.status_code == 400
+
+    # parameterize this
+    assert jdata['installed_instruments'] == []
+
+    assert jdata['debug_mode'] == "no"
     assert 'dispatcher-config' in jdata['config']
 
     dispatcher_config = jdata['config']['dispatcher-config']
@@ -189,6 +219,124 @@ def test_valid_token(dispatcher_live_fixture):
     logger.info(json.dumps(jdata, indent=4))
 
 
+@pytest.mark.parametrize("instrument", ["", "None", None, "undefined"])
+def test_download_products_public(dispatcher_live_fixture, empty_products_files_fixture, instrument):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    session_id = empty_products_files_fixture['session_id']
+    job_id = empty_products_files_fixture['job_id']
+
+    params = {
+            'instrument': instrument,
+            # since we are passing a job_id
+            'query_status': 'ready',
+            'file_list': 'test.fits.gz',
+            'download_file_name': 'output_test',
+            'session_id': session_id,
+            'job_id': job_id
+        }
+
+    c = requests.get(server + "/download_products",
+                     params=params)
+
+    assert c.status_code == 200
+
+    # download the output, read it and then compare it
+    with open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'wb') as fout:
+        fout.write(c.content)
+
+    with gzip.open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'rb') as fout:
+        data_downloaded = fout.read()
+
+    assert data_downloaded == empty_products_files_fixture['content']
+
+
+def test_download_products_authorized_user(dispatcher_live_fixture, empty_products_user_files_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "sub": "mtm@mtmco.net",
+        "mstout": True,
+        "mssub": True,
+        "intsub": 5
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    session_id = empty_products_user_files_fixture['session_id']
+    job_id = empty_products_user_files_fixture['job_id']
+
+    params = {
+        # since we are passing a job_id
+        'query_status': 'ready',
+        'file_list': 'test.fits.gz',
+        'download_file_name': 'output_test',
+        'session_id': session_id,
+        'job_id': job_id,
+        'token': encoded_token
+    }
+
+    c = requests.get(server + "/download_products",
+                     params=params)
+
+    assert c.status_code == 200
+
+    # download the output, read it and then compare it
+    with open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'wb') as fout:
+        fout.write(c.content)
+
+    with gzip.open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'rb') as fout:
+        data_downloaded = fout.read()
+
+    assert data_downloaded == empty_products_user_files_fixture['content']
+
+
+def test_download_products_unauthorized_user(dispatcher_live_fixture, empty_products_user_files_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "sub": "mtm1@mtmco.net",
+        "mstout": True,
+        "mssub": True,
+        "intsub": 5
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    session_id = empty_products_user_files_fixture['session_id']
+    job_id = empty_products_user_files_fixture['job_id']
+
+    params = {
+        # since we are passing a job_id
+        'query_status': 'ready',
+        'file_list': 'test.fits.gz',
+        'download_file_name': 'output_test',
+        'session_id': session_id,
+        'job_id': job_id,
+        'token': encoded_token
+    }
+
+    c = requests.get(server + "/download_products",
+                     params=params)
+
+    assert c.status_code == 403
+
+    jdata = c.json()
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == "user not authorized to download the requested product"
+
+
 @pytest.mark.not_safe_parallel
 def test_invalid_token(dispatcher_live_fixture, ):
     server = dispatcher_live_fixture
@@ -233,6 +381,73 @@ def test_invalid_token(dispatcher_live_fixture, ):
     # count again
     dir_list = glob.glob('scratch_*')
     assert number_scartch_dirs == len(dir_list)
+
+
+@pytest.mark.odaapi
+def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
+    DispatcherJobState.remove_scratch_folders()
+
+    import oda_api.api
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    disp = oda_api.api.DispatcherAPI(
+        url=dispatcher_live_fixture,
+        wait=False)
+
+    for i in range(4):
+        disp.get_product(
+            product_type="Real",
+            instrument="empty-semi-async",
+            product="dummy",
+            osa_version="OSA10.2",
+            token=encoded_token,
+            p=0,
+            session_id=disp.session_id
+        )
+    
+    dispatcher_job_state = DispatcherJobState(disp.session_id, disp.job_id)
+
+    dispatcher_job_state.assert_email("submitted")
+
+    disp = oda_api.api.DispatcherAPI(
+        url=dispatcher_live_fixture,
+        session_id=disp.session_id,
+        wait=False)
+
+    disp.get_product(
+        product_type="Real",
+        instrument="empty-semi-async",
+        product="dummy",
+        osa_version="OSA10.2",
+        token=encoded_token,
+        p=4
+    )
+    
+    dispatcher_job_state = DispatcherJobState(disp.session_id, disp.job_id)
+    dispatcher_job_state.assert_email("*", number=0)
+
+    disp = oda_api.api.DispatcherAPI(
+        url=dispatcher_live_fixture,
+        session_id=disp.session_id,
+        wait=False)
+
+    with pytest.raises(oda_api.api.RemoteException):
+        disp.get_product(
+                product_type="Real",
+                instrument="empty-semi-async",
+                product="dummy",
+                osa_version="OSA10.2",
+                token=encoded_token,
+                p=-1
+            )
+
+    dispatcher_job_state = DispatcherJobState(disp.session_id, disp.job_id)
+    dispatcher_job_state.assert_email("*", number=0)
 
 
 @pytest.mark.odaapi
@@ -363,8 +578,12 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
         assert jdata["exit_status"]["debug_message"] == ""
         assert jdata["exit_status"]["error_message"] == ""
         assert jdata["exit_status"]["message"] == \
-               f"Roles {roles} not authorized to request the product numerical, " \
-               f"[\'general\', \'unige-hpc-full\'] roles are needed"
+               "Unfortunately, your priviledges are not sufficient to make the request for this particular product and parameter combination.\n"\
+               f"- Your priviledge roles include {roles}\n- "\
+               "You are lacking all of the following roles:\n" \
+               + (" - general: general role is needed for p>50\n" if "general" not in roles else "" ) + \
+               " - unige-hpc-full: unige-hpc-full role is needed for p>50 as well\n"\
+               "You can request support if you think you should be able to make this request."
 
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
@@ -380,9 +599,6 @@ def test_empty_instrument_request(dispatcher_live_fixture):
         'query_type': "Dummy",
         'instrument': 'empty',
     }
-
-    # let's keep the request public
-    params.pop('token')
 
     jdata = ask(server,
                 params,
@@ -413,8 +629,6 @@ def test_no_instrument(dispatcher_live_fixture):
                 ))
 
     print("content:", c.text)
-
-    jdata=c.json()
 
     assert c.status_code == 400
 
@@ -475,7 +689,6 @@ def test_no_token(dispatcher_live_fixture, async_dispatcher, method):
     assert jdata["exit_status"]["debug_message"] == ""
     assert jdata["exit_status"]["error_message"] == ""
     assert jdata["exit_status"]["message"] == "you do not have permissions for this query, contact oda"
-
 
 
 def flatten_nested_structure(structure, mapping, path=[]):
