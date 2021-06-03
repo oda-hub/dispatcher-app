@@ -273,7 +273,6 @@ def run_analysis():
     request_summary = log_run_query_request()
 
     try:
-        # t0 = _time.time()
         t0 = g.request_start_time
         query = InstrumentQueryBackEnd(app)
         r = query.run_query(disp_conf=app.config['conf'])
@@ -281,7 +280,6 @@ def run_analysis():
             'client-name', 'unknown'), _time.time() - t0)
 
         logger.info("towards log_run_query_result")
-
         log_run_query_result(request_summary, r[0])
 
         return r

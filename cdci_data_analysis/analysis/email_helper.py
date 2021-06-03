@@ -134,6 +134,7 @@ def send_email(
         message["From"] = sender_email_address
         message["To"] = receiver_email_address
         message["CC"] = ", ".join(cc_receivers_email_addresses)
+        message['Reply-To'] = email_data['oda_site']['contact']
 
         part1 = MIMEText(email_text, "plain")
         part2 = MIMEText(email_body_html, "html")

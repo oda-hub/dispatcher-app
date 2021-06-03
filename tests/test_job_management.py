@@ -12,7 +12,7 @@ import email
 from urllib.parse import urlencode
 import glob
 
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash
 
 from flask import Markup
 
@@ -170,6 +170,7 @@ def validate_email_content(
     assert msg['From'] == 'team@odahub.io'
     assert msg['To'] == 'mtm@mtmco.net'
     assert msg['CC'] == ", ".join(['team@odahub.io'])
+    assert msg['Reply-To'] == "contact@odahub.io"
     assert msg.is_multipart()
     
     for part in msg.walk():
@@ -215,6 +216,70 @@ def get_expected_products_url(dict_param):
             dict_param_complete.pop(key)
 
     return '%s?%s' % ('http://www.astro.unige.ch/cdci/astrooda_', urlencode(dict_param_complete))
+
+
+def test_validation_job_id(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    # this should return status submitted, so email sent
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+    assert c.status_code == 200
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+
+    # let's generate another valid token, just for a different user
+    token_payload = {
+        **default_token_payload,
+        "sub":"mtm1@mtmco.net"
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="ready",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        job_id=dispatcher_job_state.job_id,
+        session_id=dispatcher_job_state.session_id,
+        token=encoded_token
+    )
+
+
+    # this should return status submitted, so email sent
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+    dict_param.pop('token')
+    dict_param.pop('session_id')
+    dict_param.pop('job_id')
+    dict_param['query_status'] = 'new'
+    wrong_job_id = u'%s' % (make_hash({**dict_param, "sub": "mtm1@mtmco.net"}))
+    assert c.status_code == 403
+    jdata = c.json()
+    assert jdata["exit_status"]["debug_message"] == \
+           f'The provided job_id={dispatcher_job_state.job_id} does not match with the ' \
+           f'job_id={wrong_job_id} derived from the request parameters for your user account email'
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == "user not authorized to download the requested product"
 
 
 @pytest.mark.parametrize("default_values", [True, False])
@@ -269,10 +334,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     logger.info("response from run_analysis: %s", json.dumps(jdata, indent=4))
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
 
-
     products_url = get_expected_products_url(dict_param)
-        
-        
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
     assert 'time_request' in jdata

@@ -37,7 +37,8 @@ class RequestNotUnderstood(BadRequest):
 
 
 class RequestNotAuthorized(BadRequest):
-    def __init__(self, message):
+    def __init__(self, message, debug_message=''):
+        self.debug_message = debug_message
         super().__init__(message, status_code=403)
 
 
