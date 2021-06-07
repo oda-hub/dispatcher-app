@@ -2,25 +2,25 @@
 <html lang="en">
 
 <head>
-    <title>[ODA][submitted] dummy first requested at 2021-05-31 17:51:33 job_id: 2a8eb39e</title>
+    <title>[ODA][submitted] dummy first requested at 2021-06-07 20:09:17 job_id: 2a8eb39e</title>
 </head>
 
 <body>
 Dear User,<br>
 <br>
-you receive this message because at 2021-05-31 17:51:33 ( 0.0 seconds ago ) you submitted a request <br>
+you receive this message because at 2021-06-07 20:09:17 ( 0.1 seconds ago ) you submitted a request <br>
 for a dummy from the service provided by University of Geneva<br>
-available at the URL http://www.astro.unige.ch/cdci/astrooda_.<br>
+available at the URL PRODUCTS_URL.<br>
 <br>
 
 Once products will be ready, you will receive a new email.<br>
 
 <br>
 You can inspect the status of your job using the following <br>
-<a href="http://www.astro.unige.ch/cdci/astrooda_?query_status=new&query_type=Real&instrument=empty-async&product_type=dummy">url</a> or repeating the request 
+<a href="PRODUCTS_URL?query_status=new&query_type=Real&instrument=empty-async&product_type=dummy">url</a> or repeating the request 
 (either with frontend or with the python API query at the end of this message.).<br>
 <br>
-In case you have questions or issues you can contact us at <a href="mailto:contact@odahub.io">this email</a>.<br>
+In case you have questions or issues you can contact us at <a href="mailto:contact@odahub.io">this email</a> or reply to the current message.<br>
 <br>
 Kind regards,<br>
 <br>
@@ -31,15 +31,14 @@ Python API code:<br>
 <br>
 <div style="background-color: lightgray; display: inline-block; padding: 5px;">
 from oda_api.api import DispatcherAPI<br>
-disp=DispatcherAPI(url='http://www.astro.unige.ch/cdci/astrooda_', instrument='mock')<br>
-<br>
+disp=DispatcherAPI(url='PRODUCTS_URL', instrument='mock')<br>
 par_dict={<br>
     "product_type": "Real",<br>
     "instrument": "empty-async",<br>
     "product": "dummy",<br>
-    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdG1AbXRtY28ubmV0IiwibmFtZSI6Im1tZWhhcmdhIiwicm9sZXMiOiJnZW5lcmFsIiwiZXhwIjoxNjIyNDgxMjg5fQ.dr1GlWync5vNNpVvG5c-VioCCcNm0-_Fq6KoX3pzVPY"<br>
+    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdG1AbXRtY28ubmV0IiwibmFtZSI6Im1tZWhhcmdhIiwicm9sZXMiOiJnZ\<br>
+W5lcmFsIiwiZXhwIjoxNjIzMDk0MzUzfQ.tbf4RidU7YlCiKDlSwYTeuYfNkXw4pV4GyRlDtE4AB8"<br>
 }<br>
-<br>
 data_collection = disp.get_product(**par_dict)
 </div>
 <br>

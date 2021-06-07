@@ -95,14 +95,50 @@ def compress_request_url_params(request_url, consider_args=['selected_catalog', 
         'query': parse.urlencode(compressed_qs)
     }))
 
+import black
+
+def wrap_python_code(code, max_length=80):
+    # this black currently does not split strings without spaces    
+
+    while True:
+        new_code = re.sub('("[0-9a-zA-Z]{%i,}?")' % (max_length + 1), 
+                        lambda S: S.group(1)[:max_length] + '" "' + S.group(1)[max_length:], 
+                        #lambda S: '"' + S.group(1)[:max_length] + '" "' + S.group(1)[max_length:] + '"', 
+                        code)
+
+        if new_code == code:
+            break
+        else:
+            code = new_code
+
+    logger.error("\033[31mwrapped: %s\033[0m", code)
+
+    mode = black.Mode(
+        target_versions={black.TargetVersion.PY38},
+        line_length=max_length,
+        string_normalization=True,
+        experimental_string_processing=True,
+    )
+    
+    # this will also ensure it's valid code
+    return black.format_str(code, mode=mode)
+
+
 def adapt_line_length_api_code(api_code, max_length=120, line_break="\n", add_line_continuation=r"\\"):
     api_code_short_lines = ""
     for line in api_code.split(line_break):
-        while len(line) > 0:
-            sub_line = line[:max_length]
-            line = line[max_length:]
+        remaining_line = line
 
-            api_code_short_lines += sub_line + add_line_continuation + line_break
+        while len(remaining_line) > 0:
+            sub_line = remaining_line[:max_length]
+            remaining_line = remaining_line[max_length:]
+
+            api_code_short_lines += sub_line 
+            
+            if len(remaining_line) > 0:
+                api_code_short_lines += add_line_continuation
+            
+            api_code_short_lines += line_break
 
     return api_code_short_lines
 
@@ -128,7 +164,10 @@ def send_email(
     env.filters['humanize_age'] = humanize_age
     env.filters['humanize_future'] = humanize_future
 
-    api_code = adapt_line_length_api_code(api_code, line_break="\n", add_line_continuation="\\")
+    #api_code = adapt_line_length_api_code(api_code, line_break="\n", add_line_continuation="\\")
+    api_code = wrap_python_code(api_code)
+
+
     api_code = api_code.strip().replace("\n", "<br>\n")
 
     api_code_no_token = re.sub('"token": ".*?"', '"token": "<PLEASE-INSERT-YOUR-TOKEN-HERE>"', api_code)

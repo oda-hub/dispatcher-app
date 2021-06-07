@@ -138,7 +138,7 @@ def adapt_html(html, **email_args):
 # ignore patterns which we are too lazy to substiture
 def ignore_html_patterns(html):
     for pattern in ignore_email_patterns:
-        html = re.sub(pattern, "<IGNORES>", html)
+        html = re.sub(pattern, "<IGNORES>", html, flags=re.DOTALL)
 
     return html
 
@@ -200,8 +200,12 @@ def validate_email_content(
             assert re.search(f'Dear User', content_text, re.IGNORECASE)
             assert re.search(f'Kind Regards', content_text, re.IGNORECASE)
 
+            with open("email.text", "w") as f:
+                f.write(content_text)
+
             if products_url is not None:                
                 assert products_url in content_text
+
 
 
 def get_expected_products_url(dict_param):
@@ -218,7 +222,7 @@ def get_expected_products_url(dict_param):
         if value is None:
             dict_param_complete.pop(key)
 
-    return '%s?%s' % ('http://www.astro.unige.ch/cdci/astrooda_', urlencode(dict_param_complete))
+    return '%s?%s' % ('PRODUCTS_URL', urlencode(dict_param_complete))
 
 
 def test_validation_job_id(dispatcher_live_fixture):
@@ -960,14 +964,49 @@ def test_email_compress_request_url():
     assert len(compressed_url) < 200
     assert len(url) > 10000
 
-def test_adapt_line_length_api_code():
+
+def test_adapt_line_length_api_code_one_long():
     from cdci_data_analysis.analysis.email_helper import adapt_line_length_api_code
 
     line_break = '\n'
-    long_line_code = "01"*1000
+    long_line_code = "01 "*310
     add_line_continuation = "\\"
-    adapted = adapt_line_length_api_code(long_line_code, max_length=100, line_break=line_break, add_line_continuation=add_line_continuation)
+    adapted = adapt_line_length_api_code(long_line_code, max_length=50, line_break=line_break, add_line_continuation=add_line_continuation)
 
-    assert len(adapted.split(line_break)) > 10
+    assert len(adapted.split(line_break))  == int((300*2)/50) + 2
+
+    print("unadapted long_line_code:" + long_line_code)
+    print("adapted:\n" + adapted)
 
     assert adapted.replace(line_break, '').replace(add_line_continuation, '') == long_line_code
+
+def test_adapt_line_length_api_code_two_lines():
+    from cdci_data_analysis.analysis.email_helper import adapt_line_length_api_code
+
+    line_break = '\n'
+    long_line_code = "01 " * 60 + "\n" + \
+                     "01 " * 10 
+    add_line_continuation = "\\"
+    adapted = adapt_line_length_api_code(long_line_code, max_length=50, line_break=line_break, add_line_continuation=add_line_continuation)
+
+    assert len(adapted.split(line_break))  == 2 + 1
+
+    print("unadapted long_line_code:" + long_line_code)
+    print("adapted:\n" + adapted)
+
+    assert adapted.replace(line_break, '').replace(add_line_continuation, '') == long_line_code
+
+
+
+def test_wrap_api_code():
+    from cdci_data_analysis.analysis.email_helper import wrap_python_code
+
+    c = wrap_python_code("""
+a = 1
+
+bla = x()
+
+bla = "asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas"
+    """)
+
+    print(c)
