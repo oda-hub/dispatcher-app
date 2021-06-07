@@ -232,7 +232,8 @@ class InstrumentQueryBackEnd:
         return format_hash(json.dumps(o))
 
     def calculate_job_id(self, par_dic):
-        return u'%s' % (self.make_hash(par_dic))
+        _dict = OrderedDict({k: v for k, v in par_dic if v is not None})
+        return u'%s' % (self.make_hash(_dict))
 
     # not job_id??
     def generate_job_id(self, kw_black_list=['session_id', 'job_id', 'token']):
