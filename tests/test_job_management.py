@@ -964,7 +964,7 @@ def test_email_compress_request_url():
     assert len(compressed_url) < 200
     assert len(url) > 10000
 
-
+@pytest.mark.skip(reason="unused")
 def test_adapt_line_length_api_code_one_long():
     from cdci_data_analysis.analysis.email_helper import adapt_line_length_api_code
 
@@ -980,6 +980,7 @@ def test_adapt_line_length_api_code_one_long():
 
     assert adapted.replace(line_break, '').replace(add_line_continuation, '') == long_line_code
 
+@pytest.mark.skip(reason="unused")
 def test_adapt_line_length_api_code_two_lines():
     from cdci_data_analysis.analysis.email_helper import adapt_line_length_api_code
 
