@@ -40,3 +40,5 @@ jdata.json
 .coverage
 *,cover
 cdci_data_analysis/config_dir/conf_env.yml
+js9
+src

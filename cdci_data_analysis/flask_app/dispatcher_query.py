@@ -5,7 +5,7 @@ Created on Wed May 10 10:55:20 2017
 
 @author: andrea tramcere
 """
-
+import os
 from builtins import (open, str, range,
                       object)
 
@@ -438,14 +438,13 @@ class InstrumentQueryBackEnd:
             par_dict=request_par_dic)
 
 
-    def download_products(self):
-        try:
-            # TODO not entirely sure about these
-            self.off_line = False
-            self.api = False
 
-            # TODO: extract this into separate call?            
-            request_par_dic = self.get_request_par_dic()
+    def validate_job_id(self):
+        request_par_dic = self.get_request_par_dic()
+        if request_par_dic is not None:
+            request_par_dic.pop('token', None)
+            request_par_dic.pop('session_id', None)
+            request_par_dic.pop('job_id', None)
             if not self.public:
                 dict_job_id = {
                     **request_par_dic,
@@ -453,13 +452,27 @@ class InstrumentQueryBackEnd:
                 }
                 calculated_job_id = self.calculate_job_id(dict_job_id)
             else:
-                request_par_dic = self.get_request_par_dic()
                 calculated_job_id = self.calculate_job_id(request_par_dic)
 
-            if self.par_dic['job_id'] != calculated_job_id:
-                logstash_message(self.app, {'origin': 'dispatcher-run-analysis', 'event': 'unauthorized-user'})
-                raise RequestNotAuthorized("user not authorized to download the requested product")
+            if self.job_id != calculated_job_id:
+                debug_message = f"The provided job_id={self.job_id} does not match with the job_id={calculated_job_id} " \
+                                f"derived from the request parameters"
+                if not self.public:
+                    debug_message += " for your user account email"
+                logstash_message(self.app, {'origin': 'dispatcher-call-back', 'event': 'unauthorized-user'})
+                raise RequestNotAuthorized("user not authorized to download the requested product", debug_message=debug_message)
 
+
+    def download_products(self,):
+        try:
+            # TODO not entirely sure about these
+            self.off_line = False
+            self.api = False
+
+            # TODO: extract this into separate call?            
+            request_par_dic = self.get_request_par_dic()
+
+            self.validate_job_id()
             file_list = self.args.get('file_list').split(',')
             file_name = self.args.get('download_file_name')
 
@@ -470,15 +483,13 @@ class InstrumentQueryBackEnd:
         except RequestNotAuthorized as e:
             return self.build_response_failed('oda_api permissions failed',
                                               e.message,
-                                              status_code=e.status_code)
+                                              status_code=e.status_code,
+                                              debug_message=e.debug_message)
         except Exception as e:
             return e
     
 
     def upload_file(self, name, scratch_dir):
-        #print('upload  file')
-        #print('name', name)
-        #print('request.files ',request.files)
         if name not in request.files:
             return None
         else:
@@ -568,6 +579,7 @@ class InstrumentQueryBackEnd:
 
         if self.config.sentry_url is not None:
             self.set_sentry_client(self.config.sentry_url)
+
         instrument_name = self.par_dic.get('instrument_name', '')
         # the time the request was sent should be used
         # the time_request contains the time the call_back as issued
@@ -594,9 +606,11 @@ class InstrumentQueryBackEnd:
         logger.warn('-----> set status to %s', status)
 
         try:
-            if email_helper.is_email_to_send_callback(self.logger, 
-                                                      status, 
-                                                      time_original_request, 
+            # TODO for a future implementation
+            # self.validate_job_id()
+            if email_helper.is_email_to_send_callback(self.logger,
+                                                      status,
+                                                      time_original_request,
                                                       self.app.config['conf'], 
                                                       self.job_id, 
                                                       decoded_token=self.decoded_token):
@@ -649,12 +663,23 @@ class InstrumentQueryBackEnd:
                                         full_dict=self.par_dic,
                                         call_back_status=f'parameter missing during call back: {e.message}')
             logging.warning(f'parameter missing during call back: {e}')
+        # TODO for a future implementation
+        # except RequestNotAuthorized as e:
+        #     job.write_dataserver_status(status_dictionary_value=status,
+        #                                 full_dict=self.par_dic,
+        #                                 call_back_status=f'unauthorized request detected during call back: {e.message}')
+        #     if self.sentry_client is not None:
+        #         self.sentry_client.capture('raven.events.Message',
+        #                                message=f'attempted call_back with worng job_id {e.message}')
+        #     logging.warning(f'unauthorized request detected during call back: {e.message}')
+
 
     # TODO perhaps move it somewhere else?
     def get_request_par_dic(self):
-        with open(self.scratch_dir + '/analysis_parameters.json') as file:
-            jdata = json.load(file)
-            return jdata
+        if os.path.exists(self.scratch_dir + '/analysis_parameters.json'):
+            with open(self.scratch_dir + '/analysis_parameters.json') as file:
+                jdata = json.load(file)
+                return jdata
 
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
@@ -916,7 +941,7 @@ class InstrumentQueryBackEnd:
                            token=self.token,
                            time_request=self.time_request)
 
-    def build_response_failed(self, message, extra_message, status_code=None):
+    def build_response_failed(self, message, extra_message, status_code=None, debug_message=''):
         job = self.build_job()
         job.set_failed()
         job_monitor = job.monitor
@@ -929,7 +954,8 @@ class InstrumentQueryBackEnd:
 
         query_out.set_failed(failed_task,
                              message=extra_message,
-                             job_status=job_monitor['status'])
+                             job_status=job_monitor['status'],
+                             debug_message=debug_message)
 
         resp = self.build_dispatcher_response(query_new_status=query_status,
                                               query_out=query_out,
@@ -1091,10 +1117,8 @@ class InstrumentQueryBackEnd:
         self.logger.info(
             '\033[31;42m==============================> run query <==============================\033[0m')
         if 'api' in self.par_dic.keys():
-            api = True            
-
+            api = True
             r = self.find_api_version_issues(off_line, api) # pylint: disable=assignment-from-none
-
             if r is not None:
                 if os.environ.get('DISPATCHER_ENFORCE_API_VERSION', 'no') == 'yes':
                     self.logger.warning(
@@ -1109,16 +1133,19 @@ class InstrumentQueryBackEnd:
         self.api = api # TODO: we should decide if it's memeber or not
 
         try:
+            self.validate_job_id()
+        except RequestNotAuthorized as e:
+            return self.build_response_failed('oda_api permissions failed',
+                                              e.message,
+                                              status_code=e.status_code,
+                                              debug_message=e.debug_message)
+
+        try:
             query_type = self.par_dic['query_type']
             product_type = self.par_dic['product_type']
             query_status = self.par_dic['query_status']
         except KeyError as e:
             raise MissingRequestParameter(repr(e))
-
-        # resp = self.validate_token_request_param()
-        # if resp is not None:
-        #     self.logger.warning("query dismissed by token validation")
-        #     return resp
 
         if self.par_dic.pop('instrumet', None) is not None:
             self.logger.warning("someone is sending instrume(N!)ts?")
@@ -1300,7 +1327,8 @@ class InstrumentQueryBackEnd:
                 except RequestNotAuthorized as e:
                     return self.build_response_failed('oda_api permissions failed',
                                                       e.message,
-                                                      status_code=e.status_code)
+                                                      status_code=e.status_code,
+                                                      debug_message=e.debug_message)
 
                 self.logger.info('-----------------> job status after query: %s', job.status)
 
