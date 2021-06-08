@@ -29,7 +29,6 @@ from .io_helper import FilePath
 from .exceptions import RequestNotUnderstood
 import traceback
 
-
 @decorator.decorator
 def check_is_base_query(func,prod_list,*args, **kwargs):
     _check_is_base_query(prod_list)
