@@ -964,40 +964,6 @@ def test_email_compress_request_url():
     assert len(compressed_url) < 200
     assert len(url) > 10000
 
-@pytest.mark.skip(reason="unused")
-def test_adapt_line_length_api_code_one_long():
-    from cdci_data_analysis.analysis.email_helper import adapt_line_length_api_code
-
-    line_break = '\n'
-    long_line_code = "01 "*310
-    add_line_continuation = "\\"
-    adapted = adapt_line_length_api_code(long_line_code, max_length=50, line_break=line_break, add_line_continuation=add_line_continuation)
-
-    assert len(adapted.split(line_break))  == int((300*2)/50) + 2
-
-    print("unadapted long_line_code:" + long_line_code)
-    print("adapted:\n" + adapted)
-
-    assert adapted.replace(line_break, '').replace(add_line_continuation, '') == long_line_code
-
-@pytest.mark.skip(reason="unused")
-def test_adapt_line_length_api_code_two_lines():
-    from cdci_data_analysis.analysis.email_helper import adapt_line_length_api_code
-
-    line_break = '\n'
-    long_line_code = "01 " * 60 + "\n" + \
-                     "01 " * 10 
-    add_line_continuation = "\\"
-    adapted = adapt_line_length_api_code(long_line_code, max_length=50, line_break=line_break, add_line_continuation=add_line_continuation)
-
-    assert len(adapted.split(line_break))  == 2 + 1
-
-    print("unadapted long_line_code:" + long_line_code)
-    print("adapted:\n" + adapted)
-
-    assert adapted.replace(line_break, '').replace(add_line_continuation, '') == long_line_code
-
-
 
 def test_wrap_api_code():
     from cdci_data_analysis.analysis.email_helper import wrap_python_code

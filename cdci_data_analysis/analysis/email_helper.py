@@ -124,25 +124,6 @@ def wrap_python_code(code, max_length=80):
     return black.format_str(code, mode=mode)
 
 
-def adapt_line_length_api_code(api_code, max_length=120, line_break="\n", add_line_continuation=r"\\"):
-    api_code_short_lines = ""
-    for line in api_code.split(line_break):
-        remaining_line = line
-
-        while len(remaining_line) > 0:
-            sub_line = remaining_line[:max_length]
-            remaining_line = remaining_line[max_length:]
-
-            api_code_short_lines += sub_line 
-            
-            if len(remaining_line) > 0:
-                api_code_short_lines += add_line_continuation
-            
-            api_code_short_lines += line_break
-
-    return api_code_short_lines
-
-
 def send_email(
         config,
         logger,
