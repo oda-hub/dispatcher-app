@@ -42,7 +42,8 @@ install_req = [
     "celery",
     "redis",
     "pyjwt",
-    "marshmallow"
+    "marshmallow",
+    "black"
 ]
 
 test_req = [
