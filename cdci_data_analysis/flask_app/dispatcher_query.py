@@ -444,11 +444,14 @@ class InstrumentQueryBackEnd:
                 if not self.public:
                     debug_message += " for your user account email"
 
-                logger.error(debug_message)
-                logger.error("parameters for self.job_id %s : %s", 
-                             self.job_id, 
-                             json.dumps(self.find_job_id_parameters(self.job_id), sort_keys=True, indent=4))
+                restored_job_parameters = self.find_job_id_parameters(self.job_id)
 
+                logger.error(debug_message)
+                logger.error("parameters for self.job_id %s, recomputed as %s : %s",                 
+                             self.job_id, 
+                             self.calculate_job_id(restored_job_parameters),
+                             json.dumps(restored_job_parameters, sort_keys=True, indent=4))
+                             
                 logger.error("parameters for calculated_job_id %s : %s", 
                              calculated_job_id, 
                              json.dumps(dict_job_id, sort_keys=True, indent=4))
