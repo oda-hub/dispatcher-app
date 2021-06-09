@@ -223,20 +223,27 @@ class InstrumentQueryBackEnd:
             if k not in kw_black_list and v is not None
         })
     
-
-    def calculate_job_id(self, par_dic: dict, kw_black_list=None) -> str:
-        """
-        restricts parameter list to those relevant for request content, and makes string hash
-        """       
+    def hashable_par_dic(self, par_dic):
         if not self.public:
-            dict_job_id = {
+            return {
                 **par_dic,
                 "sub": tokenHelper.get_token_user_email_address(self.decoded_token)
             }
         else:
-            dict_job_id = par_dic
+            return par_dic
+
+    def calculate_job_id(self, par_dic: dict, kw_black_list=None) -> str:
+        """
+        restricts parameter list to those relevant for request content, and makes string hash
+        """               
     
-        return make_hash(self.restricted_par_dic(dict_job_id, kw_black_list))        
+        return make_hash(
+               self.restricted_par_dic(
+               self.hashable_par_dic(
+                   par_dic,                   
+               ),
+                   kw_black_list
+               ))
     
     def generate_job_id(self, kw_black_list=None):
         self.logger.info("\033[31m---> GENERATING JOB ID <---\033[0m")
