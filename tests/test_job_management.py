@@ -293,12 +293,17 @@ def test_validation_job_id(dispatcher_live_fixture):
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    dict_param = dict(
-        query_status="new",
-        query_type="Real",
+    # these parameters define request content
+    base_dict_param = dict(
         instrument="empty-async",
         product_type="dummy",
-        token=encoded_token
+        query_type="real",
+    )
+
+    dict_param = dict(
+        query_status="new",
+        token=encoded_token,
+        **base_dict_param
     )
 
     # this should return status submitted, so email sent
@@ -311,32 +316,20 @@ def test_validation_job_id(dispatcher_live_fixture):
     assert jdata['exit_status']['job_status'] == 'submitted'
 
     # let's generate another valid token, just for a different user
-    token_payload = {
-        **default_token_payload,
-        "sub":"mtm1@mtmco.net"
-    }
-    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    token_payload['sub'] = "mtm2@mtmco.net"
+        
+    # this should return status submitted, so email sent    
+    dict_param['token'] = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    dict_param = dict(
-        query_status="ready",
-        query_type="Real",
-        instrument="empty-async",
-        product_type="dummy",
-        job_id=dispatcher_job_state.job_id,
-        session_id=dispatcher_job_state.session_id,
-        token=encoded_token
-    )
-
-
-    # this should return status submitted, so email sent
     c = requests.get(server + "/run_analysis",
                      dict_param
                      )
-    dict_param.pop('token')
-    dict_param.pop('session_id')
-    dict_param.pop('job_id')
-    dict_param['query_status'] = 'new'
-    wrong_job_id = u'%s' % (make_hash({**dict_param, "sub": "mtm1@mtmco.net"}))
+    
+    wrong_job_id = make_hash({**base_dict_param, "sub": "mtm1@mtmco.net"})
+
+    from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
+    assert InstrumentQueryBackEnd.restricted_par_dic(dict_param) == base_dict_param
+
     assert c.status_code == 403
     jdata = c.json()
     assert jdata["exit_status"]["debug_message"] == \

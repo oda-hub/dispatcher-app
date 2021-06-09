@@ -210,13 +210,14 @@ class InstrumentQueryBackEnd:
 
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
-    def restricted_par_dic(self, par_dic, kw_black_list=None):
+    @staticmethod
+    def restricted_par_dic(par_dic, kw_black_list=None):
         """
         restricts parameter list to those relevant for request content
         """
 
         if kw_black_list is None:
-            kw_black_list = ('session_id', 'job_id', 'token', 'dry_run', 'oda_api_version', 'api', 'off_line')
+            kw_black_list = ('session_id', 'job_id', 'token', 'dry_run', 'oda_api_version', 'api', 'off_line', 'query_status')
 
         return OrderedDict({
             k: v for k, v in par_dic.items()
@@ -224,10 +225,13 @@ class InstrumentQueryBackEnd:
         })
     
     def hashable_par_dic(self, par_dic):
-        if not self.public:
+        if 'token' in par_dic:
+            secret_key = self.app.config.get('conf').secret_key
+            decoded_token = tokenHelper.get_decoded_token(par_dic['token'], secret_key)
+
             return {
                 **par_dic,
-                "sub": tokenHelper.get_token_user_email_address(self.decoded_token)
+                "sub": tokenHelper.get_token_user_email_address(decoded_token)
             }
         else:
             return par_dic
@@ -250,6 +254,7 @@ class InstrumentQueryBackEnd:
         self.logger.info(
             "\033[31m---> new job id for %s <---\033[0m", self.par_dic)
               
+        self.logger.debug("generate_job_id: %s", json.dumps(self.par_dic, indent=4, sort_keys=True))
 
         self.job_id = self.calculate_job_id(self.par_dic)
 
