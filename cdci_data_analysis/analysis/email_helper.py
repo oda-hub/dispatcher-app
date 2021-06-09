@@ -58,13 +58,18 @@ def humanize_future(timestamp: float):
 
 
 def textify_email(html):
-    text = re.search('<body>(.*?)</body>', html, re.S).group(1)
+    from bs4 import BeautifulSoup
 
-    text = re.sub('<title>.*?</title>', '', text)
+    html = re.sub('<title>.*?</title>', '', html)
+    html = re.sub('<a href=(.*?)>(.*?)</a>', r'\2: \1', html)
 
-    text = re.sub('<a href=(.*?)>(.*?)</a>', r'\2: \1', text)
+    soup = BeautifulSoup(html)
+    return soup.get_text()
 
-    return re.sub('<.*?>', '', text)
+    #text = re.search('<body>(.*?)</body>', html, re.S).group(1)
+
+    
+    
 
 def invalid_email_line_length(body):
     for line in body.split('\n'):

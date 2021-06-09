@@ -14,6 +14,7 @@ from urllib.parse import urlencode
 import glob
 
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash
+from cdci_data_analysis.analysis.email_helper import textify_email
 
 from flask import Markup
 
@@ -106,7 +107,7 @@ generalized_email_patterns = {
 
 ignore_email_patterns = [
     '\( .*?ago \)',
-    '"token":.*?,',
+    '&#34;token&#34;:.*?,',
     'expire in .*? .*?\.'
 ]
 
@@ -154,7 +155,7 @@ def store_email(email_html, **email_args):
 def extract_api_code(text):
     r = re.search('<div.*?>(.*?)</div>', text, flags=re.DOTALL)
     if r:
-        return r.group(1)
+        return textify_email(r.group(1))
     else:
         with open("no-api-code-problem.html", "w") as f:
             f.write(text)
