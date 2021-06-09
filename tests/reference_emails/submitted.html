@@ -2,13 +2,13 @@
 <html lang="en">
 
 <head>
-    <title>[ODA][submitted] dummy first requested at 2021-06-07 20:09:17 job_id: 2a8eb39e</title>
+    <title>[ODA][submitted] dummy first requested at 2021-06-09 09:31:56 job_id: 2a8eb39e</title>
 </head>
 
 <body>
 Dear User,<br>
 <br>
-you receive this message because at 2021-06-07 20:09:17 ( 0.1 seconds ago ) you submitted a request <br>
+you receive this message because at 2021-06-09 09:31:56 ( 0.1 seconds ago ) you submitted a request <br>
 for a dummy from the service provided by University of Geneva<br>
 available at the URL PRODUCTS_URL.<br>
 <br>
@@ -16,9 +16,11 @@ available at the URL PRODUCTS_URL.<br>
 Once products will be ready, you will receive a new email.<br>
 
 <br>
-You can inspect the status of your job using the following <br>
-<a href="PRODUCTS_URL?query_status=new&query_type=Real&instrument=empty-async&product_type=dummy">url</a> or repeating the request 
-(either with frontend or with the python API query at the end of this message.).<br>
+You can inspect the status of your job using the following <a href="PRODUCTS_URL?query_status=new&query_type=Real&instrument=empty-async&product_type=dummy">url</a>.<br>
+ 
+Note that this url is permanent, and can be used to refer to the results as long as the service exists.<br>
+
+You can also retrieve the result by repeating the request (either with frontend or with the python API query at the end of this message.).<br>
 <br>
 In case you have questions or issues you can contact us at <a href="mailto:contact@odahub.io">this email</a> or reply to the current message.<br>
 <br>
@@ -31,20 +33,25 @@ Python API code:<br>
 <br>
 <div style="background-color: lightgray; display: inline-block; padding: 5px;">
 from oda_api.api import DispatcherAPI<br>
-disp=DispatcherAPI(url='PRODUCTS_URL', instrument='mock')<br>
-par_dict={<br>
+<br>
+disp = DispatcherAPI(url="PRODUCTS_URL", instrument="mock")<br>
+<br>
+par_dict = {<br>
     "product_type": "Real",<br>
     "instrument": "empty-async",<br>
     "product": "dummy",<br>
-    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdG1AbXRtY28ubmV0IiwibmFtZSI6Im1tZWhhcmdhIiwicm9sZXMiOiJnZ\<br>
-W5lcmFsIiwiZXhwIjoxNjIzMDk0MzUzfQ.tbf4RidU7YlCiKDlSwYTeuYfNkXw4pV4GyRlDtE4AB8"<br>
+    "token": (<br>
+        "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdG1AbXRtY28ubmV0IiwibmFtZSI6Im1tZWhhcmdhIiwicm9sZX"<br>
+        "MiOiJnZW5lcmFsIiwiZXhwIjoxNjIzMjI4OTExfQ.3FZpd7og3TWejkcp1-H5pLUjRYQ4q3M578NHJ8OcwaQ"<br>
+    ),<br>
 }<br>
+<br>
 data_collection = disp.get_product(**par_dict)
 </div>
 <br>
 <br>
 Note that this code contains your private token. Be careful how you share it!<br>
-This token is short-lived, and will expire in 83.3 minutes.<br>
+This token is short-lived, and will expire in 83.2 minutes.<br>
 To learn how to get a new token, please refer to <a href="possibly-non-site-specific-link">these instructions</a>.<br>
 <br>
 

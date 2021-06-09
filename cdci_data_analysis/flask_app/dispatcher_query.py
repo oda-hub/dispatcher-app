@@ -39,6 +39,7 @@ import jwt
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
 from ..analysis import tokenHelper, email_helper
+from ..analysis.hash import make_hash
 from ..analysis.job_manager import Job, job_factory
 from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
@@ -209,56 +210,33 @@ class InstrumentQueryBackEnd:
 
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
-    def make_hash(self, o):
-        """
-        Makes a hash from a dictionary, list, tuple or set to any level, that contains
-        only other hashable types (including any lists, tuples, sets, and
-        dictionaries).
 
+    def calculate_job_id(self, par_dic: dict, kw_black_list=None) -> str:
+        """
+        restricts parameter list to those relevant for request content, and makes string hash
         """
 
-        # note that even strings change hash() value between python invocations, so it's not safe to do so
-        def format_hash(x): return hashlib.md5(
-            json.dumps(sorted(x)).encode()
-        ).hexdigest()[:16]
+        if kw_black_list is None:
+            kw_black_list = ('session_id', 'job_id', 'token', 'dry_run', 'oda_api_version', 'api', 'off_line')
 
-        if isinstance(o, (set, tuple, list)):
-            return format_hash(tuple(map(self.make_hash, o)))
-
-        elif isinstance(o, (dict, OrderedDict)):
-            return self.make_hash(tuple(o.items()))
-
-        # this takes care of various strange objects which can not be properly represented
-        return format_hash(json.dumps(o))
-
-    def calculate_job_id(self, par_dic):
-        _dict = OrderedDict({k: v for k, v in par_dic.items() if v is not None})
-        return u'%s' % (self.make_hash(_dict))
-
-    # not job_id??
-    def generate_job_id(self, kw_black_list=['session_id', 'job_id', 'token']):
+        _dict = OrderedDict({
+            k: v for k, v in par_dic.items()
+            if k not in kw_black_list and v is not None
+        })
+    
+        return make_hash(_dict)        
+    
+    def generate_job_id(self, kw_black_list=None):
         self.logger.info("\033[31m---> GENERATING JOB ID <---\033[0m")
         self.logger.info(
             "\033[31m---> new job id for %s <---\033[0m", self.par_dic)
-
-        # TODO generate hash (immutable ore convert to Ordered): DONE
-        #import collections
-
-        # self.par_dic-> collections.OrderedDict(self.par_dic)
-        # oredered_dict=OrderedDict(self.par_dic)
-
-        #self.job_id=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
-        # print('dict',self.par_dic)
-
-        _dict = OrderedDict({
-            k: v for k, v in self.par_dic.items()
-            if k not in kw_black_list
-        })
+        
+        extra_dict = {}
         if not self.public:
             # token has not been considered, but the user id will be (if availaable)
-            _dict['sub'] = tokenHelper.get_token_user_email_address(self.decoded_token)
+            extra_dict['sub'] = tokenHelper.get_token_user_email_address(self.decoded_token)
 
-        self.job_id = self.calculate_job_id(_dict)
+        self.job_id = self.calculate_job_id({**self.par_dic, **extra_dict})
 
         self.logger.info(
             '\033[31mgenerated NEW job_id %s \033[0m', self.job_id)
@@ -428,11 +406,7 @@ class InstrumentQueryBackEnd:
     def resolve_job_url(self):        
         request_par_dic = self.get_request_par_dic()
         
-        # TODO:
-        # calculated_job_id = self.calculate_job_id(request_par_dic)
-        # if self.par_dic['job_id'] != calculated_job_id:
-        #    logstash_message(self.app, {'origin': 'dispatcher-run-analysis', 'event': 'unauthorized-user'})
-        #    raise RequestNotAuthorized("user not authorized to download the requested product")
+        self.validate_job_id()
         
         return self.generate_products_url_from_par_dict(
             self.app.config['conf'].products_url, 
@@ -634,7 +608,7 @@ class InstrumentQueryBackEnd:
                     time_request=time_original_request,
                     request_url=products_url,
                     api_code=DispatcherAPI.set_api_code(original_request_par_dic, 
-                                                        url=self.app.config['conf'].products_url),
+                                                        url=self.app.config['conf'].products_url + "/dispatch-data"),
                     scratch_dir=self.scratch_dir,
                     )                
 
@@ -676,11 +650,11 @@ class InstrumentQueryBackEnd:
 
 
     # TODO perhaps move it somewhere else?
-    def get_request_par_dic(self):
-        if os.path.exists(self.scratch_dir + '/analysis_parameters.json'):
-            with open(self.scratch_dir + '/analysis_parameters.json') as file:
-                jdata = json.load(file)
-                return jdata
+    def get_request_par_dic(self) -> dict:
+        fn = self.scratch_dir + '/analysis_parameters.json'
+        if os.path.exists(fn):
+            with open(fn) as file:
+                return json.load(file)
 
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:

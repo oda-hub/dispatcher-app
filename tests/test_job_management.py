@@ -8,8 +8,6 @@ import os
 import re
 import time
 import jwt
-import base64
-import zlib
 import logging
 import email
 from urllib.parse import urlencode
@@ -108,7 +106,7 @@ generalized_email_patterns = {
 
 ignore_email_patterns = [
     '\( .*?ago \)',
-    '"token": ".*?"',
+    '"token":.*?,',
     'expire in .*? .*?\.'
 ]
 
@@ -153,6 +151,52 @@ def store_email(email_html, **email_args):
 
     return fn
 
+def extract_api_code(text):
+    r = re.search('<div.*?>(.*?)</div>', text, flags=re.DOTALL)
+    if r:
+        return r.group(1)
+    else:
+        with open("no-api-code-problem.html", "w") as f:
+            f.write(text)
+        raise RuntimeError
+
+def extract_products_url(text):
+    r = re.search('<a href="(.*?)">url</a>', text, flags=re.DOTALL)
+    if r:
+        return r.group(1)
+    else:
+        with open("no-url-problem.html", "w") as f:
+            f.write(text)
+        raise RuntimeError
+
+
+def validate_api_code(api_code, dispatcher_live_fixture):
+    if dispatcher_live_fixture is not None:
+        api_code = api_code.replace("<br>", "")
+        api_code = api_code.replace("PRODUCTS_URL/dispatch-data", dispatcher_live_fixture)
+
+        my_globals = {}
+        exec(api_code, my_globals)
+
+        assert my_globals['data_collection']
+        
+        my_globals['data_collection'].show()
+
+def validate_products_url(url, dispatcher_live_fixture):
+    if dispatcher_live_fixture is not None:
+        # this is URL to frontend; it's not really true that it is passed the same way to dispatcher in all cases
+        # in particular, catalog seems to be passed differently!
+        url = url.replace("PRODUCTS_URL", dispatcher_live_fixture + "/run_analysis")
+
+        r = requests.get(url)
+
+        assert r.status_code == 200
+
+        jdata = r.json()
+
+        assert jdata['exit_status']['status'] == 0
+        assert jdata['exit_status']['job_status'] == 'done'
+        
     
 def validate_email_content(
                    message_record, 
@@ -160,6 +204,7 @@ def validate_email_content(
                    dispatcher_job_state: DispatcherJobState,
                    time_request_str: str=None,
                    products_url=None,
+                   dispatcher_live_fixture=None
                    ):
 
     reference_email = get_reference_email(state=state, time_request_str=time_request_str, products_url=products_url)
@@ -195,6 +240,15 @@ def validate_email_content(
                 open("adapted_reference.html", "w").write(ignore_html_patterns(reference_email))
                 assert ignore_html_patterns(reference_email) == ignore_html_patterns(content_text_html), f"please inspect {fn} and possibly copy it to {fn.replace('to_review', 'reference')}"
 
+            validate_api_code(
+                extract_api_code(content_text_html),
+                dispatcher_live_fixture
+            )
+
+            validate_products_url(
+                extract_products_url(content_text_html),
+                dispatcher_live_fixture
+            )
 
         if content_text is not None:
             assert re.search(f'Dear User', content_text, re.IGNORECASE)
@@ -205,6 +259,8 @@ def validate_email_content(
 
             if products_url is not None:                
                 assert products_url in content_text
+
+
 
 
 
@@ -295,14 +351,13 @@ def test_validation_job_id(dispatcher_live_fixture):
 #@pytest.mark.parametrize("time_original_request_none", [True, False])
 @pytest.mark.parametrize("request_cred", ['public', 'private'])
 def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_local_mail_server, default_values, request_cred, time_original_request_none):
+    from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
+    DataServerQuery.set_status('submitted')
+
     server = dispatcher_long_living_fixture
     
     DispatcherJobState.remove_scratch_folders()
-
-    # remove all the current scratch folders
-    dir_list = glob.glob('scratch_*')
-    [shutil.rmtree(d) for d in dir_list]
-
+    
     token_none = ( request_cred == 'public' )
         
     
@@ -361,6 +416,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
             dispatcher_job_state,
             time_request_str=time_request_str,
             products_url=products_url,
+            dispatcher_live_fixture=None,
         )
         
     # for the call_back(s) in case the time of the original request is not provided
@@ -394,6 +450,9 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                          token=encoded_token,
                          time_original_request=time_request
                      ))
+
+
+    DataServerQuery.set_status('done')
 
     # this triggers email
     c = requests.get(server + "/call_back",
@@ -429,11 +488,11 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
         
         # check the email in the log files
         validate_email_content(
-            dispatcher_local_mail_server.get_email_record(0),
-            'submitted',
-            #'done',
+            dispatcher_local_mail_server.get_email_record(1),
+            'done',
             dispatcher_job_state,
             time_request_str=time_request_str,
+            dispatcher_live_fixture=server,
         )
         
     # this also triggers email (simulate a failed request)
@@ -472,6 +531,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
             'failed',
             dispatcher_job_state,
             time_request_str=time_request_str,
+            dispatcher_live_fixture=server,
         )
 
     # TODO this will rewrite the value of the time_request in the query output, but it shouldn't be a problem?
@@ -493,6 +553,9 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     assert c.status_code == 200
 
     # TODO: test that this returns the result
+
+    DataServerQuery.set_status('submitted') # sets the expected default for other tests
+
 
 
 @pytest.mark.not_safe_parallel
@@ -940,7 +1003,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
 
     print("url", url)
 
-    c = requests.get(url, allow_redirects=False)
+    c = requests.get(url, params=dict(token=encoded_token), allow_redirects=False)
 
     assert c.status_code == 302
 
@@ -950,6 +1013,54 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
     # TODO: complete this
     # compressed = "z%3A" + base64.b64encode(zlib.compress(json.dumps(name_parameter_value).encode())).decode()
     # assert compressed in email_data
+
+
+@pytest.mark.parametrize('length', [3, 100])
+def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixture, dispatcher_local_mail_server):
+
+    server = dispatcher_long_living_fixture
+    
+    DispatcherJobState.remove_scratch_folders()
+
+     # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "tem": 0
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    # set the time the request was initiated
+    time_request = time.time()
+    
+
+    params = dict(
+            query_status="new",
+            query_type="Real",
+            instrument="empty-async",
+            product_type="numerical",
+            token=encoded_token,
+            time_request=time_request
+        )
+
+    # this kind of parameters never really happen, and we should be alerted
+    # we might as well send something in email, like failed case. but better let's make us look immediately
+    params['very_long_parameter_'*length] = "unset"
+
+    c = requests.get(server + "/run_analysis",
+                     params=params)
+
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)    
+
+    jdata = c.json()
+
+    if all([len(k) < 900 for k in params.keys()]):
+        assert jdata['exit_status']['email_status'] == 'email sent'
+    else:
+        assert jdata['exit_status']['email_status'] == 'sending email failed'
+
+
+
 
 def test_email_compress_request_url():    
     from cdci_data_analysis.analysis.email_helper import compress_request_url_params
@@ -968,15 +1079,24 @@ def test_email_compress_request_url():
 def test_wrap_api_code():
     from cdci_data_analysis.analysis.email_helper import wrap_python_code
 
+    max_length=50
+
     c = wrap_python_code("""
 a = 1
+
+def x():
+    pass
 
 bla = x()
 
 bla = "asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas"
-    """)
+    """, max_length=max_length)
 
-    print(c)
+    assert max([ len(l) for l in c.split("\n") ]) < max_length
 
-    #TODO: test the result
-    #TODO: eval code
+    my_globals = {}
+    exec(c, my_globals)
+
+    assert len(my_globals['bla']) > max_length
+    
+    
