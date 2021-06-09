@@ -8,8 +8,6 @@ import os
 import re
 import time
 import jwt
-import base64
-import zlib
 import logging
 import email
 from urllib.parse import urlencode
@@ -1005,7 +1003,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
 
     print("url", url)
 
-    c = requests.get(url, allow_redirects=False)
+    c = requests.get(url, params=dict(token=encoded_token), allow_redirects=False)
 
     assert c.status_code == 302
 
