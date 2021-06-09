@@ -330,7 +330,7 @@ def dispatcher_test_conf_fn(tmpdir):
         f.write("""
 dispatcher:
     dummy_cache: dummy-cache
-    products_url: http://www.astro.unige.ch/cdci/astrooda_
+    products_url: PRODUCTS_URL
     dispatcher_callback_url_base: http://localhost:8001
     sentry_url: "https://2ba7e5918358439485632251fa73658c@sentry.io/1467382"
     logstash_host: 
@@ -666,7 +666,7 @@ class DispatcherJobState:
         return job_monitor_json_fn
 
     @property
-    def email_history_folder(self):
+    def email_history_folder(self) -> str:
         return f'{self.scratch_dir}/email_history'
 
     def assert_email(self, state, number=1, comment=""):
@@ -675,3 +675,6 @@ class DispatcherJobState:
 
     def load_job_state_record(self, state, message):
         return json.load(open(f'{self.scratch_dir}/job_monitor_{state}_{message}_.json'))
+
+    def load_emails(self):
+        return [ open(fn).read() for fn in glob.glob(f"{self.email_history_folder}/*") ]

@@ -283,10 +283,12 @@ class OsaJob(Job):
     def updated_dataserver_monitor(self,work_dir=None):
         if work_dir is None:
             work_dir=self.work_dir
+        else:
+            raise NotImplementedError
 
         job_files_list = sorted(glob.glob(work_dir + '/job_monitor*.json'), key=os.path.getmtime)
 
-        logger.info("\033[33m found %s job jog files in %s", len(job_files_list), work_dir)
+        logger.info("\033[33m found %s job log files in %s", len(job_files_list), work_dir)
 
         #print('OSA JOB get data server status form files',job_files_list)
         job_done=False

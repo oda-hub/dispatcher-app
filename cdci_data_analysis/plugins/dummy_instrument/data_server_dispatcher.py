@@ -17,9 +17,7 @@ Module API
 
 from __future__ import absolute_import, division, print_function
 
-import urllib
-from builtins import (bytes, str, open, super, range,
-                      zip, round, input, int, pow, object, map, zip)
+import os
 
 __author__ = "Andrea Tramacere"
 
@@ -56,7 +54,7 @@ class DataServerQuery:
         pass
 
     def test_communication(self,
-                           instrument: Instrument,
+                           instrument: Instrument=None,
                            query_type='Real',
                            logger=None,
                            config=None,
@@ -69,19 +67,51 @@ class DataServerQuery:
         query_out = QueryOutput()
         query_out.set_done(message="mock ok message!", debug_message="mock ok debug_message")
         return query_out, []
+    
+    status_fn = "DataServerQuery-status.state"
+
+    @classmethod
+    def set_status(cls, status):
+        open(cls.status_fn, "w").write(status)
+
+    def decide_status(self):
+        # callback will be sent separately, so we can detect a marker here
+        if os.path.exists(self.status_fn):
+            return open(self.status_fn).read().strip()
+        else:
+            return "submitted"
+
 
     def run_query(self, *args, **kwargs):
         logger.warn('fake run_query in %s with %s, %s', self, args, kwargs)
-
+        
         query_out = QueryOutput()
-        query_out.set_done(message="job submitted mock",
-                           debug_message="no message really",
-                           job_status='submitted',
-                           comment="mock comment",
-                           warning="mock warning")
 
-        # TODO: track somehow status of our mock job and return done after several requests
-        # otherwise not it never returns submitted
+        status = self.decide_status() 
+        if status == "submitted":
+            # set done to submitted?
+            query_out.set_done(message="job submitted mock",
+                            debug_message="no message really",
+                            job_status='submitted',
+                            comment="mock comment",
+                            warning="mock warning")
+        elif status == "done":
+            # set done to submitted?
+            query_out.set_done(message="job done mock",
+                            debug_message="no message really",
+                            job_status='done',
+                            comment="mock comment",
+                            warning="mock warning")
+        elif status == "failed":
+            # set done to submitted?
+            query_out.set_failed(message="job failed mock",
+                            debug_message="no message really",
+                            job_status='failed',
+                            comment="mock comment",
+                            warning="mock warning")
+        else:
+            NotImplementedError
+
 
         return None, query_out
 

@@ -39,6 +39,7 @@ import jwt
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
 from ..analysis import tokenHelper, email_helper
+from ..analysis.hash import make_hash
 from ..analysis.job_manager import Job, job_factory
 from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
@@ -81,7 +82,7 @@ class InstrumentQueryBackEnd:
     def instrument_name(self, instrument_name):
         self._instrument_name = instrument_name
 
-    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False):
+    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False, resolve_job_url=False):
         # self.instrument_name=instrument_name
 
         self.logger = logging.getLogger(repr(self))
@@ -133,7 +134,7 @@ class InstrumentQueryBackEnd:
 
                 logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
 
-            if download_products:
+            if download_products or resolve_job_url:
                 instrument_name = 'mock'
 
             if instrument_name is None:
@@ -154,13 +155,13 @@ class InstrumentQueryBackEnd:
                 #self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
                 # self.set_sentry_client()
             else:
-                print("NOT get_meta_data request: yes scratch_dir")
+                logger.debug("NOT get_meta_data request: yes scratch_dir")
 
                 # TODO: if not callback!
                 # if 'query_status' not in self.par_dic:
                 #    raise MissingRequestParameter('no query_status!')
 
-                if data_server_call_back is True:
+                if data_server_call_back or resolve_job_url:
                     self.job_id = None
                     if 'job_id' in self.par_dic:
                         self.job_id = self.par_dic['job_id']
@@ -209,56 +210,38 @@ class InstrumentQueryBackEnd:
 
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
-    def make_hash(self, o):
+    def restricted_par_dic(self, par_dic, kw_black_list=None):
         """
-        Makes a hash from a dictionary, list, tuple or set to any level, that contains
-        only other hashable types (including any lists, tuples, sets, and
-        dictionaries).
-
+        restricts parameter list to those relevant for request content
         """
 
-        # note that even strings change hash() value between python invocations, so it's not safe to do so
-        def format_hash(x): return hashlib.md5(
-            json.dumps(sorted(x)).encode()
-        ).hexdigest()[:16]
+        if kw_black_list is None:
+            kw_black_list = ('session_id', 'job_id', 'token', 'dry_run', 'oda_api_version', 'api', 'off_line')
 
-        if isinstance(o, (set, tuple, list)):
-            return format_hash(tuple(map(self.make_hash, o)))
+        return OrderedDict({
+            k: v for k, v in par_dic.items()
+            if k not in kw_black_list and v is not None
+        })
+    
 
-        elif isinstance(o, (dict, OrderedDict)):
-            return self.make_hash(tuple(o.items()))
-
-        # this takes care of various strange objects which can not be properly represented
-        return format_hash(json.dumps(o))
-
-    def calculate_job_id(self, par_dic):
-        _dict = OrderedDict({k: v for k, v in par_dic.items() if v is not None})
-        return u'%s' % (self.make_hash(_dict))
-
-    # not job_id??
-    def generate_job_id(self, kw_black_list=['session_id', 'job_id', 'token']):
+    def calculate_job_id(self, par_dic: dict, kw_black_list=None) -> str:
+        """
+        restricts parameter list to those relevant for request content, and makes string hash
+        """       
+    
+        return make_hash(self.restricted_par_dic(par_dic, kw_black_list))        
+    
+    def generate_job_id(self, kw_black_list=None):
         self.logger.info("\033[31m---> GENERATING JOB ID <---\033[0m")
         self.logger.info(
             "\033[31m---> new job id for %s <---\033[0m", self.par_dic)
-
-        # TODO generate hash (immutable ore convert to Ordered): DONE
-        #import collections
-
-        # self.par_dic-> collections.OrderedDict(self.par_dic)
-        # oredered_dict=OrderedDict(self.par_dic)
-
-        #self.job_id=u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
-        # print('dict',self.par_dic)
-
-        _dict = OrderedDict({
-            k: v for k, v in self.par_dic.items()
-            if k not in kw_black_list
-        })
+        
+        extra_dict = {}
         if not self.public:
             # token has not been considered, but the user id will be (if availaable)
-            _dict['sub'] = tokenHelper.get_token_user_email_address(self.decoded_token)
+            extra_dict['sub'] = tokenHelper.get_token_user_email_address(self.decoded_token)
 
-        self.job_id = self.calculate_job_id(_dict)
+        self.job_id = self.calculate_job_id({**self.par_dic, **extra_dict})
 
         self.logger.info(
             '\033[31mgenerated NEW job_id %s \033[0m', self.job_id)
@@ -425,35 +408,62 @@ class InstrumentQueryBackEnd:
 
         return tmp_dir, file_name
 
+    def resolve_job_url(self):        
+        request_par_dic = self.get_request_par_dic()
+        
+        self.validate_job_id()
+        
+        return self.generate_products_url_from_par_dict(
+            self.app.config['conf'].products_url, 
+            par_dict=request_par_dic)
+
+    def find_job_id_parameters(self, job_id):
+        scratch_dir_parameters = glob.glob(f'scratch*_jid_{job_id}*/analysis_parameters.json')
+        if len(scratch_dir_parameters) == 0:
+            return None
+        else:
+            return json.load(open(scratch_dir_parameters[0]))
+        
+
     def validate_job_id(self):
         request_par_dic = self.get_request_par_dic()
         if request_par_dic is not None:
-            request_par_dic.pop('token', None)
-            request_par_dic.pop('session_id', None)
-            request_par_dic.pop('job_id', None)
             if not self.public:
                 dict_job_id = {
                     **request_par_dic,
                     "sub": tokenHelper.get_token_user_email_address(self.decoded_token)
                 }
-                calculated_job_id = self.calculate_job_id(dict_job_id)
             else:
-                calculated_job_id = self.calculate_job_id(request_par_dic)
+                dict_job_id = request_par_dic
+
+            calculated_job_id = self.calculate_job_id(dict_job_id)
 
             if self.job_id != calculated_job_id:
                 debug_message = f"The provided job_id={self.job_id} does not match with the job_id={calculated_job_id} " \
                                 f"derived from the request parameters"
                 if not self.public:
                     debug_message += " for your user account email"
+
+                logger.error(debug_message)
+                logger.error("parameters for self.job_id %s : %s", 
+                             self.job_id, 
+                             json.dumps(self.find_job_id_parameters(self.job_id), sort_keys=True, indent=4))
+
+                logger.error("parameters for calculated_job_id %s : %s", 
+                             calculated_job_id, 
+                             json.dumps(dict_job_id, sort_keys=True, indent=4))
+
+
                 logstash_message(self.app, {'origin': 'dispatcher-call-back', 'event': 'unauthorized-user'})
                 raise RequestNotAuthorized("Request not authorized", debug_message=debug_message)
+
 
     def download_products(self,):
         try:
             # TODO not entirely sure about these
             self.off_line = False
             self.api = False
-
+            
             self.validate_job_id()
             file_list = self.args.get('file_list').split(',')
             file_name = self.args.get('download_file_name')
@@ -469,6 +479,7 @@ class InstrumentQueryBackEnd:
                                               debug_message=e.debug_message)
         except Exception as e:
             return e
+    
 
     def upload_file(self, name, scratch_dir):
         if name not in request.files:
@@ -606,14 +617,18 @@ class InstrumentQueryBackEnd:
                     config=self.app.config['conf'],
                     logger=self.logger,
                     decoded_token=self.decoded_token,
+                    token=self.token,
                     job_id=self.job_id,
+                    session_id=self.par_dic['session_id'],
                     status=status,
                     instrument=instrument_name,
                     product_type=product_type,
                     time_request=time_original_request,
                     request_url=products_url,
+                    # products_url is frontend URL, clickable by users.
+                    # dispatch-data is how frontend is referring to the dispatcher, it's fixed in frontend-astrooda code
                     api_code=DispatcherAPI.set_api_code(original_request_par_dic, 
-                                                        url=self.app.config['conf'].products_url),
+                                                        url=self.app.config['conf'].products_url + "/dispatch-data"),
                     scratch_dir=self.scratch_dir,
                     )                
 
@@ -655,11 +670,11 @@ class InstrumentQueryBackEnd:
 
 
     # TODO perhaps move it somewhere else?
-    def get_request_par_dic(self):
-        if os.path.exists(self.scratch_dir + '/analysis_parameters.json'):
-            with open(self.scratch_dir + '/analysis_parameters.json') as file:
-                jdata = json.load(file)
-                return jdata
+    def get_request_par_dic(self) -> dict:
+        fn = self.scratch_dir + '/analysis_parameters.json'
+        if os.path.exists(fn):
+            with open(fn) as file:
+                return json.load(file)
 
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
@@ -1335,7 +1350,9 @@ class InstrumentQueryBackEnd:
                                 config=self.app.config['conf'],
                                 logger=self.logger,
                                 decoded_token=self.decoded_token,
+                                token=self.token,
                                 job_id=self.job_id,
+                                session_id=self.par_dic['session_id'],
                                 status=query_new_status,
                                 instrument=self.instrument.name,
                                 product_type=product_type,
