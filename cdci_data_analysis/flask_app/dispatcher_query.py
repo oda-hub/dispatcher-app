@@ -228,20 +228,23 @@ class InstrumentQueryBackEnd:
         """
         restricts parameter list to those relevant for request content, and makes string hash
         """       
+        if not self.public:
+            dict_job_id = {
+                **par_dic,
+                "sub": tokenHelper.get_token_user_email_address(self.decoded_token)
+            }
+        else:
+            dict_job_id = par_dic
     
-        return make_hash(self.restricted_par_dic(par_dic, kw_black_list))        
+        return make_hash(self.restricted_par_dic(dict_job_id, kw_black_list))        
     
     def generate_job_id(self, kw_black_list=None):
         self.logger.info("\033[31m---> GENERATING JOB ID <---\033[0m")
         self.logger.info(
             "\033[31m---> new job id for %s <---\033[0m", self.par_dic)
-        
-        extra_dict = {}
-        if not self.public:
-            # token has not been considered, but the user id will be (if availaable)
-            extra_dict['sub'] = tokenHelper.get_token_user_email_address(self.decoded_token)
+              
 
-        self.job_id = self.calculate_job_id({**self.par_dic, **extra_dict})
+        self.job_id = self.calculate_job_id(self.par_dic)
 
         self.logger.info(
             '\033[31mgenerated NEW job_id %s \033[0m', self.job_id)
@@ -428,15 +431,8 @@ class InstrumentQueryBackEnd:
     def validate_job_id(self):
         request_par_dic = self.get_request_par_dic()
         if request_par_dic is not None:
-            if not self.public:
-                dict_job_id = {
-                    **request_par_dic,
-                    "sub": tokenHelper.get_token_user_email_address(self.decoded_token)
-                }
-            else:
-                dict_job_id = request_par_dic
-
-            calculated_job_id = self.calculate_job_id(dict_job_id)
+    
+            calculated_job_id = self.calculate_job_id(request_par_dic)
 
             if self.job_id != calculated_job_id:
                 debug_message = f"The provided job_id={self.job_id} does not match with the job_id={calculated_job_id} " \
@@ -454,11 +450,14 @@ class InstrumentQueryBackEnd:
                              
                 logger.error("parameters for calculated_job_id %s : %s", 
                              calculated_job_id, 
-                             json.dumps(dict_job_id, sort_keys=True, indent=4))
+                             json.dumps(request_par_dic, sort_keys=True, indent=4))
 
 
                 logstash_message(self.app, {'origin': 'dispatcher-call-back', 'event': 'unauthorized-user'})
                 raise RequestNotAuthorized("Request not authorized", debug_message=debug_message)
+        else:
+            #TODO: when then?
+            pass
 
 
     def download_products(self,):
