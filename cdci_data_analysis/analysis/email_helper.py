@@ -110,7 +110,7 @@ def wrap_python_code(code, max_length=100):
         else:
             code = new_code
 
-    logger.error("\033[31mwrapped: %s\033[0m", code)
+    logger.debug("\033[31mwrapped: %s\033[0m", code)
 
     mode = black.Mode(
         target_versions={black.TargetVersion.PY38},
