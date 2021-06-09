@@ -153,6 +153,11 @@ def store_email(email_html, **email_args):
 
     return fn
 
+def extract_api_code(text):
+    return re.match('<div.*?>(.*?)</div>', text).group(1)
+
+def validate_api_code(api_code, dispatcher_live_fixture):
+    pass
     
 def validate_email_content(
                    message_record, 
@@ -195,6 +200,8 @@ def validate_email_content(
                 open("adapted_reference.html", "w").write(ignore_html_patterns(reference_email))
                 assert ignore_html_patterns(reference_email) == ignore_html_patterns(content_text_html), f"please inspect {fn} and possibly copy it to {fn.replace('to_review', 'reference')}"
 
+            validate_api_code(extract_api_code(content_text_html))
+
 
         if content_text is not None:
             assert re.search(f'Dear User', content_text, re.IGNORECASE)
@@ -205,6 +212,8 @@ def validate_email_content(
 
             if products_url is not None:                
                 assert products_url in content_text
+
+
 
 
 

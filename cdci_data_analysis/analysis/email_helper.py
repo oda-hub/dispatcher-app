@@ -97,13 +97,12 @@ def compress_request_url_params(request_url, consider_args=['selected_catalog', 
 
 import black
 
-def wrap_python_code(code, max_length=80):
-    # this black currently does not split strings without spaces    
+def wrap_python_code(code, max_length=100):
 
+    # this black currently does not split strings without spaces    
     while True:
-        new_code = re.sub('("[0-9a-zA-Z]{%i,}?")' % (max_length + 1), 
-                        lambda S: S.group(1)[:max_length] + '" "' + S.group(1)[max_length:], 
-                        #lambda S: '"' + S.group(1)[:max_length] + '" "' + S.group(1)[max_length:] + '"', 
+        new_code = re.sub('("[0-9a-zA-Z\.\-\/\+]{%i,}?")' % (max_length + 1), 
+                        lambda S: S.group(1)[:max_length] + '" "' + S.group(1)[max_length:],                         
                         code)
 
         if new_code == code:
@@ -155,13 +154,16 @@ def send_email(
 
     #  TODO: enable this sometimes
     #   compressed_request_url = compress_request_url_params(request_url)
+    
 
     if len(request_url) > 600:
         #TODO: add a warning when compressing
-        compressed_request_url = f"{config.products_url}/dispatch-data/resolve-job-url?job_id={job_id}&session_id={session_id}"
+        possibly_compressed_request_url = f"{config.products_url}/dispatch-data/resolve-job-url?job_id={job_id}&session_id={session_id}"
+        permanent_url = False
     else:
-        compressed_request_url = request_url
-    
+        possibly_compressed_request_url = request_url
+        permanent_url = True
+
     email_data = {
         'oda_site': { 
             #TODO: get from config
@@ -176,10 +178,11 @@ def send_email(
             'instrument': instrument,
             'product_type': product_type,
             'time_request': time_request,
-            'request_url': compressed_request_url,
+            'request_url': possibly_compressed_request_url,
             'api_code_no_token': api_code_no_token,
             'api_code': api_code,
             'decoded_token': decoded_token,
+            'permanent_url': permanent_url,
         }
     }
 
