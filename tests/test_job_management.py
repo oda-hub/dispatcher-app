@@ -315,7 +315,7 @@ def test_validation_job_id(dispatcher_live_fixture):
            f'The provided job_id={dispatcher_job_state.job_id} does not match with the ' \
            f'job_id={wrong_job_id} derived from the request parameters for your user account email'
     assert jdata["exit_status"]["error_message"] == ""
-    assert jdata["exit_status"]["message"] == "user not authorized to download the requested product"
+    assert jdata["exit_status"]["message"] == "Request not authorized"
 
 
 @pytest.mark.parametrize("default_values", [True, False])

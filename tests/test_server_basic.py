@@ -338,7 +338,7 @@ def test_download_products_unauthorized_user(dispatcher_live_fixture, empty_prod
            f'The provided job_id={job_id} does not match with the ' \
            f'job_id={wrong_job_id} derived from the request parameters for your user account email'
     assert jdata["exit_status"]["error_message"] == ""
-    assert jdata["exit_status"]["message"] == "user not authorized to download the requested product"
+    assert jdata["exit_status"]["message"] == "Request not authorized"
 
 
 @pytest.mark.not_safe_parallel
