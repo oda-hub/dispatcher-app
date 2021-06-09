@@ -406,11 +406,7 @@ class InstrumentQueryBackEnd:
     def resolve_job_url(self):        
         request_par_dic = self.get_request_par_dic()
         
-        # TODO:
-        # calculated_job_id = self.calculate_job_id(request_par_dic)
-        # if self.par_dic['job_id'] != calculated_job_id:
-        #    logstash_message(self.app, {'origin': 'dispatcher-run-analysis', 'event': 'unauthorized-user'})
-        #    raise RequestNotAuthorized("user not authorized to download the requested product")
+        self.validate_job_id()
         
         return self.generate_products_url_from_par_dict(
             self.app.config['conf'].products_url, 
