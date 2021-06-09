@@ -8,6 +8,7 @@ import ssl
 import os
 import re
 import glob
+import black
 import base64
 import logging
 from jinja2 import Environment, FileSystemLoader
@@ -95,7 +96,6 @@ def compress_request_url_params(request_url, consider_args=['selected_catalog', 
         'query': parse.urlencode(compressed_qs)
     }))
 
-import black
 
 def wrap_python_code(code, max_length=100):
 
