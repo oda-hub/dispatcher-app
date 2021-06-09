@@ -612,7 +612,7 @@ class InstrumentQueryBackEnd:
                     time_request=time_original_request,
                     request_url=products_url,
                     api_code=DispatcherAPI.set_api_code(original_request_par_dic, 
-                                                        url=self.app.config['conf'].products_url),
+                                                        url=self.app.config['conf'].products_url + "/dispatch-data"),
                     scratch_dir=self.scratch_dir,
                     )                
 

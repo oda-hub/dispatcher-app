@@ -168,7 +168,7 @@ def send_email(
         'oda_site': { 
             #TODO: get from config
             'site_name': 'University of Geneva',
-            'frontend_url': config.products_url, 
+            'frontend_url': config.products_url,             
             'contact': 'contact@odahub.io',
             'manual_reference': 'possibly-non-site-specific-link',
         },

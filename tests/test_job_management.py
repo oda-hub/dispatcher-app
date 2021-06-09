@@ -162,10 +162,20 @@ def extract_api_code(text):
             f.write(text)
         raise RuntimeError
 
+def extract_products_url(text):
+    r = re.search('<a href="(.*?)">url</a>', text, flags=re.DOTALL)
+    if r:
+        return r.group(1)
+    else:
+        with open("no-url-problem.html", "w") as f:
+            f.write(text)
+        raise RuntimeError
+
+
 def validate_api_code(api_code, dispatcher_live_fixture):
     if dispatcher_live_fixture is not None:
         api_code = api_code.replace("<br>", "")
-        api_code = api_code.replace("PRODUCTS_URL", dispatcher_live_fixture)
+        api_code = api_code.replace("PRODUCTS_URL/dispatch-data", dispatcher_live_fixture)
 
         my_globals = {}
         exec(api_code, my_globals)
@@ -174,6 +184,21 @@ def validate_api_code(api_code, dispatcher_live_fixture):
         
         my_globals['data_collection'].show()
 
+def validate_products_url(url, dispatcher_live_fixture):
+    if dispatcher_live_fixture is not None:
+        # this is URL to frontend; it's not really true that it is passed the same way to dispatcher in all cases
+        # in particular, catalog seems to be passed differently!
+        url = url.replace("PRODUCTS_URL", dispatcher_live_fixture + "/run_analysis")
+
+        r = requests.get(url)
+
+        assert r.status_code == 200
+
+        jdata = r.json()
+
+        assert jdata['exit_status']['status'] == 0
+        assert jdata['exit_status']['job_status'] == 'done'
+        
     
 def validate_email_content(
                    message_record, 
@@ -222,6 +247,10 @@ def validate_email_content(
                 dispatcher_live_fixture
             )
 
+            validate_products_url(
+                extract_products_url(content_text_html),
+                dispatcher_live_fixture
+            )
 
         if content_text is not None:
             assert re.search(f'Dear User', content_text, re.IGNORECASE)
@@ -461,7 +490,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
         
         # check the email in the log files
         validate_email_content(
-            dispatcher_local_mail_server.get_email_record(0),
+            dispatcher_local_mail_server.get_email_record(1),
             'done',
             dispatcher_job_state,
             time_request_str=time_request_str,
@@ -526,6 +555,9 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     assert c.status_code == 200
 
     # TODO: test that this returns the result
+
+    DataServerQuery.set_status('submitted') # sets the expected default for other tests
+
 
 
 @pytest.mark.not_safe_parallel
