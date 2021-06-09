@@ -1016,6 +1016,54 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
     # compressed = "z%3A" + base64.b64encode(zlib.compress(json.dumps(name_parameter_value).encode())).decode()
     # assert compressed in email_data
 
+
+@pytest.mark.parametrize('length', [3, 100])
+def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixture, dispatcher_local_mail_server):
+
+    server = dispatcher_long_living_fixture
+    
+    DispatcherJobState.remove_scratch_folders()
+
+     # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "tem": 0
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    # set the time the request was initiated
+    time_request = time.time()
+    
+
+    params = dict(
+            query_status="new",
+            query_type="Real",
+            instrument="empty-async",
+            product_type="numerical",
+            token=encoded_token,
+            time_request=time_request
+        )
+
+    # this kind of parameters never really happen, and we should be alerted
+    # we might as well send something in email, like failed case. but better let's make us look immediately
+    params['very_long_parameter_'*length] = "unset"
+
+    c = requests.get(server + "/run_analysis",
+                     params=params)
+
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)    
+
+    jdata = c.json()
+
+    if all([len(k) < 900 for k in params.keys()]):
+        assert jdata['exit_status']['email_status'] == 'email sent'
+    else:
+        assert jdata['exit_status']['email_status'] == 'sending email failed'
+
+
+
+
 def test_email_compress_request_url():    
     from cdci_data_analysis.analysis.email_helper import compress_request_url_params
 
