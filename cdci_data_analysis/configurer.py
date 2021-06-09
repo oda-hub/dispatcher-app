@@ -233,7 +233,7 @@ class ConfigEnv(object):
                                      disp_dict['email_options']['email_sending_timeout'],
                                      disp_dict['email_options']['email_sending_timeout_default_threshold'],
                                      disp_dict['email_options']['email_sending_job_submitted'],
-                                     disp_dict['email_options'].get('email_sending_job_submitted_default_interval', 0)
+                                     disp_dict['email_options']['email_sending_job_submitted_default_interval']
                                      )
 
         # not used?

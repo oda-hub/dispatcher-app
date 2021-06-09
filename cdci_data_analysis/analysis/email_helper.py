@@ -127,6 +127,7 @@ def send_email(
         config,
         logger,
         decoded_token,
+        token,
         job_id,
         session_id,
         status="done",
@@ -157,7 +158,10 @@ def send_email(
     
 
     if len(request_url) > 600:
-        possibly_compressed_request_url = f"{config.products_url}/dispatch-data/resolve-job-url?job_id={job_id}&session_id={session_id}"
+        possibly_compressed_request_url = \
+            config.products_url + \
+            "/dispatch-data/resolve-job-url?" + \
+            parse.urlencode(dict(job_id=job_id, session_id=session_id, token=token))
         permanent_url = False
     else:
         possibly_compressed_request_url = request_url

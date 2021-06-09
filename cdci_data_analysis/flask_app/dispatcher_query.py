@@ -210,21 +210,26 @@ class InstrumentQueryBackEnd:
 
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
-
-    def calculate_job_id(self, par_dic: dict, kw_black_list=None) -> str:
+    def restricted_par_dic(self, par_dic, kw_black_list=None):
         """
-        restricts parameter list to those relevant for request content, and makes string hash
+        restricts parameter list to those relevant for request content
         """
 
         if kw_black_list is None:
             kw_black_list = ('session_id', 'job_id', 'token', 'dry_run', 'oda_api_version', 'api', 'off_line')
 
-        _dict = OrderedDict({
+        return OrderedDict({
             k: v for k, v in par_dic.items()
             if k not in kw_black_list and v is not None
         })
     
-        return make_hash(_dict)        
+
+    def calculate_job_id(self, par_dic: dict, kw_black_list=None) -> str:
+        """
+        restricts parameter list to those relevant for request content, and makes string hash
+        """       
+    
+        return make_hash(self.restricted_par_dic(par_dic, kw_black_list))        
     
     def generate_job_id(self, kw_black_list=None):
         self.logger.info("\033[31m---> GENERATING JOB ID <---\033[0m")
@@ -412,28 +417,43 @@ class InstrumentQueryBackEnd:
             self.app.config['conf'].products_url, 
             par_dict=request_par_dic)
 
-
+    def find_job_id_parameters(self, job_id):
+        scratch_dir_parameters = glob.glob(f'scratch*_jid_{job_id}*/analysis_parameters.json')
+        if len(scratch_dir_parameters) == 0:
+            return None
+        else:
+            return json.load(open(scratch_dir_parameters[0]))
+        
 
     def validate_job_id(self):
         request_par_dic = self.get_request_par_dic()
         if request_par_dic is not None:
-            request_par_dic.pop('token', None)
-            request_par_dic.pop('session_id', None)
-            request_par_dic.pop('job_id', None)
             if not self.public:
                 dict_job_id = {
                     **request_par_dic,
                     "sub": tokenHelper.get_token_user_email_address(self.decoded_token)
                 }
-                calculated_job_id = self.calculate_job_id(dict_job_id)
             else:
-                calculated_job_id = self.calculate_job_id(request_par_dic)
+                dict_job_id = request_par_dic
+
+            calculated_job_id = self.calculate_job_id(dict_job_id)
 
             if self.job_id != calculated_job_id:
                 debug_message = f"The provided job_id={self.job_id} does not match with the job_id={calculated_job_id} " \
                                 f"derived from the request parameters"
                 if not self.public:
                     debug_message += " for your user account email"
+
+                logger.error(debug_message)
+                logger.error("parameters for self.job_id %s : %s", 
+                             self.job_id, 
+                             json.dumps(self.find_job_id_parameters(self.job_id), sort_keys=True, indent=4))
+
+                logger.error("parameters for calculated_job_id %s : %s", 
+                             calculated_job_id, 
+                             json.dumps(dict_job_id, sort_keys=True, indent=4))
+
+
                 logstash_message(self.app, {'origin': 'dispatcher-call-back', 'event': 'unauthorized-user'})
                 raise RequestNotAuthorized("Request not authorized", debug_message=debug_message)
 
@@ -443,10 +463,7 @@ class InstrumentQueryBackEnd:
             # TODO not entirely sure about these
             self.off_line = False
             self.api = False
-
-            # TODO: extract this into separate call?            
-            request_par_dic = self.get_request_par_dic()
-
+            
             self.validate_job_id()
             file_list = self.args.get('file_list').split(',')
             file_name = self.args.get('download_file_name')
@@ -600,6 +617,7 @@ class InstrumentQueryBackEnd:
                     config=self.app.config['conf'],
                     logger=self.logger,
                     decoded_token=self.decoded_token,
+                    token=self.token,
                     job_id=self.job_id,
                     session_id=self.par_dic['session_id'],
                     status=status,
@@ -607,6 +625,8 @@ class InstrumentQueryBackEnd:
                     product_type=product_type,
                     time_request=time_original_request,
                     request_url=products_url,
+                    # products_url is frontend URL, clickable by users.
+                    # dispatch-data is how frontend is referring to the dispatcher, it's fixed in frontend-astrooda code
                     api_code=DispatcherAPI.set_api_code(original_request_par_dic, 
                                                         url=self.app.config['conf'].products_url + "/dispatch-data"),
                     scratch_dir=self.scratch_dir,
@@ -1330,6 +1350,7 @@ class InstrumentQueryBackEnd:
                                 config=self.app.config['conf'],
                                 logger=self.logger,
                                 decoded_token=self.decoded_token,
+                                token=self.token,
                                 job_id=self.job_id,
                                 session_id=self.par_dic['session_id'],
                                 status=query_new_status,
