@@ -108,7 +108,7 @@ generalized_email_patterns = {
 
 ignore_email_patterns = [
     '\( .*?ago \)',
-    '"token": ".*?"',
+    '"token":.*?,',
     'expire in .*? .*?\.'
 ]
 
@@ -154,10 +154,22 @@ def store_email(email_html, **email_args):
     return fn
 
 def extract_api_code(text):
-    return re.match('<div.*?>(.*?)</div>', text).group(1)
+    r = re.search('<div.*?>(.*?)</div>', text, flags=re.DOTALL)
+    if r:
+        return r.group(1)
+    else:
+        with open("no-api-code-problem.html", "w") as f:
+            f.write(text)
+        raise RuntimeError
 
 def validate_api_code(api_code, dispatcher_live_fixture):
-    pass
+    if dispatcher_live_fixture is not None:
+        api_code = api_code.replace("<br>", "")
+        api_code = api_code.replace("PRODUCTS_URL", dispatcher_live_fixture)
+
+        my_globals = {}
+        exec(api_code, my_globals)
+
     
 def validate_email_content(
                    message_record, 
@@ -165,6 +177,7 @@ def validate_email_content(
                    dispatcher_job_state: DispatcherJobState,
                    time_request_str: str=None,
                    products_url=None,
+                   dispatcher_live_fixture=None
                    ):
 
     reference_email = get_reference_email(state=state, time_request_str=time_request_str, products_url=products_url)
@@ -200,7 +213,10 @@ def validate_email_content(
                 open("adapted_reference.html", "w").write(ignore_html_patterns(reference_email))
                 assert ignore_html_patterns(reference_email) == ignore_html_patterns(content_text_html), f"please inspect {fn} and possibly copy it to {fn.replace('to_review', 'reference')}"
 
-            validate_api_code(extract_api_code(content_text_html))
+            validate_api_code(
+                extract_api_code(content_text_html),
+                dispatcher_live_fixture
+            )
 
 
         if content_text is not None:
@@ -307,11 +323,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     server = dispatcher_long_living_fixture
     
     DispatcherJobState.remove_scratch_folders()
-
-    # remove all the current scratch folders
-    dir_list = glob.glob('scratch_*')
-    [shutil.rmtree(d) for d in dir_list]
-
+    
     token_none = ( request_cred == 'public' )
         
     
@@ -370,6 +382,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
             dispatcher_job_state,
             time_request_str=time_request_str,
             products_url=products_url,
+            dispatcher_live_fixture=None,
         )
         
     # for the call_back(s) in case the time of the original request is not provided
@@ -439,10 +452,10 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
         # check the email in the log files
         validate_email_content(
             dispatcher_local_mail_server.get_email_record(0),
-            'submitted',
-            #'done',
+            'done',
             dispatcher_job_state,
             time_request_str=time_request_str,
+            dispatcher_live_fixture=server,
         )
         
     # this also triggers email (simulate a failed request)
@@ -481,6 +494,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
             'failed',
             dispatcher_job_state,
             time_request_str=time_request_str,
+            dispatcher_live_fixture=server,
         )
 
     # TODO this will rewrite the value of the time_request in the query output, but it shouldn't be a problem?
