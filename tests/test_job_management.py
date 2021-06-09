@@ -170,6 +170,10 @@ def validate_api_code(api_code, dispatcher_live_fixture):
         my_globals = {}
         exec(api_code, my_globals)
 
+        assert my_globals['data_collection']
+        
+        my_globals['data_collection'].show()
+
     
 def validate_email_content(
                    message_record, 
@@ -320,6 +324,9 @@ def test_validation_job_id(dispatcher_live_fixture):
 #@pytest.mark.parametrize("time_original_request_none", [True, False])
 @pytest.mark.parametrize("request_cred", ['public', 'private'])
 def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_local_mail_server, default_values, request_cred, time_original_request_none):
+    from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
+    DataServerQuery.set_status('submitted')
+
     server = dispatcher_long_living_fixture
     
     DispatcherJobState.remove_scratch_folders()
@@ -416,6 +423,9 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                          token=encoded_token,
                          time_original_request=time_request
                      ))
+
+
+    DataServerQuery.set_status('done')
 
     # this triggers email
     c = requests.get(server + "/call_back",
