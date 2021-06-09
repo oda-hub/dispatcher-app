@@ -453,11 +453,11 @@ class InstrumentQueryBackEnd:
                 logger.error("parameters for self.job_id %s, recomputed as %s : %s",                 
                              self.job_id, 
                              self.calculate_job_id(restored_job_parameters),
-                             json.dumps(restored_job_parameters, sort_keys=True, indent=4))
+                             json.dumps(self.hashable_par_dic(restored_job_parameters), sort_keys=True, indent=4))
                              
                 logger.error("parameters for calculated_job_id %s : %s", 
                              calculated_job_id, 
-                             json.dumps(request_par_dic, sort_keys=True, indent=4))
+                             json.dumps(self.hashable_par_dic(request_par_dic), sort_keys=True, indent=4))
 
 
                 logstash_message(self.app, {'origin': 'dispatcher-call-back', 'event': 'unauthorized-user'})
