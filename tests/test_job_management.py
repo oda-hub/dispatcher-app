@@ -1021,6 +1021,51 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
     # assert compressed in email_data
 
 
+def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispatcher_local_mail_server):
+    server = dispatcher_long_living_fixture
+    
+    DispatcherJobState.remove_scratch_folders()
+
+     # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "tem": 0
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    # set the time the request was initiated
+    time_request = time.time()
+
+    name_parameter_value = "< bla bla: this is not a tag > <"
+
+    c = requests.get(server + "/run_analysis",
+                     params=dict(
+                         query_status="new",
+                         query_type="Real",
+                         instrument="empty-async",
+                         product_type="numerical",
+                         string_like_name=name_parameter_value,
+                         token=encoded_token,
+                         time_request=time_request
+                     ))
+
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)    
+
+    jdata = c.json()
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    dispatcher_job_state.assert_email("submitted")
+
+    email_data = dispatcher_job_state.load_emails()[0]
+
+    print(email_data)
+
+    assert name_parameter_value in email_data
+
+    from bs4 import BeautifulSoup
+    assert name_parameter_value in BeautifulSoup(email_data).get_text()
+
 @pytest.mark.parametrize('length', [3, 100])
 def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixture, dispatcher_local_mail_server):
 

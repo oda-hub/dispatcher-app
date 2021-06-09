@@ -38,7 +38,7 @@ The ODA team.<br>
 Python API code:<br>
 <br>
 <div style="background-color: lightgray; display: inline-block; padding: 5px;">
-{{ request.api_code | e }}
+{{ request.api_code | e | replace("\n", "<br>\n") }}
 </div>
 <br>
 <br>

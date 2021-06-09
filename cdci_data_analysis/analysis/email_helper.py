@@ -64,6 +64,10 @@ def textify_email(html):
     html = re.sub('<a href=(.*?)>(.*?)</a>', r'\2: \1', html)
 
     soup = BeautifulSoup(html)
+    
+    for elem in soup.find_all(["a", "p", "div", "h3", "br"]):
+        elem.replace_with(elem.text + "\n\n")
+        
     return soup.get_text()
 
     #text = re.search('<body>(.*?)</body>', html, re.S).group(1)
@@ -154,7 +158,7 @@ def send_email(
     api_code = wrap_python_code(api_code)
 
 
-    api_code = api_code.strip().replace("\n", "<br>\n")
+    #api_code = api_code.strip().replace("\n", "<br>\n")
 
     api_code_no_token = re.sub('"token": ".*?"', '"token": "<PLEASE-INSERT-YOUR-TOKEN-HERE>"', api_code)
 
