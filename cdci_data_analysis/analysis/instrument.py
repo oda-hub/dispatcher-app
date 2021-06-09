@@ -551,7 +551,8 @@ class Instrument:
             #print('POST')
             try:
                 cat_file_path = back_end_query.upload_file('user_catalog_file', back_end_query.scratch_dir)
-                par_dic['user_catalog_file'] = cat_file_path
+                if cat_file_path is not None:
+                    par_dic['user_catalog_file'] = cat_file_path
                 #print('set_catalog_from_fronted,request.method', request.method, par_dic['user_catalog_file'],cat_file_path)
                 #DONE
                 q.set_done( debug_message=str(debug_message))

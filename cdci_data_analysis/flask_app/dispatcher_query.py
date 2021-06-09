@@ -231,6 +231,11 @@ class InstrumentQueryBackEnd:
         # this takes care of various strange objects which can not be properly represented
         return format_hash(json.dumps(o))
 
+    def calculate_job_id(self, par_dic):
+        _dict = OrderedDict({k: v for k, v in par_dic.items() if v is not None})
+        return u'%s' % (self.make_hash(_dict))
+
+    # not job_id??
     def generate_job_id(self, kw_black_list=['session_id', 'job_id', 'token']):
         self.logger.info("\033[31m---> GENERATING JOB ID <---\033[0m")
         self.logger.info(
@@ -253,7 +258,7 @@ class InstrumentQueryBackEnd:
             # token has not been considered, but the user id will be (if availaable)
             _dict['sub'] = tokenHelper.get_token_user_email_address(self.decoded_token)
 
-        self.job_id = u'%s' % (self.make_hash(_dict))
+        self.job_id = self.calculate_job_id(_dict)
 
         self.logger.info(
             '\033[31mgenerated NEW job_id %s \033[0m', self.job_id)
@@ -431,9 +436,9 @@ class InstrumentQueryBackEnd:
                     **request_par_dic,
                     "sub": tokenHelper.get_token_user_email_address(self.decoded_token)
                 }
-                calculated_job_id = u'%s' % (self.make_hash(dict_job_id))
+                calculated_job_id = self.calculate_job_id(dict_job_id)
             else:
-                calculated_job_id = u'%s' % (self.make_hash(request_par_dic))
+                calculated_job_id = self.calculate_job_id(request_par_dic)
 
             if self.job_id != calculated_job_id:
                 debug_message = f"The provided job_id={self.job_id} does not match with the job_id={calculated_job_id} " \
@@ -441,7 +446,7 @@ class InstrumentQueryBackEnd:
                 if not self.public:
                     debug_message += " for your user account email"
                 logstash_message(self.app, {'origin': 'dispatcher-call-back', 'event': 'unauthorized-user'})
-                raise RequestNotAuthorized("Request not authorized", debug_message=debug_message)
+                raise RequestNotAuthorized("user not authorized to download the requested product", debug_message=debug_message)
 
     def download_products(self,):
         try:
