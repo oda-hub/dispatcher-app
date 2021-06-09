@@ -461,7 +461,7 @@ class InstrumentQueryBackEnd:
                 if not self.public:
                     debug_message += " for your user account email"
                 logstash_message(self.app, {'origin': 'dispatcher-call-back', 'event': 'unauthorized-user'})
-                raise RequestNotAuthorized("user not authorized to download the requested product", debug_message=debug_message)
+                raise RequestNotAuthorized("Request not authorized", debug_message=debug_message)
 
 
     def download_products(self,):
