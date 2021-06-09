@@ -11,6 +11,9 @@ import glob
 import black
 import base64
 import logging
+from urllib import parse
+import zlib
+import json
 from jinja2 import Environment, FileSystemLoader
 
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
@@ -62,10 +65,6 @@ def textify_email(html):
     text = re.sub('<a href=(.*?)>(.*?)</a>', r'\2: \1', text)
 
     return re.sub('<.*?>', '', text)
-
-from urllib import parse
-import zlib
-import json
 
 def invalid_email_line_length(body):
     for line in body.split('\n'):
@@ -157,7 +156,6 @@ def send_email(
     
 
     if len(request_url) > 600:
-        #TODO: add a warning when compressing
         possibly_compressed_request_url = f"{config.products_url}/dispatch-data/resolve-job-url?job_id={job_id}&session_id={session_id}"
         permanent_url = False
     else:
