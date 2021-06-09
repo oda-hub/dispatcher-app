@@ -72,6 +72,7 @@ def invalid_email_line_length(body):
             return True
     return False
 
+# TODO: not currently fully used, not critical, but should finish this too since it will make nice short permanent urls
 def compress_request_url_params(request_url, consider_args=['selected_catalog', 'string_like_name']):
     parsed_url = parse.urlparse(request_url)
 
