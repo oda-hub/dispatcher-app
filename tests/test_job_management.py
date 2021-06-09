@@ -968,15 +968,24 @@ def test_email_compress_request_url():
 def test_wrap_api_code():
     from cdci_data_analysis.analysis.email_helper import wrap_python_code
 
+    max_length=50
+
     c = wrap_python_code("""
 a = 1
+
+def x():
+    pass
 
 bla = x()
 
 bla = "asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas"
-    """)
+    """, max_length=max_length)
 
-    print(c)
+    assert max([ len(l) for l in c.split("\n") ]) < max_length
 
-    #TODO: test the result
-    #TODO: eval code
+    my_globals = {}
+    exec(c, my_globals)
+
+    assert len(my_globals['bla']) > max_length
+    
+    
