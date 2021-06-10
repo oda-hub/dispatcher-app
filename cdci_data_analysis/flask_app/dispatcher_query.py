@@ -251,7 +251,7 @@ class InstrumentQueryBackEnd:
         })
     
     def user_specific_par_dic(self, par_dic):
-        if 'token' in par_dic:
+        if par_dic.get('token') is not None:
             secret_key = self.app.config.get('conf').secret_key
             decoded_token = tokenHelper.get_decoded_token(par_dic['token'], secret_key)
 
@@ -470,7 +470,10 @@ class InstrumentQueryBackEnd:
 
             if request_parameters_from_scratch_dir:
                 request_par_dic = self.find_job_id_parameters(self.job_id)
-                request_par_dic['token'] = self.token
+                if request_par_dic is None:
+                    raise InvalidJobIDProvided(f"unable to find any record for {self.job_id}")
+                else:
+                    request_par_dic['token'] = self.token
             else:
                 request_par_dic = self.par_dic
 
@@ -484,9 +487,10 @@ class InstrumentQueryBackEnd:
                         debug_message += " for your user account email"
 
                     if request_parameters_from_scratch_dir:
-                        debug_message += "; parameters are derived from this request"
+                        debug_message += "; parameters are derived from recorded job state"
                     else:
-                        debug_message += "; parameters are derived from recorded job statee"
+                        debug_message += "; parameters are derived from this request"
+                        
 
                     restored_job_parameters = self.find_job_id_parameters(self.job_id)
 
@@ -509,13 +513,13 @@ class InstrumentQueryBackEnd:
                 #raise InvalidJobIDProvided(f"no record exists for job_id = {self.job_id}")
 
 
-    def download_products(self,):
+    def download_products(self):
         try:
             # TODO not entirely sure about these
             self.off_line = False
             self.api = False
             
-            self.validate_job_id()
+            self.validate_job_id(request_parameters_from_scratch_dir=True)
             file_list = self.args.get('file_list').split(',')
             file_name = self.args.get('download_file_name')
 

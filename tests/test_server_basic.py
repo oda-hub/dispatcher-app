@@ -1,12 +1,7 @@
-import subprocess
 import requests
 import time
-import re
 import json
-import signal
 import os
-import random
-import traceback
 import logging
 import jwt
 import glob
@@ -16,6 +11,8 @@ import yaml
 import gzip
 
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, loop_ask, ask, default_params_dict, make_hash
+from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
+
 
 # logger
 logger = logging.getLogger(__name__)
@@ -217,7 +214,7 @@ def test_valid_token(dispatcher_live_fixture):
 
 
 @pytest.mark.parametrize("instrument", ["", "None", None, "undefined"])
-def test_download_products_public(dispatcher_live_fixture, empty_products_files_fixture, instrument):
+def test_download_products_public(dispatcher_live_fixture, empty_products_files_fixture, instrument):    
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
@@ -325,18 +322,18 @@ def test_download_products_unauthorized_user(dispatcher_live_fixture, empty_prod
 
     c = requests.get(server + "/download_products",
                      params=params)
-    defaut_param_dict = default_params_dict
-    defaut_param_dict.pop('token', None)
-    defaut_param_dict.pop('session_id', None)
-    defaut_param_dict.pop('job_id', None)
-    wrong_job_id = u'%s' % (make_hash({**defaut_param_dict, "sub": "mtm1@mtmco.net"}))
+    default_param_dict = default_params_dict
+    default_param_dict.pop('token', None)
+    default_param_dict.pop('session_id', None)
+    default_param_dict.pop('job_id', None)
+    wrong_job_id = make_hash(InstrumentQueryBackEnd.restricted_par_dic({**default_param_dict, "sub": "mtm1@mtmco.net"}))
 
     assert c.status_code == 403
 
     jdata = c.json()
     assert jdata["exit_status"]["debug_message"] == \
            f'The provided job_id={job_id} does not match with the ' \
-           f'job_id={wrong_job_id} derived from the request parameters for your user account email'
+           f'job_id={wrong_job_id} derived from the request parameters for your user account email; parameters are derived from recorded job state'
     assert jdata["exit_status"]["error_message"] == ""
     assert jdata["exit_status"]["message"] == "Request not authorized"
 
