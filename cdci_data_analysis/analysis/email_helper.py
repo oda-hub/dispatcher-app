@@ -67,7 +67,7 @@ def textify_email(html):
     
     for elem in soup.find_all(["a", "p", "div", "h3", "br"]):
         elem.replace_with(elem.text + "\n\n")
-        
+
     return soup.get_text()
 
     #text = re.search('<body>(.*?)</body>', html, re.S).group(1)
@@ -255,7 +255,7 @@ def send_email(
     except Exception as e:
         logger.error(f'Exception while sending email: {e}')
         open("debug_email_not_sent.html", "w").write(email_body_html)
-        raise EMailNotSent(f"email not sent {e}")
+        raise EMailNotSent(f"email not sent: {e}")
     finally:
         if server:
             server.quit()

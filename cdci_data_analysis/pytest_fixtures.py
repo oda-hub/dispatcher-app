@@ -476,6 +476,7 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
 
 @pytest.fixture
 def empty_products_files_fixture(default_params_dict):
+    #TODO: avoid copypaste in empty_products_user_files_fixture
     # generate job_id
     job_id = u'%s' % (make_hash(default_params_dict))
     # generate random session_id

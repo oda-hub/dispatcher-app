@@ -102,6 +102,9 @@ generalized_email_patterns = {
     ],
     'products_url': [
         '(href=")(.*?)(">url)',
+    ],
+    'job_id': [
+        '(job_id: )(.*?)(<)'
     ]
 }
 
@@ -208,7 +211,7 @@ def validate_email_content(
                    dispatcher_live_fixture=None
                    ):
 
-    reference_email = get_reference_email(state=state, time_request_str=time_request_str, products_url=products_url)
+    reference_email = get_reference_email(state=state, time_request_str=time_request_str, products_url=products_url, job_id=dispatcher_job_state.job_id[:8])
     
     assert message_record['mail_from'] == 'team@odahub.io'
     assert message_record['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io']
@@ -284,6 +287,7 @@ def get_expected_products_url(dict_param):
 
 def test_validation_job_id(dispatcher_live_fixture):
     server = dispatcher_live_fixture
+    DispatcherJobState.remove_scratch_folders()
 
     logger.info("constructed server: %s", server)
 
@@ -310,17 +314,22 @@ def test_validation_job_id(dispatcher_live_fixture):
     c = requests.get(server + "/run_analysis",
                      dict_param
                      )
+
+    print(json.dumps(c.json(), sort_keys=True, indent=4))
+
     assert c.status_code == 200
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
 
     # let's generate another valid token, just for a different user
-    token_payload['sub'] = "mtm2@mtmco.net"
+    token_payload['sub'] = "mtm1@mtmco.net"
         
     # this should return status submitted, so email sent    
     dict_param['token'] = jwt.encode(token_payload, secret_key, algorithm='HS256')
-
+    dict_param['job_id'] = dispatcher_job_state.job_id # this is job id from different user
+    dict_param['query_status'] = 'submitted'
+    
     c = requests.get(server + "/run_analysis",
                      dict_param
                      )
@@ -330,8 +339,9 @@ def test_validation_job_id(dispatcher_live_fixture):
     from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
     assert InstrumentQueryBackEnd.restricted_par_dic(dict_param) == base_dict_param
 
-    assert c.status_code == 403
+    assert c.status_code == 403, json.dumps(c.json(), indent=4, sort_keys=True)
     jdata = c.json()
+    
     assert jdata["exit_status"]["debug_message"] == \
            f'The provided job_id={dispatcher_job_state.job_id} does not match with the ' \
            f'job_id={wrong_job_id} derived from the request parameters for your user account email'
@@ -585,6 +595,8 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
     c = requests.get(server + "/run_analysis",
                      dict_param
                      )
+
+    assert c.status_code == 200
     
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
     
@@ -592,7 +604,6 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
     #dict_param_complete.pop("token")
 
 
-    assert c.status_code == 200
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
     assert jdata['exit_status']['email_status'] == 'email sent'
@@ -734,7 +745,7 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
     dispatcher_job_state.assert_email('submitted')
     
 
-    # let the interval time pass, so that a new email si sent
+    # let the interval time pass, so that a new email is sent
     time.sleep(5)
     c = requests.get(server + "/run_analysis",
                      dict_param
@@ -1004,7 +1015,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
 
     c = requests.get(url, allow_redirects=False)
 
-    assert c.status_code == 302
+    assert c.status_code == 302, json.dumps(c.json(), sort_keys=True, indent=4)
 
     redirect_url = parse.urlparse(c.headers['Location'])
     print(redirect_url)
