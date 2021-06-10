@@ -677,6 +677,34 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
 
 
 @pytest.mark.not_safe_parallel
+def test_email_unnecessary_job_id(dispatcher_live_fixture, dispatcher_local_mail_server):
+    # remove all the current scratch folders
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_live_fixture
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        job_id="something-else"
+    )
+
+    # this should return status submitted, so email sent
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+
+    assert c.status_code == 400
+        
+    jdata = c.json()
+    assert 'unnecessarily' in jdata['error'] 
+    assert dict_param['job_id'] in jdata['error'] 
+    
+
+   
+@pytest.mark.not_safe_parallel
 def test_email_submitted_frontend_like_job_id(dispatcher_live_fixture, dispatcher_local_mail_server):
     DispatcherJobState.remove_scratch_folders()
 
