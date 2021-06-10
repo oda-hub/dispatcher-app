@@ -15,6 +15,8 @@ from urllib import parse
 import zlib
 import json
 from jinja2 import Environment, FileSystemLoader
+from bs4 import BeautifulSoup
+
 
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
 
@@ -58,8 +60,6 @@ def humanize_future(timestamp: float):
 
 
 def textify_email(html):
-    from bs4 import BeautifulSoup
-
     html = re.sub('<title>.*?</title>', '', html)
     html = re.sub('<a href=(.*?)>(.*?)</a>', r'\2: \1', html)
 
