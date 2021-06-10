@@ -677,6 +677,49 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
 
 
 @pytest.mark.not_safe_parallel
+def test_email_submitted_frontend_like_job_id(dispatcher_live_fixture, dispatcher_local_mail_server):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # email content in plain text and html format
+    smtp_server_log = dispatcher_local_mail_server.local_smtp_output_json_fn
+
+    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token,
+        job_id=""
+    )
+
+    # this should return status submitted, so email sent
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
+    
+    
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    # check the email in the email folders, and that the first one was produced
+    
+    dispatcher_job_state.assert_email(state="submitted")
+    dispatcher_local_mail_server.assert_email_number(1)
+    
+  
+
+
+@pytest.mark.not_safe_parallel
 def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_local_mail_server):
     # remove all the current scratch folders
     dir_list = glob.glob('scratch_*')

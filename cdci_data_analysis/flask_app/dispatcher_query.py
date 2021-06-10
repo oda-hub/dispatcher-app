@@ -179,6 +179,8 @@ class InstrumentQueryBackEnd:
                         #    self.validate_job_id()
 
                         provided_job_id = self.par_dic.get('job_id', None)
+                        if provided_job_id == "": # frontend sends this
+                            provided_job_id = None
                         
                         self.generate_job_id()
 
