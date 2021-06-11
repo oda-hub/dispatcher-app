@@ -43,7 +43,8 @@ install_req = [
     "redis",
     "pyjwt",
     "marshmallow",
-    "black"
+    "black",
+    "bs4"
 ]
 
 test_req = [
