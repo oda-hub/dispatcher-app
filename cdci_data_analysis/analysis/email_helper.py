@@ -110,9 +110,11 @@ def wrap_python_code(code, max_length=100):
 
     # this black currently does not split strings without spaces    
     while True:
-        new_code = re.sub('("[0-9a-zA-Z\.\-\/\+]{%i,}?")' % (max_length + 1), 
-                        lambda S: S.group(1)[:max_length] + '" "' + S.group(1)[max_length:],                         
-                        code)
+        new_code = code
+        for string_separator in '"', "'":
+            new_code = re.sub('(%s[0-9a-zA-Z\.\-\/\+]{%i,}?%s)' % (string_separator, max_length + 1, string_separator), 
+                            lambda S: S.group(1)[:max_length] + string_separator + ' ' + string_separator + S.group(1)[max_length:],                         
+                            new_code)
 
         if new_code == code:
             break
