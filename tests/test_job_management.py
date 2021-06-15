@@ -4,6 +4,7 @@ from urllib import parse
 import pytest
 import requests
 import json
+import html
 import os
 import re
 import time
@@ -1207,7 +1208,7 @@ def test_wrap_api_code():
 
     max_length=50
 
-    c = wrap_python_code("""
+    code = """
 a = 1
 
 def x():
@@ -1216,7 +1217,12 @@ def x():
 bla = x()
 
 bla = "asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas"
-    """, max_length=max_length)
+
+bla_bla = 'asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas'
+
+    """
+    
+    c = wrap_python_code(code, max_length=max_length)
 
     assert max([ len(l) for l in c.split("\n") ]) < max_length
 
