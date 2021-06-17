@@ -4,6 +4,8 @@ from json import JSONDecodeError
 import yaml
 
 import cdci_data_analysis.flask_app.app
+from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
+from cdci_data_analysis.analysis.hash import make_hash
 
 import re
 import json
@@ -359,20 +361,6 @@ def dispatcher_test_conf(dispatcher_test_conf_fn):
     yield yaml.load(open(dispatcher_test_conf_fn))['dispatcher']
 
 
-def make_hash(o):
-    def format_hash(x): return hashlib.md5(
-        json.dumps(sorted(x)).encode()
-    ).hexdigest()[:16]
-
-    if isinstance(o, (set, tuple, list)):
-        return format_hash(tuple(map(make_hash, o)))
-
-    elif isinstance(o, (dict, OrderedDict)):
-        return make_hash(tuple(o.items()))
-
-    return format_hash(json.dumps(o))
-
-
 def start_dispatcher(rootdir, test_conf_fn):
     clean_test_dispatchers()
 
@@ -476,8 +464,9 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
 
 @pytest.fixture
 def empty_products_files_fixture(default_params_dict):
+    #TODO: avoid copypaste in empty_products_user_files_fixture
     # generate job_id
-    job_id = u'%s' % (make_hash(default_params_dict))
+    job_id = make_hash(InstrumentQueryBackEnd.restricted_par_dic(default_params_dict))
     # generate random session_id
     session_id = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
     scratch_params = dict(
@@ -504,8 +493,15 @@ def empty_products_files_fixture(default_params_dict):
 @pytest.fixture
 def empty_products_user_files_fixture(default_params_dict, default_token_payload):
     sub = default_token_payload['sub']
-    # generate job_id related to a certain user
-    job_id = u'%s' % (make_hash({**default_params_dict, "sub": sub}))
+    
+    # generate job_id related to a certain user    
+    job_id = make_hash(
+            {
+                **InstrumentQueryBackEnd.restricted_par_dic(default_params_dict),
+                 "sub": sub
+            }
+        )
+
     # generate random session_id
     session_id = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
     scratch_params = dict(
@@ -514,6 +510,7 @@ def empty_products_user_files_fixture(default_params_dict, default_token_payload
     )
     DispatcherJobState.remove_scratch_folders(job_id=job_id)
     DispatcherJobState.remove_download_folders()
+    
     scratch_dir_path = f'scratch_sid_{session_id}_jid_{job_id}'
     # set the scratch directory
     os.makedirs(scratch_dir_path)

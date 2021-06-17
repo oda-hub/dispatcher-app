@@ -15,6 +15,8 @@ from urllib import parse
 import zlib
 import json
 from jinja2 import Environment, FileSystemLoader
+from bs4 import BeautifulSoup
+
 
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
 
@@ -58,13 +60,20 @@ def humanize_future(timestamp: float):
 
 
 def textify_email(html):
-    text = re.search('<body>(.*?)</body>', html, re.S).group(1)
+    html = re.sub('<title>.*?</title>', '', html)
+    html = re.sub('<a href=(.*?)>(.*?)</a>', r'\2: \1', html)
 
-    text = re.sub('<title>.*?</title>', '', text)
+    soup = BeautifulSoup(html)
+    
+    for elem in soup.find_all(["a", "p", "div", "h3", "br"]):
+        elem.replace_with(elem.text + "\n\n")
 
-    text = re.sub('<a href=(.*?)>(.*?)</a>', r'\2: \1', text)
+    return soup.get_text()
 
-    return re.sub('<.*?>', '', text)
+    #text = re.search('<body>(.*?)</body>', html, re.S).group(1)
+
+    
+    
 
 def invalid_email_line_length(body):
     for line in body.split('\n'):
@@ -101,9 +110,11 @@ def wrap_python_code(code, max_length=100):
 
     # this black currently does not split strings without spaces    
     while True:
-        new_code = re.sub('("[0-9a-zA-Z\.\-\/\+]{%i,}?")' % (max_length + 1), 
-                        lambda S: S.group(1)[:max_length] + '" "' + S.group(1)[max_length:],                         
-                        code)
+        new_code = code
+        for string_separator in '"', "'":
+            new_code = re.sub('(%s[0-9a-zA-Z\.\-\/\+]{%i,}?%s)' % (string_separator, max_length + 1, string_separator), 
+                            lambda S: S.group(1)[:max_length] + string_separator + ' ' + string_separator + S.group(1)[max_length:],                         
+                            new_code)
 
         if new_code == code:
             break
@@ -149,7 +160,7 @@ def send_email(
     api_code = wrap_python_code(api_code)
 
 
-    api_code = api_code.strip().replace("\n", "<br>\n")
+    #api_code = api_code.strip().replace("\n", "<br>\n")
 
     api_code_no_token = re.sub('"token": ".*?"', '"token": "<PLEASE-INSERT-YOUR-TOKEN-HERE>"', api_code)
 
@@ -246,7 +257,7 @@ def send_email(
     except Exception as e:
         logger.error(f'Exception while sending email: {e}')
         open("debug_email_not_sent.html", "w").write(email_body_html)
-        raise EMailNotSent(f"email not sent {e}")
+        raise EMailNotSent(f"email not sent: {e}")
     finally:
         if server:
             server.quit()

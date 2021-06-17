@@ -69,6 +69,9 @@ class InstrumentNotRecognized(BadRequest):
 class MissingRequestParameter(BadRequest):
     pass
 
+class InvalidJobIDProvided(BadRequest):
+    pass
+
 class InstrumentQueryBackEnd:
 
     def __repr__(self):
@@ -169,15 +172,31 @@ class InstrumentQueryBackEnd:
                 else:
                     query_status = self.par_dic['query_status']
                     self.job_id = None
-                    if query_status == 'new':
+                    if query_status == 'new':                        
+                        # this will overwrite any job_id provided, it should be validated or ignored
+                        #if 'job_id' in self.par_dic:
+                        #    self.job_id = self.par_dic['job_id']
+                        #    self.validate_job_id()
+
+                        provided_job_id = self.par_dic.get('job_id', None)
+                        if provided_job_id == "": # frontend sends this
+                            provided_job_id = None
+                        
                         self.generate_job_id()
+
+                        if provided_job_id is not None and self.job_id != provided_job_id:
+                            raise RequestNotUnderstood((
+                                    f"during query_status == \"new\", provided (unnecessarily) job_id {provided_job_id} "
+                                    f"did not match self.job_id {self.job_id} computed from request"
+                                ))
+
                     else:
                         if 'job_id' not in self.par_dic:
                             raise RequestNotUnderstood(
                                 f"job_id must be present if query_status != \"new\" (it is \"{query_status}\")")
 
                         self.job_id = self.par_dic['job_id']
-
+                
                 self.set_scratch_dir(
                     self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
 
@@ -198,50 +217,71 @@ class InstrumentQueryBackEnd:
         except Exception as e:
             self.logger.error('\033[31mexception in constructor of %s %s\033[0m', self, repr(e))
             self.logger.error("traceback: %s", traceback.format_exc())
+            raise RequestNotUnderstood(f"{self} constructor failed: {e}")
 
-            query_out = QueryOutput()
-            query_out.set_query_exception(
-                e, 'InstrumentQueryBackEnd constructor', extra_message='InstrumentQueryBackEnd constructor failed')
+        #    query_out = QueryOutput()
+        #     query_out.set_query_exception(
+        #        e, 'InstrumentQueryBackEnd constructor', extra_message='InstrumentQueryBackEnd constructor failed')
 
-            self.build_dispatcher_response(
-                query_new_status='failed', query_out=query_out)
-
-            # return jsonify(out_dict)
+        
+        
 
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
-    def restricted_par_dic(self, par_dic, kw_black_list=None):
+    @staticmethod
+    def restricted_par_dic(par_dic, kw_black_list=None):
         """
         restricts parameter list to those relevant for request content
         """
 
         if kw_black_list is None:
-            kw_black_list = ('session_id', 'job_id', 'token', 'dry_run', 'oda_api_version', 'api', 'off_line')
+            kw_black_list = ('session_id', 
+                             'job_id', 
+                             'token', 
+                             'dry_run', 
+                             'oda_api_version', 
+                             'api', 
+                             'off_line', 
+                             'query_status', 
+                             'async_dispatcher')
 
         return OrderedDict({
             k: v for k, v in par_dic.items()
             if k not in kw_black_list and v is not None
         })
     
+    def user_specific_par_dic(self, par_dic):
+        if par_dic.get('token') is not None:
+            secret_key = self.app.config.get('conf').secret_key
+            decoded_token = tokenHelper.get_decoded_token(par_dic['token'], secret_key)
 
-    def calculate_job_id(self, par_dic: dict, kw_black_list=None) -> str:
+            return {
+                **par_dic,
+                "sub": tokenHelper.get_token_user_email_address(decoded_token)
+            }
+        else:
+            return par_dic
+
+    def calculate_job_id(self, 
+                         par_dic: dict, 
+                         kw_black_list: typing.Union[None,dict]=None) -> str:
         """
         restricts parameter list to those relevant for request content, and makes string hash
-        """       
-    
-        return make_hash(self.restricted_par_dic(par_dic, kw_black_list))        
+        """              
+
+        user_par_dict = self.user_specific_par_dic(par_dic)
+        user_restricted_par_dict = self.restricted_par_dic(user_par_dict, kw_black_list)
+        
+        return make_hash(user_restricted_par_dict)
     
     def generate_job_id(self, kw_black_list=None):
         self.logger.info("\033[31m---> GENERATING JOB ID <---\033[0m")
         self.logger.info(
             "\033[31m---> new job id for %s <---\033[0m", self.par_dic)
-        
-        extra_dict = {}
-        if not self.public:
-            # token has not been considered, but the user id will be (if availaable)
-            extra_dict['sub'] = tokenHelper.get_token_user_email_address(self.decoded_token)
+              
+        self.logger.debug("generate_job_id: %s", json.dumps(self.par_dic, indent=4, sort_keys=True))
 
-        self.job_id = self.calculate_job_id({**self.par_dic, **extra_dict})
+        self.job_id = self.calculate_job_id(self.par_dic, kw_black_list)
 
         self.logger.info(
             '\033[31mgenerated NEW job_id %s \033[0m', self.job_id)
@@ -411,60 +451,75 @@ class InstrumentQueryBackEnd:
     def resolve_job_url(self):        
         request_par_dic = self.get_request_par_dic()
         
-        self.validate_job_id()
+        self.validate_job_id(request_parameters_from_scratch_dir=True)
         
         return self.generate_products_url_from_par_dict(
             self.app.config['conf'].products_url, 
             par_dict=request_par_dic)
 
-    def find_job_id_parameters(self, job_id):
-        scratch_dir_parameters = glob.glob(f'scratch*_jid_{job_id}*/analysis_parameters.json')
-        if len(scratch_dir_parameters) == 0:
-            return None
-        else:
-            return json.load(open(scratch_dir_parameters[0]))
-        
+    def validate_job_id(self, request_parameters_from_scratch_dir=False):
+        """    
+        makes sure self.job_id is compatible, for given user token, with:
+        if request_parameters_from_scratch_dir:
+            parameters found in directory matching job_id
+        else: 
+            parameters provided in this request
+        """
+        if self.job_id is not None:
+            #request_par_dic = self.find_job_id_parameters(self.job_id)
 
-    def validate_job_id(self):
-        request_par_dic = self.get_request_par_dic()
-        if request_par_dic is not None:
-            if not self.public:
-                dict_job_id = {
-                    **request_par_dic,
-                    "sub": tokenHelper.get_token_user_email_address(self.decoded_token)
-                }
+            if request_parameters_from_scratch_dir:
+                request_par_dic = self.find_job_id_parameters(self.job_id)
+                if request_par_dic is None:
+                    raise InvalidJobIDProvided(f"unable to find any record for {self.job_id}")
+                else:
+                    request_par_dic['token'] = self.token
             else:
-                dict_job_id = request_par_dic
+                request_par_dic = self.par_dic
 
-            calculated_job_id = self.calculate_job_id(dict_job_id)
+            if request_par_dic is not None:    
+                calculated_job_id = self.calculate_job_id(request_par_dic)
 
-            if self.job_id != calculated_job_id:
-                debug_message = f"The provided job_id={self.job_id} does not match with the job_id={calculated_job_id} " \
-                                f"derived from the request parameters"
-                if not self.public:
-                    debug_message += " for your user account email"
+                if self.job_id != calculated_job_id:
+                    debug_message = f"The provided job_id={self.job_id} does not match with the job_id={calculated_job_id} " \
+                                    f"derived from the request parameters"
+                    if not self.public:
+                        debug_message += " for your user account email"
 
-                logger.error(debug_message)
-                logger.error("parameters for self.job_id %s : %s", 
-                             self.job_id, 
-                             json.dumps(self.find_job_id_parameters(self.job_id), sort_keys=True, indent=4))
+                    if request_parameters_from_scratch_dir:
+                        debug_message += "; parameters are derived from recorded job state"
+                    else:
+                        debug_message += "; parameters are derived from this request"
+                        
 
-                logger.error("parameters for calculated_job_id %s : %s", 
-                             calculated_job_id, 
-                             json.dumps(dict_job_id, sort_keys=True, indent=4))
+                    restored_job_parameters = self.find_job_id_parameters(self.job_id)
+
+                    logger.error(debug_message)
+                    logger.error("parameters for self.job_id %s, recomputed as %s : %s",                 
+                                self.job_id, 
+                                self.calculate_job_id(restored_job_parameters),
+                                json.dumps(self.restricted_par_dic(self.user_specific_par_dic(restored_job_parameters)), sort_keys=True, indent=4))
+                                
+                    logger.error("parameters for calculated_job_id %s : %s", 
+                                calculated_job_id, 
+                                json.dumps(self.restricted_par_dic(self.user_specific_par_dic(request_par_dic)), sort_keys=True, indent=4))
 
 
-                logstash_message(self.app, {'origin': 'dispatcher-call-back', 'event': 'unauthorized-user'})
-                raise RequestNotAuthorized("Request not authorized", debug_message=debug_message)
+                    logstash_message(self.app, {'origin': 'dispatcher-call-back', 'event': 'unauthorized-user'})
+                    raise RequestNotAuthorized("Request not authorized", debug_message=debug_message)
+            else:
+                logger.info("no previous parameters stored: allowing job_id")
+                #TODO: only if it was just set
+                #raise InvalidJobIDProvided(f"no record exists for job_id = {self.job_id}")
 
 
-    def download_products(self,):
+    def download_products(self):
         try:
             # TODO not entirely sure about these
             self.off_line = False
             self.api = False
             
-            self.validate_job_id()
+            self.validate_job_id(request_parameters_from_scratch_dir=True)
             file_list = self.args.get('file_list').split(',')
             file_name = self.args.get('download_file_name')
 
@@ -671,10 +726,28 @@ class InstrumentQueryBackEnd:
 
     # TODO perhaps move it somewhere else?
     def get_request_par_dic(self) -> dict:
+        """
+        returns parameters from current job/session
+        """
         fn = self.scratch_dir + '/analysis_parameters.json'
+        
         if os.path.exists(fn):
             with open(fn) as file:
                 return json.load(file)
+        else:
+            logger.info("get_request_par_dic unable to find %s", fn)
+
+    def find_job_id_parameters(self, job_id):
+        """
+        returns parameters from current job and any session
+        """
+
+        scratch_dir_parameters = glob.glob(f'scratch*_jid_{job_id}*/analysis_parameters.json')
+        if len(scratch_dir_parameters) == 0:
+            return None
+        else:
+            return json.load(open(scratch_dir_parameters[0]))
+        
 
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
@@ -730,7 +803,7 @@ class InstrumentQueryBackEnd:
                                   status_code=None,
                                   job_monitor=None,
                                   off_line=True,
-                                  api=False,):
+                                  api=False) -> QueryOutput:
 
         out_dict = {}
 
@@ -1105,7 +1178,7 @@ class InstrumentQueryBackEnd:
         this is the principal function to respond to the requests
 
         TODO: this function is a bit quite very long, and flow is a little bit too complex, especially for exception handling
-        """
+        """        
 
         self.off_line = off_line
 
@@ -1212,7 +1285,7 @@ class InstrumentQueryBackEnd:
         self.logger.info(
             '-----------------> job_is_aliased: %s', job_is_aliased)
 
-        out_dict = None
+        #out_dict = None
         query_out = None
 
         # TODO if query status== ready but you get delegation
@@ -1267,10 +1340,13 @@ class InstrumentQueryBackEnd:
 
         if job_is_aliased == True:
             delta_limit = 600
+
             try:
+                raise NotImplementedError
+                # this never worked since time_ was introduced, but it makes no difference
                 delta = self.get_file_mtime(
-                    alias_workdir + '/' + 'job_monitor.json') - time.time()
-            except:
+                    alias_workdir + '/' + 'job_monitor.json') - time_.time()
+            except:                
                 delta = delta_limit+1
 
             if delta > delta_limit:

@@ -2,13 +2,13 @@
 <html lang="en">
 
 <head>
-    <title>[ODA][submitted] dummy first requested at 2021-06-09 09:31:56 job_id: 2a8eb39e</title>
+    <title>[ODA][submitted] dummy first requested at 2021-06-09 18:20:28 job_id: 2a8eb39e</title>
 </head>
 
 <body>
 Dear User,<br>
 <br>
-you receive this message because at 2021-06-09 09:31:56 ( 0.1 seconds ago ) you submitted a request <br>
+you receive this message because at 2021-06-09 18:20:28 ( 0.1 seconds ago ) you submitted a request <br>
 for a dummy from the service provided by University of Geneva<br>
 available at the URL PRODUCTS_URL.<br>
 <br>
@@ -34,24 +34,25 @@ Python API code:<br>
 <div style="background-color: lightgray; display: inline-block; padding: 5px;">
 from oda_api.api import DispatcherAPI<br>
 <br>
-disp = DispatcherAPI(url="PRODUCTS_URL", instrument="mock")<br>
+disp = DispatcherAPI(url=&#34;PRODUCTS_URL&#34;, instrument=&#34;mock&#34;)<br>
 <br>
 par_dict = {<br>
-    "product_type": "Real",<br>
-    "instrument": "empty-async",<br>
-    "product": "dummy",<br>
-    "token": (<br>
-        "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdG1AbXRtY28ubmV0IiwibmFtZSI6Im1tZWhhcmdhIiwicm9sZX"<br>
-        "MiOiJnZW5lcmFsIiwiZXhwIjoxNjIzMjI4OTExfQ.3FZpd7og3TWejkcp1-H5pLUjRYQ4q3M578NHJ8OcwaQ"<br>
+    &#34;product_type&#34;: &#34;Real&#34;,<br>
+    &#34;instrument&#34;: &#34;empty-async&#34;,<br>
+    &#34;product&#34;: &#34;dummy&#34;,<br>
+    &#34;token&#34;: (<br>
+        &#34;eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdG1AbXRtY28ubmV0IiwibmFtZSI6Im1tZWhhcmdhIiwicm9sZX&#34;<br>
+        &#34;MiOiJnZW5lcmFsIiwiZXhwIjoxNjIzMjYwNjI0fQ.d7h8ndgfER8Gt208nkB8FQUizLfv9WzU8jBeCBLktFM&#34;<br>
     ),<br>
 }<br>
 <br>
-data_collection = disp.get_product(**par_dict)
+data_collection = disp.get_product(**par_dict)<br>
+
 </div>
 <br>
 <br>
 Note that this code contains your private token. Be careful how you share it!<br>
-This token is short-lived, and will expire in 83.2 minutes.<br>
+This token is short-lived, and will expire in 83.3 minutes.<br>
 To learn how to get a new token, please refer to <a href="possibly-non-site-specific-link">these instructions</a>.<br>
 <br>
 
