@@ -557,7 +557,6 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     DataServerQuery.set_status('submitted') # sets the expected default for other tests
 
 
-
 @pytest.mark.not_safe_parallel
 def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail_server):
     # remove all the current scratch folders

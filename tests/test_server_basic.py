@@ -184,6 +184,7 @@ def test_same_request_different_users(dispatcher_live_fixture):
     assert len(dir_list_1) == len(dir_list_2)
 
 
+@pytest.mark.not_safe_parallel
 @pytest.mark.parametrize("request_cred", ['public', 'private'])
 def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_cred):
     DispatcherJobState.remove_scratch_folders()
@@ -203,8 +204,6 @@ def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_
     # issuing a request each, with the same set of parameters
     params = {
         **default_params,
-        'E1_keV': 25.,
-        'E2_keV': 35.,
         'product_type': 'dummy',
         'query_type': "Dummy",
         'instrument': 'empty',
@@ -242,9 +241,7 @@ def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_
         'token': encoded_token,
         'session_id': session_id,
         'job_id': job_id,
-        'query_status': "ready",
-        'E1_keV': 25.,
-        'E2_keV': 45.
+        'query_status': "ready"
     }
 
     jdata = ask(server,
