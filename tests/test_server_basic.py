@@ -203,7 +203,7 @@ def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_
 
     # issuing a request each, with the same set of parameters
     params = {
-        **default_params,
+        'query_status': "new",
         'product_type': 'dummy',
         'query_type': "Dummy",
         'instrument': 'empty',
@@ -242,8 +242,7 @@ def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_
         'token': encoded_token,
         'session_id': session_id,
         'job_id': job_id,
-        'query_status': "ready",
-        'xspec_model': 'powerlaw'
+        'query_status': "ready"
     }
 
     jdata = ask(server,
