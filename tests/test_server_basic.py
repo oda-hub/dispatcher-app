@@ -637,64 +637,6 @@ def test_no_instrument(dispatcher_live_fixture):
     assert c.status_code == 400
 
 
-@pytest.mark.skip(reason="todo")
-@pytest.mark.isgri_plugin
-def test_isgri_no_osa(dispatcher_live_fixture):
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    c=requests.get(server + "/run_analysis",
-                   params=dict(
-                       query_status="new",
-                       query_type="Real",
-                       instrument="isgri",
-                       product_type="isgri_image",
-                       E1_keV=20.,
-                       E2_keV=40.,
-                       T1="2008-01-01T11:11:11.0",
-                       T2="2008-06-01T11:11:11.0",
-                    )
-                  )
-
-    print("content:", c.text)
-
-    jdata=c.json()
-    print(list(jdata.keys()))
-    print(jdata)
-
-    assert c.status_code == 400
-
-    assert jdata["error_message"] == "osa_version is needed"
-
-
-@pytest.mark.skip(reason="old, replaced by new tests")
-@pytest.mark.parametrize("async_dispatcher", [False, True])
-def test_no_token(dispatcher_live_fixture, async_dispatcher, method):
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    params = {
-        **default_params,
-        'async_dispatcher': async_dispatcher,
-        'instrument': 'mock',
-    }
-
-    params.pop('token')
-
-    jdata = ask(server,
-                params,
-                expected_query_status=["failed"],
-                max_time_s=50,
-                method=method,
-                )
-
-    print(json.dumps(jdata, indent=4))
-
-    assert jdata["exit_status"]["debug_message"] == ""
-    assert jdata["exit_status"]["error_message"] == ""
-    assert jdata["exit_status"]["message"] == "you do not have permissions for this query, contact oda"
-
-
 def flatten_nested_structure(structure, mapping, path=[]):
     if isinstance(structure, list):
         r=[flatten_nested_structure(a, mapping, path=path + [i]) for i, a in enumerate(structure)]
