@@ -91,7 +91,13 @@ class QueryOutput(object):
             with open(file_path.path, 'w')  as outfile:
                 _dict = {k: v for k, v in query_dict.items() if v is not None}
                 my_json_str = json.dumps(_dict, indent=4, sort_keys=True)
+                # TODO further test if formatting is really needed
                 outfile.write(u'%s' % my_json_str)
+        else:
+            with open(file_path.path) as outfile:
+                dict_analysis_parameters = json.load(outfile)
+            logger.info("analysis_parameters.json file already present, and originally used for the job_id calculation: %s",
+                         json.dumps(dict_analysis_parameters, sort_keys=True, indent=4))
 
     def set_products(self, keys, values):
         for k, v in zip(keys, values):
