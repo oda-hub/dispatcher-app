@@ -186,6 +186,7 @@ def test_same_request_different_users(dispatcher_live_fixture):
 
 @pytest.mark.parametrize("request_cred", ['public', 'private'])
 def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_cred):
+    DispatcherJobState.remove_scratch_folders()
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
