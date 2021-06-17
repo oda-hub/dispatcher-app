@@ -184,6 +184,80 @@ def test_same_request_different_users(dispatcher_live_fixture):
     assert len(dir_list_1) == len(dir_list_2)
 
 
+@pytest.mark.parametrize("request_cred", ['public', 'private'])
+def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_cred):
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    if request_cred == 'public':
+        encoded_token = None
+    else:
+        token_payload = {
+            **default_token_payload,
+            "sub": "mtm@mtmco.net"
+        }
+
+        encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    # issuing a request each, with the same set of parameters
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                  params,
+                  expected_query_status=["done"],
+                  max_time_s=50,
+                  )
+
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == ""
+
+    job_id = jdata['job_monitor']['job_id']
+    session_id = jdata['session_id']
+    # get the analysis_parameters json file
+    analysis_parameters_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/analysis_parameters.json'
+    # the aliased version might have been created
+    analysis_parameters_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/analysis_parameters.json'
+    assert os.path.exists(analysis_parameters_json_fn) or os.path.exists(analysis_parameters_json_fn_aliased)
+    if os.path.exists(analysis_parameters_json_fn):
+        analysis_parameters_json_content_original = json.load(open(analysis_parameters_json_fn))
+    else:
+        analysis_parameters_json_content_original = json.load(open(analysis_parameters_json_fn_aliased))
+
+    # issue another call, different parameters but same job_id & session_id, to simulate the Fit button
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+        'session_id': session_id,
+        'job_id': job_id,
+        'query_status': "ready",
+        'E1_keV': 25.,
+        'E2_keV': 45.
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=50,
+                )
+
+    if os.path.exists(analysis_parameters_json_fn):
+        analysis_parameters_json_content = json.load(open(analysis_parameters_json_fn))
+    else:
+        analysis_parameters_json_content = json.load(open(analysis_parameters_json_fn_aliased))
+
+    assert analysis_parameters_json_content == analysis_parameters_json_content_original
+
+
 def test_valid_token(dispatcher_live_fixture):
     server = dispatcher_live_fixture
 
