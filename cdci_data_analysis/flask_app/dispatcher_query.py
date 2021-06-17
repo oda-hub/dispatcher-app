@@ -1201,6 +1201,7 @@ class InstrumentQueryBackEnd:
         self.api = api # TODO: we should decide if it's memeber or not
 
         try:
+            # TODO still I am not entirely sure this is a good approach
             query_status = self.par_dic['query_status']
             # the idea is that, if the query is new then, there is no analysis_parameters.json file
             # otherwise, like in the case of the click of the fit button, query_status will be 'ready'
