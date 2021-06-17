@@ -181,6 +181,84 @@ def test_same_request_different_users(dispatcher_live_fixture):
     assert len(dir_list_1) == len(dir_list_2)
 
 
+@pytest.mark.not_safe_parallel
+@pytest.mark.parametrize("request_cred", ['public', 'private'])
+def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_cred):
+    DispatcherJobState.remove_scratch_folders()
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    if request_cred == 'public':
+        encoded_token = None
+    else:
+        token_payload = {
+            **default_token_payload,
+            "sub": "mtm@mtmco.net"
+        }
+
+        encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    # issuing a request each, with the same set of parameters
+    params = {
+        **default_params,
+        'query_status': "new",
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                  params,
+                  expected_query_status=["done"],
+                  max_time_s=50,
+                  )
+
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == ""
+
+    job_id = jdata['job_monitor']['job_id']
+    session_id = jdata['session_id']
+    # get the analysis_parameters json file
+    analysis_parameters_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/analysis_parameters.json'
+    # the aliased version might have been created
+    analysis_parameters_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/analysis_parameters.json'
+    assert os.path.exists(analysis_parameters_json_fn) or os.path.exists(analysis_parameters_json_fn_aliased)
+    if os.path.exists(analysis_parameters_json_fn):
+        analysis_parameters_json_content_original = json.load(open(analysis_parameters_json_fn))
+    else:
+        analysis_parameters_json_content_original = json.load(open(analysis_parameters_json_fn_aliased))
+
+    logger.info("starting query with the same session_id and job_id")
+
+    # issue another call, different parameters but same job_id & session_id, to simulate the Fit button
+    params = {
+        **default_params,
+        'xspec_model': 'powerlaw',
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+        'session_id': session_id,
+        'job_id': job_id,
+        'query_status': "ready"
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=50,
+                )
+
+    if os.path.exists(analysis_parameters_json_fn):
+        analysis_parameters_json_content = json.load(open(analysis_parameters_json_fn))
+    else:
+        analysis_parameters_json_content = json.load(open(analysis_parameters_json_fn_aliased))
+
+    assert analysis_parameters_json_content == analysis_parameters_json_content_original
+
+
 def test_valid_token(dispatcher_live_fixture):
     server = dispatcher_live_fixture
 
@@ -632,64 +710,6 @@ def test_no_instrument(dispatcher_live_fixture):
     print("content:", c.text)
 
     assert c.status_code == 400
-
-
-@pytest.mark.skip(reason="todo")
-@pytest.mark.isgri_plugin
-def test_isgri_no_osa(dispatcher_live_fixture):
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    c=requests.get(server + "/run_analysis",
-                   params=dict(
-                       query_status="new",
-                       query_type="Real",
-                       instrument="isgri",
-                       product_type="isgri_image",
-                       E1_keV=20.,
-                       E2_keV=40.,
-                       T1="2008-01-01T11:11:11.0",
-                       T2="2008-06-01T11:11:11.0",
-                    )
-                  )
-
-    print("content:", c.text)
-
-    jdata=c.json()
-    print(list(jdata.keys()))
-    print(jdata)
-
-    assert c.status_code == 400
-
-    assert jdata["error_message"] == "osa_version is needed"
-
-
-@pytest.mark.skip(reason="old, replaced by new tests")
-@pytest.mark.parametrize("async_dispatcher", [False, True])
-def test_no_token(dispatcher_live_fixture, async_dispatcher, method):
-    server = dispatcher_live_fixture
-    print("constructed server:", server)
-
-    params = {
-        **default_params,
-        'async_dispatcher': async_dispatcher,
-        'instrument': 'mock',
-    }
-
-    params.pop('token')
-
-    jdata = ask(server,
-                params,
-                expected_query_status=["failed"],
-                max_time_s=50,
-                method=method,
-                )
-
-    print(json.dumps(jdata, indent=4))
-
-    assert jdata["exit_status"]["debug_message"] == ""
-    assert jdata["exit_status"]["error_message"] == ""
-    assert jdata["exit_status"]["message"] == "you do not have permissions for this query, contact oda"
 
 
 def flatten_nested_structure(structure, mapping, path=[]):
