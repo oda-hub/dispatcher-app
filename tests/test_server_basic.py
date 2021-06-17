@@ -203,6 +203,8 @@ def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_
     # issuing a request each, with the same set of parameters
     params = {
         **default_params,
+        'E1_keV': 25.,
+        'E2_keV': 35.,
         'product_type': 'dummy',
         'query_type': "Dummy",
         'instrument': 'empty',
