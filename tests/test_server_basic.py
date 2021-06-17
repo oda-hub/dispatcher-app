@@ -232,16 +232,18 @@ def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_
     else:
         analysis_parameters_json_content_original = json.load(open(analysis_parameters_json_fn_aliased))
 
+    logger.info("starting query with the same session_id and job_id")
+
     # issue another call, different parameters but same job_id & session_id, to simulate the Fit button
     params = {
-        **default_params,
         'product_type': 'dummy',
         'query_type': "Dummy",
         'instrument': 'empty',
         'token': encoded_token,
         'session_id': session_id,
         'job_id': job_id,
-        'query_status': "ready"
+        'query_status': "ready",
+        'xspec_model': 'powerlaw'
     }
 
     jdata = ask(server,
