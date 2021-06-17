@@ -203,6 +203,7 @@ def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_
 
     # issuing a request each, with the same set of parameters
     params = {
+        **default_params,
         'query_status': "new",
         'product_type': 'dummy',
         'query_type': "Dummy",
@@ -236,6 +237,8 @@ def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_
 
     # issue another call, different parameters but same job_id & session_id, to simulate the Fit button
     params = {
+        **default_params,
+        'xspec_model': 'powerlaw',
         'product_type': 'dummy',
         'query_type': "Dummy",
         'instrument': 'empty',
