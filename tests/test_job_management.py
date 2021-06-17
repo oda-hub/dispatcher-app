@@ -345,7 +345,7 @@ def test_validation_job_id(dispatcher_live_fixture):
     
     assert jdata["exit_status"]["debug_message"] == \
            f'The provided job_id={dispatcher_job_state.job_id} does not match with the ' \
-           f'job_id={wrong_job_id} derived from the request parameters for your user account email; parameters are derived from this request'
+           f'job_id={wrong_job_id} derived from the request parameters for your user account email; parameters are derived from recorded job state'
     assert jdata["exit_status"]["error_message"] == ""
     assert jdata["exit_status"]["message"] == "Request not authorized"
 
