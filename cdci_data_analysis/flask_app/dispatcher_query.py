@@ -1201,7 +1201,11 @@ class InstrumentQueryBackEnd:
         self.api = api # TODO: we should decide if it's memeber or not
 
         try:
-            self.validate_job_id()
+            query_status = self.par_dic['query_status']
+            # the idea is that, if the query is new then, there is no analysis_parameters.json file
+            # otherwise, like in the case of the click of the fit button, query_status will be 'ready'
+            # and so an analysis_parameters.json dump is already there
+            self.validate_job_id(query_status != 'new')
         except RequestNotAuthorized as e:
             return self.build_response_failed('oda_api permissions failed',
                                               e.message,
