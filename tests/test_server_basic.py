@@ -685,6 +685,7 @@ def test_list_file(dispatcher_live_fixture, p_list):
         'product_type': 'numerical',
         'query_type': "Dummy",
         'instrument': 'empty',
+        'p': 5,
         'token': encoded_token
     }
 
