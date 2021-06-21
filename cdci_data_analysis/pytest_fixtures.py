@@ -4,6 +4,7 @@ from json import JSONDecodeError
 import yaml
 
 import cdci_data_analysis.flask_app.app
+from cdci_data_analysis.analysis.exceptions import BadRequest
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.hash import make_hash
 
@@ -96,6 +97,9 @@ def dispatcher_nodebug(monkeypatch):
 
 def run_analysis(server, params, method='get', files=None):
     if method == 'get':
+        if not files is None:
+            logger.warning("files cannot be attached to a get request")
+            raise BadRequest("Invalid parameters for GET request")
         return requests.get(server + "/run_analysis",
                     params={**params},
                     )
