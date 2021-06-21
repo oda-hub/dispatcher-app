@@ -239,4 +239,13 @@ class DataServerNumericQuery(ProductQuery):
                     'general': 'general role is needed for p>50',
                     'unige-hpc-full': 'unige-hpc-full role is needed for p>50 as well'
                 }
+        if 'p_list' in par_dic.keys():
+            p_list = par_dic.get('p_list', '')
+            if float(p_list[0]) > 50:
+                results['authorization'] = 'general' and 'unige-hpc-full' in roles
+                results['needed_roles'] = ['general', 'unige-hpc-full']
+                results['needed_roles_with_comments'] = {
+                    'general': 'general role is needed for p_list>50',
+                    'unige-hpc-full': 'unige-hpc-full role is needed for p_list>50 as well'
+                }
         return results

@@ -610,7 +610,7 @@ def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):
     logger.info(json.dumps(jdata, indent=4))
 
 
-@pytest.mark.parametrize("roles", ["","soldier, general", "unige-hpc-full, general"])
+@pytest.mark.parametrize("roles", ["", "soldier, general", "unige-hpc-full, general"])
 def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
     server = dispatcher_live_fixture
 
@@ -666,6 +666,51 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
 
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
+
+
+@pytest.mark.parametrize("p_list", [5, 55])
+def test_list_file(dispatcher_live_fixture, p_list):
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token
+    }
+
+    # TODO a fixture for these type of files is needed
+    # generate ScWs list file
+    if not os.path.exists('p_list_files'):
+        os.makedirs('p_list_files')
+
+    file_name = f'{p_list}_p_list'
+    with open('p_list_files/' + file_name, 'w+') as outlist_file:
+        outlist_file.write(str(p_list))
+
+    list_file = open('p_list_files/' + file_name)
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                method='post',
+                files={"user_scw_list_file": list_file.read()}
+                )
+
+    outlist_file.close()
+
+    assert 'p_list' in jdata['products']['analysis_parameters']
+    assert jdata['products']['analysis_parameters']['p_list'] == [str(p_list)]
 
 
 def test_empty_instrument_request(dispatcher_live_fixture):
