@@ -94,7 +94,7 @@ def dispatcher_nodebug(monkeypatch):
     monkeypatch.delenv('DISPATCHER_DEBUG_MODE', raising=False)
     # monkeypatch.setenv('DISPATCHER_DEBUG_MODE', 'no')
 
-def run_analysis(server, params, method='get'):
+def run_analysis(server, params, method='get', files=None):
     if method == 'get':
         return requests.get(server + "/run_analysis",
                     params={**params},
@@ -103,15 +103,16 @@ def run_analysis(server, params, method='get'):
     elif method == 'post':
         return requests.post(server + "/run_analysis",
                     data={**params},
+                    files=files
                     )
     else:
         raise NotImplementedError
 
 
-def ask(server, params, expected_query_status, expected_job_status=None, max_time_s=None, expected_status_code=200, method='get'):
+def ask(server, params, expected_query_status, expected_job_status=None, max_time_s=None, expected_status_code=200, method='get', files=None):
     t0 = time.time()
 
-    c = run_analysis(server, params, method=method)
+    c = run_analysis(server, params, method=method, files=files)
 
     logger.info(f"\033[31m request took {time.time() - t0} seconds\033[0m")
     t_spent = time.time() - t0
