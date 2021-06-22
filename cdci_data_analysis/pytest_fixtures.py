@@ -97,8 +97,8 @@ def dispatcher_nodebug(monkeypatch):
 
 def run_analysis(server, params, method='get', files=None):
     if method == 'get':
-        if not files is None:
-            logger.warning("files cannot be attached to a get request")
+        if files is not None:
+            logger.error("files cannot be attached to a get request")
             raise BadRequest("Invalid parameters for GET request")
         return requests.get(server + "/run_analysis",
                     params={**params},
