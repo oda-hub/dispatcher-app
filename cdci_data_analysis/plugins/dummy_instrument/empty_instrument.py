@@ -50,7 +50,8 @@ def my_instr_factory():
     src_query = SourceQuery('src_query')
 
     # empty query
-    instr_query = InstrumentQuery(name='empty_instrument_query',)
+    instr_query = InstrumentQuery(name='empty_instrument_query',
+                                  input_prod_list_name='p_list')
 
     # my_instr_image_query -> name given to this query
     empty_query = EmptyProductQuery('empty_parameters_dummy_query',)
