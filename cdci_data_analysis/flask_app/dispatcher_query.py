@@ -48,7 +48,7 @@ from ..configurer import DataServerConf
 from ..analysis.exceptions import BadRequest, APIerror, MissingRequestParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut
 from . import tasks
 
-from  oda_api.api import  DispatcherAPI
+from oda_api.api import DispatcherAPI
 
 from .logstash import logstash_message
 
@@ -174,7 +174,6 @@ class InstrumentQueryBackEnd:
                             logger=self.logger,
                             sentry_client=self.sentry_client
                         )
-
                 # TODO: if not callback!
                 # if 'query_status' not in self.par_dic:
                 #    raise MissingRequestParameter('no query_status!')

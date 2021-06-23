@@ -160,9 +160,9 @@ class Instrument:
                             sentry_client=None):
         try:
             # set catalog
-            self.set_catalog_from_fronted(par_dic, request, temp_dir=temp_dir, logger=logger, verbose=verbose,sentry_client=sentry_client)
+            self.set_catalog_from_fronted(par_dic, request, temp_dir=temp_dir, logger=logger, verbose=verbose, sentry_client=sentry_client)
             # set input products
-            self.set_input_products_from_fronted(par_dic, request, temp_dir=temp_dir, logger=logger,verbose=verbose,sentry_client=sentry_client)
+            self.set_input_products_from_fronted(par_dic, request, temp_dir=temp_dir, logger=logger,verbose=verbose, sentry_client=sentry_client)
         # TODO to be improved
         except Exception:
             raise RequestNotUnderstood("Wrong parameters")
@@ -565,9 +565,6 @@ class Instrument:
 
                 user_catalog = build_catalog(catalog_dic, catalog_selected_objects)
                 self.set_par('user_catalog', user_catalog)
-
-
-
 
 
 def load_user_catalog(user_catalog_file):

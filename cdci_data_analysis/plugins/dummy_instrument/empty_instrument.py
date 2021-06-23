@@ -20,11 +20,6 @@ Module API
 
 from __future__ import absolute_import, division, print_function
 
-from builtins import (bytes, str, open, super, range,
-                      zip, round, input, int, pow, object, map, zip)
-
-from cdci_data_analysis.plugins.dummy_instrument.image_query import MyInstrMosaicQuery
-
 __author__ = "Andrea Tramacere"
 
 # Standard library
@@ -40,10 +35,9 @@ __author__ = "Andrea Tramacere"
 
 
 from cdci_data_analysis.analysis.instrument import Instrument
-from cdci_data_analysis.analysis.queries import  SourceQuery, InstrumentQuery, Float
+from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float
 
 from .data_server_dispatcher import EmptyProductQuery, DataServerNumericQuery
-from .image_query import MyInstrMosaicQuery
 
 
 def my_instr_factory():
