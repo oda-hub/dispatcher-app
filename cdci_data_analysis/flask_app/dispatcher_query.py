@@ -88,8 +88,6 @@ class InstrumentQueryBackEnd:
         self._instrument_name = instrument_name
 
     def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False, resolve_job_url=False):
-        # self.instrument_name=instrument_name
-
         self.logger = logging.getLogger(repr(self))
 
         if verbose:
@@ -152,7 +150,7 @@ class InstrumentQueryBackEnd:
                 self.instrument_name = instrument_name
 
             if get_meta_data:
-                print("get_meta_data request: no scratch_dir")
+                self.logger.info("get_meta_data request: no scratch_dir")
                 self.set_instrument(self.instrument_name)
                 # TODO
                 # decide if it is worth to add the logger also in this case
@@ -167,15 +165,15 @@ class InstrumentQueryBackEnd:
                     self.set_instrument(self.instrument_name)
                     verbose = self.par_dic.get('verbose', 'False') == 'True'
                     self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
-
-                    self.instrument.read_frontend_files(
-                        par_dic=self.par_dic,
-                        request=request,
-                        temp_dir=self.temp_dir,
-                        verbose=verbose,
-                        logger=self.logger,
-                        sentry_client=self.sentry_client
-                    )
+                    if self.instrument is not None and not isinstance(self.instrument, str):
+                        self.instrument.read_frontend_files(
+                            par_dic=self.par_dic,
+                            request=request,
+                            temp_dir=self.temp_dir,
+                            verbose=verbose,
+                            logger=self.logger,
+                            sentry_client=self.sentry_client
+                        )
 
                 # TODO: if not callback!
                 # if 'query_status' not in self.par_dic:
@@ -221,17 +219,9 @@ class InstrumentQueryBackEnd:
                 self.set_session_logger(
                     self.scratch_dir, verbose=verbose, config=config)
 
-                # copy now content from temp folder to the scratch folder
-
-                # self.set_sentry_client()
-
-                # if data_server_call_back is False:
-                #     self.set_instrument(self.instrument_name)
-
                 self.config = config
 
-            print('==> found par dict', self.par_dic.keys())
-
+            self.logger.info(f'==> found par dict {self.par_dic.keys()}')
         except APIerror:
             raise
 
@@ -240,12 +230,9 @@ class InstrumentQueryBackEnd:
             self.logger.error("traceback: %s", traceback.format_exc())
             raise RequestNotUnderstood(f"{self} constructor failed: {e}")
 
-        #    query_out = QueryOutput()
-        #     query_out.set_query_exception(
-        #        e, 'InstrumentQueryBackEnd constructor', extra_message='InstrumentQueryBackEnd constructor failed')
-
-        
-        
+        finally:
+            self.logger.info("==> clean-up temporary directory")
+            self.clear_temp_dir()
 
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
@@ -446,13 +433,14 @@ class InstrumentQueryBackEnd:
         self.temp_dir = td.path
 
     def move_temp_content(self):
-        if self.temp_dir is not None and self.scratch_dir is not None:
+        if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir) \
+                and os.path.exists(self.scratch_dir):
             for f in os.listdir(self.temp_dir):
-                fullPath = os.path.join(self.temp_dir, f)
-                shutil.copy(fullPath, self.scratch_dir)
+                file_full_path = os.path.join(self.temp_dir, f)
+                shutil.copy(file_full_path, self.scratch_dir)
 
     def clear_temp_dir(self):
-        if self.temp_dir is not None:
+        if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
 
     def prepare_download(self, file_list, file_name, scratch_dir):
@@ -1571,9 +1559,6 @@ class InstrumentQueryBackEnd:
                                               job_monitor=job_monitor,
                                               off_line=off_line,
                                               api=api)
-
-        # perhaps it will be needed also somewhere else
-        self.clear_temp_dir()
         return resp
 
     def async_dispatcher_query(self, query_status: str) -> tuple:
