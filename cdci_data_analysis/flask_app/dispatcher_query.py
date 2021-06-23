@@ -161,7 +161,7 @@ class InstrumentQueryBackEnd:
                 logger.debug("NOT get_meta_data request: yes scratch_dir")
 
                 self.set_sentry_client()
-                if data_server_call_back is False:
+                if not data_server_call_back:
                     self.set_instrument(self.instrument_name)
                     verbose = self.par_dic.get('verbose', 'False') == 'True'
                     self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
