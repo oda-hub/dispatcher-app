@@ -164,8 +164,8 @@ class Instrument:
             # set input products
             self.set_input_products_from_fronted(par_dic, request, temp_dir=temp_dir, logger=logger,verbose=verbose,sentry_client=sentry_client)
         # TODO to be improved
-        except Exception as e:
-            raise e
+        except Exception:
+            raise RequestNotUnderstood("Wrong parameters")
 
     def run_query(self, product_type,
                   par_dic,
