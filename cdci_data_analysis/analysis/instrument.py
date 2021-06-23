@@ -39,7 +39,7 @@ from ..analysis import tokenHelper
 from .catalog import BasicCatalog
 from .products import QueryOutput
 from .queries import ProductQuery, SourceQuery, InstrumentQuery
-from .io_helper import FilePath
+from .io_helper import upload_file
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized
 
 __author__ = "Andrea Tramacere"
@@ -419,7 +419,7 @@ class Instrument:
         if request.method == 'POST':
             try:
                 # save to a temporary folder, and delete it afterwards
-                input_file_path = InstrumentQueryBackEnd.upload_file('user_scw_list_file', temp_dir)
+                input_file_path = upload_file('user_scw_list_file', temp_dir)
                 q.set_done( debug_message=str(debug_message))
             except Exception as e:
                 q.set_failed('failed to upload scw_list file',
@@ -511,7 +511,7 @@ class Instrument:
         if request.method == 'POST':
             try:
                 # save to a temporary folder, and delete it afterwards
-                cat_file_path = InstrumentQueryBackEnd.upload_file('user_catalog_file', temp_dir)
+                cat_file_path = upload_file('user_catalog_file', temp_dir)
                 if cat_file_path is not None:
                     par_dic['user_catalog_file'] = cat_file_path
                 q.set_done( debug_message=str(debug_message))

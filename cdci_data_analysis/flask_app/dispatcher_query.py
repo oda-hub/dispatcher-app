@@ -14,8 +14,8 @@ import traceback
 from collections import Counter, OrderedDict
 import copy
 
-import logging
-from werkzeug.utils import secure_filename
+# import logging
+# from werkzeug.utils import secure_filename
 
 import glob
 import string
@@ -567,21 +567,21 @@ class InstrumentQueryBackEnd:
         except Exception as e:
             return e
     
-    @staticmethod
-    def upload_file(name, dir):
-        if name not in request.files:
-            return None
-        else:
-            file = request.files[name]
-            # if user does not select file, browser also
-            # submit a empty part without filename
-            if file.filename == '' or file.filename is None:
-                return None
-
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(dir, filename)
-            file.save(file_path)
-            return file_path
+    # @staticmethod
+    # def upload_file(name, dir):
+    #     if name not in request.files:
+    #         return None
+    #     else:
+    #         file = request.files[name]
+    #         # if user does not select file, browser also
+    #         # submit a empty part without filename
+    #         if file.filename == '' or file.filename is None:
+    #             return None
+    #
+    #         filename = secure_filename(file.filename)
+    #         file_path = os.path.join(dir, filename)
+    #         file.save(file_path)
+    #         return file_path
 
     def get_meta_data(self, meta_name=None):
         src_query = SourceQuery('src_query')

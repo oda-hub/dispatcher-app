@@ -33,8 +33,10 @@ __author__ = "Andrea Tramacere"
 # absolute import rg:from copy import deepcopy
 import  os
 from pathlib import Path
-from astropy.io import  fits as pf
-import  decorator
+from astropy.io import fits as pf
+from flask import request
+from werkzeug.utils import secure_filename
+import decorator
 # Dependencies
 # eg numpy 
 # absolute import eg: import numpy as np
@@ -186,3 +188,19 @@ def view_traceback():
     traceback.print_tb(tb)
     print('   <=====')
     del tb
+
+
+def upload_file(name, dir):
+    if name not in request.files:
+        return None
+    else:
+        file = request.files[name]
+        # if user does not select file, browser also
+        # submit a empty part without filename
+        if file.filename == '' or file.filename is None:
+            return None
+
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(dir, filename)
+        file.save(file_path)
+        return file_path
