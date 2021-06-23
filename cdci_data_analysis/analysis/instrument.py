@@ -26,15 +26,12 @@ from builtins import (bytes, str, open, super, range,
 import string
 import json
 import logging
-import re
 import yaml
 
-import os
-import  numpy as np
+import numpy as np
 from astropy.table import Table
 
 from cdci_data_analysis.analysis.queries import _check_is_base_query
-from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from ..analysis import tokenHelper
 from .catalog import BasicCatalog
 from .products import QueryOutput
