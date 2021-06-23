@@ -10,7 +10,7 @@ from functools import reduce
 import yaml
 import gzip
 
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState, loop_ask, ask, default_params_dict, make_hash
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
 

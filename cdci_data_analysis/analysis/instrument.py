@@ -159,7 +159,9 @@ class Instrument:
                             logger=None,
                             sentry_client=None):
         try:
+            # set catalog
             self.set_catalog_from_fronted(par_dic, request, temp_dir=temp_dir, logger=logger, verbose=verbose,sentry_client=sentry_client)
+            # set input products
             self.set_input_products_from_fronted(par_dic, request, temp_dir=temp_dir, logger=logger,verbose=verbose,sentry_client=sentry_client)
         # TODO to be improved
         except Exception as e:
@@ -182,9 +184,9 @@ class Instrument:
                   decoded_token=None,
                   **kwargs):
 
-        # if logger is None:
-        #     logger = self.get_logger()
-        #
+        if logger is None:
+            logger = self.get_logger()
+
         #  this was removed by 2f5b5dfb7e but turns out it is used by some plugins, see test_server_plugin_integral_all_sky
         self._current_par_dic=par_dic
 
@@ -192,24 +194,7 @@ class Instrument:
         query_out = self.set_pars_from_form(par_dic, verbose=verbose, sentry_client=sentry_client)
         if verbose:
             self.show_parameters_list()
-        #
-        # # set catalog
-        # if query_out.status_dictionary['status']==0:
-        #     query_out=self.set_catalog_from_fronted(par_dic, request,back_end_query, logger=logger, verbose=verbose,sentry_client=sentry_client)
-        #
-        # # set input products
-        # if query_out.status_dictionary['status'] == 0:
-        #     try:
-        #         query_out = self.set_input_products_from_fronted(par_dic, request,back_end_query, logger=logger,verbose=verbose,sentry_client=sentry_client)
-        #     except Exception as e:
-        #         # FAILED
-        #         query_out.set_failed(product_type,
-        #                              message='wrong parameter',
-        #                              logger=logger,
-        #                              sentry_client=sentry_client,
-        #                              excep=e)
 
-        # self.logger.info('--> par dict', par_dic)
         logger.info('--> par dict', par_dic)
 
         if dry_run:
