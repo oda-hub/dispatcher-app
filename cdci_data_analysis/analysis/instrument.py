@@ -186,6 +186,7 @@ class Instrument:
                 sentry_client.capture('raven.events.Message',
                                            message=f'Error while setting input scw_list file from the frontend {e}')
             raise RequestNotUnderstood("Error while setting input scw_list from the frontend")
+        self.set_pars_from_dic(par_dic, verbose=verbose)
 
     def run_query(self, product_type,
                   par_dic,
@@ -441,7 +442,6 @@ class Instrument:
                 pass
             else:
                 raise RuntimeError
-        self.set_pars_from_dic(par_dic, verbose=verbose)
 
     def set_input_products(self, par_dic, input_file_path,input_prod_list_name):
         if input_file_path is None:
