@@ -26,11 +26,9 @@ from builtins import (bytes, str, open, super, range,
 import string
 import json
 import logging
-import re
 import yaml
 
-import os
-import  numpy as np
+import numpy as np
 from astropy.table import Table
 
 from cdci_data_analysis.analysis.queries import _check_is_base_query
@@ -38,7 +36,7 @@ from ..analysis import tokenHelper
 from .catalog import BasicCatalog
 from .products import QueryOutput
 from .queries import ProductQuery, SourceQuery, InstrumentQuery
-from .io_helper import FilePath
+from .io_helper import upload_file
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized
 
 __author__ = "Andrea Tramacere"
@@ -150,6 +148,45 @@ class Instrument:
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config,instrument=self).test_has_input_products(instrument,logger=logger)
 
+    def read_frontend_files(self,
+                            par_dic,
+                            request,
+                            temp_dir,
+                            verbose,
+                            sentry_client=None):
+        # TODO probably exception handling can be further improved and/or optmized
+        # set catalog
+        try:
+            has_catalog = self.upload_catalog_from_fronted(par_dic=par_dic, request=request, temp_dir=temp_dir)
+        except Exception as e:
+            if sentry_client is not None:
+                sentry_client.capture('raven.events.Message',
+                                           message=f'Error while uploading catalog file from the frontend {e}')
+            raise RequestNotUnderstood("Error while uploading catalog file from the frontend")
+        try:
+            if has_catalog:
+                self.set_catalog_from_fronted(par_dic, verbose=verbose)
+        except Exception as e:
+            if sentry_client is not None:
+                sentry_client.capture('raven.events.Message',
+                                           message=f'Error while setting catalog file from the frontend {e}')
+            raise RequestNotUnderstood("Error while setting catalog file from the frontend")
+        # set input products
+        try:
+            input_file_path = self.upload_input_products_from_fronted(request=request, temp_dir=temp_dir)
+        except Exception as e:
+            if sentry_client is not None:
+                sentry_client.capture('raven.events.Message',
+                                           message=f'Error while uploading scw_list file from the frontend {e}')
+            raise RequestNotUnderstood("Error while uploading scw_list file from the frontend")
+        try:
+            self.set_input_products_from_fronted(input_file_path=input_file_path, par_dic=par_dic, verbose=verbose)
+        except Exception as e:
+            if sentry_client is not None:
+                sentry_client.capture('raven.events.Message',
+                                           message=f'Error while setting input scw_list file from the frontend {e}')
+            raise RequestNotUnderstood("Error while setting input scw_list from the frontend")
+
     def run_query(self, product_type,
                   par_dic,
                   request,
@@ -175,27 +212,9 @@ class Instrument:
 
         # set pars values from the input parameters
         query_out = self.set_pars_from_form(par_dic, verbose=verbose, sentry_client=sentry_client)
-
         if verbose:
             self.show_parameters_list()
 
-        # set catalog
-        if query_out.status_dictionary['status']==0:
-            query_out=self.set_catalog_from_fronted(par_dic, request,back_end_query, logger=logger, verbose=verbose,sentry_client=sentry_client)
-
-        # set input products
-        if query_out.status_dictionary['status'] == 0:
-            try:
-                query_out = self.set_input_products_from_fronted(par_dic, request,back_end_query, logger=logger,verbose=verbose,sentry_client=sentry_client)
-            except Exception as e:
-                # FAILED
-                query_out.set_failed(product_type,
-                                     message='wrong parameter',
-                                     logger=logger,
-                                     sentry_client=sentry_client,
-                                     excep=e)
-
-        # self.logger.info('--> par dict', par_dic)
         logger.info('--> par dict', par_dic)
 
         if dry_run:
@@ -371,7 +390,6 @@ class Instrument:
 
         return l
 
-
     def set_pars_from_form(self,par_dic,logger=None,verbose=False,sentry_client=None):
         #print('---------------------------------------------')
         #print('setting form paramters')
@@ -394,7 +412,6 @@ class Instrument:
 
         except Exception as e:
             #FAILED
-
             m = f'problem setting form parameters from dict: {par_dic}'
             logger.error(m)
 
@@ -402,87 +419,31 @@ class Instrument:
                          logger=logger,
                          sentry_client=sentry_client,
                          excep=e)
-
             #status=1
             #error_message= 'error in form parameter'
             #debug_message = e
             #logger.exception(e)
-
-
         #print('---------------------------------------------')
         return q
 
-
-    def set_input_products_from_fronted(self,par_dic,request,back_end_query,verbose=False,logger=None,sentry_client=None):
-        #print('---------------------------------------------')
-        #print('setting user input prods')
-        input_prod_list_name = self.instrumet_query.input_prod_list_name
-        q = QueryOutput()
-        #status = 0
-        error_message = ''
-        debug_message = ''
-        input_file_path=None
-
-        if logger is None:
-            logger = logging.getLogger(repr(self))
-
+    def upload_input_products_from_fronted(self, request, temp_dir):
+        input_file_path = None
         if request.method == 'POST':
-            try:
-                input_file_path = back_end_query.upload_file('user_scw_list_file', back_end_query.scratch_dir)
-                #DONE
-                q.set_done( debug_message=str(debug_message))
-            except Exception as e:
-                #DONE
-                q.set_failed('failed to upload scw_list file',
-                             extra_message='failed to upload %s' % self.input_prod_name,
-                             sentry_client=sentry_client,
-                             excep=e)
+            # save to a temporary folder, and delete it afterwards
+            input_file_path = upload_file('user_scw_list_file', temp_dir)
+        return input_file_path
 
-
-            try:
-                has_input=self.set_input_products(par_dic,input_file_path,input_prod_list_name)
-                #DONE
-                q.set_done( debug_message=str(debug_message))
-            except Exception as e :
-                #FAILED
-                q.set_failed('scw_list file is not valid',
-                             extra_message='scw_list file is not valid, please check the format',
-                             logger=logger,
-                             sentry_client=sentry_client,
-                             excep=e)
-
-
-
-            #print ('has input',has_input)
-            try:
-
-                if has_input==True:
-                    pass
-                else:
-                    raise RuntimeError
-                #DONE
-                q.set_done( debug_message=str(debug_message))
-
-            except Exception as e:
-                #FAILED
-                q.set_failed('setting input scw_list',
-                             extra_message='scw_list file is not valid, please check the format',
-                             sentry_client=sentry_client,
-                             excep=e)
-
-
-        self.set_pars_from_dic(par_dic,verbose=verbose)
-
-        #print('---------------------------------------------')
-        return q
-
-
-
-
-
+    def set_input_products_from_fronted(self, input_file_path, par_dic, verbose=False):
+        input_prod_list_name = self.instrumet_query.input_prod_list_name
+        if input_file_path is not None:
+            has_input = self.set_input_products(par_dic, input_file_path, input_prod_list_name)
+            if has_input:
+                pass
+            else:
+                raise RuntimeError
+        self.set_pars_from_dic(par_dic, verbose=verbose)
 
     def set_input_products(self, par_dic, input_file_path,input_prod_list_name):
-        has_prods=False
         if input_file_path is None:
             #if no file we pass OK condition
             #since the paramter will be passed from the form
@@ -507,86 +468,20 @@ class Instrument:
 
         return has_prods
 
-        # template = re.compile(r'^(\d{12}).(\d{3})$')
-        # if input_file_path is None:
-        #     return True
-        # else:
-        #     with open(input_file_path) as f:
-        #         _lines = f.readlines()
-        #
-        #     # should now accept any combination of commas and/or newlines
-        #     # raise error if any of the scwlist is not matching the template
-        #     lines = []
-        #     for ll in _lines:
-        #         lines.extend(ll.split(","))
-        #
-        #
-        #     acceptList = [item.strip() for item in lines if template.match(item)]
-        #
-        #
-        #
-        #
-        #     if len(acceptList)!=len(lines):
-        #         raise RuntimeError
-        #
-        #     par_dic[input_prod_list_name]=acceptList
-        #     #print ("--> accepted scws",acceptList,len(acceptList))
-        #     return len(acceptList)>=1
-
-
-    def set_catalog_from_fronted(self,par_dic,request,back_end_query,logger=None,verbose=False,sentry_client=None):
-        #print('---------------------------------------------')
-        #print('setting user catalog')
-
-        q = QueryOutput()
-        #status = 0
-        error_message = ''
-        debug_message = ''
-
-        if logger is None:
-            logger = logging.getLogger(__name__)
-
-        cat_file_path=None
+    def upload_catalog_from_fronted(self, par_dic, request, temp_dir):
         if request.method == 'POST':
-            #print('POST')
-            try:
-                cat_file_path = back_end_query.upload_file('user_catalog_file', back_end_query.scratch_dir)
-                if cat_file_path is not None:
-                    par_dic['user_catalog_file'] = cat_file_path
-                #print('set_catalog_from_fronted,request.method', request.method, par_dic['user_catalog_file'],cat_file_path)
-                #DONE
-                q.set_done( debug_message=str(debug_message))
-            except Exception as e:
-                #FAILED
-                q.set_failed('upload catalog file',
-                             extra_message='failed to upload catalog file',
-                             logger=logger,
-                             sentry_client=sentry_client,
-                             excep=e)
+            # save to a temporary folder, and delete it afterwards
+            cat_file_path = upload_file('user_catalog_file', temp_dir)
+            if cat_file_path is not None:
+                par_dic['user_catalog_file'] = cat_file_path
+                return True
+        return False
 
-
-
-        try:
-            self.set_catalog(par_dic, scratch_dir=back_end_query.scratch_dir)
-            #DONE
-            q.set_done(debug_message=str(debug_message))
-        except Exception as e:
-            # FAILED
-            q.set_failed('set catalog file',
-                         extra_message='failed to set catalog',
-                         logger=logger,
-                         sentry_client=sentry_client,
-                         excep=e)
-
-
-
+    def set_catalog_from_fronted(self, par_dic, verbose=False):
+        self.set_catalog(par_dic)
         self.set_pars_from_dic(par_dic,verbose=verbose)
 
-        #print('setting user catalog done')
-        #print('---------------------------------------------')
-        return q
-
-    def set_catalog(self, par_dic, scratch_dir='./'):
+    def set_catalog(self, par_dic):
 
         user_catalog_file=None
         if 'user_catalog_file' in par_dic.keys() :
@@ -617,9 +512,6 @@ class Instrument:
 
                 user_catalog = build_catalog(catalog_dic, catalog_selected_objects)
                 self.set_par('user_catalog', user_catalog)
-
-
-
 
 
 def load_user_catalog(user_catalog_file):

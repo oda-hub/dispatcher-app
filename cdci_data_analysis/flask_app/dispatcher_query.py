@@ -14,8 +14,8 @@ import traceback
 from collections import Counter, OrderedDict
 import copy
 
-import logging
-from werkzeug.utils import secure_filename
+# import logging
+# from werkzeug.utils import secure_filename
 
 import glob
 import string
@@ -32,7 +32,7 @@ import tarfile
 import gzip
 import socket
 import logstash
-import hashlib
+import shutil
 import typing
 import jwt
 
@@ -48,7 +48,7 @@ from ..configurer import DataServerConf
 from ..analysis.exceptions import BadRequest, APIerror, MissingRequestParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut
 from . import tasks
 
-from  oda_api.api import  DispatcherAPI
+from oda_api.api import DispatcherAPI
 
 from .logstash import logstash_message
 
@@ -69,8 +69,10 @@ class InstrumentNotRecognized(BadRequest):
 class MissingRequestParameter(BadRequest):
     pass
 
+
 class InvalidJobIDProvided(BadRequest):
     pass
+
 
 class InstrumentQueryBackEnd:
 
@@ -86,8 +88,6 @@ class InstrumentQueryBackEnd:
         self._instrument_name = instrument_name
 
     def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False, resolve_job_url=False):
-        # self.instrument_name=instrument_name
-
         self.logger = logging.getLogger(repr(self))
 
         if verbose:
@@ -150,7 +150,7 @@ class InstrumentQueryBackEnd:
                 self.instrument_name = instrument_name
 
             if get_meta_data:
-                print("get_meta_data request: no scratch_dir")
+                self.logger.info("get_meta_data request: no scratch_dir")
                 self.set_instrument(self.instrument_name)
                 # TODO
                 # decide if it is worth to add the logger also in this case
@@ -160,6 +160,19 @@ class InstrumentQueryBackEnd:
             else:
                 logger.debug("NOT get_meta_data request: yes scratch_dir")
 
+                self.set_sentry_client()
+                if not data_server_call_back:
+                    self.set_instrument(self.instrument_name)
+                    verbose = self.par_dic.get('verbose', 'False') == 'True'
+                    self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
+                    if self.instrument is not None and not isinstance(self.instrument, str):
+                        self.instrument.read_frontend_files(
+                            par_dic=self.par_dic,
+                            request=request,
+                            temp_dir=self.temp_dir,
+                            verbose=verbose,
+                            sentry_client=self.sentry_client
+                        )
                 # TODO: if not callback!
                 # if 'query_status' not in self.par_dic:
                 #    raise MissingRequestParameter('no query_status!')
@@ -168,7 +181,6 @@ class InstrumentQueryBackEnd:
                     self.job_id = None
                     if 'job_id' in self.par_dic:
                         self.job_id = self.par_dic['job_id']
-
                 else:
                     query_status = self.par_dic['query_status']
                     self.job_id = None
@@ -200,17 +212,14 @@ class InstrumentQueryBackEnd:
                 self.set_scratch_dir(
                     self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
 
+                self.move_temp_content()
+
                 self.set_session_logger(
                     self.scratch_dir, verbose=verbose, config=config)
-                self.set_sentry_client()
-
-                if data_server_call_back is False:
-                    self.set_instrument(self.instrument_name)
 
                 self.config = config
 
-            print('==> found par dict', self.par_dic.keys())
-
+            self.logger.info(f'==> found par dict {self.par_dic.keys()}')
         except APIerror:
             raise
 
@@ -219,12 +228,9 @@ class InstrumentQueryBackEnd:
             self.logger.error("traceback: %s", traceback.format_exc())
             raise RequestNotUnderstood(f"{self} constructor failed: {e}")
 
-        #    query_out = QueryOutput()
-        #     query_out.set_query_exception(
-        #        e, 'InstrumentQueryBackEnd constructor', extra_message='InstrumentQueryBackEnd constructor failed')
-
-        
-        
+        finally:
+            self.logger.info("==> clean-up temporary directory")
+            self.clear_temp_dir()
 
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
@@ -380,10 +386,8 @@ class InstrumentQueryBackEnd:
                 self.par_dic['scw_list'] = _p
             print('=======> scw_list',  self.par_dic['scw_list'], _p, len(_p))
 
-
         if verbose == True:
             print('par_dic', self.par_dic)
-
 
         self.args = args
 
@@ -409,8 +413,35 @@ class InstrumentQueryBackEnd:
         wd.mkdir()
         self.scratch_dir = wd.path
 
-    def prepare_download(self, file_list, file_name, scratch_dir):
+    def set_temp_dir(self, session_id, job_id=None, verbose=False):
+        if verbose:
+            print('SETTEMP  ---->', session_id,
+                  type(session_id), job_id, type(job_id))
 
+        td = 'temp'
+
+        if session_id is not None:
+            td += '_sid_' + session_id
+
+        if job_id is not None:
+            td += '_jid_'+job_id
+
+        td = FilePath(file_dir=td)
+        td.mkdir()
+        self.temp_dir = td.path
+
+    def move_temp_content(self):
+        if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir) \
+                and os.path.exists(self.scratch_dir):
+            for f in os.listdir(self.temp_dir):
+                file_full_path = os.path.join(self.temp_dir, f)
+                shutil.copy(file_full_path, self.scratch_dir)
+
+    def clear_temp_dir(self):
+        if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
+
+    def prepare_download(self, file_list, file_name, scratch_dir):
         file_name = file_name.replace(' ', '_')
 
         if hasattr(file_list, '__iter__'):
@@ -535,26 +566,21 @@ class InstrumentQueryBackEnd:
         except Exception as e:
             return e
     
-
-    def upload_file(self, name, scratch_dir):
-        if name not in request.files:
-            return None
-        else:
-            file = request.files[name]
-            #print('type file', type(file))
-            # if user does not select file, browser also
-            # submit a empty part without filename
-            if file.filename == '' or file.filename is None:
-                return None
-
-            filename = secure_filename(file.filename)
-            # print('scratch_dir',scratch_dir)
-            #print('secure_file_name', filename)
-            file_path = os.path.join(scratch_dir, filename)
-            file.save(file_path)
-            # return redirect(url_for('uploaded_file',
-            #                        filename=filename))
-            return file_path
+    # @staticmethod
+    # def upload_file(name, dir):
+    #     if name not in request.files:
+    #         return None
+    #     else:
+    #         file = request.files[name]
+    #         # if user does not select file, browser also
+    #         # submit a empty part without filename
+    #         if file.filename == '' or file.filename is None:
+    #             return None
+    #
+    #         filename = secure_filename(file.filename)
+    #         file_path = os.path.join(dir, filename)
+    #         file.save(file_path)
+    #         return file_path
 
     def get_meta_data(self, meta_name=None):
         src_query = SourceQuery('src_query')

@@ -10,7 +10,7 @@ from functools import reduce
 import yaml
 import gzip
 
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState, loop_ask, ask, default_params_dict, make_hash
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
 
@@ -668,8 +668,7 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
     logger.info(json.dumps(jdata, indent=4))
 
 
-@pytest.mark.parametrize("p_list", [5, 55])
-def test_list_file(dispatcher_live_fixture, p_list):
+def test_list_file(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
@@ -686,19 +685,13 @@ def test_list_file(dispatcher_live_fixture, p_list):
         'query_type': "Dummy",
         'instrument': 'empty',
         'p': 5,
+        'use_scws': 'user_file',
         'token': encoded_token
     }
 
-    # TODO a fixture for these type of files is needed
-    # generate ScWs list file
-    if not os.path.exists('p_list_files'):
-        os.makedirs('p_list_files')
+    file_path = DispatcherJobState.create_p_value_file(p_value=5)
 
-    file_name = f'{p_list}_p_list'
-    with open('p_list_files/' + file_name, 'w+') as outlist_file:
-        outlist_file.write(str(p_list))
-
-    list_file = open('p_list_files/' + file_name)
+    list_file = open(file_path)
 
     jdata = ask(server,
                 params,
@@ -708,10 +701,20 @@ def test_list_file(dispatcher_live_fixture, p_list):
                 files={"user_scw_list_file": list_file.read()}
                 )
 
-    outlist_file.close()
-
+    list_file.close()
     assert 'p_list' in jdata['products']['analysis_parameters']
-    assert jdata['products']['analysis_parameters']['p_list'] == [str(p_list)]
+    assert jdata['products']['analysis_parameters']['p_list'] == ['5']
+    # test job_id
+    job_id = jdata['products']['job_id']
+    # adapting some values to string
+    for k, v in params.items():
+        params[k] = str(v)
+
+    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "p_list": ["5"], "sub": "mtm@mtmco.net"})
+    calculated_job_id = make_hash(restricted_par_dic)
+
+    assert job_id == calculated_job_id
+
 
 
 def test_empty_instrument_request(dispatcher_live_fixture):

@@ -644,6 +644,21 @@ class DispatcherJobState:
         for d in dir_list:
             shutil.rmtree(d)
 
+    @staticmethod
+    def create_p_value_file(p_value):
+        # generate ScWs list file
+        if not os.path.exists('p_value_simple_files'):
+            os.makedirs('p_value_simple_files')
+
+        # hash file content
+        p_hash = make_hash(p_value)
+
+        file_name = f'p_{p_hash}'
+
+        with open('p_value_simple_files/' + file_name, 'w+') as outlist_file:
+            outlist_file.write(str(p_value))
+        return f'p_value_simple_files/{file_name}'
+
     @classmethod
     def from_run_analysis_response(cls, r):
         return cls(
