@@ -171,7 +171,6 @@ class InstrumentQueryBackEnd:
                             request=request,
                             temp_dir=self.temp_dir,
                             verbose=verbose,
-                            logger=self.logger,
                             sentry_client=self.sentry_client
                         )
                 # TODO: if not callback!
