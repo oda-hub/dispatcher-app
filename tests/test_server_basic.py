@@ -685,6 +685,7 @@ def test_list_file(dispatcher_live_fixture):
         'query_type': "Dummy",
         'instrument': 'empty',
         'p': 5,
+        'use_scws': 'user_file',
         'token': encoded_token
     }
 
