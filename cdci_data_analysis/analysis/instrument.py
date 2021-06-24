@@ -148,12 +148,12 @@ class Instrument:
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config,instrument=self).test_has_input_products(instrument,logger=logger)
 
-    def read_frontend_files(self,
-                            par_dic,
-                            request,
-                            temp_dir,
-                            verbose,
-                            sentry_client=None):
+    def read_frontend_inputs(self,
+                             par_dic,
+                             request,
+                             temp_dir,
+                             verbose,
+                             sentry_client=None):
         # TODO probably exception handling can be further improved and/or optmized
         # set catalog
         try:
