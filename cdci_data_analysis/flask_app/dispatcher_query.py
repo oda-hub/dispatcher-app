@@ -380,13 +380,16 @@ class InstrumentQueryBackEnd:
 
         self.par_dic = args.to_dict()
 
+        # if passed, disregard it, since it is not necessary
+        self.par_dic.pop('use_scws')
+
         if 'scw_list' in self.par_dic.keys():
             _p = request.values.getlist('scw_list')
             if len(_p) > 1:
                 self.par_dic['scw_list'] = _p
             print('=======> scw_list',  self.par_dic['scw_list'], _p, len(_p))
 
-        if verbose == True:
+        if verbose:
             print('par_dic', self.par_dic)
 
         self.args = args

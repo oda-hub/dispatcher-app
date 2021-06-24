@@ -703,6 +703,7 @@ def test_list_file(dispatcher_live_fixture):
 
     list_file.close()
     assert 'p_list' in jdata['products']['analysis_parameters']
+    assert 'use_scws' not in jdata['products']['analysis_parameters']
     assert jdata['products']['analysis_parameters']['p_list'] == ['5']
     # test job_id
     job_id = jdata['products']['job_id']
