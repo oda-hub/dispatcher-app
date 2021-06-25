@@ -40,6 +40,22 @@ from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Fl
 from .data_server_dispatcher import EmptyProductQuery, DataServerNumericQuery
 
 
+# duplicated with jemx, but this staticmethod makes it complex.
+# this all should be done commonly, for all parameters - limits are common thing
+from ...analysis.exceptions import RequestNotUnderstood
+
+
+class BoundaryFloat(Float):
+    @staticmethod
+    def check_float_value(value, units=None, name=None):
+        Float.check_float_value(value, units=units, name=name)
+
+        value = float(value)
+
+        if value > 800:
+            raise RequestNotUnderstood('p value is restricted to 800 W')
+
+
 def my_instr_factory():
     src_query = SourceQuery('src_query')
 
@@ -50,7 +66,7 @@ def my_instr_factory():
     # my_instr_image_query -> name given to this query
     empty_query = EmptyProductQuery('empty_parameters_dummy_query',)
     # let's build a simple parameter to its list
-    p = Float(value=10., name='p', units='W',)
+    p = BoundaryFloat(value=10., name='p', units='W',)
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
                                              parameters_list=[p])
 

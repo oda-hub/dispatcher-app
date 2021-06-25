@@ -716,6 +716,50 @@ def test_list_file(dispatcher_live_fixture):
     assert job_id == calculated_job_id
 
 
+def test_value_range(dispatcher_long_living_fixture):
+    server = dispatcher_long_living_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    for is_ok, p in [
+            (True, 10),
+            (False, 1000)
+        ]:
+
+        params = {
+            **default_params,
+            'p': p,
+            'product_type': 'numerical',
+            'query_type': "Dummy",
+            'instrument': 'empty',
+            'token': encoded_token
+        }
+
+        if is_ok:
+            expected_query_status = 'done'
+            expected_job_status = 'done'
+            expected_status_code = 200
+        else:
+            expected_query_status = None
+            expected_job_status = None
+            expected_status_code = 400
+
+        logger.info("constructed server: %s", server)
+        jdata = ask(server, params, expected_query_status=expected_query_status, expected_job_status=expected_job_status, max_time_s=50, expected_status_code=expected_status_code)
+        logger.info(list(jdata.keys()))
+        logger.info(jdata)
+
+        if is_ok:
+            pass
+        else:
+            assert jdata['error_message'] == 'p value is restricted to 800 W'
+
 
 def test_empty_instrument_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
