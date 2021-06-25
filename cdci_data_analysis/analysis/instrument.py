@@ -148,7 +148,7 @@ class Instrument:
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config,instrument=self).test_has_input_products(instrument,logger=logger)
 
-    def read_frontend_inputs(self,
+    def parse_inputs_files(self,
                              par_dic,
                              request,
                              temp_dir,
