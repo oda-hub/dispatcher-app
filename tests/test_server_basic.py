@@ -707,6 +707,7 @@ def test_list_file(dispatcher_live_fixture):
     assert jdata['products']['analysis_parameters']['p_list'] == ['5']
     # test job_id
     job_id = jdata['products']['job_id']
+    params.pop('use_scws', None)
     # adapting some values to string
     for k, v in params.items():
         params[k] = str(v)
