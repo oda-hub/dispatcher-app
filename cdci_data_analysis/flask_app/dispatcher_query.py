@@ -166,7 +166,7 @@ class InstrumentQueryBackEnd:
                     verbose = self.par_dic.get('verbose', 'False') == 'True'
                     self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
                     if self.instrument is not None and not isinstance(self.instrument, str):
-                        self.instrument.read_frontend_files(
+                        self.instrument.parse_inputs_files(
                             par_dic=self.par_dic,
                             request=request,
                             temp_dir=self.temp_dir,
