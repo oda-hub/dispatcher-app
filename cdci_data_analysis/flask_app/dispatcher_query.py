@@ -380,7 +380,7 @@ class InstrumentQueryBackEnd:
 
         self.par_dic = args.to_dict()
 
-        # if passed, disregard it, since it is not necessary
+        # if passed, disregard it, since it is nowhere necessary within the dispatcher-app
         self.par_dic.pop('use_scws')
 
         if 'scw_list' in self.par_dic.keys():
