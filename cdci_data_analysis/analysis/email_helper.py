@@ -224,8 +224,10 @@ def send_email(
         port = config.smtp_port
         sender_email_address = config.sender_email_address
         cc_receivers_email_addresses = config.cc_receivers_email_addresses
+        bcc_receivers_email_addresses = config.bcc_receivers_email_addresses
         receiver_email_address = tokenHelper.get_token_user_email_address(decoded_token)
-        receivers_email_addresses = [receiver_email_address] + cc_receivers_email_addresses
+        # include bcc receivers, which will be hidden in the message header
+        receivers_email_addresses = [receiver_email_address] + cc_receivers_email_addresses + bcc_receivers_email_addresses
         # creation of the message
         message = MIMEMultipart("alternative")
         message["Subject"] = email_subject

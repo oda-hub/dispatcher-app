@@ -350,6 +350,7 @@ dispatcher:
         smtp_server: 'localhost'
         sender_email_address: 'team@odahub.io'
         cc_receivers_email_addresses: ['team@odahub.io']
+        bcc_receivers_email_addresses: ['teamBcc@odahub.io']
         smtp_port: 61025
         smtp_server_password: ''
         email_sending_timeout: True
