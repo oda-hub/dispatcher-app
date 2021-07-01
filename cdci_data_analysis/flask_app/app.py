@@ -284,6 +284,8 @@ def run_analysis():
         logger.info("towards log_run_query_result")
         log_run_query_result(request_summary, r[0])
 
+        QueryOutJSON().load(r[0].json)
+
         return r
     except APIerror as e:
         raise
