@@ -7,12 +7,9 @@ Created on Wed May 10 10:55:20 2017
 """
 from builtins import (open, str, range,
                       object)
-from collections import Counter, OrderedDict
-import copy
 from werkzeug.utils import secure_filename
 
 import os
-import glob
 import string
 import random
 from raven.contrib.flask import Sentry
@@ -22,23 +19,15 @@ import traceback
 from flask import jsonify, send_from_directory, redirect, Response
 from flask import Flask, request, make_response, abort, g
 from flask.json import JSONEncoder
-from flask_restx import Api, Resource, reqparse
 
 # restx not really used
-# we could do validation and API generation with this, but let's not yet
-#from flasgger import Swagger, SwaggerView, Schema, fields # type: ignore
-from marshmallow import Schema, fields # type: ignore
-from marshmallow.validate import OneOf # type: ignore
+from flask_restx import Api, Resource, reqparse
 
-
-import tempfile
-import tarfile
-import gzip
 import logging
-import socket
 import time as _time
 
 from .logstash import logstash_message
+from .schemas import QueryOutJSON
 
 from ..plugins import importer
 
@@ -230,24 +219,6 @@ def common_exception_payload():
 
     return payload
 
-
-class ExitStatus(Schema):
-    status = fields.Int(validate=OneOf([0, 1]))
-    message = fields.Str(description="if query_status == 'failed', shown in waitingDialog in red")     
-    error_message = fields.Str(description="if query_status == 'failed', shown in waitingDialog in red")     
-    debug_message = fields.Str(description="if query_status == 'done' but exit_status.status != 0, shown in waitingDialog in red")     
-    comment = fields.Str(description="always, shown in waitingDialog in yellow")     
-    warning = fields.Str(description="")     
-    
-
-class QueryOutJSON(Schema):
-    query_status = fields.Str(
-                        validate=OneOf(["done", "failed", "submitted"]),
-                        description=""
-                    )
-    exit_status = ExitStatus
-    session_id = fields.Str()
-    job_id = fields.Str()
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
