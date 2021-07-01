@@ -24,6 +24,6 @@ class QueryOutJSON(Schema):
                     )
 
     exit_status = fields.Nested(ExitStatus, required=True)
-    session_id = fields.Str(required=True)
-    job_id = fields.Str(required=True)
+    session_id = fields.Str(required=False) # is it required?
+    job_id = fields.Str(required=False) # is it required?
 
