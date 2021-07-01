@@ -30,6 +30,6 @@ class QueryOutJSON(Schema):
 
     error_message = fields.Str(
                         description="",
+                        # TODO why should this empty and in which case ?
                         required=False # but if present, should be empty
                     )
-
