@@ -215,7 +215,7 @@ def validate_email_content(
     reference_email = get_reference_email(state=state, time_request_str=time_request_str, products_url=products_url, job_id=dispatcher_job_state.job_id[:8])
     
     assert message_record['mail_from'] == 'team@odahub.io'
-    assert message_record['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io']
+    assert message_record['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io', 'teamBcc@odahub.io']
 
     msg = email.message_from_string(message_record['data'])    
 

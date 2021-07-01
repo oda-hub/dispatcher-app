@@ -228,6 +228,7 @@ class ConfigEnv(object):
                                      disp_dict['email_options']['smtp_server'],
                                      disp_dict['email_options']['sender_email_address'],
                                      disp_dict['email_options']['cc_receivers_email_addresses'],
+                                     disp_dict['email_options']['bcc_receivers_email_addresses'],
                                      disp_dict['email_options']['smtp_port'],
                                      disp_dict['email_options']['smtp_server_password'],
                                      disp_dict['email_options']['email_sending_timeout'],
@@ -275,6 +276,7 @@ class ConfigEnv(object):
                             smtp_server,
                             sender_email_address,
                             cc_receivers_email_addresses,
+                            bcc_receivers_email_addresses,
                             smtp_port,
                             smtp_server_password,
                             email_sending_timeout,
@@ -295,6 +297,7 @@ class ConfigEnv(object):
         self.smtp_server = smtp_server
         self.sender_email_address = sender_email_address
         self.cc_receivers_email_addresses = cc_receivers_email_addresses
+        self.bcc_receivers_email_addresses = bcc_receivers_email_addresses
         self.smtp_port = smtp_port
         self.smtp_server_password = smtp_server_password
         self.email_sending_timeout = email_sending_timeout
