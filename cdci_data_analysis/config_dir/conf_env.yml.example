@@ -41,6 +41,8 @@ dispatcher:
         sender_email_address: 'team@odahub.io'
         # list of address to be put in cc
         cc_receivers_email_addresses: [ 'team@odahub.io' ]
+        # list of address to be put in bcc
+        bcc_receivers_email_addresses: ['teamBcc@odahub.io']
         # enable the sending of an email when a request is ''done'', and this took long to complete
         email_sending_timeout: True
         # amount of time (in seconds) elapsed from the issuing of the request,
