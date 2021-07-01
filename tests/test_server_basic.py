@@ -449,7 +449,7 @@ def test_invalid_token(dispatcher_live_fixture):
                 expected_status_code=403
                 )
 
-    assert jdata['error_message'] == 'token expired'
+    assert jdata['error_message'] == 'the token provided is expired, please try to logout and login again'
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
 
