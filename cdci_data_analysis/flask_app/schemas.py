@@ -21,15 +21,14 @@ class QueryOutJSON(Schema):
     query_status = fields.Str(
                         validate=OneOf(["done", "failed", "submitted"]),
                         description="",
-                        required=True
+                        required=False
                     )
 
-    exit_status = fields.Nested(ExitStatus, required=True)
+    exit_status = fields.Nested(ExitStatus, required=False)
     session_id = fields.Str(required=False) # is it required?
     job_id = fields.Str(required=False) # is it required?
 
     error_message = fields.Str(
-                        validate=OneOf([""]),
                         description="",
                         required=False # but if present, should be empty
                     )
