@@ -3,6 +3,7 @@ from marshmallow.validate import OneOf
 
 class ExitStatus(Schema):
     class Meta:
+        # TODO: adapt and remove this, so that only what is consumed by frontend is sent
         unknown = EXCLUDE
 
     status = fields.Int(validate=OneOf([0, 1]), required=True)
