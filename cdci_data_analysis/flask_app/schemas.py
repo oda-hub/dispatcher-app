@@ -21,15 +21,17 @@ class QueryOutJSON(Schema):
     query_status = fields.Str(
                         validate=OneOf(["done", "failed", "submitted"]),
                         description="",
-                        required=False
+                        required=False,
+                        missing=""
                     )
 
-    exit_status = fields.Nested(ExitStatus, required=False)
+    exit_status = fields.Nested(ExitStatus, required=False, missing={})
     session_id = fields.Str(required=False) # is it required?
     job_id = fields.Str(required=False) # is it required?
 
     error_message = fields.Str(
                         description="",
                         # TODO why should this empty and in which case ?
-                        required=False # but if present, should be empty
+                        required=False, # but if present, should be empty
+                        missing=""
                     )

@@ -274,7 +274,7 @@ def run_analysis():
 @app.after_request
 def validate_schema(response):
     try:
-        if response.is_json is None:
+        if response.is_json:
             QueryOutJSON().load(response.json)
     except ValidationError as e:
         logger.error("response not validated: %s; %s", e, json.dumps(response.json, sort_keys=True, indent=4))
