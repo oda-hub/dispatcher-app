@@ -133,7 +133,7 @@ class InstrumentQueryBackEnd:
                         pass
                 except jwt.exceptions.ExpiredSignatureError as e:
                     logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-expired'})
-                    raise RequestNotAuthorized("token expired")
+                    raise RequestNotAuthorized("the token provided is expired, please try to logout and login again")
 
                 logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
 
