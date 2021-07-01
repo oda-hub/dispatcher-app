@@ -28,6 +28,7 @@ import time as _time
 
 from .logstash import logstash_message
 from .schemas import QueryOutJSON
+from marshmallow.exceptions import ValidationError
 
 from ..plugins import importer
 
@@ -255,7 +256,6 @@ def run_analysis():
         logger.info("towards log_run_query_result")
         log_run_query_result(request_summary, r[0])
 
-        QueryOutJSON().load(r[0].json)
 
         return r
     except APIerror as e:
@@ -270,6 +270,18 @@ def run_analysis():
                            status_code=410,
                            payload={'error_message': str(e), **common_exception_payload()})
 
+# or flask-marshmellow
+@app.after_request
+def validate_schema(response):
+    try:
+        QueryOutJSON().load(response.json)
+    except ValidationError as e:
+        logger.error("response not validated: %s; %s", e, json.dumps(response.json, sort_keys=True, indent=4))
+        return jsonify({
+            'error': repr(e),
+            'invalid_response': response.json
+        }), 500
+    return response
 
 @app.route('/test_mock', methods=['POST', 'GET'])
 def test_mock():

@@ -28,3 +28,9 @@ class QueryOutJSON(Schema):
     session_id = fields.Str(required=False) # is it required?
     job_id = fields.Str(required=False) # is it required?
 
+    error_message = fields.Str(
+                        validate=OneOf([""]),
+                        description="",
+                        required=False # but if present, should be empty
+                    )
+
