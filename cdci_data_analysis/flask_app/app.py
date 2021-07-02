@@ -275,7 +275,11 @@ def run_analysis():
 def validate_schema(response):
     try:
         if dispatcher_strict_validate:
-            QueryOutJSON().load(response.json)
+            if response.is_streamed:
+                # TODO this should output a "default" response in case of download/js9 request
+                QueryOutJSON().load({})
+            else:
+                QueryOutJSON().load(response.json)
     except ValidationError as e:
         logger.error("response not validated: %s; %s", e, json.dumps(response.json, sort_keys=True, indent=4))
         return jsonify({
