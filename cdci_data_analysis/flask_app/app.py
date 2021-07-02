@@ -27,7 +27,7 @@ import logging
 import time as _time
 
 from .logstash import logstash_message
-from .schemas import QueryOutJSON
+from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError
 
 from ..plugins import importer
@@ -274,7 +274,7 @@ def run_analysis():
 @app.after_request
 def validate_schema(response):
     try:
-        if response.is_json:
+        if dispatcher_strict_validate:
             QueryOutJSON().load(response.json)
     except ValidationError as e:
         logger.error("response not validated: %s; %s", e, json.dumps(response.json, sort_keys=True, indent=4))
