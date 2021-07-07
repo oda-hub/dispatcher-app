@@ -157,21 +157,19 @@ class Instrument:
         # TODO probably exception handling can be further improved and/or optmized
         # set catalog
         try:
-            has_catalog = self.upload_catalog_from_fronted(par_dic=par_dic, request=request, temp_dir=temp_dir)
+            self.upload_catalog_from_fronted(par_dic=par_dic, request=request, temp_dir=temp_dir)
         except Exception as e:
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
                                            message=f'Error while uploading catalog file from the frontend {e}')
             raise RequestNotUnderstood("Error while uploading catalog file from the frontend")
         try:
-            if has_catalog:
-                self.set_catalog_from_fronted(par_dic, verbose=verbose)
+            self.set_catalog(par_dic)
         except Exception as e:
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
                                            message=f'Error while setting catalog file from the frontend {e}')
             raise RequestNotUnderstood("Error while setting catalog file from the frontend")
-        # set input products
         try:
             input_file_path = self.upload_input_products_from_fronted(request=request, temp_dir=temp_dir)
         except Exception as e:
@@ -474,42 +472,28 @@ class Instrument:
             cat_file_path = upload_file('user_catalog_file', temp_dir)
             if cat_file_path is not None:
                 par_dic['user_catalog_file'] = cat_file_path
-                return True
-        return False
-
-    def set_catalog_from_fronted(self, par_dic, verbose=False):
-        self.set_catalog(par_dic)
-        self.set_pars_from_dic(par_dic,verbose=verbose)
 
     def set_catalog(self, par_dic):
-
-        user_catalog_file=None
+        user_catalog_file = None
         if 'user_catalog_file' in par_dic.keys() :
             user_catalog_file = par_dic['user_catalog_file']
-            #print("--> user_catalog_file ",user_catalog_file)
 
-        if 'user_catalog_dictionary'in par_dic.keys() and par_dic['user_catalog_dictionary'] is not None:
-            if type(par_dic['user_catalog_dictionary'])==dict:
-                self.set_par('user_catalog',build_catalog(par_dic['user_catalog_dictionary']))
+        if 'user_catalog_dictionary' in par_dic.keys() and par_dic['user_catalog_dictionary'] is not None:
+            if type(par_dic['user_catalog_dictionary']) == dict:
+                self.set_par('user_catalog', build_catalog(par_dic['user_catalog_dictionary']))
             else:
                 catalog_dic = json.loads(par_dic['selected_catalog'])
                 self.set_par('user_catalog', build_catalog(catalog_dic))
 
         if user_catalog_file is not None:
-            # print('loading catalog  using file', user_catalog_file)
             self.set_par('user_catalog', load_user_catalog(user_catalog_file))
-            # print('user catalog done, using file',user_catalog_file)
-
         else:
             if 'catalog_selected_objects' in par_dic.keys():
-
                 catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)
             else:
                 catalog_selected_objects = None
-
             if 'selected_catalog' in par_dic.keys():
                 catalog_dic=json.loads(par_dic['selected_catalog'])
-
                 user_catalog = build_catalog(catalog_dic, catalog_selected_objects)
                 self.set_par('user_catalog', user_catalog)
 
