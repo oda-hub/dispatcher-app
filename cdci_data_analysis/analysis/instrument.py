@@ -475,7 +475,7 @@ class Instrument:
 
     def set_catalog(self, par_dic):
         user_catalog_file = None
-        if 'user_catalog_file' in par_dic.keys() :
+        if 'user_catalog_file' in par_dic.keys():
             user_catalog_file = par_dic['user_catalog_file']
 
         if 'user_catalog_dictionary' in par_dic.keys() and par_dic['user_catalog_dictionary'] is not None:
@@ -493,7 +493,7 @@ class Instrument:
             else:
                 catalog_selected_objects = None
             if 'selected_catalog' in par_dic.keys():
-                catalog_dic=json.loads(par_dic['selected_catalog'])
+                catalog_dic = json.loads(par_dic['selected_catalog'])
                 user_catalog = build_catalog(catalog_dic, catalog_selected_objects)
                 self.set_par('user_catalog', user_catalog)
 

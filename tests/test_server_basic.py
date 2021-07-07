@@ -668,7 +668,7 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
     logger.info(json.dumps(jdata, indent=4))
 
 
-def test_list_file(dispatcher_live_fixture):
+def test_scws_list_file(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
@@ -713,6 +713,56 @@ def test_list_file(dispatcher_live_fixture):
         params[k] = str(v)
 
     restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "p_list": ["5"], "sub": "mtm@mtmco.net"})
+    calculated_job_id = make_hash(restricted_par_dic)
+
+    assert job_id == calculated_job_id
+
+
+def test_catalog_file(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 5,
+        'use_scws': 'user_file',
+        'token': encoded_token
+    }
+
+    file_path = DispatcherJobState.create_catalog_file(catalog_value=5)
+
+    list_file = open(file_path)
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                method='post',
+                files={"user_catalog_file": list_file.read()}
+                )
+
+    list_file.close()
+    assert 'user_catalog_file' in jdata['products']['analysis_parameters']
+    assert 'use_scws' not in jdata['products']['analysis_parameters']
+    # test job_id
+    job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
+    params.pop('use_scws', None)
+    # adapting some values to string
+    for k, v in params.items():
+        params[k] = str(v)
+
+    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "user_catalog_file": f'temp_sid_{session_id}/user_catalog_file', "sub": "mtm@mtmco.net"})
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id

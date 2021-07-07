@@ -660,6 +660,42 @@ class DispatcherJobState:
             outlist_file.write(str(p_value))
         return f'p_value_simple_files/{file_name}'
 
+    @staticmethod
+    def create_catalog_file(catalog_value):
+        # generate ScWs list file
+        if not os.path.exists('catalog_simple_files'):
+            os.makedirs('catalog_simple_files')
+
+        # hash file content
+        catalog_hash = make_hash(catalog_value)
+
+        file_name = f'catalog_{catalog_hash}.txt'
+
+        with open('catalog_simple_files/' + file_name, 'w+') as outlist_file:
+            outlist_file.write(
+                """# %ECSV 0.9
+# ---
+# datatype:
+# - {name: meta_ID, datatype: int64}
+# - {name: src_names, datatype: string}
+# - {name: significance, datatype: float32}
+# - {name: ra, datatype: float32}
+# - {name: dec, datatype: float32}
+# - {name: NEW_SOURCE, datatype: uint16}
+# - {name: ISGRI_FLAG, datatype: int64}
+# - {name: FLAG, datatype: int64}
+# - {name: ERR_RAD, datatype: float64}
+# meta: !!omap
+# - {FRAME: fk5}
+# - {LAT_NAME: dec}
+# - {COORD_UNIT: deg}
+# - {LON_NAME: ra}
+# schema: astropy-2.0
+meta_ID src_names significance ra dec NEW_SOURCE ISGRI_FLAG FLAG ERR_RAD
+0 "IGR J15311-3737" 0.0 0.0 0.0 0 1 0 0.0750000029802"""
+            )
+        return f'catalog_simple_files/{file_name}'
+
     @classmethod
     def from_run_analysis_response(cls, r):
         return cls(
