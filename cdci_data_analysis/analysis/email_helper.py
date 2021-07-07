@@ -134,6 +134,17 @@ def wrap_python_code(code, max_length=100):
     return black.format_str(code, mode=mode)
 
 
+def check_scw_list_length(
+        scw_list
+):
+    # TODO could be configurable
+    if len(scw_list) < 450:
+        # still manageable by the proxy
+        return True
+    else:
+        return False
+
+
 def send_email(
         config,
         logger,
@@ -166,17 +177,17 @@ def send_email(
 
     #  TODO: enable this sometimes
     #   compressed_request_url = compress_request_url_params(request_url)
-    
-
-    if len(request_url) > 600:
-        possibly_compressed_request_url = \
-            config.products_url + \
-            "/dispatch-data/resolve-job-url?" + \
-            parse.urlencode(dict(job_id=job_id, session_id=session_id, token=token))
-        permanent_url = False
-    else:
-        possibly_compressed_request_url = request_url
-        permanent_url = True
+    possibly_compressed_request_url = ""
+    if request_url != "":
+        if len(request_url) > 600:
+            possibly_compressed_request_url = \
+                config.products_url + \
+                "/dispatch-data/resolve-job-url?" + \
+                parse.urlencode(dict(job_id=job_id, session_id=session_id, token=token))
+            permanent_url = False
+        else:
+            possibly_compressed_request_url = request_url
+            permanent_url = True
 
     email_data = {
         'oda_site': { 

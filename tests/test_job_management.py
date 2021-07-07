@@ -266,10 +266,10 @@ def validate_email_content(
                 assert products_url in content_text
 
 
-
-
-
-def get_expected_products_url(dict_param):
+def get_expected_products_url(dict_param,
+                              token,
+                              session_id,
+                              job_id):
     dict_param_complete = dict_param.copy()    
     dict_param_complete.pop("token", None)
     dict_param_complete.pop("session_id", None)
@@ -283,7 +283,16 @@ def get_expected_products_url(dict_param):
         if value is None:
             dict_param_complete.pop(key)
 
-    return '%s?%s' % ('PRODUCTS_URL', urlencode(dict_param_complete))
+    products_url = '%s?%s' % ('PRODUCTS_URL', urlencode(dict_param_complete))
+
+    if len(products_url) > 600:
+        possibly_compressed_request_url = \
+            "PRODUCTS_URL/dispatch-data/resolve-job-url?" + \
+            parse.urlencode(dict(job_id=job_id, session_id=session_id, token=token))
+    else:
+        possibly_compressed_request_url = products_url
+
+    return possibly_compressed_request_url
 
 
 def test_validation_job_id(dispatcher_live_fixture):
@@ -560,6 +569,65 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     # TODO: test that this returns the result
 
     DataServerQuery.set_status('submitted') # sets the expected default for other tests
+
+
+@pytest.mark.parametrize("list_size", [200, 500])
+def test_scw_list_email(dispatcher_long_living_fixture, dispatcher_local_mail_server, list_size):
+    from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
+    DataServerQuery.set_status('submitted')
+
+    server = dispatcher_long_living_fixture
+
+    DispatcherJobState.remove_scratch_folders()
+
+    token_payload = {
+            **default_token_payload,
+            "tem": 0,
+            "roles": "unige-hpc-full, general"
+        }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token,
+        scw_list=[f"0665{i:04d}0010.001" for i in range(list_size)]
+    )
+
+    # this should return status submitted, so email sent
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+    assert c.status_code == 200
+    jdata = c.json()
+
+    logger.info("response from run_analysis: %s", json.dumps(jdata, indent=4))
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
+
+    session_id = c.json()['session_id']
+    job_id = c.json()['job_monitor']['job_id']
+
+    products_url = get_expected_products_url(dict_param, token=encoded_token, session_id=session_id, job_id=job_id)
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    # get the original time the request was made
+    assert 'time_request' in jdata
+    # set the time the request was initiated
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    validate_email_content(
+        dispatcher_local_mail_server.get_email_record(),
+        'submitted',
+        dispatcher_job_state,
+        time_request_str=time_request_str,
+        products_url=products_url,
+        dispatcher_live_fixture=None,
+    )
 
 
 @pytest.mark.not_safe_parallel

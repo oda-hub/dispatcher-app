@@ -184,7 +184,7 @@ class InstrumentQueryBackEnd:
                 else:
                     query_status = self.par_dic['query_status']
                     self.job_id = None
-                    if query_status == 'new':                        
+                    if query_status == 'new':
                         # this will overwrite any job_id provided, it should be validated or ignored
                         #if 'job_id' in self.par_dic:
                         #    self.job_id = self.par_dic['job_id']
@@ -193,7 +193,7 @@ class InstrumentQueryBackEnd:
                         provided_job_id = self.par_dic.get('job_id', None)
                         if provided_job_id == "": # frontend sends this
                             provided_job_id = None
-                        
+
                         self.generate_job_id()
 
                         if provided_job_id is not None and self.job_id != provided_job_id:
@@ -208,7 +208,7 @@ class InstrumentQueryBackEnd:
                                 f"job_id must be present if query_status != \"new\" (it is \"{query_status}\")")
 
                         self.job_id = self.par_dic['job_id']
-                
+
                 self.set_scratch_dir(
                     self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
 
@@ -241,21 +241,21 @@ class InstrumentQueryBackEnd:
         """
 
         if kw_black_list is None:
-            kw_black_list = ('session_id', 
-                             'job_id', 
-                             'token', 
-                             'dry_run', 
-                             'oda_api_version', 
-                             'api', 
-                             'off_line', 
-                             'query_status', 
+            kw_black_list = ('session_id',
+                             'job_id',
+                             'token',
+                             'dry_run',
+                             'oda_api_version',
+                             'api',
+                             'off_line',
+                             'query_status',
                              'async_dispatcher')
 
         return OrderedDict({
             k: v for k, v in par_dic.items()
             if k not in kw_black_list and v is not None
         })
-    
+
     def user_specific_par_dic(self, par_dic):
         if par_dic.get('token') is not None:
             secret_key = self.app.config.get('conf').secret_key
@@ -268,23 +268,23 @@ class InstrumentQueryBackEnd:
         else:
             return par_dic
 
-    def calculate_job_id(self, 
-                         par_dic: dict, 
+    def calculate_job_id(self,
+                         par_dic: dict,
                          kw_black_list: typing.Union[None,dict]=None) -> str:
         """
         restricts parameter list to those relevant for request content, and makes string hash
-        """              
+        """
 
         user_par_dict = self.user_specific_par_dic(par_dic)
         user_restricted_par_dict = self.restricted_par_dic(user_par_dict, kw_black_list)
-        
+
         return make_hash(user_restricted_par_dict)
-    
+
     def generate_job_id(self, kw_black_list=None):
         self.logger.info("\033[31m---> GENERATING JOB ID <---\033[0m")
         self.logger.info(
             "\033[31m---> new job id for %s <---\033[0m", self.par_dic)
-              
+
         self.logger.debug("generate_job_id: %s", json.dumps(self.par_dic, indent=4, sort_keys=True))
 
         self.job_id = self.calculate_job_id(self.par_dic, kw_black_list)
@@ -482,13 +482,13 @@ class InstrumentQueryBackEnd:
 
         return tmp_dir, file_name
 
-    def resolve_job_url(self):        
+    def resolve_job_url(self):
         request_par_dic = self.get_request_par_dic()
-        
+
         self.validate_job_id(request_parameters_from_scratch_dir=True)
-        
+
         return self.generate_products_url_from_par_dict(
-            self.app.config['conf'].products_url, 
+            self.app.config['conf'].products_url,
             par_dict=request_par_dic)
 
     def validate_job_id(self, request_parameters_from_scratch_dir=False):
@@ -511,7 +511,7 @@ class InstrumentQueryBackEnd:
             else:
                 request_par_dic = self.par_dic
 
-            if request_par_dic is not None:    
+            if request_par_dic is not None:
                 calculated_job_id = self.calculate_job_id(request_par_dic)
 
                 if self.job_id != calculated_job_id:
@@ -524,18 +524,18 @@ class InstrumentQueryBackEnd:
                         debug_message += "; parameters are derived from recorded job state"
                     else:
                         debug_message += "; parameters are derived from this request"
-                        
+
 
                     restored_job_parameters = self.find_job_id_parameters(self.job_id)
 
                     logger.error(debug_message)
-                    logger.error("parameters for self.job_id %s, recomputed as %s : %s",                 
-                                self.job_id, 
+                    logger.error("parameters for self.job_id %s, recomputed as %s : %s",
+                                self.job_id,
                                 self.calculate_job_id(restored_job_parameters),
                                 json.dumps(self.restricted_par_dic(self.user_specific_par_dic(restored_job_parameters)), sort_keys=True, indent=4))
-                                
-                    logger.error("parameters for calculated_job_id %s : %s", 
-                                calculated_job_id, 
+
+                    logger.error("parameters for calculated_job_id %s : %s",
+                                calculated_job_id,
                                 json.dumps(self.restricted_par_dic(self.user_specific_par_dic(request_par_dic)), sort_keys=True, indent=4))
 
 
@@ -552,7 +552,7 @@ class InstrumentQueryBackEnd:
             # TODO not entirely sure about these
             self.off_line = False
             self.api = False
-            
+
             self.validate_job_id(request_parameters_from_scratch_dir=True)
             file_list = self.args.get('file_list').split(',')
             file_name = self.args.get('download_file_name')
@@ -568,7 +568,7 @@ class InstrumentQueryBackEnd:
                                               debug_message=e.debug_message)
         except Exception as e:
             return e
-    
+
     # @staticmethod
     # def upload_file(name, dir):
     #     if name not in request.files:
@@ -687,8 +687,8 @@ class InstrumentQueryBackEnd:
             if email_helper.is_email_to_send_callback(self.logger,
                                                       status,
                                                       time_original_request,
-                                                      self.app.config['conf'], 
-                                                      self.job_id, 
+                                                      self.app.config['conf'],
+                                                      self.job_id,
                                                       decoded_token=self.decoded_token):
                 try:
                     original_request_par_dic = self.get_request_par_dic()
@@ -711,10 +711,10 @@ class InstrumentQueryBackEnd:
                     request_url=products_url,
                     # products_url is frontend URL, clickable by users.
                     # dispatch-data is how frontend is referring to the dispatcher, it's fixed in frontend-astrooda code
-                    api_code=DispatcherAPI.set_api_code(original_request_par_dic, 
+                    api_code=DispatcherAPI.set_api_code(original_request_par_dic,
                                                         url=self.app.config['conf'].products_url + "/dispatch-data"),
                     scratch_dir=self.scratch_dir,
-                    )                
+                    )
 
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
@@ -759,7 +759,7 @@ class InstrumentQueryBackEnd:
         returns parameters from current job/session
         """
         fn = self.scratch_dir + '/analysis_parameters.json'
-        
+
         if os.path.exists(fn):
             with open(fn) as file:
                 return json.load(file)
@@ -776,7 +776,7 @@ class InstrumentQueryBackEnd:
             return None
         else:
             return json.load(open(scratch_dir_parameters[0]))
-        
+
 
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
@@ -925,12 +925,12 @@ class InstrumentQueryBackEnd:
         # instrument may be not set in callback call
 
         instrument = getattr(self, 'instrument', None)
-        
+
         if disp_data_server_conf_dict is None:
             if instrument is not None and not isinstance(instrument, str):
                 logger.debug('provided instrument type %s', type(instrument))
                 disp_data_server_conf_dict = self.instrument.data_server_conf_dict
-            
+
         logger.debug('--> App configuration for: %s', self.instrument_name)
         if disp_data_server_conf_dict is not None:
             # print('-->',disp_data_server_conf_dict)
@@ -1140,7 +1140,7 @@ class InstrumentQueryBackEnd:
                 if flower_task is None:
                     self.logger.info("PENDING celery job: %s does not exist in flower, marking UNEXISTENT", r)
                     r_state = "UNEXISTENT"
-            
+
             if r_state in ["FAILURE"]:
                 self.logger.info("celery job state failure, will overwrite")
                 overwrite = True
@@ -1207,7 +1207,7 @@ class InstrumentQueryBackEnd:
         this is the principal function to respond to the requests
 
         TODO: this function is a bit quite very long, and flow is a little bit too complex, especially for exception handling
-        """        
+        """
 
         self.off_line = off_line
 
@@ -1380,7 +1380,7 @@ class InstrumentQueryBackEnd:
                 # this never worked since time_ was introduced, but it makes no difference
                 delta = self.get_file_mtime(
                     alias_workdir + '/' + 'job_monitor.json') - time_.time()
-            except:                
+            except:
                 delta = delta_limit+1
 
             if delta > delta_limit:
@@ -1446,15 +1446,19 @@ class InstrumentQueryBackEnd:
                         query_new_status = 'submitted'
                         job.set_submitted()
 
-                    if email_helper.is_email_to_send_run_query(self.logger, 
-                                                               query_new_status, 
-                                                               self.time_request, 
-                                                               self.scratch_dir, 
+                    if email_helper.is_email_to_send_run_query(self.logger,
+                                                               query_new_status,
+                                                               self.time_request,
+                                                               self.scratch_dir,
                                                                self.job_id,
-                                                               self.app.config['conf'], 
+                                                               self.app.config['conf'],
                                                                decoded_token=self.decoded_token):
                         try:
                             products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url, self.par_dic)
+
+                            # evaluate the length of the scws, this could be too long for the proxy to handle it
+                            if 'scw_list' in self.par_dic.keys() and not email_helper.check_scw_list_length(self.par_dic['scw_list']):
+                                products_url = ""
 
                             email_helper.send_email(
                                 config=self.app.config['conf'],
@@ -1472,7 +1476,7 @@ class InstrumentQueryBackEnd:
                                                                     url=self.app.config['conf'].products_url
                                                                     ),
                                 scratch_dir=self.scratch_dir)
-                            
+
                             # store an additional information about the sent email
                             query_out.set_status_field('email_status', 'email sent')
                         except email_helper.EMailNotSent as e:
