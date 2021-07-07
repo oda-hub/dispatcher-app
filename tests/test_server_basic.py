@@ -731,10 +731,9 @@ def test_catalog_file(dispatcher_live_fixture):
 
     params = {
         **default_params,
-        'product_type': 'numerical',
+        'product_type': 'dummy',
         'query_type': "Dummy",
         'instrument': 'empty',
-        'p': 5,
         'use_scws': 'user_file',
         'token': encoded_token
     }
