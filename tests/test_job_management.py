@@ -236,8 +236,11 @@ def validate_email_content(
             content_text_html = part.get_payload().replace('\r', '').strip()
             content_text = content_text_html
 
-            if products_url is not None:                
-                assert re.search(f'<a href="(.*)">.*?</a>', content_text_html, re.M).group(1) == products_url
+            if products_url is not None:
+                if products_url != "":
+                    assert re.search(f'<a href="(.*)">.*?</a>', content_text_html, re.M).group(1) == products_url
+                else:
+                    assert re.search(f'<a href="(.*)">url</a>', content_text_html, re.M) == None
 
             fn = store_email(content_text_html, state=state, time_request_str=time_request_str, products_url=products_url)
 
@@ -249,11 +252,11 @@ def validate_email_content(
                 extract_api_code(content_text_html),
                 dispatcher_live_fixture
             )
-
-            validate_products_url(
-                extract_products_url(content_text_html),
-                dispatcher_live_fixture
-            )
+            if products_url != "":
+                validate_products_url(
+                    extract_products_url(content_text_html),
+                    dispatcher_live_fixture
+                )
 
         if content_text is not None:
             assert re.search(f'Dear User', content_text, re.IGNORECASE)
@@ -262,14 +265,16 @@ def validate_email_content(
             with open("email.text", "w") as f:
                 f.write(content_text)
 
-            if products_url is not None:                
-                assert products_url in content_text
+            if products_url is not None:
+                if products_url != "":
+                    assert products_url in content_text
 
 
 def get_expected_products_url(dict_param,
                               token,
                               session_id,
-                              job_id):
+                              job_id,
+                              scw_list=None):
     dict_param_complete = dict_param.copy()    
     dict_param_complete.pop("token", None)
     dict_param_complete.pop("session_id", None)
@@ -291,6 +296,10 @@ def get_expected_products_url(dict_param,
             parse.urlencode(dict(job_id=job_id, session_id=session_id, token=token))
     else:
         possibly_compressed_request_url = products_url
+
+    # TODO could be configurable
+    if len(scw_list) > 450:
+        possibly_compressed_request_url = ""
 
     return possibly_compressed_request_url
 
@@ -587,6 +596,7 @@ def test_scw_list_email(dispatcher_long_living_fixture, dispatcher_local_mail_se
         }
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    scw_list = [f"0665{i:04d}0010.001" for i in range(list_size)]
 
     dict_param = dict(
         query_status="new",
@@ -594,7 +604,7 @@ def test_scw_list_email(dispatcher_long_living_fixture, dispatcher_local_mail_se
         instrument="empty-async",
         product_type="dummy",
         token=encoded_token,
-        scw_list=[f"0665{i:04d}0010.001" for i in range(list_size)]
+        scw_list=scw_list
     )
 
     # this should return status submitted, so email sent
@@ -610,7 +620,7 @@ def test_scw_list_email(dispatcher_long_living_fixture, dispatcher_local_mail_se
     session_id = c.json()['session_id']
     job_id = c.json()['job_monitor']['job_id']
 
-    products_url = get_expected_products_url(dict_param, token=encoded_token, session_id=session_id, job_id=job_id)
+    products_url = get_expected_products_url(dict_param, token=encoded_token, session_id=session_id, job_id=job_id, scw_list=scw_list)
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
     assert 'time_request' in jdata

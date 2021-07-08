@@ -178,6 +178,7 @@ def send_email(
     #  TODO: enable this sometimes
     #   compressed_request_url = compress_request_url_params(request_url)
     possibly_compressed_request_url = ""
+    permanent_url = False
     if request_url != "":
         if len(request_url) > 600:
             possibly_compressed_request_url = \
