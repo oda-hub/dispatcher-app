@@ -668,7 +668,7 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
     logger.info(json.dumps(jdata, indent=4))
 
 
-def test_list_file(dispatcher_live_fixture):
+def test_scws_list_file(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
@@ -716,6 +716,165 @@ def test_list_file(dispatcher_live_fixture):
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
+
+
+def test_catalog_file(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token
+    }
+
+    file_path = DispatcherJobState.create_catalog_file(catalog_value=5)
+
+    list_file = open(file_path)
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                method='post',
+                files={"user_catalog_file": list_file.read()}
+                )
+
+    list_file.close()
+    assert 'user_catalog_file' in jdata['products']['analysis_parameters']
+    # test job_id
+    job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
+    # adapting some values to string
+    for k, v in params.items():
+        params[k] = str(v)
+
+    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "user_catalog_file": f'temp_sid_{session_id}/user_catalog_file', "sub": "mtm@mtmco.net"})
+    calculated_job_id = make_hash(restricted_par_dic)
+
+    assert job_id == calculated_job_id
+
+
+def test_user_catalog(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    selected_catalog_dict = dict(
+        cat_lon_name="ra",
+        cat_lat_name="dec",
+        cat_frame="fk5",
+        cat_coord_units="deg",
+        cat_column_list=[[1], ["Test A"], [6], [5], [4], [3], [2], [1], [0]],
+        cat_column_names=["meta_ID", "src_names", "significance", "ra", "dec", "NEW_SOURCE", "ISGRI_FLAG", "FLAG",
+                          "ERR_RAD"],
+        cat_column_descr=[["meta_ID", "<i8"], ["src_names", "<U6"], ["significance", "<i8"], ["ra", "<f8"],
+                          ["dec", "<f8"], ["NEW_SOURCE", "<i8"], ["ISGRI_FLAG", "<i8"], ["FLAG", "<i8"],
+                          ["ERR_RAD", "<i8"]]
+    )
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'selected_catalog': json.dumps(selected_catalog_dict),
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                method='post'
+                )
+
+    assert 'selected_catalog' in jdata['products']['analysis_parameters']
+    assert jdata['products']['analysis_parameters']['selected_catalog'] == json.dumps(selected_catalog_dict)
+    # test job_id
+    job_id = jdata['products']['job_id']
+    # adapting some values to string
+    for k, v in params.items():
+        params[k] = str(v)
+
+    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "sub": "mtm@mtmco.net"})
+    calculated_job_id = make_hash(restricted_par_dic)
+
+    assert job_id == calculated_job_id
+
+
+@pytest.mark.odaapi
+def test_user_catalog_oda_api(dispatcher_live_fixture):
+    import oda_api.api
+    import oda_api.data_products
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    selected_catalog_dict = dict(
+        cat_lon_name="ra",
+        cat_lat_name="dec",
+        cat_frame="fk5",
+        cat_coord_units="deg",
+        cat_column_list=[[1], ["Test A"], [6], [5], [4], [3], [2], [1], [0]],
+        cat_column_names=["meta_ID", "src_names", "significance", "ra", "dec","NEW_SOURCE", "ISGRI_FLAG", "FLAG", "ERR_RAD"],
+        cat_column_descr=[["meta_ID", "<i8"], ["src_names","<U6"], ["significance", "<i8"], ["ra", "<f8"], ["dec", "<f8"], ["NEW_SOURCE", "<i8"], ["ISGRI_FLAG","<i8"],["FLAG","<i8"],["ERR_RAD","<i8"]]
+    )
+
+    disp = oda_api.api.DispatcherAPI(
+        url=dispatcher_live_fixture,
+        wait=False)
+
+    prods = disp.get_product(
+        product_type="Dummy",
+        instrument="empty",
+        product="numerical",
+        token=encoded_token,
+        selected_catalog=json.dumps(selected_catalog_dict)
+    )
+
+    logger.info("product: %s", prods)
+    logger.info("product show %s", prods.show())
+
+    session_id = disp.session_id
+    job_id = disp.job_id
+
+    # check query output are generated
+    query_output_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
+    # the aliased version might have been created
+    query_output_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
+    assert os.path.exists(query_output_json_fn) or os.path.exists(query_output_json_fn_aliased)
+    # get the query output
+    if os.path.exists(query_output_json_fn):
+        f = open(query_output_json_fn)
+    else:
+        f = open(query_output_json_fn_aliased)
+
+    jdata = json.load(f)
+
+    assert "selected_catalog" in jdata["prod_dictionary"]["analysis_parameters"]
+    assert jdata["prod_dictionary"]["analysis_parameters"]["selected_catalog"] == json.dumps(selected_catalog_dict)
+
+    # TODO the name of this method is misleading
+    api_cat_dict = json.loads(prods.dispatcher_catalog_0.get_api_dictionary())
+    assert api_cat_dict == selected_catalog_dict
 
 
 def test_value_range(dispatcher_long_living_fixture):
