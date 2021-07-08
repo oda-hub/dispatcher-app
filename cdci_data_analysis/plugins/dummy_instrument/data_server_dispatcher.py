@@ -213,8 +213,9 @@ class DataServerNumericQuery(ProductQuery):
 
     def get_dummy_products(self, instrument, config=None, **kwargs):
         catalog = instrument.instrumet_query.parameters[0]
-
-        prod_list = QueryProductList(prod_list=[catalog])
+        prod_list = QueryProductList(prod_list=[])
+        if catalog.value is not None:
+            prod_list.prod_list.append(catalog)
 
         return prod_list
 
@@ -224,10 +225,10 @@ class DataServerNumericQuery(ProductQuery):
 
     def process_product_method(self, instrument, prod_list, api=False, **kw):
         query_out = QueryOutput()
-
-        query_catalog = prod_list.get_prod_by_name('user_catalog')
-
-        query_out.prod_dictionary['catalog'] = query_catalog.value.get_dictionary()
+        if len(prod_list.prod_list) > 0:
+            query_catalog = prod_list.get_prod_by_name('user_catalog')
+            if query_catalog is not None:
+                query_out.prod_dictionary['catalog'] = query_catalog.value.get_dictionary()
 
         return query_out
 
