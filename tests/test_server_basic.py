@@ -810,6 +810,7 @@ def test_user_catalog(dispatcher_live_fixture):
 @pytest.mark.odaapi
 def test_user_catalog_oda_api(dispatcher_live_fixture):
     import oda_api.api
+    import oda_api.data_products
 
     # let's generate a valid token
     token_payload = {
@@ -817,7 +818,15 @@ def test_user_catalog_oda_api(dispatcher_live_fixture):
         "roles": "unige-hpc-full, general",
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-    selected_catalog = """{"cat_column_descr":[["meta_ID","<i8"],["src_names","<U20"],["significance",">f4"],["ra",">f4"],["dec",">f4"],["NEW_SOURCE",">i2"],["ISGRI_FLAG","<i8"],["FLAG","<i8"],["ERR_RAD","<f8"]],"cat_column_list":[[1],["Test A"],[6.233789443969727],[299.81768798828125],[40.72419357299805],[-32768],[2],[0],[0.000029999999242136255]],"cat_column_names":["meta_ID","src_names","significance","ra","dec","NEW_SOURCE","ISGRI_FLAG","FLAG","ERR_RAD"],"cat_coord_units":"deg","cat_frame":"fk5","cat_lat_name":"dec","cat_lon_name":"ra"}"""
+    selected_catalog_dict = dict(
+        cat_lon_name="ra",
+        cat_lat_name="dec",
+        cat_frame="fk5",
+        cat_coord_units="deg",
+        cat_column_list=[[1], ["Test A"], [6], [5], [4], [3], [2], [1], [0]],
+        cat_column_names=["meta_ID", "src_names", "significance", "ra", "dec","NEW_SOURCE", "ISGRI_FLAG", "FLAG", "ERR_RAD"],
+        cat_column_descr=[["meta_ID", "<i8"], ["src_names","<U6"], ["significance", "<i8"], ["ra", "<f8"], ["dec", "<f8"], ["NEW_SOURCE", "<i8"], ["ISGRI_FLAG","<i8"],["FLAG","<i8"],["ERR_RAD","<i8"]]
+    )
 
     disp = oda_api.api.DispatcherAPI(
         url=dispatcher_live_fixture,
@@ -826,9 +835,9 @@ def test_user_catalog_oda_api(dispatcher_live_fixture):
     prods = disp.get_product(
         product_type="Dummy",
         instrument="empty",
-        product="dummy",
+        product="numerical",
         token=encoded_token,
-        selected_catalog=selected_catalog
+        selected_catalog=json.dumps(selected_catalog_dict)
     )
 
     logger.info("product: %s", prods)
@@ -851,7 +860,11 @@ def test_user_catalog_oda_api(dispatcher_live_fixture):
     jdata = json.load(f)
 
     assert "selected_catalog" in jdata["prod_dictionary"]["analysis_parameters"]
-    assert jdata["prod_dictionary"]["analysis_parameters"]["selected_catalog"] == selected_catalog
+    assert jdata["prod_dictionary"]["analysis_parameters"]["selected_catalog"] == json.dumps(selected_catalog_dict)
+
+    # TODO the name of this method is misleading
+    api_cat_dict = json.loads(prods.dispatcher_catalog_0.get_api_dictionary())
+    assert api_cat_dict == selected_catalog_dict
 
 
 def test_value_range(dispatcher_long_living_fixture):
