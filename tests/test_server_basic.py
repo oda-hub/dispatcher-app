@@ -775,14 +775,24 @@ def test_user_catalog(dispatcher_live_fixture):
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    selected_catalog = """{"cat_column_descr":[["meta_ID","<i8"],["src_names","<U20"],["significance",">f4"],["ra",">f4"],["dec",">f4"],["NEW_SOURCE",">i2"],["ISGRI_FLAG","<i8"],["FLAG","<i8"],["ERR_RAD","<f8"]],"cat_column_list":[[1],["Test A"],[6.233789443969727],[299.81768798828125],[40.72419357299805],[-32768],[2],[0],[0.000029999999242136255]],"cat_column_names":["meta_ID","src_names","significance","ra","dec","NEW_SOURCE","ISGRI_FLAG","FLAG","ERR_RAD"],"cat_coord_units":"deg","cat_frame":"fk5","cat_lat_name":"dec","cat_lon_name":"ra"}"""
-
+    selected_catalog_dict = dict(
+        cat_lon_name="ra",
+        cat_lat_name="dec",
+        cat_frame="fk5",
+        cat_coord_units="deg",
+        cat_column_list=[[1], ["Test A"], [6], [5], [4], [3], [2], [1], [0]],
+        cat_column_names=["meta_ID", "src_names", "significance", "ra", "dec", "NEW_SOURCE", "ISGRI_FLAG", "FLAG",
+                          "ERR_RAD"],
+        cat_column_descr=[["meta_ID", "<i8"], ["src_names", "<U6"], ["significance", "<i8"], ["ra", "<f8"],
+                          ["dec", "<f8"], ["NEW_SOURCE", "<i8"], ["ISGRI_FLAG", "<i8"], ["FLAG", "<i8"],
+                          ["ERR_RAD", "<i8"]]
+    )
     params = {
         **default_params,
         'product_type': 'dummy',
         'query_type': "Dummy",
         'instrument': 'empty',
-        'selected_catalog': selected_catalog,
+        'selected_catalog': json.dumps(selected_catalog_dict),
         'token': encoded_token
     }
 
@@ -794,7 +804,7 @@ def test_user_catalog(dispatcher_live_fixture):
                 )
 
     assert 'selected_catalog' in jdata['products']['analysis_parameters']
-    assert jdata['products']['analysis_parameters']['selected_catalog'] == selected_catalog
+    assert jdata['products']['analysis_parameters']['selected_catalog'] == json.dumps(selected_catalog_dict)
     # test job_id
     job_id = jdata['products']['job_id']
     # adapting some values to string
