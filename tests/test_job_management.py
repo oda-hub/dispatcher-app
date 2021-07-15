@@ -1110,7 +1110,9 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
         # compressed = "z%3A" + base64.b64encode(zlib.compress(json.dumps(name_parameter_value).encode())).decode()
         # assert compressed in email_data
     else:
-        assert "A URL to inspect the status of the job could not be generated." in email_data
+        assert """You can retrieve the results by repeating the request.
+Unfortunately, due to a known issue with very large requests, a URL with the selected request parameters could not be generated.
+This will be fixed in a future release.""" in email_data
 
 
 def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispatcher_local_mail_server):

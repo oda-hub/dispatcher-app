@@ -28,7 +28,9 @@ Note that this url is permanent, and can be used to refer to the results as long
 Note that this url is NOT permanent, and will expire within about a week.<br>
 {% endif %}
 {% else %}
-{{ request.url_warning_message }}
+You can retrieve the results by repeating the request.
+Unfortunately, due to a known issue with very large requests, a URL with the selected request parameters could not be generated.
+This will be fixed in a future release.
 {% endif %}
 You can also retrieve the result by repeating the request (either with frontend or with the python API query at the end of this message.).<br>
 <br>
