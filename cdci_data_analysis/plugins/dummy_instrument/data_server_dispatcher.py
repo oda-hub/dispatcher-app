@@ -17,6 +17,7 @@ Module API
 
 from __future__ import absolute_import, division, print_function
 
+import json
 import os
 
 __author__ = "Andrea Tramacere"
@@ -34,10 +35,12 @@ __author__ = "Andrea Tramacere"
 
 from typing import Tuple
 
+from oda_api.data_products import ApiCatalog
 from raven.utils.urlparse import urlparse
 
+from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.analysis.queries import ProductQuery
-from cdci_data_analysis.analysis.products import QueryOutput
+from cdci_data_analysis.analysis.products import QueryOutput, QueryProductList
 from cdci_data_analysis.analysis.instrument import Instrument
 
 import logging
@@ -209,13 +212,24 @@ class DataServerNumericQuery(ProductQuery):
         pass
 
     def get_dummy_products(self, instrument, config=None, **kwargs):
-        return []
+        catalog = instrument.instrumet_query.parameters[0]
+        prod_list = QueryProductList(prod_list=[])
+        if catalog.value is not None:
+            prod_list.prod_list.append(catalog)
+
+        return prod_list
+
 
     def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
         return []
 
     def process_product_method(self, instrument, prod_list, api=False, **kw):
         query_out = QueryOutput()
+        if len(prod_list.prod_list) > 0:
+            query_catalog = prod_list.get_prod_by_name('user_catalog')
+            if query_catalog is not None:
+                query_out.prod_dictionary['catalog'] = query_catalog.value.get_dictionary()
+
         return query_out
 
     def get_data_server_query(self, instrument: Instrument, config=None):
