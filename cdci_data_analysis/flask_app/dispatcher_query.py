@@ -1456,9 +1456,10 @@ class InstrumentQueryBackEnd:
                         try:
                             products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url, self.par_dic)
 
-                            # evaluate the length of the scws, this could be too long for the proxy to handle it
-                            if 'scw_list' in self.par_dic.keys() and not email_helper.check_scw_list_length(self.par_dic['scw_list']):
-                                products_url = ""
+                            # TODO this was just checking the length og the scws list, but the check must be done over the length of the whole url
+                            # # evaluate the length of the scws, this could be too long for the proxy to handle it
+                            # if 'scw_list' in self.par_dic.keys() and not email_helper.check_scw_list_length(self.par_dic['scw_list']):
+                            #     products_url = ""
 
                             email_helper.send_email(
                                 config=self.app.config['conf'],

@@ -27,6 +27,8 @@ Note that this url is permanent, and can be used to refer to the results as long
 {% else %}
 Note that this url is NOT permanent, and will expire within about a week.<br>
 {% endif %}
+{% else %}
+{{ request.url_warning_message }}
 {% endif %}
 You can also retrieve the result by repeating the request (either with frontend or with the python API query at the end of this message.).<br>
 <br>
