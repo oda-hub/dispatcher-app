@@ -20,11 +20,17 @@ Your request is now <b>ready</b>.<br>
 Your request has <b>failed<b>. Sorry for that! You will be further contacted by our team.<br>
 {% endif %}
 <br>
+{% if request.request_url != "" %}
 You can inspect the status of your job using the following <a href="{{ request.request_url }}">url</a>.<br>
-{% if request.permanent_url %} 
+{% if request.permanent_url %}
 Note that this url is permanent, and can be used to refer to the results as long as the service exists.<br>
 {% else %}
 Note that this url is NOT permanent, and will expire within about a week.<br>
+{% endif %}
+{% else %}
+You can retrieve the results by repeating the request.
+Unfortunately, due to a known issue with very large requests, a URL with the selected request parameters could not be generated.
+This will be fixed in a future release.
 {% endif %}
 You can also retrieve the result by repeating the request (either with frontend or with the python API query at the end of this message.).<br>
 <br>

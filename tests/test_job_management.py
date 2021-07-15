@@ -187,6 +187,7 @@ def validate_api_code(api_code, dispatcher_live_fixture):
         
         my_globals['data_collection'].show()
 
+
 def validate_products_url(url, dispatcher_live_fixture):
     if dispatcher_live_fixture is not None:
         # this is URL to frontend; it's not really true that it is passed the same way to dispatcher in all cases
@@ -236,8 +237,11 @@ def validate_email_content(
             content_text_html = part.get_payload().replace('\r', '').strip()
             content_text = content_text_html
 
-            if products_url is not None:                
-                assert re.search(f'<a href="(.*)">.*?</a>', content_text_html, re.M).group(1) == products_url
+            if products_url is not None:
+                if products_url != "":
+                    assert re.search(f'<a href="(.*)">.*?</a>', content_text_html, re.M).group(1) == products_url
+                else:
+                    assert re.search(f'<a href="(.*)">url</a>', content_text_html, re.M) == None
 
             fn = store_email(content_text_html, state=state, time_request_str=time_request_str, products_url=products_url)
 
@@ -249,11 +253,11 @@ def validate_email_content(
                 extract_api_code(content_text_html),
                 dispatcher_live_fixture
             )
-
-            validate_products_url(
-                extract_products_url(content_text_html),
-                dispatcher_live_fixture
-            )
+            if products_url != "":
+                validate_products_url(
+                    extract_products_url(content_text_html),
+                    dispatcher_live_fixture
+                )
 
         if content_text is not None:
             assert re.search(f'Dear User', content_text, re.IGNORECASE)
@@ -262,14 +266,15 @@ def validate_email_content(
             with open("email.text", "w") as f:
                 f.write(content_text)
 
-            if products_url is not None:                
-                assert products_url in content_text
+            if products_url is not None:
+                if products_url != "":
+                    assert products_url in content_text
 
 
-
-
-
-def get_expected_products_url(dict_param):
+def get_expected_products_url(dict_param,
+                              token,
+                              session_id,
+                              job_id):
     dict_param_complete = dict_param.copy()    
     dict_param_complete.pop("token", None)
     dict_param_complete.pop("session_id", None)
@@ -283,7 +288,18 @@ def get_expected_products_url(dict_param):
         if value is None:
             dict_param_complete.pop(key)
 
-    return '%s?%s' % ('PRODUCTS_URL', urlencode(dict_param_complete))
+    products_url = '%s?%s' % ('PRODUCTS_URL', urlencode(dict_param_complete))
+
+    if len(products_url) > 2000:
+        possibly_compressed_request_url = ""
+    elif 2000 > len(products_url) > 600:
+        possibly_compressed_request_url = \
+            "PRODUCTS_URL/dispatch-data/resolve-job-url?" + \
+            parse.urlencode(dict(job_id=job_id, session_id=session_id, token=token))
+    else:
+        possibly_compressed_request_url = products_url
+
+    return possibly_compressed_request_url
 
 
 def test_validation_job_id(dispatcher_live_fixture):
@@ -364,8 +380,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     DispatcherJobState.remove_scratch_folders()
     
     token_none = ( request_cred == 'public' )
-        
-    
+
     if token_none:
         encoded_token = None
     else:
@@ -401,7 +416,10 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     logger.info("response from run_analysis: %s", json.dumps(jdata, indent=4))
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
 
-    products_url = get_expected_products_url(dict_param)
+    session_id = jdata['session_id']
+    job_id = jdata['job_monitor']['job_id']
+
+    products_url = get_expected_products_url(dict_param, token=encoded_token, session_id=session_id, job_id=job_id)
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
     assert 'time_request' in jdata
@@ -455,7 +473,6 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                          token=encoded_token,
                          time_original_request=time_request
                      ))
-
 
     DataServerQuery.set_status('done')
 
@@ -703,7 +720,6 @@ def test_email_unnecessary_job_id(dispatcher_live_fixture, dispatcher_local_mail
     assert dict_param['job_id'] in jdata['error'] 
     
 
-   
 @pytest.mark.not_safe_parallel
 def test_email_submitted_frontend_like_job_id(dispatcher_live_fixture, dispatcher_local_mail_server):
     DispatcherJobState.remove_scratch_folders()
@@ -743,8 +759,6 @@ def test_email_submitted_frontend_like_job_id(dispatcher_live_fixture, dispatche
     
     dispatcher_job_state.assert_email(state="submitted")
     dispatcher_local_mail_server.assert_email_number(1)
-    
-  
 
 
 @pytest.mark.not_safe_parallel
@@ -1018,7 +1032,8 @@ def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_liv
     assert len(list_email_files) == 1
 
 
-def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_local_mail_server):
+@pytest.mark.parametrize("request_length", [600, 1000])
+def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_local_mail_server, request_length):
     # emails generally can not contain lines longer than 999 characters.
     # different SMTP servers will deal with these differently: 
     #  * some will respond with error, 
@@ -1045,18 +1060,20 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
     # set the time the request was initiated
     time_request = time.time()
 
-    name_parameter_value = "01"*1000
+    name_parameter_value = "01"*request_length
+
+    dict_param = dict(
+         query_status="new",
+         query_type="Real",
+         instrument="empty-async",
+         product_type="numerical",
+         string_like_name=name_parameter_value,
+         token=encoded_token,
+         time_request=time_request
+    )
 
     c = requests.get(server + "/run_analysis",
-                     params=dict(
-                         query_status="new",
-                         query_type="Real",
-                         instrument="empty-async",
-                         product_type="numerical",
-                         string_like_name=name_parameter_value,
-                         token=encoded_token,
-                         time_request=time_request
-                     ))
+                     params=dict_param)
 
     logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
@@ -1071,29 +1088,31 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
 
     print(email_data)
 
-    short_url = (f"PRODUCTS_URL/dispatch-data/resolve-job-url?"
-                 f"job_id={dispatcher_job_state.job_id}&"
-                 f"session_id={dispatcher_job_state.session_id}&"
-                 f"token={encoded_token}"
-                 )
-                 
+    session_id = jdata['session_id']
+    job_id = jdata['job_monitor']['job_id']
 
-    assert short_url in email_data
+    short_url = get_expected_products_url(dict_param, token=encoded_token, session_id=session_id, job_id=job_id)
 
-    url = short_url.replace('PRODUCTS_URL/dispatch-data', server)
+    if short_url != "":
+        assert short_url in email_data
+        url = short_url.replace('PRODUCTS_URL/dispatch-data', server)
 
-    print("url", url)
+        print("url", url)
 
-    c = requests.get(url, allow_redirects=False)
+        c = requests.get(url, allow_redirects=False)
 
-    assert c.status_code == 302, json.dumps(c.json(), sort_keys=True, indent=4)
+        assert c.status_code == 302, json.dumps(c.json(), sort_keys=True, indent=4)
 
-    redirect_url = parse.urlparse(c.headers['Location'])
-    print(redirect_url)
-        
-    # TODO: complete this
-    # compressed = "z%3A" + base64.b64encode(zlib.compress(json.dumps(name_parameter_value).encode())).decode()
-    # assert compressed in email_data
+        redirect_url = parse.urlparse(c.headers['Location'])
+        print(redirect_url)
+
+        # TODO: complete this
+        # compressed = "z%3A" + base64.b64encode(zlib.compress(json.dumps(name_parameter_value).encode())).decode()
+        # assert compressed in email_data
+    else:
+        assert """You can retrieve the results by repeating the request.
+Unfortunately, due to a known issue with very large requests, a URL with the selected request parameters could not be generated.
+This will be fixed in a future release.""" in email_data
 
 
 def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispatcher_local_mail_server):
