@@ -1,5 +1,7 @@
+from types import FunctionType
 import jwt
 
+default_algorithm = 'HS256'
 
 def get_token_roles(decoded_token):
     # extract role(s)
@@ -42,11 +44,35 @@ def get_token_user_sending_submitted_interval_email(decoded_token):
 
 
 def get_token_user_submitted_email(decoded_token):
-    # extract user threshold
     return decoded_token['mssub'] if 'mssub' in decoded_token else None
 
+def get_token_user_done_email(decoded_token):
+    return decoded_token.get('msdone', True) # TODO: make server configurable
+
+def get_token_user_fail_email(decoded_token):
+    return decoded_token.get('msfail', True) # TODO: make server configurable
 
 def get_decoded_token(token, secret_key):
     # decode the encoded token
     if token is not None:
-        return jwt.decode(token, secret_key, algorithms=['HS256'])
+        return jwt.decode(token, secret_key, algorithms=[default_algorithm])
+
+def update_token(token, secret_key, payload_mutation: FunctionType):
+    token_payload = jwt.decode(token, secret_key, algorithms=[default_algorithm])    
+
+    # update here
+    # tem=300000
+
+    token_payload = payload_mutation(token_payload) 
+
+    out_token = jwt.encode(token_payload, secret_key, algorithm=default_algorithm)
+
+    return out_token
+
+def update_token_suppress_email(token, secret_key):
+    def payload_mutation(token_payload):
+        token_payload['mssub'] = False
+        token_payload['msdone'] = False 
+        token_payload['msfail'] = False 
+
+    return update_token(token, secret_key, payload_mutation)
