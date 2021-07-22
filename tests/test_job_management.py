@@ -370,7 +370,7 @@ def test_validation_job_id(dispatcher_live_fixture):
 @pytest.mark.parametrize("time_original_request_none", [False])
 #why is it None sometimes, and should we really send an email in this case?..
 #@pytest.mark.parametrize("time_original_request_none", [True, False])
-@pytest.mark.parametrize("request_cred", ['public', 'private'])
+@pytest.mark.parametrize("request_cred", ['public', 'private', 'private-no-email'])
 def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_local_mail_server, default_values, request_cred, time_original_request_none):
     from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
     DataServerQuery.set_status('submitted')
@@ -380,6 +380,8 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     DispatcherJobState.remove_scratch_folders()
     
     token_none = ( request_cred == 'public' )
+
+    expect_email = True
 
     if token_none:
         encoded_token = None
@@ -395,6 +397,12 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
             token_payload.pop('mstout')
             token_payload.pop('mssub')
             token_payload.pop('intsub')
+
+        if request_cred == 'private-no-email':
+            token_payload['mssub'] = False
+            token_payload['msdone'] = False
+            token_payload['msfail'] = False
+            expect_email = False            
 
         encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
@@ -427,7 +435,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     time_request = jdata['time_request']
     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
     
-    if token_none:
+    if token_none or not expect_email:
         # email not supposed to be sent for public request
         assert 'email_status' not in jdata
     else:
@@ -493,7 +501,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     # TODO build a test that effectively test both paths
     jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')    
             
-    if token_none:
+    if token_none or not expect_email:
         assert 'email_status' not in jdata
 
     elif time_original_request_none:
@@ -534,7 +542,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     
     jdata = dispatcher_job_state.load_job_state_record('node_failed', 'failed')
 
-    if token_none:
+    if token_none or not expect_email:
         # email not supposed to be sent for public request
         assert 'email_status' not in jdata
     else:
