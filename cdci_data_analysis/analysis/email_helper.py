@@ -379,10 +379,10 @@ def is_email_to_send_callback(logger, status, time_original_request, config, job
                 logger.info("number of done emails sent: %s", len(done_email_files))
                 raise MultipleDoneEmail("multiple completion email detected")
 
-            return email_sending_timeout and duration_query > timeout_threshold_email
+            return  tokenHelper.get_token_user_done_email(decoded_token) and email_sending_timeout and duration_query > timeout_threshold_email
 
         # or if failed
         elif status == 'failed':
-            return True
+            return tokenHelper.get_token_user_fail_email(decoded_token)
 
     return False

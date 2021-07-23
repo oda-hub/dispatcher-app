@@ -473,6 +473,10 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
         **default_token_payload
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    
+    if isinstance(encoded_token, bytes):
+        encoded_token = encoded_token.decode()
+
 
     disp = oda_api.api.DispatcherAPI(
         url=dispatcher_live_fixture,
@@ -538,6 +542,9 @@ def test_valid_token_oda_api(dispatcher_live_fixture):
         **default_token_payload
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    
+    if isinstance(encoded_token, bytes):
+        encoded_token = encoded_token.decode()
 
     disp = oda_api.api.DispatcherAPI(
         url=dispatcher_live_fixture)
@@ -828,6 +835,10 @@ def test_user_catalog_oda_api(dispatcher_live_fixture):
         "roles": "unige-hpc-full, general",
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    if isinstance(encoded_token, bytes):
+        encoded_token = encoded_token.decode()
+
     selected_catalog_dict = dict(
         cat_lon_name="ra",
         cat_lat_name="dec",
