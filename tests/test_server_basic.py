@@ -582,6 +582,8 @@ def test_valid_token_oda_api(dispatcher_live_fixture):
     assert jdata["status_dictionary"]["debug_message"] == ""
     assert jdata["status_dictionary"]["error_message"] == ""
     assert jdata["status_dictionary"]["message"] == ""
+    assert "disp=DispatcherAPI(url='PRODUCTS_URL/dispatch-data', instrument='mock')" in jdata['prod_dictionary']['api_code'] 
+    
 
 
 @pytest.mark.parametrize("roles", ["", "unige-hpc-full, general", ["unige-hpc-full", "general"]])
