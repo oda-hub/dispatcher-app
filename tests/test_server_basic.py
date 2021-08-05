@@ -433,13 +433,14 @@ def test_modify_token(dispatcher_live_fixture):
         "mstout": True,
         "mssub": True,
         "msdone": True,
-        "intsub": 5
+        "intsub": 5,
+        'query_status': 'new',
     }
 
-    c = requests.get(server + "/get_token",
+    c = requests.get(server + "/update_token_email_options",
                      params=params)
 
-    print("content:", c.text)
+    print("updated token: ", c.text)
 
 
 @pytest.mark.not_safe_parallel

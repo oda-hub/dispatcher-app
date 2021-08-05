@@ -26,6 +26,7 @@ from flask_restx import Api, Resource, reqparse
 import logging
 import time as _time
 
+from cdci_data_analysis.analysis import tokenHelper
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError
@@ -221,10 +222,15 @@ def common_exception_payload():
     return payload
 
 
-@app.route('/get_token', methods=['POST', 'GET'])
-def get_token():
+@app.route('/update_token_email_options', methods=['POST', 'GET'])
+def update_token_email_options():
     print(f"request.args: {request.args}")
 
+    query = InstrumentQueryBackEnd(app, update_token=True)
+
+    query.update_token(update_email_options=True)
+    # TODO adaption to the QueryOutJSON schema is needed
+    return query.token
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
@@ -261,8 +267,8 @@ def run_analysis():
         logger.info("towards log_run_query_result")
         log_run_query_result(request_summary, r[0])
 
-
         return r
+
     except APIerror as e:
         raise
     except Exception as e:
@@ -280,7 +286,7 @@ def run_analysis():
 def validate_schema(response):
     try:
         if dispatcher_strict_validate:
-            # TODO in case of download/js9 request a dedicated validaiton schema should be defined
+            # TODO in case of download/js9 request a dedicated validation schema should be defined
             if not response.is_streamed:
                 QueryOutJSON().load(response.json)
     except ValidationError as e:

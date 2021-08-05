@@ -62,20 +62,23 @@ def get_decoded_token(token, secret_key):
 
 def update_token_email_options(token, secret_key, new_options: dict):
     _valid_options_keys_list = ['msfail', 'msdone', 'mssub', 'intsub', 'mstout', 'tem']
+    updated_token = token
+    validation_dict = new_options.copy()
 
-    # check validity keys new options
+    # remove not needed keys
     for n in new_options.keys():
         if n not in _valid_options_keys_list:
-            raise Exception(f'the parameter: {n} is not among the valid ones: {_valid_options_keys_list}')
+            del validation_dict[n]
 
     def mutate_token_email_payload(token_payload):
         new_payload = token_payload.copy()
-        new_payload.update(new_options)
+        new_payload.update(validation_dict)
 
         return new_payload
 
     # use the oda_api function
-    # updated_token = update_token(token, secret_key=secret_key, payload_mutation=mutate_token_email_payload)
+    # updated_token = oda_api.token.update_token(token, secret_key=secret_key, payload_mutation=mutate_token_email_payload)
+    return updated_token
 
 
 

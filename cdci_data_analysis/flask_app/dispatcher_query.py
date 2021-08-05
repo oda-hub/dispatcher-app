@@ -87,7 +87,7 @@ class InstrumentQueryBackEnd:
     def instrument_name(self, instrument_name):
         self._instrument_name = instrument_name
 
-    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False, resolve_job_url=False):
+    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False, resolve_job_url=False, update_token=False):
         self.logger = logging.getLogger(repr(self))
 
         if verbose:
@@ -137,7 +137,7 @@ class InstrumentQueryBackEnd:
 
                 logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
 
-            if download_products or resolve_job_url:
+            if download_products or resolve_job_url or update_token:
                 instrument_name = 'mock'
 
             if instrument_name is None:
@@ -546,6 +546,13 @@ class InstrumentQueryBackEnd:
                 #TODO: only if it was just set
                 #raise InvalidJobIDProvided(f"no record exists for job_id = {self.job_id}")
 
+    # potentially this can be extended to support more modification of the token payload (e.g. roles)
+    def update_token(self, update_email_options=False):
+        if update_email_options:
+            self.token = tokenHelper.update_token_email_options(self.token, self.app.config.get('conf').secret_key,
+                                                                self.par_dic)
+
+        return self.token
 
     def download_products(self):
         try:
