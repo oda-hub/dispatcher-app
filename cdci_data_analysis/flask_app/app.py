@@ -221,6 +221,11 @@ def common_exception_payload():
     return payload
 
 
+@app.route('/get_token', methods=['POST', 'GET'])
+def get_token():
+    print(f"request.args: {request.args}")
+
+
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():

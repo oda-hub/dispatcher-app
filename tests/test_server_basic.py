@@ -416,6 +416,32 @@ def test_download_products_unauthorized_user(dispatcher_live_fixture, empty_prod
     assert jdata["exit_status"]["message"] == "Request not authorized"
 
 
+def test_modify_token(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    # expired token
+    token_payload = {
+        **default_token_payload,
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'token': encoded_token,
+        # new set of email options
+        "tem": 10,
+        "mstout": True,
+        "mssub": True,
+        "msdone": True,
+        "intsub": 5
+    }
+
+    c = requests.get(server + "/get_token",
+                     params=params)
+
+    print("content:", c.text)
+
+
 @pytest.mark.not_safe_parallel
 def test_invalid_token(dispatcher_live_fixture):
     server = dispatcher_live_fixture
@@ -584,7 +610,6 @@ def test_valid_token_oda_api(dispatcher_live_fixture):
     assert jdata["status_dictionary"]["message"] == ""
     assert "disp=DispatcherAPI(url='PRODUCTS_URL/dispatch-data', instrument='mock')" in jdata['prod_dictionary']['api_code'] 
     
-
 
 @pytest.mark.parametrize("roles", ["", "unige-hpc-full, general", ["unige-hpc-full", "general"]])
 def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):

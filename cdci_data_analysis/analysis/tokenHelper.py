@@ -3,6 +3,7 @@ import jwt
 
 default_algorithm = 'HS256'
 
+
 def get_token_roles(decoded_token):
     # extract role(s)
     if isinstance(decoded_token['roles'], str):
@@ -34,25 +35,47 @@ def get_token_user_timeout_threshold_email(decoded_token):
 
 
 def get_token_user_sending_timeout_email(decoded_token):
-    # extract user threshold
     return decoded_token['mstout'] if 'mstout' in decoded_token else None
 
 
 def get_token_user_sending_submitted_interval_email(decoded_token):
-    # extract user threshold
     return decoded_token['intsub'] if 'intsub' in decoded_token else None
 
 
 def get_token_user_submitted_email(decoded_token):
     return decoded_token['mssub'] if 'mssub' in decoded_token else None
 
+
 def get_token_user_done_email(decoded_token):
     return decoded_token.get('msdone', True) # TODO: make server configurable
 
+
 def get_token_user_fail_email(decoded_token):
     return decoded_token.get('msfail', True) # TODO: make server configurable
+
 
 def get_decoded_token(token, secret_key):
     # decode the encoded token
     if token is not None:
         return jwt.decode(token, secret_key, algorithms=[default_algorithm])
+
+
+def update_token_email_options(token, secret_key, new_options: dict):
+    _valid_options_keys_list = ['msfail', 'msdone', 'mssub', 'intsub', 'mstout', 'tem']
+
+    # check validity keys new options
+    for n in new_options.keys():
+        if n not in _valid_options_keys_list:
+            raise Exception(f'the parameter: {n} is not among the valid ones: {_valid_options_keys_list}')
+
+    def mutate_token_email_payload(token_payload):
+        new_payload = token_payload.copy()
+        new_payload.update(new_options)
+
+        return new_payload
+
+    # use the oda_api function
+    # updated_token = update_token(token, secret_key=secret_key, payload_mutation=mutate_token_email_payload)
+
+
+
