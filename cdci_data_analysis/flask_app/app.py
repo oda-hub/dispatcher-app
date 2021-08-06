@@ -221,7 +221,6 @@ def common_exception_payload():
     return payload
 
 
-
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
     """

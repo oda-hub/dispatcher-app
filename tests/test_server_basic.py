@@ -1009,3 +1009,45 @@ def test_example_config(dispatcher_test_conf):
     print("\n\n\ntest_config_keys", test_config_keys)
 
     assert set(example_config_keys) == set(test_config_keys)
+
+
+def test_mosaic_image(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 55,
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                method='post',
+                )
+
+    assert 'numpy_data_product_list' in jdata['products']
+    # test job_id
+    job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
+    # adapting some values to string
+    for k, v in params.items():
+        params[k] = str(v)
+
+    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "sub": "mtm@mtmco.net"})
+    calculated_job_id = make_hash(restricted_par_dic)
+
+    assert job_id == calculated_job_id
+

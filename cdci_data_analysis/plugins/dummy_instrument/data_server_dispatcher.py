@@ -224,9 +224,9 @@ class DataServerNumericQuery(ProductQuery):
         ima = NumpyDataUnit(np.zeros((100, 100)), hdu_type='image')
         data = NumpyDataProduct(data_unit=ima)
         # build image product
-        image = ImageProduct(name='empty_image',
+        image = ImageProduct(name='user_image',
                              data=data,
-                             name_prefix='empty_prefix',
+                             # name_prefix='empty_prefix',
                              # file_dir='data/dummy_prods/',
                              file_dir=None,
                              # file_name='empty_mosaic.fits',
@@ -243,17 +243,18 @@ class DataServerNumericQuery(ProductQuery):
     def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
         return []
 
+
     def process_product_method(self, instrument, prod_list, api=False, **kw):
         query_out = QueryOutput()
         if len(prod_list.prod_list) > 0:
-            # catalog
-            query_catalog = prod_list.get_prod_by_name('user_catalog')
-            if query_catalog is not None:
-                query_out.prod_dictionary['catalog'] = query_catalog.value.get_dictionary()
-            # image
-            query_image = prod_list.get_prod_by_name('empty_image')
-            if query_image is not None:
-                query_out.prod_dictionary['numpy_data_product_list'] = [query_image.data]
+            for prod in prod_list.prod_list:
+                if hasattr(prod, 'name'):
+                    if prod.name == 'user_catalog':
+                        # catalog
+                        query_out.prod_dictionary['catalog'] = prod.value.get_dictionary()
+                    if prod.name == 'user_image':
+                        # image
+                        query_out.prod_dictionary['numpy_data_product_list'] = [prod.data]
 
         return query_out
 
