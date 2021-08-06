@@ -216,7 +216,12 @@ class DataServerNumericQuery(ProductQuery):
         pass
 
     def get_dummy_products(self, instrument, config=None, **kwargs):
-        catalog = instrument.instrumet_query.parameters[0]
+        user_catalog = None
+        if len(instrument.instrumet_query.parameters) > 0:
+            for par in instrument.instrumet_query.parameters:
+                if par.name == 'user_catalog' and par.value is not None:
+                    user_catalog = instrument.instrumet_query.parameters[0]
+
         # create dummy NumpyDataProduct
         meta_data = {'product': 'mosaic', 'instrument': 'empty', 'src_name': '',
                      'query_parameters': self.get_parameters_list_as_json()}
@@ -226,23 +231,18 @@ class DataServerNumericQuery(ProductQuery):
         # build image product
         image = ImageProduct(name='user_image',
                              data=data,
-                             # name_prefix='empty_prefix',
-                             # file_dir='data/dummy_prods/',
                              file_dir=None,
-                             # file_name='empty_mosaic.fits',
                              file_name=None,
                              meta_data=meta_data)
 
         prod_list = QueryProductList(prod_list=[image])
-        if catalog.value is not None:
-            prod_list.prod_list.append(catalog)
+        if user_catalog is not None and user_catalog.value is not None:
+            prod_list.prod_list.append(user_catalog)
 
         return prod_list
 
-
     def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
         return []
-
 
     def process_product_method(self, instrument, prod_list, api=False, **kw):
         query_out = QueryOutput()
