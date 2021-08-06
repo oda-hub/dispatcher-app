@@ -40,8 +40,12 @@ from raven.utils.urlparse import urlparse
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.analysis.queries import ProductQuery
-from cdci_data_analysis.analysis.products import QueryOutput, QueryProductList
+from cdci_data_analysis.analysis.products import QueryOutput, QueryProductList, ImageProduct
 from cdci_data_analysis.analysis.instrument import Instrument
+
+from oda_api.data_products import NumpyDataProduct, NumpyDataUnit
+
+import numpy as np
 
 import logging
 
@@ -213,7 +217,23 @@ class DataServerNumericQuery(ProductQuery):
 
     def get_dummy_products(self, instrument, config=None, **kwargs):
         catalog = instrument.instrumet_query.parameters[0]
-        prod_list = QueryProductList(prod_list=[])
+        # create dummy NumpyDataProduct
+        meta_data = {'product': 'mosaic', 'instrument': 'empty', 'src_name': '',
+                     'query_parameters': self.get_parameters_list_as_json()}
+
+        ima = NumpyDataUnit(np.zeros((100, 100)), hdu_type='image')
+        data = NumpyDataProduct(data_unit=ima)
+        # build image product
+        image = ImageProduct(name='empty_image',
+                             data=data,
+                             name_prefix='empty_prefix',
+                             # file_dir='data/dummy_prods/',
+                             file_dir=None,
+                             # file_name='empty_mosaic.fits',
+                             file_name=None,
+                             meta_data=meta_data)
+
+        prod_list = QueryProductList(prod_list=[image])
         if catalog.value is not None:
             prod_list.prod_list.append(catalog)
 
@@ -226,9 +246,14 @@ class DataServerNumericQuery(ProductQuery):
     def process_product_method(self, instrument, prod_list, api=False, **kw):
         query_out = QueryOutput()
         if len(prod_list.prod_list) > 0:
+            # catalog
             query_catalog = prod_list.get_prod_by_name('user_catalog')
             if query_catalog is not None:
                 query_out.prod_dictionary['catalog'] = query_catalog.value.get_dictionary()
+            # image
+            query_image = prod_list.get_prod_by_name('empty_image')
+            if query_image is not None:
+                query_out.prod_dictionary['numpy_data_product_list'] = [query_image.data]
 
         return query_out
 
