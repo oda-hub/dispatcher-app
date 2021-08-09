@@ -1,6 +1,8 @@
-from types import FunctionType
+import ast
 import jwt
 import oda_api.token
+
+from cdci_data_analysis.analysis.exceptions import BadRequest
 
 default_algorithm = 'HS256'
 
@@ -61,15 +63,29 @@ def get_decoded_token(token, secret_key):
         return jwt.decode(token, secret_key, algorithms=[default_algorithm])
 
 
-def update_token_email_options(token, secret_key, new_options: dict):
-    _valid_options_keys_list = ['msfail', 'msdone', 'mssub', 'intsub', 'mstout', 'tem']
-    updated_token = token
+def update_token_email_options(token, secret_key, new_options):
+    _valid_options_keys_types_dict = {
+        'msfail': bool,
+        'msdone': bool,
+        'mssub': bool,
+        'intsub': [int, float],
+        'mstout': bool,
+        'tem': [int, float],
+    }
+    _valid_options_keys_list = _valid_options_keys_types_dict.keys()
     validation_dict = new_options.copy()
 
-    # remove not needed keys
+    # remove not needed keys, and fix types
     for n in new_options.keys():
         if n not in _valid_options_keys_list:
             del validation_dict[n]
+        else:
+            converted_value = ast.literal_eval(new_options[n])
+            if type(converted_value) == _valid_options_keys_types_dict[n] or \
+                    type(converted_value) in _valid_options_keys_types_dict[n]:
+                validation_dict[n] = converted_value
+            else:
+                raise BadRequest(f'Type of {n} not valid, it should be {_valid_options_keys_types_dict[n]}')
 
     def mutate_token_email_payload(token_payload):
         new_payload = token_payload.copy()
