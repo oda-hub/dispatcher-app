@@ -886,7 +886,7 @@ def test_user_catalog_oda_api(dispatcher_live_fixture):
     assert jdata["prod_dictionary"]["analysis_parameters"]["selected_catalog"] == json.dumps(selected_catalog_dict)
 
     # TODO the name of this method is misleading
-    api_cat_dict = json.loads(prods.dispatcher_catalog_0.get_api_dictionary())
+    api_cat_dict = json.loads(prods.dispatcher_catalog_1.get_api_dictionary())
     assert api_cat_dict == selected_catalog_dict
 
 
