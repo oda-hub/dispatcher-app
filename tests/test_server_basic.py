@@ -426,21 +426,32 @@ def test_modify_token(dispatcher_live_fixture):
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    params = {
-        'token': encoded_token,
+    token_update = {
         # new set of email options
         "tem": 10,
         "mstout": True,
         "mssub": True,
         "msdone": True,
         "intsub": 5,
+    }
+
+    params = {
+        'token': encoded_token,
+        **token_update,
         'query_status': 'new',
     }
 
-    c = requests.get(server + "/update_token_email_options",
+    c = requests.post(server + "/update_token_email_options",
                      params=params)
 
-    print("updated token: ", c.text)
+    updated_token_payload = {
+        **token_payload,
+        **token_update
+    }
+
+    updated_encoded_token = jwt.encode(updated_token_payload, secret_key, algorithm='HS256')
+
+    assert updated_encoded_token == c.text
 
 
 @pytest.mark.not_safe_parallel
