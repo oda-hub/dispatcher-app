@@ -1,5 +1,6 @@
 from types import FunctionType
 import jwt
+import oda_api.token
 
 default_algorithm = 'HS256'
 
@@ -77,7 +78,7 @@ def update_token_email_options(token, secret_key, new_options: dict):
         return new_payload
 
     # use the oda_api function
-    # updated_token = oda_api.token.update_token(token, secret_key=secret_key, payload_mutation=mutate_token_email_payload)
+    updated_token = oda_api.token.update_token(token, secret_key=secret_key, payload_mutation=mutate_token_email_payload)
     return updated_token
 
 
