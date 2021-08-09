@@ -1011,7 +1011,7 @@ def test_example_config(dispatcher_test_conf):
     assert set(example_config_keys) == set(test_config_keys)
 
 
-def test_mosaic_image(dispatcher_live_fixture):
+def test_image(dispatcher_live_fixture):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
