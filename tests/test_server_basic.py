@@ -416,7 +416,8 @@ def test_download_products_unauthorized_user(dispatcher_live_fixture, empty_prod
     assert jdata["exit_status"]["message"] == "Request not authorized"
 
 
-def test_modify_token(dispatcher_live_fixture):
+@pytest.mark.parametrize("tem_value", [10, "10aaaa"])
+def test_modify_token(dispatcher_live_fixture, tem_value):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
@@ -428,7 +429,7 @@ def test_modify_token(dispatcher_live_fixture):
 
     token_update = {
         # new set of email options
-        "tem": 10,
+        "tem": tem_value,
         "mstout": True,
         "mssub": True,
         "msdone": True,
@@ -451,7 +452,12 @@ def test_modify_token(dispatcher_live_fixture):
 
     updated_encoded_token = jwt.encode(updated_token_payload, secret_key, algorithm='HS256')
 
-    assert updated_encoded_token == c.text
+    if tem_value == '10aaaa':
+        jdata = c.json()
+        assert jdata['error_message'] == 'The provided value of the option \'tem\' is not of a valid type, ' \
+                                         'it should be one of the following: [int,float]'
+    else:
+        assert updated_encoded_token == c.text
 
 
 @pytest.mark.not_safe_parallel
