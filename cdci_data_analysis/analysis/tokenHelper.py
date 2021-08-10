@@ -1,7 +1,6 @@
 import ast
 import jwt
 import oda_api.token
-import logging
 
 from cdci_data_analysis.analysis.exceptions import BadRequest
 
