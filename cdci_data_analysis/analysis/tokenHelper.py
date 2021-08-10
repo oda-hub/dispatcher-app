@@ -85,11 +85,11 @@ def update_token_email_options(token, secret_key, new_options, logger=None):
         if n not in _valid_options_keys_list:
             del validation_dict[n]
         else:
-            converted_value = new_options[n]
             try:
                 converted_value = ast.literal_eval(new_options[n])
             except Exception as e:
-                logger.debug(f'Value {new_options[n]} cannot be properly evaluated, {e}')
+                raise BadRequest(f'The provided value of the option \'{n}\' cannot be properly interpreted, '
+                                 'please check it and re-try to issue the request')
 
             if type(converted_value) == _valid_options_keys_types_dict[n] or \
                     type(converted_value) in _valid_options_keys_types_dict[n]:

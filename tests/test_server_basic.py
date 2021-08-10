@@ -454,8 +454,10 @@ def test_modify_token(dispatcher_live_fixture, tem_value):
 
     if tem_value == '10aaaa':
         jdata = c.json()
-        assert jdata['error_message'] == 'The provided value of the option \'tem\' is not of a valid type, ' \
-                                         'it should be one of the following: [int,float]'
+        assert jdata['error_message'] == 'The provided value of the option \'tem\' cannot be properly interpreted, ' \
+                                         'please check it and re-try to issue the request'
+        # assert jdata['error_message'] == 'The provided value of the option \'tem\' is not of a valid type, ' \
+        #                                  'it should be one of the following: [int,float]'
     else:
         assert updated_encoded_token == c.text
 
