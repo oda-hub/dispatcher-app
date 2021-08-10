@@ -64,9 +64,7 @@ def get_decoded_token(token, secret_key):
         return jwt.decode(token, secret_key, algorithms=[default_algorithm])
 
 
-def update_token_email_options(token, secret_key, new_options, logger=None):
-    if logger is None:
-        logger = logging.getLogger("tokenHelper")
+def update_token_email_options(token, secret_key, new_options):
 
     # TODO a dedicated configuration file is a better approach
     _valid_options_keys_types_dict = {

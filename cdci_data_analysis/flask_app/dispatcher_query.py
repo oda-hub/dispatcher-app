@@ -550,7 +550,7 @@ class InstrumentQueryBackEnd:
     def update_token(self, update_email_options=False):
         if update_email_options:
             self.token = tokenHelper.update_token_email_options(self.token, self.app.config.get('conf').secret_key,
-                                                                self.par_dic, logger=self.logger)
+                                                                self.par_dic)
 
         return self.token
 
