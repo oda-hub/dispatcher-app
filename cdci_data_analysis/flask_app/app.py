@@ -5,28 +5,18 @@ Created on Wed May 10 10:55:20 2017
 
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
-from builtins import (open, str, range,
-                      object)
-from werkzeug.utils import secure_filename
-
-import os
 import string
 import random
 from raven.contrib.flask import Sentry
 
-import traceback
-
 from flask import jsonify, send_from_directory, redirect, Response
 from flask import Flask, request, make_response, abort, g
-from flask.json import JSONEncoder
 
 # restx not really used
 from flask_restx import Api, Resource, reqparse
 
-import logging
 import time as _time
 
-from cdci_data_analysis.analysis import tokenHelper
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError

@@ -90,7 +90,7 @@ def update_token_email_options(token, secret_key, new_options, logger=None):
                 converted_value = ast.literal_eval(new_options[n])
             except:
                 logger.debug(f'Value {new_options[n]} cannot be properly evaluated')
-                pass
+
             if type(converted_value) == _valid_options_keys_types_dict[n] or \
                     type(converted_value) in _valid_options_keys_types_dict[n]:
                 validation_dict[n] = converted_value
