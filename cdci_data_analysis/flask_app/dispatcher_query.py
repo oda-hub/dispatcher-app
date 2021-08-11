@@ -541,9 +541,10 @@ class InstrumentQueryBackEnd:
 
     # potentially this can be extended to support more modification of the token payload (e.g. roles)
     def update_token(self, update_email_options=False):
+
         if update_email_options:
             self.token = tokenHelper.update_token_email_options(self.token, self.app.config.get('conf').secret_key,
-                                                                self.par_dic, kw_black_list=default_kw_black_list)
+                                                                self.restricted_par_dic(self.par_dic))
 
         return self.token
 
