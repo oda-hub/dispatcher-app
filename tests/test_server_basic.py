@@ -445,21 +445,22 @@ def test_modify_token(dispatcher_live_fixture, tem_value):
     c = requests.post(server + "/update_token_email_options",
                      params=params)
 
-    updated_token_payload = {
-        **token_payload,
-        **token_update
-    }
+    token_payload.update(token_update)
 
-    updated_encoded_token = jwt.encode(updated_token_payload, secret_key, algorithm='HS256')
+    updated_encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
     if tem_value == '10aaaa':
         jdata = c.json()
-        assert jdata['error_message'] == 'The provided value of the option \'tem\' cannot be properly interpreted, ' \
-                                         'please check it and re-try to issue the request'
-        # assert jdata['error_message'] == 'The provided value of the option \'tem\' is not of a valid type, ' \
-        #                                  'it should be one of the following: [int,float]'
+        assert jdata['error_message'] == 'An error occurred while validating the following fields: ' \
+                                         '{\'tem\': [\'Not a valid number.\']}. ' \
+                                         'Please check it and re-try to issue the request'
     else:
-        assert updated_encoded_token == c.text
+        payload_returned_token = jwt.decode(c.text, secret_key, algorithms='HS256')
+        # order of the payload fields might change inside the dispatcher (eg by marshmallow, ordering)
+        # so the two corresponding tokens might be different,
+        # but the content (fields and values) are still suppposed to match match
+        # TODO is the order of the fields in the paylaod important?
+        assert token_payload == payload_returned_token
 
 
 @pytest.mark.not_safe_parallel

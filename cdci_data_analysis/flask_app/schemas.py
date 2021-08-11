@@ -1,7 +1,10 @@
+import ast
 import os
+import typing
 
 from marshmallow import Schema, EXCLUDE, fields
 from marshmallow.validate import OneOf
+from marshmallow.fields import _T
 
 dispatcher_strict_validate = os.environ.get('DISPATCHER_STRICT_VALIDATE', 'no') == 'yes'
 
@@ -53,6 +56,15 @@ class UserOptionsTokenSchema(Schema):
     roles = fields.List(fields.Str, description="List of roles assigned to the user", required=False)
 
 
+class FloatNoFormattingField(fields.Number):
+    def _deserialize(self, value, attr, data, **kwargs) -> typing.Optional[_T]:
+        # validate the provided value
+        self._validated(value)
+        # to prevent un-wanted conversion to different types
+        value_eval = ast.literal_eval(value)
+        return value_eval
+
+
 class EmailOptionsTokenSchema(Schema):
     # email options
     msfail = fields.Boolean(description="Enable email sending in case of request failure", required=False)
@@ -60,9 +72,9 @@ class EmailOptionsTokenSchema(Schema):
     mssub = fields.Boolean(description="Enable email sending in case of request submission", required=False)
     mstout = fields.Boolean(description="Enable email sending in case timeout expiration from last send",
                             required=False)
-    intsub = fields.Float(description="Minimum time interval that should elapse between two submitted notification emails",
+    intsub = FloatNoFormattingField(description="Minimum time interval that should elapse between two submitted notification emails",
                           required=False)
-    tem = fields.Float(description="Minimum time duration for the request for email sending", required=False)
+    tem = FloatNoFormattingField(description="Minimum time duration for the request for email sending", required=False)
 
 
 class TokenPayloadSchema(EmailOptionsTokenSchema, UserOptionsTokenSchema, TokenBasePayloadSchema):

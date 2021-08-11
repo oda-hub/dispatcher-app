@@ -1,4 +1,3 @@
-import ast
 import jwt
 import oda_api.token
 from marshmallow import ValidationError
@@ -69,38 +68,12 @@ def get_decoded_token(token, secret_key):
 
 def update_token_email_options(token, secret_key, new_options):
 
-    _valid_options_keys_types_dict = {
-        'msfail': bool,
-        'msdone': bool,
-        'mssub': bool,
-        'intsub': [int, float],
-        'mstout': bool,
-        'tem': [int, float],
-    }
-    _valid_options_keys_list = _valid_options_keys_types_dict.keys()
-    validation_dict = new_options.copy()
+    validation_dict = {}
     try:
-        EmailOptionsTokenSchema().load(new_options)
+        validation_dict = EmailOptionsTokenSchema().load(new_options)
     except ValidationError as e:
-        pass
-    # remove not needed keys, and check types
-    for n in new_options.keys():
-        if n not in _valid_options_keys_list:
-            del validation_dict[n]
-        else:
-            try:
-                converted_value = ast.literal_eval(new_options[n])
-            except Exception:
-                raise BadRequest(f'The provided value of the option \'{n}\' cannot be properly interpreted, '
-                                 'please check it and re-try to issue the request')
-
-            if type(converted_value) == _valid_options_keys_types_dict[n] or \
-                    type(converted_value) in _valid_options_keys_types_dict[n]:
-                validation_dict[n] = converted_value
-            else:
-                printed_types = ','.join(map(lambda v: v.__name__, _valid_options_keys_types_dict[n]))
-                raise BadRequest(f'The provided value of the option \'{n}\' is not of a valid type, '
-                                 f'it should be one of the following: [{printed_types}]')
+        raise BadRequest(f'An error occurred while validating the following fields: {e.messages}. '
+                         f'Please check it and re-try to issue the request')
 
     def mutate_token_email_payload(token_payload):
         new_payload = token_payload.copy()
