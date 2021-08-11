@@ -65,7 +65,6 @@ def get_decoded_token(token, secret_key):
 
 def update_token_email_options(token, secret_key, new_options):
 
-    # TODO a dedicated configuration file is a better approach
     _valid_options_keys_types_dict = {
         'msfail': bool,
         'msdone': bool,
