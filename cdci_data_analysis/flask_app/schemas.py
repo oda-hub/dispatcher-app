@@ -72,9 +72,9 @@ class EmailOptionsTokenSchema(Schema):
     mssub = fields.Boolean(description="Enable email sending in case of request submission", required=False)
     mstout = fields.Boolean(description="Enable email sending in case timeout expiration from last send",
                             required=False)
-    intsub = FloatNoFormattingField(description="Minimum time interval that should elapse between two submitted notification emails",
+    intsub = fields.Float(description="Minimum time interval that should elapse between two submitted notification emails",
                           required=False)
-    tem = FloatNoFormattingField(description="Minimum time duration for the request for email sending", required=False)
+    tem = fields.Float(description="Minimum time duration for the request for email sending", required=False)
 
 
 class TokenPayloadSchema(EmailOptionsTokenSchema, UserOptionsTokenSchema, TokenBasePayloadSchema):

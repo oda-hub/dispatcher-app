@@ -458,7 +458,7 @@ def test_modify_token(dispatcher_live_fixture, tem_value):
         payload_returned_token = jwt.decode(c.text, secret_key, algorithms='HS256')
         # order of the payload fields might change inside the dispatcher (eg by marshmallow, ordering)
         # so the two corresponding tokens might be different,
-        # but the content (fields and values) are still suppposed to match match
+        # but the content (fields and values) are still supposed to match match
         # TODO is the order of the fields in the paylaod important?
         assert token_payload == payload_returned_token
 
