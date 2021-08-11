@@ -48,7 +48,7 @@ class TokenSchema(Schema):
     name = fields.Str(description="Name of the user", required=False)
     sub = fields.Str(description="Email address of the user", required=False)
     email = fields.Str(description="Email address of the user", required=False)
-    roles = fields.List(description="List of roles associated to the user", required=False)
+    roles = fields.List(fields.Str, description="List of roles assigned to the user", required=False)
 
     # email options
     msfail = fields.Boolean(description="Enable email sending in case of request failure", required=False)

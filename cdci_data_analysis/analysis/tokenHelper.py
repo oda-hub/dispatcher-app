@@ -83,7 +83,7 @@ def update_token_email_options(token, secret_key, new_options):
         else:
             try:
                 converted_value = ast.literal_eval(new_options[n])
-            except Exception as e:
+            except Exception:
                 raise BadRequest(f'The provided value of the option \'{n}\' cannot be properly interpreted, '
                                  'please check it and re-try to issue the request')
 
