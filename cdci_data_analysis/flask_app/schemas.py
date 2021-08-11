@@ -56,6 +56,7 @@ class UserOptionsTokenSchema(Schema):
     roles = fields.List(fields.Str, description="List of roles assigned to the user", required=False)
 
 
+# TODO could this be needed?
 class FloatNoFormattingField(fields.Number):
     def _deserialize(self, value, attr, data, **kwargs) -> typing.Optional[_T]:
         # validate the provided value
