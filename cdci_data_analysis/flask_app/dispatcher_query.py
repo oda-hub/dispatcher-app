@@ -40,6 +40,7 @@ from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
 from ..analysis import tokenHelper, email_helper
 from ..analysis.hash import make_hash
+from ..analysis.hash import default_kw_black_list
 from ..analysis.job_manager import Job, job_factory
 from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
@@ -241,15 +242,7 @@ class InstrumentQueryBackEnd:
         """
 
         if kw_black_list is None:
-            kw_black_list = ('session_id',
-                             'job_id',
-                             'token',
-                             'dry_run',
-                             'oda_api_version',
-                             'api',
-                             'off_line',
-                             'query_status',
-                             'async_dispatcher')
+            kw_black_list = default_kw_black_list
 
         return OrderedDict({
             k: v for k, v in par_dic.items()
@@ -550,7 +543,7 @@ class InstrumentQueryBackEnd:
     def update_token(self, update_email_options=False):
         if update_email_options:
             self.token = tokenHelper.update_token_email_options(self.token, self.app.config.get('conf').secret_key,
-                                                                self.par_dic)
+                                                                self.par_dic, kw_black_list=default_kw_black_list)
 
         return self.token
 

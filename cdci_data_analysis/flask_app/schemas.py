@@ -40,16 +40,20 @@ class QueryOutJSON(Schema):
                     )
 
 
-class TokenSchema(Schema):
+class TokenBasePayloadSchema(Schema):
     exp = fields.Int(descritopn="Token expiration time", required=True)
     iss = fields.Str(descritopn="Token issuer (eg drupal)", required=False)
     iat = fields.Int(descritopn="Token issuing time", required=False)
 
+
+class UserOptionsTokenSchema(Schema):
     name = fields.Str(description="Name of the user", required=False)
     sub = fields.Str(description="Email address of the user", required=False)
     email = fields.Str(description="Email address of the user", required=False)
     roles = fields.List(fields.Str, description="List of roles assigned to the user", required=False)
 
+
+class EmailOptionsTokenSchema(Schema):
     # email options
     msfail = fields.Boolean(description="Enable email sending in case of request failure", required=False)
     msdone = fields.Boolean(description="Enable email sending in case of request completion", required=False)
@@ -59,3 +63,7 @@ class TokenSchema(Schema):
     intsub = fields.Float(description="Minimum time interval that should elapse between two submitted notification emails",
                           required=False)
     tem = fields.Float(description="Minimum time duration for the request for email sending", required=False)
+
+
+class TokenPayloadSchema(EmailOptionsTokenSchema, UserOptionsTokenSchema, TokenBasePayloadSchema):
+    pass

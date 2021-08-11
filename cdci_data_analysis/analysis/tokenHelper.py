@@ -1,8 +1,11 @@
 import ast
 import jwt
 import oda_api.token
+from marshmallow import ValidationError
 
 from cdci_data_analysis.analysis.exceptions import BadRequest
+from cdci_data_analysis.flask_app.schemas import EmailOptionsTokenSchema
+
 
 default_algorithm = 'HS256'
 
@@ -63,7 +66,9 @@ def get_decoded_token(token, secret_key):
         return jwt.decode(token, secret_key, algorithms=[default_algorithm])
 
 
-def update_token_email_options(token, secret_key, new_options):
+def update_token_email_options(token, secret_key, new_options, kw_black_list=None):
+    if kw_black_list is None:
+        kw_black_list = []
 
     _valid_options_keys_types_dict = {
         'msfail': bool,
@@ -75,7 +80,10 @@ def update_token_email_options(token, secret_key, new_options):
     }
     _valid_options_keys_list = _valid_options_keys_types_dict.keys()
     validation_dict = new_options.copy()
-
+    try:
+        EmailOptionsTokenSchema().load(new_options)
+    except ValidationError as e:
+        pass
     # remove not needed keys, and check types
     for n in new_options.keys():
         if n not in _valid_options_keys_list:
