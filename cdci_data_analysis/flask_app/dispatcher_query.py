@@ -87,20 +87,40 @@ class InstrumentQueryBackEnd:
     def instrument_name(self, instrument_name):
         self._instrument_name = instrument_name
 
-    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False, resolve_job_url=False):
-        self.logger = logging.getLogger(repr(self))
+    @property
+    def query_progression(self):
+        if not hasattr(self, '_query_progression'):
+            self._query_progression = []
+        
+        return self._query_progression
+
+    def log_query_progression(self, message):        
+        self.query_progression.append(dict(
+                t_s = time_.time(),
+                message = message,                
+            ))
+
+        t0 = self.query_progression[0]['t_s']
+        self.logger.warning("%s %s s", message, self.query_progression[-1]['t_s'] - t0)
+
+
+    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False, resolve_job_url=False, query_id=None):
+        self.logger = logging.getLogger(f"{repr(self)} [{query_id}]")
 
         if verbose:
             self.logger.setLevel(logging.DEBUG)
         else:
             self.logger.setLevel(logging.INFO)
-
+        
+        
         self.app = app
         try:
             if par_dic is None:
                 self.set_args(request, verbose=verbose)
             else:
                 self.par_dic = par_dic
+
+            self.log_query_progression("after set args")
 
             self.client_name = self.par_dic.pop('client-name', 'unknown')
             if os.environ.get("DISPATCHER_ASYNC_ENABLED", "no") == "yes":  # TODO: move to config!
@@ -115,8 +135,10 @@ class InstrumentQueryBackEnd:
                 the remaining complexity is to send back a response which indicates "submitted" but not submitted job - only request
             """
 
+            self.log_query_progression("before set_session_id")
             self.set_session_id()
-
+            self.log_query_progression("after set_session_id")
+            
             self.time_request = g.get('request_start_time', None)
 
             # By default, a request is public, let's now check if a token has been included
@@ -128,6 +150,7 @@ class InstrumentQueryBackEnd:
                 self.token = self.par_dic['token']
                 self.public = False
                 # token validation and decoding can be done here, to check if the token is expired
+                self.log_query_progression("before validate_query_from_token")        
                 try:
                     if self.validate_query_from_token():
                         pass
@@ -135,7 +158,9 @@ class InstrumentQueryBackEnd:
                     logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-expired'})
                     raise RequestNotAuthorized("the token provided is expired, please try to logout and login again")
 
+                self.log_query_progression("after validate_query_from_token")
                 logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
+                self.log_query_progression("after logstash_message")
 
             if download_products or resolve_job_url:
                 instrument_name = 'mock'
@@ -212,7 +237,10 @@ class InstrumentQueryBackEnd:
                 self.set_scratch_dir(
                     self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
 
+                
+                self.log_query_progression("before move_temp_content")                
                 self.move_temp_content()
+                self.log_query_progression("after move_temp_content")                
 
                 self.set_session_logger(
                     self.scratch_dir, verbose=verbose, config=config)
@@ -230,8 +258,10 @@ class InstrumentQueryBackEnd:
 
         finally:
             self.logger.info("==> clean-up temporary directory")
+            self.log_query_progression("before clear_temp_dir")
             self.clear_temp_dir()
-
+            self.log_query_progression("after clear_temp_dir")
+            
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
     @staticmethod
@@ -1414,6 +1444,7 @@ class InstrumentQueryBackEnd:
                     job_monitor = job.monitor
             else:
                 try:
+                    self.log_query_progression("before instrument.run_query")
                     query_out = self.instrument.run_query(product_type,
                                                           self.par_dic,
                                                           request,
@@ -1429,6 +1460,7 @@ class InstrumentQueryBackEnd:
                                                           dry_run=dry_run,
                                                           api=api,
                                                           decoded_token=self.decoded_token)
+                    self.log_query_progression("after instrument.run_query")                                                          
                 except RequestNotAuthorized as e:
                     return self.build_response_failed('oda_api permissions failed',
                                                       e.message,

@@ -7,6 +7,8 @@ Created on Wed May 10 10:55:20 2017
 """
 from builtins import (open, str, range,
                       object)
+from hashlib import md5
+import hashlib
 from werkzeug.utils import secure_filename
 
 import os
@@ -52,7 +54,7 @@ import oda_api
 from astropy.io.fits.card import Undefined as astropyUndefined
 
 from cdci_data_analysis.flask_app import dispatcher_query
-
+from cdci_data_analysis.configurer import ConfigEnv
 
 #UPLOAD_FOLDER = '/path/to/the/uploads'
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
@@ -138,7 +140,7 @@ def download_products():
 
 @app.route('/test', methods=['POST', 'GET'])
 def run_analysis_test():
-    query = InstrumentQueryBackEnd(app)
+    query = InstrumentQueryBackEnd(G)
     return query.run_query()
 
 
@@ -247,8 +249,14 @@ def run_analysis():
     request_summary = log_run_query_request()
 
     try:
+        logger.info('\033[32m===========================> dataserver_call_back\033[0m')
+        logger.info('\033[33m raw request values: %s \033[0m', dict(request.values))
+
+        query_id = hashlib.sha224(str(request.values).encode()).hexdigest()[:8]
+
+
         t0 = g.request_start_time
-        query = InstrumentQueryBackEnd(app)
+        query = InstrumentQueryBackEnd(app, query_id=query_id)
         r = query.run_query(disp_conf=app.config['conf'])
         logger.info("run_analysis for %s took %g seconds", request.args.get(
             'client-name', 'unknown'), _time.time() - t0)
@@ -312,12 +320,16 @@ def dataserver_call_back():
 
     logger.info('\033[33m raw request values: %s \033[0m', dict(request.values))
 
+    query_id = hashlib.sha224(str(request.values).encode()).hexdigest()[:8]
+
+    t0 = _time.time()
     query = InstrumentQueryBackEnd(
     # TODO get rid of the mock instrument
-        app, instrument_name='mock', data_server_call_back=True)
+        app, instrument_name='mock', data_server_call_back=True, query_id=query_id)
+    logger.info(f'\033[32m===========================> [{query_id}] dataserver_call_back constructor done in {_time.time() - t0} s\033[0m')    
     query.run_call_back()
-    logger.info('\033[32m===========================> dataserver_call_back DONE\033[0m')    
-    return jsonify({})
+    logger.info(f'\033[32m===========================> [{query_id}] dataserver_call_back DONE in {_time.time() - t0}\033[0m')    
+    return jsonify({'time_spent_s': _time.time() - t0})
 
 
 ####################################### API #######################################
@@ -470,6 +482,11 @@ class TestJS9Plot(Resource):
 #    return img.get_js9_html('dummy_prods/isgri_query_mosaic.fits')
 
 def conf_app(conf):
+    if isinstance(conf, str):
+        logger.info("loading config from %s", conf)
+        conf = ConfigEnv.from_conf_file(conf, 
+                                        set_by=f'command line {__file__}:{__name__}')
+
     app.config['conf'] = conf
     if conf.sentry_url is not None:
         sentry = Sentry(app, dsn=conf.sentry_url)
@@ -480,7 +497,6 @@ def run_app(conf, debug=False, threaded=False):
     conf_app(conf)
     app.run(host=conf.bind_host, port=conf.bind_port,
             debug=debug, threaded=threaded)
-
 
 
 def log_run_query_request():
@@ -541,6 +557,7 @@ def log_run_query_result(request_summary, result):
         raise
 
     return result
+
 
 
 if __name__ == "__main__":

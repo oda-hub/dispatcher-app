@@ -3,6 +3,8 @@ from __future__ import absolute_import, division, print_function
 import os
 from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
+import shutil
+import tempfile
 
 __author__ = "Andrea Tramacere"
 
@@ -334,8 +336,18 @@ class BaseQueryProduct(object):
         else:
             file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
 
+        # turns out the way astropy writes some structures really overloads some nfs mounts.
+        # this happened on UNIGE site after update. 
+        # workaround is made here and should be configurable
+        logger.debug("\033[31mbefore %s.write(file_name=%s) as %s\033[0m", self, file_name, file_path)
 
-        self.data.write_fits_file(file_path, overwrite=overwrite)
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            self.data.write_fits_file(f, overwrite=overwrite)
+            f.close()
+            shutil.move(f.name, file_path)
+        
+#        self.data.write_fits_file(file_path, overwrite=overwrite)
+        logger.debug("\033[31mafter %s.write(file_name=%s) as %s\033[0m", self, file_name, file_path)
 
     def add_url_to_fits_file(self,par_dict,url='',use_primary=True,add_query_dict=True):
         url = '%s?%s' % (url, urlencode(par_dict))
