@@ -14,6 +14,8 @@ from werkzeug.utils import secure_filename
 import os
 import string
 import random
+import json
+
 from raven.contrib.flask import Sentry
 
 import traceback
@@ -55,9 +57,6 @@ from astropy.io.fits.card import Undefined as astropyUndefined
 
 from cdci_data_analysis.flask_app import dispatcher_query
 from cdci_data_analysis.configurer import ConfigEnv
-
-#UPLOAD_FOLDER = '/path/to/the/uploads'
-#ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
 
 logger = app_logging.getLogger('flask_app')
 
@@ -133,15 +132,8 @@ def meta_data_src():
 
 @app.route("/download_products", methods=['POST', 'GET'])
 def download_products():
-    #instrument_name = 'ISGRI'
     query = InstrumentQueryBackEnd(app, download_products=True)
     return query.download_products()
-
-
-@app.route('/test', methods=['POST', 'GET'])
-def run_analysis_test():
-    query = InstrumentQueryBackEnd(G)
-    return query.run_query()
 
 
 class InvalidUsage(Exception):
@@ -223,7 +215,6 @@ def common_exception_payload():
     return payload
 
 
-
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
     """
@@ -236,24 +227,24 @@ def run_analysis():
       required: false
       type: 'string'
     responses:
-      200: 
+      200:
         description: 'analysis done'
         schema:
           $ref: '#/definitions/QueryOutJSON'
-      202: 
-        description: 'request accepted but not done yet' 
-      400: 
+      202:
+        description: 'request accepted but not done yet'
+      400:
         description: 'something in request not understood - missing, unexpected values'
     """
 
     request_summary = log_run_query_request()
 
     try:
-        logger.info('\033[32m===========================> dataserver_call_back\033[0m')
-        logger.info('\033[33m raw request values: %s \033[0m', dict(request.values))
+        logger.info('\033[32m===> dataserver_call_back\033[0m')
+        logger.info('\033[33m raw request values: %s \033[0m',
+                    dict(request.values))
 
         query_id = hashlib.sha224(str(request.values).encode()).hexdigest()[:8]
-
 
         t0 = g.request_start_time
         query = InstrumentQueryBackEnd(app, query_id=query_id)
@@ -263,7 +254,6 @@ def run_analysis():
 
         logger.info("towards log_run_query_result")
         log_run_query_result(request_summary, r[0])
-
 
         return r
     except APIerror as e:
@@ -307,15 +297,12 @@ def resolve_job_url():
 
     query = InstrumentQueryBackEnd(app, instrument_name='mock', resolve_job_url=True)
     location = query.resolve_job_url()
-    
+
     return redirect(location, 302)
-    #, Response("this job_id is known to correspond to the following parameters"))
+
 
 @app.route('/call_back', methods=['POST', 'GET'])
 def dataserver_call_back():
-    #log = logging.getLogger('werkzeug')
-    #log.disabled = True
-    #app.logger.disabled = True
     logger.info('\033[32m===========================> dataserver_call_back\033[0m')
 
     logger.info('\033[33m raw request values: %s \033[0m', dict(request.values))
@@ -323,9 +310,12 @@ def dataserver_call_back():
     query_id = hashlib.sha224(str(request.values).encode()).hexdigest()[:8]
 
     t0 = _time.time()
-    query = InstrumentQueryBackEnd(
     # TODO get rid of the mock instrument
-        app, instrument_name='mock', data_server_call_back=True, query_id=query_id)
+    query = InstrumentQueryBackEnd(
+        app,
+        instrument_name='mock',
+        data_server_call_back=True,
+        query_id=query_id)
     logger.info(f'\033[32m===========================> [{query_id}] dataserver_call_back constructor done in {_time.time() - t0} s\033[0m')    
     query.run_call_back()
     logger.info(f'\033[32m===========================> [{query_id}] dataserver_call_back DONE in {_time.time() - t0}\033[0m')    
@@ -333,7 +323,6 @@ def dataserver_call_back():
 
 
 ####################################### API #######################################
-
 
 @api.errorhandler(APIerror)
 def handle_api_error(error):
@@ -500,7 +489,7 @@ def run_app(conf, debug=False, threaded=False):
 
 
 def log_run_query_request():
-    request_summary={}
+    request_summary = {}
 
     try:
         logger.debug("output json request")
@@ -518,9 +507,8 @@ def log_run_query_request():
                         'raw-data': dict(request.data or ""),
                     }}
 
-
         try:
-            request_summary['clientip']=request_summary['request-data']['headers']['X-Forwarded-For'].split(",")[0]
+            request_summary['clientip'] = request_summary['request-data']['headers']['X-Forwarded-For'].split(",")[0]
             logger.info("extracted client: %s", request_summary['clientip'] )
         except Exception as e:
             logger.warning("unable to extract client")
@@ -534,6 +522,7 @@ def log_run_query_request():
 
     return request_summary
     
+    
 def log_run_query_result(request_summary, result):
     logger.info("IN log_run_query_result")
     try:
@@ -542,7 +531,7 @@ def log_run_query_result(request_summary, result):
         logger.info("returning data %s", result.data[:100])
 
         try:
-            result_json=json.loads(result.data)
+            result_json = json.loads(result.data)
             logger.debug("query result keys: %s", result_json.keys())
             request_summary['return_exit_status']=result_json['exit_status']
             request_summary['return_job_status']=result_json['job_status']

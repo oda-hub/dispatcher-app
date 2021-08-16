@@ -22,24 +22,9 @@ __author__ = "Andrea Tramacere"
 import json
 from collections import OrderedDict
 
-#from pathlib import Path
-
-#from astropy import wcs
-#from astropy.wcs import WCS
-
-from astropy.io import fits as pf
-
 import matplotlib
-import copy
 
 matplotlib.use('Agg') #, warn=False - deprecated
-
-#import matplotlib.pyplot as plt
-
-#import numpy as np
-
-#import mpld3
-#from mpld3 import plugins
 
 from .plot_tools import  Image,ScatterPlot,GridPlot
 
@@ -63,9 +48,7 @@ except ImportError:
     from urllib import urlencode
 
 
-
-
-
+logger = app_logging.getLogger(__name__)
 
 
 class QueryOutput(object):
@@ -349,32 +332,29 @@ class BaseQueryProduct(object):
 #        self.data.write_fits_file(file_path, overwrite=overwrite)
         logger.debug("\033[31mafter %s.write(file_name=%s) as %s\033[0m", self, file_name, file_path)
 
-    def add_url_to_fits_file(self,par_dict,url='',use_primary=True,add_query_dict=True):
+    def add_url_to_fits_file(self, 
+                             par_dict, 
+                             url='', 
+                             use_primary=True, 
+                             add_query_dict=True):
         url = '%s?%s' % (url, urlencode(par_dict))
 
         url_dict = OrderedDict()
-        url_dict['url']=url
-        #self.data.show()
+        url_dict['url'] = url
+        
         if use_primary is True:
-            du=self.data.get_data_unit_by_name('PRIMARY')
-            #print('du PRIMARY',du)
+            du = self.data.get_data_unit_by_name('PRIMARY')
             if du is None:
                 du = self.data.get_data_unit_by_name('Primary')
-                #print('du PRIMARY', du)
             if du is None:
-                du=self.data.get_data_unit(0)
-                #print('du.hdu_type', du.hdu_type)
+                du = self.data.get_data_unit(0)
             if du is not None:
-                #print('du.hdu_type',du.hdu_type)
-                if du.hdu_type!='primary':
-                    du=None
+                if du.hdu_type != 'primary':
+                    du = None
 
         if du is None or use_primary is False:
-            #print('du not found' )
-            du=NumpyDataUnit(None, name='Primary', hdu_type='primary')
+            du = NumpyDataUnit(None, name='Primary', hdu_type='primary')
             self.data.data_unit.insert(0,du)
-
-
 
         if add_query_dict is True:
             url_dict.update(par_dict)
