@@ -416,6 +416,60 @@ def test_download_products_unauthorized_user(dispatcher_live_fixture, empty_prod
     assert jdata["exit_status"]["message"] == "Request not authorized"
 
 
+@pytest.mark.parametrize("tem_value", [10, "10aaaa"])
+@pytest.mark.parametrize("tem_key_name", ["tem", "temaaaa"])
+def test_modify_token(dispatcher_live_fixture, tem_value, tem_key_name):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    # expired token
+    token_payload = {
+        **default_token_payload,
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    token_update = {
+        # new set of email options
+        tem_key_name: tem_value,
+        "mstout": True,
+        "mssub": True,
+        "msdone": True,
+        "intsub": 5,
+    }
+
+    params = {
+        'token': encoded_token,
+        **token_update,
+        'query_status': 'new',
+    }
+
+    c = requests.post(server + "/update_token_email_options",
+                     params=params)
+
+    token_payload.update(token_update)
+
+    updated_encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    if tem_key_name == 'temaaaa':
+        jdata = c.json()
+        assert jdata['error_message'] == 'An error occurred while validating the following fields: ' \
+                                         '{\'temaaaa\': [\'Unknown field.\']}. ' \
+                                         'Please check it and re-try to issue the request'
+    else:
+        if tem_value == '10aaaa':
+            jdata = c.json()
+            assert jdata['error_message'] == 'An error occurred while validating the following fields: ' \
+                                             '{\'tem\': [\'Not a valid number.\']}. ' \
+                                             'Please check it and re-try to issue the request'
+        else:
+            payload_returned_token = jwt.decode(c.text, secret_key, algorithms='HS256')
+            # order of the payload fields might change inside the dispatcher (eg by marshmallow, ordering)
+            # so the two corresponding tokens might be different,
+            # but the content (fields and values) are still supposed to match match
+            # TODO is the order of the fields in the paylaod important?
+            assert token_payload == payload_returned_token
+
+
 @pytest.mark.not_safe_parallel
 def test_invalid_token(dispatcher_live_fixture):
     server = dispatcher_live_fixture
@@ -584,7 +638,6 @@ def test_valid_token_oda_api(dispatcher_live_fixture):
     assert jdata["status_dictionary"]["message"] == ""
     assert "disp=DispatcherAPI(url='PRODUCTS_URL/dispatch-data', instrument='mock')" in jdata['prod_dictionary']['api_code'] 
     
-
 
 @pytest.mark.parametrize("roles", ["", "unige-hpc-full, general", ["unige-hpc-full", "general"]])
 def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):
