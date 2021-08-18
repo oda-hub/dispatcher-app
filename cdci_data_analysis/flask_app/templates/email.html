@@ -32,7 +32,12 @@ You can retrieve the results by repeating the request.
 Unfortunately, due to a known issue with very large requests, a URL with the selected request parameters could not be generated.
 This will be fixed in a future release.
 {% endif %}
-You can also retrieve the result by repeating the request (either with frontend or with the python API query at the end of this message.).<br>
+You can also retrieve the result by repeating the request (either with frontend or with the python API query
+{% if not request.api_code_too_long %}
+at the end of this message.
+{% endif %}
+ ).<br>
+
 <br>
 In case you have questions or issues you can contact us at <a href="mailto:{{ oda_site.contact }}">this email</a> or reply to the current message.<br>
 <br>
@@ -40,6 +45,8 @@ Kind regards,<br>
 <br>
 The ODA team.<br>
 <br>
+
+{% if not request.api_code_too_long %}
 <br>
 Python API code:<br>
 <br>
@@ -52,6 +59,10 @@ Note that this code contains your private token. Be careful how you share it!<br
 This token is short-lived, and will expire in {{ request.decoded_token.exp | humanize_future }}.<br>
 To learn how to get a new token, please refer to <a href="{{ oda_site.manual_reference }}">these instructions</a>.<br>
 <br>
+{% else %}
+Please note that we were not able to embed API code in this email, since exceptionally, it contained too long lines. 
+If you think it was a nominal request, please contact us and we will try to resolve the problem as soon as possible.
+{% endif %}
 
 
 </body>

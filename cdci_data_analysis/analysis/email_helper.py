@@ -106,14 +106,18 @@ def compress_request_url_params(request_url, consider_args=['selected_catalog', 
     }))
 
 
-def wrap_python_code(code, max_length=100):
+def wrap_python_code(code, max_length=100, max_str_length=None):
 
     # this black currently does not split strings without spaces    
+
+    if max_str_length is None:
+        max_str_length = max_length - 10
+
     while True:
         new_code = code
         for string_separator in '"', "'":
-            new_code = re.sub('(%s[0-9a-zA-Z\.\-\/\+]{%i,}?%s)' % (string_separator, max_length + 1, string_separator), 
-                            lambda S: S.group(1)[:max_length] + string_separator + ' ' + string_separator + S.group(1)[max_length:],                         
+            new_code = re.sub('(%s[0-9a-zA-Z\.\-\/\+,]{%i,}?%s)' % (string_separator, max_str_length + 1, string_separator), 
+                            lambda S: S.group(1)[:max_str_length] + string_separator + ' ' + string_separator + S.group(1)[max_str_length:],                         
                             new_code)
 
         if new_code == code:
@@ -170,6 +174,7 @@ def send_email(
     #api_code = adapt_line_length_api_code(api_code, line_break="\n", add_line_continuation="\\")
     api_code = wrap_python_code(api_code)
 
+    api_code_too_long = invalid_email_line_length(api_code)
 
     #api_code = api_code.strip().replace("\n", "<br>\n")
 
@@ -208,8 +213,9 @@ def send_email(
             'request_url': possibly_compressed_request_url,
             'api_code_no_token': api_code_no_token,
             'api_code': api_code,
+            'api_code_too_long': api_code_too_long,
             'decoded_token': decoded_token,
-            'permanent_url': permanent_url,
+            'permanent_url': permanent_url,            
         }
     }
 
@@ -220,8 +226,8 @@ def send_email(
     email_text = textify_email(email_body_html)
 
     if invalid_email_line_length(email_text) or invalid_email_line_length(email_body_html):
-        open("debug_email_not_sent.html", "w").write(email_body_html)
-        open("debug_email_not_sent.text", "w").write(email_text)
+        open("debug_email_lines_too_long.html", "w").write(email_body_html)
+        open("debug_email_lines_too_long.text", "w").write(email_text)
         raise EMailNotSent(f"email not sent, lines too long!")
     
     server = None
