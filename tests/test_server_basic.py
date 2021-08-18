@@ -417,7 +417,8 @@ def test_download_products_unauthorized_user(dispatcher_live_fixture, empty_prod
 
 
 @pytest.mark.parametrize("tem_value", [10, "10aaaa"])
-def test_modify_token(dispatcher_live_fixture, tem_value):
+@pytest.mark.parametrize("tem_key_name", ["tem", "temaaaa"])
+def test_modify_token(dispatcher_live_fixture, tem_value, tem_key_name):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
@@ -429,7 +430,7 @@ def test_modify_token(dispatcher_live_fixture, tem_value):
 
     token_update = {
         # new set of email options
-        "tem": tem_value,
+        tem_key_name: tem_value,
         "mstout": True,
         "mssub": True,
         "msdone": True,
@@ -449,18 +450,24 @@ def test_modify_token(dispatcher_live_fixture, tem_value):
 
     updated_encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    if tem_value == '10aaaa':
+    if tem_key_name == 'temaaaa':
         jdata = c.json()
         assert jdata['error_message'] == 'An error occurred while validating the following fields: ' \
-                                         '{\'tem\': [\'Not a valid number.\']}. ' \
+                                         '{\'temaaaa\': [\'Unknown field.\']}. ' \
                                          'Please check it and re-try to issue the request'
     else:
-        payload_returned_token = jwt.decode(c.text, secret_key, algorithms='HS256')
-        # order of the payload fields might change inside the dispatcher (eg by marshmallow, ordering)
-        # so the two corresponding tokens might be different,
-        # but the content (fields and values) are still supposed to match match
-        # TODO is the order of the fields in the paylaod important?
-        assert token_payload == payload_returned_token
+        if tem_value == '10aaaa':
+            jdata = c.json()
+            assert jdata['error_message'] == 'An error occurred while validating the following fields: ' \
+                                             '{\'tem\': [\'Not a valid number.\']}. ' \
+                                             'Please check it and re-try to issue the request'
+        else:
+            payload_returned_token = jwt.decode(c.text, secret_key, algorithms='HS256')
+            # order of the payload fields might change inside the dispatcher (eg by marshmallow, ordering)
+            # so the two corresponding tokens might be different,
+            # but the content (fields and values) are still supposed to match match
+            # TODO is the order of the fields in the paylaod important?
+            assert token_payload == payload_returned_token
 
 
 @pytest.mark.not_safe_parallel
