@@ -3,6 +3,8 @@ from __future__ import absolute_import, division, print_function
 import os
 from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
+import shutil
+import tempfile
 
 __author__ = "Andrea Tramacere"
 
@@ -20,30 +22,15 @@ __author__ = "Andrea Tramacere"
 import json
 from collections import OrderedDict
 
-#from pathlib import Path
-
-#from astropy import wcs
-#from astropy.wcs import WCS
-
-from astropy.io import fits as pf
-
 import matplotlib
-import copy
 
-matplotlib.use('Agg') #, warn=False - deprecated
+matplotlib.use('Agg')  #, warn=False - deprecated
 
-#import matplotlib.pyplot as plt
+from .plot_tools import Image, ScatterPlot, GridPlot
 
-#import numpy as np
+from oda_api.data_products import NumpyDataProduct, NumpyDataUnit
 
-#import mpld3
-#from mpld3 import plugins
-
-from .plot_tools import  Image,ScatterPlot,GridPlot
-
-from  oda_api.data_products import NumpyDataProduct, NumpyDataUnit
-
-from  oda_api.api import  DispatcherAPI
+from oda_api.api import DispatcherAPI
 from .parameters import *
 from .io_helper import FilePath
 from .io_helper import view_traceback, FitsFile
@@ -52,7 +39,9 @@ from .json import CustomJSONEncoder
 from .exceptions import ProblemDecodingStoredQueryOut
 
 import traceback
-import logging
+
+from typing import Union
+
 from ..app_logging import app_logging
 
 try:
@@ -61,9 +50,7 @@ except ImportError:
     from urllib import urlencode
 
 
-
-
-
+logger = app_logging.getLogger(__name__)
 
 
 class QueryOutput(object):
@@ -96,15 +83,21 @@ class QueryOutput(object):
         else:
             with open(file_path.path) as outfile:
                 dict_analysis_parameters = json.load(outfile)
-            logger.info("analysis_parameters.json file already present, and originally used for the job_id calculation: %s",
-                         json.dumps(dict_analysis_parameters, sort_keys=True, indent=4))
+            logger.info("analysis_parameters.json file already present, "
+                        "and originally used for the job_id calculation: %s",
+                        json.dumps(dict_analysis_parameters, sort_keys=True, indent=4))
 
     def set_products(self, keys, values):
         for k, v in zip(keys, values):
             self.prod_dictionary[k] = v
 
     def set_done(self, message='', debug_message='', job_status=None, status=0,comment='',warning=''):
-        self.set_status(status, message=message, debug_message=debug_message, job_status=job_status,comment=comment,warning=warning)
+        self.set_status(status,
+                        message=message,
+                        debug_message=debug_message,
+                        job_status=job_status,
+                        comment=comment,
+                        warning=warning)
 
     def set_failed(self, failed_operation,
                    message_prepend_str='',
@@ -169,10 +162,10 @@ class QueryOutput(object):
     def get_job_status(self):
         return self.status_dictionary['job_status']
 
-    def set_query_exception(self, 
-                            excep: Union[Exception, None], # used as `error_message`, as repr, only if `e_message` is None
+    def set_query_exception(self,
+                            excep: Union[Exception, None],  # used as `error_message`, as repr, only if `e_message` is None
                             failed_operation,
-                            message_prepend_str='', # used in `message`
+                            message_prepend_str='',  # used in `message`
                             extra_message=None,
                             message=None,
                             logger_prepend_str='==>',
@@ -197,7 +190,6 @@ class QueryOutput(object):
                     try:
                         e_message = excep.__repr__()
                     except:
-
                         e_message = ''
         else:
             print('e_message', e_message)
@@ -240,7 +232,7 @@ class QueryOutput(object):
         return f'[ {self.__class__.__name__} ]'
 
     def serialize(self, writable):
-        json.dump({ 
+        json.dump({
                     k: v
                     for k, v in self.__dict__.items()
                     if not k.startswith("_")
@@ -248,7 +240,7 @@ class QueryOutput(object):
                   writable,
                   cls=CustomJSONEncoder
                 )
-    
+
     def deserialize(self, readable):
 
         logger = app_logging.getLogger(self.__class__.__name__)
@@ -284,11 +276,6 @@ class QueryProductList(object):
         return prod
 
 
-
-
-
-
-
 class BaseQueryProduct(object):
     # TODO move this to NumpyDataProd Class
     def __init__(self,
@@ -300,24 +287,16 @@ class BaseQueryProduct(object):
                  meta_data={}):
 
         self.name = name
-        self.meta_data=meta_data
+        self.meta_data = meta_data
 
         if file_name is not None:
-            #print('set file phat')
-            #print('workig dir', file_dir)
-            #print('file name', file_name)
-            #print('name_prefix', name_prefix)
             self.file_path = FilePath(file_name=file_name, file_dir=file_dir, name_prefix=name_prefix)
-            #print('file_path set to', self.file_path.path)
 
         if data is not None:
-
-            if isinstance(data,NumpyDataProduct):
+            if isinstance(data, NumpyDataProduct):
                 self.data = data
             else:
                 raise RuntimeError('data is not of the expected type',type(NumpyDataProduct))
-
-
 
     def encode(self):
         return self.data.encode()
@@ -334,35 +313,42 @@ class BaseQueryProduct(object):
         else:
             file_path = self.file_path.get_file_path(file_name=file_name, file_dir=file_dir)
 
+        # turns out the way astropy writes some structures really overloads some nfs mounts.
+        # this happened on UNIGE site after update. 
+        # workaround is made here and should be configurable
+        logger.debug("\033[31mbefore %s.write(file_name=%s) as %s\033[0m", self, file_name, file_path)
 
-        self.data.write_fits_file(file_path, overwrite=overwrite)
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            self.data.write_fits_file(f, overwrite=overwrite)
+            f.close()
+            shutil.move(f.name, file_path)
+        
+#        self.data.write_fits_file(file_path, overwrite=overwrite)
+        logger.debug("\033[31mafter %s.write(file_name=%s) as %s\033[0m", self, file_name, file_path)
 
-    def add_url_to_fits_file(self,par_dict,url='',use_primary=True,add_query_dict=True):
+    def add_url_to_fits_file(self, 
+                             par_dict, 
+                             url='', 
+                             use_primary=True, 
+                             add_query_dict=True):
         url = '%s?%s' % (url, urlencode(par_dict))
 
         url_dict = OrderedDict()
-        url_dict['url']=url
-        #self.data.show()
+        url_dict['url'] = url
+        
         if use_primary is True:
-            du=self.data.get_data_unit_by_name('PRIMARY')
-            #print('du PRIMARY',du)
+            du = self.data.get_data_unit_by_name('PRIMARY')
             if du is None:
                 du = self.data.get_data_unit_by_name('Primary')
-                #print('du PRIMARY', du)
             if du is None:
-                du=self.data.get_data_unit(0)
-                #print('du.hdu_type', du.hdu_type)
+                du = self.data.get_data_unit(0)
             if du is not None:
-                #print('du.hdu_type',du.hdu_type)
-                if du.hdu_type!='primary':
-                    du=None
+                if du.hdu_type != 'primary':
+                    du = None
 
         if du is None or use_primary is False:
-            #print('du not found' )
-            du=NumpyDataUnit(None, name='Primary', hdu_type='primary')
-            self.data.data_unit.insert(0,du)
-
-
+            du = NumpyDataUnit(None, name='Primary', hdu_type='primary')
+            self.data.data_unit.insert(0, du)
 
         if add_query_dict is True:
             url_dict.update(par_dict)
@@ -379,17 +365,21 @@ class BaseQueryProduct(object):
 
         _url_dict.update(du.header)
 
-        du.header=_url_dict
+        du.header = _url_dict
         #du.header.append(url_dict.keys(), end=True)
         #for k in url_dict.keys():
         #    du.header[k]=url_dict[k]
         #self.data.show()
 
 class ImageProduct(BaseQueryProduct):
-    def __init__(self,name='', data=None, file_name='image.fits',meta_data={}, **kwargs):
+    def __init__(self, name='', data=None, file_name='image.fits',meta_data={}, **kwargs):
 
         self.file_name = file_name
-        super(ImageProduct, self).__init__(name=name,data=data, file_name=file_name, meta_data=meta_data,**kwargs)
+        super(ImageProduct, self).__init__(name=name,
+                                           data=data,
+                                           file_name=file_name,
+                                           meta_data=meta_data,
+                                           **kwargs)
 
 
     def get_html_draw(self, catalog=None, data_ID=0):
@@ -419,23 +409,24 @@ class LightCurveProduct(BaseQueryProduct):
                  meta_data={},
                  **kwargs):
 
-
-
-
         self.name = name
         self.data = data
         self.file_name = file_name
-        #self.src_name = src_name
 
-        super(LightCurveProduct, self).__init__(name=name, data=data,file_name=file_name,meta_data=meta_data, **kwargs)
+        super(LightCurveProduct, self).__init__(name=name,
+                                                data=data,
+                                                file_name=file_name,
+                                                meta_data=meta_data,
+                                                **kwargs)
 
-
-
-    def get_html_draw(self,x,y,dy=None,dx=None,x_label='',y_label='',title=None,max_bins=1E4):
-        warning=''
-        max_bins=np.int(max_bins)
-        if (np.size(x)>max_bins):
-            #print(np.size(x),np.shape(x),max_bins,x[:])
+    def get_html_draw(self,
+                      x, y,
+                      dy=None, dx=None,
+                      x_label='', y_label='',
+                      title=None, max_bins=1E4):
+        warning = ''
+        max_bins = np.int(max_bins)
+        if np.size(x) > max_bins:
             actual_size = np.size(x)
             x=x[:max_bins]
             y=y[:max_bins]

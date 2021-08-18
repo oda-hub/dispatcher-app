@@ -5,8 +5,11 @@ Created on Wed May 10 10:55:20 2017
 
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
+
 import string
 import random
+import json
+
 from raven.contrib.flask import Sentry
 
 from flask import jsonify, send_from_directory, redirect, Response
@@ -43,10 +46,7 @@ import oda_api
 from astropy.io.fits.card import Undefined as astropyUndefined
 
 from cdci_data_analysis.flask_app import dispatcher_query
-
-
-#UPLOAD_FOLDER = '/path/to/the/uploads'
-#ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
+from cdci_data_analysis.configurer import ConfigEnv
 
 logger = app_logging.getLogger('flask_app')
 
@@ -122,15 +122,8 @@ def meta_data_src():
 
 @app.route("/download_products", methods=['POST', 'GET'])
 def download_products():
-    #instrument_name = 'ISGRI'
     query = InstrumentQueryBackEnd(app, download_products=True)
     return query.download_products()
-
-
-@app.route('/test', methods=['POST', 'GET'])
-def run_analysis_test():
-    query = InstrumentQueryBackEnd(app)
-    return query.run_query()
 
 
 class InvalidUsage(Exception):
@@ -235,21 +228,27 @@ def run_analysis():
       required: false
       type: 'string'
     responses:
-      200: 
+      200:
         description: 'analysis done'
         schema:
           $ref: '#/definitions/QueryOutJSON'
-      202: 
-        description: 'request accepted but not done yet' 
-      400: 
+      202:
+        description: 'request accepted but not done yet'
+      400:
         description: 'something in request not understood - missing, unexpected values'
     """
 
     request_summary = log_run_query_request()
 
     try:
+        logger.info('\033[32m===> dataserver_call_back\033[0m')
+        logger.info('\033[33m raw request values: %s \033[0m',
+                    dict(request.values))
+
+        query_id = hashlib.sha224(str(request.values).encode()).hexdigest()[:8]
+
         t0 = g.request_start_time
-        query = InstrumentQueryBackEnd(app)
+        query = InstrumentQueryBackEnd(app, query_id=query_id)
         r = query.run_query(disp_conf=app.config['conf'])
         logger.info("run_analysis for %s took %g seconds", request.args.get(
             'client-name', 'unknown'), _time.time() - t0)
@@ -302,30 +301,33 @@ def resolve_job_url():
 
     query = InstrumentQueryBackEnd(app, instrument_name='mock', resolve_job_url=True)
     location = query.resolve_job_url()
-    
+
     return redirect(location, 302)
-    #, Response("this job_id is known to correspond to the following parameters"))
+
 
 
 @app.route('/call_back', methods=['POST', 'GET'])
 def dataserver_call_back():
-    #log = logging.getLogger('werkzeug')
-    #log.disabled = True
-    #app.logger.disabled = True
     logger.info('\033[32m===========================> dataserver_call_back\033[0m')
 
     logger.info('\033[33m raw request values: %s \033[0m', dict(request.values))
 
-    query = InstrumentQueryBackEnd(
+    query_id = hashlib.sha224(str(request.values).encode()).hexdigest()[:8]
+
+    t0 = _time.time()
     # TODO get rid of the mock instrument
-        app, instrument_name='mock', data_server_call_back=True)
+    query = InstrumentQueryBackEnd(
+        app,
+        instrument_name='mock',
+        data_server_call_back=True,
+        query_id=query_id)
+    logger.info(f'\033[32m===========================> [{query_id}] dataserver_call_back constructor done in {_time.time() - t0} s\033[0m')    
     query.run_call_back()
-    logger.info('\033[32m===========================> dataserver_call_back DONE\033[0m')    
-    return jsonify({})
+    logger.info(f'\033[32m===========================> [{query_id}] dataserver_call_back DONE in {_time.time() - t0}\033[0m')    
+    return jsonify({'time_spent_s': _time.time() - t0})
 
 
 ####################################### API #######################################
-
 
 @api.errorhandler(APIerror)
 def handle_api_error(error):
@@ -474,6 +476,11 @@ class TestJS9Plot(Resource):
 #    return img.get_js9_html('dummy_prods/isgri_query_mosaic.fits')
 
 def conf_app(conf):
+    if isinstance(conf, str):
+        logger.info("loading config from %s", conf)
+        conf = ConfigEnv.from_conf_file(conf, 
+                                        set_by=f'command line {__file__}:{__name__}')
+
     app.config['conf'] = conf
     if conf.sentry_url is not None:
         sentry = Sentry(app, dsn=conf.sentry_url)
@@ -486,9 +493,8 @@ def run_app(conf, debug=False, threaded=False):
             debug=debug, threaded=threaded)
 
 
-
 def log_run_query_request():
-    request_summary={}
+    request_summary = {}
 
     try:
         logger.debug("output json request")
@@ -506,9 +512,8 @@ def log_run_query_request():
                         'raw-data': dict(request.data or ""),
                     }}
 
-
         try:
-            request_summary['clientip']=request_summary['request-data']['headers']['X-Forwarded-For'].split(",")[0]
+            request_summary['clientip'] = request_summary['request-data']['headers']['X-Forwarded-For'].split(",")[0]
             logger.info("extracted client: %s", request_summary['clientip'] )
         except Exception as e:
             logger.warning("unable to extract client")
@@ -522,6 +527,7 @@ def log_run_query_request():
 
     return request_summary
     
+    
 def log_run_query_result(request_summary, result):
     logger.info("IN log_run_query_result")
     try:
@@ -530,7 +536,7 @@ def log_run_query_result(request_summary, result):
         logger.info("returning data %s", result.data[:100])
 
         try:
-            result_json=json.loads(result.data)
+            result_json = json.loads(result.data)
             logger.debug("query result keys: %s", result_json.keys())
             request_summary['return_exit_status']=result_json['exit_status']
             request_summary['return_job_status']=result_json['job_status']
@@ -545,6 +551,7 @@ def log_run_query_result(request_summary, result):
         raise
 
     return result
+
 
 
 if __name__ == "__main__":
