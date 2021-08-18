@@ -40,6 +40,7 @@ from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
 from ..analysis import tokenHelper, email_helper
 from ..analysis.hash import make_hash
+from ..analysis.hash import default_kw_black_list
 from ..analysis.job_manager import Job, job_factory
 from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
@@ -104,8 +105,9 @@ class InstrumentQueryBackEnd:
         self.logger.warning("%s %s s", message, self.query_progression[-1]['t_s'] - t0)
 
 
-    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False, resolve_job_url=False, query_id=None):
+    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False, resolve_job_url=False, query_id=None, update_token=False):
         self.logger = logging.getLogger(f"{repr(self)} [{query_id}]")
+        self.logger = logging.getLogger(repr(self))
 
         if verbose:
             self.logger.setLevel(logging.DEBUG)
@@ -162,7 +164,7 @@ class InstrumentQueryBackEnd:
                 logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
                 self.log_query_progression("after logstash_message")
 
-            if download_products or resolve_job_url:
+            if download_products or resolve_job_url or update_token:
                 instrument_name = 'mock'
 
             if instrument_name is None:
@@ -271,15 +273,7 @@ class InstrumentQueryBackEnd:
         """
 
         if kw_black_list is None:
-            kw_black_list = ('session_id',
-                             'job_id',
-                             'token',
-                             'dry_run',
-                             'oda_api_version',
-                             'api',
-                             'off_line',
-                             'query_status',
-                             'async_dispatcher')
+            kw_black_list = default_kw_black_list
 
         return OrderedDict({
             k: v for k, v in par_dic.items()
@@ -576,6 +570,14 @@ class InstrumentQueryBackEnd:
                 #TODO: only if it was just set
                 #raise InvalidJobIDProvided(f"no record exists for job_id = {self.job_id}")
 
+    # potentially this can be extended to support more modification of the token payload (e.g. roles)
+    def update_token(self, update_email_options=False):
+
+        if update_email_options:
+            self.token = tokenHelper.update_token_email_options(self.token, self.app.config.get('conf').secret_key,
+                                                                self.restricted_par_dic(self.par_dic))
+
+        return self.token
 
     def download_products(self):
         try:

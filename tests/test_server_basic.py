@@ -416,6 +416,60 @@ def test_download_products_unauthorized_user(dispatcher_live_fixture, empty_prod
     assert jdata["exit_status"]["message"] == "Request not authorized"
 
 
+@pytest.mark.parametrize("tem_value", [10, "10aaaa"])
+@pytest.mark.parametrize("tem_key_name", ["tem", "temaaaa"])
+def test_modify_token(dispatcher_live_fixture, tem_value, tem_key_name):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    # expired token
+    token_payload = {
+        **default_token_payload,
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    token_update = {
+        # new set of email options
+        tem_key_name: tem_value,
+        "mstout": True,
+        "mssub": True,
+        "msdone": True,
+        "intsub": 5,
+    }
+
+    params = {
+        'token': encoded_token,
+        **token_update,
+        'query_status': 'new',
+    }
+
+    c = requests.post(server + "/update_token_email_options",
+                     params=params)
+
+    token_payload.update(token_update)
+
+    updated_encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    if tem_key_name == 'temaaaa':
+        jdata = c.json()
+        assert jdata['error_message'] == 'An error occurred while validating the following fields: ' \
+                                         '{\'temaaaa\': [\'Unknown field.\']}. ' \
+                                         'Please check it and re-try to issue the request'
+    else:
+        if tem_value == '10aaaa':
+            jdata = c.json()
+            assert jdata['error_message'] == 'An error occurred while validating the following fields: ' \
+                                             '{\'tem\': [\'Not a valid number.\']}. ' \
+                                             'Please check it and re-try to issue the request'
+        else:
+            payload_returned_token = jwt.decode(c.text, secret_key, algorithms='HS256')
+            # order of the payload fields might change inside the dispatcher (eg by marshmallow, ordering)
+            # so the two corresponding tokens might be different,
+            # but the content (fields and values) are still supposed to match match
+            # TODO is the order of the fields in the paylaod important?
+            assert token_payload == payload_returned_token
+
+
 @pytest.mark.not_safe_parallel
 def test_invalid_token(dispatcher_live_fixture):
     server = dispatcher_live_fixture
@@ -584,7 +638,6 @@ def test_valid_token_oda_api(dispatcher_live_fixture):
     assert jdata["status_dictionary"]["message"] == ""
     assert "disp=DispatcherAPI(url='PRODUCTS_URL/dispatch-data', instrument='mock')" in jdata['prod_dictionary']['api_code'] 
     
-
 
 @pytest.mark.parametrize("roles", ["", "unige-hpc-full, general", ["unige-hpc-full", "general"]])
 def test_dummy_authorization_user_roles(dispatcher_live_fixture, roles):
@@ -886,7 +939,7 @@ def test_user_catalog_oda_api(dispatcher_live_fixture):
     assert jdata["prod_dictionary"]["analysis_parameters"]["selected_catalog"] == json.dumps(selected_catalog_dict)
 
     # TODO the name of this method is misleading
-    api_cat_dict = json.loads(prods.dispatcher_catalog_0.get_api_dictionary())
+    api_cat_dict = json.loads(prods.dispatcher_catalog_1.get_api_dictionary())
     assert api_cat_dict == selected_catalog_dict
 
 
@@ -1009,3 +1062,45 @@ def test_example_config(dispatcher_test_conf):
     print("\n\n\ntest_config_keys", test_config_keys)
 
     assert set(example_config_keys) == set(test_config_keys)
+
+
+def test_image(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 55,
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                method='post',
+                )
+
+    assert 'numpy_data_product_list' in jdata['products']
+    # test job_id
+    job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
+    # adapting some values to string
+    for k, v in params.items():
+        params[k] = str(v)
+
+    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "sub": "mtm@mtmco.net"})
+    calculated_job_id = make_hash(restricted_par_dic)
+
+    assert job_id == calculated_job_id
+

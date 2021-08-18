@@ -2,6 +2,17 @@ import hashlib
 import json
 from collections import OrderedDict
 
+default_kw_black_list = ('session_id',
+                 'job_id',
+                 'token',
+                 'dry_run',
+                 'oda_api_version',
+                 'api',
+                 'off_line',
+                 'query_status',
+                 'async_dispatcher')
+
+
 def make_hash(o):
     """
     Makes a hash from a dictionary, list, tuple or set to any level, that contains

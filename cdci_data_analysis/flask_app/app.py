@@ -5,29 +5,19 @@ Created on Wed May 10 10:55:20 2017
 
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
-from builtins import (open, str, range,
-                      object)
-from hashlib import md5
-import hashlib
-from werkzeug.utils import secure_filename
 
-import os
 import string
 import random
 import json
 
 from raven.contrib.flask import Sentry
 
-import traceback
-
 from flask import jsonify, send_from_directory, redirect, Response
 from flask import Flask, request, make_response, abort, g
-from flask.json import JSONEncoder
 
 # restx not really used
 from flask_restx import Api, Resource, reqparse
 
-import logging
 import time as _time
 
 from .logstash import logstash_message
@@ -215,6 +205,17 @@ def common_exception_payload():
     return payload
 
 
+@app.route('/update_token_email_options', methods=['POST', 'GET'])
+def update_token_email_options():
+    logger.info("request.args: %s ", request.args)
+
+    query = InstrumentQueryBackEnd(app, update_token=True)
+
+    query.update_token(update_email_options=True)
+    # TODO adaption to the QueryOutJSON schema is needed
+    return query.token
+
+
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
     """
@@ -256,6 +257,7 @@ def run_analysis():
         log_run_query_result(request_summary, r[0])
 
         return r
+
     except APIerror as e:
         raise
     except Exception as e:
@@ -268,12 +270,13 @@ def run_analysis():
                            status_code=410,
                            payload={'error_message': str(e), **common_exception_payload()})
 
+
 # or flask-marshmellow
 @app.after_request
 def validate_schema(response):
     try:
         if dispatcher_strict_validate:
-            # TODO in case of download/js9 request a dedicated validaiton schema should be defined
+            # TODO in case of download/js9 request a dedicated validation schema should be defined
             if not response.is_streamed:
                 QueryOutJSON().load(response.json)
     except ValidationError as e:
@@ -283,6 +286,7 @@ def validate_schema(response):
             'invalid_response': response.json
         }), 500
     return response
+
 
 @app.route('/test_mock', methods=['POST', 'GET'])
 def test_mock():
@@ -299,6 +303,7 @@ def resolve_job_url():
     location = query.resolve_job_url()
 
     return redirect(location, 302)
+
 
 
 @app.route('/call_back', methods=['POST', 'GET'])

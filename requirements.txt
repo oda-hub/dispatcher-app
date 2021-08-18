@@ -23,4 +23,5 @@ redis
 psutil
 pyjwt
 aiosmtpd
+marshmallow
 -e git+https://github.com/oda-hub/oda_api.git#egg=oda_api
