@@ -4,7 +4,6 @@ from marshmallow import ValidationError
 
 from cdci_data_analysis.analysis.exceptions import BadRequest
 from cdci_data_analysis.flask_app.schemas import EmailOptionsTokenSchema
-from cdci_data_analysis.analysis.hash import default_kw_black_list
 
 
 default_algorithm = 'HS256'
