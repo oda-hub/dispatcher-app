@@ -214,7 +214,7 @@ def common_exception_payload():
 
 @app.route('/update_token_email_options', methods=['POST', 'GET'])
 def update_token_email_options():
-    print(f"request.args: {request.args}")
+    logger.info("request.args: %s ", request.args)
 
     query = InstrumentQueryBackEnd(app, update_token=True)
 
@@ -271,6 +271,7 @@ def run_analysis():
                            status_code=410,
                            payload={'error_message': str(e), **common_exception_payload()})
 
+
 # or flask-marshmellow
 @app.after_request
 def validate_schema(response):
@@ -286,6 +287,7 @@ def validate_schema(response):
             'invalid_response': response.json
         }), 500
     return response
+
 
 @app.route('/test_mock', methods=['POST', 'GET'])
 def test_mock():
@@ -303,6 +305,7 @@ def resolve_job_url():
     
     return redirect(location, 302)
     #, Response("this job_id is known to correspond to the following parameters"))
+
 
 @app.route('/call_back', methods=['POST', 'GET'])
 def dataserver_call_back():
