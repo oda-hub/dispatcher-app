@@ -9,6 +9,7 @@ Created on Wed May 10 10:55:20 2017
 import string
 import random
 import json
+import hashlib
 
 from raven.contrib.flask import Sentry
 
@@ -527,7 +528,7 @@ def log_run_query_request():
 
     return request_summary
     
-    
+
 def log_run_query_result(request_summary, result):
     logger.info("IN log_run_query_result")
     try:
