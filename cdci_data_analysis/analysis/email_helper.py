@@ -38,7 +38,7 @@ def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
 
     if isinstance(timestamp_or_string, float):
         return datetime.fromtimestamp(float(timestamp_or_string)).strftime("%Y-%m-%d %H:%M:%S")
-        
+
     return timestamp_or_string
 
 def humanize_interval(time_interval_s: float):
@@ -56,7 +56,7 @@ def humanize_age(timestamp: float):
 
 def humanize_future(timestamp: float):
     return humanize_interval(float(timestamp) - time_.time())
-    
+
 
 
 def textify_email(html):
@@ -64,7 +64,7 @@ def textify_email(html):
     html = re.sub('<a href=(.*?)>(.*?)</a>', r'\2: \1', html)
 
     soup = BeautifulSoup(html)
-    
+
     for elem in soup.find_all(["a", "p", "div", "h3", "br"]):
         elem.replace_with(elem.text + "\n\n")
 
@@ -72,8 +72,8 @@ def textify_email(html):
 
     #text = re.search('<body>(.*?)</body>', html, re.S).group(1)
 
-    
-    
+
+
 
 def invalid_email_line_length(body):
     for line in body.split('\n'):
@@ -91,15 +91,15 @@ def compress_request_url_params(request_url, consider_args=['selected_catalog', 
     for k, v in parsed_qs.items():
         if k in consider_args:
             v_json = json.dumps(v)
-            
+
             if len(v_json) > 100:
                 v = "z:" + base64.b64encode(zlib.compress(v_json.encode())).decode()
                 logger.info("compressing long %.50s...", v_json)
                 logger.info("compressed into %.500s...", v)
 
         compressed_qs[k] = v
-        
-    
+
+
     return parse.urlunparse(parsed_url.__class__(**{
         **parsed_url._asdict(),
         'query': parse.urlencode(compressed_qs)
@@ -133,7 +133,7 @@ def wrap_python_code(code, max_length=100, max_str_length=None):
         string_normalization=True,
         experimental_string_processing=True,
     )
-    
+
     # this will also ensure it's valid code
     return black.format_str(code, mode=mode)
 
@@ -221,7 +221,7 @@ def send_email(
 
     template = env.get_template('email.html')
     email_body_html = template.render(**email_data)
-    
+
     email_subject = re.search("<title>(.*?)</title>", email_body_html).group(1)
     email_text = textify_email(email_body_html)
 
@@ -229,12 +229,12 @@ def send_email(
         open("debug_email_lines_too_long.html", "w").write(email_body_html)
         open("debug_email_lines_too_long.text", "w").write(email_text)
         raise EMailNotSent(f"email not sent, lines too long!")
-    
+
     server = None
     logger.info("Sending email")
     # Create the plain-text and HTML version of your message,
     # since emails with HTML content might be, sometimes, not supported
-        
+
     try:
         # send the mail with the status update to the mail provided with the token
         # eg done/failed/submitted
@@ -303,7 +303,7 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
     if decoded_token:
         # in case the job is just submitted and was not submitted before, at least since some time
         logger.info("considering email sending, status: %s, time_original_request: %s", status, time_original_request)
-        
+
         email_sending_job_submitted = tokenHelper.get_token_user_submitted_email(decoded_token)
         if email_sending_job_submitted is None:
             # in case this didn't come with the token take the default value from the configuration
@@ -311,7 +311,7 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
 
         # get the amount of time passed from when the last email was sent
         interval_ok = True
-        
+
         email_sending_job_submitted_interval = tokenHelper.get_token_user_sending_submitted_interval_email(decoded_token)
         if email_sending_job_submitted_interval is None:
             # in case this didn't come with the token take the default value from the configuration
@@ -321,7 +321,7 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
 
         email_history_dir = os.path.join(scratch_dir + '/email_history')
         logger.info("email_history_dir: %s", email_history_dir)
-        
+
         email_history_dirs_same_job_id = f"scratch_*_{job_id}*/email_history"
         logger.info("email_history_dirs_same_job_id: %s", email_history_dirs_same_job_id)
 
@@ -332,7 +332,7 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
             )
         submitted_email_files = glob.glob(submitted_email_pattern)
         logger.info("submitted_email_files: %s as %s", len(submitted_email_files), submitted_email_pattern)
-        
+
         if len(submitted_email_files) >= 1:
             times = []
             for f in submitted_email_files:

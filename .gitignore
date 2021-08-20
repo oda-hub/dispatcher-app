@@ -52,4 +52,4 @@ content.txt
 local_smtp_log
 tests/to_review_emails/
 to_review_email.html
-
+email.text
