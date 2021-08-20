@@ -1,6 +1,13 @@
 from cdci_data_analysis.configurer import DataServerConf
 import os
 import pytest
+import contextlib, os
+
+@contextlib.contextmanager
+def remember_cwd():
+    curdir= os.getcwd()
+    try: yield
+    finally: os.chdir(curdir)
 
 def test_dsconf_integral_osa(tmpdir):
     conf_dict = {'data_server_url': 'https://data-server:5000',
@@ -8,8 +15,11 @@ def test_dsconf_integral_osa(tmpdir):
             'data_server_remote_cache': 'reduced/ddcache',
             'dummy_cache': 'data/dummy_prods',
             }
-    os.chdir(tmpdir)
-    conf = DataServerConf.from_conf_dict(conf_dict)
+
+    with remember_cwd():
+        os.chdir(tmpdir)
+        conf = DataServerConf.from_conf_dict(conf_dict)
+        
     assert conf.dummy_cache == conf_dict['dummy_cache']
     assert conf.data_server_url == conf_dict['data_server_url']
     assert conf.data_server_remote_path == conf_dict['data_server_remote_cache']
