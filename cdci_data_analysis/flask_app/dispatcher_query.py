@@ -403,7 +403,7 @@ class InstrumentQueryBackEnd:
         self.par_dic = args.to_dict()
 
         # if passed, disregard it, since it is nowhere necessary within the dispatcher-app,
-        # but re-attach it to the url within the email when sending it
+        # but re-attach it to the url within the email when sending it since it is used by the frontend
         self.use_scws = self.par_dic.pop('use_scws', None)
 
         if 'scw_list' in self.par_dic.keys():
@@ -728,8 +728,7 @@ class InstrumentQueryBackEnd:
                     raise MissingRequestParameter(repr(e))
                 # build the products URL and get also the original requested product
                 products_url = self.generate_products_url_from_file(self.config.products_url,
-                                                                    request_par_dict=original_request_par_dic,
-                                                                    include_use_scws=True)
+                                                                    request_par_dict=original_request_par_dic)
 
                 email_helper.send_email(
                     config=self.app.config['conf'],
@@ -812,9 +811,9 @@ class InstrumentQueryBackEnd:
             return json.load(open(scratch_dir_parameters[0]))
 
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
-    def generate_products_url_from_par_dict(self, products_url, par_dict, include_use_scws=False) -> str:
+    def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
         par_dict = par_dict.copy()
-        if include_use_scws:
+        if 'scw_list' in par_dict and self.use_scws is not None:
             # for the frontend
             par_dict['use_scws'] = self.use_scws
 
@@ -827,8 +826,8 @@ class InstrumentQueryBackEnd:
         request_url = '%s?%s' % (products_url, urlencode(par_dict))
         return request_url
 
-    def generate_products_url_from_file(self, products_url, request_par_dict, include_use_scws=False) -> str:
-        return self.generate_products_url_from_par_dict(products_url, request_par_dict, include_use_scws=include_use_scws)
+    def generate_products_url_from_file(self, products_url, request_par_dict) -> str:
+        return self.generate_products_url_from_par_dict(products_url, request_par_dict)
 
     def run_query_mock(self, off_line=False):
 
@@ -1493,8 +1492,7 @@ class InstrumentQueryBackEnd:
                                                                decoded_token=self.decoded_token):
                         try:
                             products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url,
-                                                                                    self.par_dic,
-                                                                                    include_use_scws=True)
+                                                                                    self.par_dic)
 
                             email_helper.send_email(
                                 config=self.app.config['conf'],

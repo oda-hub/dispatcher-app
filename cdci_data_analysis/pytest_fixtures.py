@@ -1,4 +1,5 @@
 # this could be a separate package or/and a pytest plugin
+import sys
 from collections import OrderedDict
 from json import JSONDecodeError
 import yaml
