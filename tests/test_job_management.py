@@ -1126,7 +1126,8 @@ Unfortunately, due to a known issue with very large requests, a URL with the sel
 This will be fixed in a future release.""" in email_data
 
 
-def test_email_scws_list(dispatcher_live_fixture, dispatcher_local_mail_server):
+def test_email_scws_list(dispatcher_live_fixture,
+                         dispatcher_local_mail_server):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
@@ -1154,9 +1155,11 @@ def test_email_scws_list(dispatcher_live_fixture, dispatcher_local_mail_server):
     assert jdata['exit_status']['email_status'] == 'email sent'
     assert 'scw_list' in jdata['products']['analysis_parameters']
     assert 'use_scws' not in jdata['products']['analysis_parameters']
-    # validate email content and verify product url contains the use_scws parameter for the frontend
+    # validate email content,
+    # verify product url contains the use_scws parameter for the frontend
     time_request = jdata['time_request']
-    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S',
+                                     time.localtime(float(time_request)))
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
     products_url = get_expected_products_url(params,
                                              token=encoded_token,
