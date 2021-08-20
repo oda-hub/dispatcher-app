@@ -412,7 +412,8 @@ class InstrumentQueryBackEnd:
                 self.use_scws = 'form_list'
             print('=======> scw_list',  self.par_dic['scw_list'], _p, len(_p))
         else:
-            raise RequestNotUnderstood("scw_list parameter was expected to be passed, but it has not been found")
+            if self.use_scws is not None:
+                raise RequestNotUnderstood("scw_list parameter was expected to be passed, but it has not been found")
 
     def set_args(self, request, verbose=False):
         if request.method in ['GET', 'POST']:
