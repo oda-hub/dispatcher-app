@@ -58,7 +58,6 @@ def humanize_future(timestamp: float):
     return humanize_interval(float(timestamp) - time_.time())
 
 
-
 def textify_email(html):
     html = re.sub('<title>.*?</title>', '', html)
     html = re.sub('<a href=(.*?)>(.*?)</a>', r'\2: \1', html)
@@ -69,10 +68,6 @@ def textify_email(html):
         elem.replace_with(elem.text + "\n\n")
 
     return soup.get_text()
-
-    #text = re.search('<body>(.*?)</body>', html, re.S).group(1)
-
-
 
 
 def invalid_email_line_length(body):
@@ -171,17 +166,21 @@ def send_email(
     env.filters['humanize_age'] = humanize_age
     env.filters['humanize_future'] = humanize_future
 
-    #api_code = adapt_line_length_api_code(api_code, line_break="\n", add_line_continuation="\\")
+    # api_code = adapt_line_length_api_code(api_code, line_break="\n", add_line_continuation="\\")
     api_code = wrap_python_code(api_code)
 
     api_code_too_long = invalid_email_line_length(api_code)
 
-    #api_code = api_code.strip().replace("\n", "<br>\n")
+    if api_code_too_long:
+        # TODO: send us a sentry alert here
+        pass
+
+    # api_code = api_code.strip().replace("\n", "<br>\n")
 
     api_code_no_token = re.sub('"token": ".*?"', '"token": "<PLEASE-INSERT-YOUR-TOKEN-HERE>"', api_code)
 
-    #  TODO: enable this sometimes
-    #   compressed_request_url = compress_request_url_params(request_url)
+    # TODO: enable this sometimes
+    # compressed_request_url = compress_request_url_params(request_url)
 
     if len(request_url) > 2000:
         possibly_compressed_request_url = ""
