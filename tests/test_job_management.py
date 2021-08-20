@@ -110,9 +110,9 @@ generalized_email_patterns = {
 }
 
 ignore_email_patterns = [
-    '\( .*?ago \)',
-    '&#34;token&#34;:.*?,',
-    'expire in .*? .*?\.'
+    r'\( .*?ago \)',
+    r'&#34;token&#34;:.*?,',
+    r'expire in .*? .*?\.'
 ]
 
 
@@ -126,33 +126,33 @@ def email_args_to_filename(**email_args):
     os.makedirs(os.path.dirname(fn), exist_ok=True)
     return fn
 
-def get_reference_email(**email_args):    
-    #TODO: does it actually find it in CI?
+def get_reference_email(**email_args):
+    # TODO: does it actually find it in CI?
     fn = os.path.abspath(email_args_to_filename(**{**email_args, 'email_collection': 'reference'}))
     try:
-        html = open(fn).read() 
-        return adapt_html(html, **email_args)
+        html_content = open(fn).read()
+        return adapt_html(html_content, **email_args)
     except FileNotFoundError:
-        if email_args.get('require', False):  
-            raise          
+        if email_args.get('require', False):
+            raise
         else:
             return None
 
 # substitute several patterns for comparison
-def adapt_html(html, **email_args):
+def adapt_html(html_content, **email_args):
     for arg, patterns in generalized_email_patterns.items():
         if email_args[arg] is not None:
             for pattern in patterns:
-                html = re.sub(pattern, r"\g<1>" + email_args[arg] + r"\g<3>", html)    
-            
-    return html
+                html_content = re.sub(pattern, r"\g<1>" + email_args[arg] + r"\g<3>", html_content)
+
+    return html_content
 
 # ignore patterns which we are too lazy to substiture
-def ignore_html_patterns(html):
+def ignore_html_patterns(html_content):
     for pattern in ignore_email_patterns:
-        html = re.sub(pattern, "<IGNORES>", html, flags=re.DOTALL)
+        html_content = re.sub(pattern, "<IGNORES>", html_content, flags=re.DOTALL)
 
-    return html
+    return html_content
 
 
 def store_email(email_html, **email_args):

@@ -97,7 +97,7 @@ def compress_request_url_params(request_url, consider_args=['selected_catalog', 
                 logger.info("compressing long %.50s...", v_json)
                 logger.info("compressed into %.500s...", v)
 
-        compressed_qs[k] = v    
+        compressed_qs[k] = v
         
     
     return parse.urlunparse(parsed_url.__class__(**{
@@ -108,7 +108,7 @@ def compress_request_url_params(request_url, consider_args=['selected_catalog', 
 
 def wrap_python_code(code, max_length=100, max_str_length=None):
 
-    # this black currently does not split strings without spaces    
+    # this black currently does not split strings without spaces
 
     if max_str_length is None:
         max_str_length = max_length - 10
@@ -116,8 +116,8 @@ def wrap_python_code(code, max_length=100, max_str_length=None):
     while True:
         new_code = code
         for string_separator in '"', "'":
-            new_code = re.sub('(%s[0-9a-zA-Z\.\-\/\+,]{%i,}?%s)' % (string_separator, max_str_length + 1, string_separator), 
-                            lambda S: S.group(1)[:max_str_length] + string_separator + ' ' + string_separator + S.group(1)[max_str_length:],                         
+            new_code = re.sub('(%s[0-9a-zA-Z\.\-\/\+,]{%i,}?%s)' % (string_separator, max_str_length + 1, string_separator),
+                            lambda S: S.group(1)[:max_str_length] + string_separator + ' ' + string_separator + S.group(1)[max_str_length:],
                             new_code)
 
         if new_code == code:
@@ -164,7 +164,7 @@ def send_email(
         api_code="",
         scratch_dir=None):
 
-    # let's get the needed email template; 
+    # let's get the needed email template;
     # TODO: should get from pkgresources or so
     env = Environment(loader=FileSystemLoader('%s/../flask_app/templates/' % os.path.dirname(__file__)))
     env.filters['timestamp2isot'] = timestamp2isot
@@ -197,10 +197,10 @@ def send_email(
         permanent_url = True
 
     email_data = {
-        'oda_site': { 
+        'oda_site': {
             #TODO: get from config
             'site_name': 'University of Geneva',
-            'frontend_url': config.products_url,             
+            'frontend_url': config.products_url,
             'contact': 'contact@odahub.io',
             'manual_reference': 'possibly-non-site-specific-link',
         },
@@ -215,7 +215,7 @@ def send_email(
             'api_code': api_code,
             'api_code_too_long': api_code_too_long,
             'decoded_token': decoded_token,
-            'permanent_url': permanent_url,            
+            'permanent_url': permanent_url,
         }
     }
 
