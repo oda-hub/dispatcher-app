@@ -19,11 +19,11 @@ def test_dsconf_integral_osa(tmpdir):
     with remember_cwd():
         os.chdir(tmpdir)
         conf = DataServerConf.from_conf_dict(conf_dict)
-        
-    assert conf.dummy_cache == conf_dict['dummy_cache']
-    assert conf.data_server_url == conf_dict['data_server_url']
-    assert conf.data_server_remote_path == conf_dict['data_server_remote_cache']
-    assert os.path.isdir(conf_dict['dispatcher_mnt_point'])
+
+        assert conf.dummy_cache == conf_dict['dummy_cache']
+        assert conf.data_server_url == conf_dict['data_server_url']
+        assert conf.data_server_remote_path == conf_dict['data_server_remote_cache']
+        assert os.path.isdir(conf_dict['dispatcher_mnt_point'])
 
 def test_dsconf_lost_url():
     conf_dict = {'dummy_cache': 'dumme_cache',
