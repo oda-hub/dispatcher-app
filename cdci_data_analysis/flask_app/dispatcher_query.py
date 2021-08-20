@@ -120,7 +120,7 @@ class InstrumentQueryBackEnd:
             else:
                 self.par_dic = par_dic
 
-            self.set_scws_realted_params()
+            self.set_scws_related_params()
 
             self.log_query_progression("after set args")
 
@@ -396,7 +396,7 @@ class InstrumentQueryBackEnd:
     def get_current_ip(self):
         return socket.gethostbyname(socket.gethostname())
 
-    def set_scws_realted_params(self):
+    def set_scws_related_params(self):
         # it is nowhere necessary within the dispatcher-app,
         # but it is re-attached to the url within the email
         # when sending it since it is used by the frontend
@@ -406,7 +406,13 @@ class InstrumentQueryBackEnd:
             _p = request.values.getlist('scw_list')
             if len(_p) > 1:
                 self.par_dic['scw_list'] = _p
+            # use_scws should be set for, if any, url link within the email
+            if self.use_scws is None:
+                # TODO ideally should be configurable, since the frontend might change behavior (though unlikely)
+                self.use_scws = 'form_list'
             print('=======> scw_list',  self.par_dic['scw_list'], _p, len(_p))
+        else:
+            raise RequestNotUnderstood("scw_list parameter was expected to be passed, but it has not been found")
 
     def set_args(self, request, verbose=False):
         if request.method in ['GET', 'POST']:
