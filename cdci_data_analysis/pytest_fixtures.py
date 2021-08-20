@@ -372,7 +372,7 @@ def start_dispatcher(rootdir, test_conf_fn):
 
     env = copy.deepcopy(dict(os.environ))
     print(("rootdir", str(rootdir)))
-    env['PYTHONPATH'] = str(rootdir) + ":" + str(rootdir) + "/tests:" + env.get('PYTHONPATH', "")
+    env['PYTHONPATH'] = str(rootdir) + ":" + str(rootdir) + "/tests:" + str(rootdir) + '/bin:' + env.get('PYTHONPATH', "")
     print(("pythonpath", env['PYTHONPATH']))
 
     fn = os.path.join(__this_dir__, "../bin/run_osa_cdci_server.py")

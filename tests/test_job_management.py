@@ -266,9 +266,8 @@ def validate_email_content(
             with open("email.text", "w") as f:
                 f.write(content_text)
 
-            if products_url is not None:
-                if products_url != "":
-                    assert products_url in content_text
+            if products_url is not None and products_url != "":
+                assert products_url in content_text
 
 
 def get_expected_products_url(dict_param,
@@ -279,6 +278,10 @@ def get_expected_products_url(dict_param,
     dict_param_complete.pop("token", None)
     dict_param_complete.pop("session_id", None)
     dict_param_complete.pop("job_id", None)
+
+    # to adapt to the dispatcher-app, and have it at the end of the url
+    if 'use_scws' in dict_param_complete:
+        dict_param_complete['use_scws'] = dict_param_complete.pop('use_scws')
 
     assert 'session_id' not in dict_param_complete
     assert 'job_id' not in dict_param_complete
@@ -1122,6 +1125,52 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
 Unfortunately, due to a known issue with very large requests, a URL with the selected request parameters could not be generated.
 This will be fixed in a future release.""" in email_data
 
+
+def test_email_scws_list(dispatcher_live_fixture, dispatcher_local_mail_server):
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'query_status': "new",
+        'product_type': "dummy",
+        'query_type': "Real",
+        'instrument': 'empty-async',
+        'use_scws': 'form_list',
+        "scw_list": [f"0665{i:04d}0010.001" for i in range(5)],
+        'token': encoded_token
+    }
+
+    c = requests.get(server + "/run_analysis",
+                     params=params)
+
+    jdata = c.json()
+    assert jdata['exit_status']['email_status'] == 'email sent'
+    assert 'scw_list' in jdata['products']['analysis_parameters']
+    assert 'use_scws' not in jdata['products']['analysis_parameters']
+    # validate email content and verify product url contains the use_scws parameter for the frontend
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
+    products_url = get_expected_products_url(params,
+                                             token=encoded_token,
+                                             session_id=dispatcher_job_state.session_id,
+                                             job_id=dispatcher_job_state.job_id)
+
+    validate_email_content(
+        dispatcher_local_mail_server.get_email_record(),
+        'submitted',
+        dispatcher_job_state,
+        time_request_str=time_request_str,
+        products_url=products_url,
+        dispatcher_live_fixture=None,
+    )
 
 def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispatcher_local_mail_server):
     server = dispatcher_long_living_fixture

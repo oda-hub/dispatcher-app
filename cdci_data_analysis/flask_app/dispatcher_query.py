@@ -104,7 +104,6 @@ class InstrumentQueryBackEnd:
         t0 = self.query_progression[0]['t_s']
         self.logger.warning("%s %s s", message, self.query_progression[-1]['t_s'] - t0)
 
-
     def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False, resolve_job_url=False, query_id=None, update_token=False):
         self.logger = logging.getLogger(f"{repr(self)} [{query_id}]")
         self.logger = logging.getLogger(repr(self))
@@ -113,7 +112,6 @@ class InstrumentQueryBackEnd:
             self.logger.setLevel(logging.DEBUG)
         else:
             self.logger.setLevel(logging.INFO)
-        
         
         self.app = app
         try:
@@ -404,8 +402,9 @@ class InstrumentQueryBackEnd:
 
         self.par_dic = args.to_dict()
 
-        # if passed, disregard it, since it is nowhere necessary within the dispatcher-app
-        self.par_dic.pop('use_scws', None)
+        # if passed, disregard it, since it is nowhere necessary within the dispatcher-app,
+        # but re-attach it to the url within the email when sending it
+        self.use_scws = self.par_dic.pop('use_scws', None)
 
         if 'scw_list' in self.par_dic.keys():
             _p = request.values.getlist('scw_list')
@@ -728,7 +727,10 @@ class InstrumentQueryBackEnd:
                 except KeyError as e:
                     raise MissingRequestParameter(repr(e))
                 # build the products URL and get also the original requested product
-                products_url = self.generate_products_url_from_file(self.config.products_url, request_par_dict=original_request_par_dic)
+                products_url = self.generate_products_url_from_file(self.config.products_url,
+                                                                    request_par_dict=original_request_par_dic,
+                                                                    include_use_scws=True)
+
                 email_helper.send_email(
                     config=self.app.config['conf'],
                     logger=self.logger,
@@ -809,10 +811,13 @@ class InstrumentQueryBackEnd:
         else:
             return json.load(open(scratch_dir_parameters[0]))
 
-
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
-    def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
+    def generate_products_url_from_par_dict(self, products_url, par_dict, include_use_scws=False) -> str:
         par_dict = par_dict.copy()
+        if include_use_scws:
+            # for the frontend
+            par_dict['use_scws'] = self.use_scws
+
         _skip_list_ = ['token', 'session_id', 'job_id']
 
         for key, value in dict(par_dict).items():
@@ -822,9 +827,8 @@ class InstrumentQueryBackEnd:
         request_url = '%s?%s' % (products_url, urlencode(par_dict))
         return request_url
 
-    def generate_products_url_from_file(self, products_url, request_par_dict) -> str:
-        return self.generate_products_url_from_par_dict(products_url, request_par_dict)
-
+    def generate_products_url_from_file(self, products_url, request_par_dict, include_use_scws=False) -> str:
+        return self.generate_products_url_from_par_dict(products_url, request_par_dict, include_use_scws=include_use_scws)
 
     def run_query_mock(self, off_line=False):
 
@@ -1488,7 +1492,9 @@ class InstrumentQueryBackEnd:
                                                                self.app.config['conf'],
                                                                decoded_token=self.decoded_token):
                         try:
-                            products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url, self.par_dic)
+                            products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url,
+                                                                                    self.par_dic,
+                                                                                    include_use_scws=True)
 
                             email_helper.send_email(
                                 config=self.app.config['conf'],
