@@ -14,6 +14,8 @@ import email
 from urllib.parse import urlencode
 import glob
 
+from collections import OrderedDict
+
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash
 from cdci_data_analysis.analysis.email_helper import textify_email
 
@@ -279,9 +281,11 @@ def get_expected_products_url(dict_param,
     dict_param_complete.pop("session_id", None)
     dict_param_complete.pop("job_id", None)
 
-    # to adapt to the dispatcher-app, and have it at the end of the url
-    if 'use_scws' in dict_param_complete:
-        dict_param_complete['use_scws'] = dict_param_complete.pop('use_scws')
+    # # to adapt to the dispatcher-app, and have it at the end of the url
+    # if 'use_scws' in dict_param_complete:
+    #     dict_param_complete['use_scws'] = dict_param_complete.pop('use_scws')
+    #
+    #
 
     assert 'session_id' not in dict_param_complete
     assert 'job_id' not in dict_param_complete
@@ -290,6 +294,10 @@ def get_expected_products_url(dict_param,
     for key, value in dict(dict_param_complete).items():
         if value is None:
             dict_param_complete.pop(key)
+
+    dict_param_complete = OrderedDict({
+        k: dict_param_complete[k] for k in sorted(dict_param_complete.keys())
+    })
 
     products_url = '%s?%s' % ('PRODUCTS_URL', urlencode(dict_param_complete))
 

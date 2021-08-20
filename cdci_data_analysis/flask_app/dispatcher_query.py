@@ -823,6 +823,7 @@ class InstrumentQueryBackEnd:
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
         par_dict = par_dict.copy()
+
         if 'scw_list' in par_dict and self.use_scws is not None:
             # for the frontend
             par_dict['use_scws'] = self.use_scws
@@ -832,6 +833,10 @@ class InstrumentQueryBackEnd:
         for key, value in dict(par_dict).items():
             if key in _skip_list_ or value is None:
                 par_dict.pop(key)
+
+        par_dict = OrderedDict({
+            k: par_dict[k] for k in sorted(par_dict.keys())
+        })
 
         request_url = '%s?%s' % (products_url, urlencode(par_dict))
         return request_url
