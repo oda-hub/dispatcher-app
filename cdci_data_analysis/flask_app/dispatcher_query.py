@@ -120,6 +120,8 @@ class InstrumentQueryBackEnd:
             else:
                 self.par_dic = par_dic
 
+            self.set_scws_realted_params()
+
             self.log_query_progression("after set args")
 
             self.client_name = self.par_dic.pop('client-name', 'unknown')
@@ -394,6 +396,18 @@ class InstrumentQueryBackEnd:
     def get_current_ip(self):
         return socket.gethostbyname(socket.gethostname())
 
+    def set_scws_realted_params(self):
+        # it is nowhere necessary within the dispatcher-app,
+        # but it is re-attached to the url within the email
+        # when sending it since it is used by the frontend
+        self.use_scws = self.par_dic.pop('use_scws', None)
+        #
+        if 'scw_list' in self.par_dic.keys():
+            _p = request.values.getlist('scw_list')
+            if len(_p) > 1:
+                self.par_dic['scw_list'] = _p
+            print('=======> scw_list',  self.par_dic['scw_list'], _p, len(_p))
+
     def set_args(self, request, verbose=False):
         if request.method in ['GET', 'POST']:
             args = request.values
@@ -401,16 +415,6 @@ class InstrumentQueryBackEnd:
             raise NotImplementedError
 
         self.par_dic = args.to_dict()
-
-        # if passed, disregard it, since it is nowhere necessary within the dispatcher-app,
-        # but re-attach it to the url within the email when sending it since it is used by the frontend
-        self.use_scws = self.par_dic.pop('use_scws', None)
-
-        if 'scw_list' in self.par_dic.keys():
-            _p = request.values.getlist('scw_list')
-            if len(_p) > 1:
-                self.par_dic['scw_list'] = _p
-            print('=======> scw_list',  self.par_dic['scw_list'], _p, len(_p))
 
         if verbose:
             print('par_dic', self.par_dic)
