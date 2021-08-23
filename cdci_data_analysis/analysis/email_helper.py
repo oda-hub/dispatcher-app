@@ -167,17 +167,15 @@ def send_email(
     env.filters['humanize_future'] = humanize_future
 
     # api_code = adapt_line_length_api_code(api_code, line_break="\n", add_line_continuation="\\")
-    api_code = wrap_python_code(api_code)
+    api_code_no_token = re.sub('"token": ".*?"', '"token": "<PLEASE-INSERT-YOUR-TOKEN-HERE>"', api_code)
+    api_code_no_token = wrap_python_code(api_code_no_token)
 
-    api_code_too_long = invalid_email_line_length(api_code)
+    api_code = wrap_python_code(api_code)
+    api_code_too_long = invalid_email_line_length(api_code) or invalid_email_line_length(api_code_no_token)
 
     if api_code_too_long:
         # TODO: send us a sentry alert here
         pass
-
-    # api_code = api_code.strip().replace("\n", "<br>\n")
-
-    api_code_no_token = re.sub('"token": ".*?"', '"token": "<PLEASE-INSERT-YOUR-TOKEN-HERE>"', api_code)
 
     # TODO: enable this sometimes
     # compressed_request_url = compress_request_url_params(request_url)
