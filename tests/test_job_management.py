@@ -250,7 +250,7 @@ def validate_email_content(
     assert message_record['mail_from'] == 'team@odahub.io'
     assert message_record['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io', 'teamBcc@odahub.io']
 
-    msg = email.message_from_string(message_record['data'])    
+    msg = email.message_from_string(message_record['data'])
 
     assert msg['Subject'] == f"[ODA][{state}] {product} first requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
     assert msg['From'] == 'team@odahub.io'
@@ -1258,6 +1258,18 @@ def test_email_scws_list(dispatcher_live_fixture,
             products_url=products_url,
             dispatcher_live_fixture=None,
         )
+        # check api_code in the returned products
+        assert 'use_scws' not in jdata['products']['api_code']
+        assert 'scw_list' in jdata['products']['api_code']
+        # extract api_code from the email
+        msg = email.message_from_string(dispatcher_local_mail_server.get_email_record()['data'])
+        for part in msg.walk():
+            if part.get_content_type() == 'text/html':
+                content_text_html = part.get_payload().replace('\r', '').strip()
+                email_api_code  =extract_api_code(content_text_html)
+                assert 'use_scws' not in email_api_code
+                assert 'scw_list' in email_api_code
+
 
 def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispatcher_local_mail_server):
     server = dispatcher_long_living_fixture
