@@ -11,7 +11,7 @@ import time
 import jwt
 import logging
 import email
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlparse
 import glob
 
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash
@@ -110,40 +110,49 @@ generalized_email_patterns = {
 }
 
 ignore_email_patterns = [
-    '\( .*?ago \)',
-    '&#34;token&#34;:.*?,',
-    'expire in .*? .*?\.'
+    r'\( .*?ago \)',
+    r'&#34;token&#34;:.*?,',
+    r'expire in .*? .*?\.'
 ]
 
 
 def email_args_to_filename(**email_args):    
-    fn = "tests/{email_collection}_emails/{state}.html".format(**email_args)
+    suffix = "-".join(email_args.get('variation_suffixes', []))
+
+    if suffix != "":
+        suffix = "-" + suffix
+
+    fn = "tests/{email_collection}_emails/{state}{suffix}.html".format(suffix=suffix, **email_args)
     os.makedirs(os.path.dirname(fn), exist_ok=True)
     return fn
 
 def get_reference_email(**email_args):
-    #TODO: does it actually find it in CI?
+    # TODO: does it actually find it in CI?
+    fn = os.path.abspath(email_args_to_filename(**{**email_args, 'email_collection': 'reference'}))
     try:
-        html = open(email_args_to_filename(**{**email_args, 'email_collection': 'reference'})).read() 
-        return adapt_html(html, **email_args)
+        html_content = open(fn).read()
+        return adapt_html(html_content, **email_args)
     except FileNotFoundError:
-        return None
+        if email_args.get('require', False):
+            raise
+        else:
+            return None
 
 # substitute several patterns for comparison
-def adapt_html(html, **email_args):
+def adapt_html(html_content, **email_args):
     for arg, patterns in generalized_email_patterns.items():
         if email_args[arg] is not None:
             for pattern in patterns:
-                html = re.sub(pattern, r"\g<1>" + email_args[arg] + r"\g<3>", html)    
-            
-    return html
+                html_content = re.sub(pattern, r"\g<1>" + email_args[arg] + r"\g<3>", html_content)
+
+    return html_content
 
 # ignore patterns which we are too lazy to substiture
-def ignore_html_patterns(html):
+def ignore_html_patterns(html_content):
     for pattern in ignore_email_patterns:
-        html = re.sub(pattern, "<IGNORES>", html, flags=re.DOTALL)
+        html_content = re.sub(pattern, "<IGNORES>", html_content, flags=re.DOTALL)
 
-    return html
+    return html_content
 
 
 def store_email(email_html, **email_args):
@@ -163,7 +172,7 @@ def extract_api_code(text):
     else:
         with open("no-api-code-problem.html", "w") as f:
             f.write(text)
-        raise RuntimeError
+        raise RuntimeError("no api code in the email!")
 
 def extract_products_url(text):
     r = re.search('<a href="(.*?)">url</a>', text, flags=re.DOTALL)
@@ -172,7 +181,7 @@ def extract_products_url(text):
     else:
         with open("no-url-problem.html", "w") as f:
             f.write(text)
-        raise RuntimeError
+        raise RuntimeError("no products url in the email!")
 
 
 def validate_api_code(api_code, dispatcher_live_fixture):
@@ -210,17 +219,38 @@ def validate_email_content(
                    dispatcher_job_state: DispatcherJobState,
                    time_request_str: str=None,
                    products_url=None,
-                   dispatcher_live_fixture=None
+                   dispatcher_live_fixture=None,
+                   request_params: dict=None,
+                   expect_api_code=True,
+                   variation_suffixes=None,
+                   require_reference_email=False
                    ):
 
-    reference_email = get_reference_email(state=state, time_request_str=time_request_str, products_url=products_url, job_id=dispatcher_job_state.job_id[:8])
+    if variation_suffixes is None:
+        variation_suffixes = []
+
+    if not expect_api_code:
+        variation_suffixes.append("no-api-code")
+
+    reference_email = get_reference_email(state=state, 
+                                          time_request_str=time_request_str, 
+                                          products_url=products_url, 
+                                          job_id=dispatcher_job_state.job_id[:8],
+                                          variation_suffixes=variation_suffixes,
+                                          require=require_reference_email
+                                          )
+
+    if request_params is None:
+        request_params = {}
+    
+    product = request_params.get('product_type', 'dummy')
     
     assert message_record['mail_from'] == 'team@odahub.io'
     assert message_record['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io', 'teamBcc@odahub.io']
 
     msg = email.message_from_string(message_record['data'])    
 
-    assert msg['Subject'] == f"[ODA][{state}] dummy first requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+    assert msg['Subject'] == f"[ODA][{state}] {product} first requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
     assert msg['From'] == 'team@odahub.io'
     assert msg['To'] == 'mtm@mtmco.net'
     assert msg['CC'] == ", ".join(['team@odahub.io'])
@@ -243,16 +273,25 @@ def validate_email_content(
                 else:
                     assert re.search(f'<a href="(.*)">url</a>', content_text_html, re.M) == None
 
-            fn = store_email(content_text_html, state=state, time_request_str=time_request_str, products_url=products_url)
+            fn = store_email(content_text_html, 
+                             state=state, 
+                             time_request_str=time_request_str, 
+                             products_url=products_url, 
+                             variation_suffixes=variation_suffixes)
 
             if reference_email is not None:
                 open("adapted_reference.html", "w").write(ignore_html_patterns(reference_email))
                 assert ignore_html_patterns(reference_email) == ignore_html_patterns(content_text_html), f"please inspect {fn} and possibly copy it to {fn.replace('to_review', 'reference')}"
 
-            validate_api_code(
-                extract_api_code(content_text_html),
-                dispatcher_live_fixture
-            )
+            if expect_api_code:
+                validate_api_code(
+                    extract_api_code(content_text_html),
+                    dispatcher_live_fixture
+                )
+            else:
+                open("content.txt", "w").write(content_text)
+                assert "Please note that we were not able to embed API code in this email" in content_text
+
             if products_url != "":
                 validate_products_url(
                     extract_products_url(content_text_html),
@@ -1120,7 +1159,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
     else:
         assert """You can retrieve the results by repeating the request.
 Unfortunately, due to a known issue with very large requests, a URL with the selected request parameters could not be generated.
-This will be fixed in a future release.""" in email_data
+This might be fixed in a future release.""" in email_data
 
 
 def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispatcher_local_mail_server):
@@ -1170,6 +1209,7 @@ def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispa
 
 @pytest.mark.parametrize('length', [3, 100])
 def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixture, dispatcher_local_mail_server):
+    unbreakable = length >= 100 
 
     server = dispatcher_long_living_fixture
     
@@ -1191,7 +1231,6 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
             instrument="empty-async",
             product_type="numerical",
             token=encoded_token,
-            time_request=time_request
         )
 
     # this kind of parameters never really happen, and we should be alerted
@@ -1207,10 +1246,33 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
 
     jdata = c.json()
 
-    if all([len(k) < 900 for k in params.keys()]):
-        assert jdata['exit_status']['email_status'] == 'email sent'
-    else:
-        assert jdata['exit_status']['email_status'] == 'sending email failed'
+    assert jdata['exit_status']['email_status'] == 'email sent'
+    products_url = get_expected_products_url(params, 
+                                             token=encoded_token, 
+                                             session_id=dispatcher_job_state.session_id, 
+                                             job_id=dispatcher_job_state.job_id)
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    # get the original time the request was made
+    assert 'time_request' in jdata
+    # set the time the request was initiated
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+    
+
+    validate_email_content(
+        dispatcher_local_mail_server.get_email_record(),
+        'submitted',
+        dispatcher_job_state,
+        time_request_str=time_request_str,
+        products_url=products_url,
+        dispatcher_live_fixture=None,
+        request_params=params,
+        expect_api_code=not unbreakable,
+        variation_suffixes=["numeric-not-very-long"] if not unbreakable else [],
+        require_reference_email=True
+    )
+    
+    # capture and verify sentry alert
 
 
 
@@ -1237,18 +1299,21 @@ def test_wrap_api_code():
     code = """
 a = 1
 
-def x():
-    pass
+def x(arg):
+    return arg
 
-bla = x()
+bla = x("x")
 
 bla = "asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas"
 
 bla_bla = 'asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas'
 
+scwl_dict = {"scw_list": "115000860010.001,115000870010.001,115000980010.001,115000990010.001,115001000010.001,115001010010.001,115001020010.001,115001030010.001,115001040010.001,115001050010.001,115001060010.001,117100210010.001,118100040010.001,118100050010.001,118900100010.001,118900120010.001,118900130010.001,118900140010.001,119000020010.001,119000030010.001,119000040010.001,119000050010.001,119000190010.001,119900370010.001,119900480010.001,119900490010.001,119900500010.001,119900510010.001,119900520010.001,119900530010.001,119900540010.001,119900550010.001,119900560010.001,119900570010.001,119900670010.001,119900680010.001,119900690010.001,119900700010.001,119900710010.001,119900720010.001,119900730010.001,119900740010.001,119900750010.001,119900760010.001,119900770010.001,119900880010.001,119900890010.001,119900900010.001,119900910010."}
     """
     
     c = wrap_python_code(code, max_length=max_length)
+
+    print("wrapped:\n", c)
 
     assert max([ len(l) for l in c.split("\n") ]) < max_length
 
@@ -1256,5 +1321,7 @@ bla_bla = 'asdasdas adasda sdasdas dasdas asdasdas adasda sdasdas dasdas asdasda
     exec(c, my_globals)
 
     assert len(my_globals['bla']) > max_length
+    assert len(my_globals['scwl_dict']['scw_list']) > max_length
+
     
     

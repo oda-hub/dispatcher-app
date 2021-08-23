@@ -42,3 +42,14 @@ jdata.json
 cdci_data_analysis/config_dir/conf_env.yml
 js9
 src
+p_list_files
+debug_email*
+p_value_simple_files
+DataServerQuery-status.state
+adapted_reference.html
+catalog_simple_files
+content.txt
+local_smtp_log
+tests/to_review_emails/
+to_review_email.html
+email.text
