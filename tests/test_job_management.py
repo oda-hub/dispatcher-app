@@ -16,7 +16,7 @@ import glob
 
 from collections import OrderedDict
 
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, ask
 from cdci_data_analysis.analysis.email_helper import textify_email
 
 from flask import Markup
@@ -280,12 +280,6 @@ def get_expected_products_url(dict_param,
     dict_param_complete.pop("token", None)
     dict_param_complete.pop("session_id", None)
     dict_param_complete.pop("job_id", None)
-
-    # # to adapt to the dispatcher-app, and have it at the end of the url
-    # if 'use_scws' in dict_param_complete:
-    #     dict_param_complete['use_scws'] = dict_param_complete.pop('use_scws')
-    #
-    #
 
     assert 'session_id' not in dict_param_complete
     assert 'job_id' not in dict_param_complete
@@ -614,7 +608,7 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
     token_payload = {
         **default_token_payload,
         "tem": 0,
-        "intsub": 3
+        "intsub": 5
     }
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
@@ -793,7 +787,7 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
     # let's generate a valid token with high threshold
     token_payload = {
         **default_token_payload,
-        "intsub": 3 
+        "intsub": 5
     }
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
@@ -842,6 +836,7 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
 
         assert c.status_code == 200
         jdata = c.json()
+        print("i: ", i)
         assert jdata['exit_status']['job_status'] == 'submitted'
         assert 'email_status' not in jdata['exit_status']
 
@@ -1134,8 +1129,15 @@ Unfortunately, due to a known issue with very large requests, a URL with the sel
 This will be fixed in a future release.""" in email_data
 
 
+@pytest.mark.not_safe_parallel
+@pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None])
+@pytest.mark.parametrize("passing_scw_list", [True, False])
 def test_email_scws_list(dispatcher_live_fixture,
-                         dispatcher_local_mail_server):
+                         dispatcher_local_mail_server,
+                         use_scws_value,
+                         passing_scw_list):
+    DispatcherJobState.remove_scratch_folders()
+
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
@@ -1151,37 +1153,72 @@ def test_email_scws_list(dispatcher_live_fixture,
         'product_type': "dummy",
         'query_type': "Real",
         'instrument': 'empty-async',
-        'use_scws': 'form_list',
-        "scw_list": [f"0665{i:04d}0010.001" for i in range(5)],
+        'use_scws': use_scws_value,
         'token': encoded_token
     }
 
-    c = requests.get(server + "/run_analysis",
-                     params=params)
+    if use_scws_value == 'user_file':
+        scw_list_file_obj = None
+        if passing_scw_list:
+            file_path = DispatcherJobState.create_scw_list_file(list_length=5)
+            scw_list_file = open(file_path).read()
+            scw_list_file_obj = {"user_scw_list_file": scw_list_file}
+        # we are supposed to send a file, so it has to be a post request
+        jdata = ask(server,
+                    params,
+                    method='post',
+                    max_time_s=150,
+                    expected_query_status=None,
+                    expected_status_code=None,
+                    files=scw_list_file_obj
+                    )
+    else:
+        if passing_scw_list:
+            params['scw_list'] = [f"0665{i:04d}0010.001" for i in range(5)]
+        jdata = ask(server,
+                    params,
+                    max_time_s=150,
+                    expected_query_status=None,
+                    expected_status_code=None
+                    )
 
-    jdata = c.json()
-    assert jdata['exit_status']['email_status'] == 'email sent'
-    assert 'scw_list' in jdata['products']['analysis_parameters']
-    assert 'use_scws' not in jdata['products']['analysis_parameters']
-    # validate email content,
-    # verify product url contains the use_scws parameter for the frontend
-    time_request = jdata['time_request']
-    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S',
-                                     time.localtime(float(time_request)))
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
-    products_url = get_expected_products_url(params,
-                                             token=encoded_token,
-                                             session_id=dispatcher_job_state.session_id,
-                                             job_id=dispatcher_job_state.job_id)
+    # jdata = c.json()
+    if not passing_scw_list:
+        if use_scws_value == 'form_list':
+            assert jdata['error_message'] == ('scw_list parameter was expected to be passed, but it has not been found, '
+                                              'please check the inputs you provided')
+        elif use_scws_value == 'user_file':
+            assert jdata['error_message'] == ('Error while uploading scw_list file from the frontend: '
+                                              'the file has not been provided')
+    else:
+        assert jdata['exit_status']['email_status'] == 'email sent'
+        assert 'scw_list' in jdata['products']['analysis_parameters']
+        assert 'use_scws' not in jdata['products']['analysis_parameters']
 
-    validate_email_content(
-        dispatcher_local_mail_server.get_email_record(),
-        'submitted',
-        dispatcher_job_state,
-        time_request_str=time_request_str,
-        products_url=products_url,
-        dispatcher_live_fixture=None,
-    )
+        # validate email content,
+        # verify product url contains the use_scws parameter for the frontend
+        time_request = jdata['time_request']
+        time_request_str = time.strftime('%Y-%m-%d %H:%M:%S',
+                                         time.localtime(float(time_request)))
+        dispatcher_job_state = DispatcherJobState.from_run_analysis_json_response(jdata)
+        # in case the request comes from API
+        if use_scws_value is None:
+            params['use_scws'] = 'form_list'
+        if use_scws_value == 'user_file':
+            params['scw_list'] = [f"0665{i:04d}0010.001" for i in range(5)]
+        products_url = get_expected_products_url(params,
+                                                 token=encoded_token,
+                                                 session_id=dispatcher_job_state.session_id,
+                                                 job_id=dispatcher_job_state.job_id)
+
+        validate_email_content(
+            dispatcher_local_mail_server.get_email_record(),
+            'submitted',
+            dispatcher_job_state,
+            time_request_str=time_request_str,
+            products_url=products_url,
+            dispatcher_live_fixture=None,
+        )
 
 def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispatcher_local_mail_server):
     server = dispatcher_long_living_fixture

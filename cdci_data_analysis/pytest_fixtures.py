@@ -662,6 +662,24 @@ class DispatcherJobState:
         return f'p_value_simple_files/{file_name}'
 
     @staticmethod
+    def create_scw_list_file(list_length):
+        # generate ScWs list file
+        if not os.path.exists('scw_list_files'):
+            os.makedirs('scw_list_files')
+
+        # scw_list
+        scw_list = [f"0665{i:04d}0010.001" for i in range(list_length)]
+        # hash file content
+        scw_list_hash = make_hash(scw_list)
+
+        file_name = f'scw_list_{scw_list_hash}'
+
+        with open('scw_list_files/' + file_name, 'w+') as outlist_file:
+            for scw in scw_list:
+                outlist_file.write(str(scw) + '\n')
+        return f'scw_list_files/{file_name}'
+
+    @staticmethod
     def create_catalog_file(catalog_value):
         # generate ScWs list file
         if not os.path.exists('catalog_simple_files'):
@@ -702,6 +720,13 @@ meta_ID src_names significance ra dec NEW_SOURCE ISGRI_FLAG FLAG ERR_RAD
         return cls(
             session_id = r.json()['session_id'],
             job_id = r.json()['job_monitor']['job_id']
+        )
+
+    @classmethod
+    def from_run_analysis_json_response(cls, r):
+        return cls(
+            session_id=r['session_id'],
+            job_id=r['job_monitor']['job_id']
         )
     
     def __init__(self, session_id, job_id) -> None:

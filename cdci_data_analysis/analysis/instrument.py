@@ -153,6 +153,7 @@ class Instrument:
                              request,
                              temp_dir,
                              verbose,
+                             use_scws,
                              sentry_client=None):
         # TODO probably exception handling can be further improved and/or optmized
         # set catalog
@@ -177,6 +178,10 @@ class Instrument:
                 sentry_client.capture('raven.events.Message',
                                            message=f'Error while uploading scw_list file from the frontend {e}')
             raise RequestNotUnderstood("Error while uploading scw_list file from the frontend")
+
+        if input_file_path is None and use_scws == 'user_file':
+            raise RequestNotUnderstood("Error while uploading scw_list file from the frontend: "
+                                       "the file has not been provided")
         try:
             self.set_input_products_from_fronted(input_file_path=input_file_path, par_dic=par_dic, verbose=verbose)
         except Exception as e:

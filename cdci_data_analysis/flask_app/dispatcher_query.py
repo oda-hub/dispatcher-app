@@ -198,6 +198,7 @@ class InstrumentQueryBackEnd:
                             request=request,
                             temp_dir=self.temp_dir,
                             verbose=verbose,
+                            use_scws=self.use_scws,
                             sentry_client=self.sentry_client
                         )
                 # TODO: if not callback!
@@ -415,7 +416,8 @@ class InstrumentQueryBackEnd:
             # not necessary to check the case of scw_list passed via file,
             # since it is verified at a later stage
             if self.use_scws is not None and self.use_scws == 'form_list':
-                raise RequestNotUnderstood("scw_list parameter was expected to be passed, but it has not been found")
+                raise RequestNotUnderstood("scw_list parameter was expected to be passed, but it has not been found, "
+                                           "please check the inputs you provided")
 
     def set_args(self, request, verbose=False):
         if request.method in ['GET', 'POST']:
