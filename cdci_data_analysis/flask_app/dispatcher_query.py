@@ -829,7 +829,7 @@ class InstrumentQueryBackEnd:
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
         par_dict = par_dict.copy()
 
-        if 'scw_list' in par_dict and self.use_scws is not None:
+        if ('scw_list' in par_dict and self.use_scws is not None) or self.use_scws == 'no':
             # for the frontend
             par_dict['use_scws'] = self.use_scws
 
