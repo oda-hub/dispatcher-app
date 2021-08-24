@@ -1298,14 +1298,6 @@ def test_email_scws_list(dispatcher_live_fixture,
                                                  session_id=dispatcher_job_state.session_id,
                                                  job_id=dispatcher_job_state.job_id)
 
-        validate_email_content(
-            dispatcher_local_mail_server.get_email_record(),
-            'submitted',
-            dispatcher_job_state,
-            time_request_str=time_request_str,
-            products_url=products_url,
-            dispatcher_live_fixture=None,
-        )
         # check api_code in the returned products
         assert 'use_scws' not in jdata['products']['api_code']
         if use_scws_value == 'no':
@@ -1323,6 +1315,10 @@ def test_email_scws_list(dispatcher_live_fixture,
                     assert 'scw_list' not in email_api_code
                 else:
                     assert 'scw_list' in email_api_code
+
+                extracted_product_url = extract_products_url(content_text_html)
+                if products_url is not None and products_url != "":
+                    assert products_url == extracted_product_url
 
 
 def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispatcher_local_mail_server):
