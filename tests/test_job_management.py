@@ -379,7 +379,7 @@ def test_validation_job_id(dispatcher_live_fixture):
     print(json.dumps(c.json(), sort_keys=True, indent=4))
 
     assert c.status_code == 200
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
 
@@ -466,7 +466,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     jdata = c.json()
     
     logger.info("response from run_analysis: %s", json.dumps(jdata, indent=4))
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
 
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
@@ -667,7 +667,7 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
 
     assert c.status_code == 200
     
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
     
     #dict_param_complete = dict_param.copy()
     #dict_param_complete.pop("token")
@@ -800,7 +800,7 @@ def test_email_submitted_frontend_like_job_id(dispatcher_live_fixture, dispatche
 
     assert c.status_code == 200
     
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
     
     
     jdata = c.json()
@@ -847,7 +847,7 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
 
     logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)    
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
     
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
@@ -933,7 +933,7 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
     jdata = c.json()
 
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
     
     time_request = jdata['time_request']
     
@@ -1006,7 +1006,7 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
 
     logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)    
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
 
     jdata = c.json()
     assert jdata['exit_status']['email_status'] == 'sending email failed'
@@ -1130,7 +1130,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
 
     logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)    
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
 
     jdata = c.json()
     assert jdata['exit_status']['email_status'] == 'email sent'
@@ -1169,7 +1169,7 @@ This might be fixed in a future release.""" in email_data
 
 
 @pytest.mark.not_safe_parallel
-@pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None])
+@pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
 @pytest.mark.parametrize("passing_scw_list", [True, False])
 def test_email_scws_list(dispatcher_live_fixture,
                          dispatcher_local_mail_server,
@@ -1187,14 +1187,16 @@ def test_email_scws_list(dispatcher_live_fixture,
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
+    # setting params
     params = {
         'query_status': "new",
         'product_type': "dummy",
         'query_type': "Real",
         'instrument': 'empty-async',
-        'use_scws': use_scws_value,
         'token': encoded_token
     }
+    if use_scws_value != 'not_included':
+        params['use_scws'] = use_scws_value
 
     if use_scws_value == 'user_file':
         scw_list_file_obj = None
@@ -1211,6 +1213,26 @@ def test_email_scws_list(dispatcher_live_fixture,
                     expected_status_code=None,
                     files=scw_list_file_obj
                     )
+        if not passing_scw_list:
+            assert jdata['error_message'] == ('Error while uploading scw_list file from the frontend: '
+                                              'the file has not been provided')
+        else:
+            assert 'scw_list' in jdata['products']['analysis_parameters']
+    elif use_scws_value == 'form_list':
+        if passing_scw_list:
+            params['scw_list'] = [f"0665{i:04d}0010.001" for i in range(5)]
+        jdata = ask(server,
+                    params,
+                    max_time_s=150,
+                    expected_query_status=None,
+                    expected_status_code=None
+                    )
+        if not passing_scw_list:
+            assert jdata['error_message'] == (
+                'scw_list parameter was expected to be passed, but it has not been found, '
+                'please check the inputs you provided')
+        else:
+            assert 'scw_list' in jdata['products']['analysis_parameters']
     elif use_scws_value == 'no':
         # no list should be passed
         jdata = ask(server,
@@ -1219,7 +1241,7 @@ def test_email_scws_list(dispatcher_live_fixture,
                     expected_query_status=None,
                     expected_status_code=None
                     )
-    else:
+    elif use_scws_value is None or use_scws_value == 'not_included':
         if passing_scw_list:
             params['scw_list'] = [f"0665{i:04d}0010.001" for i in range(5)]
         jdata = ask(server,
@@ -1229,30 +1251,18 @@ def test_email_scws_list(dispatcher_live_fixture,
                     expected_status_code=None
                     )
 
-    # jdata = c.json()
-    if not passing_scw_list:
-        if use_scws_value == 'form_list':
-            assert jdata['error_message'] == ('scw_list parameter was expected to be passed, but it has not been found, '
-                                              'please check the inputs you provided')
-        elif use_scws_value == 'user_file':
-            assert jdata['error_message'] == ('Error while uploading scw_list file from the frontend: '
-                                              'the file has not been provided')
-    else:
+    if passing_scw_list:
         assert jdata['exit_status']['email_status'] == 'email sent'
         assert 'use_scws' not in jdata['products']['analysis_parameters']
-        if use_scws_value == 'no':
-            assert 'scw_list' not in jdata['products']['analysis_parameters']
-        else:
-            assert 'scw_list' in jdata['products']['analysis_parameters']
 
         # validate email content,
         # verify product url contains the use_scws parameter for the frontend
         time_request = jdata['time_request']
         time_request_str = time.strftime('%Y-%m-%d %H:%M:%S',
                                          time.localtime(float(time_request)))
-        dispatcher_job_state = DispatcherJobState.from_run_analysis_json_response(jdata)
+        dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
         # in case the request comes from API
-        if use_scws_value is None:
+        if (use_scws_value is None or use_scws_value == 'not_included') and passing_scw_list:
             params['use_scws'] = 'form_list'
         if use_scws_value == 'user_file':
             params['scw_list'] = [f"0665{i:04d}0010.001" for i in range(5)]
@@ -1281,7 +1291,7 @@ def test_email_scws_list(dispatcher_live_fixture,
         for part in msg.walk():
             if part.get_content_type() == 'text/html':
                 content_text_html = part.get_payload().replace('\r', '').strip()
-                email_api_code  =extract_api_code(content_text_html)
+                email_api_code=extract_api_code(content_text_html)
                 assert 'use_scws' not in email_api_code
                 if use_scws_value == 'no':
                     assert 'scw_list' not in email_api_code
@@ -1318,7 +1328,7 @@ def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispa
 
     logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)    
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
 
     jdata = c.json()
     assert jdata['exit_status']['email_status'] == 'email sent'
@@ -1369,7 +1379,7 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
 
     logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)    
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
 
     jdata = c.json()
 

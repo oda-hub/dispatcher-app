@@ -718,17 +718,10 @@ meta_ID src_names significance ra dec NEW_SOURCE ISGRI_FLAG FLAG ERR_RAD
     @classmethod
     def from_run_analysis_response(cls, r):
         return cls(
-            session_id = r.json()['session_id'],
-            job_id = r.json()['job_monitor']['job_id']
-        )
-
-    @classmethod
-    def from_run_analysis_json_response(cls, r):
-        return cls(
             session_id=r['session_id'],
             job_id=r['job_monitor']['job_id']
         )
-    
+
     def __init__(self, session_id, job_id) -> None:
         self.session_id = session_id
         self.job_id = job_id
