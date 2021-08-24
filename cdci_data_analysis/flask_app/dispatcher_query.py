@@ -830,6 +830,11 @@ class InstrumentQueryBackEnd:
         par_dict = par_dict.copy()
 
         if ('scw_list' in par_dict and self.use_scws is not None) or self.use_scws == 'no':
+            # for the url, that will re-direct to the frontend,
+            # the correct checkbox has to be selected,
+            # then the scw_list input box will be filled correctly
+            if self.use_scws == 'user_file':
+                self.use_scws = 'form_list'
             # for the frontend
             par_dict['use_scws'] = self.use_scws
 

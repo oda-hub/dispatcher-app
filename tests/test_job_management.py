@@ -1262,7 +1262,8 @@ def test_email_scws_list(dispatcher_live_fixture,
                                          time.localtime(float(time_request)))
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
         # in case the request comes from API
-        if (use_scws_value is None or use_scws_value == 'not_included') and passing_scw_list:
+        if (use_scws_value is None or use_scws_value == 'not_included' or use_scws_value == 'user_file') \
+                and passing_scw_list:
             params['use_scws'] = 'form_list'
         if use_scws_value == 'user_file':
             params['scw_list'] = [f"0665{i:04d}0010.001" for i in range(5)]
