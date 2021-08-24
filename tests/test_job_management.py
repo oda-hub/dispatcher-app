@@ -1168,13 +1168,31 @@ Unfortunately, due to a known issue with very large requests, a URL with the sel
 This might be fixed in a future release.""" in email_data
 
 
+testdata = [
+    (True, 'form_list', 'list'),
+    (True, 'form_list', 'string'),
+    (True, 'user_file', None),
+    (True, 'no', None),
+    (True, None, 'list'),
+    (True, None, 'string'),
+    (True, 'not_included', 'list'),
+    (True, 'not_included', 'string'),
+
+    (False, 'form_list', None),
+    (False, 'user_file', None),
+    (False, 'no', None),
+    (False, None, None),
+    (False, 'not_included', None),
+]
+
+
 @pytest.mark.not_safe_parallel
-@pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
-@pytest.mark.parametrize("passing_scw_list", [True, False])
+@pytest.mark.parametrize("passing_scw_list, use_scws_value, scw_list_format", testdata)
 def test_email_scws_list(dispatcher_live_fixture,
                          dispatcher_local_mail_server,
+                         passing_scw_list,
                          use_scws_value,
-                         passing_scw_list):
+                         scw_list_format):
     DispatcherJobState.remove_scratch_folders()
 
     server = dispatcher_live_fixture
@@ -1220,7 +1238,10 @@ def test_email_scws_list(dispatcher_live_fixture,
             assert 'scw_list' in jdata['products']['analysis_parameters']
     elif use_scws_value == 'form_list':
         if passing_scw_list:
-            params['scw_list'] = [f"0665{i:04d}0010.001" for i in range(5)]
+            scw_list = [f"0665{i:04d}0010.001" for i in range(5)]
+            params['scw_list'] = scw_list
+            if scw_list_format == 'string':
+                params['scw_list'] = ",".join(scw_list)
         jdata = ask(server,
                     params,
                     max_time_s=150,
@@ -1243,7 +1264,10 @@ def test_email_scws_list(dispatcher_live_fixture,
                     )
     elif use_scws_value is None or use_scws_value == 'not_included':
         if passing_scw_list:
-            params['scw_list'] = [f"0665{i:04d}0010.001" for i in range(5)]
+            scw_list = [f"0665{i:04d}0010.001" for i in range(5)]
+            params['scw_list'] = scw_list
+            if scw_list_format == 'string':
+                params['scw_list'] = ",".join(scw_list)
         jdata = ask(server,
                     params,
                     max_time_s=150,
