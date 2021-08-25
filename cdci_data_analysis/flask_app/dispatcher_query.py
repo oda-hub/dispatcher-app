@@ -837,7 +837,9 @@ class InstrumentQueryBackEnd:
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
         par_dict = par_dict.copy()
 
-        if ('scw_list' in par_dict and self.use_scws is not None) or self.use_scws == 'no':
+        # this is a "default" value for use_scws
+        par_dict['use_scws'] = 'no'
+        if 'scw_list' in par_dict and self.use_scws is not None:
             # for the url, that will re-direct to the frontend,
             # the correct checkbox has to be selected,
             # then the scw_list input box will be filled correctly

@@ -1235,6 +1235,7 @@ def test_email_scws_list(dispatcher_live_fixture,
                     expected_status_code=None,
                     files=scw_list_file_obj
                     )
+        params['use_scws'] = 'form_list'
         if not passing_scw_list:
             assert jdata['error_message'] == ('Error while uploading scw_list file from the frontend: '
                                               'the file has not been provided')
@@ -1258,6 +1259,7 @@ def test_email_scws_list(dispatcher_live_fixture,
                 'please check the inputs you provided')
         else:
             assert 'scw_list' in jdata['products']['analysis_parameters']
+        params['use_scws'] = 'form_list'
     elif use_scws_value == 'no':
         # no list should be passed, but in case something is passed
         if passing_scw_list:
@@ -1276,6 +1278,7 @@ def test_email_scws_list(dispatcher_live_fixture,
             assert jdata['error_message'] == ("scw_list parameter was provided "
                                            "despite use_scws was indicating this was not provided, "
                                            "please check the inputs you provided")
+        params['use_scws'] = 'no'
     elif use_scws_value is None or use_scws_value == 'not_included':
         if passing_scw_list and scw_list_format is not None:
             scw_list = [f"0665{i:04d}0010.001" for i in range(5)]
@@ -1288,30 +1291,24 @@ def test_email_scws_list(dispatcher_live_fixture,
                     expected_query_status=None,
                     expected_status_code=None
                     )
+        if passing_scw_list:
+            params['use_scws'] = 'form_list'
 
     if passing_scw_list and use_scws_value != 'no':
         assert jdata['exit_status']['email_status'] == 'email sent'
-        assert 'use_scws' not in jdata['products']['analysis_parameters']
-
-        # validate email content,
-        # verify product url contains the use_scws parameter for the frontend
-        time_request = jdata['time_request']
-        dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
-        # in case the request comes from API
-        if (use_scws_value is None or use_scws_value == 'not_included' or use_scws_value == 'user_file') \
-                and passing_scw_list:
-            params['use_scws'] = 'form_list'
 
         params['scw_list'] = ",".join([f"0665{i:04d}0010.001" for i in range(5)])
+        assert 'scw_list' in jdata['products']['api_code']
 
+        assert 'use_scws' not in jdata['products']['analysis_parameters']
+        assert 'use_scws' not in jdata['products']['api_code']
+        # validate email content,
+        dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
         products_url = get_expected_products_url(params,
                                                  token=encoded_token,
                                                  session_id=dispatcher_job_state.session_id,
                                                  job_id=dispatcher_job_state.job_id)
 
-        # check api_code in the returned products
-        assert 'use_scws' not in jdata['products']['api_code']
-        assert 'scw_list' in jdata['products']['api_code']
         # extract api_code from the email
         msg = email.message_from_string(dispatcher_local_mail_server.get_email_record()['data'])
         for part in msg.walk():
@@ -1319,26 +1316,21 @@ def test_email_scws_list(dispatcher_live_fixture,
                 content_text_html = part.get_payload().replace('\r', '').strip()
                 email_api_code=extract_api_code(content_text_html)
                 assert 'use_scws' not in email_api_code
-                assert 'scw_list' in email_api_code
+                if passing_scw_list:
+                    assert 'scw_list' in email_api_code
 
                 extracted_product_url = extract_products_url(content_text_html)
                 if products_url is not None and products_url != "":
                     assert products_url == extracted_product_url
-                # # extract scw_list from the url
-                # extracted_parsed = parse.urlparse(extracted_product_url)
-                # scw_list_url = parse_qs(extracted_parsed.query)['scw_list']
-                # print("extracted_scw_list_url: ", scw_list_url)
-                # print("type extracted_scw_list_url: ", type(scw_list_url))
-                #
-                # parsed = parse.urlparse(products_url)
-                # scw_list_url = parse_qs(parsed.query)['scw_list']
-                # print("extracted_scw_list_url: ", scw_list_url)
-                # print("type extracted_scw_list_url: ", type(scw_list_url))
+
+                # verify product url contains the use_scws parameter for the frontend
+                extracted_parsed = parse.urlparse(extracted_product_url)
+                assert 'use_scws' in parse_qs(extracted_parsed.query)
 
 
 def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispatcher_local_mail_server):
     server = dispatcher_long_living_fixture
-    
+
     DispatcherJobState.remove_scratch_folders()
 
      # let's generate a valid token with high threshold
