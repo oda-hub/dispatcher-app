@@ -1326,6 +1326,16 @@ def test_email_scws_list(dispatcher_live_fixture,
                 extracted_product_url = extract_products_url(content_text_html)
                 if products_url is not None and products_url != "":
                     assert products_url == extracted_product_url
+                # extract scw_list from the url
+                extracted_parsed = parse.urlparse(extracted_product_url)
+                scw_list_url = parse_qs(extracted_parsed.query)['scw_list']
+                print("extracted_scw_list_url: ", scw_list_url)
+                print("type extracted_scw_list_url: ", type(scw_list_url))
+
+                parsed = parse.urlparse(products_url)
+                scw_list_url = parse_qs(parsed.query)['scw_list']
+                print("extracted_scw_list_url: ", scw_list_url)
+                print("type extracted_scw_list_url: ", type(scw_list_url))
 
 
 def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispatcher_local_mail_server):

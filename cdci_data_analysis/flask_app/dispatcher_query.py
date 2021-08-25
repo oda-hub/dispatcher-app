@@ -411,6 +411,11 @@ class InstrumentQueryBackEnd:
             _p = request.values.getlist('scw_list')
             if len(_p) > 1:
                 self.par_dic['scw_list'] = _p
+            # it could be a comma-separated string, so let's convert to a list
+            elif len(_p) == 1:
+                _p = str(_p)[1:-1].replace('\'','').split(",")
+                if len(_p) > 1:
+                    self.par_dic['scw_list'] = _p
             # use_scws should be set for, if any, url link within the email
             if self.use_scws is None:
                 self.use_scws = 'form_list'
@@ -840,6 +845,10 @@ class InstrumentQueryBackEnd:
                 self.use_scws = 'form_list'
             # for the frontend
             par_dict['use_scws'] = self.use_scws
+            # setting proper scw_list formatting
+            # str_scw_list = str(par_dict['scw_list'])
+            # str_scw_list = par_dict['scw_list'].split(",")
+            # str_scw_list = [item.strip() for item in str_scw_list]
 
         _skip_list_ = ['token', 'session_id', 'job_id']
 
