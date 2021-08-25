@@ -471,7 +471,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
-    products_url = get_expected_products_url(dict_param, token=encoded_token, session_id=session_id, job_id=job_id)
+    products_url = get_expected_products_url({** dict_param, 'use_scws':'no'}, token=encoded_token, session_id=session_id, job_id=job_id)
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
     assert 'time_request' in jdata
