@@ -845,10 +845,11 @@ class InstrumentQueryBackEnd:
                 self.use_scws = 'form_list'
             # for the frontend
             par_dict['use_scws'] = self.use_scws
+
+        if 'scw_list' in par_dict and type(par_dict['scw_list']) == list:
             # setting proper scw_list formatting
-            # str_scw_list = str(par_dict['scw_list'])
-            # str_scw_list = par_dict['scw_list'].split(",")
-            # str_scw_list = [item.strip() for item in str_scw_list]
+            # as comma-separated string for being properly read by the frontend
+            par_dict['scw_list'] = ",".join(par_dict['scw_list'])
 
         _skip_list_ = ['token', 'session_id', 'job_id']
 

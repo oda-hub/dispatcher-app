@@ -1296,15 +1296,13 @@ def test_email_scws_list(dispatcher_live_fixture,
         # validate email content,
         # verify product url contains the use_scws parameter for the frontend
         time_request = jdata['time_request']
-        time_request_str = time.strftime('%Y-%m-%d %H:%M:%S',
-                                         time.localtime(float(time_request)))
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
         # in case the request comes from API
         if (use_scws_value is None or use_scws_value == 'not_included' or use_scws_value == 'user_file') \
                 and passing_scw_list:
             params['use_scws'] = 'form_list'
-        if use_scws_value == 'user_file':
-            params['scw_list'] = [f"0665{i:04d}0010.001" for i in range(5)]
+
+        params['scw_list'] = ",".join([f"0665{i:04d}0010.001" for i in range(5)])
 
         products_url = get_expected_products_url(params,
                                                  token=encoded_token,
@@ -1326,16 +1324,16 @@ def test_email_scws_list(dispatcher_live_fixture,
                 extracted_product_url = extract_products_url(content_text_html)
                 if products_url is not None and products_url != "":
                     assert products_url == extracted_product_url
-                # extract scw_list from the url
-                extracted_parsed = parse.urlparse(extracted_product_url)
-                scw_list_url = parse_qs(extracted_parsed.query)['scw_list']
-                print("extracted_scw_list_url: ", scw_list_url)
-                print("type extracted_scw_list_url: ", type(scw_list_url))
-
-                parsed = parse.urlparse(products_url)
-                scw_list_url = parse_qs(parsed.query)['scw_list']
-                print("extracted_scw_list_url: ", scw_list_url)
-                print("type extracted_scw_list_url: ", type(scw_list_url))
+                # # extract scw_list from the url
+                # extracted_parsed = parse.urlparse(extracted_product_url)
+                # scw_list_url = parse_qs(extracted_parsed.query)['scw_list']
+                # print("extracted_scw_list_url: ", scw_list_url)
+                # print("type extracted_scw_list_url: ", type(scw_list_url))
+                #
+                # parsed = parse.urlparse(products_url)
+                # scw_list_url = parse_qs(parsed.query)['scw_list']
+                # print("extracted_scw_list_url: ", scw_list_url)
+                # print("type extracted_scw_list_url: ", type(scw_list_url))
 
 
 def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispatcher_local_mail_server):
