@@ -404,12 +404,15 @@ class InstrumentQueryBackEnd:
         self.use_scws = self.par_dic.pop('use_scws', None)
         #
         if 'scw_list' in self.par_dic.keys():
+            if self.use_scws == 'no':
+                raise RequestNotUnderstood("scw_list parameter was provided "
+                                           "despite use_scws was indicating this was not provided, "
+                                           "please check the inputs you provided")
             _p = request.values.getlist('scw_list')
             if len(_p) > 1:
                 self.par_dic['scw_list'] = _p
             # use_scws should be set for, if any, url link within the email
             if self.use_scws is None:
-                # TODO ideally should be configurable, since the frontend might change behavior (though unlikely)
                 self.use_scws = 'form_list'
             print('=======> scw_list',  self.par_dic['scw_list'], _p, len(_p))
         else:

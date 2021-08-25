@@ -1168,19 +1168,21 @@ Unfortunately, due to a known issue with very large requests, a URL with the sel
 This might be fixed in a future release.""" in email_data
 
 
-testdata = [
+email_scw_list_test_data = [
+    # passing a list
     (True, 'form_list', 'list'),
     (True, 'form_list', 'string'),
-    (True, 'user_file', None),
-    (True, 'no', None),
+    (True, 'user_file', 'list'),
+    (True, 'user_file', 'string'),
+    (True, 'no', 'list'),
+    (True, 'no', 'string'),
     (True, None, 'list'),
     (True, None, 'string'),
     (True, 'not_included', 'list'),
     (True, 'not_included', 'string'),
-
+    # not passing any list
     (False, 'form_list', None),
     (False, 'user_file', None),
-    # this case is probably not needed, but just for completeness
     (False, 'no', None),
     (False, None, None),
     (False, 'not_included', None),
@@ -1188,7 +1190,7 @@ testdata = [
 
 
 @pytest.mark.not_safe_parallel
-@pytest.mark.parametrize("passing_scw_list, use_scws_value, scw_list_format", testdata)
+@pytest.mark.parametrize("passing_scw_list, use_scws_value, scw_list_format", email_scw_list_test_data)
 def test_email_scws_list(dispatcher_live_fixture,
                          dispatcher_local_mail_server,
                          passing_scw_list,
@@ -1220,7 +1222,8 @@ def test_email_scws_list(dispatcher_live_fixture,
     if use_scws_value == 'user_file':
         scw_list_file_obj = None
         if passing_scw_list:
-            file_path = DispatcherJobState.create_scw_list_file(list_length=5)
+            file_path = DispatcherJobState.create_scw_list_file(list_length=5,
+                                                                string_format=(scw_list_format == 'string'))
             scw_list_file = open(file_path).read()
             scw_list_file_obj = {"user_scw_list_file": scw_list_file}
         # we are supposed to send a file, so it has to be a post request
@@ -1256,14 +1259,7 @@ def test_email_scws_list(dispatcher_live_fixture,
         else:
             assert 'scw_list' in jdata['products']['analysis_parameters']
     elif use_scws_value == 'no':
-        # no list should be passed
-        jdata = ask(server,
-                    params,
-                    max_time_s=150,
-                    expected_query_status=None,
-                    expected_status_code=None
-                    )
-    elif use_scws_value is None or use_scws_value == 'not_included':
+        # no list should be passed, but in case something is passed
         if passing_scw_list:
             scw_list = [f"0665{i:04d}0010.001" for i in range(5)]
             params['scw_list'] = scw_list
@@ -1275,8 +1271,25 @@ def test_email_scws_list(dispatcher_live_fixture,
                     expected_query_status=None,
                     expected_status_code=None
                     )
+        if passing_scw_list:
+            # not allowed
+            assert jdata['error_message'] == ("scw_list parameter was provided "
+                                           "despite use_scws was indicating this was not provided, "
+                                           "please check the inputs you provided")
+    elif use_scws_value is None or use_scws_value == 'not_included':
+        if passing_scw_list and scw_list_format is not None:
+            scw_list = [f"0665{i:04d}0010.001" for i in range(5)]
+            params['scw_list'] = scw_list
+            if scw_list_format == 'string':
+                params['scw_list'] = ",".join(scw_list)
+        jdata = ask(server,
+                    params,
+                    max_time_s=150,
+                    expected_query_status=None,
+                    expected_status_code=None
+                    )
 
-    if passing_scw_list:
+    if passing_scw_list and use_scws_value != 'no':
         assert jdata['exit_status']['email_status'] == 'email sent'
         assert 'use_scws' not in jdata['products']['analysis_parameters']
 
@@ -1300,10 +1313,7 @@ def test_email_scws_list(dispatcher_live_fixture,
 
         # check api_code in the returned products
         assert 'use_scws' not in jdata['products']['api_code']
-        if use_scws_value == 'no':
-            assert 'scw_list' not in jdata['products']['api_code']
-        else:
-            assert 'scw_list' in jdata['products']['api_code']
+        assert 'scw_list' in jdata['products']['api_code']
         # extract api_code from the email
         msg = email.message_from_string(dispatcher_local_mail_server.get_email_record()['data'])
         for part in msg.walk():
@@ -1311,10 +1321,7 @@ def test_email_scws_list(dispatcher_live_fixture,
                 content_text_html = part.get_payload().replace('\r', '').strip()
                 email_api_code=extract_api_code(content_text_html)
                 assert 'use_scws' not in email_api_code
-                if use_scws_value == 'no':
-                    assert 'scw_list' not in email_api_code
-                else:
-                    assert 'scw_list' in email_api_code
+                assert 'scw_list' in email_api_code
 
                 extracted_product_url = extract_products_url(content_text_html)
                 if products_url is not None and products_url != "":
