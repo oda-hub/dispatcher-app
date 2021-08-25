@@ -1420,6 +1420,7 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
     jdata = c.json()
 
     assert jdata['exit_status']['email_status'] == 'email sent'
+    params['use_scws'] = 'no'
     products_url = get_expected_products_url(params, 
                                              token=encoded_token, 
                                              session_id=dispatcher_job_state.session_id, 
