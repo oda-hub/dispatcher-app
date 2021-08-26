@@ -1253,7 +1253,7 @@ def test_email_scws_list(dispatcher_live_fixture,
         assert jdata['exit_status']['email_status'] == 'email sent'
 
         if scw_list_format != 'not_passed':
-            params['scw_list'] = ",".join(scw_list)
+            params['scw_list'] = scw_list_string
             assert 'scw_list' in jdata['products']['api_code']
             assert 'scw_list' in jdata['products']['analysis_parameters']
             assert jdata['products']['analysis_parameters']['scw_list'] == scw_list
@@ -1286,6 +1286,10 @@ def test_email_scws_list(dispatcher_live_fixture,
                 assert 'use_scws' in parse_qs(extracted_parsed.query)
                 extracted_usw_scws = parse_qs(extracted_parsed.query)['use_scws'][0]
                 assert extracted_usw_scws == params['use_scws']
+                if scw_list_format != 'not_passed':
+                    assert 'scw_list' in parse_qs(extracted_parsed.query)
+                    extracted_scw_list = parse_qs(extracted_parsed.query)['scw_list'][0]
+                    assert extracted_scw_list == scw_list_string
 
 
 def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispatcher_local_mail_server):
