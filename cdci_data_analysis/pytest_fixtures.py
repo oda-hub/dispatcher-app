@@ -662,7 +662,7 @@ class DispatcherJobState:
         return f'p_value_simple_files/{file_name}'
 
     @staticmethod
-    def create_scw_list_file(list_length, string_format=False):
+    def create_scw_list_file(list_length, format='list'):
         # generate ScWs list file
         if not os.path.exists('scw_list_files'):
             os.makedirs('scw_list_files')
@@ -676,9 +676,9 @@ class DispatcherJobState:
         file_name = f'scw_list_{scw_list_hash}'
 
         with open('scw_list_files/' + file_name, 'w+') as outlist_file:
-            if string_format:
+            if format == 'string':
                 outlist_file.write(",".join(scw_list))
-            else:
+            elif format == 'list':
                 for scw in scw_list:
                     outlist_file.write(str(scw) + '\n')
         return f'scw_list_files/{file_name}'

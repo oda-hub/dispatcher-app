@@ -1170,11 +1170,13 @@ This might be fixed in a future release.""" in email_data
 
 @pytest.mark.not_safe_parallel
 @pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
-@pytest.mark.parametrize("scw_list_format", ['list', 'string', 'not_passed'])
+@pytest.mark.parametrize("scw_list_format", ['list', 'string'])
+@pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
 def test_email_scws_list(dispatcher_live_fixture,
                          dispatcher_local_mail_server,
                          use_scws_value,
                          scw_list_format,
+                         scw_list_passage,
                          ):
     DispatcherJobState.remove_scratch_folders()
 
@@ -1200,25 +1202,23 @@ def test_email_scws_list(dispatcher_live_fixture,
     scw_list = [f"0665{i:04d}0010.001" for i in range(5)]
     scw_list_string = ",".join(scw_list)
     scw_list_file_obj = None
-    ask_method = 'get'
+    ask_method = 'get' if scw_list_passage == 'params' else 'post'
 
     if use_scws_value != 'not_included':
         params['use_scws'] = use_scws_value
 
-    if use_scws_value == 'user_file':
-        ask_method = 'post'
-        # we are supposed to send a file, so it has to be a post request
-        if scw_list_format != 'not_passed':
-            file_path = DispatcherJobState.create_scw_list_file(list_length=5,
-                                                                string_format=(scw_list_format == 'string'))
-            scw_list_file = open(file_path).read()
-            scw_list_file_obj = {"user_scw_list_file": scw_list_file}
-    else:
-        if scw_list_format != 'not_passed':
-            if scw_list_format == 'list':
-                params['scw_list'] = scw_list
-            elif scw_list_format == 'string':
-                params['scw_list'] = scw_list_string
+    # configure the way the list it should be passed
+    if scw_list_passage == 'file' or scw_list_passage == 'both':
+        scw_list_file_path = DispatcherJobState.create_scw_list_file(list_length=5,
+                                                                     format=scw_list_format)
+        scw_list_file = open(scw_list_file_path).read()
+        scw_list_file_obj = {"user_scw_list_file": scw_list_file}
+
+    if scw_list_passage == 'params' or scw_list_passage == 'both':
+        if scw_list_format == 'list':
+            params['scw_list'] = scw_list
+        elif scw_list_format == 'string':
+            params['scw_list'] = scw_list_string
 
     jdata = ask(server,
                 params,
@@ -1229,7 +1229,7 @@ def test_email_scws_list(dispatcher_live_fixture,
                 files=scw_list_file_obj
                 )
 
-    if scw_list_format == 'not_passed' and \
+    if scw_list_passage == 'not_passed' and \
             (use_scws_value == 'user_file' or use_scws_value == 'form_list'):
         if use_scws_value == 'user_file':
             assert jdata['error_message'] == (
@@ -1241,26 +1241,25 @@ def test_email_scws_list(dispatcher_live_fixture,
                 'scw_list parameter was expected to be passed, but it has not been found, '
                 'please check the inputs you provided')
 
-    elif scw_list_format != 'not_passed' and use_scws_value == 'no':
+    elif scw_list_passage != 'not_passed' and use_scws_value == 'no':
         assert jdata['error_message'] == (
             'scw_list parameter was found despite use_scws was indicating this was not provided, '
             'please check the inputs')
 
     else:
 
-        if scw_list_format == 'not_passed':
+        if scw_list_passage == 'not_passed':
             params['use_scws'] = 'no'
         else:
             if use_scws_value is None or use_scws_value == 'user_file' or use_scws_value == 'not_included':
                 params['use_scws'] = 'form_list'
 
-        assert jdata['exit_status']['email_status'] == 'email sent'
-
-        if scw_list_format != 'not_passed':
             params['scw_list'] = scw_list_string
             assert 'scw_list' in jdata['products']['api_code']
             assert 'scw_list' in jdata['products']['analysis_parameters']
             assert jdata['products']['analysis_parameters']['scw_list'] == scw_list
+
+        assert jdata['exit_status']['email_status'] == 'email sent'
 
         assert 'use_scws' not in jdata['products']['analysis_parameters']
         assert 'use_scws' not in jdata['products']['api_code']
