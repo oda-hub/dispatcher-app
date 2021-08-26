@@ -1247,6 +1247,7 @@ def test_email_scws_list(dispatcher_live_fixture,
             'please check the inputs')
 
     else:
+
         if scw_list_format == 'not_passed':
             params['use_scws'] = 'no'
         else:
