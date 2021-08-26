@@ -1168,47 +1168,6 @@ Unfortunately, due to a known issue with very large requests, a URL with the sel
 This might be fixed in a future release.""" in email_data
 
 
-email_scw_list_test_data = [
-    # # passing a list
-    # (True, 'form_list', 'list'),
-    # (True, 'form_list', 'string'),
-    # (True, 'user_file', 'list'),
-    # (True, 'user_file', 'string'),
-    # (True, 'no', 'list'),
-    # (True, 'no', 'string'),
-    # (True, None, 'list'),
-    # (True, None, 'string'),
-    # (True, 'not_included', 'list'),
-    # (True, 'not_included', 'string'),
-    # # not passing any list
-    # (False, 'form_list', None),
-    # (False, 'user_file', None),
-    # (False, 'no', None),
-    # (False, None, None),
-    # (False, 'not_included', None),
-
-
-    ('form_list', 'list'),
-    ('form_list', 'string'),
-    ('form_list', 'not-passed'),
-    ('user_file', 'list'),
-    ('user_file', 'string'),
-    ('user_file', 'not-passed'),
-    ('no', 'list'),
-    ('no', 'string'),
-    ('no', 'not-passed'),
-    (None, 'list'),
-    (None, 'string'),
-    (None, 'not-passed'),
-    ('not_included', 'list'),
-    ('not_included', 'string'),
-    ('not_included', 'not_passed'),
-
-
-
-]
-
-
 @pytest.mark.not_safe_parallel
 @pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
 @pytest.mark.parametrize("scw_list_format", ['list', 'string', 'not_passed'])
@@ -1240,93 +1199,61 @@ def test_email_scws_list(dispatcher_live_fixture,
 
     scw_list = [f"0665{i:04d}0010.001" for i in range(5)]
     scw_list_string = ",".join([f"0665{i:04d}0010.001" for i in range(5)])
+    scw_list_file_obj = None
+    ask_method = 'get'
 
     if use_scws_value != 'not_included':
         params['use_scws'] = use_scws_value
 
     check_email = True
+
     if use_scws_value == 'user_file':
-        scw_list_file_obj = None
+        ask_method = 'post'
+        # we are supposed to send a file, so it has to be a post request
         if scw_list_format != 'not_passed':
             file_path = DispatcherJobState.create_scw_list_file(list_length=5,
                                                                 string_format=(scw_list_format == 'string'))
             scw_list_file = open(file_path).read()
             scw_list_file_obj = {"user_scw_list_file": scw_list_file}
-        # we are supposed to send a file, so it has to be a post request
-        jdata = ask(server,
-                    params,
-                    method='post',
-                    max_time_s=150,
-                    expected_query_status=None,
-                    expected_status_code=None,
-                    files=scw_list_file_obj
-                    )
-        params['use_scws'] = 'form_list'
-        if scw_list_format == 'not_passed':
-            assert jdata['error_message'] == ('Error while uploading scw_list file from the frontend: '
-                                              'the file has not been provided')
-            check_email = False
-        else:
-            assert 'scw_list' in jdata['products']['analysis_parameters']
-    elif use_scws_value == 'form_list':
+    else:
         if scw_list_format != 'not_passed':
             params['scw_list'] = scw_list
             if scw_list_format == 'string':
                 params['scw_list'] = scw_list_string
-        jdata = ask(server,
-                    params,
-                    max_time_s=150,
-                    expected_query_status=None,
-                    expected_status_code=None
-                    )
-        if scw_list_format == 'not_passed':
+
+    jdata = ask(server,
+                params,
+                method=ask_method,
+                max_time_s=150,
+                expected_query_status=None,
+                expected_status_code=None,
+                files=scw_list_file_obj
+                )
+
+    if scw_list_format == 'not_passed':
+        params['use_scws'] = 'no'
+        if use_scws_value == 'user_file':
+            assert jdata['error_message'] == (
+                'Error while uploading scw_list file from the frontend: '
+                'the file has not been provided')
+        elif use_scws_value == 'form_list':
             assert jdata['error_message'] == (
                 'scw_list parameter was expected to be passed, but it has not been found, '
                 'please check the inputs you provided')
-            check_email = False
-        else:
-            assert 'scw_list' in jdata['products']['analysis_parameters']
-        params['use_scws'] = 'form_list'
-    elif use_scws_value == 'no':
-        # no list should be passed, but in case something is passed
-        if scw_list_format != 'not_passed':
-            params['scw_list'] = scw_list
-            if scw_list_format == 'string':
-                params['scw_list'] = scw_list_string
-        jdata = ask(server,
-                    params,
-                    max_time_s=150,
-                    expected_query_status=None,
-                    expected_status_code=None
-                    )
-        if scw_list_format != 'not_passed':
-            assert jdata['error_message'] == ("scw_list parameter was found "
-                                           "despite use_scws was indicating this was not provided, "
-                                           "please check the inputs")
-            check_email = False
-        params['use_scws'] = 'no'
-    elif use_scws_value is None or use_scws_value == 'not_included':
-        if scw_list_format is not None and scw_list_format != 'not_passed':
-            params['scw_list'] = scw_list
-            if scw_list_format == 'string':
-                params['scw_list'] = scw_list_string
-        jdata = ask(server,
-                    params,
-                    max_time_s=150,
-                    expected_query_status=None,
-                    expected_status_code=None
-                    )
-        if scw_list_format != 'not_passed':
+    elif scw_list_format != 'not_passed' and use_scws_value == 'no':
+        assert jdata['error_message'] == (
+            'scw_list parameter was found despite use_scws was indicating this was not provided, '
+            'please check the inputs')
+    else:
+        if use_scws_value is None or use_scws_value == 'user_file' or use_scws_value == 'not_included':
             params['use_scws'] = 'form_list'
-        else:
-            params['use_scws'] = 'no'
 
-    if check_email:
         assert jdata['exit_status']['email_status'] == 'email sent'
 
         if scw_list_format != 'not_passed':
             params['scw_list'] = ",".join([f"0665{i:04d}0010.001" for i in range(5)])
             assert 'scw_list' in jdata['products']['api_code']
+            assert 'scw_list' in jdata['products']['analysis_parameters']
 
         assert 'use_scws' not in jdata['products']['analysis_parameters']
         assert 'use_scws' not in jdata['products']['api_code']
