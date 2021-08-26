@@ -1205,8 +1205,6 @@ def test_email_scws_list(dispatcher_live_fixture,
     if use_scws_value != 'not_included':
         params['use_scws'] = use_scws_value
 
-    check_email = True
-
     if use_scws_value == 'user_file':
         ask_method = 'post'
         # we are supposed to send a file, so it has to be a post request
@@ -1236,14 +1234,17 @@ def test_email_scws_list(dispatcher_live_fixture,
             assert jdata['error_message'] == (
                 'Error while uploading scw_list file from the frontend: '
                 'the file has not been provided')
+
         elif use_scws_value == 'form_list':
             assert jdata['error_message'] == (
                 'scw_list parameter was expected to be passed, but it has not been found, '
                 'please check the inputs you provided')
+
     elif scw_list_format != 'not_passed' and use_scws_value == 'no':
         assert jdata['error_message'] == (
             'scw_list parameter was found despite use_scws was indicating this was not provided, '
             'please check the inputs')
+
     else:
         if use_scws_value is None or use_scws_value == 'user_file' or use_scws_value == 'not_included':
             params['use_scws'] = 'form_list'
@@ -1251,9 +1252,10 @@ def test_email_scws_list(dispatcher_live_fixture,
         assert jdata['exit_status']['email_status'] == 'email sent'
 
         if scw_list_format != 'not_passed':
-            params['scw_list'] = ",".join([f"0665{i:04d}0010.001" for i in range(5)])
+            params['scw_list'] = ",".join(scw_list)
             assert 'scw_list' in jdata['products']['api_code']
             assert 'scw_list' in jdata['products']['analysis_parameters']
+            assert jdata['products']['analysis_parameters']['scw_list'] == scw_list
 
         assert 'use_scws' not in jdata['products']['analysis_parameters']
         assert 'use_scws' not in jdata['products']['api_code']
