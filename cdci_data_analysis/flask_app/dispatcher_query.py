@@ -405,9 +405,9 @@ class InstrumentQueryBackEnd:
         #
         if 'scw_list' in self.par_dic.keys():
             if self.use_scws == 'no':
-                raise RequestNotUnderstood("scw_list parameter was provided "
+                raise RequestNotUnderstood("scw_list parameter was found "
                                            "despite use_scws was indicating this was not provided, "
-                                           "please check the inputs you provided")
+                                           "please check the inputs")
             _p = request.values.getlist('scw_list')
             if len(_p) > 1:
                 self.par_dic['scw_list'] = _p
