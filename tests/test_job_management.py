@@ -1198,7 +1198,7 @@ def test_email_scws_list(dispatcher_live_fixture,
     }
 
     scw_list = [f"0665{i:04d}0010.001" for i in range(5)]
-    scw_list_string = ",".join([f"0665{i:04d}0010.001" for i in range(5)])
+    scw_list_string = ",".join(scw_list)
     scw_list_file_obj = None
     ask_method = 'get'
 
@@ -1288,8 +1288,8 @@ def test_email_scws_list(dispatcher_live_fixture,
                 # verify product url contains the use_scws parameter for the frontend
                 extracted_parsed = parse.urlparse(extracted_product_url)
                 assert 'use_scws' in parse_qs(extracted_parsed.query)
-                extracted_usw_scws = parse_qs(extracted_parsed.query)['use_scws'][0]
-                assert extracted_usw_scws == params['use_scws']
+                extracted_use_scws = parse_qs(extracted_parsed.query)['use_scws'][0]
+                assert extracted_use_scws == params['use_scws']
                 if scw_list_format != 'not_passed':
                     assert 'scw_list' in parse_qs(extracted_parsed.query)
                     extracted_scw_list = parse_qs(extracted_parsed.query)['scw_list'][0]
