@@ -1215,8 +1215,9 @@ def test_email_scws_list(dispatcher_live_fixture,
             scw_list_file_obj = {"user_scw_list_file": scw_list_file}
     else:
         if scw_list_format != 'not_passed':
-            params['scw_list'] = scw_list
-            if scw_list_format == 'string':
+            if scw_list_format == 'list':
+                params['scw_list'] = scw_list
+            elif scw_list_format == 'string':
                 params['scw_list'] = scw_list_string
 
     jdata = ask(server,
