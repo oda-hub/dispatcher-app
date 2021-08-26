@@ -1229,8 +1229,8 @@ def test_email_scws_list(dispatcher_live_fixture,
                 files=scw_list_file_obj
                 )
 
-    if scw_list_format == 'not_passed':
-        params['use_scws'] = 'no'
+    if scw_list_format == 'not_passed' and \
+            (use_scws_value == 'user_file' or use_scws_value == 'form_list'):
         if use_scws_value == 'user_file':
             assert jdata['error_message'] == (
                 'Error while uploading scw_list file from the frontend: '
@@ -1247,8 +1247,11 @@ def test_email_scws_list(dispatcher_live_fixture,
             'please check the inputs')
 
     else:
-        if use_scws_value is None or use_scws_value == 'user_file' or use_scws_value == 'not_included':
-            params['use_scws'] = 'form_list'
+        if scw_list_format == 'not_passed':
+            params['use_scws'] = 'no'
+        else:
+            if use_scws_value is None or use_scws_value == 'user_file' or use_scws_value == 'not_included':
+                params['use_scws'] = 'form_list'
 
         assert jdata['exit_status']['email_status'] == 'email sent'
 
