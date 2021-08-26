@@ -1216,6 +1216,10 @@ def test_email_scws_list(dispatcher_live_fixture,
         'instrument': 'empty-async',
         'token': encoded_token
     }
+
+    scw_list = [f"0665{i:04d}0010.001" for i in range(5)]
+    scw_list_string = ",".join([f"0665{i:04d}0010.001" for i in range(5)])
+
     if use_scws_value != 'not_included':
         params['use_scws'] = use_scws_value
 
@@ -1245,10 +1249,9 @@ def test_email_scws_list(dispatcher_live_fixture,
             assert 'scw_list' in jdata['products']['analysis_parameters']
     elif use_scws_value == 'form_list':
         if passing_scw_list:
-            scw_list = [f"0665{i:04d}0010.001" for i in range(5)]
             params['scw_list'] = scw_list
             if scw_list_format == 'string':
-                params['scw_list'] = ",".join(scw_list)
+                params['scw_list'] = scw_list_string
         jdata = ask(server,
                     params,
                     max_time_s=150,
@@ -1266,10 +1269,9 @@ def test_email_scws_list(dispatcher_live_fixture,
     elif use_scws_value == 'no':
         # no list should be passed, but in case something is passed
         if passing_scw_list:
-            scw_list = [f"0665{i:04d}0010.001" for i in range(5)]
             params['scw_list'] = scw_list
             if scw_list_format == 'string':
-                params['scw_list'] = ",".join(scw_list)
+                params['scw_list'] = scw_list_string
         jdata = ask(server,
                     params,
                     max_time_s=150,
@@ -1285,10 +1287,9 @@ def test_email_scws_list(dispatcher_live_fixture,
         params['use_scws'] = 'no'
     elif use_scws_value is None or use_scws_value == 'not_included':
         if passing_scw_list and scw_list_format is not None:
-            scw_list = [f"0665{i:04d}0010.001" for i in range(5)]
             params['scw_list'] = scw_list
             if scw_list_format == 'string':
-                params['scw_list'] = ",".join(scw_list)
+                params['scw_list'] = scw_list_string
         jdata = ask(server,
                     params,
                     max_time_s=150,
@@ -1333,6 +1334,8 @@ def test_email_scws_list(dispatcher_live_fixture,
                 # verify product url contains the use_scws parameter for the frontend
                 extracted_parsed = parse.urlparse(extracted_product_url)
                 assert 'use_scws' in parse_qs(extracted_parsed.query)
+                extracted_usw_scws = parse_qs(extracted_parsed.query)['use_scws'][0]
+                assert extracted_usw_scws == params['use_scws']
 
 
 def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispatcher_local_mail_server):
