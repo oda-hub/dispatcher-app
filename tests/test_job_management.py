@@ -1245,7 +1245,7 @@ def test_email_scws_list(dispatcher_live_fixture,
 
     if scw_list_passage == 'not_passed' and \
             (use_scws_value == 'user_file' or use_scws_value == 'form_list'):
-        error_message = error_message_scw_list_missing_parameter if use_scws_value == 'user_file' \
+        error_message = error_message_scw_list_missing_file if use_scws_value == 'user_file' \
             else error_message_scw_list_missing_parameter
         assert jdata['error_message'] == error_message
 
