@@ -1245,11 +1245,9 @@ def test_email_scws_list(dispatcher_live_fixture,
 
     if scw_list_passage == 'not_passed' and \
             (use_scws_value == 'user_file' or use_scws_value == 'form_list'):
-        if use_scws_value == 'user_file':
-            assert jdata['error_message'] == error_message_scw_list_missing_file
-
-        elif use_scws_value == 'form_list':
-            assert jdata['error_message'] == error_message_scw_list_missing_parameter
+        error_message = error_message_scw_list_missing_parameter if use_scws_value == 'user_file' \
+            else error_message_scw_list_missing_parameter
+        assert jdata['error_message'] == error_message
 
     elif scw_list_passage == 'both':
         error_message = error_message_scw_list_found_parameter if (use_scws_value == 'user_file' or use_scws_value == 'no') \
@@ -1257,10 +1255,9 @@ def test_email_scws_list(dispatcher_live_fixture,
         assert jdata['error_message'] == error_message
 
     elif scw_list_passage == 'file' and use_scws_value != 'user_file':
-        if use_scws_value == 'form_list':
-            assert jdata['error_message'] == error_message_scw_list_missing_parameter
-        else:
-            assert jdata['error_message'] == error_message_scw_list_found_file
+        error_message = error_message_scw_list_missing_parameter if use_scws_value == 'form_list' \
+            else error_message_scw_list_found_file
+        assert jdata['error_message'] == error_message
 
     elif scw_list_passage == 'params' and \
             (use_scws_value == 'user_file' or use_scws_value == 'no'):
