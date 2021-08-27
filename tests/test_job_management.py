@@ -1233,18 +1233,50 @@ def test_email_scws_list(dispatcher_live_fixture,
             (use_scws_value == 'user_file' or use_scws_value == 'form_list'):
         if use_scws_value == 'user_file':
             assert jdata['error_message'] == (
-                'Error while uploading scw_list file from the frontend: '
-                'the file has not been provided')
+                'error while uploading scw_list file from the frontend: '
+                'the file has not been provided'
+                ', please check the inputs')
 
         elif use_scws_value == 'form_list':
             assert jdata['error_message'] == (
                 'scw_list parameter was expected to be passed, but it has not been found, '
-                'please check the inputs you provided')
+                'please check the inputs')
+
+    elif scw_list_passage == 'both' and \
+            (use_scws_value == 'user_file' or use_scws_value == 'form_list'
+             or use_scws_value is None or use_scws_value == 'not_included'):
+
+        if use_scws_value == 'user_file':
+            assert jdata['error_message'] == (
+                'scw_list parameter was found despite use_scws was indicating this was not provided, '
+                'please check the inputs')
+
+        else:
+            assert jdata['error_message'] == (
+                f'scw_list file was found despite use_scws was indicating this was not provided, '
+                'please check the inputs')
 
     elif scw_list_passage != 'not_passed' and use_scws_value == 'no':
+        message_input = 'parameter' if (scw_list_passage == 'params' or scw_list_passage == 'both') else 'file'
         assert jdata['error_message'] == (
-            'scw_list parameter was found despite use_scws was indicating this was not provided, '
+            f'scw_list {message_input} was found despite use_scws was indicating this was not provided, '
             'please check the inputs')
+
+    elif scw_list_passage == 'file' and use_scws_value != 'user_file':
+        if use_scws_value == 'form_list':
+            assert jdata['error_message'] == (
+                    'scw_list parameter was expected to be passed, but it has not been found, '
+                    'please check the inputs')
+        else:
+            assert jdata['error_message'] == (
+                "scw_list file was found despite use_scws was indicating this was not provided,"
+                " please check the inputs")
+
+    elif scw_list_passage == 'params' and use_scws_value == 'user_file':
+        assert jdata['error_message'] == (
+                'scw_list parameter was found '
+                'despite use_scws was indicating this was not provided, '
+                'please check the inputs')
 
     else:
 
@@ -1277,7 +1309,7 @@ def test_email_scws_list(dispatcher_live_fixture,
                 content_text_html = part.get_payload().replace('\r', '').strip()
                 email_api_code = extract_api_code(content_text_html)
                 assert 'use_scws' not in email_api_code
-                if scw_list_format != 'not_passed':
+                if scw_list_passage != 'not_passed':
                     assert 'scw_list' in email_api_code
 
                 extracted_product_url = extract_products_url(content_text_html)
@@ -1289,7 +1321,7 @@ def test_email_scws_list(dispatcher_live_fixture,
                 assert 'use_scws' in parse_qs(extracted_parsed.query)
                 extracted_use_scws = parse_qs(extracted_parsed.query)['use_scws'][0]
                 assert extracted_use_scws == params['use_scws']
-                if scw_list_format != 'not_passed':
+                if scw_list_passage != 'not_passed':
                     assert 'scw_list' in parse_qs(extracted_parsed.query)
                     extracted_scw_list = parse_qs(extracted_parsed.query)['scw_list'][0]
                     assert extracted_scw_list == scw_list_string

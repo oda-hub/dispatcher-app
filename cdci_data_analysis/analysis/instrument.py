@@ -180,8 +180,13 @@ class Instrument:
             raise RequestNotUnderstood("Error while uploading scw_list file from the frontend")
 
         if input_file_path is None and use_scws == 'user_file':
-            raise RequestNotUnderstood("Error while uploading scw_list file from the frontend: "
-                                       "the file has not been provided")
+            raise RequestNotUnderstood("error while uploading scw_list file from the frontend: "
+                                       "the file has not been provided,"
+                                       " please check the inputs")
+        elif input_file_path is not None and use_scws != 'user_file':
+            raise RequestNotUnderstood("scw_list file was found "
+                                       "despite use_scws was indicating this was not provided,"
+                                       " please check the inputs")
         try:
             self.set_input_products_from_fronted(input_file_path=input_file_path, par_dic=par_dic, verbose=verbose)
         except Exception as e:

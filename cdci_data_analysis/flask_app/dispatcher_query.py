@@ -404,7 +404,7 @@ class InstrumentQueryBackEnd:
         self.use_scws = self.par_dic.pop('use_scws', None)
         #
         if 'scw_list' in self.par_dic.keys():
-            if self.use_scws == 'no':
+            if self.use_scws == 'no' or self.use_scws == 'user_file':
                 raise RequestNotUnderstood("scw_list parameter was found "
                                            "despite use_scws was indicating this was not provided, "
                                            "please check the inputs")
@@ -424,8 +424,9 @@ class InstrumentQueryBackEnd:
             # not necessary to check the case of scw_list passed via file,
             # since it is verified at a later stage
             if self.use_scws is not None and self.use_scws == 'form_list':
-                raise RequestNotUnderstood("scw_list parameter was expected to be passed, but it has not been found, "
-                                           "please check the inputs you provided")
+                raise RequestNotUnderstood("scw_list parameter was expected to be passed, "
+                                           "but it has not been found, "
+                                           "please check the inputs")
 
     def set_args(self, request, verbose=False):
         if request.method in ['GET', 'POST']:
