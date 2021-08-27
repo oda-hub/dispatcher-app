@@ -1229,57 +1229,44 @@ def test_email_scws_list(dispatcher_live_fixture,
                 files=scw_list_file_obj
                 )
 
+    error_message_scw_list_missing_parameter = (
+        'scw_list parameter was expected to be passed, but it has not been found, '
+        'please check the inputs')
+    error_message_scw_list_missing_file = (
+        'scw_list file was expected to be passed, but it has not been found, '
+        'please check the inputs')
+
+    error_message_scw_list_found_parameter = (
+        'scw_list parameter was found despite use_scws was indicating this was not provided, '
+        'please check the inputs')
+    error_message_scw_list_found_file = (
+        'scw_list file was found despite use_scws was indicating this was not provided, '
+        'please check the inputs')
+
     if scw_list_passage == 'not_passed' and \
             (use_scws_value == 'user_file' or use_scws_value == 'form_list'):
         if use_scws_value == 'user_file':
-            assert jdata['error_message'] == (
-                'error while uploading scw_list file from the frontend: '
-                'the file has not been provided'
-                ', please check the inputs')
+            assert jdata['error_message'] == error_message_scw_list_missing_file
 
         elif use_scws_value == 'form_list':
-            assert jdata['error_message'] == (
-                'scw_list parameter was expected to be passed, but it has not been found, '
-                'please check the inputs')
+            assert jdata['error_message'] == error_message_scw_list_missing_parameter
 
-    elif scw_list_passage == 'both' and \
-            (use_scws_value == 'user_file' or use_scws_value == 'form_list'
-             or use_scws_value is None or use_scws_value == 'not_included'):
-
-        if use_scws_value == 'user_file':
-            assert jdata['error_message'] == (
-                'scw_list parameter was found despite use_scws was indicating this was not provided, '
-                'please check the inputs')
-
-        else:
-            assert jdata['error_message'] == (
-                f'scw_list file was found despite use_scws was indicating this was not provided, '
-                'please check the inputs')
-
-    elif scw_list_passage != 'not_passed' and use_scws_value == 'no':
-        message_input = 'parameter' if (scw_list_passage == 'params' or scw_list_passage == 'both') else 'file'
-        assert jdata['error_message'] == (
-            f'scw_list {message_input} was found despite use_scws was indicating this was not provided, '
-            'please check the inputs')
+    elif scw_list_passage == 'both':
+        error_message = error_message_scw_list_found_parameter if (use_scws_value == 'user_file' or use_scws_value == 'no') \
+            else error_message_scw_list_found_file
+        assert jdata['error_message'] == error_message
 
     elif scw_list_passage == 'file' and use_scws_value != 'user_file':
         if use_scws_value == 'form_list':
-            assert jdata['error_message'] == (
-                    'scw_list parameter was expected to be passed, but it has not been found, '
-                    'please check the inputs')
+            assert jdata['error_message'] == error_message_scw_list_missing_parameter
         else:
-            assert jdata['error_message'] == (
-                "scw_list file was found despite use_scws was indicating this was not provided,"
-                " please check the inputs")
+            assert jdata['error_message'] == error_message_scw_list_found_file
 
-    elif scw_list_passage == 'params' and use_scws_value == 'user_file':
-        assert jdata['error_message'] == (
-                'scw_list parameter was found '
-                'despite use_scws was indicating this was not provided, '
-                'please check the inputs')
+    elif scw_list_passage == 'params' and \
+            (use_scws_value == 'user_file' or use_scws_value == 'no'):
+        assert jdata['error_message'] == error_message_scw_list_found_parameter
 
     else:
-
         if scw_list_passage == 'not_passed':
             params['use_scws'] = 'no'
         else:
