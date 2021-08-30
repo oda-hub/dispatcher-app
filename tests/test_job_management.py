@@ -1202,12 +1202,14 @@ def test_email_scws_list(dispatcher_live_fixture,
     scw_list = [f"0665{i:04d}0010.001" for i in range(5)]
     scw_list_string = ",".join(scw_list)
     scw_list_file_obj = None
-    ask_method = 'get' if scw_list_passage == 'params' else 'post'
+    ask_method = 'get' if (scw_list_passage == 'params' or
+                           (scw_list_passage == 'not_passed' and use_scws_value != 'user_file')) \
+        else 'post'
 
     if use_scws_value != 'not_included':
         params['use_scws'] = use_scws_value
 
-    # configure the way the list it should be passed
+    # configure the possible ways the list should be passed
     if scw_list_passage == 'file' or scw_list_passage == 'both':
         scw_list_file_path = DispatcherJobState.create_scw_list_file(list_length=5,
                                                                      format=scw_list_format)
