@@ -14,7 +14,9 @@ import email
 from urllib.parse import parse_qs, urlencode, urlparse
 import glob
 
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash
+from collections import OrderedDict
+
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, ask
 from cdci_data_analysis.analysis.email_helper import textify_email
 
 from flask import Markup
@@ -248,7 +250,7 @@ def validate_email_content(
     assert message_record['mail_from'] == 'team@odahub.io'
     assert message_record['rcpt_tos'] == ['mtm@mtmco.net', 'team@odahub.io', 'teamBcc@odahub.io']
 
-    msg = email.message_from_string(message_record['data'])    
+    msg = email.message_from_string(message_record['data'])
 
     assert msg['Subject'] == f"[ODA][{state}] {product} first requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
     assert msg['From'] == 'team@odahub.io'
@@ -305,9 +307,8 @@ def validate_email_content(
             with open("email.text", "w") as f:
                 f.write(content_text)
 
-            if products_url is not None:
-                if products_url != "":
-                    assert products_url in content_text
+            if products_url is not None and products_url != "":
+                assert products_url in content_text
 
 
 def get_expected_products_url(dict_param,
@@ -326,6 +327,10 @@ def get_expected_products_url(dict_param,
     for key, value in dict(dict_param_complete).items():
         if value is None:
             dict_param_complete.pop(key)
+
+    dict_param_complete = OrderedDict({
+        k: dict_param_complete[k] for k in sorted(dict_param_complete.keys())
+    })
 
     products_url = '%s?%s' % ('PRODUCTS_URL', urlencode(dict_param_complete))
 
@@ -374,7 +379,7 @@ def test_validation_job_id(dispatcher_live_fixture):
     print(json.dumps(c.json(), sort_keys=True, indent=4))
 
     assert c.status_code == 200
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
 
@@ -461,12 +466,12 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     jdata = c.json()
     
     logger.info("response from run_analysis: %s", json.dumps(jdata, indent=4))
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
 
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
-    products_url = get_expected_products_url(dict_param, token=encoded_token, session_id=session_id, job_id=job_id)
+    products_url = get_expected_products_url({** dict_param, 'use_scws':'no'}, token=encoded_token, session_id=session_id, job_id=job_id)
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
     assert 'time_request' in jdata
@@ -642,7 +647,7 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
     token_payload = {
         **default_token_payload,
         "tem": 0,
-        "intsub": 3
+        "intsub": 5
     }
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
@@ -662,7 +667,7 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
 
     assert c.status_code == 200
     
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
     
     #dict_param_complete = dict_param.copy()
     #dict_param_complete.pop("token")
@@ -795,7 +800,7 @@ def test_email_submitted_frontend_like_job_id(dispatcher_live_fixture, dispatche
 
     assert c.status_code == 200
     
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
     
     
     jdata = c.json()
@@ -821,7 +826,7 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
     # let's generate a valid token with high threshold
     token_payload = {
         **default_token_payload,
-        "intsub": 3 
+        "intsub": 5
     }
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
@@ -842,7 +847,7 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
 
     logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)    
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
     
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
@@ -870,6 +875,7 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
 
         assert c.status_code == 200
         jdata = c.json()
+        print("i: ", i)
         assert jdata['exit_status']['job_status'] == 'submitted'
         assert 'email_status' not in jdata['exit_status']
 
@@ -927,7 +933,7 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
     jdata = c.json()
 
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
     
     time_request = jdata['time_request']
     
@@ -1000,7 +1006,7 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
 
     logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)    
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
 
     jdata = c.json()
     assert jdata['exit_status']['email_status'] == 'sending email failed'
@@ -1124,7 +1130,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
 
     logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)    
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
 
     jdata = c.json()
     assert jdata['exit_status']['email_status'] == 'email sent'
@@ -1162,9 +1168,154 @@ Unfortunately, due to a known issue with very large requests, a URL with the sel
 This might be fixed in a future release.""" in email_data
 
 
+@pytest.mark.not_safe_parallel
+@pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
+@pytest.mark.parametrize("scw_list_format", ['list', 'string'])
+@pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
+def test_email_scws_list(dispatcher_live_fixture,
+                         dispatcher_local_mail_server,
+                         use_scws_value,
+                         scw_list_format,
+                         scw_list_passage,
+                         ):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    # setting params
+    params = {
+        'query_status': "new",
+        'product_type': "dummy",
+        'query_type': "Real",
+        'instrument': 'empty-async',
+        'token': encoded_token
+    }
+
+    scw_list = [f"0665{i:04d}0010.001" for i in range(5)]
+    scw_list_string = ",".join(scw_list)
+    scw_list_file_obj = None
+    ask_method = 'get' if (scw_list_passage == 'params' or
+                           (scw_list_passage == 'not_passed' and use_scws_value != 'user_file')) \
+        else 'post'
+
+    if use_scws_value != 'not_included':
+        params['use_scws'] = use_scws_value
+
+    # configure the possible ways the list should be passed
+    if scw_list_passage == 'file' or scw_list_passage == 'both':
+        scw_list_file_path = DispatcherJobState.create_scw_list_file(list_length=5,
+                                                                     format=scw_list_format)
+        scw_list_file = open(scw_list_file_path).read()
+        scw_list_file_obj = {"user_scw_list_file": scw_list_file}
+
+    if scw_list_passage == 'params' or scw_list_passage == 'both':
+        if scw_list_format == 'list':
+            params['scw_list'] = scw_list
+        elif scw_list_format == 'string':
+            params['scw_list'] = scw_list_string
+
+    jdata = ask(server,
+                params,
+                method=ask_method,
+                max_time_s=150,
+                expected_query_status=None,
+                expected_status_code=None,
+                files=scw_list_file_obj
+                )
+
+    error_message_scw_list_missing_parameter = (
+        'scw_list parameter was expected to be passed, but it has not been found, '
+        'please check the inputs')
+    error_message_scw_list_missing_file = (
+        'scw_list file was expected to be passed, but it has not been found, '
+        'please check the inputs')
+
+    error_message_scw_list_found_parameter = (
+        'scw_list parameter was found despite use_scws was indicating this was not provided, '
+        'please check the inputs')
+    error_message_scw_list_found_file = (
+        'scw_list file was found despite use_scws was indicating this was not provided, '
+        'please check the inputs')
+
+    if scw_list_passage == 'not_passed' and \
+            (use_scws_value == 'user_file' or use_scws_value == 'form_list'):
+        error_message = error_message_scw_list_missing_file if use_scws_value == 'user_file' \
+            else error_message_scw_list_missing_parameter
+        assert jdata['error_message'] == error_message
+
+    elif scw_list_passage == 'both':
+        error_message = error_message_scw_list_found_parameter if (use_scws_value == 'user_file' or use_scws_value == 'no') \
+            else error_message_scw_list_found_file
+        assert jdata['error_message'] == error_message
+
+    elif scw_list_passage == 'file' and use_scws_value != 'user_file':
+        error_message = error_message_scw_list_missing_parameter if use_scws_value == 'form_list' \
+            else error_message_scw_list_found_file
+        assert jdata['error_message'] == error_message
+
+    elif scw_list_passage == 'params' and \
+            (use_scws_value == 'user_file' or use_scws_value == 'no'):
+        assert jdata['error_message'] == error_message_scw_list_found_parameter
+
+    else:
+        if scw_list_passage == 'not_passed':
+            params['use_scws'] = 'no'
+        else:
+            if use_scws_value is None or use_scws_value == 'user_file' or use_scws_value == 'not_included':
+                params['use_scws'] = 'form_list'
+
+            params['scw_list'] = scw_list_string
+            assert 'scw_list' in jdata['products']['api_code']
+            assert 'scw_list' in jdata['products']['analysis_parameters']
+            assert jdata['products']['analysis_parameters']['scw_list'] == scw_list
+
+        assert jdata['exit_status']['email_status'] == 'email sent'
+
+        assert 'use_scws' not in jdata['products']['analysis_parameters']
+        assert 'use_scws' not in jdata['products']['api_code']
+        # validate email content,
+        dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+        products_url = get_expected_products_url(params,
+                                                 token=encoded_token,
+                                                 session_id=dispatcher_job_state.session_id,
+                                                 job_id=dispatcher_job_state.job_id)
+
+        # extract api_code and url from the email
+        msg = email.message_from_string(dispatcher_local_mail_server.get_email_record()['data'])
+        for part in msg.walk():
+            if part.get_content_type() == 'text/html':
+                content_text_html = part.get_payload().replace('\r', '').strip()
+                email_api_code = extract_api_code(content_text_html)
+                assert 'use_scws' not in email_api_code
+                if scw_list_passage != 'not_passed':
+                    assert 'scw_list' in email_api_code
+
+                extracted_product_url = extract_products_url(content_text_html)
+                if products_url is not None and products_url != "":
+                    assert products_url == extracted_product_url
+
+                # verify product url contains the use_scws parameter for the frontend
+                extracted_parsed = parse.urlparse(extracted_product_url)
+                assert 'use_scws' in parse_qs(extracted_parsed.query)
+                extracted_use_scws = parse_qs(extracted_parsed.query)['use_scws'][0]
+                assert extracted_use_scws == params['use_scws']
+                if scw_list_passage != 'not_passed':
+                    assert 'scw_list' in parse_qs(extracted_parsed.query)
+                    extracted_scw_list = parse_qs(extracted_parsed.query)['scw_list'][0]
+                    assert extracted_scw_list == scw_list_string
+
+
 def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispatcher_local_mail_server):
     server = dispatcher_long_living_fixture
-    
+
     DispatcherJobState.remove_scratch_folders()
 
      # let's generate a valid token with high threshold
@@ -1191,7 +1342,7 @@ def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispa
 
     logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)    
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
 
     jdata = c.json()
     assert jdata['exit_status']['email_status'] == 'email sent'
@@ -1242,11 +1393,12 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
 
     logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c)    
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
 
     jdata = c.json()
 
     assert jdata['exit_status']['email_status'] == 'email sent'
+    params['use_scws'] = 'no'
     products_url = get_expected_products_url(params, 
                                              token=encoded_token, 
                                              session_id=dispatcher_job_state.session_id, 

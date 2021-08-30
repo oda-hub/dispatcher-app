@@ -104,7 +104,6 @@ class InstrumentQueryBackEnd:
         t0 = self.query_progression[0]['t_s']
         self.logger.warning("%s %s s", message, self.query_progression[-1]['t_s'] - t0)
 
-
     def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False, resolve_job_url=False, query_id=None, update_token=False):
         self.logger = logging.getLogger(f"{repr(self)} [{query_id}]")
         self.logger = logging.getLogger(repr(self))
@@ -114,13 +113,14 @@ class InstrumentQueryBackEnd:
         else:
             self.logger.setLevel(logging.INFO)
         
-        
         self.app = app
         try:
             if par_dic is None:
                 self.set_args(request, verbose=verbose)
             else:
                 self.par_dic = par_dic
+
+            self.set_scws_related_params(request)
 
             self.log_query_progression("after set args")
 
@@ -198,6 +198,7 @@ class InstrumentQueryBackEnd:
                             request=request,
                             temp_dir=self.temp_dir,
                             verbose=verbose,
+                            use_scws=self.use_scws,
                             sentry_client=self.sentry_client
                         )
                 # TODO: if not callback!
@@ -396,6 +397,37 @@ class InstrumentQueryBackEnd:
     def get_current_ip(self):
         return socket.gethostbyname(socket.gethostname())
 
+    def set_scws_related_params(self, request):
+        # it is nowhere necessary within the dispatcher-app,
+        # but it is re-attached to the url within the email
+        # when sending it since it is used by the frontend
+        self.use_scws = self.par_dic.pop('use_scws', None)
+        #
+        if 'scw_list' in self.par_dic.keys():
+            if self.use_scws == 'no' or self.use_scws == 'user_file':
+                raise RequestNotUnderstood("scw_list parameter was found "
+                                           "despite use_scws was indicating this was not provided, "
+                                           "please check the inputs")
+            _p = request.values.getlist('scw_list')
+            if len(_p) > 1:
+                self.par_dic['scw_list'] = _p
+            # it could be a comma-separated string, so let's convert to a list
+            elif len(_p) == 1:
+                _p = str(_p)[1:-1].replace('\'','').split(",")
+                if len(_p) > 1:
+                    self.par_dic['scw_list'] = _p
+            # use_scws should be set for, if any, url link within the email
+            if self.use_scws is None:
+                self.use_scws = 'form_list'
+            print('=======> scw_list',  self.par_dic['scw_list'], _p, len(_p))
+        else:
+            # not necessary to check the case of scw_list passed via file,
+            # since it is verified at a later stage
+            if self.use_scws is not None and self.use_scws == 'form_list':
+                raise RequestNotUnderstood("scw_list parameter was expected to be passed, "
+                                           "but it has not been found, "
+                                           "please check the inputs")
+
     def set_args(self, request, verbose=False):
         if request.method in ['GET', 'POST']:
             args = request.values
@@ -403,15 +435,6 @@ class InstrumentQueryBackEnd:
             raise NotImplementedError
 
         self.par_dic = args.to_dict()
-
-        # if passed, disregard it, since it is nowhere necessary within the dispatcher-app
-        self.par_dic.pop('use_scws', None)
-
-        if 'scw_list' in self.par_dic.keys():
-            _p = request.values.getlist('scw_list')
-            if len(_p) > 1:
-                self.par_dic['scw_list'] = _p
-            print('=======> scw_list',  self.par_dic['scw_list'], _p, len(_p))
 
         if verbose:
             print('par_dic', self.par_dic)
@@ -728,7 +751,9 @@ class InstrumentQueryBackEnd:
                 except KeyError as e:
                     raise MissingRequestParameter(repr(e))
                 # build the products URL and get also the original requested product
-                products_url = self.generate_products_url_from_file(self.config.products_url, request_par_dict=original_request_par_dic)
+                products_url = self.generate_products_url_from_file(self.config.products_url,
+                                                                    request_par_dict=original_request_par_dic)
+
                 email_helper.send_email(
                     config=self.app.config['conf'],
                     logger=self.logger,
@@ -809,22 +834,41 @@ class InstrumentQueryBackEnd:
         else:
             return json.load(open(scratch_dir_parameters[0]))
 
-
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
         par_dict = par_dict.copy()
+
+        # this is a "default" value for use_scws
+        par_dict['use_scws'] = 'no'
+        if 'scw_list' in par_dict and self.use_scws is not None:
+            # for the url, that will re-direct to the frontend,
+            # the correct checkbox has to be selected,
+            # then the scw_list input box will be filled correctly
+            if self.use_scws == 'user_file':
+                self.use_scws = 'form_list'
+            # for the frontend
+            par_dict['use_scws'] = self.use_scws
+
+        if 'scw_list' in par_dict and type(par_dict['scw_list']) == list:
+            # setting proper scw_list formatting
+            # as comma-separated string for being properly read by the frontend
+            par_dict['scw_list'] = ",".join(par_dict['scw_list'])
+
         _skip_list_ = ['token', 'session_id', 'job_id']
 
         for key, value in dict(par_dict).items():
             if key in _skip_list_ or value is None:
                 par_dict.pop(key)
 
+        par_dict = OrderedDict({
+            k: par_dict[k] for k in sorted(par_dict.keys())
+        })
+
         request_url = '%s?%s' % (products_url, urlencode(par_dict))
         return request_url
 
     def generate_products_url_from_file(self, products_url, request_par_dict) -> str:
         return self.generate_products_url_from_par_dict(products_url, request_par_dict)
-
 
     def run_query_mock(self, off_line=False):
 
@@ -1488,7 +1532,8 @@ class InstrumentQueryBackEnd:
                                                                self.app.config['conf'],
                                                                decoded_token=self.decoded_token):
                         try:
-                            products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url, self.par_dic)
+                            products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url,
+                                                                                    self.par_dic)
 
                             email_helper.send_email(
                                 config=self.app.config['conf'],
