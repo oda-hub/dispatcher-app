@@ -312,7 +312,6 @@ def validate_email_content(
 
 
 def get_expected_products_url(dict_param,
-                              token,
                               session_id,
                               job_id):
     dict_param_complete = dict_param.copy()    
@@ -471,7 +470,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
-    products_url = get_expected_products_url({** dict_param, 'use_scws':'no'}, token=encoded_token, session_id=session_id, job_id=job_id)
+    products_url = get_expected_products_url({** dict_param, 'use_scws':'no'}, session_id=session_id, job_id=job_id)
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
     assert 'time_request' in jdata
@@ -1147,7 +1146,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture,
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
-    short_url = get_expected_products_url(dict_param, token=encoded_token, session_id=session_id, job_id=job_id)
+    short_url = get_expected_products_url(dict_param, session_id=session_id, job_id=job_id)
 
     if short_url != "":
         assert short_url in email_data
@@ -1219,27 +1218,33 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
 
     dispatcher_job_state.assert_email("submitted")
 
-    email_data = dispatcher_job_state.load_emails()[0]
-
-    print(email_data)
-
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
-    short_url = get_expected_products_url(dict_param, token=encoded_token, session_id=session_id, job_id=job_id)
+    expected_products_url = get_expected_products_url(dict_param, session_id=session_id, job_id=job_id)
 
     if expired_token:
         # let make sure the token used for the previous request expires
         time.sleep(10)
 
-    assert short_url in email_data
-    url = short_url.replace('PRODUCTS_URL/dispatch-data', server)
+    # extract api_code and url from the email
+    msg = email.message_from_string(dispatcher_local_mail_server.get_email_record()['data'])
+    for part in msg.walk():
+        if part.get_content_type() == 'text/html':
+            content_text_html = part.get_payload().replace('\r', '').strip()
 
-    print("url", url)
+            extracted_product_url = extract_products_url(content_text_html)
+            assert expected_products_url == extracted_product_url
+
+            # verify product url does not contain token
+            extracted_parsed = parse.urlparse(extracted_product_url)
+            assert 'token' not in parse_qs(extracted_parsed.query)
+
+    url = expected_products_url.replace('PRODUCTS_URL/dispatch-data', server)
 
     c = requests.get(url, allow_redirects=False)
 
-    assert c.status_code == 302, json.dumps(c.json(), sort_keys=True, indent=4)
+    assert c.status_code == 302
 
 
 @pytest.mark.not_safe_parallel
@@ -1358,7 +1363,6 @@ def test_email_scws_list(dispatcher_live_fixture,
         # validate email content,
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
         products_url = get_expected_products_url(params,
-                                                 token=encoded_token,
                                                  session_id=dispatcher_job_state.session_id,
                                                  job_id=dispatcher_job_state.job_id)
 
@@ -1474,8 +1478,7 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
     assert jdata['exit_status']['email_status'] == 'email sent'
     params['use_scws'] = 'no'
     products_url = get_expected_products_url(params, 
-                                             token=encoded_token, 
-                                             session_id=dispatcher_job_state.session_id, 
+                                             session_id=dispatcher_job_state.session_id,
                                              job_id=dispatcher_job_state.job_id)
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
