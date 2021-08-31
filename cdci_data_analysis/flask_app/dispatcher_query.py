@@ -35,6 +35,7 @@ import logstash
 import shutil
 import typing
 import jwt
+import base64
 
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
@@ -282,11 +283,10 @@ class InstrumentQueryBackEnd:
             if k not in kw_black_list and v is not None
         })
 
-    def user_specific_par_dic(self, par_dic):
+    def user_specific_par_dic(self, par_dic, validate_token=True):
         if par_dic.get('token') is not None:
             secret_key = self.app.config.get('conf').secret_key
-            decoded_token = tokenHelper.get_decoded_token(par_dic['token'], secret_key)
-
+            decoded_token = tokenHelper.get_decoded_token(par_dic['token'], secret_key, validate_token=validate_token)
             return {
                 **par_dic,
                 "sub": tokenHelper.get_token_user_email_address(decoded_token)
@@ -296,12 +296,13 @@ class InstrumentQueryBackEnd:
 
     def calculate_job_id(self,
                          par_dic: dict,
-                         kw_black_list: typing.Union[None,dict]=None) -> str:
+                         kw_black_list: typing.Union[None,dict]=None,
+                         validate_token=True) -> str:
         """
         restricts parameter list to those relevant for request content, and makes string hash
         """
 
-        user_par_dict = self.user_specific_par_dic(par_dic)
+        user_par_dict = self.user_specific_par_dic(par_dic, validate_token=validate_token)
         user_restricted_par_dict = self.restricted_par_dic(user_par_dict, kw_black_list)
 
         return make_hash(user_restricted_par_dict)
@@ -533,19 +534,24 @@ class InstrumentQueryBackEnd:
     def resolve_job_url(self):
         request_par_dic = self.get_request_par_dic()
 
-        self.validate_job_id(request_parameters_from_scratch_dir=True)
+        self.validate_job_id(request_parameters_from_scratch_dir=True, job_resolution=True)
 
         return self.generate_products_url_from_par_dict(
             self.app.config['conf'].products_url,
             par_dict=request_par_dic)
 
-    def validate_job_id(self, request_parameters_from_scratch_dir=False):
+    def validate_job_id(self, request_parameters_from_scratch_dir=False, job_resolution=False):
         """    
         makes sure self.job_id is compatible, for given user token, with:
         if request_parameters_from_scratch_dir:
             parameters found in directory matching job_id
         else: 
             parameters provided in this request
+
+        if job_resolution:
+            resolution of the complete url,
+             token is not passed, just the job_id,
+             used then to retrieve the correct par_dic from the scratch_dir
         """
         if self.job_id is not None:
             #request_par_dic = self.find_job_id_parameters(self.job_id)
@@ -555,12 +561,13 @@ class InstrumentQueryBackEnd:
                 if request_par_dic is None:
                     raise InvalidJobIDProvided(f"unable to find any record for {self.job_id}")
                 else:
-                    request_par_dic['token'] = self.token
+                    if not job_resolution:
+                        request_par_dic['token'] = self.token
             else:
                 request_par_dic = self.par_dic
 
             if request_par_dic is not None:
-                calculated_job_id = self.calculate_job_id(request_par_dic)
+                calculated_job_id = self.calculate_job_id(request_par_dic, validate_token=(not job_resolution))
 
                 if self.job_id != calculated_job_id:
                     debug_message = f"The provided job_id={self.job_id} does not match with the job_id={calculated_job_id} " \

@@ -339,7 +339,7 @@ def get_expected_products_url(dict_param,
     elif 2000 > len(products_url) > 600:
         possibly_compressed_request_url = \
             "PRODUCTS_URL/dispatch-data/resolve-job-url?" + \
-            parse.urlencode(dict(job_id=job_id, session_id=session_id, token=token))
+            parse.urlencode(dict(job_id=job_id, session_id=session_id))
     else:
         possibly_compressed_request_url = products_url
 
@@ -1086,7 +1086,9 @@ def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_liv
 
 
 @pytest.mark.parametrize("request_length", [600, 1000])
-def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_local_mail_server, request_length):
+def test_email_very_long_request_url(dispatcher_long_living_fixture,
+                                     dispatcher_local_mail_server,
+                                     request_length):
     # emails generally can not contain lines longer than 999 characters.
     # different SMTP servers will deal with these differently: 
     #  * some will respond with error, 
@@ -1097,7 +1099,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
     # we need:
     #  * to detect this and be clear we can not send these long lines. they are not often usable as URLs anyway
     #  * compress long parameters, e.g. selected_catalog
-    #  * request by shortcut (job_d): but it is clear that it is not generally possible to derive parameters from job_id
+    #  * request by shortcut (job_id): but it is clear that it is not generally possible to derive parameters from job_id
     #  * make this or some other kind of URL shortener
 
     server = dispatcher_long_living_fixture
@@ -1109,6 +1111,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
         **default_token_payload,
         "tem": 0
     }
+
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
     # set the time the request was initiated
     time_request = time.time()
@@ -1166,6 +1169,77 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
         assert """You can retrieve the results by repeating the request.
 Unfortunately, due to a known issue with very large requests, a URL with the selected request parameters could not be generated.
 This might be fixed in a future release.""" in email_data
+
+
+@pytest.mark.parametrize("expired_token", [True, False])
+def test_email_link_job_resolution(dispatcher_long_living_fixture,
+                                     dispatcher_local_mail_server,
+                                     expired_token):
+
+    server = dispatcher_long_living_fixture
+
+    DispatcherJobState.remove_scratch_folders()
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "tem": 0
+    }
+
+    if expired_token:
+        exp_time = int(time.time()) + 15
+        token_payload["exp"] = exp_time
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    # set the time the request was initiated
+    time_request = time.time()
+
+    # based on the previous test
+    name_parameter_value = "01" * 600
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="numerical",
+        string_like_name=name_parameter_value,
+        token=encoded_token,
+        time_request=time_request
+    )
+
+    c = requests.get(server + "/run_analysis",
+                     params=dict_param)
+
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+
+    jdata = c.json()
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    dispatcher_job_state.assert_email("submitted")
+
+    email_data = dispatcher_job_state.load_emails()[0]
+
+    print(email_data)
+
+    session_id = jdata['session_id']
+    job_id = jdata['job_monitor']['job_id']
+
+    short_url = get_expected_products_url(dict_param, token=encoded_token, session_id=session_id, job_id=job_id)
+
+    if expired_token:
+        # let make sure the token used for the previous request expires
+        time.sleep(10)
+
+    assert short_url in email_data
+    url = short_url.replace('PRODUCTS_URL/dispatch-data', server)
+
+    print("url", url)
+
+    c = requests.get(url, allow_redirects=False)
+
+    assert c.status_code == 302, json.dumps(c.json(), sort_keys=True, indent=4)
 
 
 @pytest.mark.not_safe_parallel
