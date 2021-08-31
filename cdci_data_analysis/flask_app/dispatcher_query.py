@@ -148,21 +148,22 @@ class InstrumentQueryBackEnd:
             self.public = True
             self.token = None
             self.decoded_token = None
-            if 'token' in self.par_dic.keys() and self.par_dic['token'] not in ["", "None", None]:
-                self.token = self.par_dic['token']
-                self.public = False
-                # token validation and decoding can be done here, to check if the token is expired
-                self.log_query_progression("before validate_query_from_token")        
-                try:
-                    if self.validate_query_from_token():
-                        pass
-                except jwt.exceptions.ExpiredSignatureError as e:
-                    logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-expired'})
-                    raise RequestNotAuthorized("the token provided is expired, please try to logout and login again")
+            if not resolve_job_url:
+                if 'token' in self.par_dic.keys() and self.par_dic['token'] not in ["", "None", None]:
+                    self.token = self.par_dic['token']
+                    self.public = False
+                    # token validation and decoding can be done here, to check if the token is expired
+                    self.log_query_progression("before validate_query_from_token")
+                    try:
+                        if self.validate_query_from_token():
+                            pass
+                    except jwt.exceptions.ExpiredSignatureError as e:
+                        logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-expired'})
+                        raise RequestNotAuthorized("the token provided is expired, please try to logout and login again")
 
-                self.log_query_progression("after validate_query_from_token")
-                logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
-                self.log_query_progression("after logstash_message")
+                    self.log_query_progression("after validate_query_from_token")
+                    logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
+                    self.log_query_progression("after logstash_message")
 
             if download_products or resolve_job_url or update_token:
                 instrument_name = 'mock'
