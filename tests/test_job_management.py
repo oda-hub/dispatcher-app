@@ -1172,8 +1172,8 @@ This might be fixed in a future release.""" in email_data
 
 @pytest.mark.parametrize("expired_token", [True, False])
 def test_email_link_job_resolution(dispatcher_long_living_fixture,
-                                     dispatcher_local_mail_server,
-                                     expired_token):
+                                   dispatcher_local_mail_server,
+                                   expired_token):
 
     server = dispatcher_long_living_fixture
 
@@ -1245,6 +1245,15 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
     c = requests.get(url, allow_redirects=False)
 
     assert c.status_code == 302
+    # verify the redirect location
+    redirect_url = c.headers['location']
+    logger.info("redirect url: %s", redirect_url)
+
+    dict_params_redirect_url = parse_qs(parse.urlparse(redirect_url).query)
+    assert 'token' not in dict_params_redirect_url
+
+    dict_param.pop('token', None)
+    assert all(key in dict_params_redirect_url for key in dict_param)
 
 
 @pytest.mark.not_safe_parallel

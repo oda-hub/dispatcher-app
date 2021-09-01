@@ -20,7 +20,6 @@ import copy
 import glob
 import string
 import random
-from raven.contrib.flask import Sentry
 
 from flask import jsonify, send_from_directory
 from flask import request, g
@@ -35,7 +34,6 @@ import logstash
 import shutil
 import typing
 import jwt
-import base64
 
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
