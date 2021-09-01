@@ -1,6 +1,4 @@
 import jwt
-import base64
-import json
 import oda_api.token
 from marshmallow import ValidationError
 
