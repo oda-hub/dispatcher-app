@@ -67,7 +67,11 @@ def get_decoded_token(token, secret_key, validate_token=True):
         if validate_token:
             return jwt.decode(token, secret_key, algorithms=[default_algorithm])
         else:
-            return json.loads(base64.b64decode(token.split(".")[1]+"=").decode())
+            return jwt.decode(token, "",
+                              algorithms=[default_algorithm],
+                              options=dict(
+                                verify_signature=False
+                            ))
 
 
 def update_token_email_options(token, secret_key, new_options):
