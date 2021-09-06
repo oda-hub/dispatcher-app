@@ -662,13 +662,16 @@ class DispatcherJobState:
         return f'p_value_simple_files/{file_name}'
 
     @staticmethod
-    def create_scw_list_file(list_length, format='list'):
+    def create_scw_list_file(list_length, format='list', scw_list=None):
         # generate ScWs list file
         if not os.path.exists('scw_list_files'):
             os.makedirs('scw_list_files')
 
         # scw_list
-        scw_list = [f"0665{i:04d}0010.001" for i in range(list_length)]
+
+        if scw_list is None:
+            # this takes priority; allows to avoid repetition
+            scw_list = [f"0665{i:04d}0010.001" for i in range(list_length)]
 
         # hash file content
         scw_list_hash = make_hash(scw_list)

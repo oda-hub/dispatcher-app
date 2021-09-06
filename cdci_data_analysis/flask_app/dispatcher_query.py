@@ -401,6 +401,8 @@ class InstrumentQueryBackEnd:
         # it is nowhere necessary within the dispatcher-app,
         # but it is re-attached to the url within the email
         # when sending it since it is used by the frontend
+
+        # why use both `request` and `self.par_dict`? par_dict should be derived from request while preserving list
         self.use_scws = self.par_dic.pop('use_scws', None)
         #
         if 'scw_list' in self.par_dic.keys():
@@ -530,13 +532,17 @@ class InstrumentQueryBackEnd:
         return tmp_dir, file_name
 
     def resolve_job_url(self):
-        request_par_dic = self.get_request_par_dic()
+        self.par_dic.update(self.get_request_par_dic())
+
+        # what if scw list from request overwrites that in self.par_dict?
+        self.set_scws_related_params(request)
 
         self.validate_job_id(request_parameters_from_scratch_dir=True)
 
         return self.generate_products_url_from_par_dict(
             self.app.config['conf'].products_url,
-            par_dict=request_par_dic)
+            self.par_dic
+            )
 
     def validate_job_id(self, request_parameters_from_scratch_dir=False):
         """    
