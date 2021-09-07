@@ -532,6 +532,16 @@ class InstrumentQueryBackEnd:
         return tmp_dir, file_name
 
     def resolve_job_url(self):
+        expected_pars = set(['job_id', 'session_id', 'token'])
+        unexpected_pars = list(sorted(set(self.par_dic) - expected_pars))
+        missing_pars = list(sorted(expected_pars - set(self.par_dic)))
+
+        if len(unexpected_pars) > 0:
+            raise RequestNotUnderstood(f"found unexpected parameters: {unexpected_pars}, expected only and only these {list(sorted(expected_pars))}")
+
+        if len(missing_pars) > 0:
+            raise RequestNotUnderstood(f"NOT found expected parameters: {missing_pars}, expected only and only these {list(sorted(expected_pars))}")
+
         self.par_dic.update(self.get_request_par_dic())
 
         # what if scw list from request overwrites that in self.par_dict?

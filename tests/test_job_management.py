@@ -1312,15 +1312,14 @@ def test_email_scws_list(dispatcher_long_living_fixture,
                     print("need to resolve this:", extracted_product_url)
 
                     r = requests.get(extracted_product_url.replace('PRODUCTS_URL/dispatch-data', server))
-
-                    # this is to show how parameters can be overwritten in resolve; this never happens intentionally and is not dangerous
-                    # could be prevented
+                                        
+                    # parameters could be overwritten in resolve; this never happens intentionally and is not dangerous
+                    # but prevented for clarity
                     alt_scw_list = ['066400220010.001', '066400230010.001']
                     r_alt = requests.get(extracted_product_url.replace('PRODUCTS_URL/dispatch-data', server), params={'scw_list': alt_scw_list})
-                    alt_extracted_scw_list = parse_qs(parse.urlparse(r_alt.url).query)['scw_list'][0].split(",")
-                    assert alt_extracted_scw_list == alt_scw_list
-                    assert alt_extracted_scw_list != params['scw_list']
-
+                    assert r_alt.status_code == 400
+                    assert r_alt.json()['error_message'] == "found unexpected parameters: ['scw_list'], expected only and only these ['job_id', 'session_id', 'token']"
+                    
                     extracted_product_url = r.url
                     print("resolved url:", extracted_product_url)
 
