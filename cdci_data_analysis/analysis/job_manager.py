@@ -95,7 +95,7 @@ class Job(object):
 
     @staticmethod
     def get_allowed_job_status_values():
-        return ['done', 'failed', 'progress', 'submitted', 'ready', 'unknown', 'unaccessible','aliased', 'post-processing']
+        return ['done', 'main_done', 'failed', 'progress', 'submitted', 'ready', 'unknown', 'unaccessible','aliased', 'post-processing']
 
     def update_monitor(self,status,session_id,job_id):
         self.monitor['job_id']=job_id
