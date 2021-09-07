@@ -451,22 +451,28 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
 
     if os.path.exists(dispatcher_state_fn):
         dispatcher_state = json.load(open(dispatcher_state_fn))
-        logger.info("found dispatcher state: %s", dispatcher_state)
+        logger.info("\033[31mfound dispatcher state: %s\033[0m", dispatcher_state)
+
+        status_code = None
 
         try:
             r = requests.get(dispatcher_state['url'] + "/run_analysis")
             logger.info("dispatcher returns: %s, %s", r.status_code, r.text)
-            if r.status_code == 200:
+            logger.info("dispatcher response: %s %s", r.status_code, r.text)
+            if r.status_code in [200, 400]:
                 logger.info("dispatcher is live and responsive")
-                yield dispatcher_state['url']                
+                return dispatcher_state['url']                
+            status_code = r.status_code
         except requests.exceptions.ConnectionError as e:
-            logger.warning("dispatcher connection failed %s", e)        
+            logger.warning("\033[31mdispatcher connection failed %s\033[0m", e)        
         
-        logger.warning("dispatcher is dead or unresponsive")
+        logger.warning("\033[31mdispatcher is dead or unresponsive: %s\033[0m", status_code)
+    else:
+        logger.info("\033[31mdoes not exist!\033[0m")
 
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
     json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
-    yield dispatcher_state['url']
+    return dispatcher_state['url']
 
 
 @pytest.fixture
@@ -662,13 +668,16 @@ class DispatcherJobState:
         return f'p_value_simple_files/{file_name}'
 
     @staticmethod
-    def create_scw_list_file(list_length, format='list'):
+    def create_scw_list_file(list_length, format='list', scw_list=None):
         # generate ScWs list file
         if not os.path.exists('scw_list_files'):
             os.makedirs('scw_list_files')
 
         # scw_list
-        scw_list = [f"0665{i:04d}0010.001" for i in range(list_length)]
+
+        if scw_list is None:
+            # this takes priority; allows to avoid repetition
+            scw_list = [f"0665{i:04d}0010.001" for i in range(list_length)]
 
         # hash file content
         scw_list_hash = make_hash(scw_list)

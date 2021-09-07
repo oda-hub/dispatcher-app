@@ -1172,15 +1172,17 @@ This might be fixed in a future release.""" in email_data
 @pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
 @pytest.mark.parametrize("scw_list_format", ['list', 'string'])
 @pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
-def test_email_scws_list(dispatcher_live_fixture,
+@pytest.mark.parametrize("scw_list_size", [5, 40])
+def test_email_scws_list(dispatcher_long_living_fixture,
                          dispatcher_local_mail_server,
                          use_scws_value,
                          scw_list_format,
                          scw_list_passage,
+                         scw_list_size,
                          ):
     DispatcherJobState.remove_scratch_folders()
 
-    server = dispatcher_live_fixture
+    server = dispatcher_long_living_fixture
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
@@ -1199,7 +1201,7 @@ def test_email_scws_list(dispatcher_live_fixture,
         'token': encoded_token
     }
 
-    scw_list = [f"0665{i:04d}0010.001" for i in range(5)]
+    scw_list = [f"0665{i:04d}0010.001" for i in range(scw_list_size)]
     scw_list_string = ",".join(scw_list)
     scw_list_file_obj = None
     ask_method = 'get' if (scw_list_passage == 'params' or
@@ -1211,8 +1213,10 @@ def test_email_scws_list(dispatcher_live_fixture,
 
     # configure the possible ways the list should be passed
     if scw_list_passage == 'file' or scw_list_passage == 'both':
-        scw_list_file_path = DispatcherJobState.create_scw_list_file(list_length=5,
-                                                                     format=scw_list_format)
+        scw_list_file_path = DispatcherJobState.create_scw_list_file(list_length=scw_list_size,
+                                                                     format=scw_list_format,
+                                                                     scw_list=scw_list # this takes priority
+                                                                     )
         scw_list_file = open(scw_list_file_path).read()
         scw_list_file_obj = {"user_scw_list_file": scw_list_file}
 
@@ -1288,6 +1292,8 @@ def test_email_scws_list(dispatcher_live_fixture,
                                                  session_id=dispatcher_job_state.session_id,
                                                  job_id=dispatcher_job_state.job_id)
 
+        print("excpected products url:", products_url)
+
         # extract api_code and url from the email
         msg = email.message_from_string(dispatcher_local_mail_server.get_email_record()['data'])
         for part in msg.walk():
@@ -1301,6 +1307,21 @@ def test_email_scws_list(dispatcher_live_fixture,
                 extracted_product_url = extract_products_url(content_text_html)
                 if products_url is not None and products_url != "":
                     assert products_url == extracted_product_url
+
+                if 'resolve' in extracted_product_url:
+                    print("need to resolve this:", extracted_product_url)
+
+                    r = requests.get(extracted_product_url.replace('PRODUCTS_URL/dispatch-data', server))
+                                        
+                    # parameters could be overwritten in resolve; this never happens intentionally and is not dangerous
+                    # but prevented for clarity
+                    alt_scw_list = ['066400220010.001', '066400230010.001']
+                    r_alt = requests.get(extracted_product_url.replace('PRODUCTS_URL/dispatch-data', server), params={'scw_list': alt_scw_list})
+                    assert r_alt.status_code == 400
+                    assert r_alt.json()['error_message'] == "found unexpected parameters: ['scw_list'], expected only and only these ['job_id', 'session_id', 'token']"
+                    
+                    extracted_product_url = r.url
+                    print("resolved url:", extracted_product_url)
 
                 # verify product url contains the use_scws parameter for the frontend
                 extracted_parsed = parse.urlparse(extracted_product_url)
@@ -1474,6 +1495,3 @@ scwl_dict = {"scw_list": "115000860010.001,115000870010.001,115000980010.001,115
 
     assert len(my_globals['bla']) > max_length
     assert len(my_globals['scwl_dict']['scw_list']) > max_length
-
-    
-    
