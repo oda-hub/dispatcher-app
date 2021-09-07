@@ -104,6 +104,27 @@ class InstrumentQueryBackEnd:
         t0 = self.query_progression[0]['t_s']
         self.logger.warning("%s %s s", message, self.query_progression[-1]['t_s'] - t0)
 
+    def set_frontend_default_params(self):
+        # remove empty parameters; they might be set by frontend which always sends some params
+        # we will insert them in frontend URL
+        
+        self.par_dic = {k: v for k, v in self.par_dic.items() if v != ""}
+
+        #self.par_dic['src_name'] = ""
+    #         "DEC": "-29.74516667",
+    # "E1_keV": "20",
+    # "E2_keV": "40",
+    # "RA": "265.97845833",
+    # "T1": "2017-03-06T13:26:45.0",
+    # "T2": "2017-03-06T15:32:27.0",
+    # "T_format": "isot",
+    # "detection_threshold": "7",
+    # "instrument": "isgri",
+    # "integral_data_rights": "public",
+    # "radius": "15",
+    # "src_name": "1E 1740.7-2942"
+
+
     def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False, resolve_job_url=False, query_id=None, update_token=False):
         self.logger = logging.getLogger(f"{repr(self)} [{query_id}]")
         self.logger = logging.getLogger(repr(self))
@@ -119,6 +140,8 @@ class InstrumentQueryBackEnd:
                 self.set_args(request, verbose=verbose)
             else:
                 self.par_dic = par_dic
+
+            self.set_frontend_default_params()
 
             self.set_scws_related_params(request)
 
@@ -853,6 +876,10 @@ class InstrumentQueryBackEnd:
     # TODO make sure that the list of parameters to ignore in the frontend is synchronized
     def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
         par_dict = par_dict.copy()
+
+        # some parameters will be set by the frontend. they need to be neutralized    
+        par_dict['src_name'] = ""
+        # TODO: test this
 
         # this is a "default" value for use_scws
         par_dict['use_scws'] = 'no'
