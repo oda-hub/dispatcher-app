@@ -1173,7 +1173,7 @@ This might be fixed in a future release.""" in email_data
 @pytest.mark.parametrize("scw_list_format", ['list', 'string'])
 @pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
 @pytest.mark.parametrize("scw_list_size", [5, 40])
-def test_email_scws_list(dispatcher_live_fixture,
+def test_email_scws_list(dispatcher_long_living_fixture,
                          dispatcher_local_mail_server,
                          use_scws_value,
                          scw_list_format,
@@ -1182,7 +1182,7 @@ def test_email_scws_list(dispatcher_live_fixture,
                          ):
     DispatcherJobState.remove_scratch_folders()
 
-    server = dispatcher_live_fixture
+    server = dispatcher_long_living_fixture
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
@@ -1310,7 +1310,17 @@ def test_email_scws_list(dispatcher_live_fixture,
 
                 if 'resolve' in extracted_product_url:
                     print("need to resolve this:", extracted_product_url)
+
                     r = requests.get(extracted_product_url.replace('PRODUCTS_URL/dispatch-data', server))
+
+                    # this is to show how parameters can be overwritten in resolve; this never happens intentionally and is not dangerous
+                    # could be prevented
+                    alt_scw_list = ['066400220010.001', '066400230010.001']
+                    r_alt = requests.get(extracted_product_url.replace('PRODUCTS_URL/dispatch-data', server), params={'scw_list': alt_scw_list})
+                    alt_extracted_scw_list = parse_qs(parse.urlparse(r_alt.url).query)['scw_list'][0].split(",")
+                    assert alt_extracted_scw_list == alt_scw_list
+                    assert alt_extracted_scw_list != params['scw_list']
+
                     extracted_product_url = r.url
                     print("resolved url:", extracted_product_url)
 
@@ -1486,6 +1496,3 @@ scwl_dict = {"scw_list": "115000860010.001,115000870010.001,115000980010.001,115
 
     assert len(my_globals['bla']) > max_length
     assert len(my_globals['scwl_dict']['scw_list']) > max_length
-
-    
-    
