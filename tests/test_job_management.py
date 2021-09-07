@@ -506,7 +506,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                              job_id=dispatcher_job_state.job_id,
                              session_id=dispatcher_job_state.session_id,
                              instrument_name="empty-async",
-                             action='progress',
+                             action='progress' if i > 2 else 'main_done',
                              node_id=f'node_{i}',
                              message='progressing',
                              token=encoded_token,
