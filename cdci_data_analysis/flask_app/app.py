@@ -8,18 +8,17 @@ Created on Wed May 10 10:55:20 2017
 
 import string
 import random
-import json
 import hashlib
 
 from raven.contrib.flask import Sentry
 
-from flask import jsonify, send_from_directory, redirect, Response
-from flask import Flask, request, make_response, abort, g
+from flask import jsonify, send_from_directory, redirect, Response, Flask, request, make_response, g
 
 # restx not really used
 from flask_restx import Api, Resource, reqparse
 
 import time as _time
+from urllib.parse import urlencode
 
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
@@ -28,25 +27,17 @@ from marshmallow.exceptions import ValidationError
 from ..plugins import importer
 
 from ..analysis.queries import *
-from ..analysis.job_manager import Job, job_factory
-from ..analysis.io_helper import FilePath, FitsFile
-from .mock_data_server import mock_query
-from ..analysis.products import QueryOutput
-from ..configurer import DataServerConf
+from ..analysis.io_helper import FitsFile
 from ..analysis.plot_tools import Image
 from .dispatcher_query import InstrumentQueryBackEnd
-from ..analysis.exceptions import APIerror, BadRequest
+from ..analysis.exceptions import APIerror
 from ..app_logging import app_logging
-from . import tasks
 
 from ..analysis.json import CustomJSONEncoder
 
 from cdci_data_analysis import __version__
 import oda_api
 
-from astropy.io.fits.card import Undefined as astropyUndefined
-
-from cdci_data_analysis.flask_app import dispatcher_query
 from cdci_data_analysis.configurer import ConfigEnv
 
 logger = app_logging.getLogger('flask_app')
@@ -298,13 +289,22 @@ def test_mock():
 
 @app.route('/resolve-job-url', methods=['GET'])
 def resolve_job_url():
-    logger.info('\033[32m===========================> resolve_job_url\033[0m')
+    try:
+        logger.info('\033[32m===========================> resolve_job_url\033[0m')
 
-    query = InstrumentQueryBackEnd(app, instrument_name='mock', resolve_job_url=True)
-    location = query.resolve_job_url()
+        query = InstrumentQueryBackEnd(app, instrument_name='mock', resolve_job_url=True)
+        location = query.resolve_job_url()
 
-    return redirect(location, 302)
-
+        return redirect(location, 302)
+    except APIerror as e:
+        message_dict = {
+            "error_message": e.message,
+            "status_code": e.status_code
+        }
+        location = '%s?%s' % (app.config['conf'].products_url, urlencode(message_dict))
+        return redirect(location, 302)
+    except Exception as e:
+        return redirect(app.config['conf'].products_url, 302)
 
 
 @app.route('/call_back', methods=['POST', 'GET'])

@@ -187,7 +187,7 @@ def send_email(
         possibly_compressed_request_url = \
             config.products_url + \
             "/dispatch-data/resolve-job-url?" + \
-            parse.urlencode(dict(job_id=job_id, session_id=session_id))
+            parse.urlencode(dict(job_id=job_id, session_id=session_id, token=token))
         permanent_url = False
     else:
         possibly_compressed_request_url = request_url

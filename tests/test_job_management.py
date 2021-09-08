@@ -313,6 +313,7 @@ def validate_email_content(
 
 def get_expected_products_url(dict_param,
                               session_id,
+                              token,
                               job_id):
     dict_param_complete = dict_param.copy()    
     dict_param_complete.pop("token", None)
@@ -338,7 +339,7 @@ def get_expected_products_url(dict_param,
     elif 2000 > len(products_url) > 600:
         possibly_compressed_request_url = \
             "PRODUCTS_URL/dispatch-data/resolve-job-url?" + \
-            parse.urlencode(dict(job_id=job_id, session_id=session_id))
+            parse.urlencode(dict(job_id=job_id, session_id=session_id, token=token))
     else:
         possibly_compressed_request_url = products_url
 
@@ -1221,11 +1222,11 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
-    expected_products_url = get_expected_products_url(dict_param, session_id=session_id, job_id=job_id)
+    expected_products_url = get_expected_products_url(dict_param, session_id=session_id, token=encoded_token, job_id=job_id)
 
     if expired_token:
         # let make sure the token used for the previous request expires
-        time.sleep(10)
+        time.sleep(12)
 
     # extract api_code and url from the email
     msg = email.message_from_string(dispatcher_local_mail_server.get_email_record()['data'])
@@ -1236,9 +1237,9 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
             extracted_product_url = extract_products_url(content_text_html)
             assert expected_products_url == extracted_product_url
 
-            # verify product url does not contain token
-            extracted_parsed = parse.urlparse(extracted_product_url)
-            assert 'token' not in parse_qs(extracted_parsed.query)
+            # # verify product url does not contain token
+            # extracted_parsed = parse.urlparse(extracted_product_url)
+            # assert 'token' not in parse_qs(extracted_parsed.query)
 
     url = expected_products_url.replace('PRODUCTS_URL/dispatch-data', server)
 
@@ -1252,8 +1253,9 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
     dict_params_redirect_url = parse_qs(parse.urlparse(redirect_url).query)
     assert 'token' not in dict_params_redirect_url
 
-    dict_param.pop('token', None)
-    assert all(key in dict_params_redirect_url for key in dict_param)
+    if not expired_token:
+        dict_param.pop('token', None)
+        assert all(key in dict_params_redirect_url for key in dict_param)
 
 
 @pytest.mark.not_safe_parallel

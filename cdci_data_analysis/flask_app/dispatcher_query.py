@@ -147,22 +147,21 @@ class InstrumentQueryBackEnd:
             self.public = True
             self.token = None
             self.decoded_token = None
-            if not resolve_job_url:
-                if 'token' in self.par_dic.keys() and self.par_dic['token'] not in ["", "None", None]:
-                    self.token = self.par_dic['token']
-                    self.public = False
-                    # token validation and decoding can be done here, to check if the token is expired
-                    self.log_query_progression("before validate_query_from_token")
-                    try:
-                        if self.validate_query_from_token():
-                            pass
-                    except jwt.exceptions.ExpiredSignatureError as e:
-                        logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-expired'})
-                        raise RequestNotAuthorized("the token provided is expired, please try to logout and login again")
+            if 'token' in self.par_dic.keys() and self.par_dic['token'] not in ["", "None", None]:
+                self.token = self.par_dic['token']
+                self.public = False
+                # token validation and decoding can be done here, to check if the token is expired
+                self.log_query_progression("before validate_query_from_token")
+                try:
+                    if self.validate_query_from_token():
+                        pass
+                except jwt.exceptions.ExpiredSignatureError as e:
+                    logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event': 'token-expired'})
+                    raise RequestNotAuthorized("the token provided is expired, please try to logout and login again")
 
-                    self.log_query_progression("after validate_query_from_token")
-                    logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
-                    self.log_query_progression("after logstash_message")
+                self.log_query_progression("after validate_query_from_token")
+                logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
+                self.log_query_progression("after logstash_message")
 
             if download_products or resolve_job_url or update_token:
                 instrument_name = 'mock'
@@ -281,10 +280,10 @@ class InstrumentQueryBackEnd:
             if k not in kw_black_list and v is not None
         })
 
-    def user_specific_par_dic(self, par_dic, validate_token=True):
+    def user_specific_par_dic(self, par_dic):
         if par_dic.get('token') is not None:
             secret_key = self.app.config.get('conf').secret_key
-            decoded_token = tokenHelper.get_decoded_token(par_dic['token'], secret_key, validate_token=validate_token)
+            decoded_token = tokenHelper.get_decoded_token(par_dic['token'], secret_key)
             return {
                 **par_dic,
                 "sub": tokenHelper.get_token_user_email_address(decoded_token)
@@ -294,13 +293,12 @@ class InstrumentQueryBackEnd:
 
     def calculate_job_id(self,
                          par_dic: dict,
-                         kw_black_list: typing.Union[None,dict]=None,
-                         validate_token=True) -> str:
+                         kw_black_list: typing.Union[None,dict]=None) -> str:
         """
         restricts parameter list to those relevant for request content, and makes string hash
         """
 
-        user_par_dict = self.user_specific_par_dic(par_dic, validate_token=validate_token)
+        user_par_dict = self.user_specific_par_dic(par_dic)
         user_restricted_par_dict = self.restricted_par_dic(user_par_dict, kw_black_list)
 
         return make_hash(user_restricted_par_dict)
@@ -559,13 +557,13 @@ class InstrumentQueryBackEnd:
                 if request_par_dic is None:
                     raise InvalidJobIDProvided(f"unable to find any record for {self.job_id}")
                 else:
-                    if not job_resolution:
-                        request_par_dic['token'] = self.token
+                    # if not job_resolution:
+                    request_par_dic['token'] = self.token
             else:
                 request_par_dic = self.par_dic
 
             if request_par_dic is not None:
-                calculated_job_id = self.calculate_job_id(request_par_dic, validate_token=(not job_resolution))
+                calculated_job_id = self.calculate_job_id(request_par_dic)
 
                 if self.job_id != calculated_job_id:
                     debug_message = f"The provided job_id={self.job_id} does not match with the job_id={calculated_job_id} " \
