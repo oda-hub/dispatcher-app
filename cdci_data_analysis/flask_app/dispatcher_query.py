@@ -20,7 +20,6 @@ import copy
 import glob
 import string
 import random
-from raven.contrib.flask import Sentry
 
 from flask import jsonify, send_from_directory
 from flask import request, g
@@ -64,10 +63,6 @@ class NoInstrumentSpecified(BadRequest):
 
 
 class InstrumentNotRecognized(BadRequest):
-    pass
-
-
-class MissingRequestParameter(BadRequest):
     pass
 
 
@@ -152,12 +147,12 @@ class InstrumentQueryBackEnd:
                 self.token = self.par_dic['token']
                 self.public = False
                 # token validation and decoding can be done here, to check if the token is expired
-                self.log_query_progression("before validate_query_from_token")        
+                self.log_query_progression("before validate_query_from_token")
                 try:
                     if self.validate_query_from_token():
                         pass
                 except jwt.exceptions.ExpiredSignatureError as e:
-                    logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-expired'})
+                    logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event': 'token-expired'})
                     raise RequestNotAuthorized("the token provided is expired, please try to logout and login again")
 
                 self.log_query_progression("after validate_query_from_token")
@@ -285,7 +280,6 @@ class InstrumentQueryBackEnd:
         if par_dic.get('token') is not None:
             secret_key = self.app.config.get('conf').secret_key
             decoded_token = tokenHelper.get_decoded_token(par_dic['token'], secret_key)
-
             return {
                 **par_dic,
                 "sub": tokenHelper.get_token_user_email_address(decoded_token)
@@ -570,6 +564,7 @@ class InstrumentQueryBackEnd:
                 if request_par_dic is None:
                     raise InvalidJobIDProvided(f"unable to find any record for {self.job_id}")
                 else:
+                    # if not job_resolution:
                     request_par_dic['token'] = self.token
             else:
                 request_par_dic = self.par_dic
@@ -587,7 +582,6 @@ class InstrumentQueryBackEnd:
                         debug_message += "; parameters are derived from recorded job state"
                     else:
                         debug_message += "; parameters are derived from this request"
-
 
                     restored_job_parameters = self.find_job_id_parameters(self.job_id)
 

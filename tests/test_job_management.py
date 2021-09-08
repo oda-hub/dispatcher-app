@@ -312,8 +312,8 @@ def validate_email_content(
 
 
 def get_expected_products_url(dict_param,
-                              token,
                               session_id,
+                              token,
                               job_id):
     dict_param_complete = dict_param.copy()    
     dict_param_complete.pop("token", None)
@@ -471,7 +471,10 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
-    products_url = get_expected_products_url({** dict_param, 'use_scws':'no'}, token=encoded_token, session_id=session_id, job_id=job_id)
+    products_url = get_expected_products_url({** dict_param, 'use_scws':'no'},
+                                             token=encoded_token,
+                                             session_id=session_id,
+                                             job_id=job_id)
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
     assert 'time_request' in jdata
@@ -1086,7 +1089,9 @@ def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_liv
 
 
 @pytest.mark.parametrize("request_length", [600, 1000])
-def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_local_mail_server, request_length):
+def test_email_very_long_request_url(dispatcher_long_living_fixture,
+                                     dispatcher_local_mail_server,
+                                     request_length):
     # emails generally can not contain lines longer than 999 characters.
     # different SMTP servers will deal with these differently: 
     #  * some will respond with error, 
@@ -1097,7 +1102,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
     # we need:
     #  * to detect this and be clear we can not send these long lines. they are not often usable as URLs anyway
     #  * compress long parameters, e.g. selected_catalog
-    #  * request by shortcut (job_d): but it is clear that it is not generally possible to derive parameters from job_id
+    #  * request by shortcut (job_id): but it is clear that it is not generally possible to derive parameters from job_id
     #  * make this or some other kind of URL shortener
 
     server = dispatcher_long_living_fixture
@@ -1109,6 +1114,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
         **default_token_payload,
         "tem": 0
     }
+
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
     # set the time the request was initiated
     time_request = time.time()
@@ -1144,7 +1150,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
-    short_url = get_expected_products_url(dict_param, token=encoded_token, session_id=session_id, job_id=job_id)
+    short_url = get_expected_products_url(dict_param, session_id=session_id, job_id=job_id, token=encoded_token)
 
     if short_url != "":
         assert short_url in email_data
@@ -1166,6 +1172,93 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture, dispatcher_
         assert """You can retrieve the results by repeating the request.
 Unfortunately, due to a known issue with very large requests, a URL with the selected request parameters could not be generated.
 This might be fixed in a future release.""" in email_data
+
+
+@pytest.mark.parametrize("expired_token", [True, False])
+def test_email_link_job_resolution(dispatcher_long_living_fixture,
+                                   dispatcher_local_mail_server,
+                                   expired_token):
+
+    server = dispatcher_long_living_fixture
+
+    DispatcherJobState.remove_scratch_folders()
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "tem": 0
+    }
+
+    if expired_token:
+        exp_time = int(time.time()) + 15
+        token_payload["exp"] = exp_time
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    # set the time the request was initiated
+    time_request = time.time()
+
+    # based on the previous test
+    name_parameter_value = "01" * 600
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="numerical",
+        string_like_name=name_parameter_value,
+        token=encoded_token,
+        time_request=time_request
+    )
+
+    c = requests.get(server + "/run_analysis",
+                     params=dict_param)
+
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+
+    jdata = c.json()
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    dispatcher_job_state.assert_email("submitted")
+
+    session_id = jdata['session_id']
+    job_id = jdata['job_monitor']['job_id']
+
+    expected_products_url = get_expected_products_url(dict_param, session_id=session_id, token=encoded_token, job_id=job_id)
+
+    if expired_token:
+        # let make sure the token used for the previous request expires
+        time.sleep(12)
+
+    # extract api_code and url from the email
+    msg = email.message_from_string(dispatcher_local_mail_server.get_email_record()['data'])
+    for part in msg.walk():
+        if part.get_content_type() == 'text/html':
+            content_text_html = part.get_payload().replace('\r', '').strip()
+
+            extracted_product_url = extract_products_url(content_text_html)
+            assert expected_products_url == extracted_product_url
+
+            # # verify product url does not contain token
+            # extracted_parsed = parse.urlparse(extracted_product_url)
+            # assert 'token' not in parse_qs(extracted_parsed.query)
+
+    url = expected_products_url.replace('PRODUCTS_URL/dispatch-data', server)
+
+    c = requests.get(url, allow_redirects=False)
+
+    assert c.status_code == 302
+    # verify the redirect location
+    redirect_url = c.headers['location']
+    logger.info("redirect url: %s", redirect_url)
+
+    dict_params_redirect_url = parse_qs(parse.urlparse(redirect_url).query)
+    assert 'token' not in dict_params_redirect_url
+
+    if not expired_token:
+        dict_param.pop('token', None)
+        assert all(key in dict_params_redirect_url for key in dict_param)
 
 
 @pytest.mark.not_safe_parallel
@@ -1288,9 +1381,9 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         # validate email content,
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
         products_url = get_expected_products_url(params,
-                                                 token=encoded_token,
                                                  session_id=dispatcher_job_state.session_id,
-                                                 job_id=dispatcher_job_state.job_id)
+                                                 job_id=dispatcher_job_state.job_id,
+                                                 token=encoded_token)
 
         print("excpected products url:", products_url)
 
@@ -1316,12 +1409,18 @@ def test_email_scws_list(dispatcher_long_living_fixture,
                     # parameters could be overwritten in resolve; this never happens intentionally and is not dangerous
                     # but prevented for clarity
                     alt_scw_list = ['066400220010.001', '066400230010.001']
-                    r_alt = requests.get(extracted_product_url.replace('PRODUCTS_URL/dispatch-data', server), params={'scw_list': alt_scw_list})
-                    assert r_alt.status_code == 400
-                    assert r_alt.json()['error_message'] == "found unexpected parameters: ['scw_list'], expected only and only these ['job_id', 'session_id', 'token']"
-                    
+                    r_alt = requests.get(extracted_product_url.replace('PRODUCTS_URL/dispatch-data', server),
+                                         params={'scw_list': alt_scw_list},
+                                         allow_redirects=False)
+                    assert r_alt.status_code == 302
+                    redirect_url = parse.urlparse(r_alt.headers['Location'])
+                    assert 'error_message' in parse_qs(redirect_url.query)
+                    assert 'status_code' in parse_qs(redirect_url.query)
+                    extracted_error_message = parse_qs(redirect_url.query)['error_message'][0]
+                    assert extracted_error_message == "found unexpected parameters: ['scw_list'], expected only and only these ['job_id', 'session_id', 'token']"
+
                     extracted_product_url = r.url
-                    print("resolved url:", extracted_product_url)
+                    print("resolved url: ", extracted_product_url)
 
                 # verify product url contains the use_scws parameter for the frontend
                 extracted_parsed = parse.urlparse(extracted_product_url)
@@ -1393,9 +1492,6 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
         "tem": 0
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-    # set the time the request was initiated
-    time_request = time.time()
-    
 
     params = dict(
             query_status="new",
@@ -1421,16 +1517,15 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
     assert jdata['exit_status']['email_status'] == 'email sent'
     params['use_scws'] = 'no'
     products_url = get_expected_products_url(params, 
-                                             token=encoded_token, 
-                                             session_id=dispatcher_job_state.session_id, 
-                                             job_id=dispatcher_job_state.job_id)
+                                             session_id=dispatcher_job_state.session_id,
+                                             job_id=dispatcher_job_state.job_id,
+                                             token=encoded_token)
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
     assert 'time_request' in jdata
     # set the time the request was initiated
     time_request = jdata['time_request']
     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
-    
 
     validate_email_content(
         dispatcher_local_mail_server.get_email_record(),
@@ -1444,10 +1539,6 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
         variation_suffixes=["numeric-not-very-long"] if not unbreakable else [],
         require_reference_email=True
     )
-    
-    # capture and verify sentry alert
-
-
 
 
 def test_email_compress_request_url():    

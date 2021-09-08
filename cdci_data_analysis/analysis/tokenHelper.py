@@ -59,10 +59,17 @@ def get_token_user_fail_email(decoded_token):
     return decoded_token.get('msfail', True) # TODO: make server configurable
 
 
-def get_decoded_token(token, secret_key):
+def get_decoded_token(token, secret_key, validate_token=True):
     # decode the encoded token
     if token is not None:
-        return jwt.decode(token, secret_key, algorithms=[default_algorithm])
+        if validate_token:
+            return jwt.decode(token, secret_key, algorithms=[default_algorithm])
+        else:
+            return jwt.decode(token, "",
+                              algorithms=[default_algorithm],
+                              options=dict(
+                                verify_signature=False
+                            ))
 
 
 def update_token_email_options(token, secret_key, new_options):
