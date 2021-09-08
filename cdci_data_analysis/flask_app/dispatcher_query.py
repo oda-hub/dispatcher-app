@@ -545,25 +545,20 @@ class InstrumentQueryBackEnd:
         # what if scw list from request overwrites that in self.par_dict?
         self.set_scws_related_params(request)
 
-        self.validate_job_id(request_parameters_from_scratch_dir=True, job_resolution=True)
+        self.validate_job_id(request_parameters_from_scratch_dir=True)
 
         return self.generate_products_url_from_par_dict(
             self.app.config['conf'].products_url,
             self.par_dic
             )
 
-    def validate_job_id(self, request_parameters_from_scratch_dir=False, job_resolution=False):
+    def validate_job_id(self, request_parameters_from_scratch_dir=False):
         """    
         makes sure self.job_id is compatible, for given user token, with:
         if request_parameters_from_scratch_dir:
             parameters found in directory matching job_id
         else: 
             parameters provided in this request
-
-        if job_resolution:
-            resolution of the complete url,
-             token is not passed, just the job_id,
-             used then to retrieve the correct par_dic from the scratch_dir
         """
         if self.job_id is not None:
             #request_par_dic = self.find_job_id_parameters(self.job_id)
@@ -591,7 +586,6 @@ class InstrumentQueryBackEnd:
                         debug_message += "; parameters are derived from recorded job state"
                     else:
                         debug_message += "; parameters are derived from this request"
-
 
                     restored_job_parameters = self.find_job_id_parameters(self.job_id)
 
