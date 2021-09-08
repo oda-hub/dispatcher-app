@@ -66,10 +66,6 @@ class InstrumentNotRecognized(BadRequest):
     pass
 
 
-class MissingRequestParameter(BadRequest):
-    pass
-
-
 class InvalidJobIDProvided(BadRequest):
     pass
 
