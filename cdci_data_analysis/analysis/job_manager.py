@@ -186,8 +186,11 @@ class Job(object):
         if status_dictionary_value is None:
             pass
         else:
-            self.monitor['status'] = status_dictionary_value
-
+            if status_dictionary_value in self._allowed_job_status_values_:                
+                self.monitor['status'] = status_dictionary_value
+            else:
+                self.monitor['status'] = "progress" # any unknown message is progress
+                
         if email_status is not None:
             self.monitor['email_status'] = email_status
 
@@ -303,6 +306,10 @@ class OsaJob(Job):
                 with open(job_file, 'r') as infile:
                     self.monitor = json.load(infile, encoding='utf-8')
                     #print ('--->for file',job_file,'got',self.monitor['status'])
+
+                    if self.monitor['status'] not in self._allowed_job_status_values_:
+                        raise Exception("not allowed status in file")
+                        #self.monitor['status']
 
                     if self.monitor['status'] == 'done':
                         job_done = True
