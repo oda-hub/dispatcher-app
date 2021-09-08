@@ -471,7 +471,10 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
-    products_url = get_expected_products_url({** dict_param, 'use_scws':'no'}, session_id=session_id, job_id=job_id)
+    products_url = get_expected_products_url({** dict_param, 'use_scws':'no'},
+                                             token=encoded_token,
+                                             session_id=session_id,
+                                             job_id=job_id)
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
     assert 'time_request' in jdata
@@ -1147,7 +1150,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture,
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
-    short_url = get_expected_products_url(dict_param, session_id=session_id, job_id=job_id)
+    short_url = get_expected_products_url(dict_param, session_id=session_id, job_id=job_id, token=encoded_token)
 
     if short_url != "":
         assert short_url in email_data
@@ -1379,7 +1382,8 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
         products_url = get_expected_products_url(params,
                                                  session_id=dispatcher_job_state.session_id,
-                                                 job_id=dispatcher_job_state.job_id)
+                                                 job_id=dispatcher_job_state.job_id,
+                                                 token=encoded_token)
 
         print("excpected products url:", products_url)
 
@@ -1405,12 +1409,18 @@ def test_email_scws_list(dispatcher_long_living_fixture,
                     # parameters could be overwritten in resolve; this never happens intentionally and is not dangerous
                     # but prevented for clarity
                     alt_scw_list = ['066400220010.001', '066400230010.001']
-                    r_alt = requests.get(extracted_product_url.replace('PRODUCTS_URL/dispatch-data', server), params={'scw_list': alt_scw_list})
-                    assert r_alt.status_code == 400
-                    assert r_alt.json()['error_message'] == "found unexpected parameters: ['scw_list'], expected only and only these ['job_id', 'session_id', 'token']"
-                    
+                    r_alt = requests.get(extracted_product_url.replace('PRODUCTS_URL/dispatch-data', server),
+                                         params={'scw_list': alt_scw_list},
+                                         allow_redirects=False)
+                    assert r_alt.status_code == 302
+                    redirect_url = parse.urlparse(r_alt.headers['Location'])
+                    assert 'error_message' in parse_qs(redirect_url.query)
+                    assert 'status_code' in parse_qs(redirect_url.query)
+                    extracted_error_message = parse_qs(redirect_url.query)['error_message'][0]
+                    assert extracted_error_message == "found unexpected parameters: ['scw_list'], expected only and only these ['job_id', 'session_id', 'token']"
+
                     extracted_product_url = r.url
-                    print("resolved url:", extracted_product_url)
+                    print("resolved url: ", extracted_product_url)
 
                 # verify product url contains the use_scws parameter for the frontend
                 extracted_parsed = parse.urlparse(extracted_product_url)
@@ -1482,9 +1492,6 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
         "tem": 0
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-    # set the time the request was initiated
-    time_request = time.time()
-    
 
     params = dict(
             query_status="new",
@@ -1511,14 +1518,14 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
     params['use_scws'] = 'no'
     products_url = get_expected_products_url(params, 
                                              session_id=dispatcher_job_state.session_id,
-                                             job_id=dispatcher_job_state.job_id)
+                                             job_id=dispatcher_job_state.job_id,
+                                             token=encoded_token)
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
     assert 'time_request' in jdata
     # set the time the request was initiated
     time_request = jdata['time_request']
     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
-    
 
     validate_email_content(
         dispatcher_local_mail_server.get_email_record(),
@@ -1532,10 +1539,6 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
         variation_suffixes=["numeric-not-very-long"] if not unbreakable else [],
         require_reference_email=True
     )
-    
-    # capture and verify sentry alert
-
-
 
 
 def test_email_compress_request_url():    
