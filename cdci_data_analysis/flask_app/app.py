@@ -297,6 +297,8 @@ def resolve_job_url():
 
         return redirect(location, 302)
     except APIerror as e:
+        logging.getLogger().error("exception in run_analysis: %s %s",
+                                  e.message, traceback.format_exc())
         message_dict = {
             "error_message": e.message,
             "status_code": e.status_code
@@ -304,7 +306,13 @@ def resolve_job_url():
         location = '%s?%s' % (app.config['conf'].products_url, urlencode(message_dict))
         return redirect(location, 302)
     except Exception as e:
-        return redirect(app.config['conf'].products_url, 302)
+        logging.getLogger().error("exception in run_analysis: %s %s",
+                                  repr(e), traceback.format_exc())
+        message_dict = {
+            "error_message": repr(e)
+        }
+        location = '%s?%s' % (app.config['conf'].products_url, urlencode(message_dict))
+        return redirect(location, 302)
 
 
 @app.route('/call_back', methods=['POST', 'GET'])
