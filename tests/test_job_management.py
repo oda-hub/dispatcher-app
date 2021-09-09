@@ -412,18 +412,18 @@ def test_validation_job_id(dispatcher_live_fixture):
 
 @pytest.mark.parametrize("default_values", [True, False])
 @pytest.mark.parametrize("time_original_request_none", [False])
-#why is it None sometimes, and should we really send an email in this case?..
-#@pytest.mark.parametrize("time_original_request_none", [True, False])
+# why is it None sometimes, and should we really send an email in this case?..
+# @pytest.mark.parametrize("time_original_request_none", [True, False])
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'private-no-email'])
 def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_local_mail_server, default_values, request_cred, time_original_request_none):
     from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
     DataServerQuery.set_status('submitted')
 
     server = dispatcher_long_living_fixture
-    
+
     DispatcherJobState.remove_scratch_folders()
-    
-    token_none = ( request_cred == 'public' )
+
+    token_none = (request_cred == 'public')
 
     expect_email = True
 
@@ -515,6 +515,20 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                              token=encoded_token,
                              time_original_request=time_request
                          ))
+        assert dispatcher_job_state.load_job_state_record(f'node_{i}', "progressing")['full_report_dict']['action'] == 'progress'
+
+        c = requests.get(server + "/run_analysis",
+                    params=dict(
+                        query_status="submitted",  # whether query is new or not, this should work
+                        query_type="Real",
+                        instrument="empty-async",
+                        product_type="dummy",
+                        async_dispatcher=False,
+                        session_id=dispatcher_job_state.session_id,
+                        job_id=dispatcher_job_state.job_id,
+                        token=encoded_token
+                    ))
+        assert c.json()['query_status'] == 'progress'
 
     # this dones nothing special
     c = requests.get(server + "/call_back",
@@ -543,6 +557,8 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                          token=encoded_token,
                          time_original_request=time_request
                      ))
+
+                     
     assert c.status_code == 200
 
     # TODO build a test that effectively test both paths

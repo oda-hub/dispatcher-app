@@ -301,8 +301,12 @@ class OsaJob(Job):
         for job_file in job_files_list:
             try:
                 with open(job_file, 'r') as infile:
-                    self.monitor = json.load(infile, encoding='utf-8')
-                    #print ('--->for file',job_file,'got',self.monitor['status'])
+                    try:
+                        self.monitor = json.load(infile, encoding='utf-8')
+                    except Exception as e:
+                        # happens in py3.9 at least
+                        infile.seek(0)
+                        self.monitor = json.load(infile)                    
 
                     if self.monitor['status'] == 'done':
                         job_done = True
