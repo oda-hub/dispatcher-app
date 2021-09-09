@@ -189,7 +189,11 @@ class Job(object):
             if status_dictionary_value in self._allowed_job_status_values_:                
                 self.monitor['status'] = status_dictionary_value
             else:
-                self.monitor['status'] = "progress" # any unknown message is progress
+                # any unknown message is progress; convention for all possible statuses is not settled
+                logger.debug("callback returns unexpected status %s, expected one of %s; treating as progress update",
+                             status_dictionary_value,
+                             self._allowed_job_status_values_)
+                self.monitor['status'] = "progress"
                 
         if email_status is not None:
             self.monitor['email_status'] = email_status
