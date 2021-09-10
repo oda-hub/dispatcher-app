@@ -468,6 +468,8 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     logger.info("response from run_analysis: %s", json.dumps(jdata, indent=4))
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
 
+    assert jdata['query_status'] == "submitted"
+
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
@@ -509,7 +511,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                              job_id=dispatcher_job_state.job_id,
                              session_id=dispatcher_job_state.session_id,
                              instrument_name="empty-async",
-                             action='progress',
+                             action='progress' if i > 2 else 'main_done',
                              node_id=f'node_{i}',
                              message='progressing',
                              token=encoded_token,
@@ -530,6 +532,45 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                     ))
         assert c.json()['query_status'] == 'progress'
 
+    # we should now find progress records
+    c = requests.get(server + "/run_analysis",
+                     {**dict_param, 
+                      "query_status": "submitted",
+                      "job_id": job_id,
+                      "session_id": session_id,
+                      }
+                     )           
+
+    assert c.status_code == 200
+    jdata = c.json()
+
+    assert len(jdata['job_monitor']['full_report_dict_list']) == 5 
+    assert [c['action'] for c in jdata['job_monitor']['full_report_dict_list']] == ['main_done', 'main_done', 'main_done', 'progress', 'progress']
+
+    c = requests.get(server + "/call_back",
+                    params=dict(
+                        job_id=dispatcher_job_state.job_id,
+                        session_id=dispatcher_job_state.session_id,
+                        instrument_name="empty-async",
+                        action='main_incorrect_status',
+                        node_id=f'node_{i+1}',
+                        message='progressing',
+                        token=encoded_token,
+                        time_original_request=time_request
+                    ))
+    assert c.status_code == 200
+
+    c = requests.get(server + "/run_analysis",
+                    {**dict_param, 
+                    "query_status": "submitted",
+                    "job_id": job_id,
+                    "session_id": session_id,
+                    }
+                    )  
+    assert c.status_code == 200
+    assert c.json()['query_status'] == 'progress'
+
+
     # this dones nothing special
     c = requests.get(server + "/call_back",
                      params=dict(
@@ -542,6 +583,9 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                          token=encoded_token,
                          time_original_request=time_request
                      ))
+    
+
+
 
     DataServerQuery.set_status('done')
 

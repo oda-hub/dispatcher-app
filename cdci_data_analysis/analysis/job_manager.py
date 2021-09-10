@@ -186,8 +186,15 @@ class Job(object):
         if status_dictionary_value is None:
             pass
         else:
-            self.monitor['status'] = status_dictionary_value
-
+            if status_dictionary_value in self._allowed_job_status_values_:                
+                self.monitor['status'] = status_dictionary_value
+            else:
+                # any unknown message is progress; convention for all possible statuses is not settled
+                logger.debug("callback returns unexpected status %s, expected one of %s; treating as progress update",
+                             status_dictionary_value,
+                             self._allowed_job_status_values_)
+                self.monitor['status'] = "progress"
+                
         if email_status is not None:
             self.monitor['email_status'] = email_status
 
@@ -307,6 +314,10 @@ class OsaJob(Job):
                         # happens in py3.9 at least
                         infile.seek(0)
                         self.monitor = json.load(infile)                    
+
+                    if self.monitor['status'] not in self._allowed_job_status_values_:
+                        raise Exception("not allowed status in file")
+                        #self.monitor['status']
 
                     if self.monitor['status'] == 'done':
                         job_done = True

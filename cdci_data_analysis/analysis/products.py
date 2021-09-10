@@ -131,11 +131,9 @@ class QueryOutput(object):
     def _set_job_status(self, job_status):
         if job_status is not None:
             if job_status in self._allowed_job_status_values_:
-
                 self.status_dictionary['job_status'] = job_status
             else:
-                raise RuntimeError('job_status', job_status, ' in QueryOutput is not allowed',
-                                   self._allowed_job_status_values_)
+                raise RuntimeError(f'job_status {job_status} in QueryOutput is not allowed, allowed {self._allowed_job_status_values_}')
 
     def set_status(self, status, message='', error_message='', debug_message='', job_status=None,comment='',warning=''):
 
