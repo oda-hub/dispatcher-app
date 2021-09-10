@@ -167,10 +167,10 @@ class Instrument:
                 content_temp_dir = os.listdir(temp_dir)
             error_message = 'Error while uploading catalog file from the frontend'
             if content_temp_dir is not None:
-                error_message += f', content of the temporary directory is {content_temp_dir}\n,'
+                error_message += f', content of the temporary directory is {content_temp_dir}'
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
-                                      message=f'{error_message} {e}')
+                                      message=f'{error_message}\n{e}')
             raise RequestNotUnderstood(error_message)
         try:
             self.set_catalog(par_dic)
@@ -179,10 +179,10 @@ class Instrument:
                 content_temp_dir = os.listdir(temp_dir)
             error_message = 'Error while setting catalog file from the frontend'
             if content_temp_dir is not None:
-                error_message += f', content of the temporary directory is {content_temp_dir}\n,'
+                error_message += f', content of the temporary directory is {content_temp_dir}'
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
-                                      message=f'{error_message} {e}')
+                                      message=f'{error_message}\n{e}')
             raise RequestNotUnderstood(error_message)
         try:
             input_file_path = self.upload_input_products_from_fronted(name='user_scw_list_file',
@@ -193,10 +193,10 @@ class Instrument:
                 content_temp_dir = os.listdir(temp_dir)
             error_message = 'Error while uploading scw_list file from the frontend'
             if content_temp_dir is not None:
-                error_message += f', content of the temporary directory is {content_temp_dir}\n,'
+                error_message += f', content of the temporary directory is {content_temp_dir}'
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
-                                      message=f'{error_message} {e}')
+                                      message=f'{error_message}\n{e}')
             raise RequestNotUnderstood(error_message)
 
         if input_file_path is None and use_scws == 'user_file':
@@ -205,14 +205,14 @@ class Instrument:
             error_message = ('scw_list file was expected to be passed, but it has not been found, '
                              'please check the inputs')
             if content_temp_dir is not None:
-                error_message += f', content of the temporary directory is {content_temp_dir}\n,'
+                error_message += f', content of the temporary directory is {content_temp_dir}'
             raise RequestNotUnderstood(error_message)
         elif input_file_path is not None and use_scws != 'user_file':
             error_message = ("scw_list file was found "
                              "despite use_scws was indicating this was not provided,"
                              " please check the inputs")
             if content_temp_dir is not None:
-                error_message += f', content of the temporary directory is {content_temp_dir}\n,'
+                error_message += f', content of the temporary directory is {content_temp_dir}'
             raise RequestNotUnderstood(error_message)
         try:
             self.set_input_products_from_fronted(input_file_path=input_file_path, par_dic=par_dic, verbose=verbose)
@@ -221,10 +221,10 @@ class Instrument:
                 content_temp_dir = os.listdir(temp_dir)
             error_message = 'Error while setting input scw_list file from the frontend'
             if content_temp_dir is not None:
-                error_message += f', content of the temporary directory is {content_temp_dir}\n,'
+                error_message += f', content of the temporary directory is {content_temp_dir}'
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
-                                      message=f'{error_message} {e}')
+                                      message=f'{error_message}\n{e}')
             raise RequestNotUnderstood(error_message)
         self.set_pars_from_dic(par_dic, verbose=verbose)
 

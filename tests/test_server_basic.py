@@ -730,7 +730,8 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
     logger.info(json.dumps(jdata, indent=4))
 
 
-def test_scws_list_file(dispatcher_live_fixture):
+@pytest.mark.parametrize("filename_object_name", ["user_scw_list_file", "user_scw_list_file_worng"])
+def test_scws_list_file(dispatcher_live_fixture, filename_object_name):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
@@ -751,33 +752,49 @@ def test_scws_list_file(dispatcher_live_fixture):
         'token': encoded_token
     }
 
+    if filename_object_name == "user_scw_list_file":
+        expected_query_status = 'done'
+        expected_job_status = 'done'
+        expected_status_code = 200
+    else:
+        expected_query_status = None
+        expected_job_status = None
+        expected_status_code = 400
+
     file_path = DispatcherJobState.create_p_value_file(p_value=5)
 
     list_file = open(file_path)
 
     jdata = ask(server,
                 params,
-                expected_query_status=["done"],
+                expected_query_status=expected_query_status,
+                expected_job_status=expected_job_status,
+                expected_status_code=expected_status_code,
                 max_time_s=150,
                 method='post',
-                files={"user_scw_list_file_wrong": list_file.read()}
+                files={filename_object_name: list_file.read()}
                 )
 
     list_file.close()
-    assert 'p_list' in jdata['products']['analysis_parameters']
-    assert 'use_scws' not in jdata['products']['analysis_parameters']
-    assert jdata['products']['analysis_parameters']['p_list'] == ['5']
-    # test job_id
-    job_id = jdata['products']['job_id']
-    params.pop('use_scws', None)
-    # adapting some values to string
-    for k, v in params.items():
-        params[k] = str(v)
+    if filename_object_name == "user_scw_list_file":
+        assert 'p_list' in jdata['products']['analysis_parameters']
+        assert 'use_scws' not in jdata['products']['analysis_parameters']
+        assert jdata['products']['analysis_parameters']['p_list'] == ['5']
+        # test job_id
+        job_id = jdata['products']['job_id']
+        params.pop('use_scws', None)
+        # adapting some values to string
+        for k, v in params.items():
+            params[k] = str(v)
 
-    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "p_list": ["5"], "sub": "mtm@mtmco.net"})
-    calculated_job_id = make_hash(restricted_par_dic)
+        restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "p_list": ["5"], "sub": "mtm@mtmco.net"})
+        calculated_job_id = make_hash(restricted_par_dic)
 
-    assert job_id == calculated_job_id
+        assert job_id == calculated_job_id
+    else:
+        assert jdata['error_message'] == ('scw_list file was expected to be passed, '
+                                          'but it has not been found, please check the inputs, '
+                                          'content of the temporary directory is []')
 
 
 def test_catalog_file(dispatcher_live_fixture):
