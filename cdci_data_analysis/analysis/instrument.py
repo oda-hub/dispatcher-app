@@ -209,7 +209,7 @@ class Instrument:
                 error_message += f', content of the temporary directory is {content_temp_dir}\n,'
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
-                                           message=f'E{error_message} {e}')
+                                           message=f'{error_message} {e}')
             raise RequestNotUnderstood(error_message)
         self.set_pars_from_dic(par_dic, verbose=verbose)
 
