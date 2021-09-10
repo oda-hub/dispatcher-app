@@ -746,11 +746,12 @@ def test_scws_list_file(dispatcher_live_fixture, filename_object_name):
         def run(self):
             while True:
                 if self.stop:
-                    break;
-                files = glob.glob(self.folder_path + '/*')
-                # clean folder content
-                for f in files:
-                    os.remove(f)
+                    break
+                if os.path.exists(self.folder_path):
+                    files = glob.glob(self.folder_path + '/*')
+                    # clean folder content
+                    for f in files:
+                        os.remove(f)
 
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
