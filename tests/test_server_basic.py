@@ -732,8 +732,8 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
     logger.info(json.dumps(jdata, indent=4))
 
 
-@pytest.mark.parametrize("filename_object_name", ["user_scw_list_file", "user_scw_list_file_worng"])
-def test_scws_list_file(dispatcher_live_fixture, filename_object_name):
+@pytest.mark.parametrize("clean_temp_folder_content", [True, False])
+def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
 
     # Simple thread that just cleans the content of the folder
     class FolderCleanerThread(Thread):
@@ -778,7 +778,7 @@ def test_scws_list_file(dispatcher_live_fixture, filename_object_name):
     list_file = open(file_path)
     t = None
 
-    if filename_object_name == "user_scw_list_file":
+    if not clean_temp_folder_content:
         expected_query_status = 'done'
         expected_job_status = 'done'
         expected_status_code = 200
@@ -802,7 +802,7 @@ def test_scws_list_file(dispatcher_live_fixture, filename_object_name):
                 )
 
     list_file.close()
-    if filename_object_name == "user_scw_list_file":
+    if not clean_temp_folder_content:
         assert 'p_list' in jdata['products']['analysis_parameters']
         assert 'use_scws' not in jdata['products']['analysis_parameters']
         assert jdata['products']['analysis_parameters']['p_list'] == ['5']
