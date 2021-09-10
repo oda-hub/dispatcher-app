@@ -196,13 +196,18 @@ class Instrument:
             raise RequestNotUnderstood(error_message)
 
         if input_file_path is None and use_scws == 'user_file':
-            raise RequestNotUnderstood(
-                "scw_list file was expected to be passed, but it has not been found, "
-                "please check the inputs")
+            error_message = ('scw_list file was expected to be passed, but it has not been found, '
+                             'please check the inputs')
+            if content_temp_dir is not None:
+                error_message += f', content of the temporary directory is {content_temp_dir}\n,'
+            raise RequestNotUnderstood(error_message)
         elif input_file_path is not None and use_scws != 'user_file':
-            raise RequestNotUnderstood("scw_list file was found "
-                                       "despite use_scws was indicating this was not provided,"
-                                       " please check the inputs")
+            error_message = ("scw_list file was found "
+                             "despite use_scws was indicating this was not provided,"
+                             " please check the inputs")
+            if content_temp_dir is not None:
+                error_message += f', content of the temporary directory is {content_temp_dir}\n,'
+            raise RequestNotUnderstood(error_message)
         try:
             self.set_input_products_from_fronted(input_file_path=input_file_path, par_dic=par_dic, verbose=verbose)
         except Exception as e:

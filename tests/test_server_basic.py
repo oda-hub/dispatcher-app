@@ -760,7 +760,7 @@ def test_scws_list_file(dispatcher_live_fixture):
                 expected_query_status=["done"],
                 max_time_s=150,
                 method='post',
-                files={"user_scw_list_file": list_file.read()}
+                files={"user_scw_list_file_wrong": list_file.read()}
                 )
 
     list_file.close()
