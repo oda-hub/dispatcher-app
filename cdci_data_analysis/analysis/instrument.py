@@ -158,13 +158,13 @@ class Instrument:
                              sentry_client=None):
         # if any, for exceptions additional imformation
         content_temp_dir = None
-        if temp_dir is not None and os.path.exists(temp_dir):
-            content_temp_dir = os.listdir(temp_dir)
         # TODO probably exception handling can be further improved and/or optmized
         # set catalog
         try:
             self.upload_catalog_from_fronted(par_dic=par_dic, request=request, temp_dir=temp_dir)
         except Exception as e:
+            if temp_dir is not None and os.path.exists(temp_dir):
+                content_temp_dir = os.listdir(temp_dir)
             error_message = 'Error while uploading catalog file from the frontend'
             if content_temp_dir is not None:
                 error_message += f', content of the temporary directory is {content_temp_dir}\n,'
@@ -175,6 +175,8 @@ class Instrument:
         try:
             self.set_catalog(par_dic)
         except Exception as e:
+            if temp_dir is not None and os.path.exists(temp_dir):
+                content_temp_dir = os.listdir(temp_dir)
             error_message = 'Error while setting catalog file from the frontend'
             if content_temp_dir is not None:
                 error_message += f', content of the temporary directory is {content_temp_dir}\n,'
@@ -187,6 +189,8 @@ class Instrument:
                                                                       request=request,
                                                                       temp_dir=temp_dir)
         except Exception as e:
+            if temp_dir is not None and os.path.exists(temp_dir):
+                content_temp_dir = os.listdir(temp_dir)
             error_message = 'Error while uploading scw_list file from the frontend'
             if content_temp_dir is not None:
                 error_message += f', content of the temporary directory is {content_temp_dir}\n,'
@@ -196,6 +200,8 @@ class Instrument:
             raise RequestNotUnderstood(error_message)
 
         if input_file_path is None and use_scws == 'user_file':
+            if temp_dir is not None and os.path.exists(temp_dir):
+                content_temp_dir = os.listdir(temp_dir)
             error_message = ('scw_list file was expected to be passed, but it has not been found, '
                              'please check the inputs')
             if content_temp_dir is not None:
@@ -211,6 +217,8 @@ class Instrument:
         try:
             self.set_input_products_from_fronted(input_file_path=input_file_path, par_dic=par_dic, verbose=verbose)
         except Exception as e:
+            if temp_dir is not None and os.path.exists(temp_dir):
+                content_temp_dir = os.listdir(temp_dir)
             error_message = 'Error while setting input scw_list file from the frontend'
             if content_temp_dir is not None:
                 error_message += f', content of the temporary directory is {content_temp_dir}\n,'
