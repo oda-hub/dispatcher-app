@@ -1,3 +1,5 @@
+from threading import Thread
+
 import requests
 import time
 import json
@@ -732,6 +734,24 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
 
 @pytest.mark.parametrize("filename_object_name", ["user_scw_list_file", "user_scw_list_file_worng"])
 def test_scws_list_file(dispatcher_live_fixture, filename_object_name):
+
+    # Simple thread that just cleans the content of the folder
+    class FolderCleanerThread(Thread):
+
+        def __init__(self, folder_path):
+            Thread.__init__(self)
+            self.folder_path = folder_path
+            self.stop = False
+
+        def run(self):
+            while True:
+                if self.stop:
+                    break;
+                files = glob.glob(self.folder_path + '/*')
+                # clean folder content
+                for f in files:
+                    os.remove(f)
+
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
@@ -752,6 +772,11 @@ def test_scws_list_file(dispatcher_live_fixture, filename_object_name):
         'token': encoded_token
     }
 
+    file_path = DispatcherJobState.create_p_value_file(p_value=5)
+
+    list_file = open(file_path)
+    t = None
+
     if filename_object_name == "user_scw_list_file":
         expected_query_status = 'done'
         expected_job_status = 'done'
@@ -760,10 +785,10 @@ def test_scws_list_file(dispatcher_live_fixture, filename_object_name):
         expected_query_status = None
         expected_job_status = None
         expected_status_code = 400
-
-    file_path = DispatcherJobState.create_p_value_file(p_value=5)
-
-    list_file = open(file_path)
+        params['session_id'] = DispatcherJobState.generate_session_id()
+        temp_folder_path = DispatcherJobState.create_temp_folder(session_id=params['session_id'])
+        t = FolderCleanerThread(temp_folder_path)
+        t.start()
 
     jdata = ask(server,
                 params,
@@ -772,7 +797,7 @@ def test_scws_list_file(dispatcher_live_fixture, filename_object_name):
                 expected_status_code=expected_status_code,
                 max_time_s=150,
                 method='post',
-                files={filename_object_name: list_file.read()}
+                files={'user_scw_list_file': list_file.read()}
                 )
 
     list_file.close()
@@ -792,9 +817,11 @@ def test_scws_list_file(dispatcher_live_fixture, filename_object_name):
 
         assert job_id == calculated_job_id
     else:
-        assert jdata['error_message'] == ('scw_list file was expected to be passed, '
-                                          'but it has not been found, please check the inputs, '
+        assert jdata['error_message'] == ('Error while setting input scw_list file from the frontend, '
                                           'content of the temporary directory is []')
+        if t is not None:
+            t.stop = True
+            t.join()
 
 
 def test_catalog_file(dispatcher_live_fixture):
