@@ -170,7 +170,7 @@ class Instrument:
                 error_message += f', content of the temporary directory is {content_temp_dir}\n,'
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
-                                           message=f'{error_message} {e}')
+                                      message=f'{error_message} {e}')
             raise RequestNotUnderstood(error_message)
         try:
             self.set_catalog(par_dic)
@@ -180,17 +180,19 @@ class Instrument:
                 error_message += f', content of the temporary directory is {content_temp_dir}\n,'
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
-                                           message=f'{error_message} {e}')
+                                      message=f'{error_message} {e}')
             raise RequestNotUnderstood(error_message)
         try:
-            input_file_path = self.upload_input_products_from_fronted(request=request, temp_dir=temp_dir)
+            input_file_path = self.upload_input_products_from_fronted(name='user_scw_list_file',
+                                                                      request=request,
+                                                                      temp_dir=temp_dir)
         except Exception as e:
             error_message = 'Error while uploading scw_list file from the frontend'
             if content_temp_dir is not None:
                 error_message += f', content of the temporary directory is {content_temp_dir}\n,'
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
-                                           message=f'{error_message} {e}')
+                                      message=f'{error_message} {e}')
             raise RequestNotUnderstood(error_message)
 
         if input_file_path is None and use_scws == 'user_file':
@@ -209,7 +211,7 @@ class Instrument:
                 error_message += f', content of the temporary directory is {content_temp_dir}\n,'
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
-                                           message=f'{error_message} {e}')
+                                      message=f'{error_message} {e}')
             raise RequestNotUnderstood(error_message)
         self.set_pars_from_dic(par_dic, verbose=verbose)
 
@@ -452,11 +454,11 @@ class Instrument:
         #print('---------------------------------------------')
         return q
 
-    def upload_input_products_from_fronted(self, request, temp_dir):
+    def upload_input_products_from_fronted(self, name, request, temp_dir):
         input_file_path = None
         if request.method == 'POST':
             # save to a temporary folder, and delete it afterwards
-            input_file_path = upload_file('user_scw_list_file', temp_dir)
+            input_file_path = upload_file(name, temp_dir)
         return input_file_path
 
     def set_input_products_from_fronted(self, input_file_path, par_dic, verbose=False):
