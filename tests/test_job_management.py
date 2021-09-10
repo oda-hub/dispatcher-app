@@ -506,18 +506,19 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
         
     for i in range(5):
         # imitating what a backend would do
+        current_action = 'progress' if i > 2 else 'main_done'
         c = requests.get(server + "/call_back",
                          params=dict(
                              job_id=dispatcher_job_state.job_id,
                              session_id=dispatcher_job_state.session_id,
                              instrument_name="empty-async",
-                             action='progress' if i > 2 else 'main_done',
+                             action=current_action,
                              node_id=f'node_{i}',
                              message='progressing',
                              token=encoded_token,
                              time_original_request=time_request
                          ))
-        assert dispatcher_job_state.load_job_state_record(f'node_{i}', "progressing")['full_report_dict']['action'] == 'progress'
+        assert dispatcher_job_state.load_job_state_record(f'node_{i}', "progressing")['full_report_dict']['action'] == current_action
 
         c = requests.get(server + "/run_analysis",
                     params=dict(
@@ -530,7 +531,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                         job_id=dispatcher_job_state.job_id,
                         token=encoded_token
                     ))
-        assert c.json()['query_status'] == 'progress'
+        assert c.json()['query_status'] == 'progress' # always progress!
 
     # we should now find progress records
     c = requests.get(server + "/run_analysis",
@@ -544,8 +545,9 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     assert c.status_code == 200
     jdata = c.json()
 
-    assert len(jdata['job_monitor']['full_report_dict_list']) == 5 
-    assert [c['action'] for c in jdata['job_monitor']['full_report_dict_list']] == ['main_done', 'main_done', 'main_done', 'progress', 'progress']
+    assert len(jdata['job_monitor']['full_report_dict_list']) == 6
+    assert [c['action'] for c in jdata['job_monitor']['full_report_dict_list']] == [
+        'main_done', 'main_done', 'main_done', 'progress', 'progress', 'progress']
 
     c = requests.get(server + "/call_back",
                     params=dict(
