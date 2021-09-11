@@ -1,5 +1,3 @@
-from threading import Thread
-
 import requests
 import time
 import json
@@ -734,24 +732,7 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
 
 @pytest.mark.parametrize("clean_temp_folder_content", [True, False])
 def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
-
-    # Simple thread that just cleans the content of the folder
-    class FolderCleanerThread(Thread):
-
-        def __init__(self, folder_path):
-            Thread.__init__(self)
-            self.folder_path = folder_path
-            self.stop = False
-
-        def run(self):
-            while True:
-                if self.stop:
-                    break
-                if os.path.exists(self.folder_path):
-                    files = glob.glob(self.folder_path + '/*')
-                    # clean folder content
-                    for f in files:
-                        os.remove(f)
+    from stat import S_IREAD
 
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -788,8 +769,9 @@ def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
         expected_status_code = 400
         params['session_id'] = DispatcherJobState.generate_session_id()
         temp_folder_path = DispatcherJobState.create_temp_folder(session_id=params['session_id'])
-        t = FolderCleanerThread(temp_folder_path)
-        t.start()
+        with open(temp_folder_path + '/user_scw_list_file', 'w') as f:
+            f.write("stuff")
+            os.chmod(temp_folder_path + '/user_scw_list_file', S_IREAD)
 
     jdata = ask(server,
                 params,
@@ -818,11 +800,8 @@ def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
 
         assert job_id == calculated_job_id
     else:
-        assert jdata['error_message'] == ('Error while setting input scw_list file from the frontend, '
-                                          'content of the temporary directory is []')
-        if t is not None:
-            t.stop = True
-            t.join()
+        assert jdata['error_message'] == ('Error while uploading scw_list file from the frontend, '
+                                          'content of the temporary directory is [\'user_scw_list_file\']')
 
 
 def test_catalog_file(dispatcher_live_fixture):
