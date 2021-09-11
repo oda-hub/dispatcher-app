@@ -802,7 +802,6 @@ def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
     else:
         assert jdata['error_message'] == ('Error while uploading scw_list file from the frontend, '
                                           'content of the temporary directory is [\'user_scw_list_file\']')
-        os.chmod(temp_folder_path + '/user_scw_list_file', S_IWUSR | S_IREAD)  # This makes the file read/write for the owner
 
 
 def test_catalog_file(dispatcher_live_fixture):
