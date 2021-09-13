@@ -157,39 +157,25 @@ class Instrument:
                              use_scws,
                              sentry_client=None):
         error_message = 'Error while {step} from the frontend{temp_dir_content_msg}'
-        temp_dir_content_error_message = ', content of the temporary directory is {content}'
         # TODO probably exception handling can be further improved and/or optmized
-        # set catalog
         try:
+            # set catalog
+            step = 'uploading catalog file'
             self.upload_catalog_from_fronted(par_dic=par_dic, request=request, temp_dir=temp_dir)
-        except Exception as e:
-            error_message.format(step='uploading catalog file',
-                                 temp_dir_content_msg='' if not os.path.exists(temp_dir) else
-                                 temp_dir_content_error_message.format(content=os.listdir(temp_dir)))
-
-            if sentry_client is not None:
-                sentry_client.capture('raven.events.Message',
-                                      message=f'{error_message}\n{e}')
-            raise RequestNotUnderstood(error_message)
-        try:
+            step = 'setting catalog file'
             self.set_catalog(par_dic)
-        except Exception as e:
-            error_message.format(step='setting catalog file',
-                                 temp_dir_content_msg='' if not os.path.exists(temp_dir) else
-                                 temp_dir_content_error_message.format(content=os.listdir(temp_dir)))
 
-            if sentry_client is not None:
-                sentry_client.capture('raven.events.Message',
-                                      message=f'{error_message}\n{e}')
-            raise RequestNotUnderstood(error_message)
-        try:
+            # set scw_list
+            step = 'uploading scw_list file'
             input_file_path = self.upload_input_products_from_fronted(name='user_scw_list_file',
                                                                       request=request,
                                                                       temp_dir=temp_dir)
+            step = 'setting input scw_list file'
+            self.set_input_products_from_fronted(input_file_path=input_file_path, par_dic=par_dic, verbose=verbose)
         except Exception as e:
-            error_message.format(step='uploading scw_list file',
-                                 temp_dir_content_msg='' if not os.path.exists(temp_dir) else
-                                 temp_dir_content_error_message.format(content=os.listdir(temp_dir)))
+            error_message = error_message.format(step=step,
+                                                 temp_dir_content_msg='' if not os.path.exists(temp_dir) else
+                                                 f', content of the temporary directory is {os.listdir(temp_dir)}')
 
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
@@ -205,17 +191,6 @@ class Instrument:
             error_message = 'scw_list file was found despite ' \
                             'use_scws was indicating this was not provided, please check the inputs'
 
-            raise RequestNotUnderstood(error_message)
-        try:
-            self.set_input_products_from_fronted(input_file_path=input_file_path, par_dic=par_dic, verbose=verbose)
-        except Exception as e:
-            error_message.format(step='setting input scw_list file',
-                                 temp_dir_content_msg='' if not os.path.exists(temp_dir) else
-                                 temp_dir_content_error_message.format(content=os.listdir(temp_dir)))
-
-            if sentry_client is not None:
-                sentry_client.capture('raven.events.Message',
-                                      message=f'{error_message}\n{e}')
             raise RequestNotUnderstood(error_message)
         self.set_pars_from_dic(par_dic, verbose=verbose)
 
