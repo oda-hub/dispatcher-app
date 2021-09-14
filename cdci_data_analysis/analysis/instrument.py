@@ -20,6 +20,7 @@ Module API
 
 from __future__ import absolute_import, division, print_function
 
+import os
 from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
 
@@ -155,45 +156,42 @@ class Instrument:
                              verbose,
                              use_scws,
                              sentry_client=None):
+        error_message = 'Error while {step} from the frontend{temp_dir_content_msg}'
         # TODO probably exception handling can be further improved and/or optmized
-        # set catalog
         try:
+            # set catalog
+            step = 'uploading catalog file'
             self.upload_catalog_from_fronted(par_dic=par_dic, request=request, temp_dir=temp_dir)
-        except Exception as e:
-            if sentry_client is not None:
-                sentry_client.capture('raven.events.Message',
-                                           message=f'Error while uploading catalog file from the frontend {e}')
-            raise RequestNotUnderstood("Error while uploading catalog file from the frontend")
-        try:
+            step = 'setting catalog file'
             self.set_catalog(par_dic)
-        except Exception as e:
-            if sentry_client is not None:
-                sentry_client.capture('raven.events.Message',
-                                           message=f'Error while setting catalog file from the frontend {e}')
-            raise RequestNotUnderstood("Error while setting catalog file from the frontend")
-        try:
-            input_file_path = self.upload_input_products_from_fronted(request=request, temp_dir=temp_dir)
-        except Exception as e:
-            if sentry_client is not None:
-                sentry_client.capture('raven.events.Message',
-                                           message=f'Error while uploading scw_list file from the frontend {e}')
-            raise RequestNotUnderstood("Error while uploading scw_list file from the frontend")
 
-        if input_file_path is None and use_scws == 'user_file':
-            raise RequestNotUnderstood(
-                "scw_list file was expected to be passed, but it has not been found, "
-                "please check the inputs")
-        elif input_file_path is not None and use_scws != 'user_file':
-            raise RequestNotUnderstood("scw_list file was found "
-                                       "despite use_scws was indicating this was not provided,"
-                                       " please check the inputs")
-        try:
+            # set scw_list
+            step = 'uploading scw_list file'
+            input_file_path = self.upload_input_products_from_fronted(name='user_scw_list_file',
+                                                                      request=request,
+                                                                      temp_dir=temp_dir)
+            step = 'setting input scw_list file'
             self.set_input_products_from_fronted(input_file_path=input_file_path, par_dic=par_dic, verbose=verbose)
         except Exception as e:
+            error_message = error_message.format(step=step,
+                                                 temp_dir_content_msg='' if not os.path.exists(temp_dir) else
+                                                 f', content of the temporary directory is {os.listdir(temp_dir)}')
+
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
-                                           message=f'Error while setting input scw_list file from the frontend {e}')
-            raise RequestNotUnderstood("Error while setting input scw_list from the frontend")
+                                      message=f'{error_message}\n{e}')
+            raise RequestNotUnderstood(error_message)
+
+        if input_file_path is None and use_scws == 'user_file':
+            error_message = 'scw_list file was expected to be passed, ' \
+                            'but it has not been found, please check the inputs'
+
+            raise RequestNotUnderstood(error_message)
+        elif input_file_path is not None and use_scws != 'user_file':
+            error_message = 'scw_list file was found despite ' \
+                            'use_scws was indicating this was not provided, please check the inputs'
+
+            raise RequestNotUnderstood(error_message)
         self.set_pars_from_dic(par_dic, verbose=verbose)
 
     def run_query(self, product_type,
@@ -435,11 +433,11 @@ class Instrument:
         #print('---------------------------------------------')
         return q
 
-    def upload_input_products_from_fronted(self, request, temp_dir):
+    def upload_input_products_from_fronted(self, name, request, temp_dir):
         input_file_path = None
         if request.method == 'POST':
             # save to a temporary folder, and delete it afterwards
-            input_file_path = upload_file('user_scw_list_file', temp_dir)
+            input_file_path = upload_file(name, temp_dir)
         return input_file_path
 
     def set_input_products_from_fronted(self, input_file_path, par_dic, verbose=False):

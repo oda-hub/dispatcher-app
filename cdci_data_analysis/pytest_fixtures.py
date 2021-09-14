@@ -4,6 +4,7 @@ import yaml
 
 import cdci_data_analysis.flask_app.app
 from cdci_data_analysis.analysis.exceptions import BadRequest
+from cdci_data_analysis.analysis.io_helper import FilePath
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.hash import make_hash
 
@@ -443,6 +444,7 @@ def start_dispatcher(rootdir, test_conf_fn):
         pid=p.pid
         )        
 
+
 @pytest.fixture
 def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
     dispatcher_state_fn = "/tmp/dispatcher-test-fixture-state-{}.json".format(
@@ -481,7 +483,7 @@ def empty_products_files_fixture(default_params_dict):
     # generate job_id
     job_id = make_hash(InstrumentQueryBackEnd.restricted_par_dic(default_params_dict))
     # generate random session_id
-    session_id = u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+    session_id = DispatcherJobState.generate_session_id()
     scratch_params = dict(
         job_id=job_id,
         session_id= session_id
@@ -501,6 +503,8 @@ def empty_products_files_fixture(default_params_dict):
         outfile.write(u'%s' % my_json_str)
 
     yield scratch_params
+
+
 
 
 @pytest.fixture
@@ -635,6 +639,24 @@ class DispatcherJobState:
     """
 
     @staticmethod
+    def generate_session_id():
+        return u''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+
+    @staticmethod
+    def create_temp_folder(session_id, job_id=None):
+        td = 'temp'
+
+        if session_id is not None:
+            td += '_sid_' + session_id
+
+        if job_id is not None:
+            td += '_jid_' + job_id
+
+        td = FilePath(file_dir=td)
+        td.mkdir()
+        return td.path
+
+    @staticmethod
     def remove_scratch_folders(job_id=None):
         if job_id is None:
             dir_list = glob.glob('scratch_*')
@@ -742,7 +764,6 @@ meta_ID src_names significance ra dec NEW_SOURCE ISGRI_FLAG FLAG ERR_RAD
     @property
     def scratch_dir(self):
         return glob.glob(f'scratch_sid_{self.session_id}_jid_{self.job_id}*')[0]
-    
 
     @property
     def job_monitor_json_fn(self):

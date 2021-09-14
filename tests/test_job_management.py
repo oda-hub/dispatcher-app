@@ -1398,8 +1398,8 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         'please check the inputs')
 
     error_message_scw_list_found_parameter = (
-        'scw_list parameter was found despite use_scws was indicating this was not provided, '
-        'please check the inputs')
+        "scw_list parameter was found despite use_scws was indicating this was not provided, "
+        "please check the inputs")
     error_message_scw_list_found_file = (
         'scw_list file was found despite use_scws was indicating this was not provided, '
         'please check the inputs')
