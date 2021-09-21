@@ -202,9 +202,9 @@ class Parameter(object):
         self._allowed_units = allowed_units
         self._allowed_values = allowed_values
         self.name = name
-        self.units=units
+        self.units = units
         self.value = value
-        self.units_name=units_name
+        self.units_name = units_name
         #self._wtform_dict=wtform_dict
 
 
@@ -240,23 +240,23 @@ class Parameter(object):
 
             self.chekc_units(units,self._allowed_units,self.name)
 
-        self._units=units
+        self._units = units
 
     def set_from_form(self, form, verbose=False):
         par_name = self.name
         units_name = self.units_name
         v = None
         u = None
-        in_dictionary=False
+        in_dictionary = False
 
         if units_name is not None:
             if units_name in form.keys():
-               u = form[units_name]
+                u = form[units_name]
 
         try:
             if par_name in form.keys():
                 v = form[par_name]
-                in_dictionary=True
+                in_dictionary = True
         except Exception as e:
             logger.error("problem e=%s setting par_name=%s, form=%s",
                          repr(e),
@@ -266,17 +266,17 @@ class Parameter(object):
             raise
 
         if in_dictionary is True:
-            self.set_par(value=v,units=u)
-
-            #print('setting par:', par_name, 'to val=', self.value, 'and units', units_name, 'to', self.units )
+            self.set_par(value=v, units=u)
         else:
+            # set the default value
+            self.set_par(value=self.value, units=self.units)
             if verbose is True:
-                print('setting par:', par_name, 'not in dictionary')
+                logger.debug('setting par: ', par_name, ' not in dictionary, setting to the default value')
 
-    def set_par(self,value,units=None):
+    def set_par(self, value, units=None):
         if units is not None:
-            self.units=units
-        self.value=value
+            self.units = units
+        self.value = value
 
     def get_form(self,wtform_cls,key,validators,defaults):
          return   wtform_cls('key', validators=validators, default=defaults)
