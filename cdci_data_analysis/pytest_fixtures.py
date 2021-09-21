@@ -374,6 +374,7 @@ def start_dispatcher(rootdir, test_conf_fn):
     print(("rootdir", str(rootdir)))
     env['PYTHONPATH'] = str(rootdir) + ":" + str(rootdir) + "/tests:" + \
                         str(rootdir) + '/bin:' + \
+                        __this_dir__ + ":" + os.path.join(__this_dir__, "../bin:") + \
                         env.get('PYTHONPATH', "")
     print(("pythonpath", env['PYTHONPATH']))
 
