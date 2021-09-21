@@ -189,7 +189,8 @@ class Parameter(object):
                  check_value=None,
                  allowed_values=None,
                  units_name=None):
-        self.check_value=check_value
+
+        self.check_value = check_value
 
         if allowed_units is None:
             allowed_units = []

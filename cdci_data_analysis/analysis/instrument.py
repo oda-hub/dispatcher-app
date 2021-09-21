@@ -114,8 +114,7 @@ class Instrument:
     def _check_names(self):
         pass
 
-
-    def set_pars_from_dic(self,par_dic,verbose=False):
+    def set_pars_from_dic(self, par_dic, verbose=False):
         for _query in self._queries_list:
             for par in _query._parameters_list:
                 par.set_from_form(par_dic,verbose=verbose)
@@ -150,12 +149,12 @@ class Instrument:
             return self.data_server_query_class(config=config,instrument=self).test_has_input_products(instrument,logger=logger)
 
     def parse_inputs_files(self,
-                             par_dic,
-                             request,
-                             temp_dir,
-                             verbose,
-                             use_scws,
-                             sentry_client=None):
+                           par_dic,
+                           request,
+                           temp_dir,
+                           verbose,
+                           use_scws,
+                           sentry_client=None):
         error_message = 'Error while {step} from the frontend{temp_dir_content_msg}'
         # TODO probably exception handling can be further improved and/or optmized
         try:
