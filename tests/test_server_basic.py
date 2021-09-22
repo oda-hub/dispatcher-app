@@ -211,7 +211,7 @@ def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_
     jdata = ask(server,
                   params,
                   expected_query_status=["done"],
-                  max_time_s=350,
+                  max_time_s=50,
                   )
 
     assert jdata["exit_status"]["debug_message"] == ""
@@ -1157,14 +1157,13 @@ def test_default_values(dispatcher_live_fixture):
 
     assert 'p' in jdata['products']['analysis_parameters']
 
-    # # test job_id
-    # job_id = jdata['products']['job_id']
-    # session_id = jdata['session_id']
-    # # adapting some values to string
-    # for k, v in params.items():
-    #     params[k] = str(v)
-    #
-    # restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "sub": "mtm@mtmco.net"})
-    # calculated_job_id = make_hash(restricted_par_dic)
-    #
-    # assert job_id == calculated_job_id
+    # test job_id
+    job_id = jdata['products']['job_id']
+    # adapting some values to string
+    for k, v in params.items():
+        params[k] = str(v)
+
+    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "sub": "mtm@mtmco.net", 'p': 10.0})
+    calculated_job_id = make_hash(restricted_par_dic)
+
+    assert job_id == calculated_job_id
