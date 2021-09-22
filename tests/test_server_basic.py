@@ -1159,6 +1159,7 @@ def test_default_values(dispatcher_live_fixture):
 
     # test job_id
     job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
     # adapting some values to string
     for k, v in params.items():
         params[k] = str(v)
@@ -1167,3 +1168,15 @@ def test_default_values(dispatcher_live_fixture):
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
+
+    # get the analysis_parameters json file
+    analysis_parameters_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/analysis_parameters.json'
+    # the aliased version might have been created
+    analysis_parameters_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/analysis_parameters.json'
+    assert os.path.exists(analysis_parameters_json_fn) or os.path.exists(analysis_parameters_json_fn_aliased)
+    if os.path.exists(analysis_parameters_json_fn):
+        analysis_parameters_json_content_original = json.load(open(analysis_parameters_json_fn))
+    else:
+        analysis_parameters_json_content_original = json.load(open(analysis_parameters_json_fn_aliased))
+
+    assert 'p' in analysis_parameters_json_content_original
