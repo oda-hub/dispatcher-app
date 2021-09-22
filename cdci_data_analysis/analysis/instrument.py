@@ -191,7 +191,6 @@ class Instrument:
                             'use_scws was indicating this was not provided, please check the inputs'
 
             raise RequestNotUnderstood(error_message)
-        self.set_pars_from_dic(par_dic, verbose=verbose)
 
     def run_query(self, product_type,
                   par_dic,

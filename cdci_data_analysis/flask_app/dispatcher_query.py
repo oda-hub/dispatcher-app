@@ -189,7 +189,6 @@ class InstrumentQueryBackEnd:
                     verbose = self.par_dic.get('verbose', 'False') == 'True'
                     self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
                     if self.instrument is not None and not isinstance(self.instrument, str):
-                        self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
                         self.instrument.parse_inputs_files(
                             par_dic=self.par_dic,
                             request=request,
@@ -198,6 +197,7 @@ class InstrumentQueryBackEnd:
                             use_scws=self.use_scws,
                             sentry_client=self.sentry_client
                         )
+                        self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
                 # TODO: if not callback!
                 # if 'query_status' not in self.par_dic:
                 #    raise MissingRequestParameter('no query_status!')
