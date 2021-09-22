@@ -115,9 +115,16 @@ class Instrument:
         pass
 
     def set_pars_from_dic(self, par_dic, verbose=False):
-        for _query in self._queries_list:
-            for par in _query._parameters_list:
-                par.set_from_form(par_dic,verbose=verbose)
+        product_type = par_dic.get('product_type', None)
+        if product_type is not None:
+            query_name = self.get_product_query_name(product_type)
+            query_obj = self.get_query_by_name(query_name)
+            for par in query_obj._parameters_list:
+                par.set_from_form(par_dic, verbose=verbose)
+        else:
+            for _query in self._queries_list:
+                for par in _query._parameters_list:
+                    par.set_from_form(par_dic,verbose=verbose)
 
     def set_par(self,par_name,value):
         p=self.get_par_by_name(par_name)

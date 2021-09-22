@@ -270,7 +270,7 @@ class Parameter(object):
             self.set_par(value=v, units=u)
         else:
             # set the default value
-            self.set_par(value=self.value, units=self.units)
+            form[par_name] = self.value
             if verbose is True:
                 logger.debug('setting par: ', par_name, ' not in dictionary, setting to the default value')
 

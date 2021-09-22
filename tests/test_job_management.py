@@ -1578,7 +1578,12 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
 
     assert jdata['exit_status']['email_status'] == 'email sent'
     params['use_scws'] = 'no'
-    products_url = get_expected_products_url(params, 
+    '''
+    included also default values, 
+    which for the case of numerical query, is p, with a value of 10.0
+    and string_like_name
+    '''
+    products_url = get_expected_products_url({**params, 'p': 10.0, 'string_like_name': 'default-name'},
                                              session_id=dispatcher_job_state.session_id,
                                              job_id=dispatcher_job_state.job_id,
                                              token=encoded_token)

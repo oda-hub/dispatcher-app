@@ -211,7 +211,7 @@ def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_
     jdata = ask(server,
                   params,
                   expected_query_status=["done"],
-                  max_time_s=50,
+                  max_time_s=350,
                   )
 
     assert jdata["exit_status"]["debug_message"] == ""
@@ -540,7 +540,7 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
         disp.get_product(
             product_type="Real",
             instrument="empty-semi-async",
-            product="dummy",
+            product="numerical",
             osa_version="OSA10.2",
             token=encoded_token,
             p=0,
@@ -559,7 +559,7 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
     disp.get_product(
         product_type="Real",
         instrument="empty-semi-async",
-        product="dummy",
+        product="numerical",
         osa_version="OSA10.2",
         token=encoded_token,
         p=4
@@ -577,7 +577,7 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
         disp.get_product(
                 product_type="Real",
                 instrument="empty-semi-async",
-                product="dummy",
+                product="numerical",
                 osa_version="OSA10.2",
                 token=encoded_token,
                 p=-1
@@ -1128,3 +1128,43 @@ def test_image(dispatcher_live_fixture):
 
     assert job_id == calculated_job_id
 
+
+def test_default_values(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    assert 'p' in jdata['products']['analysis_parameters']
+
+    # # test job_id
+    # job_id = jdata['products']['job_id']
+    # session_id = jdata['session_id']
+    # # adapting some values to string
+    # for k, v in params.items():
+    #     params[k] = str(v)
+    #
+    # restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "sub": "mtm@mtmco.net"})
+    # calculated_job_id = make_hash(restricted_par_dic)
+    #
+    # assert job_id == calculated_job_id
