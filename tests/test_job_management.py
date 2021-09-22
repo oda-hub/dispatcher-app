@@ -473,7 +473,8 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
-    products_url = get_expected_products_url({** dict_param, 'use_scws':'no'},
+    products_url = get_expected_products_url({** dict_param,
+                                              'use_scws': 'no',},
                                              token=encoded_token,
                                              session_id=session_id,
                                              job_id=job_id)
@@ -1603,7 +1604,7 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
         dispatcher_live_fixture=None,
         request_params=params,
         expect_api_code=not unbreakable,
-        variation_suffixes=["numeric-not-very-long"] if not unbreakable else [],
+        variation_suffixes=["numeric-not-very-long-numerical"] if not unbreakable else [],
         require_reference_email=True
     )
 
