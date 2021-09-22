@@ -1129,7 +1129,8 @@ def test_image(dispatcher_live_fixture):
     assert job_id == calculated_job_id
 
 
-def test_default_values(dispatcher_live_fixture):
+@pytest.mark.parametrize("additional_parameter", [True, False])
+def test_default_values(dispatcher_live_fixture, additional_parameter):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
@@ -1149,6 +1150,9 @@ def test_default_values(dispatcher_live_fixture):
         'token': encoded_token,
     }
 
+    if additional_parameter:
+        params['additional_param'] = 'no_value'
+
     jdata = ask(server,
                 params,
                 expected_query_status=["done"],
@@ -1157,6 +1161,10 @@ def test_default_values(dispatcher_live_fixture):
 
     assert 'p' in jdata['products']['analysis_parameters']
     assert 'string_like_name' not in jdata['products']['analysis_parameters']
+    if additional_parameter:
+        assert 'additional_param' in jdata['products']['analysis_parameters']
+    else:
+        assert 'additional_param' not in jdata['products']['analysis_parameters']
 
     # test job_id
     job_id = jdata['products']['job_id']
@@ -1182,3 +1190,7 @@ def test_default_values(dispatcher_live_fixture):
 
     assert 'p' in analysis_parameters_json_content_original
     assert 'string_like_name' not in analysis_parameters_json_content_original
+    if additional_parameter:
+        assert 'additional_param' in analysis_parameters_json_content_original
+    else:
+        assert 'additional_param' not in analysis_parameters_json_content_original
