@@ -1156,6 +1156,7 @@ def test_default_values(dispatcher_live_fixture):
                 )
 
     assert 'p' in jdata['products']['analysis_parameters']
+    assert 'string_like_name' not in jdata['products']['analysis_parameters']
 
     # test job_id
     job_id = jdata['products']['job_id']
@@ -1180,3 +1181,4 @@ def test_default_values(dispatcher_live_fixture):
         analysis_parameters_json_content_original = json.load(open(analysis_parameters_json_fn_aliased))
 
     assert 'p' in analysis_parameters_json_content_original
+    assert 'string_like_name' not in analysis_parameters_json_content_original
