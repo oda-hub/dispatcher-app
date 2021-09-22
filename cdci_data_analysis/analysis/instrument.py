@@ -114,11 +114,17 @@ class Instrument:
     def _check_names(self):
         pass
 
-
-    def set_pars_from_dic(self,par_dic,verbose=False):
-        for _query in self._queries_list:
-            for par in _query._parameters_list:
-                par.set_from_form(par_dic,verbose=verbose)
+    def set_pars_from_dic(self, par_dic, verbose=False):
+        product_type = par_dic.get('product_type', None)
+        if product_type is not None:
+            query_name = self.get_product_query_name(product_type)
+            query_obj = self.get_query_by_name(query_name)
+            for par in query_obj._parameters_list:
+                par.set_from_form(par_dic, verbose=verbose)
+        else:
+            for _query in self._queries_list:
+                for par in _query._parameters_list:
+                    par.set_from_form(par_dic,verbose=verbose)
 
     def set_par(self,par_name,value):
         p=self.get_par_by_name(par_name)
@@ -150,12 +156,12 @@ class Instrument:
             return self.data_server_query_class(config=config,instrument=self).test_has_input_products(instrument,logger=logger)
 
     def parse_inputs_files(self,
-                             par_dic,
-                             request,
-                             temp_dir,
-                             verbose,
-                             use_scws,
-                             sentry_client=None):
+                           par_dic,
+                           request,
+                           temp_dir,
+                           verbose,
+                           use_scws,
+                           sentry_client=None):
         error_message = 'Error while {step} from the frontend{temp_dir_content_msg}'
         # TODO probably exception handling can be further improved and/or optmized
         try:
@@ -192,7 +198,6 @@ class Instrument:
                             'use_scws was indicating this was not provided, please check the inputs'
 
             raise RequestNotUnderstood(error_message)
-        self.set_pars_from_dic(par_dic, verbose=verbose)
 
     def run_query(self, product_type,
                   par_dic,

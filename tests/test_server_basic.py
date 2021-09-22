@@ -540,7 +540,7 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
         disp.get_product(
             product_type="Real",
             instrument="empty-semi-async",
-            product="dummy",
+            product="numerical",
             osa_version="OSA10.2",
             token=encoded_token,
             p=0,
@@ -559,7 +559,7 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
     disp.get_product(
         product_type="Real",
         instrument="empty-semi-async",
-        product="dummy",
+        product="numerical",
         osa_version="OSA10.2",
         token=encoded_token,
         p=4
@@ -577,7 +577,7 @@ def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
         disp.get_product(
                 product_type="Real",
                 instrument="empty-semi-async",
-                product="dummy",
+                product="numerical",
                 osa_version="OSA10.2",
                 token=encoded_token,
                 p=-1
@@ -1128,3 +1128,69 @@ def test_image(dispatcher_live_fixture):
 
     assert job_id == calculated_job_id
 
+
+@pytest.mark.parametrize("additional_parameter", [True, False])
+def test_default_values(dispatcher_live_fixture, additional_parameter):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    if additional_parameter:
+        params['additional_param'] = 'no_value'
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    assert 'p' in jdata['products']['analysis_parameters']
+    assert 'string_like_name' not in jdata['products']['analysis_parameters']
+    if additional_parameter:
+        assert 'additional_param' in jdata['products']['analysis_parameters']
+    else:
+        assert 'additional_param' not in jdata['products']['analysis_parameters']
+
+    # test job_id
+    job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
+    # adapting some values to string
+    for k, v in params.items():
+        params[k] = str(v)
+
+    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "sub": "mtm@mtmco.net", 'p': 10.0})
+    calculated_job_id = make_hash(restricted_par_dic)
+
+    assert job_id == calculated_job_id
+
+    # get the analysis_parameters json file
+    analysis_parameters_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/analysis_parameters.json'
+    # the aliased version might have been created
+    analysis_parameters_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/analysis_parameters.json'
+    assert os.path.exists(analysis_parameters_json_fn) or os.path.exists(analysis_parameters_json_fn_aliased)
+    if os.path.exists(analysis_parameters_json_fn):
+        analysis_parameters_json_content_original = json.load(open(analysis_parameters_json_fn))
+    else:
+        analysis_parameters_json_content_original = json.load(open(analysis_parameters_json_fn_aliased))
+
+    assert 'p' in analysis_parameters_json_content_original
+    assert 'string_like_name' not in analysis_parameters_json_content_original
+    if additional_parameter:
+        assert 'additional_param' in analysis_parameters_json_content_original
+    else:
+        assert 'additional_param' not in analysis_parameters_json_content_original

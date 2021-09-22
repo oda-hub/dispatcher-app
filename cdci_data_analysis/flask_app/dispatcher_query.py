@@ -183,6 +183,7 @@ class InstrumentQueryBackEnd:
                 logger.debug("NOT get_meta_data request: yes scratch_dir")
 
                 self.set_sentry_client()
+                # TODO is also the case of call_back to handle ?
                 if not data_server_call_back:
                     self.set_instrument(self.instrument_name)
                     verbose = self.par_dic.get('verbose', 'False') == 'True'
@@ -196,6 +197,7 @@ class InstrumentQueryBackEnd:
                             use_scws=self.use_scws,
                             sentry_client=self.sentry_client
                         )
+                        self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
                 # TODO: if not callback!
                 # if 'query_status' not in self.par_dic:
                 #    raise MissingRequestParameter('no query_status!')

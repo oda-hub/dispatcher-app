@@ -143,6 +143,7 @@ def ask(server, params, expected_query_status, expected_job_status=None, max_tim
 
     return jdata
 
+
 def loop_ask(server, params, method='get', max_time_s=None, async_dispatcher=False):
     jdata = ask(server,
                 {**params, 
@@ -374,6 +375,7 @@ def start_dispatcher(rootdir, test_conf_fn):
     print(("rootdir", str(rootdir)))
     env['PYTHONPATH'] = str(rootdir) + ":" + str(rootdir) + "/tests:" + \
                         str(rootdir) + '/bin:' + \
+                        __this_dir__ + ":" + os.path.join(__this_dir__, "../bin:") + \
                         env.get('PYTHONPATH', "")
     print(("pythonpath", env['PYTHONPATH']))
 
