@@ -1173,7 +1173,16 @@ def test_default_values(dispatcher_live_fixture, additional_parameter):
     for k, v in params.items():
         params[k] = str(v)
 
-    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "sub": "mtm@mtmco.net", 'p': 10.0})
+    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params,
+                                                                    "sub": "mtm@mtmco.net",
+                                                                    'p': 10.0,
+                                                                    'p_list': [],
+                                                                    'src_name': 'test',
+                                                                    'RA': 0.0,
+                                                                    'DEC': 0.0,
+                                                                    'T1': '2001-12-11T00:00:00.000',
+                                                                    'T2': '2001-12-11T00:00:00.000'
+                                                                    })
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id

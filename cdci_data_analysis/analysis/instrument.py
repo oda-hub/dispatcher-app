@@ -121,6 +121,12 @@ class Instrument:
             query_obj = self.get_query_by_name(query_name)
             for par in query_obj._parameters_list:
                 par.set_from_form(par_dic, verbose=verbose)
+            # also instrument query
+            for par in self.instrumet_query._parameters_list:
+                par.set_from_form(par_dic, verbose=verbose)
+            # also source query
+            for par in self.src_query._parameters_list:
+                par.set_from_form(par_dic, verbose=verbose)
         else:
             for _query in self._queries_list:
                 for par in _query._parameters_list:
