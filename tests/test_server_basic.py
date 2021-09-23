@@ -797,6 +797,7 @@ def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
 
         restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({
             **params,
+            "src_name": "test",
             "p_list": ["5"],
             "sub": "mtm@mtmco.net"}
         )
