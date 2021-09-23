@@ -906,11 +906,19 @@ def test_user_catalog(dispatcher_live_fixture):
     assert jdata['products']['analysis_parameters']['selected_catalog'] == json.dumps(selected_catalog_dict)
     # test job_id
     job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
     # adapting some values to string
     for k, v in params.items():
         params[k] = str(v)
 
-    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "sub": "mtm@mtmco.net"})
+    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic(
+        {
+            **params,
+            'sub': 'mtm@mtmco.net',
+            'p_list': [],
+            'src_name': 'test',
+        }
+    )
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
