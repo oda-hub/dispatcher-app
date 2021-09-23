@@ -327,6 +327,8 @@ def get_expected_products_url(dict_param,
     for key, value in dict(dict_param_complete).items():
         if value is None:
             dict_param_complete.pop(key)
+        elif type(value) == list:
+            dict_param_complete[key] = ",".join(value)
 
     dict_param_complete = OrderedDict({
         k: dict_param_complete[k] for k in sorted(dict_param_complete.keys())
@@ -395,7 +397,18 @@ def test_validation_job_id(dispatcher_live_fixture):
                      dict_param
                      )
     
-    wrong_job_id = make_hash({**base_dict_param, "sub": "mtm1@mtmco.net"})
+    wrong_job_id = make_hash(
+        {
+            **base_dict_param,
+            'sub': 'mtm1@mtmco.net',
+            'src_name': 'test',
+            'scw_list': [],
+            'RA': 0.0,
+            'DEC': 0.0,
+            'T1': '2001-12-11T00:00:00.000',
+            'T2': '2001-12-11T00:00:00.000'
+        }
+    )
 
     from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
     assert InstrumentQueryBackEnd.restricted_par_dic(dict_param) == base_dict_param
@@ -473,8 +486,17 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
-    products_url = get_expected_products_url({** dict_param,
-                                              'use_scws': 'no',},
+    completed_dict_param = {** dict_param,
+                            'scw_list': [],
+                            'src_name': 'test',
+                            'use_scws': 'no',
+                            'RA': 0.0,
+                            'DEC': 0.0,
+                            'T1': '2001-12-11T00:00:00.000',
+                            'T2': '2001-12-11T00:00:00.000'
+                            }
+
+    products_url = get_expected_products_url(completed_dict_param,
                                              token=encoded_token,
                                              session_id=session_id,
                                              job_id=job_id)
