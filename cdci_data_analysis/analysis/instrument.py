@@ -120,17 +120,22 @@ class Instrument:
             query_name = self.get_product_query_name(product_type)
             query_obj = self.get_query_by_name(query_name)
             for par in query_obj._parameters_list:
-                par.set_from_form(par_dic, verbose=verbose)
+                # this is required because in some cases a parameter is set without a name (eg UserCatalog)
+                if par.name is not None:
+                    par.set_from_form(par_dic, verbose=verbose)
             # also instrument query
             for par in self.instrumet_query._parameters_list:
-                par.set_from_form(par_dic, verbose=verbose)
+                if par.name is not None:
+                    par.set_from_form(par_dic, verbose=verbose)
             # also source query
             for par in self.src_query._parameters_list:
-                par.set_from_form(par_dic, verbose=verbose)
+                if par.name is not None:
+                    par.set_from_form(par_dic, verbose=verbose)
         else:
             for _query in self._queries_list:
                 for par in _query._parameters_list:
-                    par.set_from_form(par_dic,verbose=verbose)
+                    if par.name is not None:
+                        par.set_from_form(par_dic,verbose=verbose)
 
     def set_par(self,par_name,value):
         p=self.get_par_by_name(par_name)

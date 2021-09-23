@@ -795,7 +795,11 @@ def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
         for k, v in params.items():
             params[k] = str(v)
 
-        restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "p_list": ["5"], "sub": "mtm@mtmco.net"})
+        restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({
+            **params,
+            "p_list": ["5"],
+            "sub": "mtm@mtmco.net"}
+        )
         calculated_job_id = make_hash(restricted_par_dic)
 
         assert job_id == calculated_job_id
