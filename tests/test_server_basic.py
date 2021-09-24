@@ -797,7 +797,7 @@ def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
 
         restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({
             **params,
-            "src_name": "test",
+            "src_name": "1E 1740.7-2942",
             "p_list": ["5"],
             "sub": "mtm@mtmco.net"}
         )
@@ -855,7 +855,7 @@ def test_catalog_file(dispatcher_live_fixture):
             'user_catalog_file': f'temp_sid_{session_id}/user_catalog_file',
             'sub': 'mtm@mtmco.net',
             'p_list': [],
-            'src_name': 'test',
+            'src_name': '1E 1740.7-2942',
         }
     )
     calculated_job_id = make_hash(restricted_par_dic)
@@ -916,7 +916,7 @@ def test_user_catalog(dispatcher_live_fixture):
             **params,
             'sub': 'mtm@mtmco.net',
             'p_list': [],
-            'src_name': 'test',
+            'src_name': '1E 1740.7-2942',
         }
     )
     calculated_job_id = make_hash(restricted_par_dic)
@@ -1062,15 +1062,14 @@ def test_no_instrument(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
 
-    c=requests.get(server + "/run_analysis",
-                   params=dict(
-                   image_type="Real",
-                   product_type="image",
-                   E1_keV=20.,
-                   E2_keV=40.,
-                   T1="2008-01-01T11:11:11.0",
-                   T2="2008-06-01T11:11:11.0",
-                ))
+    c = requests.get(server + "/run_analysis",
+                     params=dict(
+                       image_type="Real",
+                       product_type="image",
+                       E1_keV=20.,E2_keV=40.,
+                       T1="2008-01-01T11:11:11.0",
+                       T2="2008-06-01T11:11:11.0",
+                     ))
 
     print("content:", c.text)
 
@@ -1149,7 +1148,7 @@ def test_image(dispatcher_live_fixture):
             **params,
             'p_list': [],
             'p': '55',
-            'src_name': 'test',
+            'src_name': '1E 1740.7-2942',
             'sub': 'mtm@mtmco.net',
         }
     )
