@@ -763,9 +763,10 @@ class PostProcessProductQuery(ProductQuery):
 
         return query_out
 
+
 class ImageQuery(ProductQuery):
     def __init__(self,name,parameters_list=[],**kwargs):
-        detection_th = DetectionThreshold(value=0.0,units='sigma', name='detection_threshold')
+        detection_th = DetectionThreshold(value=7.0, units='sigma', name='detection_threshold')
         if parameters_list != [] and parameters_list is not None:
             parameters_list.append(detection_th)
         else:
@@ -775,6 +776,7 @@ class ImageQuery(ProductQuery):
         image_scale_max = Float(value=None, name='image_scale_max')
         parameters_list.extend([image_scale_min, image_scale_max])
         super(ImageQuery, self).__init__(name, parameters_list, **kwargs)
+
 
 class LightCurveQuery(ProductQuery):
     def __init__(self,name,parameters_list=[], **kwargs):
