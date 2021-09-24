@@ -126,16 +126,16 @@ class Instrument:
             query_obj = self.get_query_by_name(query_name)
             # loop over the list of parameters for the requested query,
             # but also of the instrument query and source query
-            for par in (query_obj._parameters_list +
-                        self.instrumet_query._parameters_list +
-                        self.src_query._parameters_list):
+            for par in (query_obj.parameters +
+                        self.instrumet_query.parameters +
+                        self.src_query.parameters):
                 # this is required because in some cases a parameter is set without a name (eg UserCatalog),
                 # or they don't have to set (eg scw_list)
                 if par.name is not None and par.name not in params_not_to_be_included:
                     par.set_from_form(par_dic, verbose=verbose)
         else:
             for _query in self._queries_list:
-                for par in _query._parameters_list:
+                for par in _query.parameters:
                     if par.name is not None and par.name not in params_not_to_be_included:
                         par.set_from_form(par_dic, verbose=verbose)
 
