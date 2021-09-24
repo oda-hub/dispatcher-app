@@ -124,16 +124,13 @@ class Instrument:
         if product_type is not None:
             query_name = self.get_product_query_name(product_type)
             query_obj = self.get_query_by_name(query_name)
-            for par in query_obj._parameters_list:
-                # this is required because in some cases a parameter is set without a name (eg UserCatalog)
-                if par.name is not None and par.name not in params_not_to_be_included:
-                    par.set_from_form(par_dic, verbose=verbose)
-            # also instrument query
-            for par in self.instrumet_query._parameters_list:
-                if par.name is not None and par.name not in params_not_to_be_included:
-                    par.set_from_form(par_dic, verbose=verbose)
-            # also source query
-            for par in self.src_query._parameters_list:
+            # loop over the list of parameters for the requested query,
+            # but also of the instrument query and source query
+            for par in (query_obj._parameters_list +
+                        self.instrumet_query._parameters_list +
+                        self.src_query._parameters_list):
+                # this is required because in some cases a parameter is set without a name (eg UserCatalog),
+                # or they don't have to set (eg scw_list)
                 if par.name is not None and par.name not in params_not_to_be_included:
                     par.set_from_form(par_dic, verbose=verbose)
         else:
