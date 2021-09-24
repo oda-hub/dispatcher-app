@@ -401,11 +401,11 @@ def test_validation_job_id(dispatcher_live_fixture):
         {
             **base_dict_param,
             'sub': 'mtm1@mtmco.net',
-            'src_name': 'test',
-            'RA': 0.0,
-            'DEC': 0.0,
-            'T1': '2001-12-11T00:00:00.000',
-            'T2': '2001-12-11T00:00:00.000'
+            'src_name': '1E 1740.7-2942',
+            'RA': 265.97845833,
+            'DEC': -29.74516667,
+            'T1': '2017-03-06T13:26:48.000',
+            'T2': '2017-03-06T15:32:27.000',
         }
     )
 
@@ -486,12 +486,12 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     job_id = jdata['job_monitor']['job_id']
 
     completed_dict_param = {** dict_param,
-                            'src_name': 'test',
                             'use_scws': 'no',
-                            'RA': 0.0,
-                            'DEC': 0.0,
-                            'T1': '2001-12-11T00:00:00.000',
-                            'T2': '2001-12-11T00:00:00.000'
+                            'src_name': '1E 1740.7-2942',
+                            'RA': 265.97845833,
+                            'DEC': -29.74516667,
+                            'T1': '2017-03-06T13:26:48.000',
+                            'T2': '2017-03-06T15:32:27.000',
                             }
 
     products_url = get_expected_products_url(completed_dict_param,
@@ -1467,11 +1467,11 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
 
         completed_dict_param = {**params,
-                                'src_name': 'test',
-                                'RA': 0.0,
-                                'DEC': 0.0,
-                                'T1': '2001-12-11T00:00:00.000',
-                                'T2': '2001-12-11T00:00:00.000'
+                                'src_name': '1E 1740.7-2942',
+                                'RA': 265.97845833,
+                                'DEC': -29.74516667,
+                                'T1': '2017-03-06T13:26:48.000',
+                                'T2': '2017-03-06T15:32:27.000',
                                 }
 
         products_url = get_expected_products_url(completed_dict_param,
@@ -1618,12 +1618,12 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
     completed_dict_param = {**params,
                             'p': 10.0,
                             'string_like_name': 'default-name',
-                            'src_name': 'test',
                             'use_scws': 'no',
-                            'RA': 0.0,
-                            'DEC': 0.0,
-                            'T1': '2001-12-11T00:00:00.000',
-                            'T2': '2001-12-11T00:00:00.000'
+                            'src_name': '1E 1740.7-2942',
+                            'RA': 265.97845833,
+                            'DEC': -29.74516667,
+                            'T1': '2017-03-06T13:26:48.000',
+                            'T2': '2017-03-06T15:32:27.000',
                             }
 
     products_url = get_expected_products_url(completed_dict_param,
