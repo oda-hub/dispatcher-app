@@ -25,7 +25,7 @@ from builtins import (bytes, str, open, super, range,
 
 __author__ = "Andrea Tramacere"
 import six
-import  ast
+import ast
 import decorator
 
 from datetime import datetime, date, time
@@ -43,7 +43,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-
 @decorator.decorator
 def check_par_list(func,par_list,*args, **kwargs):
     for par in par_list:
@@ -55,10 +54,7 @@ def check_par_list(func,par_list,*args, **kwargs):
         return func(par_list, *args, **kwargs)
 
 
-
-
 class ParameterGroup(object):
-
 
     def __init__(self,par_list,name,exclusive=True,def_selected=None,selected=None):
         self.name=name
@@ -80,8 +76,6 @@ class ParameterGroup(object):
         if selected is not None:
             self.select(selected)
 
-
-
     @property
     def par_list(self):
         return self._par_list
@@ -89,7 +83,6 @@ class ParameterGroup(object):
     @property
     def names(self):
         return [p.name for p in self._par_list]
-
 
     def select(self,name):
         if isinstance(name,Parameter):
@@ -102,7 +95,6 @@ class ParameterGroup(object):
         if self.msk.sum()>1 and self.exclusive==True:
             raise RuntimeError('only one paramter can be selected in mutually exclusive groups')
 
-
     def _check_pars(self, par_list):
         for p in par_list:
             if isinstance(p,Parameter):
@@ -111,7 +103,6 @@ class ParameterGroup(object):
                 pass
             else:
                 raise RuntimeError('you can group Paramters or ParamtersRanges found',type(p))
-
 
     def to_list(self):
         _l=[]
@@ -122,11 +113,9 @@ class ParameterGroup(object):
                 _l.extend(p.to_list())
         return _l
 
-
     def add_par(self,par):
         self.par_list.append(par)
         self.msk=np.append(self.msk,False)
-
 
     def build_selector(self,name):
         return  Parameter(name, allowed_values=self.names)
@@ -134,14 +123,11 @@ class ParameterGroup(object):
 
 class ParameterRange(object):
 
-
     def __init__(self,p1,p2,name):
         self._check_pars(p1,p2)
         self.name=name
         self.p1=p1
         self.p2=p2
-
-
 
     def _check_pars(self,p1,p2):
         if type(p1)!=type(p2):
@@ -157,9 +143,7 @@ class ParameterRange(object):
         return [self.p1,self.p2]
 
 
-
 class ParameterTuple(object):
-
 
     def __init__(self,p_list,name):
         self._check_pars(p_list)
@@ -207,7 +191,6 @@ class Parameter(object):
         self.value = value
         self.units_name = units_name
         #self._wtform_dict=wtform_dict
-
 
     @property
     def value(self):

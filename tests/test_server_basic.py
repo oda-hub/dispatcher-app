@@ -1206,11 +1206,11 @@ def test_default_values(dispatcher_live_fixture, additional_parameter):
                                                                     'sub': 'mtm@mtmco.net',
                                                                     'p': 10.0,
                                                                     'p_list': [],
-                                                                    'src_name': 'test',
-                                                                    'RA': 0.0,
-                                                                    'DEC': 0.0,
-                                                                    'T1': '2001-12-11T00:00:00.000',
-                                                                    'T2': '2001-12-11T00:00:00.000'
+                                                                    'src_name': '1E 1740.7-2942',
+                                                                    'RA': 265.97845833,
+                                                                    'DEC': -29.74516667,
+                                                                    'T1': '2017-03-06T13:26:48.000',
+                                                                    'T2': '2017-03-06T15:32:27.000'
                                                                     })
     calculated_job_id = make_hash(restricted_par_dic)
 
