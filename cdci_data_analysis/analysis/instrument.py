@@ -53,8 +53,13 @@ __author__ = "Andrea Tramacere"
 # Project
 # relative import eg: from .mod import f
 
+# list of parameters not to be included in the par_dic object
+params_not_to_be_included = ['user_catalog',]
+
+
 class DataServerQueryClassNotSet(Exception):
     pass
+
 
 class Instrument:
     def __init__(self,
@@ -119,12 +124,20 @@ class Instrument:
         if product_type is not None:
             query_name = self.get_product_query_name(product_type)
             query_obj = self.get_query_by_name(query_name)
-            for par in query_obj._parameters_list:
-                par.set_from_form(par_dic, verbose=verbose)
+            # loop over the list of parameters for the requested query,
+            # but also of the instrument query and source query
+            for par in (query_obj.parameters +
+                        self.instrumet_query.parameters +
+                        self.src_query.parameters):
+                # this is required because in some cases a parameter is set without a name (eg UserCatalog),
+                # or they don't have to set (eg scw_list)
+                if par.name is not None and par.name not in params_not_to_be_included:
+                    par.set_from_form(par_dic, verbose=verbose)
         else:
             for _query in self._queries_list:
-                for par in _query._parameters_list:
-                    par.set_from_form(par_dic,verbose=verbose)
+                for par in _query.parameters:
+                    if par.name is not None and par.name not in params_not_to_be_included:
+                        par.set_from_form(par_dic, verbose=verbose)
 
     def set_par(self,par_name,value):
         p=self.get_par_by_name(par_name)

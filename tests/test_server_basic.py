@@ -732,7 +732,7 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
 
 @pytest.mark.parametrize("clean_temp_folder_content", [True, False])
 def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
-    from stat import S_IREAD, S_IWUSR
+    from stat import S_IREAD
 
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -795,7 +795,12 @@ def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
         for k, v in params.items():
             params[k] = str(v)
 
-        restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "p_list": ["5"], "sub": "mtm@mtmco.net"})
+        restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({
+            **params,
+            "src_name": "1E 1740.7-2942",
+            "p_list": ["5"],
+            "sub": "mtm@mtmco.net"}
+        )
         calculated_job_id = make_hash(restricted_par_dic)
 
         assert job_id == calculated_job_id
@@ -844,7 +849,15 @@ def test_catalog_file(dispatcher_live_fixture):
     for k, v in params.items():
         params[k] = str(v)
 
-    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "user_catalog_file": f'temp_sid_{session_id}/user_catalog_file', "sub": "mtm@mtmco.net"})
+    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic(
+        {
+            **params,
+            'user_catalog_file': f'temp_sid_{session_id}/user_catalog_file',
+            'sub': 'mtm@mtmco.net',
+            'p_list': [],
+            'src_name': '1E 1740.7-2942',
+        }
+    )
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
@@ -893,11 +906,19 @@ def test_user_catalog(dispatcher_live_fixture):
     assert jdata['products']['analysis_parameters']['selected_catalog'] == json.dumps(selected_catalog_dict)
     # test job_id
     job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
     # adapting some values to string
     for k, v in params.items():
         params[k] = str(v)
 
-    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "sub": "mtm@mtmco.net"})
+    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic(
+        {
+            **params,
+            'sub': 'mtm@mtmco.net',
+            'p_list': [],
+            'src_name': '1E 1740.7-2942',
+        }
+    )
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
@@ -1041,15 +1062,14 @@ def test_no_instrument(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
 
-    c=requests.get(server + "/run_analysis",
-                   params=dict(
-                   image_type="Real",
-                   product_type="image",
-                   E1_keV=20.,
-                   E2_keV=40.,
-                   T1="2008-01-01T11:11:11.0",
-                   T2="2008-06-01T11:11:11.0",
-                ))
+    c = requests.get(server + "/run_analysis",
+                     params=dict(
+                       image_type="Real",
+                       product_type="image",
+                       E1_keV=20.,E2_keV=40.,
+                       T1="2008-01-01T11:11:11.0",
+                       T2="2008-06-01T11:11:11.0",
+                     ))
 
     print("content:", c.text)
 
@@ -1123,7 +1143,15 @@ def test_image(dispatcher_live_fixture):
     for k, v in params.items():
         params[k] = str(v)
 
-    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "sub": "mtm@mtmco.net"})
+    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic(
+        {
+            **params,
+            'p_list': [],
+            'p': '55',
+            'src_name': '1E 1740.7-2942',
+            'sub': 'mtm@mtmco.net',
+        }
+    )
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
@@ -1173,7 +1201,16 @@ def test_default_values(dispatcher_live_fixture, additional_parameter):
     for k, v in params.items():
         params[k] = str(v)
 
-    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params, "sub": "mtm@mtmco.net", 'p': 10.0})
+    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({**params,
+                                                                    'sub': 'mtm@mtmco.net',
+                                                                    'p': 10.0,
+                                                                    'p_list': [],
+                                                                    'src_name': '1E 1740.7-2942',
+                                                                    'RA': 265.97845833,
+                                                                    'DEC': -29.74516667,
+                                                                    'T1': '2017-03-06T13:26:48.000',
+                                                                    'T2': '2017-03-06T15:32:27.000'
+                                                                    })
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id

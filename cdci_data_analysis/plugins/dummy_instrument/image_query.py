@@ -49,21 +49,14 @@ class MyInstrImageProduct(ImageProduct):
     def __init__(self,name,file_name,skyima,out_dir=None,prod_prefix=None):
         header = skyima.header
         data = skyima.data
-        super(MyInstrImageProduct, self).__init__(name,data=data,header=header,name_prefix=prod_prefix,file_dir=out_dir,file_name=file_name)
+        super(MyInstrImageProduct, self).__init__(name, data=data, header=header, name_prefix=prod_prefix, file_dir=out_dir, file_name=file_name)
         #check if you need to copy!
-
-
-
-
 
     @classmethod
     def build_from_ddosa_skyima(cls,name,file_name,skyima,out_dir=None,prod_prefix=None):
         #skyima = pf.open(skyima)
         skyima = FitsFile(skyima).open()
         return  cls(name,skyima=skyima[4],out_dir=out_dir,prod_prefix=prod_prefix,file_name=file_name)
-
-
-
 
 
 class MosaicQuery(ImageQuery):

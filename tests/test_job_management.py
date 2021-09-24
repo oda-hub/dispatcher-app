@@ -327,6 +327,8 @@ def get_expected_products_url(dict_param,
     for key, value in dict(dict_param_complete).items():
         if value is None:
             dict_param_complete.pop(key)
+        elif type(value) == list:
+            dict_param_complete[key] = ",".join(value)
 
     dict_param_complete = OrderedDict({
         k: dict_param_complete[k] for k in sorted(dict_param_complete.keys())
@@ -395,7 +397,17 @@ def test_validation_job_id(dispatcher_live_fixture):
                      dict_param
                      )
     
-    wrong_job_id = make_hash({**base_dict_param, "sub": "mtm1@mtmco.net"})
+    wrong_job_id = make_hash(
+        {
+            **base_dict_param,
+            'sub': 'mtm1@mtmco.net',
+            'src_name': '1E 1740.7-2942',
+            'RA': 265.97845833,
+            'DEC': -29.74516667,
+            'T1': '2017-03-06T13:26:48.000',
+            'T2': '2017-03-06T15:32:27.000',
+        }
+    )
 
     from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
     assert InstrumentQueryBackEnd.restricted_par_dic(dict_param) == base_dict_param
@@ -473,8 +485,16 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
-    products_url = get_expected_products_url({** dict_param,
-                                              'use_scws': 'no',},
+    completed_dict_param = {** dict_param,
+                            'use_scws': 'no',
+                            'src_name': '1E 1740.7-2942',
+                            'RA': 265.97845833,
+                            'DEC': -29.74516667,
+                            'T1': '2017-03-06T13:26:48.000',
+                            'T2': '2017-03-06T15:32:27.000',
+                            }
+
+    products_url = get_expected_products_url(completed_dict_param,
                                              token=encoded_token,
                                              session_id=session_id,
                                              job_id=job_id)
@@ -495,6 +515,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
             dispatcher_local_mail_server.get_email_record(),
             'submitted',
             dispatcher_job_state,
+            variation_suffixes=["dummy"],
             time_request_str=time_request_str,
             products_url=products_url,
             dispatcher_live_fixture=None,
@@ -564,12 +585,13 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     assert c.status_code == 200
 
     c = requests.get(server + "/run_analysis",
-                    {**dict_param, 
-                    "query_status": "submitted",
-                    "job_id": job_id,
-                    "session_id": session_id,
-                    }
-                    )  
+                     {
+                        **dict_param,
+                        "query_status": "submitted",
+                        "job_id": job_id,
+                        "session_id": session_id,
+                     }
+                     )
     assert c.status_code == 200
     assert c.json()['query_status'] == 'progress'
 
@@ -1443,7 +1465,16 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         assert 'use_scws' not in jdata['products']['api_code']
         # validate email content,
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
-        products_url = get_expected_products_url(params,
+
+        completed_dict_param = {**params,
+                                'src_name': '1E 1740.7-2942',
+                                'RA': 265.97845833,
+                                'DEC': -29.74516667,
+                                'T1': '2017-03-06T13:26:48.000',
+                                'T2': '2017-03-06T15:32:27.000',
+                                }
+
+        products_url = get_expected_products_url(completed_dict_param,
                                                  session_id=dispatcher_job_state.session_id,
                                                  job_id=dispatcher_job_state.job_id,
                                                  token=encoded_token)
@@ -1541,6 +1572,7 @@ def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispa
     from bs4 import BeautifulSoup
     assert name_parameter_value in BeautifulSoup(email_data).get_text()
 
+
 @pytest.mark.parametrize('length', [3, 100])
 def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixture, dispatcher_local_mail_server):
     unbreakable = length >= 100 
@@ -1549,7 +1581,7 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
     
     DispatcherJobState.remove_scratch_folders()
 
-     # let's generate a valid token with high threshold
+    # let's generate a valid token with high threshold
     token_payload = {
         **default_token_payload,
         "tem": 0
@@ -1582,7 +1614,19 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
     # included also default values,
     # which for the case of numerical query, is p, with a value of 10.0
     # and string_like_name
-    products_url = get_expected_products_url({**params, 'p': 10.0, 'string_like_name': 'default-name'},
+
+    completed_dict_param = {**params,
+                            'p': 10.0,
+                            'string_like_name': 'default-name',
+                            'use_scws': 'no',
+                            'src_name': '1E 1740.7-2942',
+                            'RA': 265.97845833,
+                            'DEC': -29.74516667,
+                            'T1': '2017-03-06T13:26:48.000',
+                            'T2': '2017-03-06T15:32:27.000',
+                            }
+
+    products_url = get_expected_products_url(completed_dict_param,
                                              session_id=dispatcher_job_state.session_id,
                                              job_id=dispatcher_job_state.job_id,
                                              token=encoded_token)

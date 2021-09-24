@@ -256,18 +256,18 @@ class BaseQuery(object):
 
 class SourceQuery(BaseQuery):
     def __init__(self, name):
-        src_name = Name(name_format='str', name='src_name', value='test')
-        RA = Angle(value=0., units='deg', name='RA', )
-        DEC = Angle(value=0., units='deg', name='DEC')
+        src_name = Name(name_format='str', name='src_name', value='1E 1740.7-2942')
+        RA = Angle(value=265.97845833, units='deg', name='RA', )
+        DEC = Angle(value=-29.74516667, units='deg', name='DEC')
 
-        sky_coords = ParameterTuple([RA,DEC],'sky_coords')
+        sky_coords = ParameterTuple([RA, DEC], 'sky_coords')
 
-        t1 = Time(value='2001-12-11T00:00:00.0',name='T1',Time_format_name='T_format')
-        t2 = Time(value='2001-12-11T00:00:00.0',name='T2',Time_format_name='T_format')
+        t1 = Time(value='2017-03-06T13:26:48.000', name='T1', Time_format_name='T_format')
+        t2 = Time(value='2017-03-06T15:32:27.000', name='T2', Time_format_name='T_format')
 
         t_range = ParameterRange(t1, t2, 'time')
 
-        token = Name(name_format='str', name='token',value=None)
+        token = Name(name_format='str', name='token', value=None)
 
         #time_group = ParameterGroup([t_range_iso, t_range_mjd], 'time_range', selected='t_range_iso')
         #time_group_selector = time_group.build_selector('time_group_selector')
@@ -277,31 +277,28 @@ class SourceQuery(BaseQuery):
         super(SourceQuery, self).__init__(name, parameters_list)
 
 
-
 class InstrumentQuery(BaseQuery):
-    def __init__(self,name,
+    def __init__(self,
+                 name,
                  extra_parameters_list=[],
                  input_prod_list_name=None,
                  input_prod_value=None,
                  catalog_name=None,
                  catalog=None):
 
+        input_prod_list = InputProdList(value=input_prod_value, _format='names_list', name=input_prod_list_name, )
 
-
-        input_prod_list= InputProdList(value=input_prod_value,_format='names_list', name=input_prod_list_name, )
-
-        catalog=UserCatalog(value=catalog,name_format='str',name=catalog_name)
+        catalog=UserCatalog(value=catalog, name_format='str', name=catalog_name)
 
         selected_catalog = UserCatalog(value=None, name_format='str', name='selected_catalog')
 
         self.input_prod_list_name = input_prod_list_name
         self.catalog_name = catalog_name
 
-        parameters_list=[catalog,input_prod_list,selected_catalog]
+        parameters_list=[catalog, input_prod_list, selected_catalog]
 
-        if extra_parameters_list is not None and extra_parameters_list!=[]:
+        if extra_parameters_list is not None and extra_parameters_list != []:
             parameters_list.extend(extra_parameters_list)
-
 
         super(InstrumentQuery, self).__init__(name,parameters_list)
 
@@ -766,9 +763,10 @@ class PostProcessProductQuery(ProductQuery):
 
         return query_out
 
+
 class ImageQuery(ProductQuery):
     def __init__(self,name,parameters_list=[],**kwargs):
-        detection_th = DetectionThreshold(value=0.0,units='sigma', name='detection_threshold')
+        detection_th = DetectionThreshold(value=7.0, units='sigma', name='detection_threshold')
         if parameters_list != [] and parameters_list is not None:
             parameters_list.append(detection_th)
         else:
@@ -778,6 +776,7 @@ class ImageQuery(ProductQuery):
         image_scale_max = Float(value=None, name='image_scale_max')
         parameters_list.extend([image_scale_min, image_scale_max])
         super(ImageQuery, self).__init__(name, parameters_list, **kwargs)
+
 
 class LightCurveQuery(ProductQuery):
     def __init__(self,name,parameters_list=[], **kwargs):

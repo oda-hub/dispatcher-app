@@ -38,9 +38,10 @@ import jwt
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
 from ..analysis import tokenHelper, email_helper
+from ..analysis.instrument import params_not_to_be_included
 from ..analysis.hash import make_hash
 from ..analysis.hash import default_kw_black_list
-from ..analysis.job_manager import Job, job_factory
+from ..analysis.job_manager import job_factory
 from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
@@ -226,7 +227,6 @@ class InstrumentQueryBackEnd:
                                     f"during query_status == \"new\", provided (unnecessarily) job_id {provided_job_id} "
                                     f"did not match self.job_id {self.job_id} computed from request"
                                 ))
-
                     else:
                         if 'job_id' not in self.par_dic:
                             raise RequestNotUnderstood(
@@ -237,8 +237,7 @@ class InstrumentQueryBackEnd:
                 self.set_scratch_dir(
                     self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
 
-                
-                self.log_query_progression("before move_temp_content")                
+                self.log_query_progression("before move_temp_content")
                 self.move_temp_content()
                 self.log_query_progression("after move_temp_content")                
 
@@ -425,6 +424,9 @@ class InstrumentQueryBackEnd:
                 raise RequestNotUnderstood("scw_list parameter was expected to be passed, "
                                            "but it has not been found, "
                                            "please check the inputs")
+            if self.use_scws is None or self.use_scws == 'no':
+                # to prevent the scw_list to be added to the par_dict
+                params_not_to_be_included.append('scw_list')
 
     def set_args(self, request, verbose=False):
         if request.method in ['GET', 'POST']:
@@ -501,15 +503,12 @@ class InstrumentQueryBackEnd:
             file_list[ID] = os.path.join(scratch_dir + '/', f)
 
         tmp_dir = tempfile.mkdtemp(prefix='download_', dir='./')
-        #print('using tmp dir', tmp_dir)
 
         file_path = os.path.join(tmp_dir, file_name)
-        #print('writing to file path', file_path)
         out_dir = file_name.replace('.tar', '')
         out_dir = out_dir.replace('.gz', '')
 
         if len(file_list) > 1:
-            #print('preparing tar')
             tar = tarfile.open("%s" % (file_path), "w:gz")
             for name in file_list:
                 #print('add to tar', file_name,name)
@@ -518,7 +517,6 @@ class InstrumentQueryBackEnd:
                             (out_dir, os.path.basename(name)))
             tar.close()
         else:
-            #print('single fits file')
             in_data = open(file_list[0], "rb").read()
             with gzip.open(file_path, 'wb') as f:
                 f.write(in_data)
@@ -635,22 +633,6 @@ class InstrumentQueryBackEnd:
                                               debug_message=e.debug_message)
         except Exception as e:
             return e
-
-    # @staticmethod
-    # def upload_file(name, dir):
-    #     if name not in request.files:
-    #         return None
-    #     else:
-    #         file = request.files[name]
-    #         # if user does not select file, browser also
-    #         # submit a empty part without filename
-    #         if file.filename == '' or file.filename is None:
-    #             return None
-    #
-    #         filename = secure_filename(file.filename)
-    #         file_path = os.path.join(dir, filename)
-    #         file.save(file_path)
-    #         return file_path
 
     def get_meta_data(self, meta_name=None):
         src_query = SourceQuery('src_query')
