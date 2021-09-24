@@ -54,10 +54,12 @@ __author__ = "Andrea Tramacere"
 # relative import eg: from .mod import f
 
 # list of parameters not to be included in the par_dic object
-params_not_to_be_included = ('user_catalog',)
+params_not_to_be_included = ['user_catalog',]
+
 
 class DataServerQueryClassNotSet(Exception):
     pass
+
 
 class Instrument:
     def __init__(self,

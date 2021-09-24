@@ -402,7 +402,6 @@ def test_validation_job_id(dispatcher_live_fixture):
             **base_dict_param,
             'sub': 'mtm1@mtmco.net',
             'src_name': 'test',
-            'scw_list': [],
             'RA': 0.0,
             'DEC': 0.0,
             'T1': '2001-12-11T00:00:00.000',
@@ -487,7 +486,6 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     job_id = jdata['job_monitor']['job_id']
 
     completed_dict_param = {** dict_param,
-                            'scw_list': [],
                             'src_name': 'test',
                             'use_scws': 'no',
                             'RA': 0.0,
@@ -586,12 +584,13 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     assert c.status_code == 200
 
     c = requests.get(server + "/run_analysis",
-                    {**dict_param, 
-                    "query_status": "submitted",
-                    "job_id": job_id,
-                    "session_id": session_id,
-                    }
-                    )  
+                     {
+                        **dict_param,
+                        "query_status": "submitted",
+                        "job_id": job_id,
+                        "session_id": session_id,
+                     }
+                     )
     assert c.status_code == 200
     assert c.json()['query_status'] == 'progress'
 
@@ -1465,7 +1464,16 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         assert 'use_scws' not in jdata['products']['api_code']
         # validate email content,
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
-        products_url = get_expected_products_url(params,
+
+        completed_dict_param = {**params,
+                                'src_name': 'test',
+                                'RA': 0.0,
+                                'DEC': 0.0,
+                                'T1': '2001-12-11T00:00:00.000',
+                                'T2': '2001-12-11T00:00:00.000'
+                                }
+
+        products_url = get_expected_products_url(completed_dict_param,
                                                  session_id=dispatcher_job_state.session_id,
                                                  job_id=dispatcher_job_state.job_id,
                                                  token=encoded_token)
@@ -1563,6 +1571,7 @@ def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispa
     from bs4 import BeautifulSoup
     assert name_parameter_value in BeautifulSoup(email_data).get_text()
 
+
 @pytest.mark.parametrize('length', [3, 100])
 def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixture, dispatcher_local_mail_server):
     unbreakable = length >= 100 
@@ -1571,7 +1580,7 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
     
     DispatcherJobState.remove_scratch_folders()
 
-     # let's generate a valid token with high threshold
+    # let's generate a valid token with high threshold
     token_payload = {
         **default_token_payload,
         "tem": 0
@@ -1604,7 +1613,19 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
     # included also default values,
     # which for the case of numerical query, is p, with a value of 10.0
     # and string_like_name
-    products_url = get_expected_products_url({**params, 'p': 10.0, 'string_like_name': 'default-name'},
+
+    completed_dict_param = {**params,
+                            'p': 10.0,
+                            'string_like_name': 'default-name',
+                            'src_name': 'test',
+                            'use_scws': 'no',
+                            'RA': 0.0,
+                            'DEC': 0.0,
+                            'T1': '2001-12-11T00:00:00.000',
+                            'T2': '2001-12-11T00:00:00.000'
+                            }
+
+    products_url = get_expected_products_url(completed_dict_param,
                                              session_id=dispatcher_job_state.session_id,
                                              job_id=dispatcher_job_state.job_id,
                                              token=encoded_token)
