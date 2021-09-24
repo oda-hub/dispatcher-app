@@ -515,6 +515,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
             dispatcher_local_mail_server.get_email_record(),
             'submitted',
             dispatcher_job_state,
+            variation_suffixes=["dummy"],
             time_request_str=time_request_str,
             products_url=products_url,
             dispatcher_live_fixture=None,
