@@ -156,7 +156,7 @@ class InstrumentQueryBackEnd:
                     logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event': 'token-expired'})
                     raise RequestNotAuthorized("The token provided is expired, please try to logout and login again. "
                                                "If already logged out, please clean the cookies, "
-                                               "before re-submit you request.")
+                                               "and resubmit you request.")
 
                 self.log_query_progression("after validate_query_from_token")
                 logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
