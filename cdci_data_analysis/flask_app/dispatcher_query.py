@@ -165,6 +165,8 @@ class InstrumentQueryBackEnd:
             if download_products or resolve_job_url or update_token:
                 instrument_name = 'mock'
 
+            self.logger.info("before setting instrument, self.par_dic: %s", self.par_dic)
+
             if instrument_name is None:
                 if 'instrument' in self.par_dic:
                     self.instrument_name = self.par_dic['instrument']
@@ -1487,6 +1489,7 @@ class InstrumentQueryBackEnd:
             else:
                 try:
                     self.log_query_progression("before instrument.run_query")
+                    self.logger.info('will run_query with self.par_dic: %s', self.par_dic)
                     query_out = self.instrument.run_query(product_type,
                                                           self.par_dic,
                                                           request,

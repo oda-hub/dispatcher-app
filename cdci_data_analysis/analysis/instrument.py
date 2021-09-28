@@ -131,6 +131,7 @@ class Instrument:
                         self.src_query.parameters):
                 # this is required because in some cases a parameter is set without a name (eg UserCatalog),
                 # or they don't have to set (eg scw_list)
+                self.logger("set_pars_from_dic>> par: %s par.name: %s par_dic: %s", par, par.name, par_dic)
                 if par.name is not None and par.name not in params_not_to_be_included:
                     par.set_from_form(par_dic, verbose=verbose)
         else:

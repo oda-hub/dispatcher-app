@@ -84,8 +84,10 @@ class QueryOutput(object):
             with open(file_path.path) as outfile:
                 dict_analysis_parameters = json.load(outfile)
             logger.info("analysis_parameters.json file already present, "
-                        "and originally used for the job_id calculation: %s",
-                        json.dumps(dict_analysis_parameters, sort_keys=True, indent=4))
+                        "and originally used for the job_id calculation: %s"
+                        " while newly requested parameters are %s",
+                        json.dumps(dict_analysis_parameters, sort_keys=True, indent=4),
+                        json.dumps({k: v for k, v in query_dict.items() if v is not None}, sort_keys=True, indent=4))
 
     def set_products(self, keys, values):
         for k, v in zip(keys, values):
