@@ -59,6 +59,8 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
+    DataServerQuery.set_status('submitted')
+
     dict_param = dict(
         query_status="new",
         query_type="Real",
@@ -1424,7 +1426,8 @@ def test_email_scws_list(dispatcher_long_living_fixture,
 
     DataServerQuery.set_status('done')
     jdata_done = ask_here()
-
+    DataServerQuery.set_status('submitted')
+    
     try:
         processed_scw_list = jdata_done['products']['input_param_scw_list']['data_unit_list'][0]['meta_data']['scw_list']
     except KeyError:
