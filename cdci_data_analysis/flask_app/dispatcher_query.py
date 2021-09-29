@@ -430,6 +430,7 @@ class InstrumentQueryBackEnd:
                                            "please check the inputs")
             if self.use_scws is None or self.use_scws == 'no':
                 # to prevent the scw_list to be added to the par_dict
+                # TODO: 
                 params_not_to_be_included.append('scw_list')
 
     def set_args(self, request, verbose=False):

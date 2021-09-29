@@ -18,6 +18,8 @@ from collections import OrderedDict
 
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, ask
 from cdci_data_analysis.analysis.email_helper import textify_email
+from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
+    
 
 from flask import Markup
 
@@ -1347,10 +1349,14 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
 
 
 @pytest.mark.not_safe_parallel
-@pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
-@pytest.mark.parametrize("scw_list_format", ['list', 'string'])
-@pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
-@pytest.mark.parametrize("scw_list_size", [5, 40])
+# @pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
+# @pytest.mark.parametrize("scw_list_format", ['list', 'string'])
+# @pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
+# @pytest.mark.parametrize("scw_list_size", [5, 40])
+@pytest.mark.parametrize("use_scws_value", ['form_list'])
+@pytest.mark.parametrize("scw_list_format", ['string'])
+@pytest.mark.parametrize("scw_list_passage", ['params'])
+@pytest.mark.parametrize("scw_list_size", [5])
 def test_email_scws_list(dispatcher_long_living_fixture,
                          dispatcher_local_mail_server,
                          use_scws_value,
@@ -1404,14 +1410,27 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         elif scw_list_format == 'string':
             params['scw_list'] = scw_list_string
 
-    jdata = ask(server,
-                params,
-                method=ask_method,
-                max_time_s=150,
-                expected_query_status=None,
-                expected_status_code=None,
-                files=scw_list_file_obj
-                )
+    # this sets global variable
+    requests.get(server + '/api/par-names')
+
+    def ask_here():
+        return ask(server,
+                    params,
+                    method=ask_method,
+                    max_time_s=150,
+                    expected_query_status=None,
+                    expected_status_code=None,
+                    files=scw_list_file_obj
+                    )
+
+    DataServerQuery.set_status('submitted')
+    jdata = ask_here()
+
+    DataServerQuery.set_status('done')
+    jdata_done = ask_here()
+
+    processed_scw_list = jdata_done['products']['input_param_scw_list']['data_unit_list'][0]['meta_data']['scw_list']
+    assert processed_scw_list == scw_list
 
     error_message_scw_list_missing_parameter = (
         'scw_list parameter was expected to be passed, but it has not been found, '
