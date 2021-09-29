@@ -1349,27 +1349,20 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
 
 
 @pytest.mark.not_safe_parallel
-# @pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
-# @pytest.mark.parametrize("scw_list_format", ['list', 'string'])
-# @pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
-# @pytest.mark.parametrize("scw_list_size", [5, 40])
-@pytest.mark.parametrize("use_scws_value", ['form_list'])
-@pytest.mark.parametrize("scw_list_format", ['string'])
-@pytest.mark.parametrize("scw_list_passage", ['params'])
-@pytest.mark.parametrize("scw_list_size", [5])
-@pytest.mark.parametrize("request_pars_first", [True, False])
-def test_email_scws_list(dispatcher_live_fixture,
-                         #dispatcher_long_living_fixture,
+@pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
+@pytest.mark.parametrize("scw_list_format", ['list', 'string'])
+@pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
+@pytest.mark.parametrize("scw_list_size", [5, 40])
+def test_email_scws_list(dispatcher_long_living_fixture,
                          dispatcher_local_mail_server,
                          use_scws_value,
                          scw_list_format,
                          scw_list_passage,
                          scw_list_size,
-                         request_pars_first,
                          ):
     DispatcherJobState.remove_scratch_folders()
 
-    server = dispatcher_live_fixture
+    server = dispatcher_long_living_fixture
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
@@ -1413,9 +1406,8 @@ def test_email_scws_list(dispatcher_live_fixture,
         elif scw_list_format == 'string':
             params['scw_list'] = scw_list_string
 
-    if request_pars_first:
-        # this sets global variable
-        requests.get(server + '/api/par-names')
+    # this sets global variable
+    requests.get(server + '/api/par-names')
 
     def ask_here():
         return ask(server,
@@ -1433,8 +1425,10 @@ def test_email_scws_list(dispatcher_live_fixture,
     DataServerQuery.set_status('done')
     jdata_done = ask_here()
 
-    processed_scw_list = jdata_done['products']['input_param_scw_list']['data_unit_list'][0]['meta_data']['scw_list']
-    assert processed_scw_list == scw_list
+    try:
+        processed_scw_list = jdata_done['products']['input_param_scw_list']['data_unit_list'][0]['meta_data']['scw_list']
+    except KeyError:
+        processed_scw_list = None
 
     error_message_scw_list_missing_parameter = (
         'scw_list parameter was expected to be passed, but it has not been found, '
@@ -1455,7 +1449,7 @@ def test_email_scws_list(dispatcher_live_fixture,
         error_message = error_message_scw_list_missing_file if use_scws_value == 'user_file' \
             else error_message_scw_list_missing_parameter
         assert jdata['error_message'] == error_message
-
+        
     elif scw_list_passage == 'both':
         error_message = error_message_scw_list_found_parameter if (use_scws_value == 'user_file' or use_scws_value == 'no') \
             else error_message_scw_list_found_file
@@ -1481,6 +1475,7 @@ def test_email_scws_list(dispatcher_live_fixture,
             assert 'scw_list' in jdata['products']['api_code']
             assert 'scw_list' in jdata['products']['analysis_parameters']
             assert jdata['products']['analysis_parameters']['scw_list'] == scw_list
+            assert processed_scw_list == scw_list
 
         assert jdata['exit_status']['email_status'] == 'email sent'
 

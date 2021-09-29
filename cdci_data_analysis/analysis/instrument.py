@@ -55,7 +55,7 @@ __author__ = "Andrea Tramacere"
 
 # list of parameters not to be included in the par_dic object
 
-# TODO: This is not thread-safe! We use threads in the server!
+# TODO: this is not preserved between requests, and is not thread safe. Why not pass it in class instances?
 params_not_to_be_included = ['user_catalog',]
 
 

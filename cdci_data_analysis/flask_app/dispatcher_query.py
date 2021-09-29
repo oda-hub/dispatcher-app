@@ -108,6 +108,8 @@ class InstrumentQueryBackEnd:
             self.logger.setLevel(logging.DEBUG)
         else:
             self.logger.setLevel(logging.INFO)
+
+        params_not_to_be_included.clear()
         
         self.app = app
         try:
