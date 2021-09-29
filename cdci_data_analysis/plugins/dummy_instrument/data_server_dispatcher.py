@@ -170,7 +170,11 @@ class EmptyProductQuery(ProductQuery):
     def process_product_method(self, instrument, prod_list,api=False, **kw):
         query_out = QueryOutput()
         
-        query_out.prod_dictionary['input_param_scw_list'] = prod_list.prod_list[0].data
+        try:
+            query_out.prod_dictionary['input_param_scw_list'] = prod_list.prod_list[0].data
+        except Exception as e:
+            logger.info("unable to set input_param_scw_list - this is fine")
+
 
         query_out.prod_dictionary['prod_process_message'] = ''
 

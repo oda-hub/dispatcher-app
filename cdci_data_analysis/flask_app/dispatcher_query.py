@@ -110,6 +110,7 @@ class InstrumentQueryBackEnd:
             self.logger.setLevel(logging.INFO)
 
         params_not_to_be_included.clear()
+        params_not_to_be_included.append('user_catalog')
         
         self.app = app
         try:
