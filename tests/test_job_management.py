@@ -1357,16 +1357,19 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
 @pytest.mark.parametrize("scw_list_format", ['string'])
 @pytest.mark.parametrize("scw_list_passage", ['params'])
 @pytest.mark.parametrize("scw_list_size", [5])
-def test_email_scws_list(dispatcher_long_living_fixture,
+@pytest.mark.parametrize("request_pars_first", [True, False])
+def test_email_scws_list(dispatcher_live_fixture,
+                         #dispatcher_long_living_fixture,
                          dispatcher_local_mail_server,
                          use_scws_value,
                          scw_list_format,
                          scw_list_passage,
                          scw_list_size,
+                         request_pars_first,
                          ):
     DispatcherJobState.remove_scratch_folders()
 
-    server = dispatcher_long_living_fixture
+    server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
@@ -1410,8 +1413,9 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         elif scw_list_format == 'string':
             params['scw_list'] = scw_list_string
 
-    # this sets global variable
-    requests.get(server + '/api/par-names')
+    if request_pars_first:
+        # this sets global variable
+        requests.get(server + '/api/par-names')
 
     def ask_here():
         return ask(server,
