@@ -264,13 +264,13 @@ class Instrument:
                     query_name = self.get_product_query_name(product_type)
                     query_obj = self.get_query_by_name(query_name)
                     roles = []
+                    
                     if decoded_token is not None: # otherwise the request is public
                         roles = tokenHelper.get_token_roles(decoded_token)
+
                     # assess the permissions for the query execution
                     self.check_instrument_query_role(query_obj, product_type, roles, par_dic)
 
-                    # why called again?
-                    query_obj = self.get_query_by_name(query_name)
                     query_out = query_obj.run_query(self, out_dir, job, run_asynch,
                                                     query_type=query_type,
                                                     config=config,

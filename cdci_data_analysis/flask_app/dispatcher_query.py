@@ -174,8 +174,9 @@ class InstrumentQueryBackEnd:
                 if 'instrument' in self.par_dic:
                     self.instrument_name = self.par_dic['instrument']
                 else:
+                    self.logger.error("NoInstrumentSpecified, self.par_dic: %s", self.par_dic)
                     raise NoInstrumentSpecified(
-                        f"have paramters: {list(self.par_dic.keys())}")
+                        f"have parameters: {list(self.par_dic.keys())} ")
             else:
                 self.instrument_name = instrument_name
 
