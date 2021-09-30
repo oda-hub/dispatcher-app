@@ -108,6 +108,9 @@ class InstrumentQueryBackEnd:
             self.logger.setLevel(logging.DEBUG)
         else:
             self.logger.setLevel(logging.INFO)
+
+        params_not_to_be_included.clear()
+        params_not_to_be_included.append('user_catalog')
         
         self.app = app
         try:
@@ -165,12 +168,15 @@ class InstrumentQueryBackEnd:
             if download_products or resolve_job_url or update_token:
                 instrument_name = 'mock'
 
+            self.logger.info("before setting instrument, self.par_dic: %s", self.par_dic)
+
             if instrument_name is None:
                 if 'instrument' in self.par_dic:
                     self.instrument_name = self.par_dic['instrument']
                 else:
+                    self.logger.error("NoInstrumentSpecified, self.par_dic: %s", self.par_dic)
                     raise NoInstrumentSpecified(
-                        f"have paramters: {list(self.par_dic.keys())}")
+                        f"have parameters: {list(self.par_dic.keys())} ")
             else:
                 self.instrument_name = instrument_name
 
@@ -428,6 +434,7 @@ class InstrumentQueryBackEnd:
                                            "please check the inputs")
             if self.use_scws is None or self.use_scws == 'no':
                 # to prevent the scw_list to be added to the par_dict
+                # TODO: to be improved!
                 params_not_to_be_included.append('scw_list')
 
     def set_args(self, request, verbose=False):
@@ -1487,6 +1494,7 @@ class InstrumentQueryBackEnd:
             else:
                 try:
                     self.log_query_progression("before instrument.run_query")
+                    self.logger.info('will run_query with self.par_dic: %s', self.par_dic)
                     query_out = self.instrument.run_query(product_type,
                                                           self.par_dic,
                                                           request,

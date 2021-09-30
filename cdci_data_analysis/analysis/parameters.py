@@ -241,6 +241,7 @@ class Parameter(object):
             if par_name in form.keys():
                 v = form[par_name]
                 in_dictionary = True
+            logger.info("set_from_form: par_name=%s v=%s", par_name, v)
         except Exception as e:
             logger.error("problem e=%s setting par_name=%s, form=%s",
                          repr(e),

@@ -54,6 +54,8 @@ __author__ = "Andrea Tramacere"
 # relative import eg: from .mod import f
 
 # list of parameters not to be included in the par_dic object
+
+# TODO: this is not preserved between requests, and is not thread safe. Why not pass it in class instances?
 params_not_to_be_included = ['user_catalog',]
 
 
@@ -131,8 +133,14 @@ class Instrument:
                         self.src_query.parameters):
                 # this is required because in some cases a parameter is set without a name (eg UserCatalog),
                 # or they don't have to set (eg scw_list)
+                # 
                 if par.name is not None and par.name not in params_not_to_be_included:
                     par.set_from_form(par_dic, verbose=verbose)
+
+                self.logger.info("set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s", par, par.name, par.value, par_dic.get(par.name, None))
+                if par.name == "scw_list":
+                    self.logger.info("set_pars_from_dic>> scw_list is %s", par.value)
+
         else:
             for _query in self._queries_list:
                 for par in _query.parameters:
@@ -256,12 +264,13 @@ class Instrument:
                     query_name = self.get_product_query_name(product_type)
                     query_obj = self.get_query_by_name(query_name)
                     roles = []
+                    
                     if decoded_token is not None: # otherwise the request is public
                         roles = tokenHelper.get_token_roles(decoded_token)
+
                     # assess the permissions for the query execution
                     self.check_instrument_query_role(query_obj, product_type, roles, par_dic)
 
-                    query_obj = self.get_query_by_name(query_name)
                     query_out = query_obj.run_query(self, out_dir, job, run_asynch,
                                                     query_type=query_type,
                                                     config=config,
@@ -295,6 +304,7 @@ class Instrument:
                     query_out.set_failed(product_type, logger=logger, sentry_client=sentry_client, excep=e)
 
         # adding query parameters to final products
+        # TODO: this can be misleading since it's the parameters actually used
         query_out.set_analysis_parameters(par_dic)
         # TODO perhaps this will change
         query_out.set_api_code(par_dic, url=back_end_query.config.products_url + "/dispatch-data")
@@ -339,6 +349,7 @@ class Instrument:
 
         for _query in self._queries_list:
             if par_name in _query.par_names:
+                # TODO: this picks the last one if there are many?..
                 p  =  _query.get_par_by_name(par_name)
 
         if p is None:

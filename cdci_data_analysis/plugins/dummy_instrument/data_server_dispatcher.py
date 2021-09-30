@@ -40,7 +40,7 @@ from raven.utils.urlparse import urlparse
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.analysis.queries import ProductQuery
-from cdci_data_analysis.analysis.products import QueryOutput, QueryProductList, ImageProduct
+from cdci_data_analysis.analysis.products import BaseQueryProduct, QueryOutput, QueryProductList, ImageProduct
 from cdci_data_analysis.analysis.instrument import Instrument
 
 from oda_api.data_products import NumpyDataProduct, NumpyDataUnit
@@ -93,7 +93,7 @@ class DataServerQuery:
         logger.warn('fake run_query in %s with %s, %s', self, args, kwargs)
         
         query_out = QueryOutput()
-
+        
         status = self.decide_status() 
         if status == "submitted":
             # set done to submitted?
@@ -169,10 +169,24 @@ class EmptyProductQuery(ProductQuery):
 
     def process_product_method(self, instrument, prod_list,api=False, **kw):
         query_out = QueryOutput()
+        
+        try:
+            query_out.prod_dictionary['input_param_scw_list'] = prod_list.prod_list[0].data
+        except Exception as e:
+            logger.info("unable to set input_param_scw_list - this is fine")
+
+
+        query_out.prod_dictionary['prod_process_message'] = ''
+
         return query_out
 
     def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
-        return []
+        #TODO: return here the parameters
+        p = BaseQueryProduct('input_param_scw_list', 
+                              data=NumpyDataProduct(NumpyDataUnit(
+                                                      data=np.array([]), 
+                                                      meta_data={'scw_list': self.input_param_scw_list})))
+        return [p]
 
     def test_communication(self,
                            instrument: Instrument,
@@ -191,8 +205,11 @@ class EmptyProductQuery(ProductQuery):
 
     def get_data_server_query(self, instrument: Instrument, config=None):
         if instrument.data_server_query_class:
-            return instrument.data_server_query_class(instrument=instrument, config=config)
-        return DataServerQuery()
+            q = instrument.data_server_query_class(instrument=instrument, config=config)
+        else:
+            q = DataServerQuery()
+        self.input_param_scw_list = instrument.get_par_by_name('scw_list').value
+        return q
 
     # example with the general user role
     def check_query_roles(self, roles, par_dic):
