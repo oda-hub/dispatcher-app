@@ -170,6 +170,7 @@ class InstrumentQueryBackEnd:
                         pass
                 except jwt.exceptions.ExpiredSignatureError as e:
                     logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event': 'token-expired'})
+                    # TODO makes sense to have a different message when not during a call_back?
                     message = ("The token provided is expired, please try to logout and login again. "
                                "If already logged out, please clean the cookies, "
                                "and resubmit you request.")
