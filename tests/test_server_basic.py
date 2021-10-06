@@ -517,6 +517,59 @@ def test_invalid_token(dispatcher_live_fixture):
     assert number_scartch_dirs == len(dir_list)
 
 
+def test_call_back_invalid_token(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        'exp': int(time.time()) + 10,
+        "tem": 0
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    # this should return status submitted, so email sent
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+    assert c.status_code == 200
+    jdata = c.json()
+
+    logger.info("response from run_analysis: %s", json.dumps(jdata, indent=4))
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+
+    assert jdata['query_status'] == "submitted"
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    # set the time the request was initiated
+    time_request = jdata['time_request']
+
+    # let make sure the token used for the previous request expires
+    time.sleep(12)
+
+    c = requests.get(server + "/call_back",
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action='main_done',
+                         node_id=f'node_0',
+                         message='progressing',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+
+    jdata = c.json()
+    assert jdata['error_message'] == "The token provided is expired, please resubmit you request with a valid token."
+
+
 @pytest.mark.odaapi
 def test_email_oda_api(dispatcher_live_fixture, dispatcher_local_mail_server):
     DispatcherJobState.remove_scratch_folders()

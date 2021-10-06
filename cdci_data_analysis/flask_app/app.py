@@ -330,9 +330,9 @@ def dataserver_call_back():
         instrument_name='mock',
         data_server_call_back=True,
         query_id=query_id)
-    logger.info(f'\033[32m===========================> [{query_id}] dataserver_call_back constructor done in {_time.time() - t0} s\033[0m')    
+    logger.info(f'\033[32m===========================> [{query_id}] dataserver_call_back constructor done in {_time.time() - t0} s\033[0m')
     query.run_call_back()
-    logger.info(f'\033[32m===========================> [{query_id}] dataserver_call_back DONE in {_time.time() - t0}\033[0m')    
+    logger.info(f'\033[32m===========================> [{query_id}] dataserver_call_back DONE in {_time.time() - t0}\033[0m')
     return jsonify({'time_spent_s': _time.time() - t0})
 
 
