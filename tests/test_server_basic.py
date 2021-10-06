@@ -567,8 +567,7 @@ def test_call_back_invalid_token(dispatcher_live_fixture):
                      ))
 
     jdata = c.json()
-    assert jdata['error_message'] == ('The token provided is expired, please try to logout and login again. '
-                                      'If already logged out, please clean the cookies, and resubmit you request.')
+    assert jdata['error_message'] == "The token provided is expired, please resubmit you request with a valid token."
 
 
 @pytest.mark.odaapi
