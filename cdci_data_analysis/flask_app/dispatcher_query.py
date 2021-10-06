@@ -100,7 +100,17 @@ class InstrumentQueryBackEnd:
         t0 = self.query_progression[0]['t_s']
         self.logger.warning("%s %s s", message, self.query_progression[-1]['t_s'] - t0)
 
-    def __init__(self, app, instrument_name=None, par_dic=None, config=None, data_server_call_back=False, verbose=False, get_meta_data=False, download_products=False, resolve_job_url=False, query_id=None, update_token=False):
+    def __init__(self, app,
+                 instrument_name=None,
+                 par_dic=None,
+                 config=None,
+                 data_server_call_back=False,
+                 verbose=False,
+                 get_meta_data=False,
+                 download_products=False,
+                 resolve_job_url=False,
+                 query_id=None,
+                 update_token=False):
         self.logger = logging.getLogger(f"{repr(self)} [{query_id}]")
         self.logger = logging.getLogger(repr(self))
 
@@ -111,8 +121,11 @@ class InstrumentQueryBackEnd:
 
         params_not_to_be_included.clear()
         params_not_to_be_included.append('user_catalog')
-        
+
         self.app = app
+
+        if getattr(self.app.config.get('conf'), 'sentry_url', None) is not None:
+            self.set_sentry_client(self.app.config.get('conf').sentry_url)
         try:
             if par_dic is None:
                 self.set_args(request, verbose=verbose)
@@ -157,10 +170,8 @@ class InstrumentQueryBackEnd:
                         pass
                 except jwt.exceptions.ExpiredSignatureError as e:
                     logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event': 'token-expired'})
-                    message = ("The token provided is expired, please try to logout and login again. "
-                                               "If already logged out, please clean the cookies, "
-                                               "and resubmit you request.")
-                    if self.sentry_client is not None:
+                    message = ("The token provided is expired, please resubmit you request with a valid token.")
+                    if getattr(self, 'sentry_client', None) is not None:
                         self.sentry_client.capture('raven.events.Message', message=message)
 
                     raise RequestNotAuthorized(message)
@@ -194,8 +205,8 @@ class InstrumentQueryBackEnd:
                 # self.set_sentry_client()
             else:
                 logger.debug("NOT get_meta_data request: yes scratch_dir")
-
-                self.set_sentry_client()
+                # TODO why here and not at the beginning ?
+                # self.set_sentry_client()
                 # TODO is also the case of call_back to handle ?
                 if not data_server_call_back:
                     self.set_instrument(self.instrument_name)
