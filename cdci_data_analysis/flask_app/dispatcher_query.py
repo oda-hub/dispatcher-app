@@ -157,9 +157,13 @@ class InstrumentQueryBackEnd:
                         pass
                 except jwt.exceptions.ExpiredSignatureError as e:
                     logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event': 'token-expired'})
-                    raise RequestNotAuthorized("The token provided is expired, please try to logout and login again. "
+                    message = ("The token provided is expired, please try to logout and login again. "
                                                "If already logged out, please clean the cookies, "
                                                "and resubmit you request.")
+                    if self.sentry_client is not None:
+                        self.sentry_client.capture('raven.events.Message', message=message)
+
+                    raise RequestNotAuthorized(message)
 
                 self.log_query_progression("after validate_query_from_token")
                 logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
