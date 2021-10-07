@@ -1425,7 +1425,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
 
     DataServerQuery.set_status('submitted')    
     jdata = ask_here()
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    # dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
 
     DataServerQuery.set_status('done')
 
