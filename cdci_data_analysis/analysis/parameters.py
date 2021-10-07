@@ -254,15 +254,15 @@ class Parameter(object):
             self.set_par(value=v, units=u)
             if isinstance(self, Time):
                 v = self._astropy_time.isot
-                u = 'isot'
                 form[par_name] = v
-                form[units_name] = u
+                # u = 'isot'
+                # form[units_name] = u
         else:
             # set the default value
             form[par_name] = self.value
-            if isinstance(self, Time):
-                u = 'isot'
-                form[units_name] = u
+            # if isinstance(self, Time):
+            #     u = 'isot'
+            #     form[units_name] = u
             if verbose is True:
                 logger.debug('setting par: ', par_name, ' not in dictionary, setting to the default value')
 
