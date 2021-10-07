@@ -1551,7 +1551,7 @@ def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispa
 
     DispatcherJobState.remove_scratch_folders()
 
-     # let's generate a valid token with high threshold
+    # let's generate a valid token with high threshold
     token_payload = {
         **default_token_payload,
         "tem": 0
@@ -1643,6 +1643,7 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
                             'DEC': -29.74516667,
                             'T1': '2017-03-06T13:26:48.000',
                             'T2': '2017-03-06T15:32:27.000',
+                            'T_format': 'isot'
                             }
 
     products_url = get_expected_products_url(completed_dict_param,
