@@ -1421,10 +1421,30 @@ def test_email_scws_list(dispatcher_long_living_fixture,
                     files=scw_list_file_obj
                     )
 
-    DataServerQuery.set_status('submitted')
+    time_request = time.time()
+
+    DataServerQuery.set_status('submitted')    
     jdata = ask_here()
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
 
     DataServerQuery.set_status('done')
+
+    # this triggers email
+    c = requests.get(server + "/call_back",
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action='done',
+                         node_id='node_final',
+                         message='done',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+
+    # complete test here!
+
+
     jdata_done = ask_here()
     DataServerQuery.set_status('submitted')
     

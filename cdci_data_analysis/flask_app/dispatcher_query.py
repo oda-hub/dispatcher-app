@@ -419,31 +419,34 @@ class InstrumentQueryBackEnd:
     def get_current_ip(self):
         return socket.gethostbyname(socket.gethostname())
 
-    def set_scws_related_params(self, request):
+    def set_scws_related_params(self, request, par_dic=None):
         # it is nowhere necessary within the dispatcher-app,
         # but it is re-attached to the url within the email
         # when sending it since it is used by the frontend
 
+        if par_dic is None:
+            par_dic = self.par_dic
+
         # why use both `request` and `self.par_dict`? par_dict should be derived from request while preserving list
-        self.use_scws = self.par_dic.pop('use_scws', None)
+        self.use_scws = par_dic.pop('use_scws', None)
         #
-        if 'scw_list' in self.par_dic.keys():
+        if 'scw_list' in par_dic.keys():
             if self.use_scws == 'no' or self.use_scws == 'user_file':
                 raise RequestNotUnderstood("scw_list parameter was found "
                                            "despite use_scws was indicating this was not provided, "
                                            "please check the inputs")
             _p = request.values.getlist('scw_list')
             if len(_p) > 1:
-                self.par_dic['scw_list'] = _p
+                par_dic['scw_list'] = _p
             # it could be a comma-separated string, so let's convert to a list
             elif len(_p) == 1:
                 _p = str(_p)[1:-1].replace('\'','').split(",")
                 if len(_p) > 1:
-                    self.par_dic['scw_list'] = _p
+                    par_dic['scw_list'] = _p
             # use_scws should be set for, if any, url link within the email
             if self.use_scws is None:
                 self.use_scws = 'form_list'
-            print('=======> scw_list',  self.par_dic['scw_list'], _p, len(_p))
+            print('=======> scw_list',  par_dic['scw_list'], _p, len(_p))
         else:
             # not necessary to check the case of scw_list passed via file,
             # since it is verified at a later stage
