@@ -251,12 +251,12 @@ class Parameter(object):
             raise
 
         if in_dictionary is True:
+            self.set_par(value=v, units=u)
             if isinstance(self, Time):
                 v = self._astropy_time.isot
                 u = 'isot'
                 form[par_name] = v
                 form[units_name] = u
-            self.set_par(value=v, units=u)
         else:
             # set the default value
             form[par_name] = self.value
