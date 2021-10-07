@@ -32,6 +32,7 @@ import yaml
 import numpy as np
 from astropy.table import Table
 
+import cdci_data_analysis.analysis.parameters
 from cdci_data_analysis.analysis.queries import _check_is_base_query
 from ..analysis import tokenHelper
 from .catalog import BasicCatalog
