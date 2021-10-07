@@ -439,6 +439,7 @@ class InstrumentQueryBackEnd:
             elif len(_p) == 1:
                 _p = str(_p)[1:-1].replace('\'','').split(",")
                 if len(_p) > 1:
+                    # TODO to be extended also to cases with one element, so to be consistent with how it is handled when passed with a file
                     self.par_dic['scw_list'] = _p
             # use_scws should be set for, if any, url link within the email
             if self.use_scws is None:

@@ -1354,7 +1354,7 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
 @pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
 @pytest.mark.parametrize("scw_list_format", ['list', 'string'])
 @pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
-@pytest.mark.parametrize("scw_list_size", [5, 40])
+@pytest.mark.parametrize("scw_list_size", [1])
 def test_email_scws_list(dispatcher_long_living_fixture,
                          dispatcher_local_mail_server,
                          use_scws_value,
@@ -1408,8 +1408,8 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         elif scw_list_format == 'string':
             params['scw_list'] = scw_list_string
 
-    # this sets global variable
-    requests.get(server + '/api/par-names')
+    # # this sets global variable
+    # requests.get(server + '/api/par-names')
 
     def ask_here():
         return ask(server,
@@ -1477,7 +1477,15 @@ def test_email_scws_list(dispatcher_long_living_fixture,
             params['scw_list'] = scw_list_string
             assert 'scw_list' in jdata['products']['api_code']
             assert 'scw_list' in jdata['products']['analysis_parameters']
-            assert jdata['products']['analysis_parameters']['scw_list'] == scw_list
+            # very specific case to be considered for the way the dispatcher
+            # handles scw_list with one single element
+            if scw_list_size == 1 and \
+                    (use_scws_value is None or use_scws_value == 'form_list' or use_scws_value == 'not_included') and \
+                    scw_list_passage == 'params':
+                assert jdata['products']['analysis_parameters']['scw_list'] == scw_list_string
+            else:
+                assert jdata['products']['analysis_parameters']['scw_list'] == scw_list
+
             assert processed_scw_list == scw_list
 
         assert jdata['exit_status']['email_status'] == 'email sent'
