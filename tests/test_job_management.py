@@ -1429,18 +1429,18 @@ def test_email_scws_list(dispatcher_long_living_fixture,
 
     DataServerQuery.set_status('done')
 
-    # this triggers email
-    c = requests.get(server + "/call_back",
-                     params=dict(
-                         job_id=dispatcher_job_state.job_id,
-                         session_id=dispatcher_job_state.session_id,
-                         instrument_name="empty-async",
-                         action='done',
-                         node_id='node_final',
-                         message='done',
-                         token=encoded_token,
-                         time_original_request=time_request
-                     ))
+    # this triggers `done` email
+    # c = requests.get(server + "/call_back",
+    #                  params=dict(
+    #                      job_id=dispatcher_job_state.job_id,
+    #                      session_id=dispatcher_job_state.session_id,
+    #                      instrument_name="empty-async",
+    #                      action='done',
+    #                      node_id='node_final',
+    #                      message='done',
+    #                      token=encoded_token,
+    #                      time_original_request=time_request
+    #                  ))
 
     # complete test here!
 
