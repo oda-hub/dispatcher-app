@@ -775,6 +775,16 @@ class InstrumentQueryBackEnd:
                     product_type = original_request_par_dic['product_type']
                 except KeyError as e:
                     raise MissingRequestParameter(repr(e))
+
+                ## <HOTFIX
+                logger.warning('checking for hotfix, original_request_par_dic=%s', original_request_par_dic)
+                if 'scw_list' in original_request_par_dic and 'use_scws' not in original_request_par_dic:
+                    logger.warning('hotfix condition met, url will bet set use_scws')
+                    self.use_scws = 'form_list'
+                else:
+                    logger.warning('hotfix condition NOT met')
+                ## HOTFIX>
+
                 # build the products URL and get also the original requested product
                 products_url = self.generate_products_url_from_file(self.config.products_url,
                                                                     request_par_dict=original_request_par_dic)
