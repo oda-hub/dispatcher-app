@@ -474,27 +474,9 @@ class InstrumentQueryBackEnd:
         original_request_par_dic = self.get_request_par_dic()
         if original_request_par_dic is not None:
             self.use_scws = original_request_par_dic.get('use_scws', None)
-            #
             if 'scw_list' in original_request_par_dic.keys():
-                if self.use_scws == 'no' or self.use_scws == 'user_file':
-                    message = ("scw_list parameter was found in the original "
-                               "request data during the call_back "
-                               "despite use_scws was indicating this was not provided, "
-                               "please check the inputs")
-                    if getattr(self, 'sentry_client', None) is not None:
-                        self.sentry_client.capture('raven.events.Message', message=message)
-                    raise RequestNotUnderstood(message)
                 if self.use_scws is None:
                     self.use_scws = 'form_list'
-            else:
-                if self.use_scws == 'form_list':
-                    message = ("scw_list parameter was expected to be found "
-                               "in the original request data during the call_back, "
-                               "but it has not been found, "
-                               "please check the inputs")
-                    if getattr(self, 'sentry_client', None) is not None:
-                        self.sentry_client.capture('raven.events.Message', message=message)
-                    raise RequestNotUnderstood(message)
 
     def set_args(self, request, verbose=False):
         if request.method in ['GET', 'POST']:
