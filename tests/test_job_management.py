@@ -1411,9 +1411,8 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         elif scw_list_format == 'string':
             params['scw_list'] = scw_list_string
 
-    # TODO is this still needed ?
-    # # this sets global variable
-    # requests.get(server + '/api/par-names')
+    # this sets global variable
+    requests.get(server + '/api/par-names')
 
     def ask_here():
         return ask(server,
@@ -1562,7 +1561,6 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         # test also a call_back case
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
         time_request = jdata['time_request']
-        time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
 
         # this triggers email
         c = requests.get(server + "/call_back",
