@@ -1351,15 +1351,17 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
 
 
 @pytest.mark.not_safe_parallel
-@pytest.test_email_scws_list
+@pytest.mark.test_email_scws_list
 @pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
 @pytest.mark.parametrize("scw_list_format", ['list', 'string'])
+@pytest.mark.parametrize("call_back_action", ['done', 'failed'])
 @pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
 @pytest.mark.parametrize("scw_list_size", [1, 5, 40])
 def test_email_scws_list(dispatcher_long_living_fixture,
                          dispatcher_local_mail_server,
                          use_scws_value,
                          scw_list_format,
+                         call_back_action,
                          scw_list_passage,
                          scw_list_size
                          ):
@@ -1557,112 +1559,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
                     extracted_scw_list = parse_qs(extracted_parsed.query)['scw_list'][0]
                     assert extracted_scw_list == scw_list_string
 
-
-@pytest.mark.not_safe_parallel
-@pytest.mark.test_email_scws_list
-@pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
-@pytest.mark.parametrize("scw_list_format", ['list', 'string'])
-@pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
-@pytest.mark.parametrize("scw_list_size", [1, 5, 40])
-def test_call_back_email_scws_list(dispatcher_long_living_fixture,
-                                   dispatcher_local_mail_server,
-                                   use_scws_value,
-                                   scw_list_format,
-                                   scw_list_passage,
-                                   scw_list_size
-                                   ):
-    DispatcherJobState.remove_scratch_folders()
-
-    server = dispatcher_long_living_fixture
-    logger.info("constructed server: %s", server)
-
-    # let's generate a valid token
-    token_payload = {
-        **default_token_payload,
-        "roles": "unige-hpc-full, general",
-    }
-    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-
-    # setting params
-    params = {
-        'query_status': "new",
-        'product_type': "dummy",
-        'query_type': "Real",
-        'instrument': 'empty-async',
-        'token': encoded_token
-    }
-
-    scw_list = [f"0665{i:04d}0010.001" for i in range(scw_list_size)]
-    scw_list_string = ",".join(scw_list)
-    scw_list_file_obj = None
-    ask_method = 'get' if (scw_list_passage == 'params' or
-                           (scw_list_passage == 'not_passed' and use_scws_value != 'user_file')) \
-        else 'post'
-
-    if use_scws_value != 'not_included':
-        params['use_scws'] = use_scws_value
-
-    # configure the possible ways the list should be passed
-    if scw_list_passage == 'file' or scw_list_passage == 'both':
-        scw_list_file_path = DispatcherJobState.create_scw_list_file(list_length=scw_list_size,
-                                                                     format=scw_list_format,
-                                                                     scw_list=scw_list  # this takes priority
-                                                                     )
-        scw_list_file = open(scw_list_file_path).read()
-        scw_list_file_obj = {"user_scw_list_file": scw_list_file}
-
-    if scw_list_passage == 'params' or scw_list_passage == 'both':
-        if scw_list_format == 'list':
-            params['scw_list'] = scw_list
-        elif scw_list_format == 'string':
-            params['scw_list'] = scw_list_string
-
-    jdata = ask(server,
-                params,
-                method=ask_method,
-                max_time_s=150,
-                expected_query_status=None,
-                expected_status_code=None,
-                files=scw_list_file_obj
-                )
-
-    error_message_scw_list_missing_parameter = (
-        'scw_list parameter was expected to be passed, but it has not been found, '
-        'please check the inputs')
-    error_message_scw_list_missing_file = (
-        'scw_list file was expected to be passed, but it has not been found, '
-        'please check the inputs')
-
-    error_message_scw_list_found_parameter = (
-        "scw_list parameter was found despite use_scws was indicating this was not provided, "
-        "please check the inputs")
-    error_message_scw_list_found_file = (
-        'scw_list file was found despite use_scws was indicating this was not provided, '
-        'please check the inputs')
-
-    if scw_list_passage == 'not_passed' and \
-            (use_scws_value == 'user_file' or use_scws_value == 'form_list'):
-        error_message = error_message_scw_list_missing_file if use_scws_value == 'user_file' \
-            else error_message_scw_list_missing_parameter
-        assert jdata['error_message'] == error_message
-
-    elif scw_list_passage == 'both':
-        error_message = error_message_scw_list_found_parameter if (
-                    use_scws_value == 'user_file' or use_scws_value == 'no') \
-            else error_message_scw_list_found_file
-        assert jdata['error_message'] == error_message
-
-    elif scw_list_passage == 'file' and use_scws_value != 'user_file':
-        error_message = error_message_scw_list_missing_parameter if use_scws_value == 'form_list' \
-            else error_message_scw_list_found_file
-        assert jdata['error_message'] == error_message
-
-    elif scw_list_passage == 'params' and \
-            (use_scws_value == 'user_file' or use_scws_value == 'no'):
-        assert jdata['error_message'] == error_message_scw_list_found_parameter
-
-    else:
-
+        # test also a call_back case
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
         time_request = jdata['time_request']
         time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
@@ -1673,19 +1570,18 @@ def test_call_back_email_scws_list(dispatcher_long_living_fixture,
                              job_id=dispatcher_job_state.job_id,
                              session_id=dispatcher_job_state.session_id,
                              instrument_name="empty-async",
-                             action='done',
-                             node_id='node_done',
-                             message='done',
+                             action=call_back_action,
+                             node_id=f'node_{call_back_action}',
+                             message=call_back_action,
                              token=encoded_token,
                              time_original_request=time_request
                          ))
-
         assert c.status_code == 200
-        jdata = dispatcher_job_state.load_job_state_record('node_done', 'done')
+        jdata = dispatcher_job_state.load_job_state_record(f'node_{call_back_action}', call_back_action)
         assert jdata['email_status'] == 'email sent'
 
         # check the email in the email folders, and that the first one was produced
-        dispatcher_job_state.assert_email(state="done")
+        dispatcher_job_state.assert_email(state=call_back_action)
 
         if scw_list_passage == 'not_passed':
             params['use_scws'] = 'no'
