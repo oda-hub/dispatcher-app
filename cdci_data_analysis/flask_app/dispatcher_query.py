@@ -138,6 +138,11 @@ class InstrumentQueryBackEnd:
                 self.job_id = None
                 if 'job_id' in self.par_dic:
                     self.job_id = self.par_dic['job_id']
+                else:
+                    if getattr(self, 'sentry_client', None) is not None:
+                        self.sentry_client.capture('raven.events.Message',
+                                                   message="job_id not present during a call_back")
+                    raise RequestNotUnderstood("job_id must be present during a call_back")
             if data_server_call_back:
                 # this can be set since it's a call_back and job_id and session_id are available
                 self.set_scratch_dir(session_id=self.par_dic['session_id'], job_id=self.par_dic['job_id'])
