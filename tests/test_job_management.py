@@ -1559,7 +1559,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
 
 
 @pytest.mark.not_safe_parallel
-@pytest.test_email_scws_list
+@pytest.mark.test_email_scws_list
 @pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
 @pytest.mark.parametrize("scw_list_format", ['list', 'string'])
 @pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
