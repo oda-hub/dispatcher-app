@@ -132,7 +132,16 @@ class InstrumentQueryBackEnd:
             else:
                 self.par_dic = par_dic
 
-            self.set_scws_related_params(request)
+            if data_server_call_back:
+                # in thr case of call_back the job_id can be extracted from the received par_dic
+                self.job_id = None
+                if 'job_id' in self.par_dic:
+                    self.job_id = self.par_dic['job_id']
+                # this can be set since it's a call_back and job_id and session_id are available
+                self.set_scratch_dir(session_id=self.par_dic['session_id'], job_id=self.par_dic['job_id'])
+                self.set_scws_call_back_related_params()
+            else:
+                self.set_scws_related_params(request)
 
             self.log_query_progression("after set args")
 
@@ -230,11 +239,11 @@ class InstrumentQueryBackEnd:
                 # if 'query_status' not in self.par_dic:
                 #    raise MissingRequestParameter('no query_status!')
 
-                if data_server_call_back or resolve_job_url:
-                    self.job_id = None
-                    if 'job_id' in self.par_dic:
-                        self.job_id = self.par_dic['job_id']
-                else:
+                if not (data_server_call_back or resolve_job_url):
+                #     self.job_id = None
+                #     if 'job_id' in self.par_dic:
+                #         self.job_id = self.par_dic['job_id']
+                # else:
                     query_status = self.par_dic['query_status']
                     self.job_id = None
                     if query_status == 'new':
@@ -456,6 +465,25 @@ class InstrumentQueryBackEnd:
                 # to prevent the scw_list to be added to the par_dict
                 # TODO: to be improved!
                 params_not_to_be_included.append('scw_list')
+
+    def set_scws_call_back_related_params(self):
+        # get the original params dict from the json file within the folder
+        original_request_par_dic = self.get_request_par_dic()
+        self.use_scws = original_request_par_dic.get('use_scws', None)
+        #
+        if 'scw_list' in original_request_par_dic.keys():
+            if self.use_scws == 'no' or self.use_scws == 'user_file':
+                raise RequestNotUnderstood("scw_list parameter was found in the original during the call_back"
+                                           "despite use_scws was indicating this was not provided, "
+                                           "please check the inputs")
+            if self.use_scws is None:
+                self.use_scws = 'form_list'
+        else:
+            if self.use_scws is not None and self.use_scws == 'form_list':
+                raise RequestNotUnderstood("scw_list parameter was expected to be found "
+                                           "in the original during the call_back, "
+                                           "but it has not been found, "
+                                           "please check the inputs")
 
     def set_args(self, request, verbose=False):
         if request.method in ['GET', 'POST']:
@@ -832,11 +860,9 @@ class InstrumentQueryBackEnd:
         #                                message=f'attempted call_back with worng job_id {e.message}')
         #     logging.warning(f'unauthorized request detected during call back: {e.message}')
 
-
-    # TODO perhaps move it somewhere else?
     def get_request_par_dic(self) -> dict:
         """
-        returns parameters from current job/session
+        returns parameters from current job/session, if those are not provided
         """
         fn = self.scratch_dir + '/analysis_parameters.json'
 
