@@ -132,6 +132,11 @@ class InstrumentQueryBackEnd:
                 self.set_args(request, verbose=verbose)
             else:
                 self.par_dic = par_dic
+            self.log_query_progression("after set args")
+
+            self.log_query_progression("before set_session_id")
+            self.set_session_id()
+            self.log_query_progression("after set_session_id")
 
             if data_server_call_back or resolve_job_url:
                 # in the case of call_back or resolve_job_url the job_id can be extracted from the received par_dic
@@ -150,7 +155,6 @@ class InstrumentQueryBackEnd:
             else:
                 self.set_scws_related_params(request)
 
-            self.log_query_progression("after set args")
 
             self.client_name = self.par_dic.pop('client-name', 'unknown')
             if os.environ.get("DISPATCHER_ASYNC_ENABLED", "no") == "yes":  # TODO: move to config!
@@ -165,10 +169,6 @@ class InstrumentQueryBackEnd:
                 the remaining complexity is to send back a response which indicates "submitted" but not submitted job - only request
             """
 
-            self.log_query_progression("before set_session_id")
-            self.set_session_id()
-            self.log_query_progression("after set_session_id")
-            
             self.time_request = g.get('request_start_time', None)
 
             # By default, a request is public, let's now check if a token has been included
@@ -472,28 +472,29 @@ class InstrumentQueryBackEnd:
     def set_scws_call_back_related_params(self):
         # get the original params dict from the json file within the folder
         original_request_par_dic = self.get_request_par_dic()
-        self.use_scws = original_request_par_dic.get('use_scws', None)
-        #
-        if 'scw_list' in original_request_par_dic.keys():
-            if self.use_scws == 'no' or self.use_scws == 'user_file':
-                message = ("scw_list parameter was found in the original "
-                           "request data during the call_back "
-                           "despite use_scws was indicating this was not provided, "
-                           "please check the inputs")
-                if getattr(self, 'sentry_client', None) is not None:
-                    self.sentry_client.capture('raven.events.Message', message=message)
-                raise RequestNotUnderstood(message)
-            if self.use_scws is None:
-                self.use_scws = 'form_list'
-        else:
-            if self.use_scws == 'form_list':
-                message = ("scw_list parameter was expected to be found "
-                           "in the original request data during the call_back, "
-                           "but it has not been found, "
-                           "please check the inputs")
-                if getattr(self, 'sentry_client', None) is not None:
-                    self.sentry_client.capture('raven.events.Message', message=message)
-                raise RequestNotUnderstood(message)
+        if original_request_par_dic is not None:
+            self.use_scws = original_request_par_dic.get('use_scws', None)
+            #
+            if 'scw_list' in original_request_par_dic.keys():
+                if self.use_scws == 'no' or self.use_scws == 'user_file':
+                    message = ("scw_list parameter was found in the original "
+                               "request data during the call_back "
+                               "despite use_scws was indicating this was not provided, "
+                               "please check the inputs")
+                    if getattr(self, 'sentry_client', None) is not None:
+                        self.sentry_client.capture('raven.events.Message', message=message)
+                    raise RequestNotUnderstood(message)
+                if self.use_scws is None:
+                    self.use_scws = 'form_list'
+            else:
+                if self.use_scws == 'form_list':
+                    message = ("scw_list parameter was expected to be found "
+                               "in the original request data during the call_back, "
+                               "but it has not been found, "
+                               "please check the inputs")
+                    if getattr(self, 'sentry_client', None) is not None:
+                        self.sentry_client.capture('raven.events.Message', message=message)
+                    raise RequestNotUnderstood(message)
 
     def set_args(self, request, verbose=False):
         if request.method in ['GET', 'POST']:

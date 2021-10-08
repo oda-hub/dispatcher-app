@@ -1562,6 +1562,8 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
         time_request = jdata['time_request']
 
+
+
         # this triggers email
         c = requests.get(server + "/call_back",
                          params=dict(
