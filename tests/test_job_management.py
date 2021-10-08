@@ -1558,7 +1558,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
 
 
 @pytest.mark.not_safe_parallel
-@pytest.mark.parametrize("scw_list_size", [1])
+@pytest.mark.parametrize("scw_list_size", [1, 5, 40])
 def test_call_back_email_scws_list(dispatcher_long_living_fixture,
                                    dispatcher_local_mail_server,
                                    scw_list_size
@@ -1587,21 +1587,21 @@ def test_call_back_email_scws_list(dispatcher_long_living_fixture,
     scw_list = [f"0665{i:04d}0010.001" for i in range(scw_list_size)]
     scw_list_string = ",".join(scw_list)
     scw_list_file_obj = None
+
     ask_method = 'get'
-    params['use_scws'] = 'form_list'
+
     params['scw_list'] = scw_list
+    params['use_scws'] = 'form_list'
 
-    def ask_here():
-        return ask(server,
-                   params,
-                   method=ask_method,
-                   max_time_s=150,
-                   expected_query_status=None,
-                   expected_status_code=None,
-                   files=scw_list_file_obj
-                   )
+    jdata = ask(server,
+                params,
+                method=ask_method,
+                max_time_s=150,
+                expected_query_status=None,
+                expected_status_code=None,
+                files=scw_list_file_obj
+                )
 
-    jdata = ask_here()
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
     time_request = jdata['time_request']
     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))

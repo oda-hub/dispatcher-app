@@ -126,6 +126,7 @@ class InstrumentQueryBackEnd:
 
         if getattr(self.app.config.get('conf'), 'sentry_url', None) is not None:
             self.set_sentry_client(self.app.config.get('conf').sentry_url)
+
         try:
             if par_dic is None:
                 self.set_args(request, verbose=verbose)
@@ -470,18 +471,24 @@ class InstrumentQueryBackEnd:
         #
         if 'scw_list' in original_request_par_dic.keys():
             if self.use_scws == 'no' or self.use_scws == 'user_file':
-                raise RequestNotUnderstood("scw_list parameter was found in the original "
-                                           "request data during the call_back "
-                                           "despite use_scws was indicating this was not provided, "
-                                           "please check the inputs")
+                message = ("scw_list parameter was found in the original "
+                           "request data during the call_back "
+                           "despite use_scws was indicating this was not provided, "
+                           "please check the inputs")
+                if getattr(self, 'sentry_client', None) is not None:
+                    self.sentry_client.capture('raven.events.Message', message=message)
+                raise RequestNotUnderstood(message)
             if self.use_scws is None:
                 self.use_scws = 'form_list'
         else:
-            if self.use_scws is not None and self.use_scws == 'form_list':
-                raise RequestNotUnderstood("scw_list parameter was expected to be found "
-                                           "in the original request data during the call_back, "
-                                           "but it has not been found, "
-                                           "please check the inputs")
+            if self.use_scws == 'form_list':
+                message = ("scw_list parameter was expected to be found "
+                           "in the original request data during the call_back, "
+                           "but it has not been found, "
+                           "please check the inputs")
+                if getattr(self, 'sentry_client', None) is not None:
+                    self.sentry_client.capture('raven.events.Message', message=message)
+                raise RequestNotUnderstood(message)
 
     def set_args(self, request, verbose=False):
         if request.method in ['GET', 'POST']:
