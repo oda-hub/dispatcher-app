@@ -240,6 +240,42 @@ def validate_resolve_url(url, server):
     url = r.url
     print("resolved url: ", url)
     return url
+
+
+def validate_scw_list_email_content(message_record,
+                                    scw_list,
+                                    request_params=None,
+                                    scw_list_passage='not_passed',
+                                    products_url=None,
+                                    dispatcher_live_fixture=None):
+    scw_list_string = ",".join(scw_list)
+    msg = email.message_from_string(message_record['data'])
+    for part in msg.walk():
+        if part.get_content_type() == 'text/html':
+            content_text_html = part.get_payload().replace('\r', '').strip()
+            email_api_code = extract_api_code(content_text_html)
+            assert 'use_scws' not in email_api_code
+
+            if scw_list_passage != 'not_passed':
+                assert 'scw_list' in email_api_code
+
+            extracted_product_url = extract_products_url(content_text_html)
+            if products_url is not None and products_url != "":
+                assert products_url == extracted_product_url
+
+            if 'resolve' in extracted_product_url:
+                print("need to resolve this:", extracted_product_url)
+                extracted_product_url = validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
+
+            # verify product url contains the use_scws parameter for the frontend
+            extracted_parsed = parse.urlparse(extracted_product_url)
+            assert 'use_scws' in parse_qs(extracted_parsed.query)
+            extracted_use_scws = parse_qs(extracted_parsed.query)['use_scws'][0]
+            assert extracted_use_scws == request_params['use_scws']
+            if scw_list_passage != 'not_passed':
+                assert 'scw_list' in parse_qs(extracted_parsed.query)
+                extracted_scw_list = parse_qs(extracted_parsed.query)['scw_list'][0]
+                assert extracted_scw_list == scw_list_string
         
     
 def validate_email_content(
@@ -1439,13 +1475,13 @@ def test_email_scws_list(dispatcher_long_living_fixture,
 
     def ask_here():
         return ask(server,
-                    params,
-                    method=ask_method,
-                    max_time_s=150,
-                    expected_query_status=None,
-                    expected_status_code=None,
-                    files=scw_list_file_obj
-                    )
+                   params,
+                   method=ask_method,
+                   max_time_s=150,
+                   expected_query_status=None,
+                   expected_status_code=None,
+                   files=scw_list_file_obj
+                   )
 
     DataServerQuery.set_status('submitted')
     jdata = ask_here()
@@ -1535,32 +1571,14 @@ def test_email_scws_list(dispatcher_long_living_fixture,
 
         print("excpected products url:", products_url)
 
-        # extract api_code and url from the email
-        msg = email.message_from_string(dispatcher_local_mail_server.get_email_record()['data'])
-        for part in msg.walk():
-            if part.get_content_type() == 'text/html':
-                content_text_html = part.get_payload().replace('\r', '').strip()
-                email_api_code = extract_api_code(content_text_html)
-                assert 'use_scws' not in email_api_code
-                if scw_list_passage != 'not_passed':
-                    assert 'scw_list' in email_api_code
-
-                extracted_product_url = extract_products_url(content_text_html)
-                if products_url is not None and products_url != "":
-                    assert products_url == extracted_product_url
-
-                if 'resolve' in extracted_product_url:
-                    extracted_product_url = validate_resolve_url(extracted_product_url, server)
-
-                # verify product url contains the use_scws parameter for the frontend
-                extracted_parsed = parse.urlparse(extracted_product_url)
-                assert 'use_scws' in parse_qs(extracted_parsed.query)
-                extracted_use_scws = parse_qs(extracted_parsed.query)['use_scws'][0]
-                assert extracted_use_scws == params['use_scws']
-                if scw_list_passage != 'not_passed':
-                    assert 'scw_list' in parse_qs(extracted_parsed.query)
-                    extracted_scw_list = parse_qs(extracted_parsed.query)['scw_list'][0]
-                    assert extracted_scw_list == scw_list_string
+        # validate scw_list related content within the email
+        validate_scw_list_email_content(message_record=dispatcher_local_mail_server.get_email_record(),
+                                        scw_list=scw_list,
+                                        request_params=params,
+                                        scw_list_passage=scw_list_passage,
+                                        products_url=products_url,
+                                        dispatcher_live_fixture=server
+                                        )
 
         # test also a call_back case
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
@@ -1593,34 +1611,14 @@ def test_email_scws_list(dispatcher_long_living_fixture,
 
             params['scw_list'] = scw_list_string
 
-        # extract api_code and url from the email
-        msg = email.message_from_string(dispatcher_local_mail_server.get_email_record()['data'])
-        for part in msg.walk():
-            if part.get_content_type() == 'text/html':
-                content_text_html = part.get_payload().replace('\r', '').strip()
-                email_api_code = extract_api_code(content_text_html)
-                assert 'use_scws' not in email_api_code
-
-                if scw_list_passage != 'not_passed':
-                    assert 'scw_list' in email_api_code
-
-                extracted_product_url = extract_products_url(content_text_html)
-                if products_url is not None and products_url != "":
-                    assert products_url == extracted_product_url
-
-                if 'resolve' in extracted_product_url:
-                    print("need to resolve this:", extracted_product_url)
-                    extracted_product_url = validate_resolve_url(extracted_product_url, server)
-
-                # verify product url contains the use_scws parameter for the frontend
-                extracted_parsed = parse.urlparse(extracted_product_url)
-                assert 'use_scws' in parse_qs(extracted_parsed.query)
-                extracted_use_scws = parse_qs(extracted_parsed.query)['use_scws'][0]
-                assert extracted_use_scws == params['use_scws']
-                if scw_list_passage != 'not_passed':
-                    assert 'scw_list' in parse_qs(extracted_parsed.query)
-                    extracted_scw_list = parse_qs(extracted_parsed.query)['scw_list'][0]
-                    assert extracted_scw_list == scw_list_string
+        # validate scw_list related content within the email
+        validate_scw_list_email_content(message_record=dispatcher_local_mail_server.get_email_record(),
+                                        scw_list=scw_list,
+                                        request_params=params,
+                                        scw_list_passage=scw_list_passage,
+                                        products_url=products_url,
+                                        dispatcher_live_fixture=server
+                                        )
 
 
 def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispatcher_local_mail_server):
