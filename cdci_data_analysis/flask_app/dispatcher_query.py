@@ -132,11 +132,12 @@ class InstrumentQueryBackEnd:
             else:
                 self.par_dic = par_dic
 
-            if data_server_call_back:
-                # in thr case of call_back the job_id can be extracted from the received par_dic
+            if data_server_call_back or resolve_job_url:
+                # in the case of call_back or resolve_job_url the job_id can be extracted from the received par_dic
                 self.job_id = None
                 if 'job_id' in self.par_dic:
                     self.job_id = self.par_dic['job_id']
+            if data_server_call_back:
                 # this can be set since it's a call_back and job_id and session_id are available
                 self.set_scratch_dir(session_id=self.par_dic['session_id'], job_id=self.par_dic['job_id'])
                 self.set_scws_call_back_related_params()
@@ -240,10 +241,6 @@ class InstrumentQueryBackEnd:
                 #    raise MissingRequestParameter('no query_status!')
 
                 if not (data_server_call_back or resolve_job_url):
-                #     self.job_id = None
-                #     if 'job_id' in self.par_dic:
-                #         self.job_id = self.par_dic['job_id']
-                # else:
                     query_status = self.par_dic['query_status']
                     self.job_id = None
                     if query_status == 'new':
@@ -473,7 +470,8 @@ class InstrumentQueryBackEnd:
         #
         if 'scw_list' in original_request_par_dic.keys():
             if self.use_scws == 'no' or self.use_scws == 'user_file':
-                raise RequestNotUnderstood("scw_list parameter was found in the original during the call_back"
+                raise RequestNotUnderstood("scw_list parameter was found in the original "
+                                           "request data during the call_back "
                                            "despite use_scws was indicating this was not provided, "
                                            "please check the inputs")
             if self.use_scws is None:
@@ -481,7 +479,7 @@ class InstrumentQueryBackEnd:
         else:
             if self.use_scws is not None and self.use_scws == 'form_list':
                 raise RequestNotUnderstood("scw_list parameter was expected to be found "
-                                           "in the original during the call_back, "
+                                           "in the original request data during the call_back, "
                                            "but it has not been found, "
                                            "please check the inputs")
 
