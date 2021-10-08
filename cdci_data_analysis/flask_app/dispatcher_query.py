@@ -126,15 +126,35 @@ class InstrumentQueryBackEnd:
 
         if getattr(self.app.config.get('conf'), 'sentry_url', None) is not None:
             self.set_sentry_client(self.app.config.get('conf').sentry_url)
+
         try:
             if par_dic is None:
                 self.set_args(request, verbose=verbose)
             else:
                 self.par_dic = par_dic
-
-            self.set_scws_related_params(request)
-
             self.log_query_progression("after set args")
+
+            self.log_query_progression("before set_session_id")
+            self.set_session_id()
+            self.log_query_progression("after set_session_id")
+
+            if data_server_call_back or resolve_job_url:
+                # in the case of call_back or resolve_job_url the job_id can be extracted from the received par_dic
+                self.job_id = None
+                if 'job_id' in self.par_dic:
+                    self.job_id = self.par_dic['job_id']
+                else:
+                    if getattr(self, 'sentry_client', None) is not None:
+                        self.sentry_client.capture('raven.events.Message',
+                                                   message="job_id not present during a call_back")
+                    raise RequestNotUnderstood("job_id must be present during a call_back")
+            if data_server_call_back:
+                # this can be set since it's a call_back and job_id and session_id are available
+                self.set_scratch_dir(session_id=self.par_dic['session_id'], job_id=self.par_dic['job_id'])
+                self.set_scws_call_back_related_params()
+            else:
+                self.set_scws_related_params(request)
+
 
             self.client_name = self.par_dic.pop('client-name', 'unknown')
             if os.environ.get("DISPATCHER_ASYNC_ENABLED", "no") == "yes":  # TODO: move to config!
@@ -149,10 +169,6 @@ class InstrumentQueryBackEnd:
                 the remaining complexity is to send back a response which indicates "submitted" but not submitted job - only request
             """
 
-            self.log_query_progression("before set_session_id")
-            self.set_session_id()
-            self.log_query_progression("after set_session_id")
-            
             self.time_request = g.get('request_start_time', None)
 
             # By default, a request is public, let's now check if a token has been included
@@ -230,11 +246,7 @@ class InstrumentQueryBackEnd:
                 # if 'query_status' not in self.par_dic:
                 #    raise MissingRequestParameter('no query_status!')
 
-                if data_server_call_back or resolve_job_url:
-                    self.job_id = None
-                    if 'job_id' in self.par_dic:
-                        self.job_id = self.par_dic['job_id']
-                else:
+                if not (data_server_call_back or resolve_job_url):
                     query_status = self.par_dic['query_status']
                     self.job_id = None
                     if query_status == 'new':
@@ -439,6 +451,7 @@ class InstrumentQueryBackEnd:
             elif len(_p) == 1:
                 _p = str(_p)[1:-1].replace('\'','').split(",")
                 if len(_p) > 1:
+                    # TODO to be extended also to cases with one element, so to be consistent with how it is handled when passed with a file
                     self.par_dic['scw_list'] = _p
             # use_scws should be set for, if any, url link within the email
             if self.use_scws is None:
@@ -455,6 +468,15 @@ class InstrumentQueryBackEnd:
                 # to prevent the scw_list to be added to the par_dict
                 # TODO: to be improved!
                 params_not_to_be_included.append('scw_list')
+
+    def set_scws_call_back_related_params(self):
+        # get the original params dict from the json file within the folder
+        original_request_par_dic = self.get_request_par_dic()
+        if original_request_par_dic is not None:
+            self.use_scws = original_request_par_dic.get('use_scws', None)
+            if 'scw_list' in original_request_par_dic.keys():
+                if self.use_scws is None:
+                    self.use_scws = 'form_list'
 
     def set_args(self, request, verbose=False):
         if request.method in ['GET', 'POST']:
@@ -831,11 +853,9 @@ class InstrumentQueryBackEnd:
         #                                message=f'attempted call_back with worng job_id {e.message}')
         #     logging.warning(f'unauthorized request detected during call back: {e.message}')
 
-
-    # TODO perhaps move it somewhere else?
     def get_request_par_dic(self) -> dict:
         """
-        returns parameters from current job/session
+        returns parameters from current job/session, if those are not provided
         """
         fn = self.scratch_dir + '/analysis_parameters.json'
 
