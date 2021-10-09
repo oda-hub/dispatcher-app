@@ -518,13 +518,15 @@ class InstrumentQueryBackEnd:
             print('SETTEMP  ---->', session_id,
                   type(session_id), job_id, type(job_id))
 
-        td = 'temp'
+        suffix = ""
 
         if session_id is not None:
-            td += '_sid_' + session_id
+            suffix += '_sid_' + session_id
 
         if job_id is not None:
-            td += '_jid_'+job_id
+            suffix += '_jid_'+job_id
+
+        td = tempfile.mkdtemp(suffix = suffix)
 
         td = FilePath(file_dir=td)
         td.mkdir()
