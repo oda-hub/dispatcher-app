@@ -46,7 +46,7 @@ from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
-from ..analysis.exceptions import BadRequest, APIerror, MissingRequestParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut
+from ..analysis.exceptions import BadRequest, APIerror, MissingRequestParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut, InternalError
 from . import tasks
 
 from oda_api.api import DispatcherAPI
@@ -231,7 +231,18 @@ class InstrumentQueryBackEnd:
                 if not data_server_call_back:
                     self.set_instrument(self.instrument_name)
                     verbose = self.par_dic.get('verbose', 'False') == 'True'
-                    self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
+
+                    try:
+                        self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
+                    except Exception as e:
+                        if getattr(self, 'sentry_client', None) is not None:
+                            self.sentry_client.capture('raven.events.Message', message=f"problem creating temp directory: {e}")
+                        
+                        raise InternalError("we have encountered an internal error! "
+                                            "Our team is notified and is working on it. We are sorry! "
+                                            "When we find a solution we will try to reach you", status_code=500)
+
+
                     if self.instrument is not None and not isinstance(self.instrument, str):
                         self.instrument.parse_inputs_files(
                             par_dic=self.par_dic,
