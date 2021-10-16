@@ -275,7 +275,7 @@ def inspect_state():
     decoded_token = tokenHelper.get_decoded_token(token, secret_key)
     logger.info("==> token %s", decoded_token)    
 
-    roles = decoded_token.get('roles', '').split(',')
+    roles = [role.strip() for role in decoded_token.get('roles', '').split(',')]
     if 'user manager' not in roles and 'administrator' not in roles:
         return make_response('Not authorized, sorry!'), 403
 

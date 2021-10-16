@@ -781,7 +781,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
 
     DataServerQuery.set_status('submitted') # sets the expected default for other tests
     
-    admin_token = jwt.encode({**token_payload, 'roles': 'user manager'}, secret_key, algorithm='HS256')
+    admin_token = jwt.encode({**token_payload, 'roles': 'private, user manager, admin'}, secret_key, algorithm='HS256')
 
     r = requests.get(dispatcher_long_living_fixture + "/inspect-state", params=dict(token=encoded_token))
     assert r.status_code == 403
