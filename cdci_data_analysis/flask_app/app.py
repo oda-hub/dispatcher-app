@@ -263,7 +263,7 @@ def inspect_state():
     logger.info("request.args: %s ", request.args)
 
     token = request.args.get('token')
-    recent_days = request.args.get('recent_days', 3)
+    recent_days = request.args.get('recent_days', 3, type=float)
     job_id = request.args.get('job_id', None)
 
     if token is None:
@@ -290,7 +290,7 @@ def inspect_state():
                 if r.group('job_id') != job_id:
                     continue
 
-            if _time.time() - os.stat(scratch_dir).st_mtime  < recent_days:
+            if (_time.time() - os.stat(scratch_dir).st_mtime) < recent_days*24*3600:
                 records.append(dict(
                     mtime=os.stat(scratch_dir).st_mtime,
                     ctime=os.stat(scratch_dir).st_ctime,   
@@ -300,7 +300,7 @@ def inspect_state():
                     **read_scratch_dir(scratch_dir)
                 ))
 
-    logger.info("found records: %s")
+    logger.info("found records: %s", len(records))
     
     # TODO adaption to the QueryOutJSON schema is needed
     return jsonify(dict(records=records))
