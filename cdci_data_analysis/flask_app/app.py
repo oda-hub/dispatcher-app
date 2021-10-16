@@ -6,6 +6,7 @@ Created on Wed May 10 10:55:20 2017
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
 
+from os import path
 import re
 import string
 import random
@@ -211,9 +212,16 @@ def update_token_email_options():
     # TODO adaption to the QueryOutJSON schema is needed
     return query.token
 
+def read_scratch_dir(scratch_dir):
+    R = {}
+
+    R['analysis_parameters'] = json.loads(os.join(scratch_dir, 'analysis_parameters.json'))
+
+    return R
 
 @app.route('/inspect-state', methods=['POST', 'GET'])
 def inspect_state():
+    #TODO: move much of this elsewhere
     logger.info("request.args: %s ", request.args)
 
     token = request.args.get('token')
@@ -245,6 +253,7 @@ def inspect_state():
                     session_id=r.group('session_id'),
                     job_id=r.group('job_id'),
                     aliased_marker=r.group('aliased_marker'),
+                    **read_scratch_dir(scratch_dir)
                 ))
 
     logger.info("found records: %s")
