@@ -6,9 +6,11 @@ Created on Wed May 10 10:55:20 2017
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
 
+import re
 import string
 import random
 import hashlib
+import glob
 
 from raven.contrib.flask import Sentry
 
@@ -19,6 +21,8 @@ from flask_restx import Api, Resource, reqparse
 
 import time as _time
 from urllib.parse import urlencode
+
+from cdci_data_analysis.analysis import tokenHelper
 
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
@@ -206,6 +210,48 @@ def update_token_email_options():
     query.update_token(update_email_options=True)
     # TODO adaption to the QueryOutJSON schema is needed
     return query.token
+
+
+@app.route('/inspect-state', methods=['POST', 'GET'])
+def inspect_state():
+    logger.info("request.args: %s ", request.args)
+
+    token = request.args.get('token')
+    recent_days = request.args.get('recent_days', 3)
+
+    if token is None:
+        return make_response('Not authorized, sorry!'), 403
+
+    secret_key = app.config.get('conf').secret_key
+
+
+    decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+    logger.info("==> token %s", decoded_token)    
+
+    if 'user manager' not in decoded_token.get('roles', '').split(','):
+        return make_response('Not authorized, sorry!'), 403
+
+    #TODO!
+
+    records = []
+
+    for scratch_dir in glob.glob("scratch_sid_*_jid_*"):
+        r = re.match(r"scratch_sid_(?P<session_id>[A-Z0-9]{16})_jid_(?P<job_id>[a-z0-9]{16})(?P<aliased_marker>_aliased|)", scratch_dir)
+        if r is not None:
+            if _time.time() - os.stat(scratch_dir).st_mtime  < recent_days:
+                records.append(dict(
+                    mtime=os.stat(scratch_dir).st_mtime,   
+                    ctime=os.stat(scratch_dir).st_ctime,   
+                    session_id=r.group('session_id'),
+                    job_id=r.group('job_id'),
+                    aliased_marker=r.group('aliased_marker'),
+                ))
+
+    logger.info("found records: %s")
+    
+    # TODO adaption to the QueryOutJSON schema is needed
+    return jsonify(dict(records=records))
+
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])

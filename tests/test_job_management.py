@@ -780,6 +780,18 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     # TODO: test that this returns the result
 
     DataServerQuery.set_status('submitted') # sets the expected default for other tests
+    
+    admin_token = jwt.encode({**token_payload, 'roles': 'user manager'}, secret_key, algorithm='HS256')
+
+    r = requests.get(dispatcher_long_living_fixture + "/inspect-state", params=dict(token=encoded_token))
+    assert r.status_code == 403
+    assert r.text == 'Not authorized, sorry!'
+
+    r = requests.get(dispatcher_long_living_fixture + "/inspect-state", params=dict(token=admin_token))
+    dispatcher_state_report = r.json()
+    logger.info('dispatcher_state_report: %s', dispatcher_state_report)
+    assert len(dispatcher_state_report['records']) == 3
+
 
 
 @pytest.mark.not_safe_parallel
