@@ -229,13 +229,32 @@ def read_scratch_dir(scratch_dir):
         result['analysis_parameters']['token'] = tokenHelper.get_decoded_token(result['analysis_parameters']['token'], secret_key=None, validate_token=False)
         result['analysis_parameters']['email_history'] = []
 
+    result['analysis_parameters']['email_history'] = []
     for email in glob.glob(os.path.join(scratch_dir, 'email_history/*')):
+        ctime = os.stat(email).st_ctime,
         result['analysis_parameters']['email_history'].append(dict(
-            ctime=os.stat(scratch_dir).st_ctime,
-            ctime_isot=_time.strftime("%Y-%m-%dT%H:%M:%S", _time.gmtime(os.stat(scratch_dir).st_ctime)),
+            ctime=ctime,
+            ctime_isot=_time.strftime("%Y-%m-%dT%H:%M:%S", _time.gmtime(os.stat(email).st_ctime)),
             fn=email,
         ))
 
+    result['analysis_parameters']['fits_files'] = []
+    for fits_fn in glob.glob(os.path.join(scratch_dir, '*fits*')):
+        ctime = os.stat(fits_fn).st_ctime
+        result['analysis_parameters']['fits_files'].append(dict(
+            ctime=ctime,
+            ctime_isot=_time.strftime("%Y-%m-%dT%H:%M:%S", _time.gmtime(ctime)),
+            fn=fits_fn,
+        ))
+
+    result['analysis_parameters']['job_monitor'] = []
+    for fn in glob.glob(os.path.join(scratch_dir, 'job_monitor*')):
+        ctime = os.stat(fn).st_ctime
+        result['analysis_parameters']['job_monitor'].append(dict(
+            ctime=ctime,
+            ctime_isot=_time.strftime("%Y-%m-%dT%H:%M:%S", _time.gmtime(ctime)),
+            fn=fn,
+        ))
     return result
 
 @app.route('/inspect-state', methods=['POST', 'GET'])
