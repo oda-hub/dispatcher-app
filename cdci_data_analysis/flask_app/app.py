@@ -264,6 +264,7 @@ def inspect_state():
 
     token = request.args.get('token')
     recent_days = request.args.get('recent_days', 3)
+    job_id = request.args.get('job_id', None)
 
     if token is None:
         return make_response('Not authorized, sorry!'), 403
@@ -274,7 +275,8 @@ def inspect_state():
     decoded_token = tokenHelper.get_decoded_token(token, secret_key)
     logger.info("==> token %s", decoded_token)    
 
-    if 'user manager' not in decoded_token.get('roles', '').split(','):
+    roles = decoded_token.get('roles', '').split(',')
+    if 'user manager' not in roles and 'administrator' not in roles:
         return make_response('Not authorized, sorry!'), 403
 
     #TODO!
@@ -284,6 +286,10 @@ def inspect_state():
     for scratch_dir in glob.glob("scratch_sid_*_jid_*"):
         r = re.match(r"scratch_sid_(?P<session_id>[A-Z0-9]{16})_jid_(?P<job_id>[a-z0-9]{16})(?P<aliased_marker>_aliased|)", scratch_dir)
         if r is not None:
+            if job_id is not None:
+                if r.group('job_id') != job_id:
+                    continue
+
             if _time.time() - os.stat(scratch_dir).st_mtime  < recent_days:
                 records.append(dict(
                     mtime=os.stat(scratch_dir).st_mtime,
