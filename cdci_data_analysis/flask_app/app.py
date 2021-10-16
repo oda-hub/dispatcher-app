@@ -212,12 +212,31 @@ def update_token_email_options():
     # TODO adaption to the QueryOutJSON schema is needed
     return query.token
 
+
 def read_scratch_dir(scratch_dir):
-    R = {}
+    result = {}
 
-    R['analysis_parameters'] = json.loads(os.join(scratch_dir, 'analysis_parameters.json'))
+    try:
+        fn = os.path.join(scratch_dir, 'analysis_parameters.json')
+        result['analysis_parameters'] = json.load(open(fn))
+    except Exception as e:
+        # write something
+        logger.warning('unable to read: %s', fn)
+        return {'error': f'problem reading {fn}: {repr(e)}'}
+    
 
-    return R
+    if 'token' in result['analysis_parameters']:
+        result['analysis_parameters']['token'] = tokenHelper.get_decoded_token(result['analysis_parameters']['token'], secret_key=None, validate_token=False)
+        result['analysis_parameters']['email_history'] = []
+
+    for email in glob.glob(os.path.join(scratch_dir, 'email_history/*')):
+        result['analysis_parameters']['email_history'].append(dict(
+            ctime=os.stat(scratch_dir).st_ctime,
+            ctime_isot=_time.strftime("%Y-%m-%dT%H:%M:%S", _time.gmtime(os.stat(scratch_dir).st_ctime)),
+            fn=email,
+        ))
+
+    return result
 
 @app.route('/inspect-state', methods=['POST', 'GET'])
 def inspect_state():
@@ -248,7 +267,7 @@ def inspect_state():
         if r is not None:
             if _time.time() - os.stat(scratch_dir).st_mtime  < recent_days:
                 records.append(dict(
-                    mtime=os.stat(scratch_dir).st_mtime,   
+                    mtime=os.stat(scratch_dir).st_mtime,
                     ctime=os.stat(scratch_dir).st_ctime,   
                     session_id=r.group('session_id'),
                     job_id=r.group('job_id'),
