@@ -257,6 +257,7 @@ def read_scratch_dir(scratch_dir):
         ))
     return result
 
+
 @app.route('/inspect-state', methods=['POST', 'GET'])
 def inspect_state():
     #TODO: move much of this elsewhere
@@ -271,7 +272,6 @@ def inspect_state():
 
     secret_key = app.config.get('conf').secret_key
 
-
     decoded_token = tokenHelper.get_decoded_token(token, secret_key)
     logger.info("==> token %s", decoded_token)    
 
@@ -279,7 +279,7 @@ def inspect_state():
     if 'user manager' not in roles and 'administrator' not in roles:
         return make_response('Not authorized, sorry!'), 403
 
-    #TODO!
+    #TODO! what is missing ?
 
     records = []
 
@@ -304,7 +304,6 @@ def inspect_state():
     
     # TODO adaption to the QueryOutJSON schema is needed
     return jsonify(dict(records=records))
-
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
