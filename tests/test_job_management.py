@@ -1868,7 +1868,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
 
     c = requests.get(server + "/inspect-state",
                      params=dict(
-                         job_id=job_id,
+                         job_id=job_id[:8],
                          token=encoded_token,
                      ))
 

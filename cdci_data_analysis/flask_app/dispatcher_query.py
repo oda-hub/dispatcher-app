@@ -348,7 +348,7 @@ class InstrumentQueryBackEnd:
                 scratch_dir)
             if r is not None:
                 if job_id is not None:
-                    if r.group('job_id') != job_id:
+                    if r.group('job_id')[:8] != job_id:
                         continue
 
                 if (time_.time() - os.stat(scratch_dir).st_mtime) < recent_days * 24 * 3600:
