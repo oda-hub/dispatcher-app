@@ -1805,27 +1805,38 @@ scwl_dict = {"scw_list": "115000860010.001,115000870010.001,115000980010.001,115
     assert len(my_globals['scwl_dict']['scw_list']) > max_length
 
 
-def test_inspect_status(dispatcher_live_fixture):
+@pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
+@pytest.mark.parametrize("roles", ["general, user manager", ""])
+def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
     DispatcherJobState.remove_scratch_folders()
 
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
 
-    # let's generate a valid token
-    token_payload = {
-        **default_token_payload,
-        "roles": ["general", "user manager"],
-    }
-    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    token_none = (request_cred == 'public')
+
+    if token_none:
+        encoded_token = None
+    else:
+        # let's generate a valid token
+        token_payload = {
+            **default_token_payload,
+            "roles": roles,
+        }
+        encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
     params = {
         'query_status': 'new',
-        'product_type': 'numerical',
+        'product_type': 'dummy',
         'query_type': "Dummy",
         'instrument': 'empty',
         'token': encoded_token,
     }
+
+    # just for having the roles in a list
+    roles = roles.split(',')
+    roles[:] = [r.strip() for r in roles]
 
     jdata = ask(server,
                 params,
@@ -1834,12 +1845,25 @@ def test_inspect_status(dispatcher_live_fixture):
                 )
 
     job_id = jdata['products']['job_id']
-    session_id  = jdata['session_id']
+    session_id = jdata['session_id']
 
     scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
     scratch_dir_ctime = os.stat(scratch_dir_fn).st_ctime
 
     assert os.path.exists(scratch_dir_fn)
+
+    if request_cred == 'invalid_token':
+        # an invalid (encoded) token, just a string
+        encoded_token = 'invalid_token'
+        error_message = 'The token provided is not valid.'
+    elif request_cred == 'public':
+        error_message = 'A token must be provided.'
+    elif request_cred == 'private':
+        if 'user manager' not in roles:
+            error_message = (
+                f"Unfortunately, your privileges are not sufficient for this type of request.\n"
+                f"- Your privilege roles include {roles}, but the 'user manager' role is needed.\n"
+            )
 
     c = requests.get(server + "/inspect-state",
                      params=dict(
@@ -1847,12 +1871,18 @@ def test_inspect_status(dispatcher_live_fixture):
                          token=encoded_token,
                      ))
 
-    jdata = c.json()
+    if request_cred != 'private' or 'user manager' not in roles:
+        # email not supposed to be sent for public request
+        assert c.status_code == 403
+        jdata = c.json()
+        assert jdata['error_message'] == error_message
+    else:
+        jdata = c.json()
+        assert 'records' in jdata
+        assert type(jdata['records']) is list
+        assert len(jdata['records']) == 1
 
-    assert 'records' in jdata
-    assert type(jdata['records']) is list
-    assert len(jdata['records']) == 1
+        assert jdata['records'][0]['job_id'] == job_id
 
-    assert jdata['records'][0]['job_id'] == job_id
+        assert jdata['records'][0]['ctime'] == scratch_dir_ctime
 
-    assert jdata['records'][0]['ctime'] == scratch_dir_ctime
