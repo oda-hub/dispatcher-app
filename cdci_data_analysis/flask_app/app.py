@@ -210,7 +210,6 @@ def update_token_email_options():
 
 @app.route('/inspect-state', methods=['POST', 'GET'])
 def inspect_state():
-    #TODO: move much of this elsewhere
     logger.info("request.args: %s ", request.args)
 
     state_data_obj = InstrumentQueryBackEnd.inspect_state(app)
