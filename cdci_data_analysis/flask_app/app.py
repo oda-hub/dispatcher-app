@@ -223,7 +223,6 @@ def read_scratch_dir(scratch_dir):
         # write something
         logger.warning('unable to read: %s', fn)
         return {'error': f'problem reading {fn}: {repr(e)}'}
-    
 
     if 'token' in result['analysis_parameters']:
         result['analysis_parameters']['token'] = tokenHelper.get_decoded_token(result['analysis_parameters']['token'], secret_key=None, validate_token=False)
@@ -275,7 +274,7 @@ def inspect_state():
     decoded_token = tokenHelper.get_decoded_token(token, secret_key)
     logger.info("==> token %s", decoded_token)    
 
-    roles = [role.strip() for role in decoded_token.get('roles', '').split(',')]
+    roles = tokenHelper.get_token_roles(decoded_token)
     if 'user manager' not in roles and 'administrator' not in roles:
         return make_response('Not authorized, sorry!'), 403
 

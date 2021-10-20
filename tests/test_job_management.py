@@ -19,7 +19,7 @@ from collections import OrderedDict
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, ask
 from cdci_data_analysis.analysis.email_helper import textify_email
 from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
-    
+from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
 from flask import Markup
 
@@ -1803,3 +1803,56 @@ scwl_dict = {"scw_list": "115000860010.001,115000870010.001,115000980010.001,115
 
     assert len(my_globals['bla']) > max_length
     assert len(my_globals['scwl_dict']['scw_list']) > max_length
+
+
+def test_inspect_status(dispatcher_live_fixture):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": ["general", "user manager"],
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    job_id = jdata['products']['job_id']
+    session_id  = jdata['session_id']
+
+    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    scratch_dir_ctime = os.stat(scratch_dir_fn).st_ctime
+
+    assert os.path.exists(scratch_dir_fn)
+
+    c = requests.get(server + "/inspect-state",
+                     params=dict(
+                         job_id=job_id,
+                         token=encoded_token,
+                     ))
+
+    jdata = c.json()
+
+    assert 'records' in jdata
+    assert type(jdata['records']) is list
+    assert len(jdata['records']) == 1
+
+    assert jdata['records'][0]['job_id'] == job_id
+
+    assert jdata['records'][0]['ctime'] == scratch_dir_ctime
