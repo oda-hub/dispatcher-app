@@ -1852,6 +1852,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
 
     assert os.path.exists(scratch_dir_fn)
 
+    status_code = 403
     if request_cred == 'invalid_token':
         # an invalid (encoded) token, just a string
         encoded_token = 'invalid_token'
@@ -1871,9 +1872,11 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
                          token=encoded_token,
                      ))
 
+    scratch_dir_mtime = os.stat(scratch_dir_fn).st_mtime
+
     if request_cred != 'private' or 'user manager' not in roles:
         # email not supposed to be sent for public request
-        assert c.status_code == 403
+        assert c.status_code == status_code
         jdata = c.json()
         assert jdata['error_message'] == error_message
     else:
@@ -1885,4 +1888,5 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
         assert jdata['records'][0]['job_id'] == job_id
 
         assert jdata['records'][0]['ctime'] == scratch_dir_ctime
+        assert jdata['records'][0]['mtime'] == scratch_dir_mtime
 
