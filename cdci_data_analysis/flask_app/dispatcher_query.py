@@ -638,6 +638,7 @@ class InstrumentQueryBackEnd:
         td = tempfile.mkdtemp(suffix = suffix)
 
         td = FilePath(file_dir=td)
+        # TODO should not this be removed ?
         td.mkdir()
         self.temp_dir = td.path
 

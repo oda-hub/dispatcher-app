@@ -1866,6 +1866,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
                 f"- Your privilege roles include {roles}, but the 'user manager' role is needed.\n"
             )
 
+    # for the email we only use the first 8 characters
     c = requests.get(server + "/inspect-state",
                      params=dict(
                          job_id=job_id[:8],

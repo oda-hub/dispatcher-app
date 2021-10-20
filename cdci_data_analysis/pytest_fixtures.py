@@ -646,16 +646,20 @@ class DispatcherJobState:
 
     @staticmethod
     def create_temp_folder(session_id, job_id=None):
-        td = 'temp'
+        suffix = ""
 
         if session_id is not None:
-            td += '_sid_' + session_id
+            suffix += '_sid_' + session_id
 
         if job_id is not None:
-            td += '_jid_' + job_id
+            suffix += '_jid_' + job_id
+
+        td = tempfile.mkdtemp(suffix=suffix)
 
         td = FilePath(file_dir=td)
+        # should not this be removed ?
         td.mkdir()
+
         return td.path
 
     @staticmethod
