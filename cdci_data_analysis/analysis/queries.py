@@ -26,7 +26,7 @@ from collections import OrderedDict
 from .parameters import *
 from .products import SpectralFitProduct, QueryOutput, QueryProductList, ImageProduct
 from .io_helper import FilePath
-from .exceptions import RequestNotUnderstood
+from .exceptions import RequestNotUnderstood, UnfortunateRequestResults
 import traceback
 
 @decorator.decorator
@@ -374,12 +374,15 @@ class ProductQuery(BaseQuery):
 
             query_out.set_done(message=message, debug_message=str(debug_message),status=status)
 
-        except ConnectionError as e:
-            e_message = f'test of communication with backend (instrument: {instrument}) failed!'
-            e_message += "\n" + repr(e)
+        except (ConnectionError, UnfortunateRequestResults) as e:
+            message_prepend_str = ('Unfortunately, the analysis product you requested is empty, '
+                                   'since there is no usable data for the parameter combination you requested: '
+                                   'time period, software version, etc. We did not find any meaningful exceptions.\n'
+                                   'This additional message may be helpful:\n\n')
 
+            e_message = f'test of communication with backend (instrument: {instrument.name}, product: {self.name}) failed!\n' + repr(e)
 
-            if hasattr(e, 'debug_message'):
+            if hasattr(e, 'debug_message') and e.debug_message is not None:
                 debug_message = e.debug_message
             else:
                 debug_message = 'no exception default debug message'
@@ -388,7 +391,7 @@ class ProductQuery(BaseQuery):
             debug_message += traceback.format_exc()
 
             query_out.set_failed('dataserver communication test',
-                                 extra_message=e_message,
+                                 message_prepend_str=message_prepend_str,
                                  logger=logger,
                                  sentry_client=sentry_client,
                                  excep=e,

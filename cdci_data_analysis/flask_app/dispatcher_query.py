@@ -195,6 +195,17 @@ class InstrumentQueryBackEnd:
                             self.sentry_client.capture('raven.events.Message', message=message)
 
                     raise RequestNotAuthorized(message)
+                except jwt.exceptions.InvalidSignatureError as e:
+                    logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event': 'not-valid-token'})
+                    message = ("The token provided is not valid, please try to logout and login again. "
+                               "If already logged out, please clean the cookies, "
+                               "and resubmit you request.")
+                    if data_server_call_back:
+                        message = "The token provided is expired, please resubmit you request with a valid token."
+                        if getattr(self, 'sentry_client', None) is not None:
+                            self.sentry_client.capture('raven.events.Message', message=message)
+
+                    raise RequestNotAuthorized(message)
 
                 self.log_query_progression("after validate_query_from_token")
                 logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })

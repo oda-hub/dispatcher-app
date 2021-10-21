@@ -162,7 +162,7 @@ class Instrument:
 
         return p
 
-    def test_communication(self,config,logger=None):
+    def test_communication(self, config, logger=None):
         if self.data_server_query_class is not None:
             return self.data_server_query_class(config=config, instrument=self).test_communication(logger=logger)
         else:
