@@ -521,9 +521,13 @@ class Instrument:
             else:
                 catalog_dic = json.loads(par_dic['selected_catalog'])
                 self.set_par('user_catalog', build_catalog(catalog_dic))
-
+        # setting user_catalog in the par_dic, either loading it from the file or aas an object
         if user_catalog_file is not None:
-            self.set_par('user_catalog', load_user_catalog(user_catalog_file))
+            catalog_object = load_user_catalog(user_catalog_file)
+            self.set_par('user_catalog', catalog_object)
+            # TODO set selected_catalog ? in this way it will show up in the email url link
+            # and used consistently for the job_id generation
+            self.set_par('selected_catalog', json.dumps(catalog_object.get_dictionary()))
         else:
             if 'catalog_selected_objects' in par_dic.keys():
                 catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)

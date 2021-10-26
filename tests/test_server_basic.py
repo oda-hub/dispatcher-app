@@ -10,6 +10,7 @@ from functools import reduce
 import yaml
 import gzip
 
+from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
@@ -886,6 +887,8 @@ def test_catalog_file(dispatcher_live_fixture):
 
     list_file = open(file_path)
 
+    catalog_object = BasicCatalog.from_file(file_path)
+
     jdata = ask(server,
                 params,
                 expected_query_status=["done"],
@@ -896,6 +899,8 @@ def test_catalog_file(dispatcher_live_fixture):
 
     list_file.close()
     assert 'user_catalog_file' in jdata['products']['analysis_parameters']
+    assert 'selected_catalog' in jdata['products']['analysis_parameters']
+    assert json.dumps(catalog_object.get_dictionary()) == jdata['products']['analysis_parameters']['selected_catalog']
     # test job_id
     job_id = jdata['products']['job_id']
     session_id = jdata['session_id']
@@ -907,6 +912,7 @@ def test_catalog_file(dispatcher_live_fixture):
         {
             **params,
             'user_catalog_file': f'temp_sid_{session_id}/user_catalog_file',
+            'selected_catalog': json.dumps(catalog_object.get_dictionary()),
             'sub': 'mtm@mtmco.net',
             'p_list': [],
             'src_name': '1E 1740.7-2942',
