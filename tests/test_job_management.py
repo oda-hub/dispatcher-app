@@ -16,6 +16,7 @@ import glob
 
 from collections import OrderedDict
 
+from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, ask
 from cdci_data_analysis.analysis.email_helper import textify_email
 from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
@@ -276,6 +277,29 @@ def validate_scw_list_email_content(message_record,
                 assert 'scw_list' in parse_qs(extracted_parsed.query)
                 extracted_scw_list = parse_qs(extracted_parsed.query)['scw_list'][0]
                 assert extracted_scw_list == scw_list_string
+
+
+def validate_catalog_email_content(message_record,
+                                   products_url=None,
+                                   dispatcher_live_fixture=None
+                                   ):
+    msg = email.message_from_string(message_record['data'])
+    for part in msg.walk():
+        if part.get_content_type() == 'text/html':
+            content_text_html = part.get_payload().replace('\r', '').strip()
+            email_api_code = extract_api_code(content_text_html)
+
+            extracted_product_url = extract_products_url(content_text_html)
+            if products_url is not None and products_url != "":
+                assert products_url == extracted_product_url
+
+            if 'resolve' in extracted_product_url:
+                print("need to resolve this:", extracted_product_url)
+                extracted_product_url = validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
+
+            # verify product url contains the use_scws parameter for the frontend
+            extracted_parsed = parse.urlparse(extracted_product_url)
+
         
     
 def validate_email_content(
@@ -1407,6 +1431,90 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
     if not expired_token:
         dict_param.pop('token', None)
         assert all(key in dict_params_redirect_url for key in dict_param)
+
+
+@pytest.mark.not_safe_parallel
+@pytest.mark.test_catalog
+@pytest.mark.parametrize("catalog_passage", ['file', 'params'])
+def test_email_catalog(dispatcher_long_living_fixture,
+                       dispatcher_local_mail_server,
+                       catalog_passage):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_long_living_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    selected_catalog_dict = None
+    list_file = None
+    list_file_content = None
+
+    # setting params
+    params = {
+        'query_status': "new",
+        'product_type': 'dummy',
+        'query_type': "Real",
+        'instrument': 'empty-async',
+        'token': encoded_token
+    }
+
+    if catalog_passage == 'file':
+        file_path = DispatcherJobState.create_catalog_file(catalog_value=5)
+        list_file = open(file_path)
+        list_file_content = open(file_path).read()
+        catalog_object_dict = BasicCatalog.from_file(file_path).get_dictionary()
+    elif catalog_passage == 'params':
+        selected_catalog_dict = dict(
+            cat_lon_name="ra",
+            cat_lat_name="dec",
+            cat_frame="fk5",
+            cat_coord_units="deg",
+            cat_column_list=[[1], ["Test A"], [6], [5], [4], [3], [2], [1], [0]],
+            cat_column_names=["meta_ID", "src_names", "significance", "ra", "dec", "NEW_SOURCE", "ISGRI_FLAG", "FLAG",
+                              "ERR_RAD"],
+            cat_column_descr=[["meta_ID", "<i8"], ["src_names", "<U6"], ["significance", "<i8"], ["ra", "<f8"],
+                              ["dec", "<f8"], ["NEW_SOURCE", "<i8"], ["ISGRI_FLAG", "<i8"], ["FLAG", "<i8"],
+                              ["ERR_RAD", "<i8"]]
+        )
+        params['selected_catalog'] = json.dumps(selected_catalog_dict),
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["submitted"],
+                max_time_s=150,
+                method='post',
+                files={"user_catalog_file": list_file_content}
+                )
+
+    if list_file is not None:
+        list_file.close()
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    if catalog_passage == 'file':
+        params['user_catalog_file'] = f'temp_sid_{dispatcher_job_state.session_id}/user_catalog_file'
+        params['selected_catalog'] = json.dumps(catalog_object_dict),
+
+    completed_dict_param = {**params,
+                            'src_name': '1E 1740.7-2942',
+                            'RA': 265.97845833,
+                            'DEC': -29.74516667,
+                            'T1': '2017-03-06T13:26:48.000',
+                            'T2': '2017-03-06T15:32:27.000',
+                            }
+
+    products_url = get_expected_products_url(completed_dict_param,
+                                             session_id=dispatcher_job_state.session_id,
+                                             job_id=dispatcher_job_state.job_id,
+                                             token=encoded_token)
+    # email validation
+    validate_catalog_email_content(message_record=dispatcher_local_mail_server.get_email_record(),
+                                   products_url=products_url,
+                                   dispatcher_live_fixture=server)
 
 
 @pytest.mark.not_safe_parallel

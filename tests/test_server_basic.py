@@ -864,6 +864,7 @@ def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
                                           'content of the temporary directory is [\'user_scw_list_file\']')
 
 
+@pytest.mark.test_catalog
 def test_catalog_file(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -923,6 +924,7 @@ def test_catalog_file(dispatcher_live_fixture):
     assert job_id == calculated_job_id
 
 
+@pytest.mark.test_catalog
 def test_user_catalog(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -985,6 +987,7 @@ def test_user_catalog(dispatcher_live_fixture):
 
 
 @pytest.mark.odaapi
+@pytest.mark.test_catalog
 def test_user_catalog_oda_api(dispatcher_live_fixture):
     import oda_api.api
     import oda_api.data_products
