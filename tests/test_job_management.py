@@ -1211,8 +1211,7 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
 @pytest.mark.not_safe_parallel
 def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_live_fixture, dispatcher_local_mail_server_subprocess):
     # remove all the current scratch folders
-    dir_list = glob.glob('scratch_*')
-    [shutil.rmtree(d) for d in dir_list]
+    DispatcherJobState.remove_scratch_folders()
 
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -1496,7 +1495,6 @@ def test_email_catalog(dispatcher_long_living_fixture,
 
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
     if catalog_passage == 'file':
-        params['user_catalog_file'] = f'temp_sid_{dispatcher_job_state.session_id}/user_catalog_file'
         params['selected_catalog'] = json.dumps(catalog_object_dict),
 
     completed_dict_param = {**params,

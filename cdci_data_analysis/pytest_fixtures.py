@@ -1,6 +1,7 @@
 # this could be a separate package or/and a pytest plugin
 from json import JSONDecodeError
 import yaml
+from yaml import Loader
 
 import cdci_data_analysis.flask_app.app
 from cdci_data_analysis.analysis.exceptions import BadRequest
@@ -365,7 +366,7 @@ dispatcher:
 
 @pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
-    yield yaml.load(open(dispatcher_test_conf_fn))['dispatcher']
+    yield yaml.load(open(dispatcher_test_conf_fn), Loader=Loader)['dispatcher']
 
 
 def start_dispatcher(rootdir, test_conf_fn):
