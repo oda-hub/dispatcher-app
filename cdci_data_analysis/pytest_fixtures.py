@@ -365,7 +365,7 @@ dispatcher:
 
 @pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
-    yield yaml.load(open(dispatcher_test_conf_fn))['dispatcher']
+    yield yaml.load(open(dispatcher_test_conf_fn), Loader=yaml.Loader)['dispatcher']
 
 
 def start_dispatcher(rootdir, test_conf_fn):
