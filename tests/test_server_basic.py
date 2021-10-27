@@ -899,7 +899,7 @@ def test_catalog_file(dispatcher_live_fixture):
                 )
 
     list_file.close()
-    assert 'user_catalog_file' in jdata['products']['analysis_parameters']
+    # assert 'user_catalog_file' in jdata['products']['analysis_parameters']
     assert 'selected_catalog' in jdata['products']['analysis_parameters']
     assert json.dumps(catalog_object.get_dictionary()) == jdata['products']['analysis_parameters']['selected_catalog']
     # test job_id
@@ -912,7 +912,7 @@ def test_catalog_file(dispatcher_live_fixture):
     restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic(
         {
             **params,
-            'user_catalog_file': f'temp_sid_{session_id}/user_catalog_file',
+            # 'user_catalog_file': f'temp_sid_{session_id}/user_catalog_file',
             'selected_catalog': json.dumps(catalog_object.get_dictionary()),
             'sub': 'mtm@mtmco.net',
             'p_list': [],

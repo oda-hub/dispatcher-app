@@ -528,6 +528,8 @@ class Instrument:
             # TODO set selected_catalog ? in this way it will show up in the email url link
             # and used consistently for the job_id generation
             self.set_par('selected_catalog', json.dumps(catalog_object.get_dictionary()))
+            # TODO verify that the file path is not needed
+            par_dic.pop('user_catalog_file', None)
         else:
             if 'catalog_selected_objects' in par_dic.keys():
                 catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)

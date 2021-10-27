@@ -896,15 +896,6 @@ class InstrumentQueryBackEnd:
             # as comma-separated string for being properly read by the frontend
             par_dict['scw_list'] = ",".join(par_dict['scw_list'])
 
-        # # for the catalog, substitude to the file path
-        # if 'user_catalog_file' in par_dict and 'user_catalog' in par_dict and isinstance(par_dict['user_catalog'], BasicCatalog):
-        #     user_catalog_obj = par_dict['user_catalog'].get_dictionary()
-        #     par_dict['selected_catalog'] = {}
-        #     if user_catalog_obj is not None:
-        #         # for the frontend
-        #         par_dict['selected_catalog'] = user_catalog_obj
-        #     par_dict.pop('user_catalog_file')
-
         _skip_list_ = ['token', 'session_id', 'job_id']
 
         for key, value in dict(par_dict).items():

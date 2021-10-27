@@ -288,6 +288,7 @@ def validate_catalog_email_content(message_record,
         if part.get_content_type() == 'text/html':
             content_text_html = part.get_payload().replace('\r', '').strip()
             email_api_code = extract_api_code(content_text_html)
+            assert 'selected_catalog' in email_api_code
 
             extracted_product_url = extract_products_url(content_text_html)
             if products_url is not None and products_url != "":
@@ -297,11 +298,10 @@ def validate_catalog_email_content(message_record,
                 print("need to resolve this:", extracted_product_url)
                 extracted_product_url = validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
 
-            # verify product url contains the use_scws parameter for the frontend
             extracted_parsed = parse.urlparse(extracted_product_url)
+            assert 'selected_catalog' in parse_qs(extracted_parsed.query)
 
-        
-    
+
 def validate_email_content(
                    message_record, 
                    state: str,
