@@ -1452,6 +1452,7 @@ def test_email_catalog(dispatcher_long_living_fixture,
     selected_catalog_dict = None
     list_file = None
     list_file_content = None
+    catalog_object_dict = dict()
 
     # setting params
     params = {
@@ -1468,7 +1469,7 @@ def test_email_catalog(dispatcher_long_living_fixture,
         list_file_content = open(file_path).read()
         catalog_object_dict = BasicCatalog.from_file(file_path).get_dictionary()
     elif catalog_passage == 'params':
-        selected_catalog_dict = dict(
+        catalog_object_dict = dict(
             cat_lon_name="ra",
             cat_lat_name="dec",
             cat_frame="fk5",
@@ -1480,7 +1481,7 @@ def test_email_catalog(dispatcher_long_living_fixture,
                               ["dec", "<f8"], ["NEW_SOURCE", "<i8"], ["ISGRI_FLAG", "<i8"], ["FLAG", "<i8"],
                               ["ERR_RAD", "<i8"]]
         )
-        params['selected_catalog'] = json.dumps(selected_catalog_dict),
+        params['selected_catalog'] = json.dumps(catalog_object_dict),
 
     jdata = ask(server,
                 params,
