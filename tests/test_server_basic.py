@@ -8,6 +8,7 @@ import glob
 import pytest
 from functools import reduce
 import yaml
+from yaml import Loader
 import gzip
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
@@ -1157,7 +1158,7 @@ def test_example_config(dispatcher_test_conf):
         "config_dir/conf_env.yml.example"
     )
 
-    example_config = yaml.load(open(example_config_fn))['dispatcher']
+    example_config = yaml.load(open(example_config_fn), Loader=Loader)['dispatcher']
 
     mapper = lambda x,y:".".join(map(str, x))
     example_config_keys = flatten_nested_structure(example_config, mapper)
