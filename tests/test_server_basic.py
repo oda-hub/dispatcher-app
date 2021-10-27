@@ -1150,7 +1150,7 @@ def test_example_config(dispatcher_test_conf):
         "config_dir/conf_env.yml.example"
     )
 
-    example_config = yaml.load(open(example_config_fn))['dispatcher']
+    example_config = yaml.load(open(example_config_fn), Loader=yaml.Loader)['dispatcher']
 
     mapper = lambda x,y:".".join(map(str, x))
     example_config_keys = flatten_nested_structure(example_config, mapper)
