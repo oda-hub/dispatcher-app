@@ -717,6 +717,28 @@ class DispatcherJobState:
         return f'scw_list_files/{file_name}'
 
     @staticmethod
+    def create_catalog_object():
+        catalog_object_dict = dict(
+            cat_lon_name="ra",
+            cat_lat_name="dec",
+            cat_frame="fk5",
+            cat_coord_units="deg",
+            cat_column_list=[[1], ["Test A"], [6], [5], [4], [3], [2], [1], [0]],
+            cat_column_names=["meta_ID", "src_names", "significance", "ra", "dec", "NEW_SOURCE", "ISGRI_FLAG", "FLAG",
+                              "ERR_RAD"],
+            cat_column_descr=[["meta_ID", "<i8"], ["src_names", "<U6"], ["significance", "<i8"], ["ra", "<f8"],
+                              ["dec", "<f8"], ["NEW_SOURCE", "<i8"], ["ISGRI_FLAG", "<i8"], ["FLAG", "<i8"],
+                              ["ERR_RAD", "<i8"],["meta_ID", "<i8"], ["src_names", "<U6"], ["significance", "<i8"], ["ra", "<f8"],
+                              ["dec", "<f8"], ["NEW_SOURCE", "<i8"], ["ISGRI_FLAG", "<i8"], ["FLAG", "<i8"],
+                              ["ERR_RAD", "<i8"],["meta_ID", "<i8"], ["src_names", "<U6"], ["significance", "<i8"], ["ra", "<f8"],
+                              ["dec", "<f8"], ["NEW_SOURCE", "<i8"], ["ISGRI_FLAG", "<i8"], ["FLAG", "<i8"],
+                              ["ERR_RAD", "<i8"],["meta_ID", "<i8"], ["src_names", "<U6"], ["significance", "<i8"], ["ra", "<f8"],
+                              ["dec", "<f8"], ["NEW_SOURCE", "<i8"], ["ISGRI_FLAG", "<i8"], ["FLAG", "<i8"],
+                              ["ERR_RAD", "<i8"],]
+        )
+        return catalog_object_dict
+
+    @staticmethod
     def create_catalog_file(catalog_value):
         # generate ScWs list file
         if not os.path.exists('catalog_simple_files'):
@@ -748,7 +770,8 @@ class DispatcherJobState:
 # - {LON_NAME: ra}
 # schema: astropy-2.0
 meta_ID src_names significance ra dec NEW_SOURCE ISGRI_FLAG FLAG ERR_RAD
-0 "IGR J15311-3737" 0.0 0.0 0.0 0 1 0 0.0750000029802"""
+0 "1E 1740.7-2942" 50.4813 265.9771 -29.7467 -32768 2 0 0.0000345
+"""
             )
         return f'catalog_simple_files/{file_name}'
 
