@@ -1440,9 +1440,11 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
 @pytest.mark.not_safe_parallel
 @pytest.mark.test_catalog
 @pytest.mark.parametrize("catalog_passage", ['file', 'params'])
+@pytest.mark.parametrize("catalog_size", ['short', 'long'])
 def test_email_catalog(dispatcher_long_living_fixture,
                        dispatcher_local_mail_server,
-                       catalog_passage):
+                       catalog_passage,
+                       catalog_size):
     DispatcherJobState.remove_scratch_folders()
 
     server = dispatcher_long_living_fixture
@@ -1469,12 +1471,12 @@ def test_email_catalog(dispatcher_long_living_fixture,
     }
 
     if catalog_passage == 'file':
-        file_path = DispatcherJobState.create_catalog_file(catalog_value=5)
+        file_path = DispatcherJobState.create_catalog_file(catalog_value=5, long=(catalog_size == 'long'))
         list_file = open(file_path)
         list_file_content = open(file_path).read()
         catalog_object_dict = BasicCatalog.from_file(file_path).get_dictionary()
     elif catalog_passage == 'params':
-        catalog_object_dict = DispatcherJobState.create_catalog_object()
+        catalog_object_dict = DispatcherJobState.create_catalog_object(long=(catalog_size == 'long'))
         params['selected_catalog'] = json.dumps(catalog_object_dict),
 
     jdata = ask(server,
