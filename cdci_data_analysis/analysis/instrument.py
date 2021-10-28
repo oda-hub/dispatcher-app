@@ -299,9 +299,23 @@ class Instrument:
                     logger.warning("bad request from user, passing through: %s", e)
                     raise
                 except Exception as e: # we shall not do that
+                    message_prepend_str = ('Unfortunately, the analysis product you requested is empty, '
+                                           'since there is no usable data for the parameter combination you requested: '
+                                           'time period, software version, etc. We did not find any meaningful exceptions.\n'
+                                           'This additional message may be helpful:\n\n')
+
+                    e_message = None
+                    if hasattr(e, 'message') and e.message is not None:
+                        e_message = e.message
+
                     logger.error("run_query failed: %s", e)
                     # logger.error("run_query failed: %s", traceback.format_exc())
-                    query_out.set_failed(product_type, logger=logger, sentry_client=sentry_client, excep=e)
+                    query_out.set_failed(product_type,
+                                         e_message=e_message,
+                                         message_prepend_str=message_prepend_str,
+                                         logger=logger,
+                                         sentry_client=sentry_client,
+                                         excep=e)
 
         # adding query parameters to final products
         # TODO: this can be misleading since it's the parameters actually used
