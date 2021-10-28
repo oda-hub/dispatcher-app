@@ -444,6 +444,7 @@ class ProductQuery(BaseQuery):
                                      sentry_client=sentry_client)
 
         except Exception as e:
+            # TODO same approach used above, can be used also here
             traceback.print_exc()
             print(traceback.format_exc())
             raise
@@ -525,6 +526,7 @@ class ProductQuery(BaseQuery):
             raise
 
         except Exception as e: # TODO: could we avoid these? they make error tracking hard
+            # TODO we could use the very same approach used when test_communication fails
             logger.exception("failed to get query products")
 
             #status=1
