@@ -1,6 +1,7 @@
 import time as time_
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 import typing
 from ..analysis import tokenHelper
 import smtplib
@@ -173,9 +174,16 @@ def send_email(
     api_code = wrap_python_code(api_code)
     api_code_too_long = invalid_email_line_length(api_code) or invalid_email_line_length(api_code_no_token)
 
+    api_code_email_attachment = None
     if api_code_too_long:
         # TODO: send us a sentry alert here
-        pass
+        # create the attachment
+        with open(f, "rb") as fil:
+            api_code_email_attachment = MIMEApplication(
+                api_code,
+                Name=os.path.basename(f)
+            )
+
 
     # TODO: enable this sometimes
     # compressed_request_url = compress_request_url_params(request_url)
@@ -251,6 +259,9 @@ def send_email(
         message["To"] = receiver_email_address
         message["CC"] = ", ".join(cc_receivers_email_addresses)
         message['Reply-To'] = email_data['oda_site']['contact']
+
+        if api_code_email_attachment is not None:
+            message.attach(api_code_email_attachment)
 
         part1 = MIMEText(email_text, "plain")
         part2 = MIMEText(email_body_html, "html")
