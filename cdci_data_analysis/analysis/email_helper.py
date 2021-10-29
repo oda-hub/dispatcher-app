@@ -159,6 +159,7 @@ def send_email(
         request_url="",
         api_code="",
         scratch_dir=None):
+    sending_time = time_.time()
 
     # let's get the needed email template;
     # TODO: should get from pkgresources or so
@@ -177,13 +178,15 @@ def send_email(
     api_code_email_attachment = None
     if api_code_too_long:
         # TODO: send us a sentry alert here
-        # create the attachment
-        with open(f, "rb") as fil:
+        attachment_file_path = store_email_api_code_attachment(api_code, status, scratch_dir, sending_time=sending_time)
+        with open(attachment_file_path, "rb") as fil:
             api_code_email_attachment = MIMEApplication(
-                api_code,
-                Name=os.path.basename(f)
+                fil.read(),
+                Name=os.path.basename(attachment_file_path)
             )
-
+        api_code_email_attachment.add_header('Content-Disposition',
+                                             'attachment',
+                                             filename="api code")
 
     # TODO: enable this sometimes
     # compressed_request_url = compress_request_url_params(request_url)
@@ -261,6 +264,7 @@ def send_email(
         message['Reply-To'] = email_data['oda_site']['contact']
 
         if api_code_email_attachment is not None:
+            # create the attachment
             message.attach(api_code_email_attachment)
 
         part1 = MIMEText(email_text, "plain")
@@ -291,19 +295,38 @@ def send_email(
         if server:
             server.quit()
 
-    store_email_info(message, status, scratch_dir)
+    store_email_info(message, status, scratch_dir, sending_time=sending_time)
 
     return message
 
 
-def store_email_info(message, status, scratch_dir):
+def store_email_info(message, status, scratch_dir, sending_time=None):
     path_email_history_folder = scratch_dir + '/email_history'
     if not os.path.exists(path_email_history_folder):
         os.makedirs(path_email_history_folder)
-    sending_time = time_.time()
+    if sending_time is None:
+        sending_time = time_.time()
     # record the email just sent in a dedicated file
     with open(path_email_history_folder + '/email_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
         outfile.write(message.as_string())
+
+
+def store_email_api_code_attachment(api_code, status, scratch_dir, sending_time=None):
+    # email folder
+    path_email_history_folder = scratch_dir + '/email_history'
+    if not os.path.exists(path_email_history_folder):
+        os.makedirs(path_email_history_folder)
+    # attachment folder
+    path_email_history_attachment = path_email_history_folder + '/attachments'
+    if not os.path.exists(path_email_history_attachment):
+        os.makedirs(path_email_history_attachment)
+
+    if sending_time is None:
+        sending_time = time_.time()
+    attachment_file_path = path_email_history_attachment + '/api_code_attachment_' + status + '_' + str(sending_time)
+    with open(path_email_history_attachment + '/api_code_attachment_' + status + '_' + str(sending_time), 'w+') as outfile:
+        outfile.write(api_code)
+    return attachment_file_path
 
 
 def is_email_to_send_run_query(logger, status, time_original_request, scratch_dir, job_id, config, decoded_token=None):
