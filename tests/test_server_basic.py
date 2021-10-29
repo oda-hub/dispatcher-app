@@ -64,7 +64,7 @@ def test_empty_request(dispatcher_live_fixture):
 
     assert c.status_code == 400
 
-     # parameterize this
+    # parameterize this
     assert jdata['installed_instruments'] == ['empty', 'empty-async', 'empty-semi-async'] or \
            jdata['installed_instruments'] == []
 
@@ -818,6 +818,7 @@ def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
         expected_job_status = 'done'
         expected_status_code = 200
     else:
+        # TODO this approach no longer works when creating tmp folders "safely"
         expected_query_status = None
         expected_job_status = None
         expected_status_code = 400

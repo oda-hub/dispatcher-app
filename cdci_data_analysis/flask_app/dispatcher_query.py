@@ -526,11 +526,8 @@ class InstrumentQueryBackEnd:
         if job_id is not None:
             suffix += '_jid_'+job_id
 
-        td = tempfile.mkdtemp(suffix = suffix)
-
-        td = FilePath(file_dir=td)
-        td.mkdir()
-        self.temp_dir = td.path
+        td = tempfile.mkdtemp(suffix=suffix)
+        self.temp_dir = td
 
     def move_temp_content(self):
         if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir) \
