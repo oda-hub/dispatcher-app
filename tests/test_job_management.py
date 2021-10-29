@@ -122,7 +122,7 @@ ignore_email_patterns = [
 ]
 
 ignore_api_code_patterns = [
-    r"\"token\":.*?,"
+    r"(\'|\")token(\'|\"):.*?,"
 ]
 
 
@@ -1736,7 +1736,7 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
 
     # this kind of parameters never really happen, and we should be alerted
     # we might as well send something in email, like failed case. but better let's make us look immediately
-    params['very_,long_parameter_'*length] = "unset"
+    params['very_long_parameter_'*length] = "unset"
 
     c = requests.get(server + "/run_analysis",
                      params=params)
