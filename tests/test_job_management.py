@@ -780,19 +780,22 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     # TODO: test that this returns the result
 
     DataServerQuery.set_status('submitted') # sets the expected default for other tests
-    
-    admin_token = jwt.encode({**token_payload, 'roles': 'private, user manager, admin'}, secret_key, algorithm='HS256')
 
     r = requests.get(dispatcher_long_living_fixture + "/inspect-state", params=dict(token=encoded_token))
     assert r.status_code == 403
-    assert r.text == 'Not authorized, sorry!'
+    if encoded_token is None:
+        assert r.text == 'A token must be provided.'
+    else:
+        assert r.text == ("Unfortunately, your privileges are not sufficient for this type of request.\n"
+                          "Your privilege roles include ['general'], but the following roles are"
+                          " missing: jobs manager, administrator.\n")
 
+    admin_token = jwt.encode({**token_payload, 'roles': 'private, user manager, admin, jobs manager, administrator'}, secret_key, algorithm='HS256')
     r = requests.get(dispatcher_long_living_fixture + "/inspect-state", params=dict(token=admin_token))
     dispatcher_state_report = r.json()
     logger.info('dispatcher_state_report: %s', dispatcher_state_report)
 
     assert len(dispatcher_state_report['records']) > 0
-    
 
 
 @pytest.mark.not_safe_parallel
@@ -1806,8 +1809,9 @@ scwl_dict = {"scw_list": "115000860010.001,115000870010.001,115000980010.001,115
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
-@pytest.mark.parametrize("roles", ["general, user manager", ""])
+@pytest.mark.parametrize("roles", ["general, jobs manager, administrator", ""])
 def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
+    required_roles = ['administrator', 'jobs manager']
     DispatcherJobState.remove_scratch_folders()
 
     server = dispatcher_live_fixture
@@ -1860,10 +1864,11 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
     elif request_cred == 'public':
         error_message = 'A token must be provided.'
     elif request_cred == 'private':
-        if 'user manager' not in roles:
+        if 'jobs manager' not in roles and 'administrator' not in roles:
+            lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
             error_message = (
-                f"Unfortunately, your privileges are not sufficient for this type of request.\n"
-                f"- Your privilege roles include {roles}, but the 'user manager' role is needed.\n"
+                f'Unfortunately, your privileges are not sufficient for this type of request.\n'
+                f'Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}.'
             )
 
     # for the email we only use the first 8 characters
@@ -1875,13 +1880,12 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
 
     scratch_dir_mtime = os.stat(scratch_dir_fn).st_mtime
 
-    if request_cred != 'private' or 'user manager' not in roles:
+    if request_cred != 'private' or ('jobs manager' not in roles and 'administrator' not in roles):
         # email not supposed to be sent for public request
         assert c.status_code == status_code
-        jdata = c.json()
-        assert jdata['error_message'] == error_message
+        assert c.text == error_message
     else:
-        jdata = c.json()
+        jdata= c.json()
         assert 'records' in jdata
         assert type(jdata['records']) is list
         assert len(jdata['records']) == 1
@@ -1890,4 +1894,3 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
 
         assert jdata['records'][0]['ctime'] == scratch_dir_ctime
         assert jdata['records'][0]['mtime'] == scratch_dir_mtime
-

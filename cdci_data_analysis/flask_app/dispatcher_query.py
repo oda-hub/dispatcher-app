@@ -21,7 +21,7 @@ import glob
 import string
 import random
 
-from flask import jsonify, send_from_directory
+from flask import jsonify, send_from_directory, make_response
 from flask import request, g
 from urllib.parse import urlencode
 import time as time_
@@ -318,25 +318,35 @@ class InstrumentQueryBackEnd:
     def inspect_state(app):
         token = request.args.get('token', None)
         if token is None:
-            raise RequestNotAuthorized("A token must be provided.")
+            # TODO what about using the RequestNotAuthorized exception?
+            # raise RequestNotAuthorized("A token must be provided.")
+            return make_response('A token must be provided.'), 403
         try:
             secret_key = app.config.get('conf').secret_key
             decoded_token = tokenHelper.get_decoded_token(token, secret_key)
             logger.info("==> token %s", decoded_token)
         except jwt.exceptions.ExpiredSignatureError:
-            raise RequestNotAuthorized("The token provided is expired.")
+            # raise RequestNotAuthorized("The token provided is expired.")
+            return make_response('The token provided is expired.'), 403
         except jwt.exceptions.InvalidTokenError:
-            raise RequestNotAuthorized("The token provided is not valid.")
+            # raise RequestNotAuthorized("The token provided is not valid.")
+            return make_response('The token provided is not valid.'), 403
 
         recent_days = request.args.get('recent_days', 3, type=float)
         job_id = request.args.get('job_id', None)
 
         roles = tokenHelper.get_token_roles(decoded_token)
-        if 'user manager' not in roles and 'administrator' not in roles:
-            raise RequestNotAuthorized(
+
+        # TODO perhaps re-use the existing 'content manager' ?
+        required_roles = ['administrator', 'jobs manager']
+        if not all(item in roles for item in required_roles):
+            lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+            message = (
                 f"Unfortunately, your privileges are not sufficient for this type of request.\n"
-                f"- Your privilege roles include {roles}, but the 'user manager' role is needed.\n"
+                f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
             )
+            # raise RequestNotAuthorized(message=message)
+            return make_response(message), 403
 
         # TODO! what is missing ?
 
