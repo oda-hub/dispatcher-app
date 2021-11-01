@@ -1,3 +1,4 @@
+import mimetypes
 import time as time_
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -179,7 +180,7 @@ def send_email(
     if api_code_too_long:
         # TODO: send us a sentry alert here
         attachment_file_path = store_email_api_code_attachment(api_code, status, scratch_dir, sending_time=sending_time)
-        with open(attachment_file_path, "rb") as fil:
+        with open(attachment_file_path, "r") as fil:
             api_code_email_attachment = MIMEApplication(
                 fil.read(),
                 Name=os.path.basename(attachment_file_path)
@@ -323,8 +324,8 @@ def store_email_api_code_attachment(api_code, status, scratch_dir, sending_time=
 
     if sending_time is None:
         sending_time = time_.time()
-    attachment_file_path = path_email_history_attachment + '/api_code_attachment_' + status + '_' + str(sending_time)
-    with open(path_email_history_attachment + '/api_code_attachment_' + status + '_' + str(sending_time), 'w+') as outfile:
+    attachment_file_path = path_email_history_attachment + '/api_code_attachment_' + status + '_' + str(sending_time) + '.py'
+    with open(attachment_file_path, 'w+') as outfile:
         outfile.write(api_code)
     return attachment_file_path
 
