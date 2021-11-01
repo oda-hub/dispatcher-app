@@ -1,4 +1,3 @@
-import mimetypes
 import time as time_
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
