@@ -784,7 +784,7 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
     logger.info(json.dumps(jdata, indent=4))
 
 
-def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
+def test_scws_list_file(dispatcher_live_fixture):
 
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -881,10 +881,16 @@ def test_catalog_file(dispatcher_live_fixture):
                 )
 
     list_file.close()
-    assert 'user_catalog_file' in jdata['products']['analysis_parameters']
     # test job_id
     job_id = jdata['products']['job_id']
     session_id = jdata['session_id']
+
+    assert 'user_catalog_file' in jdata['products']['analysis_parameters']
+
+    tmp_path_element_list = jdata['products']['analysis_parameters']['user_catalog_file'].split('/')
+
+    assert tmp_path_element_list[2].endswith(session_id)
+
     # adapting some values to string
     for k, v in params.items():
         params[k] = str(v)
@@ -892,7 +898,7 @@ def test_catalog_file(dispatcher_live_fixture):
     restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic(
         {
             **params,
-            'user_catalog_file': f'temp_sid_{session_id}/user_catalog_file',
+            'user_catalog_file': jdata['products']['analysis_parameters']['user_catalog_file'],
             'sub': 'mtm@mtmco.net',
             'p_list': [],
             'src_name': '1E 1740.7-2942',
