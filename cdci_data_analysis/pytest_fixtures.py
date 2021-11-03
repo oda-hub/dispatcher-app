@@ -95,6 +95,7 @@ def dispatcher_nodebug(monkeypatch):
     monkeypatch.delenv('DISPATCHER_DEBUG_MODE', raising=False)
     # monkeypatch.setenv('DISPATCHER_DEBUG_MODE', 'no')
 
+
 def run_analysis(server, params, method='get', files=None):
     if method == 'get':
         if files is not None:
@@ -365,7 +366,7 @@ dispatcher:
 
 @pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
-    yield yaml.load(open(dispatcher_test_conf_fn), Loader=yaml.Loader)['dispatcher']
+    yield yaml.load(open(dispatcher_test_conf_fn), Loader=yaml.SafeLoader)['dispatcher']
 
 
 def start_dispatcher(rootdir, test_conf_fn):
@@ -646,20 +647,16 @@ class DispatcherJobState:
 
     @staticmethod
     def create_temp_folder(session_id, job_id=None):
-        suffix = ""
+        td = 'temp'
 
         if session_id is not None:
-            suffix += '_sid_' + session_id
+            td += '_sid_' + session_id
 
         if job_id is not None:
-            suffix += '_jid_' + job_id
-
-        td = tempfile.mkdtemp(suffix=suffix)
+            td += '_jid_' + job_id
 
         td = FilePath(file_dir=td)
-        # should not this be removed ?
         td.mkdir()
-
         return td.path
 
     @staticmethod
