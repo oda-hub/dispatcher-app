@@ -19,7 +19,7 @@ from collections import OrderedDict
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, ask
 from cdci_data_analysis.analysis.email_helper import textify_email
 from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
-    
+from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
 from flask import Markup
 
@@ -501,15 +501,15 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     token_none = (request_cred == 'public')
 
     expect_email = True
+    token_payload = {
+            **default_token_payload,
+            "tem": 0
+        }
 
     if token_none:
         encoded_token = None
     else:
         # let's generate a valid token with high threshold
-        token_payload = {
-            **default_token_payload,
-            "tem": 0
-        }
 
         if default_values:
             token_payload.pop('tem')
@@ -780,6 +780,22 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     # TODO: test that this returns the result
 
     DataServerQuery.set_status('submitted') # sets the expected default for other tests
+
+    r = requests.get(dispatcher_long_living_fixture + "/inspect-state", params=dict(token=encoded_token))
+    assert r.status_code == 403
+    if encoded_token is None:
+        assert r.text == 'A token must be provided.'
+    else:
+        assert r.text == ("Unfortunately, your privileges are not sufficient for this type of request.\n"
+                          "Your privilege roles include ['general'], but the following roles are"
+                          " missing: administrator, jobs manager.")
+
+    admin_token = jwt.encode({**token_payload, 'roles': 'private, user manager, admin, jobs manager, administrator'}, secret_key, algorithm='HS256')
+    r = requests.get(dispatcher_long_living_fixture + "/inspect-state", params=dict(token=admin_token))
+    dispatcher_state_report = r.json()
+    logger.info('dispatcher_state_report: %s', dispatcher_state_report)
+
+    assert len(dispatcher_state_report['records']) > 0
 
 
 @pytest.mark.not_safe_parallel
@@ -1790,3 +1806,91 @@ scwl_dict = {"scw_list": "115000860010.001,115000870010.001,115000980010.001,115
 
     assert len(my_globals['bla']) > max_length
     assert len(my_globals['scwl_dict']['scw_list']) > max_length
+
+
+@pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
+@pytest.mark.parametrize("roles", ["general, jobs manager, administrator", ""])
+def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
+    required_roles = ['administrator', 'jobs manager']
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    token_none = (request_cred == 'public')
+
+    if token_none:
+        encoded_token = None
+    else:
+        # let's generate a valid token
+        token_payload = {
+            **default_token_payload,
+            "roles": roles,
+        }
+        encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    # just for having the roles in a list
+    roles = roles.split(',')
+    roles[:] = [r.strip() for r in roles]
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
+
+    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    scratch_dir_ctime = os.stat(scratch_dir_fn).st_ctime
+
+    assert os.path.exists(scratch_dir_fn)
+
+    status_code = 403
+    if request_cred == 'invalid_token':
+        # an invalid (encoded) token, just a string
+        encoded_token = 'invalid_token'
+        error_message = 'The token provided is not valid.'
+    elif request_cred == 'public':
+        error_message = 'A token must be provided.'
+    elif request_cred == 'private':
+        if 'jobs manager' not in roles and 'administrator' not in roles:
+            lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+            error_message = (
+                f'Unfortunately, your privileges are not sufficient for this type of request.\n'
+                f'Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}.'
+            )
+
+    # for the email we only use the first 8 characters
+    c = requests.get(server + "/inspect-state",
+                     params=dict(
+                         job_id=job_id[:8],
+                         token=encoded_token,
+                     ))
+
+    scratch_dir_mtime = os.stat(scratch_dir_fn).st_mtime
+
+    if request_cred != 'private' or ('jobs manager' not in roles and 'administrator' not in roles):
+        # email not supposed to be sent for public request
+        assert c.status_code == status_code
+        assert c.text == error_message
+    else:
+        jdata= c.json()
+        assert 'records' in jdata
+        assert type(jdata['records']) is list
+        assert len(jdata['records']) == 1
+
+        assert jdata['records'][0]['job_id'] == job_id
+
+        assert jdata['records'][0]['ctime'] == scratch_dir_ctime
+        assert jdata['records'][0]['mtime'] == scratch_dir_mtime

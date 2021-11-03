@@ -4,7 +4,6 @@ import yaml
 
 import cdci_data_analysis.flask_app.app
 from cdci_data_analysis.analysis.exceptions import BadRequest
-from cdci_data_analysis.analysis.io_helper import FilePath
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.hash import make_hash
 
@@ -647,17 +646,16 @@ class DispatcherJobState:
 
     @staticmethod
     def create_temp_folder(session_id, job_id=None):
-        td = 'temp'
+        suffix = ""
 
         if session_id is not None:
-            td += '_sid_' + session_id
+            suffix += '_sid_' + session_id
 
         if job_id is not None:
-            td += '_jid_' + job_id
+            suffix += '_jid_' + job_id
 
-        td = FilePath(file_dir=td)
-        td.mkdir()
-        return td.path
+        td = tempfile.mkdtemp(suffix=suffix)
+        return td
 
     @staticmethod
     def remove_scratch_folders(job_id=None):

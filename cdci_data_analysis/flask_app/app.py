@@ -208,6 +208,14 @@ def update_token_email_options():
     return query.token
 
 
+@app.route('/inspect-state', methods=['POST', 'GET'])
+def inspect_state():
+    logger.info("request.args: %s ", request.args)
+
+    state_data_obj = InstrumentQueryBackEnd.inspect_state(app)
+    return state_data_obj
+
+
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
     """
