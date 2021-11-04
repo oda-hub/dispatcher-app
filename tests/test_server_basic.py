@@ -846,8 +846,6 @@ def test_scws_list_file(dispatcher_live_fixture):
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
-    # assert jdata['error_message'] == ('Error while uploading scw_list file from the frontend, '
-    #                                   'content of the temporary directory is [\'user_scw_list_file\']')
 
 
 @pytest.mark.test_catalog
@@ -887,6 +885,7 @@ def test_catalog_file(dispatcher_live_fixture):
     list_file.close()
     assert 'selected_catalog' in jdata['products']['analysis_parameters']
     assert json.dumps(catalog_object.get_dictionary()) == jdata['products']['analysis_parameters']['selected_catalog']
+    assert 'user_catalog_file' not in jdata['products']['analysis_parameters']
     # test job_id
     job_id = jdata['products']['job_id']
 
@@ -950,6 +949,7 @@ def test_user_catalog(dispatcher_live_fixture):
 
     assert 'selected_catalog' in jdata['products']['analysis_parameters']
     assert jdata['products']['analysis_parameters']['selected_catalog'] == json.dumps(selected_catalog_dict)
+    assert 'user_catalog_file' not in jdata['products']['analysis_parameters']
     # test job_id
     job_id = jdata['products']['job_id']
     session_id = jdata['session_id']
