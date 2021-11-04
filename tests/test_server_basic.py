@@ -889,13 +889,6 @@ def test_catalog_file(dispatcher_live_fixture):
     assert json.dumps(catalog_object.get_dictionary()) == jdata['products']['analysis_parameters']['selected_catalog']
     # test job_id
     job_id = jdata['products']['job_id']
-    session_id = jdata['session_id']
-
-    assert 'user_catalog_file' in jdata['products']['analysis_parameters']
-
-    tmp_path_element_list = jdata['products']['analysis_parameters']['user_catalog_file'].split('/')
-
-    assert tmp_path_element_list[2].endswith(session_id)
 
     # adapting some values to string
     for k, v in params.items():
@@ -905,7 +898,6 @@ def test_catalog_file(dispatcher_live_fixture):
         {
             **params,
             'selected_catalog': json.dumps(catalog_object.get_dictionary()),
-            'user_catalog_file': jdata['products']['analysis_parameters']['user_catalog_file'],
             'sub': 'mtm@mtmco.net',
             'p_list': [],
             'src_name': '1E 1740.7-2942',
