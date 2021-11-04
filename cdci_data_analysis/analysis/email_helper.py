@@ -108,12 +108,16 @@ def wrap_python_code(code, max_length=100, max_str_length=None):
     if max_str_length is None:
         max_str_length = max_length - 10
 
+    code = re.sub(",", ", ", code)        
+
     while True:
         new_code = code
         for string_separator in '"', "'":
-            new_code = re.sub('(%s[0-9a-zA-Z\.\-\/\+,]{%i,}?%s)' % (string_separator, max_str_length + 1, string_separator),
-                            lambda S: S.group(1)[:max_str_length] + string_separator + ' ' + string_separator + S.group(1)[max_str_length:],
-                            new_code)
+            new_code = re.sub('(%s[0-9a-zA-Z\.\-\/\+,]{%i,}?%s)' % (string_separator, 
+                                                                    max_str_length + 1, 
+                                                                    string_separator),
+                              lambda S: S.group(1)[:max_str_length] + string_separator + ' ' + string_separator + S.group(1)[max_str_length:],
+                              new_code)
 
         if new_code == code:
             break
