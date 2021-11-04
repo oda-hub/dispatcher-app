@@ -4,7 +4,6 @@ import yaml
 
 import cdci_data_analysis.flask_app.app
 from cdci_data_analysis.analysis.exceptions import BadRequest
-from cdci_data_analysis.analysis.io_helper import FilePath
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.hash import make_hash
 
@@ -94,6 +93,7 @@ def default_token_payload():
 def dispatcher_nodebug(monkeypatch):
     monkeypatch.delenv('DISPATCHER_DEBUG_MODE', raising=False)
     # monkeypatch.setenv('DISPATCHER_DEBUG_MODE', 'no')
+
 
 def run_analysis(server, params, method='get', files=None):
     if method == 'get':
@@ -365,7 +365,7 @@ dispatcher:
 
 @pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
-    yield yaml.load(open(dispatcher_test_conf_fn), Loader=yaml.Loader)['dispatcher']
+    yield yaml.load(open(dispatcher_test_conf_fn), Loader=yaml.SafeLoader)['dispatcher']
 
 
 def start_dispatcher(rootdir, test_conf_fn):
@@ -646,17 +646,16 @@ class DispatcherJobState:
 
     @staticmethod
     def create_temp_folder(session_id, job_id=None):
-        td = 'temp'
+        suffix = ""
 
         if session_id is not None:
-            td += '_sid_' + session_id
+            suffix += '_sid_' + session_id
 
         if job_id is not None:
-            td += '_jid_' + job_id
+            suffix += '_jid_' + job_id
 
-        td = FilePath(file_dir=td)
-        td.mkdir()
-        return td.path
+        td = tempfile.mkdtemp(suffix=suffix)
+        return td
 
     @staticmethod
     def remove_scratch_folders(job_id=None):
