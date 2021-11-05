@@ -10,6 +10,7 @@ from functools import reduce
 import yaml
 import gzip
 
+from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
@@ -65,7 +66,7 @@ def test_empty_request(dispatcher_live_fixture):
 
     assert c.status_code == 400
 
-     # parameterize this
+    # parameterize this
     assert jdata['installed_instruments'] == ['empty', 'empty-async', 'empty-semi-async'] or \
            jdata['installed_instruments'] == []
 
@@ -785,9 +786,7 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
     logger.info(json.dumps(jdata, indent=4))
 
 
-@pytest.mark.parametrize("clean_temp_folder_content", [True, False])
-def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
-    from stat import S_IREAD
+def test_scws_list_file(dispatcher_live_fixture):
 
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -813,19 +812,9 @@ def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
 
     list_file = open(file_path)
 
-    if not clean_temp_folder_content:
-        expected_query_status = 'done'
-        expected_job_status = 'done'
-        expected_status_code = 200
-    else:
-        expected_query_status = None
-        expected_job_status = None
-        expected_status_code = 400
-        params['session_id'] = DispatcherJobState.generate_session_id()
-        temp_folder_path = DispatcherJobState.create_temp_folder(session_id=params['session_id'])
-        with open(temp_folder_path + '/user_scw_list_file', 'w') as f:
-            f.write("stuff")
-            os.chmod(temp_folder_path + '/user_scw_list_file', S_IREAD)
+    expected_query_status = 'done'
+    expected_job_status = 'done'
+    expected_status_code = 200
 
     jdata = ask(server,
                 params,
@@ -838,31 +827,28 @@ def test_scws_list_file(dispatcher_live_fixture, clean_temp_folder_content):
                 )
 
     list_file.close()
-    if not clean_temp_folder_content:
-        assert 'p_list' in jdata['products']['analysis_parameters']
-        assert 'use_scws' not in jdata['products']['analysis_parameters']
-        assert jdata['products']['analysis_parameters']['p_list'] == ['5']
-        # test job_id
-        job_id = jdata['products']['job_id']
-        params.pop('use_scws', None)
-        # adapting some values to string
-        for k, v in params.items():
-            params[k] = str(v)
+    assert 'p_list' in jdata['products']['analysis_parameters']
+    assert 'use_scws' not in jdata['products']['analysis_parameters']
+    assert jdata['products']['analysis_parameters']['p_list'] == ['5']
+    # test job_id
+    job_id = jdata['products']['job_id']
+    params.pop('use_scws', None)
+    # adapting some values to string
+    for k, v in params.items():
+        params[k] = str(v)
 
-        restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({
-            **params,
-            "src_name": "1E 1740.7-2942",
-            "p_list": ["5"],
-            "sub": "mtm@mtmco.net"}
-        )
-        calculated_job_id = make_hash(restricted_par_dic)
+    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({
+        **params,
+        "src_name": "1E 1740.7-2942",
+        "p_list": ["5"],
+        "sub": "mtm@mtmco.net"}
+    )
+    calculated_job_id = make_hash(restricted_par_dic)
 
-        assert job_id == calculated_job_id
-    else:
-        assert jdata['error_message'] == ('Error while uploading scw_list file from the frontend, '
-                                          'content of the temporary directory is [\'user_scw_list_file\']')
+    assert job_id == calculated_job_id
 
 
+@pytest.mark.test_catalog
 def test_catalog_file(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -886,6 +872,8 @@ def test_catalog_file(dispatcher_live_fixture):
 
     list_file = open(file_path)
 
+    catalog_object = BasicCatalog.from_file(file_path)
+
     jdata = ask(server,
                 params,
                 expected_query_status=["done"],
@@ -895,10 +883,12 @@ def test_catalog_file(dispatcher_live_fixture):
                 )
 
     list_file.close()
-    assert 'user_catalog_file' in jdata['products']['analysis_parameters']
+    assert 'selected_catalog' in jdata['products']['analysis_parameters']
+    assert json.dumps(catalog_object.get_dictionary()) == jdata['products']['analysis_parameters']['selected_catalog']
+    assert 'user_catalog_file' not in jdata['products']['analysis_parameters']
     # test job_id
     job_id = jdata['products']['job_id']
-    session_id = jdata['session_id']
+
     # adapting some values to string
     for k, v in params.items():
         params[k] = str(v)
@@ -906,7 +896,7 @@ def test_catalog_file(dispatcher_live_fixture):
     restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic(
         {
             **params,
-            'user_catalog_file': f'temp_sid_{session_id}/user_catalog_file',
+            'selected_catalog': json.dumps(catalog_object.get_dictionary()),
             'sub': 'mtm@mtmco.net',
             'p_list': [],
             'src_name': '1E 1740.7-2942',
@@ -917,6 +907,7 @@ def test_catalog_file(dispatcher_live_fixture):
     assert job_id == calculated_job_id
 
 
+@pytest.mark.test_catalog
 def test_user_catalog(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -958,6 +949,7 @@ def test_user_catalog(dispatcher_live_fixture):
 
     assert 'selected_catalog' in jdata['products']['analysis_parameters']
     assert jdata['products']['analysis_parameters']['selected_catalog'] == json.dumps(selected_catalog_dict)
+    assert 'user_catalog_file' not in jdata['products']['analysis_parameters']
     # test job_id
     job_id = jdata['products']['job_id']
     session_id = jdata['session_id']
@@ -979,6 +971,7 @@ def test_user_catalog(dispatcher_live_fixture):
 
 
 @pytest.mark.odaapi
+@pytest.mark.test_catalog
 def test_user_catalog_oda_api(dispatcher_live_fixture):
     import oda_api.api
     import oda_api.data_products
@@ -1150,9 +1143,9 @@ def test_example_config(dispatcher_test_conf):
         "config_dir/conf_env.yml.example"
     )
 
-    example_config = yaml.load(open(example_config_fn))['dispatcher']
+    example_config = yaml.load(open(example_config_fn), Loader=yaml.SafeLoader)['dispatcher']
 
-    mapper = lambda x,y:".".join(map(str, x))
+    mapper = lambda x, y: ".".join(map(str, x))
     example_config_keys = flatten_nested_structure(example_config, mapper)
     test_config_keys = flatten_nested_structure(dispatcher_test_conf, mapper)
 

@@ -352,6 +352,7 @@ class OsaJob(Job):
 
 
 def job_factory(instrument_name, scratch_dir, dispatcher_host, dispatcher_port, dispatcher_callback_url_base, session_id, job_id, par_dic, aliased=False, token=None, time_request=None):
+    # TODO does this list need to be updated?
     osa_list = ['jemx', 'isgri', 'empty-async']
 
     if instrument_name in osa_list:

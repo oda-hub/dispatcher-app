@@ -4,7 +4,6 @@ import yaml
 
 import cdci_data_analysis.flask_app.app
 from cdci_data_analysis.analysis.exceptions import BadRequest
-from cdci_data_analysis.analysis.io_helper import FilePath
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.hash import make_hash
 
@@ -94,6 +93,7 @@ def default_token_payload():
 def dispatcher_nodebug(monkeypatch):
     monkeypatch.delenv('DISPATCHER_DEBUG_MODE', raising=False)
     # monkeypatch.setenv('DISPATCHER_DEBUG_MODE', 'no')
+
 
 def run_analysis(server, params, method='get', files=None):
     if method == 'get':
@@ -365,7 +365,7 @@ dispatcher:
 
 @pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
-    yield yaml.load(open(dispatcher_test_conf_fn))['dispatcher']
+    yield yaml.load(open(dispatcher_test_conf_fn), Loader=yaml.SafeLoader)['dispatcher']
 
 
 def start_dispatcher(rootdir, test_conf_fn):
@@ -646,17 +646,16 @@ class DispatcherJobState:
 
     @staticmethod
     def create_temp_folder(session_id, job_id=None):
-        td = 'temp'
+        suffix = ""
 
         if session_id is not None:
-            td += '_sid_' + session_id
+            suffix += '_sid_' + session_id
 
         if job_id is not None:
-            td += '_jid_' + job_id
+            suffix += '_jid_' + job_id
 
-        td = FilePath(file_dir=td)
-        td.mkdir()
-        return td.path
+        td = tempfile.mkdtemp(suffix=suffix)
+        return td
 
     @staticmethod
     def remove_scratch_folders(job_id=None):
@@ -717,6 +716,11 @@ class DispatcherJobState:
         return f'scw_list_files/{file_name}'
 
     @staticmethod
+    def create_catalog_object():
+        selected_catalog = "{\"cat_column_descr\":[[\"meta_ID\",\"<i8\"],[\"src_names\",\"<U20\"],[\"significance\",\">f4\"],[\"ra\",\">f4\"],[\"dec\",\">f4\"],[\"NEW_SOURCE\",\">i2\"],[\"ISGRI_FLAG\",\"<i8\"],[\"FLAG\",\"<i8\"],[\"ERR_RAD\",\"<f8\"]],\"cat_column_list\":[[1,2,3,4,5,6,7,8,9],[\"1E 1740.7-2942\",\"4U 1700-377\",\"GRS 1758-258\",\"GX 1+4\",\"GX 354-0\",\"GX 5-1\",\"IGR J17252-3616\",\"SLX 1735-269\",\"Swift J1658.2-4242\"],[50.481285095214844,29.631359100341797,39.41709899902344,19.39865493774414,17.236827850341797,10.458189964294434,7.3749494552612305,8.645143508911133,8.171965599060059],[265.97705078125,255.96563720703125,270.2925720214844,263.0119934082031,263.00067138671875,270.2991027832031,261.33197021484375,264.5558166503906,254.55958557128906],[-29.746740341186523,-37.84686279296875,-25.736726760864258,-24.74085235595703,-33.82389831542969,-25.082794189453125,-36.24260330200195,-27.056262969970703,-42.71879196166992],[-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768],[2,2,2,2,2,2,1,2,2],[0,0,0,0,0,0,0,0,0],[0.000029999999242136255,0.0002800000074785203,0.0002800000074785203,0.0002800000074785203,0.0002800000074785203,0.0008299999753944576,0.0011099999537691474,0.00016999999934341758,0.00005555555617320351]],\"cat_column_names\":[\"meta_ID\",\"src_names\",\"significance\",\"ra\",\"dec\",\"NEW_SOURCE\",\"ISGRI_FLAG\",\"FLAG\",\"ERR_RAD\"],\"cat_coord_units\":\"deg\",\"cat_frame\":\"fk5\",\"cat_lat_name\":\"dec\",\"cat_lon_name\":\"ra\"}"
+        return json.loads(selected_catalog)
+
+    @staticmethod
     def create_catalog_file(catalog_value):
         # generate ScWs list file
         if not os.path.exists('catalog_simple_files'):
@@ -727,29 +731,32 @@ class DispatcherJobState:
 
         file_name = f'catalog_{catalog_hash}.txt'
 
-        with open('catalog_simple_files/' + file_name, 'w+') as outlist_file:
-            outlist_file.write(
+        catalog_str = (
                 """# %ECSV 0.9
-# ---
-# datatype:
-# - {name: meta_ID, datatype: int64}
-# - {name: src_names, datatype: string}
-# - {name: significance, datatype: float32}
-# - {name: ra, datatype: float32}
-# - {name: dec, datatype: float32}
-# - {name: NEW_SOURCE, datatype: uint16}
-# - {name: ISGRI_FLAG, datatype: int64}
-# - {name: FLAG, datatype: int64}
-# - {name: ERR_RAD, datatype: float64}
-# meta: !!omap
-# - {FRAME: fk5}
-# - {LAT_NAME: dec}
-# - {COORD_UNIT: deg}
-# - {LON_NAME: ra}
-# schema: astropy-2.0
-meta_ID src_names significance ra dec NEW_SOURCE ISGRI_FLAG FLAG ERR_RAD
-0 "IGR J15311-3737" 0.0 0.0 0.0 0 1 0 0.0750000029802"""
-            )
+                # ---
+                # datatype:
+                # - {name: meta_ID, datatype: int64}
+                # - {name: src_names, datatype: string}
+                # - {name: significance, datatype: float32}
+                # - {name: ra, datatype: float32}
+                # - {name: dec, datatype: float32}
+                # - {name: NEW_SOURCE, datatype: uint16}
+                # - {name: ISGRI_FLAG, datatype: int64}
+                # - {name: FLAG, datatype: int64}
+                # - {name: ERR_RAD, datatype: float64}
+                # meta: !!omap
+                # - {FRAME: fk5}
+                # - {LAT_NAME: dec}
+                # - {COORD_UNIT: deg}
+                # - {LON_NAME: ra}
+                # schema: astropy-2.0
+                meta_ID src_names significance ra dec NEW_SOURCE ISGRI_FLAG FLAG ERR_RAD
+                0 "1E 1740.7-2942" 50.4813 265.9771 -29.7467 -32768 2 0 0.0000345
+                """)
+
+        with open('catalog_simple_files/' + file_name, 'w+') as outlist_file:
+            outlist_file.write(catalog_str)
+
         return f'catalog_simple_files/{file_name}'
 
     @classmethod

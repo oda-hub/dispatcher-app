@@ -45,7 +45,9 @@ def my_instr_factory():
 
     # empty query
     instr_query = InstrumentQuery(name='empty_async_instrument_query',
-                                  input_prod_list_name='scw_list',)
+                                  input_prod_list_name='scw_list',
+                                  catalog=None,
+                                  catalog_name='user_catalog')
 
     # my_instr_image_query -> name given to this query
     empty_query = EmptyProductQuery('empty_parameters_dummy_query',)
