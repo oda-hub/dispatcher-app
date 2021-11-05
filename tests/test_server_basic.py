@@ -10,6 +10,7 @@ from functools import reduce
 import yaml
 import gzip
 
+from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
@@ -845,10 +846,9 @@ def test_scws_list_file(dispatcher_live_fixture):
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
-    # assert jdata['error_message'] == ('Error while uploading scw_list file from the frontend, '
-    #                                   'content of the temporary directory is [\'user_scw_list_file\']')
 
 
+@pytest.mark.test_catalog
 def test_catalog_file(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -872,6 +872,8 @@ def test_catalog_file(dispatcher_live_fixture):
 
     list_file = open(file_path)
 
+    catalog_object = BasicCatalog.from_file(file_path)
+
     jdata = ask(server,
                 params,
                 expected_query_status=["done"],
@@ -881,15 +883,11 @@ def test_catalog_file(dispatcher_live_fixture):
                 )
 
     list_file.close()
+    assert 'selected_catalog' in jdata['products']['analysis_parameters']
+    assert json.dumps(catalog_object.get_dictionary()) == jdata['products']['analysis_parameters']['selected_catalog']
+    assert 'user_catalog_file' not in jdata['products']['analysis_parameters']
     # test job_id
     job_id = jdata['products']['job_id']
-    session_id = jdata['session_id']
-
-    assert 'user_catalog_file' in jdata['products']['analysis_parameters']
-
-    tmp_path_element_list = jdata['products']['analysis_parameters']['user_catalog_file'].split('/')
-
-    assert tmp_path_element_list[2].endswith(session_id)
 
     # adapting some values to string
     for k, v in params.items():
@@ -898,7 +896,7 @@ def test_catalog_file(dispatcher_live_fixture):
     restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic(
         {
             **params,
-            'user_catalog_file': jdata['products']['analysis_parameters']['user_catalog_file'],
+            'selected_catalog': json.dumps(catalog_object.get_dictionary()),
             'sub': 'mtm@mtmco.net',
             'p_list': [],
             'src_name': '1E 1740.7-2942',
@@ -909,6 +907,7 @@ def test_catalog_file(dispatcher_live_fixture):
     assert job_id == calculated_job_id
 
 
+@pytest.mark.test_catalog
 def test_user_catalog(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -950,6 +949,7 @@ def test_user_catalog(dispatcher_live_fixture):
 
     assert 'selected_catalog' in jdata['products']['analysis_parameters']
     assert jdata['products']['analysis_parameters']['selected_catalog'] == json.dumps(selected_catalog_dict)
+    assert 'user_catalog_file' not in jdata['products']['analysis_parameters']
     # test job_id
     job_id = jdata['products']['job_id']
     session_id = jdata['session_id']
@@ -971,6 +971,7 @@ def test_user_catalog(dispatcher_live_fixture):
 
 
 @pytest.mark.odaapi
+@pytest.mark.test_catalog
 def test_user_catalog_oda_api(dispatcher_live_fixture):
     import oda_api.api
     import oda_api.data_products
