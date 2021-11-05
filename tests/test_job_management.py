@@ -16,10 +16,11 @@ import glob
 
 from collections import OrderedDict
 
+from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, ask
 from cdci_data_analysis.analysis.email_helper import textify_email
 from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
-    
+from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
 from flask import Markup
 
@@ -121,6 +122,15 @@ ignore_email_patterns = [
     r'expire in .*? .*?\.'
 ]
 
+api_attachment_ignore_attachment_patterns = [
+    r"(\'|\")token(\'|\"):.*?,"
+]
+
+
+def email_attachment_args_to_filename(**email_attachment_args):
+    fn = "tests/{email_collection}_emails/{name}_{state}".format(**email_attachment_args)
+    return fn
+
 
 def email_args_to_filename(**email_args):    
     suffix = "-".join(email_args.get('variation_suffixes', []))
@@ -131,6 +141,7 @@ def email_args_to_filename(**email_args):
     fn = "tests/{email_collection}_emails/{state}{suffix}.html".format(suffix=suffix, **email_args)
     os.makedirs(os.path.dirname(fn), exist_ok=True)
     return fn
+
 
 def get_reference_email(**email_args):
     # TODO: does it actually find it in CI?
@@ -144,6 +155,16 @@ def get_reference_email(**email_args):
         else:
             return None
 
+
+def get_reference_attachment(**email_attachment_args):
+    fn = os.path.abspath(email_attachment_args_to_filename(**{**email_attachment_args, 'email_collection': 'reference'}))
+    try:
+        attachment_content = open(fn).read()
+        return attachment_content
+    except FileNotFoundError:
+            raise
+
+
 # substitute several patterns for comparison
 def adapt_html(html_content, **email_args):
     for arg, patterns in generalized_email_patterns.items():
@@ -153,12 +174,21 @@ def adapt_html(html_content, **email_args):
 
     return html_content
 
-# ignore patterns which we are too lazy to substiture
+
+# ignore patterns which we are too lazy to substitute
 def ignore_html_patterns(html_content):
     for pattern in ignore_email_patterns:
         html_content = re.sub(pattern, "<IGNORES>", html_content, flags=re.DOTALL)
 
     return html_content
+
+
+# ignore patterns which we are too lazy to substitute
+def apply_ignore_api_code_patterns(api_code_content):
+    for pattern in api_attachment_ignore_attachment_patterns:
+        api_code_content = re.sub(pattern, "<IGNORES>", api_code_content, flags=re.DOTALL)
+
+    return api_code_content
 
 
 def store_email(email_html, **email_args):
@@ -171,6 +201,7 @@ def store_email(email_html, **email_args):
 
     return fn
 
+
 def extract_api_code(text):
     r = re.search('<div.*?>(.*?)</div>', text, flags=re.DOTALL)
     if r:
@@ -180,6 +211,7 @@ def extract_api_code(text):
             f.write(text)
         raise RuntimeError("no api code in the email!")
 
+
 def extract_products_url(text):
     r = re.search('<a href="(.*?)">url</a>', text, flags=re.DOTALL)
     if r:
@@ -187,7 +219,9 @@ def extract_products_url(text):
     else:
         with open("no-url-problem.html", "w") as f:
             f.write(text)
-        raise RuntimeError("no products url in the email!")
+        return ''
+        # TODO why an exception should be triggered ? chances are the link could not be inserted
+        # raise RuntimeError("no products url in the email!")
 
 
 def validate_api_code(api_code, dispatcher_live_fixture):
@@ -276,8 +310,32 @@ def validate_scw_list_email_content(message_record,
                 assert 'scw_list' in parse_qs(extracted_parsed.query)
                 extracted_scw_list = parse_qs(extracted_parsed.query)['scw_list'][0]
                 assert extracted_scw_list == scw_list_string
-        
-    
+
+
+def validate_catalog_email_content(message_record,
+                                   products_url=None,
+                                   dispatcher_live_fixture=None
+                                   ):
+    msg = email.message_from_string(message_record['data'])
+    for part in msg.walk():
+        if part.get_content_type() == 'text/html':
+            content_text_html = part.get_payload().replace('\r', '').strip()
+            email_api_code = extract_api_code(content_text_html)
+            assert 'selected_catalog' in email_api_code
+
+            extracted_product_url = extract_products_url(content_text_html)
+            if products_url is not None:
+                assert products_url == extracted_product_url
+
+            if 'resolve' in extracted_product_url:
+                print("need to resolve this:", extracted_product_url)
+                extracted_product_url = validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
+
+            if extracted_product_url is not None and extracted_product_url != '':
+                extracted_parsed = parse.urlparse(extracted_product_url)
+                assert 'selected_catalog' in parse_qs(extracted_parsed.query)
+
+
 def validate_email_content(
                    message_record, 
                    state: str,
@@ -287,8 +345,9 @@ def validate_email_content(
                    dispatcher_live_fixture=None,
                    request_params: dict=None,
                    expect_api_code=True,
+                   expect_api_code_attachment=False,
                    variation_suffixes=None,
-                   require_reference_email=False
+                   require_reference_email=False,
                    ):
 
     if variation_suffixes is None:
@@ -304,6 +363,9 @@ def validate_email_content(
                                           variation_suffixes=variation_suffixes,
                                           require=require_reference_email
                                           )
+    reference_api_code_attachment = None
+    if expect_api_code_attachment:
+        reference_api_code_attachment = get_reference_attachment(state=state, name="api_code_attachment")
 
     if request_params is None:
         request_params = {}
@@ -324,11 +386,22 @@ def validate_email_content(
     
     for part in msg.walk():
         content_text = None
+        content_disposition = str(part.get("Content-Disposition"))
+        content_type = part.get_content_type()
 
-        if part.get_content_type() == 'text/plain':
+        if "attachment" in content_disposition:
+            # extract the payload
+            # part.get_payload()
+            if expect_api_code_attachment:
+                assert part.get_filename() == 'api_code.py'
+                attachment_api_code = part.get_payload(decode=True).decode()
+                if reference_api_code_attachment is not None:
+                    assert apply_ignore_api_code_patterns(reference_api_code_attachment) == apply_ignore_api_code_patterns(attachment_api_code)
+
+        if content_type == 'text/plain':
             content_text_plain = part.get_payload().replace('\r', '').strip()
-            content_text = content_text_plain                        
-        elif part.get_content_type() == 'text/html':
+            content_text = content_text_plain
+        elif content_type == 'text/html':
             content_text_html = part.get_payload().replace('\r', '').strip()
             content_text = content_text_html
 
@@ -338,10 +411,10 @@ def validate_email_content(
                 else:
                     assert re.search(f'<a href="(.*)">url</a>', content_text_html, re.M) == None
 
-            fn = store_email(content_text_html, 
-                             state=state, 
-                             time_request_str=time_request_str, 
-                             products_url=products_url, 
+            fn = store_email(content_text_html,
+                             state=state,
+                             time_request_str=time_request_str,
+                             products_url=products_url,
                              variation_suffixes=variation_suffixes)
 
             if reference_email is not None:
@@ -355,7 +428,8 @@ def validate_email_content(
                 )
             else:
                 open("content.txt", "w").write(content_text)
-                assert "Please note that we were not able to embed API code in this email" in content_text
+                assert "Please note the API code for this query was too large to embed it in the email text. Instead," \
+                       " we attach it as a python script." in content_text
 
             if products_url != "":
                 validate_products_url(
@@ -501,15 +575,15 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     token_none = (request_cred == 'public')
 
     expect_email = True
+    token_payload = {
+            **default_token_payload,
+            "tem": 0
+        }
 
     if token_none:
         encoded_token = None
     else:
         # let's generate a valid token with high threshold
-        token_payload = {
-            **default_token_payload,
-            "tem": 0
-        }
 
         if default_values:
             token_payload.pop('tem')
@@ -780,6 +854,22 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     # TODO: test that this returns the result
 
     DataServerQuery.set_status('submitted') # sets the expected default for other tests
+
+    r = requests.get(dispatcher_long_living_fixture + "/inspect-state", params=dict(token=encoded_token))
+    assert r.status_code == 403
+    if encoded_token is None:
+        assert r.text == 'A token must be provided.'
+    else:
+        assert r.text == ("Unfortunately, your privileges are not sufficient for this type of request.\n"
+                          "Your privilege roles include ['general'], but the following roles are"
+                          " missing: administrator, jobs manager.")
+
+    admin_token = jwt.encode({**token_payload, 'roles': 'private, user manager, admin, jobs manager, administrator'}, secret_key, algorithm='HS256')
+    r = requests.get(dispatcher_long_living_fixture + "/inspect-state", params=dict(token=admin_token))
+    dispatcher_state_report = r.json()
+    logger.info('dispatcher_state_report: %s', dispatcher_state_report)
+
+    assert len(dispatcher_state_report['records']) > 0
 
 
 @pytest.mark.not_safe_parallel
@@ -1187,8 +1277,7 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
 @pytest.mark.not_safe_parallel
 def test_email_callback_after_run_analysis_subprocess_mail_server(dispatcher_live_fixture, dispatcher_local_mail_server_subprocess):
     # remove all the current scratch folders
-    dir_list = glob.glob('scratch_*')
-    [shutil.rmtree(d) for d in dir_list]
+    DispatcherJobState.remove_scratch_folders()
 
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -1407,6 +1496,79 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
     if not expired_token:
         dict_param.pop('token', None)
         assert all(key in dict_params_redirect_url for key in dict_param)
+
+
+@pytest.mark.not_safe_parallel
+@pytest.mark.test_catalog
+@pytest.mark.parametrize("catalog_passage", ['file', 'params'])
+def test_email_catalog(dispatcher_long_living_fixture,
+                       dispatcher_local_mail_server,
+                       catalog_passage
+                       ):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_long_living_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    selected_catalog_dict = None
+    list_file = None
+    list_file_content = None
+    catalog_object_dict = dict()
+
+    # setting params
+    params = {
+        'query_status': "new",
+        'product_type': 'dummy',
+        'query_type': "Real",
+        'instrument': 'empty-async',
+        'token': encoded_token
+    }
+
+    if catalog_passage == 'file':
+        file_path = DispatcherJobState.create_catalog_file(catalog_value=5)
+        list_file = open(file_path)
+        list_file_content = list_file.read()
+        catalog_object_dict = BasicCatalog.from_file(file_path).get_dictionary()
+    elif catalog_passage == 'params':
+        catalog_object_dict = DispatcherJobState.create_catalog_object()
+        params['selected_catalog'] = json.dumps(catalog_object_dict)
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["submitted"],
+                max_time_s=150,
+                method='post',
+                files={"user_catalog_file": list_file_content}
+                )
+
+    if list_file is not None:
+        list_file.close()
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    params['selected_catalog'] = json.dumps(catalog_object_dict),
+
+    completed_dict_param = {**params,
+                            'src_name': '1E 1740.7-2942',
+                            'RA': 265.97845833,
+                            'DEC': -29.74516667,
+                            'T1': '2017-03-06T13:26:48.000',
+                            'T2': '2017-03-06T15:32:27.000',
+                            }
+
+    products_url = get_expected_products_url(completed_dict_param,
+                                             session_id=dispatcher_job_state.session_id,
+                                             job_id=dispatcher_job_state.job_id,
+                                             token=encoded_token)
+    # email validation
+    validate_catalog_email_content(message_record=dispatcher_local_mail_server.get_email_record(),
+                                   products_url=products_url,
+                                   dispatcher_live_fixture=server)
 
 
 @pytest.mark.not_safe_parallel
@@ -1740,6 +1902,7 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
         dispatcher_live_fixture=None,
         request_params=params,
         expect_api_code=not unbreakable,
+        expect_api_code_attachment=unbreakable,
         variation_suffixes=["numeric-not-very-long-numerical"] if not unbreakable else [],
         require_reference_email=True
     )
@@ -1790,3 +1953,91 @@ scwl_dict = {"scw_list": "115000860010.001,115000870010.001,115000980010.001,115
 
     assert len(my_globals['bla']) > max_length
     assert len(my_globals['scwl_dict']['scw_list']) > max_length
+
+
+@pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
+@pytest.mark.parametrize("roles", ["general, jobs manager, administrator", ""])
+def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
+    required_roles = ['administrator', 'jobs manager']
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    token_none = (request_cred == 'public')
+
+    if token_none:
+        encoded_token = None
+    else:
+        # let's generate a valid token
+        token_payload = {
+            **default_token_payload,
+            "roles": roles,
+        }
+        encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    # just for having the roles in a list
+    roles = roles.split(',')
+    roles[:] = [r.strip() for r in roles]
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
+
+    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    scratch_dir_ctime = os.stat(scratch_dir_fn).st_ctime
+
+    assert os.path.exists(scratch_dir_fn)
+
+    status_code = 403
+    if request_cred == 'invalid_token':
+        # an invalid (encoded) token, just a string
+        encoded_token = 'invalid_token'
+        error_message = 'The token provided is not valid.'
+    elif request_cred == 'public':
+        error_message = 'A token must be provided.'
+    elif request_cred == 'private':
+        if 'jobs manager' not in roles and 'administrator' not in roles:
+            lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+            error_message = (
+                f'Unfortunately, your privileges are not sufficient for this type of request.\n'
+                f'Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}.'
+            )
+
+    # for the email we only use the first 8 characters
+    c = requests.get(server + "/inspect-state",
+                     params=dict(
+                         job_id=job_id[:8],
+                         token=encoded_token,
+                     ))
+
+    scratch_dir_mtime = os.stat(scratch_dir_fn).st_mtime
+
+    if request_cred != 'private' or ('jobs manager' not in roles and 'administrator' not in roles):
+        # email not supposed to be sent for public request
+        assert c.status_code == status_code
+        assert c.text == error_message
+    else:
+        jdata= c.json()
+        assert 'records' in jdata
+        assert type(jdata['records']) is list
+        assert len(jdata['records']) == 1
+
+        assert jdata['records'][0]['job_id'] == job_id
+
+        assert jdata['records'][0]['ctime'] == scratch_dir_ctime
+        assert jdata['records'][0]['mtime'] == scratch_dir_mtime

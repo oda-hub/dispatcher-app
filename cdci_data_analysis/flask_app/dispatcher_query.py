@@ -21,7 +21,7 @@ import glob
 import string
 import random
 
-from flask import jsonify, send_from_directory
+from flask import jsonify, send_from_directory, make_response
 from flask import request, g
 from urllib.parse import urlencode
 import time as time_
@@ -34,6 +34,7 @@ import logstash
 import shutil
 import typing
 import jwt
+import re
 
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
@@ -46,7 +47,7 @@ from ..analysis.io_helper import FilePath
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
-from ..analysis.exceptions import BadRequest, APIerror, MissingRequestParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut
+from ..analysis.exceptions import BadRequest, APIerror, MissingRequestParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut, InternalError
 from . import tasks
 
 from oda_api.api import DispatcherAPI
@@ -242,7 +243,15 @@ class InstrumentQueryBackEnd:
                 if not data_server_call_back:
                     self.set_instrument(self.instrument_name)
                     verbose = self.par_dic.get('verbose', 'False') == 'True'
-                    self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
+                    try:
+                        self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
+                    except Exception as e:
+                        if getattr(self, 'sentry_client', None) is not None:
+                            self.sentry_client.capture('raven.events.Message', message=f"problem creating temp directory: {e}")
+
+                        raise InternalError("we have encountered an internal error! "
+                                            "Our team is notified and is working on it. We are sorry! "
+                                            "When we find a solution we will try to reach you", status_code=500)
                     if self.instrument is not None and not isinstance(self.instrument, str):
                         self.instrument.parse_inputs_files(
                             par_dic=self.par_dic,
@@ -312,6 +321,113 @@ class InstrumentQueryBackEnd:
             self.log_query_progression("after clear_temp_dir")
             
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
+
+    @staticmethod
+    def inspect_state(app):
+        token = request.args.get('token', None)
+        if token is None:
+            # TODO what about using the RequestNotAuthorized exception?
+            # raise RequestNotAuthorized("A token must be provided.")
+            return make_response('A token must be provided.'), 403
+        try:
+            secret_key = app.config.get('conf').secret_key
+            decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+            logger.info("==> token %s", decoded_token)
+        except jwt.exceptions.ExpiredSignatureError:
+            # raise RequestNotAuthorized("The token provided is expired.")
+            return make_response('The token provided is expired.'), 403
+        except jwt.exceptions.InvalidTokenError:
+            # raise RequestNotAuthorized("The token provided is not valid.")
+            return make_response('The token provided is not valid.'), 403
+
+        recent_days = request.args.get('recent_days', 3, type=float)
+        job_id = request.args.get('job_id', None)
+
+        roles = tokenHelper.get_token_roles(decoded_token)
+
+        # TODO perhaps re-use the existing 'content manager' ?
+        required_roles = ['administrator', 'jobs manager']
+        if not all(item in roles for item in required_roles):
+            lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+            message = (
+                f"Unfortunately, your privileges are not sufficient for this type of request.\n"
+                f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
+            )
+            # raise RequestNotAuthorized(message=message)
+            return make_response(message), 403
+
+        # TODO! what is missing ?
+
+        records = []
+
+        for scratch_dir in glob.glob("scratch_sid_*_jid_*"):
+            r = re.match(
+                r"scratch_sid_(?P<session_id>[A-Z0-9]{16})_jid_(?P<job_id>[a-z0-9]{16})(?P<aliased_marker>_aliased|)",
+                scratch_dir)
+            if r is not None:
+                if job_id is not None:
+                    if r.group('job_id')[:8] != job_id:
+                        continue
+
+                if (time_.time() - os.stat(scratch_dir).st_mtime) < recent_days * 24 * 3600:
+                    records.append(dict(
+                        mtime=os.stat(scratch_dir).st_mtime,
+                        ctime=os.stat(scratch_dir).st_ctime,
+                        session_id=r.group('session_id'),
+                        job_id=r.group('job_id'),
+                        aliased_marker=r.group('aliased_marker'),
+                        **InstrumentQueryBackEnd.read_scratch_dir(scratch_dir)
+                    ))
+
+        logger.info("found records: %s", len(records))
+
+        # TODO adaption to the QueryOutJSON schema is needed
+        return jsonify(dict(records=records))
+
+    @staticmethod
+    def read_scratch_dir(scratch_dir):
+        result = {}
+
+        try:
+            fn = os.path.join(scratch_dir, 'analysis_parameters.json')
+            result['analysis_parameters'] = json.load(open(fn))
+        except Exception as e:
+            # write something
+            logger.warning('unable to read: %s', fn)
+            return {'error': f'problem reading {fn}: {repr(e)}'}
+
+        if 'token' in result['analysis_parameters']:
+            result['analysis_parameters']['token'] = tokenHelper.get_decoded_token(
+                result['analysis_parameters']['token'], secret_key=None, validate_token=False)
+            result['analysis_parameters']['email_history'] = []
+
+        result['analysis_parameters']['email_history'] = []
+        for email in glob.glob(os.path.join(scratch_dir, 'email_history/*')):
+            ctime = os.stat(email).st_ctime,
+            result['analysis_parameters']['email_history'].append(dict(
+                ctime=ctime,
+                ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(os.stat(email).st_ctime)),
+                fn=email,
+            ))
+
+        result['analysis_parameters']['fits_files'] = []
+        for fits_fn in glob.glob(os.path.join(scratch_dir, '*fits*')):
+            ctime = os.stat(fits_fn).st_ctime
+            result['analysis_parameters']['fits_files'].append(dict(
+                ctime=ctime,
+                ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(ctime)),
+                fn=fits_fn,
+            ))
+
+        result['analysis_parameters']['job_monitor'] = []
+        for fn in glob.glob(os.path.join(scratch_dir, 'job_monitor*')):
+            ctime = os.stat(fn).st_ctime
+            result['analysis_parameters']['job_monitor'].append(dict(
+                ctime=ctime,
+                ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(ctime)),
+                fn=fn,
+            ))
+        return result
 
     @staticmethod
     def restricted_par_dic(par_dic, kw_black_list=None):
@@ -462,7 +578,9 @@ class InstrumentQueryBackEnd:
             elif len(_p) == 1:
                 _p = str(_p)[1:-1].replace('\'','').split(",")
                 if len(_p) > 1:
-                    # TODO to be extended also to cases with one element, so to be consistent with how it is handled when passed with a file
+                    # TODO to be extended also to cases with one element,
+                    #  so to be consistent with how it is handled when passed with a file,
+                    #  EDIT: after a quick check, only a test adaptation is needed, though net very crucial
                     self.par_dic['scw_list'] = _p
             # use_scws should be set for, if any, url link within the email
             if self.use_scws is None:
@@ -529,17 +647,16 @@ class InstrumentQueryBackEnd:
             print('SETTEMP  ---->', session_id,
                   type(session_id), job_id, type(job_id))
 
-        td = 'temp'
+        suffix = ""
 
         if session_id is not None:
-            td += '_sid_' + session_id
+            suffix += '_sid_' + session_id
 
         if job_id is not None:
-            td += '_jid_'+job_id
+            suffix += '_jid_'+job_id
 
-        td = FilePath(file_dir=td)
-        td.mkdir()
-        self.temp_dir = td.path
+        td = tempfile.mkdtemp(suffix=suffix)
+        self.temp_dir = td
 
     def move_temp_content(self):
         if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir) \
