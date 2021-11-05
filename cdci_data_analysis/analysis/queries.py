@@ -393,9 +393,7 @@ class ProductQuery(BaseQuery):
                                  debug_message=debug_message)
 
         except Exception as e:
-            e_message = f'test of communication with backend (instrument: {instrument.name}, product: {self.name}) failed!\n' + repr(e)
-
-            raise InternalError(e_message)
+            raise InternalError()
 
         status = query_out.get_status()
         msg_str = '--> data server communication status: %d' %status
