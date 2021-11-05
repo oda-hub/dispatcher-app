@@ -1506,8 +1506,7 @@ def test_email_catalog(dispatcher_long_living_fixture,
         list_file.close()
 
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
-    if catalog_passage == 'file':
-        params['selected_catalog'] = json.dumps(catalog_object_dict),
+    params['selected_catalog'] = json.dumps(catalog_object_dict),
 
     completed_dict_param = {**params,
                             'src_name': '1E 1740.7-2942',
