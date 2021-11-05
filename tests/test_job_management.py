@@ -122,6 +122,15 @@ ignore_email_patterns = [
     r'expire in .*? .*?\.'
 ]
 
+api_attachment_ignore_attachment_patterns = [
+    r"(\'|\")token(\'|\"):.*?,"
+]
+
+
+def email_attachment_args_to_filename(**email_attachment_args):
+    fn = "tests/{email_collection}_emails/{name}_{state}".format(**email_attachment_args)
+    return fn
+
 
 def email_args_to_filename(**email_args):    
     suffix = "-".join(email_args.get('variation_suffixes', []))
@@ -132,6 +141,7 @@ def email_args_to_filename(**email_args):
     fn = "tests/{email_collection}_emails/{state}{suffix}.html".format(suffix=suffix, **email_args)
     os.makedirs(os.path.dirname(fn), exist_ok=True)
     return fn
+
 
 def get_reference_email(**email_args):
     # TODO: does it actually find it in CI?
@@ -145,6 +155,16 @@ def get_reference_email(**email_args):
         else:
             return None
 
+
+def get_reference_attachment(**email_attachment_args):
+    fn = os.path.abspath(email_attachment_args_to_filename(**{**email_attachment_args, 'email_collection': 'reference'}))
+    try:
+        attachment_content = open(fn).read()
+        return attachment_content
+    except FileNotFoundError:
+            raise
+
+
 # substitute several patterns for comparison
 def adapt_html(html_content, **email_args):
     for arg, patterns in generalized_email_patterns.items():
@@ -154,12 +174,21 @@ def adapt_html(html_content, **email_args):
 
     return html_content
 
-# ignore patterns which we are too lazy to substiture
+
+# ignore patterns which we are too lazy to substitute
 def ignore_html_patterns(html_content):
     for pattern in ignore_email_patterns:
         html_content = re.sub(pattern, "<IGNORES>", html_content, flags=re.DOTALL)
 
     return html_content
+
+
+# ignore patterns which we are too lazy to substitute
+def apply_ignore_api_code_patterns(api_code_content):
+    for pattern in api_attachment_ignore_attachment_patterns:
+        api_code_content = re.sub(pattern, "<IGNORES>", api_code_content, flags=re.DOTALL)
+
+    return api_code_content
 
 
 def store_email(email_html, **email_args):
@@ -316,8 +345,9 @@ def validate_email_content(
                    dispatcher_live_fixture=None,
                    request_params: dict=None,
                    expect_api_code=True,
+                   expect_api_code_attachment=False,
                    variation_suffixes=None,
-                   require_reference_email=False
+                   require_reference_email=False,
                    ):
 
     if variation_suffixes is None:
@@ -333,6 +363,9 @@ def validate_email_content(
                                           variation_suffixes=variation_suffixes,
                                           require=require_reference_email
                                           )
+    reference_api_code_attachment = None
+    if expect_api_code_attachment:
+        reference_api_code_attachment = get_reference_attachment(state=state, name="api_code_attachment")
 
     if request_params is None:
         request_params = {}
@@ -353,11 +386,22 @@ def validate_email_content(
     
     for part in msg.walk():
         content_text = None
+        content_disposition = str(part.get("Content-Disposition"))
+        content_type = part.get_content_type()
 
-        if part.get_content_type() == 'text/plain':
+        if "attachment" in content_disposition:
+            # extract the payload
+            # part.get_payload()
+            if expect_api_code_attachment:
+                assert part.get_filename() == 'api_code.py'
+                attachment_api_code = part.get_payload(decode=True).decode()
+                if reference_api_code_attachment is not None:
+                    assert apply_ignore_api_code_patterns(reference_api_code_attachment) == apply_ignore_api_code_patterns(attachment_api_code)
+
+        if content_type == 'text/plain':
             content_text_plain = part.get_payload().replace('\r', '').strip()
-            content_text = content_text_plain                        
-        elif part.get_content_type() == 'text/html':
+            content_text = content_text_plain
+        elif content_type == 'text/html':
             content_text_html = part.get_payload().replace('\r', '').strip()
             content_text = content_text_html
 
@@ -367,10 +411,10 @@ def validate_email_content(
                 else:
                     assert re.search(f'<a href="(.*)">url</a>', content_text_html, re.M) == None
 
-            fn = store_email(content_text_html, 
-                             state=state, 
-                             time_request_str=time_request_str, 
-                             products_url=products_url, 
+            fn = store_email(content_text_html,
+                             state=state,
+                             time_request_str=time_request_str,
+                             products_url=products_url,
                              variation_suffixes=variation_suffixes)
 
             if reference_email is not None:
@@ -384,7 +428,8 @@ def validate_email_content(
                 )
             else:
                 open("content.txt", "w").write(content_text)
-                assert "Please note that we were not able to embed API code in this email" in content_text
+                assert "Please note the API code for this query was too large to embed it in the email text. Instead," \
+                       " we attach it as a python script." in content_text
 
             if products_url != "":
                 validate_products_url(
@@ -1857,6 +1902,7 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
         dispatcher_live_fixture=None,
         request_params=params,
         expect_api_code=not unbreakable,
+        expect_api_code_attachment=unbreakable,
         variation_suffixes=["numeric-not-very-long-numerical"] if not unbreakable else [],
         require_reference_email=True
     )

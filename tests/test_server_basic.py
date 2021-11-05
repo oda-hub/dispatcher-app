@@ -1145,7 +1145,7 @@ def test_example_config(dispatcher_test_conf):
 
     example_config = yaml.load(open(example_config_fn), Loader=yaml.SafeLoader)['dispatcher']
 
-    mapper = lambda x,y:".".join(map(str, x))
+    mapper = lambda x, y: ".".join(map(str, x))
     example_config_keys = flatten_nested_structure(example_config, mapper)
     test_config_keys = flatten_nested_structure(dispatcher_test_conf, mapper)
 
