@@ -26,7 +26,7 @@ from collections import OrderedDict
 from .parameters import *
 from .products import SpectralFitProduct, QueryOutput, QueryProductList, ImageProduct
 from .io_helper import FilePath
-from .exceptions import RequestNotUnderstood
+from .exceptions import RequestNotUnderstood, UnfortunateRequestResults, BadRequest, InternalError
 import traceback
 
 @decorator.decorator
@@ -375,11 +375,9 @@ class ProductQuery(BaseQuery):
             query_out.set_done(message=message, debug_message=str(debug_message),status=status)
 
         except ConnectionError as e:
-            e_message = f'test of communication with backend (instrument: {instrument}) failed!'
-            e_message += "\n" + repr(e)
+            e_message = f'Connection with the backend (instrument: {instrument.name}, product: {self.name}) failed!\n' + repr(e)
 
-
-            if hasattr(e, 'debug_message'):
+            if hasattr(e, 'debug_message') and e.debug_message is not None:
                 debug_message = e.debug_message
             else:
                 debug_message = 'no exception default debug message'
@@ -388,12 +386,14 @@ class ProductQuery(BaseQuery):
             debug_message += traceback.format_exc()
 
             query_out.set_failed('dataserver communication test',
-                                 extra_message=e_message,
                                  logger=logger,
                                  sentry_client=sentry_client,
                                  excep=e,
                                  e_message=e_message,
                                  debug_message=debug_message)
+
+        except Exception as e:
+            raise InternalError()
 
         status = query_out.get_status()
         msg_str = '--> data server communication status: %d' %status
@@ -442,10 +442,11 @@ class ProductQuery(BaseQuery):
                                      sentry_client=sentry_client)
 
         except Exception as e:
+            # TODO same approach used above, can be used also here
             traceback.print_exc()
             print(traceback.format_exc())
             raise
-
+            # TODO all this code below con be removed
             e_message = getattr(e, 'message', 'no input products found')
             debug_message = getattr(e, 'debug_message', '')
 
@@ -523,6 +524,7 @@ class ProductQuery(BaseQuery):
             raise
 
         except Exception as e: # TODO: could we avoid these? they make error tracking hard
+            # TODO we could use the very same approach used when test_communication fails
             logger.exception("failed to get query products")
 
             #status=1
