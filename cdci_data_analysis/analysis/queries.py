@@ -393,7 +393,7 @@ class ProductQuery(BaseQuery):
                                  debug_message=debug_message)
 
         except Exception as e:
-            raise InternalError()
+            raise InternalError(None)
 
         status = query_out.get_status()
         msg_str = '--> data server communication status: %d' %status

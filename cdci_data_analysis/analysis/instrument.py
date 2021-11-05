@@ -304,7 +304,7 @@ class Instrument:
                     else:
                         e_message = ('Your request produced an unusual result. It might not be what you expected. '
                                      'It is possible that this particular parameter selection should indeed lead to this outcome '
-                                     '(e.g. there is no usable data). Please look carefully on your request.\n'
+                                     '(e.g. there is no usable data). Please look carefully on your request.\n\n'
                                      'It is also possible that the platform experienced a temporary issue. '
                                      'We aim at distinguishing all of such issues and report them clearly, '
                                      'but for now, we unfortunately can not be certain all cases like this are detected. '
