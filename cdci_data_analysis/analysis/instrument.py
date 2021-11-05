@@ -132,17 +132,18 @@ class Instrument:
             for par in (query_obj.parameters +
                         self.instrumet_query.parameters +
                         self.src_query.parameters):
+                # this is required because in some cases a parameter is set without a name (eg UserCatalog),
+                # or they don't have to set (eg scw_list)
+                #
+                if par.name is not None and par.name not in params_not_to_be_included:
+                    par.set_from_form(par_dic, verbose=verbose)
+
                 # since the field t_format applies top both T1 and T2 (and in future also to other Time parameters?)
                 # the default time format should be applied at the end when all the time values have been converted
                 # TODO improve this
                 if isinstance(par, parameters.Time):
-                    time_present = True
-                # this is required because in some cases a parameter is set without a name (eg UserCatalog),
-                # or they don't have to set (eg scw_list)
-                # 
-                if par.name is not None and par.name not in params_not_to_be_included:
-                    par.set_from_form(par_dic, verbose=verbose)
-
+                    # time_present = True
+                    par_dic['T_format'] = 'isot'
                 self.logger.info("set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s", par, par.name, par.value, par_dic.get(par.name, None))
                 if par.name == "scw_list":
                     self.logger.info("set_pars_from_dic>> scw_list is %s", par.value)
@@ -153,10 +154,10 @@ class Instrument:
                     if par.name is not None and par.name not in params_not_to_be_included:
                         par.set_from_form(par_dic, verbose=verbose)
 
-        # default time format setting
-        # TODO improve this
-        if time_present:
-            par_dic['T_format'] = 'isot'
+        # # default time format setting
+        # # TODO improve this
+        # if time_present:
+        #     par_dic['T_format'] = 'isot'
 
     def set_par(self,par_name,value):
         p=self.get_par_by_name(par_name)

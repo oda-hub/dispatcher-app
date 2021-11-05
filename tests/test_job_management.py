@@ -2027,6 +2027,7 @@ def test_email_t1_t2(dispatcher_long_living_fixture, dispatcher_local_mail_serve
         dispatcher_live_fixture=None,
     )
 
+
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, jobs manager, administrator", ""])
 def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
