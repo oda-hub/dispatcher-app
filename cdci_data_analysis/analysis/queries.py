@@ -26,7 +26,7 @@ from collections import OrderedDict
 from .parameters import *
 from .products import SpectralFitProduct, QueryOutput, QueryProductList, ImageProduct
 from .io_helper import FilePath
-from .exceptions import RequestNotUnderstood, UnfortunateRequestResults, BadRequest
+from .exceptions import RequestNotUnderstood, UnfortunateRequestResults, BadRequest, InternalError
 import traceback
 
 @decorator.decorator
@@ -395,7 +395,7 @@ class ProductQuery(BaseQuery):
         except Exception as e:
             e_message = f'test of communication with backend (instrument: {instrument.name}, product: {self.name}) failed!\n' + repr(e)
 
-            raise BadRequest(e_message)
+            raise InternalError(e_message)
 
         status = query_out.get_status()
         msg_str = '--> data server communication status: %d' %status

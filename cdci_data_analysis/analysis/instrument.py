@@ -38,7 +38,7 @@ from .catalog import BasicCatalog
 from .products import QueryOutput
 from .queries import ProductQuery, SourceQuery, InstrumentQuery
 from .io_helper import upload_file
-from .exceptions import RequestNotUnderstood, RequestNotAuthorized
+from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
 
 __author__ = "Andrea Tramacere"
 
@@ -298,24 +298,30 @@ class Instrument:
                 except RequestNotUnderstood as e:
                     logger.warning("bad request from user, passing through: %s", e)
                     raise
-                except Exception as e: # we shall not do that
-                    message_prepend_str = ('Unfortunately, the analysis product you requested is empty, '
-                                           'since there is no usable data for the parameter combination you requested: '
-                                           'time period, software version, etc. We did not find any meaningful exceptions.\n'
-                                           'This additional message may be helpful:\n\n')
-
-                    e_message = None
+                except InternalError as e:
                     if hasattr(e, 'message') and e.message is not None:
                         e_message = e.message
-
-                    logger.error("run_query failed: %s", e)
-                    # logger.error("run_query failed: %s", traceback.format_exc())
+                    else:
+                        e_message = ('Your request produced an unusual result. It might not be what you expected. '
+                                     'It is possible that this particular parameter selection should indeed lead to this outcome '
+                                     '(e.g. there is no usable data). Please look carefully on your request.\n'
+                                     'It is also possible that the platform experienced a temporary issue. '
+                                     'We aim at distinguishing all of such issues and report them clearly, '
+                                     'but for now, we unfortunately can not be certain all cases like this are detected. '
+                                     'We try to discover on our own and directly address any temporary issue. '
+                                     'But some issues might slip past us. If you are willing to help us, '
+                                     'please use "provide feedback" button below. We would greatly appreciate it!'
+                               )
                     query_out.set_failed(product_type,
                                          e_message=e_message,
-                                         message_prepend_str=message_prepend_str,
                                          logger=logger,
                                          sentry_client=sentry_client,
                                          excep=e)
+
+                except Exception as e: # we shall not do that
+                    logger.error("run_query failed: %s", e)
+                    # logger.error("run_query failed: %s", traceback.format_exc())
+                    query_out.set_failed(product_type, logger=logger, sentry_client=sentry_client, excep=e)
 
         # adding query parameters to final products
         # TODO: this can be misleading since it's the parameters actually used
