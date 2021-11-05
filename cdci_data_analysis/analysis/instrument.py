@@ -300,9 +300,9 @@ class Instrument:
                     raise
                 except InternalError as e:
                     if hasattr(e, 'message') and e.message is not None:
-                        e_message = e.message
+                        message = e.message
                     else:
-                        e_message = ('Your request produced an unusual result. It might not be what you expected. '
+                        message = ('Your request produced an unusual result. It might not be what you expected. '
                                      'It is possible that this particular parameter selection should indeed lead to this outcome '
                                      '(e.g. there is no usable data). Please look carefully on your request.\n\n'
                                      'It is also possible that the platform experienced a temporary issue. '
@@ -310,9 +310,12 @@ class Instrument:
                                      'but for now, we unfortunately can not be certain all cases like this are detected. '
                                      'We try to discover on our own and directly address any temporary issue. '
                                      'But some issues might slip past us. If you are willing to help us, '
-                                     'please use "provide feedback" button below. We would greatly appreciate it!'
+                                     'please use "provide feedback" button below. We would greatly appreciate it!\n\n'
+                                     'This additional information might help:\n\n'
                                )
+                    e_message = f'Instrument: {self.name}, product: {product_type} failed!\n'
                     query_out.set_failed(product_type,
+                                         message=message,
                                          e_message=e_message,
                                          logger=logger,
                                          sentry_client=sentry_client,
