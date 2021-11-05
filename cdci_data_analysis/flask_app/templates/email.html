@@ -57,9 +57,7 @@ This token is short-lived, and will expire in {{ request.decoded_token.exp | hum
 To learn how to get a new token, please refer to <a href="{{ oda_site.manual_reference }}">these instructions</a>.<br>
 <br>
 {% else %}
-Please note that we were not able to embed API code in this email, since exceptionally, it was too large.
-Our support team has been alerted about this incident.
-However, a python script with the api code has been attached to this email.
+Please note the API code for this query was too large to embed it in the email text. Instead, we attach it as a python script.
 If you think it was a nominal request, please contact us at <a href="mailto:{{ oda_site.contact }}">this email</a> or reply to the current message, and we will try to resolve the problem as soon as possible.
 {% endif %}
 

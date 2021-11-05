@@ -186,7 +186,7 @@ def send_email(
             )
         api_code_email_attachment.add_header('Content-Disposition',
                                              'attachment',
-                                             filename="api code")
+                                             filename="api_code.py")
 
     # TODO: enable this sometimes
     # compressed_request_url = compress_request_url_params(request_url)

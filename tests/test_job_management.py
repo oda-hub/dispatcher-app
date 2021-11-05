@@ -122,7 +122,7 @@ ignore_email_patterns = [
     r'expire in .*? .*?\.'
 ]
 
-ignore_api_code_patterns = [
+api_attachment_ignore_attachment_patterns = [
     r"(\'|\")token(\'|\"):.*?,"
 ]
 
@@ -185,7 +185,7 @@ def ignore_html_patterns(html_content):
 
 # ignore patterns which we are too lazy to substitute
 def apply_ignore_api_code_patterns(api_code_content):
-    for pattern in ignore_api_code_patterns:
+    for pattern in api_attachment_ignore_attachment_patterns:
         api_code_content = re.sub(pattern, "<IGNORES>", api_code_content, flags=re.DOTALL)
 
     return api_code_content
@@ -393,7 +393,7 @@ def validate_email_content(
             # extract the payload
             # part.get_payload()
             if expect_api_code_attachment:
-                assert part.get_filename() == 'api code'
+                assert part.get_filename() == 'api_code.py'
                 attachment_api_code = part.get_payload(decode=True).decode()
                 if reference_api_code_attachment is not None:
                     assert apply_ignore_api_code_patterns(reference_api_code_attachment) == apply_ignore_api_code_patterns(attachment_api_code)
@@ -428,7 +428,8 @@ def validate_email_content(
                 )
             else:
                 open("content.txt", "w").write(content_text)
-                assert "Please note that we were not able to embed API code in this email" in content_text
+                assert "Please note the API code for this query was too large to embed it in the email text. Instead," \
+                       " we attach it as a python script." in content_text
 
             if products_url != "":
                 validate_products_url(
