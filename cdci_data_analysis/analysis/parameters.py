@@ -252,19 +252,21 @@ class Parameter(object):
 
         if in_dictionary is True:
             self.set_par(value=v, units=u)
-            self.set_value_in_form(form=form, value=v)
         else:
             # set the default value
             form[par_name] = self.value
+
             if verbose is True:
                 logger.debug('setting par: ', par_name, ' not in dictionary, setting to the default value')
+
+        self.set_units_in_form(form=form, units_value=u)
 
     def set_par(self, value, units=None):
         if units is not None:
             self.units = units
         self.value = value
 
-    def set_value_in_form(self, form, value, units=None):
+    def set_units_in_form(self, form, units_value):
         pass
 
     def get_form(self,wtform_cls,key,validators,defaults):
@@ -455,12 +457,10 @@ class Time(Parameter):
         units=self.units
         self._set_time(v, format=units)
 
-    def set_value_in_form(self, form, value, units=None):
-        v = self._astropy_time.isot
-        form[self.name] = v
+    def set_units_in_form(self, form, units_value):
+        form[self.units_name] = 'isot'
 
-
-    def _set_time(self,value,format):
+    def _set_time(self, value, format):
        
         try:
             value=ast.literal_eval(value)

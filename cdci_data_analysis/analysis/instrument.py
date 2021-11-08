@@ -140,10 +140,10 @@ class Instrument:
 
                 # since the field t_format applies top both T1 and T2 (and in future also to other Time parameters?)
                 # the default time format should be applied at the end when all the time values have been converted
-                # TODO improve this
-                if isinstance(par, parameters.Time):
-                    # time_present = True
-                    par_dic['T_format'] = 'isot'
+                # # TODO improve this
+                # if isinstance(par, parameters.Time):
+                #     # time_present = True
+                #     par_dic['T_format'] = 'isot'
                 self.logger.info("set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s", par, par.name, par.value, par_dic.get(par.name, None))
                 if par.name == "scw_list":
                     self.logger.info("set_pars_from_dic>> scw_list is %s", par.value)
