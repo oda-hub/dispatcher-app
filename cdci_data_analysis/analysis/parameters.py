@@ -246,8 +246,8 @@ class Parameter(object):
             logger.error("problem e=%s setting par_name=%s, form=%s",
                          repr(e),
                          par_name,
-                         form,
-                        )
+                         form
+                         )
             raise
 
         if in_dictionary is True:
@@ -458,7 +458,9 @@ class Time(Parameter):
         self._set_time(v, format=units)
 
     def set_units_in_form(self, form, units_value):
-        form[self.units_name] = 'isot'
+        if units_value is None:
+            units_value = 'isot'
+        form[self.units_name] = units_value
 
     def _set_time(self, value, format):
        
