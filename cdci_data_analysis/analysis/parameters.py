@@ -259,14 +259,14 @@ class Parameter(object):
             if verbose is True:
                 logger.debug('setting par: ', par_name, ' not in dictionary, setting to the default value')
 
-        self.set_units_in_form(form=form, units_value=u)
+        self.set_value_in_form(form=form, value=u, units_value=u)
 
     def set_par(self, value, units=None):
         if units is not None:
             self.units = units
         self.value = value
 
-    def set_units_in_form(self, form, units_value):
+    def set_value_in_form(self, form, value, units_value):
         pass
 
     def get_form(self,wtform_cls,key,validators,defaults):
@@ -276,7 +276,7 @@ class Parameter(object):
     def chekc_units(units,allowed,name):
 
         if units not in allowed:
-            raise RuntimeError('wrong units for par: %s'%name, ' found: ',units,' allowed:', allowed)
+            raise RuntimeError('wrong units for par: %s' % name, ' found: ', units, ' allowed:', allowed)
 
     @staticmethod
     def check_value(val,units,par_name):
@@ -457,10 +457,11 @@ class Time(Parameter):
         units=self.units
         self._set_time(v, format=units)
 
-    def set_units_in_form(self, form, units_value):
-        if units_value is None:
-            units_value = 'isot'
-        form[self.units_name] = units_value
+    def set_value_in_form(self, form, value, units_value):
+        # set value in standardized format, which for Time is isot
+        v = self._astropy_time.isot
+        form[self.name] = v
+        form[self.units_name] = 'isot'
 
     def _set_time(self, value, format):
        
