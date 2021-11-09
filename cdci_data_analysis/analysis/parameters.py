@@ -225,7 +225,9 @@ class Parameter(object):
         self._units = units
 
     @staticmethod
-    def set_group_par(par_group, par_dic, params_not_to_be_included=[], verbose=False):
+    def set_group_par(par_group, par_dic, params_not_to_be_included=None, verbose=False):
+        if params_not_to_be_included is None:
+            params_not_to_be_included = []
         for par in par_group:
             # this is required because in some cases a parameter is set without a name (eg UserCatalog),
             # or they don't have to set (eg scw_list)
@@ -451,7 +453,9 @@ class Time(Parameter):
         self._set_time(value,format=T_format)
 
     @staticmethod
-    def set_group_par(par_group, par_dic, params_not_to_be_included=[], verbose=False):
+    def set_group_par(par_group, par_dic, params_not_to_be_included=None, verbose=False):
+        if params_not_to_be_included is None:
+            params_not_to_be_included = []
         num_time_params = 0
         for par in par_group:
             if par.name is not None and par.name not in params_not_to_be_included:
