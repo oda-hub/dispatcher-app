@@ -391,7 +391,6 @@ def validate_email_content(
 
         if "attachment" in content_disposition:
             # extract the payload
-            # part.get_payload()
             if expect_api_code_attachment:
                 assert part.get_filename() == 'api_code.py'
                 attachment_api_code = part.get_payload(decode=True).decode()
@@ -417,9 +416,9 @@ def validate_email_content(
                              products_url=products_url,
                              variation_suffixes=variation_suffixes)
 
-            # if reference_email is not None:
-            #     open("adapted_reference.html", "w").write(ignore_html_patterns(reference_email))
-            #     assert ignore_html_patterns(reference_email) == ignore_html_patterns(content_text_html), f"please inspect {fn} and possibly copy it to {fn.replace('to_review', 'reference')}"
+            if reference_email is not None:
+                open("adapted_reference.html", "w").write(ignore_html_patterns(reference_email))
+                assert ignore_html_patterns(reference_email) == ignore_html_patterns(content_text_html), f"please inspect {fn} and possibly copy it to {fn.replace('to_review', 'reference')}"
 
             if expect_api_code:
                 validate_api_code(
