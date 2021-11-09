@@ -27,18 +27,16 @@ __author__ = "Andrea Tramacere"
 import six
 import ast
 import decorator
+import logging
 
-from datetime import datetime, date, time
 from astropy.time import Time as astropyTime
 from astropy.time import TimeDelta as astropyTimeDelta
 
 from astropy.coordinates import Angle as astropyAngle
-from .catalog import BasicCatalog
 
-import  numpy as np
+import numpy as np
 
 from typing import Union
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -226,6 +224,12 @@ class Parameter(object):
 
         self._units = units
 
+    @staticmethod
+    def set_group_par(par_group, par_dic, params_not_to_be_included=[], verbose=False):
+        for par in par_group:
+            if par.name is not None and par.name not in params_not_to_be_included:
+                par.set_from_form(par_dic, verbose=verbose)
+
     def set_from_form(self, form, verbose=False):
         par_name = self.name
         units_name = self.units_name
@@ -251,10 +255,7 @@ class Parameter(object):
             raise
 
         if in_dictionary is True:
-            self.set_par(value=v, units=u)
-            if isinstance(self, Time):
-                v = self._astropy_time.isot
-                form[par_name] = v
+            self.set_par(value=v, form=form, units=u)
         else:
             # set the default value
             form[par_name] = self.value
@@ -262,7 +263,7 @@ class Parameter(object):
             if verbose is True:
                 logger.debug('setting par: ', par_name, ' not in dictionary, setting to the default value')
 
-    def set_par(self, value, units=None):
+    def set_par(self, value, form, units=None):
         if units is not None:
             self.units = units
         self.value = value
@@ -442,6 +443,22 @@ class Time(Parameter):
                                   #wtform_dict=wtform_dict)
 
         self._set_time(value,format=T_format)
+
+    @staticmethod
+    def set_group_par(par_group, par_dic, params_not_to_be_included=[], verbose=False):
+        num_time_params = 0
+        for par in par_group:
+            if par.name is not None and par.name not in params_not_to_be_included:
+                par.set_from_form(par_dic, verbose=verbose)
+                num_time_params += 1
+        if num_time_params > 0:
+            par_dic['T_format'] = 'isot'
+
+    def set_par(self, value, form, units=None):
+        if units is not None:
+            self.units = units
+        self.value = value
+        form[self.name] = self._astropy_time.isot
 
     @property
     def value(self):
