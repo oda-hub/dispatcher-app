@@ -1972,8 +1972,8 @@ def test_email_t1_t2(dispatcher_long_living_fixture, dispatcher_local_mail_serve
         query_type="Real",
         instrument="empty-async",
         product_type="dummy",
-        T1="58193.455",
-        T2="58246.892",
+        T1="57818.560277777775",
+        T2="57818.64753472222",
         T_format="mjd",
         token=encoded_token
     )
@@ -1998,8 +1998,8 @@ def test_email_t1_t2(dispatcher_long_living_fixture, dispatcher_local_mail_serve
                             'src_name': '1E 1740.7-2942',
                             'RA': 265.97845833,
                             'DEC': -29.74516667,
-                            'T1': '2018-03-16T10:55:12.000',
-                            'T2': '2018-05-08T21:24:28.800',
+                            'T1': '2017-03-06T13:26:48.000',
+                            'T2': '2017-03-06T15:32:27.000',
                             'T_format': 'isot'
                             }
 

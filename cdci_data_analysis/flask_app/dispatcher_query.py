@@ -1705,7 +1705,12 @@ class InstrumentQueryBackEnd:
                         try:
                             products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url,
                                                                                     self.par_dic)
-
+                            ordered_par_dict = OrderedDict({
+                                k: self.par_dic[k] for k in sorted(self.par_dic.keys())
+                            })
+                            email_api_code = DispatcherAPI.set_api_code(ordered_par_dict,
+                                                                        url=self.app.config['conf'].products_url + "/dispatch-data"
+                                                                        )
                             email_helper.send_email(
                                 config=self.app.config['conf'],
                                 logger=self.logger,
@@ -1718,9 +1723,7 @@ class InstrumentQueryBackEnd:
                                 product_type=product_type,
                                 time_request=self.time_request,
                                 request_url=products_url,
-                                api_code=DispatcherAPI.set_api_code(self.par_dic,
-                                                                    url=self.app.config['conf'].products_url + "/dispatch-data"
-                                                                    ),
+                                api_code=email_api_code,
                                 scratch_dir=self.scratch_dir)
 
                             # store an additional information about the sent email
