@@ -227,8 +227,14 @@ class Parameter(object):
     @staticmethod
     def set_group_par(par_group, par_dic, params_not_to_be_included=[], verbose=False):
         for par in par_group:
+            # this is required because in some cases a parameter is set without a name (eg UserCatalog),
+            # or they don't have to set (eg scw_list)
             if par.name is not None and par.name not in params_not_to_be_included:
                 par.set_from_form(par_dic, verbose=verbose)
+            logger.info("set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s", par,
+                             par.name, par.value, par_dic.get(par.name, None))
+            if par.name == "scw_list":
+                logger.info("set_pars_from_dic>> scw_list is %s", par.value)
 
     def set_from_form(self, form, verbose=False):
         par_name = self.name

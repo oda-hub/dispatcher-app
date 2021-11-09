@@ -124,52 +124,26 @@ class Instrument:
 
     def set_pars_from_dic(self, par_dic, verbose=False):
         product_type = par_dic.get('product_type', None)
-        time_present = False
         if product_type is not None:
             query_name = self.get_product_query_name(product_type)
             query_obj = self.get_query_by_name(query_name)
             # loop over the list of parameters for the requested query,
             # but also of the instrument query and source query
             param_list = (query_obj.parameters +
-                        self.instrumet_query.parameters +
-                        self.src_query.parameters)
-
+                          self.instrumet_query.parameters +
+                          self.src_query.parameters)
             for par_type, group_par_type in itertools.groupby(param_list, lambda x: type(x)):
-                # if par_type == parameters.Time:
-                #     time_present = True
-                par_type.set_group_par(par_group=group_par_type, par_dic=par_dic, params_not_to_be_included=params_not_to_be_included)
-                # for par in group_par_type:
-                #     if par.name is not None and par.name not in params_not_to_be_included:
-                #         par.set_from_form(par_dic, verbose=verbose)
-
-            # for par in (query_obj.parameters +
-            #             self.instrumet_query.parameters +
-            #             self.src_query.parameters):
-            #     # since the field t_format applies top both T1 and T2 (and in future also to other Time parameters?)
-            #     # the default time format should be applied at the end when all the time values have been converted
-            #     # TODO improve this
-            #     if isinstance(par, parameters.Time):
-            #         time_present = True
-            #     # this is required because in some cases a parameter is set without a name (eg UserCatalog),
-            #     # or they don't have to set (eg scw_list)
-            #     #
-            #     if par.name is not None and par.name not in params_not_to_be_included:
-            #         par.set_from_form(par_dic, verbose=verbose)
-            #
-            #     self.logger.info("set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s", par, par.name, par.value, par_dic.get(par.name, None))
-            #     if par.name == "scw_list":
-            #         self.logger.info("set_pars_from_dic>> scw_list is %s", par.value)
-
+                par_type.set_group_par(par_group=group_par_type,
+                                       par_dic=par_dic,
+                                       params_not_to_be_included=params_not_to_be_included,
+                                       verbose=verbose)
         else:
             for _query in self._queries_list:
-                for par in _query.parameters:
-                    if par.name is not None and par.name not in params_not_to_be_included:
-                        par.set_from_form(par_dic, verbose=verbose)
-
-        # # default time format setting
-        # # TODO improve this
-        # if time_present:
-        #     par_dic['T_format'] = 'isot'
+                for par_type, group_par_type in itertools.groupby(_query.parameters, lambda x: type(x)):
+                    par_type.set_group_par(par_group=group_par_type,
+                                           par_dic=par_dic,
+                                           params_not_to_be_included=params_not_to_be_included,
+                                           verbose=verbose)
 
     def set_par(self,par_name,value):
         p=self.get_par_by_name(par_name)
