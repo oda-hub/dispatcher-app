@@ -5,10 +5,11 @@ Created on Wed May 10 10:55:20 2017
 
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
-
+import json
 import string
 import random
 import hashlib
+import requests
 
 from raven.contrib.flask import Sentry
 
@@ -20,6 +21,9 @@ from flask_restx import Api, Resource, reqparse
 import time as _time
 from urllib.parse import urlencode
 
+from requests.auth import HTTPBasicAuth
+
+from cdci_data_analysis.analysis import email_helper
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError
@@ -383,6 +387,99 @@ class Product(Resource):
             # print('qui',e)
             raise APIerror('problem with local file delivery: %s' %
                            e, status_code=410)
+
+
+@app.route('/post_product_to_gallery', methods=['POST'])
+def post_product_to_gallery():
+    logger.info("request.args: %s ", request.args)
+    output_post = None
+    # extract content using job_id and session_id
+    par_dic = request.values.to_dict()
+    job_id = par_dic['job_id']
+    session_id = par_dic['session_id']
+    # get products
+    scratch_dir_json_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    # the aliased version might have been created
+    scratch_dir_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased'
+    analysis_parameters_json_content_original = None
+    query_output_json_content_original = None
+    body_value = None
+    #
+    if os.path.exists(scratch_dir_json_fn):
+        analysis_parameters_json_content_original = json.load(open(scratch_dir_json_fn + '/analysis_parameters.json'))
+        query_output_json_content_original = json.load(open(scratch_dir_json_fn + '/query_output.json'))
+    elif os.path.exists(scratch_dir_json_fn_aliased):
+        analysis_parameters_json_content_original = json.load(open(scratch_dir_json_fn_aliased + '/analysis_parameters.json'))
+        query_output_json_content_original = json.load(open(scratch_dir_json_fn_aliased + '/query_output.json'))
+
+    if analysis_parameters_json_content_original is not None:
+        analysis_parameters_json_content_original.pop('token', None)
+        analysis_parameters_json_content_original_str = email_helper.wrap_python_code(json.dumps(analysis_parameters_json_content_original))
+        body_value = 'Body of the article with the analysis_parameters.json: <br/><br/>' \
+                     '<div style="background-color: lightgray; display: inline-block; padding: 5px;">' + \
+                     analysis_parameters_json_content_original_str.replace("\n", "<br>") + '</div>'
+
+    if query_output_json_content_original is not None and 'prod_dictionary' in query_output_json_content_original:
+        query_output_json_content_original['prod_dictionary'].pop('analysis_parameters', None)
+        # extract the product dictionary
+        prod_dict = query_output_json_content_original['prod_dictionary']
+        # remove parameters that should not be shared
+        prod_dict.pop('api_code', None)
+        prod_dict.pop('job_id', None)
+        prod_dict.pop('session_id', None)
+        prod_dict_str = email_helper.wrap_python_code(json.dumps(prod_dict))
+        body_value += '<br/><br/>product dictionary: <br/><br/>' \
+                      '<div style="background-color: lightgray; display: inline-block; padding: 5px;">' + \
+                      prod_dict_str.replace("\n", "<br>") + '</div><br/><br/>'
+    # login to drupal
+    username = ""
+    password = ""
+    params = {
+        "name": username,
+        "pass": password
+    }
+    headers = {
+        'Content-type': 'application/hal+json'
+    }
+    log_res = requests.post("http://odapg.mtmco.net/user/login?_format=hal_json",
+                            data=json.dumps(params),
+                            headers=headers
+                            )
+
+    # extract X-CSRF-Token
+    if log_res.status_code == 200:
+        log_res_data = log_res.json()
+        csrf_token = log_res_data['csrf_token']
+        if csrf_token is not None and body_value is not None:
+            headers['csrf_token'] = csrf_token
+            # post an article
+            body = {
+                "_links": {
+                    "type": {
+                        "href": "http://odapg.mtmco.net/rest/type/node/article"
+                    }
+                },
+                "title": {
+                    "value": "Article posted from the dispatcher with image"
+                },
+                "body": [{
+                    "format": "full_html",
+                    "value": body_value
+                }],
+                "field_image": [
+                    {
+                        "target_id": 811
+                    }
+                ]
+            }
+            log_res = requests.post("http://odapg.mtmco.net/node?_format=hal_json",
+                                    data=json.dumps(body),
+                                    headers=headers,
+                                    auth=HTTPBasicAuth(username=username, password=password)
+                                    )
+            output_post = log_res.json()
+
+    return output_post
 
 
 @ns_conf.route('/js9/<path:path>', methods=['GET', 'POST'])
