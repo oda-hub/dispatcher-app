@@ -137,6 +137,7 @@ class Instrument:
                                        par_dic=par_dic,
                                        params_not_to_be_included=params_not_to_be_included,
                                        verbose=verbose)
+
         else:
             for _query in self._queries_list:
                 for par_type, group_par_type in itertools.groupby(_query.parameters, lambda x: type(x)):
@@ -144,6 +145,8 @@ class Instrument:
                                            par_dic=par_dic,
                                            params_not_to_be_included=params_not_to_be_included,
                                            verbose=verbose)
+                    par_type.log_set_par_from_dic(par_group=group_par_type,
+                                                  par_dic=par_dic)
 
     def set_par(self,par_name,value):
         p=self.get_par_by_name(par_name)

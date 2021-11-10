@@ -220,7 +220,7 @@ class Parameter(object):
 
         if self._allowed_units !=[] and self._allowed_units is not None:
 
-            self.chekc_units(units,self._allowed_units,self.name)
+            self.chekc_units(units, self._allowed_units, self.name)
 
         self._units = units
 
@@ -233,8 +233,8 @@ class Parameter(object):
             # or they don't have to set (eg scw_list)
             if par.name is not None and par.name not in params_not_to_be_included:
                 par.set_from_form(par_dic, verbose=verbose)
-            logger.info("set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s", par,
-                             par.name, par.value, par_dic.get(par.name, None))
+            logger.info("set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
+                        par, par.name, par.value, par_dic.get(par.name, None))
             if par.name == "scw_list":
                 logger.info("set_pars_from_dic>> scw_list is %s", par.value)
 
@@ -461,6 +461,9 @@ class Time(Parameter):
             if par.name is not None and par.name not in params_not_to_be_included:
                 par.set_from_form(par_dic, verbose=verbose)
                 num_time_params += 1
+            logger.info("set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
+                        par, par.name, par.value, par_dic.get(par.name, None))
+
         if num_time_params > 0:
             par_dic['T_format'] = 'isot'
 
