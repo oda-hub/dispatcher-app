@@ -275,6 +275,7 @@ class Parameter(object):
         if units is not None:
             self.units = units
         self.value = value
+        return value
 
     def get_form(self,wtform_cls,key,validators,defaults):
          return   wtform_cls('key', validators=validators, default=defaults)
