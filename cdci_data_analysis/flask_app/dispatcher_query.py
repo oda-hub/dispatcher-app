@@ -926,13 +926,9 @@ class InstrumentQueryBackEnd:
                 products_url = self.generate_products_url_from_file(self.config.products_url,
                                                                     request_par_dict=original_request_par_dic)
 
-                ordered_par_dict = OrderedDict({
-                    k: original_request_par_dic[k] for k in sorted(original_request_par_dic.keys())
-                })
-                email_api_code = DispatcherAPI.set_api_code(ordered_par_dict,
+                email_api_code = DispatcherAPI.set_api_code(original_request_par_dic,
                                                             url=self.app.config['conf'].products_url + "/dispatch-data"
                                                             )
-
                 email_helper.send_email(
                     config=self.app.config['conf'],
                     logger=self.logger,
@@ -1711,11 +1707,7 @@ class InstrumentQueryBackEnd:
                         try:
                             products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url,
                                                                                     self.par_dic)
-                            # TODO perhaps do this directly inside oda_api ?
-                            ordered_par_dict = OrderedDict({
-                                k: self.par_dic[k] for k in sorted(self.par_dic.keys())
-                            })
-                            email_api_code = DispatcherAPI.set_api_code(ordered_par_dict,
+                            email_api_code = DispatcherAPI.set_api_code(self.par_dic,
                                                                         url=self.app.config['conf'].products_url + "/dispatch-data"
                                                                         )
                             email_helper.send_email(
