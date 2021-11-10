@@ -436,7 +436,7 @@ class Integer(Parameter):
 
 
 class Time(Parameter):
-    def __init__(self,value=None,T_format=None,name=None,Time_format_name=None):
+    def __init__(self,value=None, T_format=None, name=None, Time_format_name=None):
 
         #_allowed_units = astropyTime.FORMATS
 
@@ -458,15 +458,16 @@ class Time(Parameter):
         if params_not_to_be_included is None:
             params_not_to_be_included = []
         num_time_params = 0
-        for par in par_group:
+        list_par_group = list(par_group)
+        for par in list_par_group:
             if par.name is not None and par.name not in params_not_to_be_included:
                 par.set_from_form(par_dic, verbose=verbose)
-                num_time_params += 1
+            num_time_params += 1
             logger.info("set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
                         par, par.name, par.value, par_dic.get(par.name, None))
 
-        if num_time_params > 0:
-            par_dic['T_format'] = 'isot'
+            if num_time_params == len(list_par_group):
+                par_dic[par.units_name] = 'isot'
 
     def set_par(self, value, units=None):
         if units is not None:
