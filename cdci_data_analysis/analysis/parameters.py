@@ -168,6 +168,7 @@ class Parameter(object):
                  units=None,
                  name: Union[str, None]=None, 
                  allowed_units=[],
+                 default_units=None,
                  check_value=None,
                  allowed_values=None,
                  units_name=None):
@@ -186,6 +187,7 @@ class Parameter(object):
         self._allowed_values = allowed_values
         self.name = name
         self.units = units
+        self.default_units = default_units
         self.value = value
         self.units_name = units_name
         #self._wtform_dict=wtform_dict
@@ -238,7 +240,30 @@ class Parameter(object):
             if par.name == "scw_list":
                 logger.info("set_pars_from_dic>> scw_list is %s", par.value)
 
-    def set_from_form(self, form, verbose=False):
+    # def set_unit_from_form(self, form, verbose=False):
+    #     par_name = self.name
+    #     units_name = self.units_name
+    #     v = None
+    #     u = None
+    #     in_dictionary = False
+    #
+    #     if units_name is not None:
+    #         if units_name in form.keys():
+    #             in_dictionary = True
+    #             v = form[par_name]
+    #
+    #     if in_dictionary is True:
+    #         # check that the value fits it
+    #         if v == self.value:
+    #             form[units_name] =
+    #     else:
+    #         # set the default value
+    #         form[par_name] =
+    #
+    #         if verbose is True:
+    #             logger.debug('setting par: ', par_name, ' not in dictionary, setting to the default value')
+
+    def set_value_from_form(self, form, verbose=False):
         par_name = self.name
         units_name = self.units_name
         v = None
@@ -445,10 +470,11 @@ class Time(Parameter):
         #wtform_dict['prod_list'] = TextAreaField
 
         super(Time, self).__init__(value=value,
-                                  units=T_format,
-                                  units_name=Time_format_name,
-                                  name=name,
-                                  allowed_units=None)
+                                   units=T_format,
+                                   units_name=Time_format_name,
+                                   default_units='isot',
+                                   name=name,
+                                   allowed_units=None)
                                   #wtform_dict=wtform_dict)
 
         self._set_time(value,format=T_format)

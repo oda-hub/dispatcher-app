@@ -132,11 +132,26 @@ class Instrument:
             param_list = (query_obj.parameters +
                           self.instrumet_query.parameters +
                           self.src_query.parameters)
-            for par_type, group_par_type in itertools.groupby(param_list, lambda x: type(x)):
-                par_type.set_group_par(par_group=group_par_type,
-                                       par_dic=par_dic,
-                                       params_not_to_be_included=params_not_to_be_included,
-                                       verbose=verbose)
+            # for par_type, group_par_type in itertools.groupby(param_list, lambda x: type(x)):
+                # for par in par_group:
+            for par in param_list:
+                # this is required because in some cases a parameter is set without a name (eg UserCatalog),
+                # or they don't have to set (eg scw_list)
+                if par.name is not None and par.name not in params_not_to_be_included:
+                    par.set_value_from_form(par_dic, verbose=verbose)
+                self.logger.info("set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
+                            par, par.name, par.value, par_dic.get(par.name, None))
+                if par.name == "scw_list":
+                    self.logger.info("set_pars_from_dic>> scw_list is %s", par.value)
+                # par_type.set_group_par(par_group=group_par_type,
+                #                        par_dic=par_dic,
+                #                        params_not_to_be_included=params_not_to_be_included,
+                #                        verbose=verbose)
+                # set the default, isot
+                # par_dic[par.units_name] = 'isot'
+            for par in param_list:
+                if par.name is not None and par.name not in params_not_to_be_included and par.default_units is not None:
+                    par_dic[par.units_name] = par.default_units
 
         else:
             for _query in self._queries_list:
@@ -145,8 +160,6 @@ class Instrument:
                                            par_dic=par_dic,
                                            params_not_to_be_included=params_not_to_be_included,
                                            verbose=verbose)
-                    par_type.log_set_par_from_dic(par_group=group_par_type,
-                                                  par_dic=par_dic)
 
     def set_par(self,par_name,value):
         p=self.get_par_by_name(par_name)
