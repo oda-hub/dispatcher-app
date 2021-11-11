@@ -226,20 +226,6 @@ class Parameter(object):
 
         self._units = units
 
-    @staticmethod
-    def set_group_par(par_group, par_dic, params_not_to_be_included=None, verbose=False):
-        if params_not_to_be_included is None:
-            params_not_to_be_included = []
-        for par in par_group:
-            # this is required because in some cases a parameter is set without a name (eg UserCatalog),
-            # or they don't have to set (eg scw_list)
-            if par.name is not None and par.name not in params_not_to_be_included:
-                par.set_from_form(par_dic, verbose=verbose)
-            logger.info("set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
-                        par, par.name, par.value, par_dic.get(par.name, None))
-            if par.name == "scw_list":
-                logger.info("set_pars_from_dic>> scw_list is %s", par.value)
-
     # def set_unit_from_form(self, form, verbose=False):
     #     par_name = self.name
     #     units_name = self.units_name
@@ -477,22 +463,7 @@ class Time(Parameter):
                                    allowed_units=None)
                                   #wtform_dict=wtform_dict)
 
-        self._set_time(value,format=T_format)
-
-    @staticmethod
-    def set_group_par(par_group, par_dic, params_not_to_be_included=None, verbose=False):
-        if params_not_to_be_included is None:
-            params_not_to_be_included = []
-        list_par_group = list(par_group)
-        for par in list_par_group:
-            if par.name is not None and par.name not in params_not_to_be_included:
-                par.set_from_form(par_dic, verbose=verbose)
-            logger.info("set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
-                        par, par.name, par.value, par_dic.get(par.name, None))
-
-        # set the default, isot
-        for par in list_par_group:
-            par_dic[par.units_name] = 'isot'
+        self._set_time(value, format=T_format)
 
     def set_par(self, value, units=None):
         # sets the value to the format initially specified in the form
