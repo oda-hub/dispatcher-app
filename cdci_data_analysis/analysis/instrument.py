@@ -139,6 +139,8 @@ class Instrument:
             # this is required because in some cases a parameter is set without a name (eg UserCatalog),
             # or they don't have to set (eg scw_list)
             if par.name is not None and par.name not in params_not_to_be_included:
+                # set the value for par in to a default format,
+                # or to a default value if this is not included within the request
                 par.set_value_from_form(par_dic, verbose=verbose)
             self.logger.info("set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
                              par, par.name, par.value, par_dic.get(par.name, None))
