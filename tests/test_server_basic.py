@@ -31,8 +31,9 @@ default_params = dict(
                     osa_version="OSA10.2",
                     E1_keV=20.,
                     E2_keV=40.,
-                    T1="2008-01-01T11:11:11.0",
-                    T2="2009-01-01T11:11:11.0",
+                    T1="2008-01-01T11:11:11.000",
+                    T2="2009-01-01T11:11:11.000",
+                    T_format='isot',
                     max_pointings=2,
                     RA=83,
                     DEC=22,
@@ -810,7 +811,6 @@ def test_scws_list_file(dispatcher_live_fixture):
     file_path = DispatcherJobState.create_p_value_file(p_value=5)
 
     list_file = open(file_path)
-    t = None
 
     expected_query_status = 'done'
     expected_job_status = 'done'
@@ -1256,7 +1256,8 @@ def test_default_values(dispatcher_live_fixture, additional_parameter):
                                                                     'RA': 265.97845833,
                                                                     'DEC': -29.74516667,
                                                                     'T1': '2017-03-06T13:26:48.000',
-                                                                    'T2': '2017-03-06T15:32:27.000'
+                                                                    'T2': '2017-03-06T15:32:27.000',
+                                                                    'T_format': 'isot'
                                                                     })
     calculated_job_id = make_hash(restricted_par_dic)
 

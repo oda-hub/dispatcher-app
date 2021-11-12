@@ -20,6 +20,7 @@ Module API
 
 from __future__ import absolute_import, division, print_function
 
+import itertools
 import os
 from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
@@ -33,7 +34,7 @@ import numpy as np
 from astropy.table import Table
 
 from cdci_data_analysis.analysis.queries import _check_is_base_query
-from ..analysis import tokenHelper
+from ..analysis import tokenHelper, parameters
 from .catalog import BasicCatalog
 from .products import QueryOutput
 from .queries import ProductQuery, SourceQuery, InstrumentQuery
@@ -128,24 +129,40 @@ class Instrument:
             query_obj = self.get_query_by_name(query_name)
             # loop over the list of parameters for the requested query,
             # but also of the instrument query and source query
-            for par in (query_obj.parameters +
-                        self.instrumet_query.parameters +
-                        self.src_query.parameters):
-                # this is required because in some cases a parameter is set without a name (eg UserCatalog),
-                # or they don't have to set (eg scw_list)
-                # 
-                if par.name is not None and par.name not in params_not_to_be_included:
-                    par.set_from_form(par_dic, verbose=verbose)
-
-                self.logger.info("set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s", par, par.name, par.value, par_dic.get(par.name, None))
-                if par.name == "scw_list":
-                    self.logger.info("set_pars_from_dic>> scw_list is %s", par.value)
-
+            param_list = (query_obj.parameters +
+                          self.instrumet_query.parameters +
+                          self.src_query.parameters)
         else:
-            for _query in self._queries_list:
-                for par in _query.parameters:
-                    if par.name is not None and par.name not in params_not_to_be_included:
-                        par.set_from_form(par_dic, verbose=verbose)
+            param_list = [par for _query in self._queries_list for par in _query.parameters]
+
+        updated_par_dic = par_dic.copy()
+        
+        for par in param_list:
+            # this is required because in some cases a parameter is set without a name (eg UserCatalog),
+            # or they don't have to set (eg scw_list)
+
+            self.logger.info("before normalizing, set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
+                             par, par.name, par.value, par_dic.get(par.name, None))
+
+            if par.name is not None and par.name not in params_not_to_be_included:
+                # set the value for par in to a default format,
+                # or to a default value if this is not included within the request
+                
+                updated_par_dic[par.name] = par.set_value_from_form(par_dic, verbose=verbose)
+
+                if par.default_units is not None:
+                    updated_par_dic[par.units_name] = par.default_units
+
+            self.logger.info("after normalizing, set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
+                             par, par.name, par.value, par_dic.get(par.name, None))
+
+            if par.name == "scw_list":
+                self.logger.info("set_pars_from_dic>> scw_list is %s", par.value)
+
+        return updated_par_dic
+        # for par in param_list:
+            # if par.name is not None and par.name not in params_not_to_be_included and par.default_units is not None:
+            #     par_dic[par.units_name] = par.default_units
 
     def set_par(self,par_name,value):
         p=self.get_par_by_name(par_name)

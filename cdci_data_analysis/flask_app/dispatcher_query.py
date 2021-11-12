@@ -261,7 +261,7 @@ class InstrumentQueryBackEnd:
                             use_scws=self.use_scws,
                             sentry_client=self.sentry_client
                         )
-                        self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
+                        self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
                 # TODO: if not callback!
                 # if 'query_status' not in self.par_dic:
                 #    raise MissingRequestParameter('no query_status!')
@@ -471,7 +471,11 @@ class InstrumentQueryBackEnd:
         self.logger.info(
             "\033[31m---> new job id for %s <---\033[0m", self.par_dic)
 
-        self.logger.debug("generate_job_id: %s", json.dumps(self.par_dic, indent=4, sort_keys=True))
+        try:
+            self.logger.debug("generate_job_id: %s", json.dumps(self.par_dic, indent=4, sort_keys=True))
+        except Exception as e:
+            self.logger.error("unable to jsonify this self.par_dic = %s", self.par_dic)
+            raise
 
         self.job_id = self.calculate_job_id(self.par_dic, kw_black_list)
 
@@ -926,6 +930,9 @@ class InstrumentQueryBackEnd:
                 products_url = self.generate_products_url_from_file(self.config.products_url,
                                                                     request_par_dict=original_request_par_dic)
 
+                email_api_code = DispatcherAPI.set_api_code(original_request_par_dic,
+                                                            url=self.app.config['conf'].products_url + "/dispatch-data"
+                                                            )
                 email_helper.send_email(
                     config=self.app.config['conf'],
                     logger=self.logger,
@@ -940,8 +947,7 @@ class InstrumentQueryBackEnd:
                     request_url=products_url,
                     # products_url is frontend URL, clickable by users.
                     # dispatch-data is how frontend is referring to the dispatcher, it's fixed in frontend-astrooda code
-                    api_code=DispatcherAPI.set_api_code(original_request_par_dic,
-                                                        url=self.app.config['conf'].products_url + "/dispatch-data"),
+                    api_code=email_api_code,
                     scratch_dir=self.scratch_dir,
                     )
 
@@ -1705,7 +1711,9 @@ class InstrumentQueryBackEnd:
                         try:
                             products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url,
                                                                                     self.par_dic)
-
+                            email_api_code = DispatcherAPI.set_api_code(self.par_dic,
+                                                                        url=self.app.config['conf'].products_url + "/dispatch-data"
+                                                                        )
                             email_helper.send_email(
                                 config=self.app.config['conf'],
                                 logger=self.logger,
@@ -1718,9 +1726,7 @@ class InstrumentQueryBackEnd:
                                 product_type=product_type,
                                 time_request=self.time_request,
                                 request_url=products_url,
-                                api_code=DispatcherAPI.set_api_code(self.par_dic,
-                                                                    url=self.app.config['conf'].products_url + "/dispatch-data"
-                                                                    ),
+                                api_code=email_api_code,
                                 scratch_dir=self.scratch_dir)
 
                             # store an additional information about the sent email
