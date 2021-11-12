@@ -1320,4 +1320,4 @@ def test_product_gallery_post_product(dispatcher_live_fixture):
                       params={**params},
                       )
 
-    print("content:", c.text)
+    assert c.status_code == 200

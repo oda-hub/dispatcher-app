@@ -391,6 +391,11 @@ class Product(Resource):
 
 @app.route('/post_product_to_gallery', methods=['POST'])
 def post_product_to_gallery():
+    # TODO login info for drupal, will be ideally replaced with the usage of a JWT token
+    username = ""
+    password = ""
+
+
     logger.info("request.args: %s ", request.args)
     output_post = None
     # extract content using job_id and session_id
@@ -431,9 +436,7 @@ def post_product_to_gallery():
         body_value += '<br/><br/>product dictionary: <br/><br/>' \
                       '<div style="background-color: lightgray; display: inline-block; padding: 5px;">' + \
                       prod_dict_str.replace("\n", "<br>") + '</div><br/><br/>'
-    # login to drupal
-    username = ""
-    password = ""
+
     params = {
         "name": username,
         "pass": password
@@ -478,6 +481,10 @@ def post_product_to_gallery():
                                     auth=HTTPBasicAuth(username=username, password=password)
                                     )
             output_post = log_res.json()
+    else:
+        raise RequestNotUnderstood('login not valid',
+                           status_code=403,
+                           payload={'error_message': 'invalid login'})
 
     return output_post
 
