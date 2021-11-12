@@ -286,13 +286,12 @@ class Parameter(object):
             raise
 
         if in_dictionary is True:
-            form[par_name] = self.set_par(value=v, units=u)
+            return self.set_par(value=v, units=u)
         else:
-            # set the default value
-            form[par_name] = self.value
-
             if verbose is True:
-                logger.debug('setting par: %s not in dictionary, setting to the default value' % par_name )
+                logger.debug('setting par: %s in the dictionary to its default value' % par_name )
+            # set the default value
+            return self.value
 
     def set_par(self, value, units=None):
         if units is not None:
