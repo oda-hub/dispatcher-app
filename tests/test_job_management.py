@@ -1958,14 +1958,14 @@ scwl_dict = {"scw_list": "115000860010.001,115000870010.001,115000980010.001,115
                                                ['2017-03-06T13:26:48.000', 57818.64753472222],
                                                [57818.560277777775, '2017-03-06T15:32:27.000']])
 @pytest.mark.parametrize('time_format', ['isot', 'mjd'])
-def test_email_t1_t2(dispatcher_live_fixture,
+def test_email_t1_t2(dispatcher_long_living_fixture,
                      dispatcher_local_mail_server,
                      time_combinations,
                      time_format):
     from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
     DataServerQuery.set_status('submitted')
 
-    server = dispatcher_live_fixture
+    server = dispatcher_long_living_fixture
 
     DispatcherJobState.remove_scratch_folders()
 
