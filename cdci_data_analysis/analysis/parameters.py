@@ -185,9 +185,9 @@ class Parameter(object):
 
         self._allowed_units = allowed_units
         self._allowed_values = allowed_values
+        self._default_units = default_units
         self.name = name
         self.units = units
-        self.default_units = default_units
         self.value = value
         self.units_name = units_name
         #self._wtform_dict=wtform_dict
@@ -212,6 +212,18 @@ class Parameter(object):
                 self._value = v
         else:
             self._value=None
+
+    @property
+    def default_units(self):
+        return self._default_units
+
+    @default_units.setter
+    def default_units(self, units):
+
+        if self._allowed_units != [] and self._allowed_units is not None:
+            self.chekc_units(units, self._allowed_units, self.name)
+
+        self._default_units = units
 
     @property
     def units(self):
@@ -280,7 +292,7 @@ class Parameter(object):
             form[par_name] = self.value
 
             if verbose is True:
-                logger.debug('setting par: ', par_name, ' not in dictionary, setting to the default value')
+                logger.debug('setting par: %s not in dictionary, setting to the default value' % par_name )
 
     def set_par(self, value, units=None):
         if units is not None:
