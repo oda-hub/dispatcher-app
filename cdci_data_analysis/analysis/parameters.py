@@ -275,12 +275,10 @@ class Parameter(object):
             self.units = units
         self.value = value
         # this should return the value in a default format
-        if self.default_units is not None:
-            return self.get_value_default_format(value)
-        return value
+        return self.get_value_default_format(value)
 
     def get_value_default_format(self, value):
-        pass
+        return value
 
     def get_form(self,wtform_cls,key,validators,defaults):
          return   wtform_cls('key', validators=validators, default=defaults)
@@ -458,15 +456,6 @@ class Time(Parameter):
                                   #wtform_dict=wtform_dict)
 
         self._set_time(value, format=T_format)
-
-    # def set_par(self, value, units=None):
-    #     # sets the value to the format initially specified in the form
-    #     if units is not None:
-    #         self.units = units
-    #     self.value = value
-    #     # return the relative isot format value
-    #     # afterwards also the units_name will be set to isot
-    #     return self._astropy_time.isot
 
     def get_value_default_format(self, value):
         if self._default_units == 'isot':
@@ -672,14 +661,14 @@ class SpectralBoundary(Parameter):
         #wtform_dict = {'keV': FloatField}
 
         super(SpectralBoundary, self).__init__(value=value,
-                                   units=E_units,
-                                   check_value=self.check_energy_value,
-                                   name=name,
-                                   allowed_units=_allowed_units)
+                                               units=E_units,
+                                               check_value=self.check_energy_value,
+                                               name=name,allowed_units=_allowed_units)
                                    #wtform_dict=wtform_dict)
 
-
-
+    def get_value_default_format(self, value):
+        # might return int or float
+        return ast.literal_eval(value)
 
     @staticmethod
     def check_energy_value(value, units=None,name=None):
