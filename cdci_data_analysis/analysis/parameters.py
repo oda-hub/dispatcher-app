@@ -238,29 +238,6 @@ class Parameter(object):
 
         self._units = units
 
-    # def set_unit_from_form(self, form, verbose=False):
-    #     par_name = self.name
-    #     units_name = self.units_name
-    #     v = None
-    #     u = None
-    #     in_dictionary = False
-    #
-    #     if units_name is not None:
-    #         if units_name in form.keys():
-    #             in_dictionary = True
-    #             v = form[par_name]
-    #
-    #     if in_dictionary is True:
-    #         # check that the value fits it
-    #         if v == self.value:
-    #             form[units_name] =
-    #     else:
-    #         # set the default value
-    #         form[par_name] =
-    #
-    #         if verbose is True:
-    #             logger.debug('setting par: ', par_name, ' not in dictionary, setting to the default value')
-
     def set_value_from_form(self, form, verbose=False):
         par_name = self.name
         units_name = self.units_name
@@ -297,7 +274,13 @@ class Parameter(object):
         if units is not None:
             self.units = units
         self.value = value
+        # this should return the value in a default format
+        if self.default_units is not None:
+            return self.get_value_default_format(value)
         return value
+
+    def get_value_default_format(self, value):
+        pass
 
     def get_form(self,wtform_cls,key,validators,defaults):
          return   wtform_cls('key', validators=validators, default=defaults)
@@ -476,14 +459,20 @@ class Time(Parameter):
 
         self._set_time(value, format=T_format)
 
-    def set_par(self, value, units=None):
-        # sets the value to the format initially specified in the form
-        if units is not None:
-            self.units = units
-        self.value = value
-        # return the relative isot format value
-        # afterwards also the units_name will be set to isot
-        return self._astropy_time.isot
+    # def set_par(self, value, units=None):
+    #     # sets the value to the format initially specified in the form
+    #     if units is not None:
+    #         self.units = units
+    #     self.value = value
+    #     # return the relative isot format value
+    #     # afterwards also the units_name will be set to isot
+    #     return self._astropy_time.isot
+
+    def get_value_default_format(self, value):
+        if self._default_units == 'isot':
+            return self._astropy_time.isot
+        elif self._default_units == 'mjd':
+            return self._astropy_time.mjd
 
     @property
     def value(self):
