@@ -148,7 +148,7 @@ class Instrument:
                 # or to a default value if this is not included within the request
                 updated_par_dic[par.name] = par.set_value_from_form(par_dic, verbose=verbose)
 
-                if par.default_units is not None:
+                if par.units_name is not None and par.default_units is not None:
                     updated_par_dic[par.units_name] = par.default_units
 
             self.logger.info("after normalizing, set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",

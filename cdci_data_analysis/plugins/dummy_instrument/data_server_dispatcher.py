@@ -297,3 +297,39 @@ class DataServerNumericQuery(ProductQuery):
                     'unige-hpc-full': 'unige-hpc-full role is needed for p>50 as well'
                 }
         return results
+
+
+class DataServerParametricQuery(ProductQuery):
+
+    def __init__(self, name, parameters_list=None):
+        if parameters_list is None:
+            parameters_list = []
+        super().__init__(name, parameters_list=parameters_list)
+
+    def test_connection(self):
+        pass
+
+    def get_dummy_products(self, instrument, config=None, **kwargs):
+        return []
+
+    def test_has_input_products(self):
+        pass
+
+    def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
+        return []
+
+    def process_product_method(self, instrument, prod_list, api=False, **kw):
+        # TODO if needed, some products should be build here
+        query_out = QueryOutput()
+
+        return query_out
+
+    def get_data_server_query(self, instrument: Instrument, config=None):
+        if instrument.data_server_query_class:
+            return instrument.data_server_query_class(instrument=instrument, config=config)
+        return DataServerQuery()
+
+    # example with the general user role
+    def check_query_roles(self, roles, par_dic):
+        results = dict(authorization=True, needed_roles=[])
+        return results
