@@ -27,18 +27,16 @@ __author__ = "Andrea Tramacere"
 import six
 import ast
 import decorator
+import logging
 
-from datetime import datetime, date, time
 from astropy.time import Time as astropyTime
 from astropy.time import TimeDelta as astropyTimeDelta
 
 from astropy.coordinates import Angle as astropyAngle
-from .catalog import BasicCatalog
 
-import  numpy as np
+import numpy as np
 
 from typing import Union
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -170,6 +168,7 @@ class Parameter(object):
                  units=None,
                  name: Union[str, None]=None, 
                  allowed_units=[],
+                 default_units=None,
                  check_value=None,
                  allowed_values=None,
                  units_name=None):
@@ -186,6 +185,7 @@ class Parameter(object):
 
         self._allowed_units = allowed_units
         self._allowed_values = allowed_values
+        self._default_units = default_units
         self.name = name
         self.units = units
         self.value = value
@@ -214,6 +214,18 @@ class Parameter(object):
             self._value=None
 
     @property
+    def default_units(self):
+        return self._default_units
+
+    @default_units.setter
+    def default_units(self, units):
+
+        if self._allowed_units != [] and self._allowed_units is not None:
+            self.chekc_units(units, self._allowed_units, self.name)
+
+        self._default_units = units
+
+    @property
     def units(self):
         return self._units
 
@@ -222,11 +234,34 @@ class Parameter(object):
 
         if self._allowed_units !=[] and self._allowed_units is not None:
 
-            self.chekc_units(units,self._allowed_units,self.name)
+            self.chekc_units(units, self._allowed_units, self.name)
 
         self._units = units
 
-    def set_from_form(self, form, verbose=False):
+    # def set_unit_from_form(self, form, verbose=False):
+    #     par_name = self.name
+    #     units_name = self.units_name
+    #     v = None
+    #     u = None
+    #     in_dictionary = False
+    #
+    #     if units_name is not None:
+    #         if units_name in form.keys():
+    #             in_dictionary = True
+    #             v = form[par_name]
+    #
+    #     if in_dictionary is True:
+    #         # check that the value fits it
+    #         if v == self.value:
+    #             form[units_name] =
+    #     else:
+    #         # set the default value
+    #         form[par_name] =
+    #
+    #         if verbose is True:
+    #             logger.debug('setting par: ', par_name, ' not in dictionary, setting to the default value')
+
+    def set_value_from_form(self, form, verbose=False):
         par_name = self.name
         units_name = self.units_name
         v = None
@@ -246,31 +281,32 @@ class Parameter(object):
             logger.error("problem e=%s setting par_name=%s, form=%s",
                          repr(e),
                          par_name,
-                         form,
-                        )
+                         form
+                         )
             raise
 
         if in_dictionary is True:
-            self.set_par(value=v, units=u)
+            return self.set_par(value=v, units=u)
         else:
-            # set the default value
-            form[par_name] = self.value
             if verbose is True:
-                logger.debug('setting par: ', par_name, ' not in dictionary, setting to the default value')
+                logger.debug('setting par: %s in the dictionary to its default value' % par_name )
+            # set the default value
+            return self.value
 
     def set_par(self, value, units=None):
         if units is not None:
             self.units = units
         self.value = value
+        return value
 
     def get_form(self,wtform_cls,key,validators,defaults):
          return   wtform_cls('key', validators=validators, default=defaults)
 
     @staticmethod
-    def chekc_units(units,allowed,name):
-
+    def chekc_units(units, allowed, name):
         if units not in allowed:
-            raise RuntimeError('wrong units for par: %s'%name, ' found: ',units,' allowed:', allowed)
+            # TODO this exception is not properly formatted, it could be problematic
+            raise RuntimeError('wrong units for par: %s' % name, ' found: ', units, ' allowed:', allowed)
 
     @staticmethod
     def check_value(val,units,par_name):
@@ -421,11 +457,8 @@ class Integer(Parameter):
                 raise RuntimeError('type of ', name, 'not valid', type(value))
 
 
-
-
-
 class Time(Parameter):
-    def __init__(self,value=None,T_format=None,name=None,Time_format_name=None):
+    def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None):
 
         #_allowed_units = astropyTime.FORMATS
 
@@ -433,16 +466,24 @@ class Time(Parameter):
         #wtform_dict['mjd'] = FloatField
         #wtform_dict['prod_list'] = TextAreaField
 
-        super(Time,self).__init__(value=value,
-                                  units=T_format,
-                                  units_name=Time_format_name,
-                                  name=name,
-                                  allowed_units=None)
+        super(Time, self).__init__(value=value,
+                                   units=T_format,
+                                   units_name=Time_format_name,
+                                   default_units='isot',
+                                   name=name,
+                                   allowed_units=None)
                                   #wtform_dict=wtform_dict)
 
+        self._set_time(value, format=T_format)
 
-        self._set_time(value,format=T_format)
-
+    def set_par(self, value, units=None):
+        # sets the value to the format initially specified in the form
+        if units is not None:
+            self.units = units
+        self.value = value
+        # return the relative isot format value
+        # afterwards also the units_name will be set to isot
+        return self._astropy_time.isot
 
     @property
     def value(self):
@@ -454,7 +495,7 @@ class Time(Parameter):
         units=self.units
         self._set_time(v, format=units)
 
-    def _set_time(self,value,format):
+    def _set_time(self, value, format):
        
         try:
             value=ast.literal_eval(value)

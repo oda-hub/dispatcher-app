@@ -3,9 +3,17 @@ from oda_api.api import DispatcherAPI
 disp = DispatcherAPI(url="PRODUCTS_URL/dispatch-data", instrument="mock")
 
 par_dict = {
-    "product_type": "Real",
+    "DEC": -29.74516667,
+    "RA": 265.97845833,
+    "T1": "2017-03-06T13:26:48.000",
+    "T2": "2017-03-06T15:32:27.000",
+    "T_format": "isot",
     "instrument": "empty-async",
+    "p": 10.0,
     "product": "numerical",
+    "product_type": "Real",
+    "src_name": "1E 1740.7-2942",
+    "string_like_name": "default-name",
     "token": (
         "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdG1AbXRtY28ubmV0IiwibmFtZSI6Im1tZWhhcmdh"
         "Iiwicm9sZXMiOiJnZW5lcmFsIiwiZXhwIjoxNjM1NTI5MjU4LCJ0ZW0iOjAsIm1zdG91dCI6dHJ1ZSwibXNzdWIiO"
@@ -14,13 +22,6 @@ par_dict = {
     "very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_very_long_parameter_": (
         "unset"
     ),
-    "p": 10.0,
-    "string_like_name": "default-name",
-    "src_name": "1E 1740.7-2942",
-    "RA": 265.97845833,
-    "DEC": -29.74516667,
-    "T1": "2017-03-06T13:26:48.000",
-    "T2": "2017-03-06T15:32:27.000",
 }
 
 data_collection = disp.get_product(**par_dict)

@@ -391,7 +391,6 @@ def validate_email_content(
 
         if "attachment" in content_disposition:
             # extract the payload
-            # part.get_payload()
             if expect_api_code_attachment:
                 assert part.get_filename() == 'api_code.py'
                 attachment_api_code = part.get_payload(decode=True).decode()
@@ -543,6 +542,7 @@ def test_validation_job_id(dispatcher_live_fixture):
             'DEC': -29.74516667,
             'T1': '2017-03-06T13:26:48.000',
             'T2': '2017-03-06T15:32:27.000',
+            'T_format': 'isot'
         }
     )
 
@@ -629,6 +629,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                             'DEC': -29.74516667,
                             'T1': '2017-03-06T13:26:48.000',
                             'T2': '2017-03-06T15:32:27.000',
+                            'T_format': 'isot'
                             }
 
     products_url = get_expected_products_url(completed_dict_param,
@@ -732,8 +733,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     assert c.status_code == 200
     assert c.json()['query_status'] == 'progress'
 
-
-    # this dones nothing special
+    # this does nothing special
     c = requests.get(server + "/call_back",
                      params=dict(
                          job_id=dispatcher_job_state.job_id,
@@ -745,9 +745,6 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                          token=encoded_token,
                          time_original_request=time_request
                      ))
-    
-
-
 
     DataServerQuery.set_status('done')
 
@@ -764,7 +761,6 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                          time_original_request=time_request
                      ))
 
-                     
     assert c.status_code == 200
 
     # TODO build a test that effectively test both paths
@@ -1724,6 +1720,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
                                 'DEC': -29.74516667,
                                 'T1': '2017-03-06T13:26:48.000',
                                 'T2': '2017-03-06T15:32:27.000',
+                                'T_format': 'isot'
                                 }
 
         products_url = get_expected_products_url(completed_dict_param,
@@ -1788,7 +1785,7 @@ def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispa
 
     DispatcherJobState.remove_scratch_folders()
 
-     # let's generate a valid token with high threshold
+    # let's generate a valid token with high threshold
     token_payload = {
         **default_token_payload,
         "tem": 0
@@ -1880,6 +1877,7 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
                             'DEC': -29.74516667,
                             'T1': '2017-03-06T13:26:48.000',
                             'T2': '2017-03-06T15:32:27.000',
+                            'T_format': 'isot'
                             }
 
     products_url = get_expected_products_url(completed_dict_param,
@@ -1953,6 +1951,106 @@ scwl_dict = {"scw_list": "115000860010.001,115000870010.001,115000980010.001,115
 
     assert len(my_globals['bla']) > max_length
     assert len(my_globals['scwl_dict']['scw_list']) > max_length
+
+
+@pytest.mark.parametrize('time_combinations', [[57818.560277777775, 57818.64753472222],
+                                               ['2017-03-06T13:26:48.000', '2017-03-06T15:32:27.000'],
+                                               ['2017-03-06T13:26:48.000', 57818.64753472222],
+                                               [57818.560277777775, '2017-03-06T15:32:27.000']])
+@pytest.mark.parametrize('time_format', ['isot', 'mjd'])
+def test_email_t1_t2(dispatcher_long_living_fixture,
+                     dispatcher_local_mail_server,
+                     time_combinations,
+                     time_format):
+    from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
+    DataServerQuery.set_status('submitted')
+
+    server = dispatcher_long_living_fixture
+
+    DispatcherJobState.remove_scratch_folders()
+
+    token_payload = {
+        **default_token_payload,
+        "tem": 0
+            }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        T1=time_combinations[0],
+        T2=time_combinations[1],
+        T_format=time_format,
+        token=encoded_token
+    )
+
+    error_message = None
+    if (isinstance(time_combinations[0], str) and isinstance(time_combinations[1], str) and time_format == 'isot') or \
+            (isinstance(time_combinations[0], float) and isinstance(time_combinations[1], float) and time_format == 'mjd'):
+        expected_query_status = 'submitted'
+        expected_status_code = 200
+    else:
+        expected_query_status = None
+        expected_status_code = 400
+        error_message = (f'[ InstrumentQueryBackEnd : empty-async ] constructor failed: '
+                         f'Input values did not match the format class {time_format}:\n')
+        if time_format == 'isot':
+            error_message += f'TypeError: Input values for {time_format} class must be strings'
+        else:
+            error_message += f'TypeError: for {time_format} class, input should be (long) doubles, string, ' \
+                             f'or Decimal, and second values are only allowed for (long) doubles.'
+
+    # this should return status submitted, so email sent
+    jdata = ask(server,
+                dict_param,
+                expected_status_code=expected_status_code,
+                expected_query_status=expected_query_status,
+                max_time_s=150,
+                )
+
+    if expected_status_code == 200:
+        logger.info("response from run_analysis: %s", json.dumps(jdata, indent=4))
+        dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+
+        session_id = jdata['session_id']
+        job_id = jdata['job_monitor']['job_id']
+
+        completed_dict_param = {**dict_param,
+                                'use_scws': 'no',
+                                'src_name': '1E 1740.7-2942',
+                                'RA': 265.97845833,
+                                'DEC': -29.74516667,
+                                'T1': '2017-03-06T13:26:48.000',
+                                'T2': '2017-03-06T15:32:27.000',
+                                'T_format': 'isot'
+                                }
+
+        products_url = get_expected_products_url(completed_dict_param,
+                                                 token=encoded_token,
+                                                 session_id=session_id,
+                                                 job_id=job_id)
+        assert jdata['exit_status']['job_status'] == 'submitted'
+        # get the original time the request was made
+        assert 'time_request' in jdata
+        # set the time the request was initiated
+        time_request = jdata['time_request']
+        time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+        assert jdata['exit_status']['email_status'] == 'email sent'
+
+        validate_email_content(
+            dispatcher_local_mail_server.get_email_record(),
+            'submitted',
+            dispatcher_job_state,
+            variation_suffixes=["dummy"],
+            time_request_str=time_request_str,
+            products_url=products_url,
+            dispatcher_live_fixture=None,
+        )
+    else:
+        assert jdata["error_message"] == error_message
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
