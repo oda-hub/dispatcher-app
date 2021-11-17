@@ -395,7 +395,6 @@ def post_product_to_gallery():
     username = ""
     password = ""
 
-
     logger.info("request.args: %s ", request.args)
     output_post = None
     # extract content using job_id and session_id
@@ -437,54 +436,58 @@ def post_product_to_gallery():
                       '<div style="background-color: lightgray; display: inline-block; padding: 5px;">' + \
                       prod_dict_str.replace("\n", "<br>") + '</div><br/><br/>'
 
-    params = {
-        "name": username,
-        "pass": password
-    }
+    # params = {
+    #     "name": username,
+    #     "pass": password
+    # }
     headers = {
-        'Content-type': 'application/hal+json'
+        'Content-type': 'application/hal+json',
+        'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2MzcxNDAzMDIsImV4cCI6MTYzNzE0MzkwMiwiZHJ1cGFsIjp7InVpZCI6IjQifX0.HmNgb7wf7c8Sx4MMF394O12d0btzHKTiYR0A0CimSnc'
     }
-    log_res = requests.post("http://odapg.mtmco.net/user/login?_format=hal_json",
-                            data=json.dumps(params),
-                            headers=headers
-                            )
+    # log_res = requests.post("http://cdciweb02.isdc.unige.ch/mmoda-pg/user/login?_format=hal_json",
+    #                         # data=json.dumps(params),
+    #                         headers=headers
+    #                         )
 
     # extract X-CSRF-Token
-    if log_res.status_code == 200:
-        log_res_data = log_res.json()
-        csrf_token = log_res_data['csrf_token']
-        if csrf_token is not None and body_value is not None:
-            headers['csrf_token'] = csrf_token
-            # post an article
-            body = {
-                "_links": {
-                    "type": {
-                        "href": "http://odapg.mtmco.net/rest/type/node/article"
-                    }
-                },
-                "title": {
-                    "value": "Article posted from the dispatcher with image"
-                },
-                "body": [{
-                    "format": "full_html",
-                    "value": body_value
-                }],
-                "field_image": [
-                    {
-                        "target_id": 811
-                    }
-                ]
+    # if log_res.status_code == 200:
+    #     log_res_data = log_res.json()
+    #     csrf_token = log_res_data['csrf_token']
+    #     if csrf_token is not None and body_value is not None:
+    #         headers['csrf_token'] = csrf_token
+    # post an article
+    body = {
+        "_links": {
+            "type": {
+                "href": "http://cdciweb02.isdc.unige.ch/mmoda-pg/rest/type/node/article"
             }
-            log_res = requests.post("http://odapg.mtmco.net/node?_format=hal_json",
-                                    data=json.dumps(body),
-                                    headers=headers,
-                                    auth=HTTPBasicAuth(username=username, password=password)
-                                    )
-            output_post = log_res.json()
-    else:
-        raise RequestNotUnderstood('login not valid',
-                           status_code=403,
-                           payload={'error_message': 'invalid login'})
+        },
+        "title": {
+            "value": "Article posted from the dispatcher with image"
+        },
+        "body": [{
+            "format": "full_html",
+            "value": body_value
+        }],
+        "field_image": [
+            {
+                "target_id": 802
+            }
+        ]
+    }
+    log_res = requests.post("http://cdciweb02.isdc.unige.ch/mmoda-pg/node?_format=hal_json",
+                            data=json.dumps(body),
+                            headers=headers
+                            )
+    output_post = log_res.json()
+    if log_res.status_code < 200 or log_res.status_code >= 300:
+        raise RequestNotUnderstood(output_post['message'],
+                                   status_code=log_res.status_code,
+                                   payload={'error_message': 'error while posting article'})
+    # else:
+    #     raise RequestNotUnderstood('login not valid',
+    #                        status_code=log_res.status_code,
+    #                        payload={'error_message': 'invalid login'})
 
     return output_post
 
@@ -672,7 +675,6 @@ def log_run_query_result(request_summary, result):
         raise
 
     return result
-
 
 
 if __name__ == "__main__":
