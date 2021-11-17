@@ -391,10 +391,6 @@ class Product(Resource):
 
 @app.route('/post_product_to_gallery', methods=['POST'])
 def post_product_to_gallery():
-    # TODO login info for drupal, will be ideally replaced with the usage of a JWT token
-    username = ""
-    password = ""
-
     logger.info("request.args: %s ", request.args)
     output_post = None
     # extract content using job_id and session_id
@@ -436,25 +432,10 @@ def post_product_to_gallery():
                       '<div style="background-color: lightgray; display: inline-block; padding: 5px;">' + \
                       prod_dict_str.replace("\n", "<br>") + '</div><br/><br/>'
 
-    # params = {
-    #     "name": username,
-    #     "pass": password
-    # }
     headers = {
         'Content-type': 'application/hal+json',
         'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2MzcxNDAzMDIsImV4cCI6MTYzNzE0MzkwMiwiZHJ1cGFsIjp7InVpZCI6IjQifX0.HmNgb7wf7c8Sx4MMF394O12d0btzHKTiYR0A0CimSnc'
     }
-    # log_res = requests.post("http://cdciweb02.isdc.unige.ch/mmoda-pg/user/login?_format=hal_json",
-    #                         # data=json.dumps(params),
-    #                         headers=headers
-    #                         )
-
-    # extract X-CSRF-Token
-    # if log_res.status_code == 200:
-    #     log_res_data = log_res.json()
-    #     csrf_token = log_res_data['csrf_token']
-    #     if csrf_token is not None and body_value is not None:
-    #         headers['csrf_token'] = csrf_token
     # post an article
     body = {
         "_links": {
