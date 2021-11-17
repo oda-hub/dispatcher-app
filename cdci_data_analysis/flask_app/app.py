@@ -418,6 +418,11 @@ def post_product_to_gallery():
         body_value = 'Body of the article with the analysis_parameters.json: <br/><br/>' \
                      '<div style="background-color: lightgray; display: inline-block; padding: 5px;">' + \
                      analysis_parameters_json_content_original_str.replace("\n", "<br>") + '</div>'
+        instrument = analysis_parameters_json_content_original['instrument']
+        product_type = analysis_parameters_json_content_original['product_type']
+    else:
+        raise RequestNotUnderstood(message="Request data ont found",
+                                   payload={'error_message': 'error while posting article'})
 
     if query_output_json_content_original is not None and 'prod_dictionary' in query_output_json_content_original:
         query_output_json_content_original['prod_dictionary'].pop('analysis_parameters', None)
@@ -431,12 +436,7 @@ def post_product_to_gallery():
         body_value += '<br/><br/>product dictionary: <br/><br/>' \
                       '<div style="background-color: lightgray; display: inline-block; padding: 5px;">' + \
                       prod_dict_str.replace("\n", "<br>") + '</div><br/><br/>'
-
-    headers = {
-        'Content-type': 'application/hal+json',
-        'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2MzcxNDAzMDIsImV4cCI6MTYzNzE0MzkwMiwiZHJ1cGFsIjp7InVpZCI6IjQifX0.HmNgb7wf7c8Sx4MMF394O12d0btzHKTiYR0A0CimSnc'
-    }
-    # post an article
+    # TODO a smart way to get the JWT token is needed
     body = {
         "_links": {
             "type": {
@@ -456,6 +456,29 @@ def post_product_to_gallery():
             }
         ]
     }
+    headers = {
+        'Content-type': 'application/hal+json',
+        'Authorization': 'Bearer '
+    }
+    # get taxonomy info for the instrument
+    log_res = requests.get("http://cdciweb02.isdc.unige.ch/mmoda-pg/taxonomy/term_name/" + instrument,
+                           headers=headers
+                           )
+    output_post = log_res.json()
+    if len(output_post) > 0:
+        body['field_instrument'] = [{
+            "target_id": output_post[0]['tid']
+        }]
+    # get taxonomy info for the product
+    log_res = requests.get("http://cdciweb02.isdc.unige.ch/mmoda-pg/taxonomy/term_name/" + product_type,
+                           headers=headers
+                           )
+    output_post = log_res.json()
+    if len(output_post) > 0:
+        body['field_product'] = [{
+            "target_id": output_post[0]['tid']
+        }]
+    # post an article
     log_res = requests.post("http://cdciweb02.isdc.unige.ch/mmoda-pg/node?_format=hal_json",
                             data=json.dumps(body),
                             headers=headers
