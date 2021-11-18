@@ -275,9 +275,9 @@ class Parameter(object):
             self.units = units
         self.value = value
         # this should return the value in a default format
-        return self.get_value_default_format(value)
+        return self.get_value_in_default_format(value)
 
-    def get_value_default_format(self, value):
+    def get_value_in_default_format(self, value):
         return value
 
     def get_form(self,wtform_cls,key,validators,defaults):
@@ -457,7 +457,7 @@ class Time(Parameter):
 
         self._set_time(value, format=T_format)
 
-    def get_value_default_format(self, value):
+    def get_value_in_default_format(self, value):
         if self._default_units == 'isot':
             return self._astropy_time.isot
         elif self._default_units == 'mjd':
@@ -667,7 +667,7 @@ class SpectralBoundary(Parameter):
                          allowed_units=_allowed_units)
                            #wtform_dict=wtform_dict)
 
-    def get_value_default_format(self, value):
+    def get_value_in_default_format(self, value):
         # might return int or float
         if type(value) == str:
             value = ast.literal_eval(value)
