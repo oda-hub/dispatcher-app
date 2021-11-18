@@ -457,7 +457,7 @@ class Time(Parameter):
 
         self._set_time(value, format=T_format)
 
-    def get_value_in_default_format(self, value):
+    def get_value_in_default_format(self, value) -> str:
         if self._default_units == 'isot':
             return self._astropy_time.isot
         elif self._default_units == 'mjd':
