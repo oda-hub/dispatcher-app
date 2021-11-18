@@ -682,7 +682,6 @@ class SpectralBoundary(Float):
     def check_energy_value(value, units=None,name=None):
         #print('check type of ',name,'value', value, 'type',type(value))
 
-
         try:
             value=ast.literal_eval(value)
         except:
@@ -714,7 +713,6 @@ class Energy(Float):
     def check_energy_value(value, units=None,name=None):
         #print('check type of ',name,'value', value, 'type',type(value))
 
-
         try:
             value=ast.literal_eval(value)
         except:
@@ -726,9 +724,6 @@ class Energy(Float):
             pass
         else:
             raise RuntimeError('type of ',name,'not valid',type(value))
-
-
-
 
 
 class DetectionThreshold(Float):
