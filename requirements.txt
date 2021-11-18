@@ -24,4 +24,5 @@ psutil
 pyjwt
 aiosmtpd
 marshmallow
+requests
 -e git+https://github.com/oda-hub/oda_api.git#egg=oda_api

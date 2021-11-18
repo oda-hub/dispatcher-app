@@ -26,6 +26,7 @@ install_req = [
     "simplejson",
     "flask",
     "astropy>=2.0.3",
+    "requests",
     "pathlib",
     "gunicorn",
     "decorator",
