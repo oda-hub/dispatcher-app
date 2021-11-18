@@ -1281,6 +1281,7 @@ def test_default_values(dispatcher_live_fixture, additional_parameter):
         assert 'additional_param' not in analysis_parameters_json_content_original
 
 
+@pytest.mark.test_drupal
 def test_product_gallery_post_product(dispatcher_live_fixture):
     server = dispatcher_live_fixture
 
