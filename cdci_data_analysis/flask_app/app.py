@@ -6,7 +6,6 @@ Created on Wed May 10 10:55:20 2017
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
 import json
-import string
 import random
 import hashlib
 import requests
@@ -20,8 +19,6 @@ from flask_restx import Api, Resource, reqparse
 
 import time as _time
 from urllib.parse import urlencode
-
-from requests.auth import HTTPBasicAuth
 
 from cdci_data_analysis.analysis import email_helper
 from .logstash import logstash_message
