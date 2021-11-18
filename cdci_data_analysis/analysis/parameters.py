@@ -371,6 +371,17 @@ class Float(Parameter):
         else:
             self._v=None
 
+    def get_value_in_default_format(self, value):
+        # might return int or float
+        if type(value) == str:
+            value = ast.literal_eval(value)
+
+        if self.default_units == 'float':
+            value = float(value)
+        elif self.default_units == 'int':
+            value = int(value)
+        return float(value)
+
     @staticmethod
     def check_float_value(value, units=None, name=None):
         #print('check type of ',name,'value', value, 'type',type(value))
@@ -667,17 +678,6 @@ class SpectralBoundary(Float):
                          allowed_units=_allowed_units)
                            #wtform_dict=wtform_dict)
 
-    def get_value_in_default_format(self, value):
-        # might return int or float
-        if type(value) == str:
-            value = ast.literal_eval(value)
-
-        if self.default_units == 'float':
-            value = float(value)
-        elif self.default_units == 'int':
-            value = int(value)
-        return float(value)
-
     @staticmethod
     def check_energy_value(value, units=None,name=None):
         #print('check type of ',name,'value', value, 'type',type(value))
@@ -696,10 +696,10 @@ class SpectralBoundary(Float):
             raise RuntimeError('type of ',name,'not valid',type(value))
 
 
-class Energy(Parameter):
+class Energy(Float):
     def __init__(self,value=None,E_units=None,name=None):
 
-        _allowed_units = ['keV','eV','MeV','GeV','TeV']
+        _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV']
 
         #wtform_dict = {'keV': FloatField}
 
@@ -710,9 +710,6 @@ class Energy(Parameter):
                                    allowed_units=_allowed_units)
                                    #wtform_dict=wtform_dict)
 
-
-
-
     @staticmethod
     def check_energy_value(value, units=None,name=None):
         #print('check type of ',name,'value', value, 'type',type(value))
@@ -734,7 +731,7 @@ class Energy(Parameter):
 
 
 
-class DetectionThreshold(Parameter):
+class DetectionThreshold(Float):
     def __init__(self,value=None,units='sigma',name=None):
 
         _allowed_units = ['sigma']
@@ -747,10 +744,8 @@ class DetectionThreshold(Parameter):
                                    name=name,
                                    allowed_units=_allowed_units)
                                    #wtform_dict=wtform_dict)
-
-
-
-
+    # TODO this method, behaves exaclty the same as the one for the Energy and SpectralBoundary classes
+    # is this ever expected to be more specific?
     @staticmethod
     def check_value(value, units=None,name=None):
         #print('check type of ',name,'value', value, 'type',type(value))
