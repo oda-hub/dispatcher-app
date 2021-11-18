@@ -5,7 +5,7 @@ Created on Wed May 10 10:55:20 2017
 
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
-import json
+import string
 import random
 import hashlib
 import requests
