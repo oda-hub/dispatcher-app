@@ -167,7 +167,7 @@ class Parameter(object):
                  value=None,
                  units=None,
                  name: Union[str, None]=None, 
-                 allowed_units=[],
+                 allowed_units=None,
                  default_units=None,
                  check_value=None,
                  allowed_values=None,
@@ -342,17 +342,18 @@ class Name(Parameter):
 
 
 class Float(Parameter):
-    def __init__(self,value=None,units=None,name=None):
-
-        _allowed_units = None
+    def __init__(self, value=None, units=None, name=None, allowed_units=None, check_value=None):
 
         #wtform_dict = {'keV': FloatField}
+        if check_value is None:
+            check_value = self.check_float_value
 
-        super(Float, self).__init__(value=value,
-                                   units=units,
-                                   check_value=self.check_float_value,
-                                   name=name,
-                                   allowed_units=_allowed_units)
+        super().__init__(value=value,
+                         units=units,
+                         check_value=check_value,
+                         name=name,
+                         default_units='float',
+                         allowed_units=allowed_units)
                                    #wtform_dict=wtform_dict)
 
         self.value=value
@@ -652,16 +653,16 @@ class Angle(Parameter):
 #
 
 
-class SpectralBoundary(Parameter):
-    def __init__(self,value=None,E_units='keV',name=None):
+class SpectralBoundary(Float):
+    def __init__(self, value=None, E_units='keV' ,name=None):
 
-        _allowed_units = ['keV','eV','MeV','GeV','TeV','Hz','MHz','GHz']
+        _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
 
         #wtform_dict = {'keV': FloatField}
 
         super().__init__(value=value,
                          units=E_units,
-                         default_units='float',
+
                          check_value=self.check_energy_value,
                          name=name,
                          allowed_units=_allowed_units)
