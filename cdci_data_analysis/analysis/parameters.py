@@ -662,7 +662,6 @@ class SpectralBoundary(Float):
 
         super().__init__(value=value,
                          units=E_units,
-
                          check_value=self.check_energy_value,
                          name=name,
                          allowed_units=_allowed_units)
