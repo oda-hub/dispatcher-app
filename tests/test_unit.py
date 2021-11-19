@@ -1,6 +1,7 @@
 import pytest
 
 from cdci_data_analysis.analysis.instrument import Instrument
+from cdci_data_analysis.analysis.parameters import Integer, SpectralBoundary
 from cdci_data_analysis.analysis.queries import (
     ProductQuery,
     SourceQuery,
@@ -56,11 +57,10 @@ def test_repeating_parameters(add_duplicate):
         assert instrument.get_par_by_name("duplicate-name") == p1
 
 
-def test_defaults_parameters():
+def test_float_defaults():
     p_float = Float(
         value=10.0,
-        name="p_float",
-        units="W",
+        name="p_float"
     )
 
     assert p_float.get_value_in_default_format(p_float.value) == p_float.value
@@ -68,3 +68,39 @@ def test_defaults_parameters():
     p_float.value = 10
     assert p_float.get_value_in_default_format(p_float.value) == 10.
     assert type(p_float.value) == float
+
+
+@pytest.mark.parametrize("e_units", ['eV', 'W'])
+@pytest.mark.parametrize("value",  [25, 25., 25.64547871216879451687311211245117852145229614585985498212321])
+def test_spectral_boundaries_defaults(e_units,value):
+    # test with a not allowed unit
+    if e_units == 'W':
+        with pytest.raises(RuntimeError):
+            SpectralBoundary(
+                value=value,
+                name="p_spectral_boundary",
+                E_units=e_units,
+            )
+    else:
+        p_spectral_boundary = SpectralBoundary(
+            value=value,
+            name="p_spectral_boundary",
+            E_units=e_units,
+        )
+
+        assert p_spectral_boundary.get_value_in_default_format(p_spectral_boundary.value) == p_spectral_boundary.value
+        assert p_spectral_boundary.get_value_in_default_format(p_spectral_boundary.value) == float(value)
+        assert type(p_spectral_boundary.value) == float
+
+
+def test_integer_defaults():
+    p_integer = Integer(
+        value=10,
+        name="i_integer"
+    )
+
+    assert p_integer.get_value_in_default_format(p_integer.value) == p_integer.value
+    # assign an int value, that then should be converted to float
+    p_integer.value = 10
+    assert p_integer.get_value_in_default_format(p_integer.value) == 10
+    assert type(p_integer.value) == int

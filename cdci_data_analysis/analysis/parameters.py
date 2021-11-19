@@ -679,7 +679,7 @@ class Angle(Parameter):
 
 
 class SpectralBoundary(Float):
-    def __init__(self, value=None, E_units='keV' ,name=None):
+    def __init__(self, value=None, E_units='keV', name=None):
 
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
 
