@@ -684,11 +684,42 @@ class Angle(Parameter):
 #         pass
 #
 
-
-class SpectralBoundary(Float):
-    def __init__(self, value=None, E_units='keV', name=None):
+class Energy(Float):
+    def __init__(self,value=None,E_units='keV',name=None):
 
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
+        # if E_units is None or E_units == '':
+        #     E_units = 'keV'
+        #wtform_dict = {'keV': FloatField}
+
+        super(Energy, self).__init__(value=value,
+                                     units=E_units,
+                                     default_units='keV',
+                                     check_value=self.check_energy_value,
+                                     name=name,
+                                     allowed_units=_allowed_units)
+                                   #wtform_dict=wtform_dict)
+
+    @staticmethod
+    def check_energy_value(value, units=None,name=None):
+        #print('check type of ',name,'value', value, 'type',type(value))
+
+        try:
+            value=ast.literal_eval(value)
+        except:
+            pass
+
+        if type(value)==int or type(value)==np.int:
+            pass
+        elif type(value)==float or type(value)==np.float:
+            pass
+        else:
+            raise RuntimeError('type of ',name,'not valid',type(value))
+
+
+class SpectralBoundary(Energy):
+    def __init__(self, value=None, E_units='keV', name=None):
+
         # TODO is this a reasonable assumption for this Parameter? And for the others too?
         # if E_units is None or E_units == '':
         #     E_units = 'keV'
@@ -719,45 +750,12 @@ class SpectralBoundary(Float):
             raise RuntimeError('type of ',name,'not valid',type(value))
 
 
-class Energy(Float):
-    def __init__(self,value=None,E_units='keV',name=None):
-
-        _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV']
-        # if E_units is None or E_units == '':
-        #     E_units = 'keV'
-        #wtform_dict = {'keV': FloatField}
-
-        super(Energy, self).__init__(value=value,
-                                     units=E_units,
-                                     default_units='keV',
-                                     check_value=self.check_energy_value,
-                                     name=name,
-                                     allowed_units=_allowed_units)
-                                   #wtform_dict=wtform_dict)
-
-    @staticmethod
-    def check_energy_value(value, units=None,name=None):
-        #print('check type of ',name,'value', value, 'type',type(value))
-
-        try:
-            value=ast.literal_eval(value)
-        except:
-            pass
-
-        if type(value)==int or type(value)==np.int:
-            pass
-        elif type(value)==float or type(value)==np.float:
-            pass
-        else:
-            raise RuntimeError('type of ',name,'not valid',type(value))
-
-
 class DetectionThreshold(Float):
     def __init__(self,value=None,units='sigma',name=None):
 
         _allowed_units = ['sigma']
         # if units is None or units == '':
-        #     units = 'keV'
+        #     units = 'sigma'
         #wtform_dict = {'keV': FloatField}
 
         super(DetectionThreshold, self).__init__(value=value,
