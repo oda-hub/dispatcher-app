@@ -415,10 +415,6 @@ class Float(Parameter):
                 pass
             try:
                 value = float(value)
-                if type(value) == float or type(value) == np.float:
-                    pass
-                else:
-                    raise
             except:
                 raise RuntimeError('type %s not valid for %s' % (type(value), name))
 
