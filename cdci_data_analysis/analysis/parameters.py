@@ -687,15 +687,20 @@ class Angle(Parameter):
 #
 
 class Energy(Float):
-    def __init__(self,value=None,E_units='keV',name=None):
+    def __init__(self,value=None, E_units=None, name=None, check_value=None):
 
+        if E_units is None:
+            E_units = 'keV'
+
+        if check_value is None:
+            check_value = self.check_energy_value
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
         #wtform_dict = {'keV': FloatField}
 
         super(Energy, self).__init__(value=value,
                                      units=E_units,
                                      default_units='keV',
-                                     check_value=self.check_energy_value,
+                                     check_value=check_value,
                                      name=name,
                                      allowed_units=_allowed_units)
                                    #wtform_dict=wtform_dict)
@@ -723,11 +728,9 @@ class SpectralBoundary(Energy):
         #wtform_dict = {'keV': FloatField}
 
         super().__init__(value=value,
-                         units=E_units,
-                         default_units='keV',
+                         E_units=E_units,
                          check_value=self.check_energy_value,
-                         name=name,
-                         allowed_units=_allowed_units)
+                         name=name)
                            #wtform_dict=wtform_dict)
 
     @staticmethod
