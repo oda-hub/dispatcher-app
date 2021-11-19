@@ -444,6 +444,8 @@ class Integer(Parameter):
         else:
             self._v=None
 
+    def get_value_in_default_format(self, value):
+        return int(value)
 
     @staticmethod
     def check_int_value(value, units=None,name=None):
