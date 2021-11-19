@@ -687,6 +687,7 @@ class Angle(Parameter):
 #         pass
 #
 
+
 class Energy(Float):
     def __init__(self, value=None, E_units=None, name=None, check_value=None):
 
@@ -694,7 +695,7 @@ class Energy(Float):
             E_units = 'keV'
 
         if check_value is None:
-            check_value = self.check_energy_value
+            check_value = self.check_float_value()
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
         #wtform_dict = {'keV': FloatField}
 
@@ -706,22 +707,6 @@ class Energy(Float):
                                      allowed_units=_allowed_units)
                                    #wtform_dict=wtform_dict)
 
-    @staticmethod
-    def check_energy_value(value, units=None,name=None):
-        #print('check type of ',name,'value', value, 'type',type(value))
-
-        try:
-            value=ast.literal_eval(value)
-        except:
-            pass
-
-        if type(value)==int or type(value)==np.int:
-            pass
-        elif type(value)==float or type(value)==np.float:
-            pass
-        else:
-            raise RuntimeError('type of ',name,'not valid',type(value))
-
 
 class SpectralBoundary(Energy):
     def __init__(self, value=None, E_units='keV', name=None):
@@ -730,25 +715,8 @@ class SpectralBoundary(Energy):
 
         super().__init__(value=value,
                          E_units=E_units,
-                         check_value=self.check_energy_value,
                          name=name)
                            #wtform_dict=wtform_dict)
-
-    @staticmethod
-    def check_energy_value(value, units=None,name=None):
-        #print('check type of ',name,'value', value, 'type',type(value))
-
-        try:
-            value=ast.literal_eval(value)
-        except:
-            pass
-
-        if type(value)==int or type(value)==np.int:
-            pass
-        elif type(value)==float or type(value)==np.float:
-            pass
-        else:
-            raise RuntimeError('type of ',name,'not valid',type(value))
 
 
 class DetectionThreshold(Float):
