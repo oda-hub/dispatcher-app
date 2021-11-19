@@ -42,7 +42,7 @@ def post_to_product_gallery(session_id, job_id):
 
     headers = {
         'Content-type': 'application/hal+json',
-        'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2MzczMDM2NzEsImV4cCI6MTYzNzMwNzI3MSwiZHJ1cGFsIjp7InVpZCI6IjQifX0.3CmG12pvMZA6jMqu1ENyq7lyYTp080vnLuBSgPui3gM'
+        'Authorization': 'Bearer '
     }
     # TODO improve this REST endpoint to accept multiple input terms, and give one result per input
     # get all the taxonomy terms
