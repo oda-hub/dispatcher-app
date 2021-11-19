@@ -57,39 +57,46 @@ def test_repeating_parameters(add_duplicate):
         assert instrument.get_par_by_name("duplicate-name") == p1
 
 
-def test_float_defaults():
-    p_float = Float(
-        value=10.0,
-        name="p_float"
-    )
+@pytest.mark.parametrize("value",  [25, 25., 25.64547871216879451687311211245117852145229614585985498212321, "aaaa"])
+def test_float_defaults(value):
+    if type(value) == str:
+        with pytest.raises(RuntimeError):
+            Float(
+                value=value,
+                name="p_float"
+            )
+    else:
+        p_float = Float(
+            value=value,
+            name="p_float"
+        )
 
-    assert p_float.get_value_in_default_format(p_float.value) == p_float.value
-    # assign an int value, that then should be converted to float
-    p_float.value = 10
-    assert p_float.get_value_in_default_format(p_float.value) == 10.
-    assert type(p_float.value) == float
+        assert p_float.get_value_in_default_format(p_float.value) == p_float.value
+        # assign an int value, that then should be converted to float
+        p_float.value = value
+        assert p_float.get_value_in_default_format(p_float.value) == float(value)
+        assert type(p_float.value) == float
 
 
-@pytest.mark.parametrize("e_units", ['eV', 'W'])
-@pytest.mark.parametrize("value",  [25, 25., 25.64547871216879451687311211245117852145229614585985498212321])
-def test_spectral_boundaries_defaults(e_units,value):
+@pytest.mark.parametrize("e_units", ['eV', 'W', '', None])
+def test_spectral_boundaries_defaults(e_units):
     # test with a not allowed unit
     if e_units == 'W':
         with pytest.raises(RuntimeError):
             SpectralBoundary(
-                value=value,
+                value=10.,
                 name="p_spectral_boundary",
                 E_units=e_units,
             )
     else:
         p_spectral_boundary = SpectralBoundary(
-            value=value,
+            value=10.,
             name="p_spectral_boundary",
             E_units=e_units,
         )
 
         assert p_spectral_boundary.get_value_in_default_format(p_spectral_boundary.value) == p_spectral_boundary.value
-        assert p_spectral_boundary.get_value_in_default_format(p_spectral_boundary.value) == float(value)
+        assert p_spectral_boundary.get_value_in_default_format(p_spectral_boundary.value) == float(10.)
         assert type(p_spectral_boundary.value) == float
 
 

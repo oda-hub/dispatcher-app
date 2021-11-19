@@ -399,20 +399,21 @@ class Float(Parameter):
     @staticmethod
     def check_float_value(value, units=None, name=None):
         #print('check type of ',name,'value', value, 'type',type(value))
-        if value is None or value=='':
+        if value is None or value == '':
             pass
         else:
             try:
-              value=ast.literal_eval(value)
+                value = ast.literal_eval(value)
             except:
                 pass
-            value=np.float(value)
+            # TODO is this conversion really necessary?
+            # value = np.float(value)
             if type(value) == int or type(value) == np.int:
                 pass
             elif type(value) == float or type(value) == np.float:
                 pass
             else:
-                raise RuntimeError('type of ', name, 'not valid', type(value))
+                raise RuntimeError('type of %s not valid %s' % (name, type(value)))
 
 
 class Integer(Parameter):
@@ -682,7 +683,9 @@ class SpectralBoundary(Float):
     def __init__(self, value=None, E_units='keV', name=None):
 
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
-
+        # TODO is this a reasonable assumption for this Psrameter? And for the others too?
+        if E_units is None or E_units == '':
+            E_units = 'keV'
         #wtform_dict = {'keV': FloatField}
 
         super().__init__(value=value,
@@ -714,7 +717,8 @@ class Energy(Float):
     def __init__(self,value=None,E_units='keV',name=None):
 
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV']
-
+        if E_units is None or E_units == '':
+            E_units = 'keV'
         #wtform_dict = {'keV': FloatField}
 
         super(Energy, self).__init__(value=value,
@@ -746,7 +750,8 @@ class DetectionThreshold(Float):
     def __init__(self,value=None,units='sigma',name=None):
 
         _allowed_units = ['sigma']
-
+        if units is None or units == '':
+            units = 'keV'
         #wtform_dict = {'keV': FloatField}
 
         super(DetectionThreshold, self).__init__(value=value,
