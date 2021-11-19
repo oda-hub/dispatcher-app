@@ -177,6 +177,9 @@ class Parameter(object):
 
         if units is None or units == '' and \
                 default_units is not None and default_units != '':
+            # TODO ideally those should be renamed as singular (unit and default_unit)
+            #  but they are as such because they're used also in plugins
+            #
             units = default_units
 
         self.check_value = check_value
@@ -390,7 +393,7 @@ class Float(Parameter):
 
     @value.setter
     def value(self, v):
-        if v is not None and v!='':
+        if v is not None and v != '':
             self.check_float_value(v, name=self.name, units=self.units)
             self._v = np.float(v)
 
@@ -398,7 +401,6 @@ class Float(Parameter):
             self._v=None
 
     def get_value_in_default_format(self, value):
-        self.check_float_value(value)
         return float(value)
 
     @staticmethod
