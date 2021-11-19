@@ -54,3 +54,17 @@ def test_repeating_parameters(add_duplicate):
         ]
     else:
         assert instrument.get_par_by_name("duplicate-name") == p1
+
+
+def test_defaults_parameters():
+    p_float = Float(
+        value=10.0,
+        name="p_float",
+        units="W",
+    )
+
+    assert p_float.get_value_in_default_format(p_float.value) == p_float.value
+    # assign an int value, that then should be converted to float
+    p_float.value = 10
+    assert p_float.get_value_in_default_format(p_float.value) == 10.
+    assert type(p_float.value) == float

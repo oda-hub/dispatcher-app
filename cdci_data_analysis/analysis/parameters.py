@@ -363,7 +363,7 @@ class Name(Parameter):
 
 
 class Float(Parameter):
-    def __init__(self, value=None, units=None, name=None, allowed_units=None, check_value=None):
+    def __init__(self, value=None, units=None, name=None, allowed_units=None, default_units=None, check_value=None):
 
         #wtform_dict = {'keV': FloatField}
         if check_value is None:
@@ -372,6 +372,7 @@ class Float(Parameter):
         super().__init__(value=value,
                          units=units,
                          check_value=check_value,
+                         default_units=default_units,
                          name=name,
                          default_type=float,
                          allowed_units=allowed_units)
@@ -686,6 +687,7 @@ class SpectralBoundary(Float):
 
         super().__init__(value=value,
                          units=E_units,
+                         default_units='keV',
                          check_value=self.check_energy_value,
                          name=name,
                          allowed_units=_allowed_units)
@@ -709,17 +711,18 @@ class SpectralBoundary(Float):
 
 
 class Energy(Float):
-    def __init__(self,value=None,E_units=None,name=None):
+    def __init__(self,value=None,E_units='keV',name=None):
 
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV']
 
         #wtform_dict = {'keV': FloatField}
 
         super(Energy, self).__init__(value=value,
-                                   units=E_units,
-                                   check_value=self.check_energy_value,
-                                   name=name,
-                                   allowed_units=_allowed_units)
+                                     units=E_units,
+                                     default_units='keV',
+                                     check_value=self.check_energy_value,
+                                     name=name,
+                                     allowed_units=_allowed_units)
                                    #wtform_dict=wtform_dict)
 
     @staticmethod
