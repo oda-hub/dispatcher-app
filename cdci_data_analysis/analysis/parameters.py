@@ -274,7 +274,6 @@ class Parameter(object):
         if units is not None:
             self.units = units
         self.value = value
-        # this should return the value in a default format
         return self.get_value_in_default_format(value)
 
     def get_value_in_default_format(self, value):
@@ -372,14 +371,6 @@ class Float(Parameter):
             self._v=None
 
     def get_value_in_default_format(self, value):
-        # might return int or float
-        if type(value) == str:
-            value = ast.literal_eval(value)
-
-        if self.default_units == 'float':
-            value = float(value)
-        elif self.default_units == 'int':
-            value = int(value)
         return float(value)
 
     @staticmethod
