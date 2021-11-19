@@ -410,10 +410,6 @@ class Float(Parameter):
             pass
         else:
             try:
-                value = ast.literal_eval(value)
-            except:
-                pass
-            try:
                 value = float(value)
             except:
                 raise RuntimeError('type %s not valid for %s' % (type(value), name))
@@ -459,10 +455,6 @@ class Integer(Parameter):
         if value is None or value=='':
             pass
         else:
-            try:
-              value=ast.literal_eval(value)
-            except:
-                pass
             try:
                 # TODO a different and bigger precision (eg float64) should be considered?
                 if type(value) == float:
