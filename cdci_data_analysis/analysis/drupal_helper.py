@@ -38,33 +38,33 @@ def post_to_product_gallery(session_id, job_id):
         raise RequestNotUnderstood(message="Request data ont found",
                                    payload={'error_message': 'error while posting article'})
 
-    body_gallery_node["body"]["value"] = body_value
+    body_gallery_node["body"][0]["value"] = body_value
 
     headers = {
         'Content-type': 'application/hal+json',
-        'Authorization': 'Bearer '
+        'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2MzczMDM2NzEsImV4cCI6MTYzNzMwNzI3MSwiZHJ1cGFsIjp7InVpZCI6IjQifX0.3CmG12pvMZA6jMqu1ENyq7lyYTp080vnLuBSgPui3gM'
     }
-    # get taxonomy info for the instrument
-    log_res = requests.get("http://cdciweb02.isdc.unige.ch/mmoda-pg/taxonomy/term_name/" + instrument,
+    # TODO improve this REST endpoint to accept multiple input terms, and give one result per input
+    # get all the taxonomy terms
+    log_res = requests.get("http://cdciweb02.isdc.unige.ch/mmoda-pg/taxonomy/term_name/all",
                            headers=headers
                            )
     output_post = log_res.json()
-    if len(output_post) > 0:
-        body_gallery_node['field_instrument'] = [{
-            "target_id": output_post[0]['tid']
-        }]
-    # get taxonomy info for the product
-    log_res = requests.get("http://cdciweb02.isdc.unige.ch/mmoda-pg/taxonomy/term_name/" + product_type,
-                           headers=headers
-                           )
-    output_post = log_res.json()
-    if len(output_post) > 0:
-        body_gallery_node['field_product'] = [{
-            "target_id": output_post[0]['tid']
-        }]
-    # post an article
+    if type(output_post) == list and len(output_post) > 0:
+        for output in output_post:
+            if output['vid'] == 'Instruments' and output['name'] == instrument:
+                # info for the instrument
+                body_gallery_node['field_instrument'] = [{
+                    "target_id": int(output['tid'])
+                }]
+            if output['vid'] == 'products' and output['name'] == product_type:
+                # info for the product
+                body_gallery_node['field_product'] = [{
+                    "target_id": int(output['tid'])
+                }]
+    # post the article
     log_res = requests.post("http://cdciweb02.isdc.unige.ch/mmoda-pg/node?_format=hal_json",
-                            data=json.dumps(body_article_product_gallery.body),
+                            data=json.dumps(body_gallery_node),
                             headers=headers
                             )
     output_post = log_res.json()
