@@ -175,6 +175,10 @@ class Parameter(object):
                  allowed_values=None,
                  units_name=None):
 
+        if units is None or units == '' and \
+                default_units is not None and default_units != '':
+            units = default_units
+
         self.check_value = check_value
 
         if allowed_units is None:
@@ -394,6 +398,7 @@ class Float(Parameter):
             self._v=None
 
     def get_value_in_default_format(self, value):
+        self.check_float_value(value)
         return float(value)
 
     @staticmethod
@@ -447,6 +452,7 @@ class Integer(Parameter):
             self._v=None
 
     def get_value_in_default_format(self, value):
+        self.check_int_value(value)
         return int(value)
 
     @staticmethod
@@ -683,9 +689,9 @@ class SpectralBoundary(Float):
     def __init__(self, value=None, E_units='keV', name=None):
 
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
-        # TODO is this a reasonable assumption for this Psrameter? And for the others too?
-        if E_units is None or E_units == '':
-            E_units = 'keV'
+        # TODO is this a reasonable assumption for this Parameter? And for the others too?
+        # if E_units is None or E_units == '':
+        #     E_units = 'keV'
         #wtform_dict = {'keV': FloatField}
 
         super().__init__(value=value,
@@ -717,8 +723,8 @@ class Energy(Float):
     def __init__(self,value=None,E_units='keV',name=None):
 
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV']
-        if E_units is None or E_units == '':
-            E_units = 'keV'
+        # if E_units is None or E_units == '':
+        #     E_units = 'keV'
         #wtform_dict = {'keV': FloatField}
 
         super(Energy, self).__init__(value=value,
@@ -750,8 +756,8 @@ class DetectionThreshold(Float):
     def __init__(self,value=None,units='sigma',name=None):
 
         _allowed_units = ['sigma']
-        if units is None or units == '':
-            units = 'keV'
+        # if units is None or units == '':
+        #     units = 'keV'
         #wtform_dict = {'keV': FloatField}
 
         super(DetectionThreshold, self).__init__(value=value,
