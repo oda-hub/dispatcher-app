@@ -100,14 +100,19 @@ def test_spectral_boundaries_defaults(e_units):
         assert type(p_spectral_boundary.value) == float
 
 
-def test_integer_defaults():
-    p_integer = Integer(
-        value=10,
-        name="i_integer"
-    )
-
-    assert p_integer.get_value_in_default_format(p_integer.value) == p_integer.value
-    # assign an int value, that then should be converted to float
-    p_integer.value = 10
-    assert p_integer.get_value_in_default_format(p_integer.value) == 10
-    assert type(p_integer.value) == int
+@pytest.mark.parametrize("value",  [25, 25., 25.64547871216879451687311211245117852145229614585985498212321, "aaaa"])
+def test_integer_defaults(value):
+    if type(value) == str:
+        with pytest.raises(RuntimeError):
+            Integer(
+                value=value,
+                name="p_integer"
+            )
+    else:
+        p_integer = Integer(
+            value=value,
+            name="p_integer"
+        )
+        assert p_integer.value == int(value)
+        assert p_integer.get_value_in_default_format(p_integer.value) == int(value)
+        assert type(p_integer.value) == int

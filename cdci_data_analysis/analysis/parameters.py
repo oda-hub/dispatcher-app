@@ -468,11 +468,10 @@ class Integer(Parameter):
             except:
                 pass
             try:
+                # TODO a different and bigger precision (eg float64) should be considered?
+                if type(value) == float:
+                    logger.warning("the value %s will be casted to int" % value)
                 value = int(value)
-                if type(value) == int or type(value) == np.int:
-                    pass
-                else:
-                    raise
             except:
                 raise RuntimeError('type %s not valid for %s' % (type(value), name))
 
@@ -631,11 +630,7 @@ class InputProdList(Parameter):
             except:
                 raise RuntimeError('par:',name,', value is not product list format : list of strings','it is',type(value),value)
         else:
-            raise  RuntimeError(name,'units not valid',units)
-
-
-
-
+            raise RuntimeError(name,'units not valid',units)
 
 
 class Angle(Parameter):
@@ -670,6 +665,7 @@ class Angle(Parameter):
                 self._astropy_angle = astropyAngle(value, unit=units)
                 self._value = self._astropy_angle.value
 
+# TODO I guess we can get rid of this unused code
 # class AngularDistance(Parameter):
 #     def __init__(self, angular_units,name, value=None):
 #         _allowed_units = ['deg']
