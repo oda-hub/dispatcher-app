@@ -688,8 +688,6 @@ class Energy(Float):
     def __init__(self,value=None,E_units='keV',name=None):
 
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
-        # if E_units is None or E_units == '':
-        #     E_units = 'keV'
         #wtform_dict = {'keV': FloatField}
 
         super(Energy, self).__init__(value=value,
@@ -720,9 +718,6 @@ class Energy(Float):
 class SpectralBoundary(Energy):
     def __init__(self, value=None, E_units='keV', name=None):
 
-        # TODO is this a reasonable assumption for this Parameter? And for the others too?
-        # if E_units is None or E_units == '':
-        #     E_units = 'keV'
         #wtform_dict = {'keV': FloatField}
 
         super().__init__(value=value,
@@ -754,8 +749,6 @@ class DetectionThreshold(Float):
     def __init__(self,value=None,units='sigma',name=None):
 
         _allowed_units = ['sigma']
-        # if units is None or units == '':
-        #     units = 'sigma'
         #wtform_dict = {'keV': FloatField}
 
         super(DetectionThreshold, self).__init__(value=value,
