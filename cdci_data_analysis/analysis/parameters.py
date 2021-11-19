@@ -175,7 +175,7 @@ class Parameter(object):
                  allowed_values=None,
                  units_name=None):
 
-        if units is None or units == '' and \
+        if (units is None or units == '') and \
                 default_units is not None and default_units != '':
             # TODO ideally those should be renamed as singular (unit and default_unit)
             #  but they are as such because they're used also in plugins
@@ -413,14 +413,14 @@ class Float(Parameter):
                 value = ast.literal_eval(value)
             except:
                 pass
-            # TODO is this conversion really necessary?
-            # value = np.float(value)
-            if type(value) == int or type(value) == np.int:
-                pass
-            elif type(value) == float or type(value) == np.float:
-                pass
-            else:
-                raise RuntimeError('type of %s not valid %s' % (name, type(value)))
+            try:
+                value = float(value)
+                if type(value) == float or type(value) == np.float:
+                    pass
+                else:
+                    raise
+            except:
+                raise RuntimeError('type %s not valid for %s' % (type(value), name))
 
 
 class Integer(Parameter):
@@ -467,13 +467,14 @@ class Integer(Parameter):
               value=ast.literal_eval(value)
             except:
                 pass
-            value=np.int(value)
-            if type(value) == int or type(value) == np.int:
-                pass
-            elif type(value) == float or type(value) == np.float:
-                pass
-            else:
-                raise RuntimeError('type of ', name, 'not valid', type(value))
+            try:
+                value = int(value)
+                if type(value) == int or type(value) == np.int:
+                    pass
+                else:
+                    raise
+            except:
+                raise RuntimeError('type %s not valid for %s' % (type(value), name))
 
 
 class Time(Parameter):
@@ -687,7 +688,7 @@ class Angle(Parameter):
 #
 
 class Energy(Float):
-    def __init__(self,value=None, E_units=None, name=None, check_value=None):
+    def __init__(self, value=None, E_units=None, name=None, check_value=None):
 
         if E_units is None:
             E_units = 'keV'
