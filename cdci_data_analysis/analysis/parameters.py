@@ -691,7 +691,8 @@ class Energy(Float):
             E_units = 'keV'
 
         if check_value is None:
-            check_value = self.check_float_value()
+            check_value = self.check_float_value
+
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
         #wtform_dict = {'keV': FloatField}
 
