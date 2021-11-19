@@ -169,6 +169,8 @@ class Parameter(object):
                  name: Union[str, None]=None, 
                  allowed_units=None,
                  default_units=None,
+                 default_type=None,
+                 allowed_types=None,
                  check_value=None,
                  allowed_values=None,
                  units_name=None):
@@ -180,11 +182,18 @@ class Parameter(object):
         else:
             allowed_units = allowed_units.copy()
 
+        if allowed_types is None:
+            allowed_types = []
+        else:
+            allowed_types = allowed_types.copy()
+
         if not ( name is None or type(name) in [ str ] ):
             raise RuntimeError(f"can not initialize parameter with name {name} and type {type(name)}")
 
         self._allowed_units = allowed_units
         self._allowed_values = allowed_values
+        self._allowed_types = allowed_types
+        self._default_type = default_type
         self._default_units = default_units
         self.name = name
         self.units = units
@@ -218,12 +227,22 @@ class Parameter(object):
         return self._default_units
 
     @default_units.setter
-    def default_units(self, units):
+    def default_units(self, par_unit):
+        if self._allowed_types is not None and self._allowed_units != []:
+            self.chekc_units(par_unit, self._allowed_units, self.name)
 
-        if self._allowed_units != [] and self._allowed_units is not None:
-            self.chekc_units(units, self._allowed_units, self.name)
+        self._default_units = par_unit
 
-        self._default_units = units
+    @property
+    def default_type(self):
+        return self._default_type
+
+    @default_type.setter
+    def default_type(self, par_type):
+        if self._allowed_types is not None and self._allowed_types != []:
+            self.check_type(par_type, self._allowed_types, self.name)
+
+        self._default_type = par_type
 
     @property
     def units(self):
@@ -232,8 +251,7 @@ class Parameter(object):
     @units.setter
     def units(self,units):
 
-        if self._allowed_units !=[] and self._allowed_units is not None:
-
+        if self._allowed_units is not None and self._allowed_units != []:
             self.chekc_units(units, self._allowed_units, self.name)
 
         self._units = units
@@ -285,8 +303,12 @@ class Parameter(object):
     @staticmethod
     def chekc_units(units, allowed, name):
         if units not in allowed:
-            # TODO this exception is not properly formatted, it could be problematic
-            raise RuntimeError('wrong units for par: %s' % name, ' found: ', units, ' allowed:', allowed)
+            raise RuntimeError('wrong units for par: %s, found: %s, allowed: %s' % (name, units, allowed))
+
+    @staticmethod
+    def check_type(par_type, allowed, name):
+        if type not in allowed:
+            raise RuntimeError('wrong type for par: %s, found: %s, allowed: %s' % (name, par_type, allowed))
 
     @staticmethod
     def check_value(val,units,par_name):
@@ -351,7 +373,7 @@ class Float(Parameter):
                          units=units,
                          check_value=check_value,
                          name=name,
-                         default_units='float',
+                         default_type=float,
                          allowed_units=allowed_units)
                                    #wtform_dict=wtform_dict)
 
@@ -400,10 +422,11 @@ class Integer(Parameter):
         #wtform_dict = {'keV': FloatField}
 
         super(Integer, self).__init__(value=value,
-                                   units=units,
-                                   check_value=self.check_int_value,
-                                   name=name,
-                                   allowed_units=_allowed_units)
+                                      units=units,
+                                      check_value=self.check_int_value,
+                                      default_type=int,
+                                      name=name,
+                                      allowed_units=_allowed_units)
                                    #wtform_dict=wtform_dict)
 
         self.value=value
@@ -461,7 +484,7 @@ class Time(Parameter):
         self._set_time(value, format=T_format)
 
     def get_value_in_default_format(self, value) -> Union[str, float, None]:
-        return getattr(self._astropy_time, self.default_units, )
+        return getattr(self._astropy_time, self.default_units)
 
     @property
     def value(self):
