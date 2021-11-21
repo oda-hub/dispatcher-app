@@ -17,7 +17,6 @@ from cdci_data_analysis.pytest_fixtures import (
             empty_products_user_files_fixture,
             default_params_dict,
             default_token_payload,
-            dispatcher_test_conf_empty_sentry_fn,
             dispatcher_live_fixture_empty_sentry
         )
 
