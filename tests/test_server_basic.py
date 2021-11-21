@@ -11,7 +11,7 @@ import yaml
 import gzip
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, dispatcher_test_conf_fn, make_hash
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
 
@@ -1279,3 +1279,25 @@ def test_default_values(dispatcher_live_fixture, additional_parameter):
         assert 'additional_param' in analysis_parameters_json_content_original
     else:
         assert 'additional_param' not in analysis_parameters_json_content_original
+
+def test_empty_sentry(dispatcher_live_fixture_empty_sentry):
+    server = dispatcher_live_fixture_empty_sentry
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=['done'],
+                max_time_s=50,
+                )
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
+
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == ""

@@ -362,6 +362,36 @@ dispatcher:
 
     yield fn
 
+@pytest.fixture
+def dispatcher_test_conf_empty_sentry_fn(tmpdir):
+    fn = os.path.join(tmpdir, "test-dispatcher-conf.yaml")
+    with open(fn, "w") as f:
+        f.write("""
+dispatcher:
+    dummy_cache: dummy-cache
+    products_url: PRODUCTS_URL
+    dispatcher_callback_url_base: http://localhost:8001
+    sentry_url: 
+    logstash_host: 
+    logstash_port: 
+    secret_key: 'secretkey_test'
+    bind_options:
+        bind_host: 0.0.0.0
+        bind_port: 8001
+    email_options:
+        smtp_server: 'localhost'
+        sender_email_address: 'team@odahub.io'
+        cc_receivers_email_addresses: ['team@odahub.io']
+        bcc_receivers_email_addresses: ['teamBcc@odahub.io']
+        smtp_port: 61025
+        smtp_server_password: ''
+        email_sending_timeout: True
+        email_sending_timeout_default_threshold: 1800
+        email_sending_job_submitted: True
+        email_sending_job_submitted_default_interval: 60
+    """)
+
+    yield fn
 
 @pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
@@ -548,6 +578,20 @@ def empty_products_user_files_fixture(default_params_dict, default_token_payload
 @pytest.fixture
 def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+        
+    print(("child:", pid))
+    import os,signal
+    kill_child_processes(pid,signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+    
+@pytest.fixture
+def dispatcher_live_fixture_empty_sentry(pytestconfig, dispatcher_test_conf_empty_sentry_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_empty_sentry_fn)
 
     service = dispatcher_state['url']
     pid = dispatcher_state['pid']
