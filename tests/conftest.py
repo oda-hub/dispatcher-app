@@ -8,6 +8,7 @@ from cdci_data_analysis.pytest_fixtures import (
             dispatcher_live_fixture_no_debug_mode,
             dispatcher_long_living_fixture,
             dispatcher_test_conf,
+            dispatcher_test_conf_empty_sentry_fn,
             dispatcher_test_conf_fn,
             dispatcher_debug,
             dispatcher_nodebug,
@@ -15,7 +16,9 @@ from cdci_data_analysis.pytest_fixtures import (
             empty_products_files_fixture,
             empty_products_user_files_fixture,
             default_params_dict,
-            default_token_payload
+            default_token_payload,
+            dispatcher_test_conf_empty_sentry_fn,
+            dispatcher_live_fixture_empty_sentry
         )
 
 
