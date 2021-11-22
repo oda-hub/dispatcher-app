@@ -674,11 +674,7 @@ class Angle(Parameter):
 
 
 class Energy(Float):
-    def __init__(self, value=None, E_units=None, name=None, check_value=None):
-
-        if E_units is None:
-            E_units = 'keV'
-
+    def __init__(self, value=None, E_units='keV', name=None, check_value=None):
         if check_value is None:
             check_value = self.check_float_value
 
@@ -695,14 +691,7 @@ class Energy(Float):
 
 
 class SpectralBoundary(Energy):
-    def __init__(self, value=None, E_units='keV', name=None):
-
-        #wtform_dict = {'keV': FloatField}
-
-        super().__init__(value=value,
-                         E_units=E_units,
-                         name=name)
-                           #wtform_dict=wtform_dict)
+    pass
 
 
 class DetectionThreshold(Float):
