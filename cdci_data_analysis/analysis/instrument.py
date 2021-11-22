@@ -152,8 +152,8 @@ class Instrument:
                     if par.default_units is not None:
                         updated_par_dic[par.units_name] = par.default_units
                     else:
-                        raise RequestNotUnderstood("Error when setting the parameter %s: "
-                                                   "default unit not specified" % par.name)
+                        raise InternalError("Error when setting the parameter %s: "
+                                            "default unit not specified" % par.name)
                 else:
                     self.logger.warning("units_name for the parameter %s not specified" % par.name)
 
