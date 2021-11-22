@@ -362,6 +362,17 @@ dispatcher:
 
     yield fn
 
+@pytest.fixture
+def dispatcher_test_conf_empty_sentry_fn(dispatcher_test_conf_fn):
+    fn = dispatcher_test_conf_fn
+    with open(fn, "r+") as f:
+        data = f.read()
+        data = re.sub('(\s+sentry_url:).*\n', r'\1\n', data)
+        f.seek(0)
+        f.write(data)
+        f.truncate()
+
+    yield fn
 
 @pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
@@ -548,6 +559,20 @@ def empty_products_user_files_fixture(default_params_dict, default_token_payload
 @pytest.fixture
 def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+        
+    print(("child:", pid))
+    import os,signal
+    kill_child_processes(pid,signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+    
+@pytest.fixture
+def dispatcher_live_fixture_empty_sentry(pytestconfig, dispatcher_test_conf_empty_sentry_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_empty_sentry_fn)
 
     service = dispatcher_state['url']
     pid = dispatcher_state['pid']
