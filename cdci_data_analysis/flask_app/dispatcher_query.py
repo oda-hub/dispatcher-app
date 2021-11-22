@@ -125,8 +125,7 @@ class InstrumentQueryBackEnd:
 
         self.app = app
 
-        if getattr(self.app.config.get('conf'), 'sentry_url', None) is not None:
-            self.set_sentry_client(self.app.config.get('conf').sentry_url)
+        self.set_sentry_client(getattr(self.app.config.get('conf'), 'sentry_url', None))
 
         try:
             if par_dic is None:
