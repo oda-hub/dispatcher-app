@@ -418,12 +418,12 @@ class Integer(Parameter):
 
         #wtform_dict = {'keV': FloatField}
 
-        super(Integer, self).__init__(value=value,
-                                      units=units,
-                                      check_value=self.check_int_value,
-                                      default_type=int,
-                                      name=name,
-                                      allowed_units=_allowed_units)
+        super().__init__(value=value,
+                         units=units,
+                         check_value=self.check_int_value,
+                         default_type=int,
+                         name=name,
+                         allowed_units=_allowed_units)
                                    #wtform_dict=wtform_dict)
 
         self.value=value

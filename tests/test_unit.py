@@ -1,3 +1,5 @@
+import ast
+
 import pytest
 
 from cdci_data_analysis.analysis.instrument import Instrument
@@ -57,9 +59,11 @@ def test_repeating_parameters(add_duplicate):
         assert instrument.get_par_by_name("duplicate-name") == p1
 
 
-@pytest.mark.parametrize("value",  [25, 25., 25.64547871216879451687311211245117852145229614585985498212321, "aaaa"])
+@pytest.mark.parametrize("value",  [25, 25., 25.64547871216879451687311211245117852145229614585985498212321,
+                                    "25", "25.", "25.64547871216879451687311211245117852145229614585985498212321",
+                                    "aaaa"])
 def test_float_defaults(value):
-    if type(value) == str:
+    if isinstance(value, str) and not value.replace('.', '').isdigit():
         with pytest.raises(RuntimeError):
             Float(
                 value=value,
@@ -71,8 +75,6 @@ def test_float_defaults(value):
             name="p_float"
         )
 
-        assert p_float.get_value_in_default_format() == value
-        p_float.value = value
         assert p_float.get_value_in_default_format() == float(value)
         assert type(p_float.value) == float
 
@@ -99,9 +101,11 @@ def test_spectral_boundaries_defaults(e_units):
         assert type(p_spectral_boundary.value) == float
 
 
-@pytest.mark.parametrize("value",  [25, 25., 25.64547871216879451687311211245117852145229614585985498212321, "aaaa"])
+@pytest.mark.parametrize("value",  [25, 25., 25.64547871216879451687311211245117852145229614585985498212321,
+                                    "25", "25.", "25.64547871216879451687311211245117852145229614585985498212321",
+                                    "aaaa"])
 def test_integer_defaults(value):
-    if not isinstance(value, int):
+    if not (isinstance(value, int) or (isinstance(value, str) and value.isdigit())):
         with pytest.raises(RuntimeError):
             Integer(
                 value=value,
@@ -112,6 +116,6 @@ def test_integer_defaults(value):
             value=value,
             name="p_integer"
         )
-        assert p_integer.value == value
-        assert p_integer.get_value_in_default_format() == value
+        assert p_integer.value == int(value)
+        assert p_integer.get_value_in_default_format() == int(value)
         assert type(p_integer.value) == int
