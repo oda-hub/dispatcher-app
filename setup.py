@@ -26,7 +26,6 @@ install_req = [
     "simplejson",
     "flask",
     "astropy>=2.0.3",
-    "pathlib",
     "gunicorn",
     "decorator",
     "python-logstash",
