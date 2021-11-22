@@ -102,7 +102,7 @@ def test_spectral_boundaries_defaults(e_units):
 
 @pytest.mark.parametrize("value",  [25, 25., 25.64547871216879451687311211245117852145229614585985498212321, "aaaa"])
 def test_integer_defaults(value):
-    if type(value) == str:
+    if not isinstance(value, int):
         with pytest.raises(RuntimeError):
             Integer(
                 value=value,

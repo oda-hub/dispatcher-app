@@ -455,11 +455,11 @@ class Integer(Parameter):
         if value is None or value=='':
             pass
         else:
+            if isinstance(value, float):
+                message = '%s is an invalid value for %s since it cannot be used as an Integer' % (value, name)
+                logger.error(message)
+                raise RuntimeError(message)
             try:
-                if isinstance(value, float):
-                    message = '%s is an invalid value for %s since it cannot be used as an Integer' % (value, name)
-                    logger.error(message)
-                    raise RuntimeError(message)
                 value = int(value)
             except:
                 raise RuntimeError('type %s not valid for %s' % (type(value), name))
