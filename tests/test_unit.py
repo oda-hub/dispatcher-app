@@ -71,8 +71,7 @@ def test_float_defaults(value):
             name="p_float"
         )
 
-        assert p_float.get_value_in_default_format(p_float.value) == p_float.value
-        # assign an int value, that then should be converted to float
+        assert p_float.get_value_in_default_format(p_float.value) == value
         p_float.value = value
         assert p_float.get_value_in_default_format(p_float.value) == float(value)
         assert type(p_float.value) == float

@@ -717,25 +717,6 @@ class DetectionThreshold(Float):
                                    name=name,
                                    allowed_units=_allowed_units)
                                    #wtform_dict=wtform_dict)
-    # TODO this method, behaves exaclty the same as the one for the Energy and SpectralBoundary classes
-    # is this ever expected to be more specific?
-    @staticmethod
-    def check_value(value, units=None,name=None):
-        #print('check type of ',name,'value', value, 'type',type(value))
-
-
-        try:
-            value=ast.literal_eval(value)
-        except:
-            pass
-
-        if type(value)==int or type(value)==np.int:
-            pass
-        elif type(value)==float or type(value)==np.float:
-            pass
-        else:
-            raise RuntimeError('type of ',name,'not valid',type(value))
-
 
 
 class UserCatalog(Parameter):
