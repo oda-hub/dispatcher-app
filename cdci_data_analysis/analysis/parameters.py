@@ -677,7 +677,7 @@ class Energy(Float):
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
         #wtform_dict = {'keV': FloatField}
 
-        super(Energy, self).__init__(value=value,
+        super().__init__(value=value,
                                      units=E_units,
                                      default_units='keV',
                                      check_value=check_value,
@@ -696,22 +696,22 @@ class DetectionThreshold(Float):
         _allowed_units = ['sigma']
         #wtform_dict = {'keV': FloatField}
 
-        super(DetectionThreshold, self).__init__(value=value,
-                                   units=units,
-                                   check_value=self.check_value,
-                                   name=name,
-                                   allowed_units=_allowed_units)
+        super().__init__(value=value,
+                         units=units,
+                         check_value=self.check_value,
+                         name=name,
+                         allowed_units=_allowed_units)
                                    #wtform_dict=wtform_dict)
 
 
 class UserCatalog(Parameter):
     def __init__(self, value=None,name_format='str', name=None):
         _allowed_units = ['str']
-        super(UserCatalog,self).__init__(value=value,
-                                  units=name_format,
-                                  check_value=self.check_name_value,
-                                  name=name,
-                                  allowed_units=_allowed_units)
+        super().__init__(value=value,
+                         units=name_format,
+                         check_value=self.check_name_value,
+                         name=name,
+                         allowed_units=_allowed_units)
 
     @staticmethod
     def check_name_value(value, units=None, name=None):
