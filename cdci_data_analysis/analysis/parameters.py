@@ -439,14 +439,14 @@ class Integer(Parameter):
     @value.setter
     def value(self, v):
         if v is not None and v!='':
-            self.check_int_value(v,name=self.name)
+            self.check_int_value(v, name=self.name)
             self._v = np.int(v)
 
         else:
             self._v=None
 
     def get_value_in_default_format(self, value):
-        self.check_int_value(value)
+        self.check_int_value(value, name=self.name)
         return int(value)
 
     @staticmethod
@@ -456,9 +456,10 @@ class Integer(Parameter):
             pass
         else:
             try:
-                # TODO a different and bigger precision (eg float64) should be considered?
-                if type(value) == float:
-                    logger.warning("the value %s will be casted to int" % value)
+                if isinstance(value, float):
+                    message = '%s is an invalid value for %s since it cannot be used as an Integer' % (value, name)
+                    logger.error(message)
+                    raise RuntimeError(message)
                 value = int(value)
             except:
                 raise RuntimeError('type %s not valid for %s' % (type(value), name))
