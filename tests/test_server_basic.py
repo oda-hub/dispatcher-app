@@ -840,6 +840,8 @@ def test_scws_list_file(dispatcher_live_fixture):
     restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({
         **params,
         "p": 5.,
+        "RA": 83.,
+        "DEC": 22.,
         "src_name": "1E 1740.7-2942",
         "p_list": ["5"],
         "sub": "mtm@mtmco.net"}
@@ -900,6 +902,8 @@ def test_catalog_file(dispatcher_live_fixture):
             'selected_catalog': json.dumps(catalog_object.get_dictionary()),
             'sub': 'mtm@mtmco.net',
             'p_list': [],
+            'RA': 83.,
+            'DEC': 22.,
             'src_name': '1E 1740.7-2942',
         }
     )
@@ -963,6 +967,8 @@ def test_user_catalog(dispatcher_live_fixture):
             **params,
             'sub': 'mtm@mtmco.net',
             'p_list': [],
+            'RA': 83.,
+            'DEC': 22.,
             'src_name': '1E 1740.7-2942',
         }
     )
