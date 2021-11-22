@@ -112,6 +112,6 @@ def test_integer_defaults(value):
             value=value,
             name="p_integer"
         )
-        assert p_integer.value == int(value)
-        assert p_integer.get_value_in_default_format(p_integer.value) == int(value)
+        assert p_integer.value == value
+        assert p_integer.get_value_in_default_format(p_integer.value) == value
         assert type(p_integer.value) == int

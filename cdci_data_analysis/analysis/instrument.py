@@ -148,13 +148,13 @@ class Instrument:
                 # or to a default value if this is not included within the request
                 updated_par_dic[par.name] = par.set_value_from_form(par_dic, verbose=verbose)
 
-                if par.units_name is not None and par.default_units is not None:
-                    updated_par_dic[par.units_name] = par.default_units
-
-                elif par.units_name is not None and par.default_units is None:
-                    raise RequestNotUnderstood("Error when setting the parameter %s: "
-                                               "default unit not specified" % par.name)
-                elif par.units_name is None and par.default_units is not None:
+                if par.units_name is not None:
+                    if par.default_units is not None:
+                        updated_par_dic[par.units_name] = par.default_units
+                    else:
+                        raise RequestNotUnderstood("Error when setting the parameter %s: "
+                                                   "default unit not specified" % par.name)
+                else:
                     self.logger.warning("units_name for the parameter %s not specified" % par.name)
 
             self.logger.info("after normalizing, set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",

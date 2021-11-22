@@ -184,14 +184,10 @@ class Parameter(object):
 
         self.check_value = check_value
 
-        if allowed_units is None:
-            allowed_units = []
-        else:
+        if allowed_units is not None:
             allowed_units = allowed_units.copy()
 
-        if allowed_types is None:
-            allowed_types = []
-        else:
+        if allowed_types is not None:
             allowed_types = allowed_types.copy()
 
         if not ( name is None or type(name) in [ str ] ):
