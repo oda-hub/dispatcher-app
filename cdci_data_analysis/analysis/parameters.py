@@ -231,7 +231,7 @@ class Parameter(object):
 
     @default_units.setter
     def default_units(self, par_unit):
-        if self._allowed_types is not None and self._allowed_units != []:
+        if self._allowed_types is not None:
             self.chekc_units(par_unit, self._allowed_units, self.name)
 
         self._default_units = par_unit
@@ -242,7 +242,7 @@ class Parameter(object):
 
     @default_type.setter
     def default_type(self, par_type):
-        if self._allowed_types is not None and self._allowed_types != []:
+        if self._allowed_types is not None:
             self.check_type(par_type, self._allowed_types, self.name)
 
         self._default_type = par_type
