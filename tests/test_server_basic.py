@@ -11,7 +11,7 @@ import yaml
 import gzip
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, dispatcher_test_conf_fn, make_hash
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
 
