@@ -297,8 +297,8 @@ class Parameter(object):
         self.value = value
         return self.get_value_in_default_format(value)
 
-    def get_value_in_default_format(self, value):
-        return value
+    def get_value_in_default_format(self):
+        return self.value
 
     def get_form(self,wtform_cls,key,validators,defaults):
          return   wtform_cls('key', validators=validators, default=defaults)
@@ -396,8 +396,8 @@ class Float(Parameter):
         else:
             self._v=None
 
-    def get_value_in_default_format(self, value):
-        return float(value)
+    def get_value_in_default_format(self):
+        return float(self.value)
 
     @staticmethod
     def check_float_value(value, units=None, name=None):
@@ -441,9 +441,9 @@ class Integer(Parameter):
         else:
             self._v=None
 
-    def get_value_in_default_format(self, value):
-        self.check_int_value(value, name=self.name)
-        return int(value)
+    def get_value_in_default_format(self):
+        self.check_int_value(self.value, name=self.name)
+        return int(self.value)
 
     @staticmethod
     def check_int_value(value, units=None,name=None):
@@ -480,7 +480,7 @@ class Time(Parameter):
 
         self._set_time(value, format=T_format)
 
-    def get_value_in_default_format(self, value) -> Union[str, float, None]:
+    def get_value_in_default_format(self) -> Union[str, float, None]:
         return getattr(self._astropy_time, self.default_units)
 
     @property

@@ -71,9 +71,9 @@ def test_float_defaults(value):
             name="p_float"
         )
 
-        assert p_float.get_value_in_default_format(p_float.value) == value
+        assert p_float.get_value_in_default_format() == value
         p_float.value = value
-        assert p_float.get_value_in_default_format(p_float.value) == float(value)
+        assert p_float.get_value_in_default_format() == float(value)
         assert type(p_float.value) == float
 
 
@@ -94,8 +94,8 @@ def test_spectral_boundaries_defaults(e_units):
             E_units=e_units,
         )
 
-        assert p_spectral_boundary.get_value_in_default_format(p_spectral_boundary.value) == p_spectral_boundary.value
-        assert p_spectral_boundary.get_value_in_default_format(p_spectral_boundary.value) == float(10.)
+        assert p_spectral_boundary.get_value_in_default_format() == p_spectral_boundary.value
+        assert p_spectral_boundary.get_value_in_default_format() == float(10.)
         assert type(p_spectral_boundary.value) == float
 
 
@@ -113,5 +113,5 @@ def test_integer_defaults(value):
             name="p_integer"
         )
         assert p_integer.value == value
-        assert p_integer.get_value_in_default_format(p_integer.value) == value
+        assert p_integer.get_value_in_default_format() == value
         assert type(p_integer.value) == int
