@@ -109,6 +109,7 @@ def test_parameter_normalization_no_units():
             with pytest.raises(outcome):
                 constructor()
         else:
+            # this also sets the default value
             parameter = constructor()
 
             # this is redundant
@@ -116,5 +117,10 @@ def test_parameter_normalization_no_units():
 
             assert parameter.value == outcome
             assert type(parameter.value) == type(outcome)
-            
 
+            # setting value during request
+            
+            assert parameter.set_par(input_value) == outcome
+            assert parameter.value == outcome
+            assert type(parameter.value) == type(outcome)
+            
