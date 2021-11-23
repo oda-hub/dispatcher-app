@@ -1202,6 +1202,8 @@ def test_image(dispatcher_live_fixture):
             **params,
             'p_list': [],
             'p': 55.,
+            'RA': 83.0,
+            'DEC': 22.0,
             'src_name': '1E 1740.7-2942',
             'sub': 'mtm@mtmco.net',
         }
