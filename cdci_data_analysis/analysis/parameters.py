@@ -395,10 +395,9 @@ class Float(Parameter):
     def value(self, v):
         if v is not None and v != '':
             self.check_float_value(v, name=self.name, units=self.units)
-            self._v = np.float(v)
-
+            self._v = float(v)
         else:
-            self._v=None
+            self._v = None
 
     def get_value_in_default_format(self):
         return float(self.value)
@@ -438,12 +437,11 @@ class Integer(Parameter):
 
     @value.setter
     def value(self, v):
-        if v is not None and v!='':
+        if v is not None and v != '':
             self.check_int_value(v, name=self.name)
-            self._v = np.int(v)
-
+            self._v = int(v)
         else:
-            self._v=None
+            self._v = None
 
     def get_value_in_default_format(self):
         self.check_int_value(self.value, name=self.name)
