@@ -232,7 +232,7 @@ class Parameter(object):
     @default_units.setter
     def default_units(self, par_unit):
         if self._allowed_types is not None:
-            self.chekc_units(par_unit, self._allowed_units, self.name)
+            self.check_units(par_unit, self._allowed_units, self.name)
 
         self._default_units = par_unit
 
@@ -254,8 +254,8 @@ class Parameter(object):
     @units.setter
     def units(self,units):
 
-        if self._allowed_units is not None and self._allowed_units != []:
-            self.chekc_units(units, self._allowed_units, self.name)
+        if self._allowed_units is not None:
+            self.check_units(units, self._allowed_units, self.name)
 
         self._units = units
 
@@ -303,8 +303,12 @@ class Parameter(object):
     def get_form(self,wtform_cls,key,validators,defaults):
          return   wtform_cls('key', validators=validators, default=defaults)
 
+    def chekc_units(self, *args, **kwargs):
+        logger.warning('please update to new interface! -- ....')
+        return self.check_units(*args, **kwargs)
+
     @staticmethod
-    def chekc_units(units, allowed, name):
+    def check_units(units, allowed, name):
         if units not in allowed:
             raise RuntimeError('wrong units for par: %s, found: %s, allowed: %s' % (name, units, allowed))
 
@@ -391,10 +395,9 @@ class Float(Parameter):
     def value(self, v):
         if v is not None and v != '':
             self.check_float_value(v, name=self.name, units=self.units)
-            self._v = np.float(v)
-
+            self._v = float(v)
         else:
-            self._v=None
+            self._v = None
 
     def get_value_in_default_format(self):
         return float(self.value)
@@ -406,7 +409,7 @@ class Float(Parameter):
             pass
         else:
             try:
-                value = float(value)
+                float(value)
             except:
                 raise RuntimeError(f'unable to interpret value {value} (of type {type(value)}) as float')
 
@@ -434,12 +437,11 @@ class Integer(Parameter):
 
     @value.setter
     def value(self, v):
-        if v is not None and v!='':
+        if v is not None and v != '':
             self.check_int_value(v, name=self.name)
-            self._v = np.int(v)
-
+            self._v = int(v)
         else:
-            self._v=None
+            self._v = None
 
     def get_value_in_default_format(self):
         self.check_int_value(self.value, name=self.name)
@@ -452,13 +454,13 @@ class Integer(Parameter):
             pass
         else:
             if isinstance(value, float):
-                message = '%s is an invalid value for %s since it cannot be used as an Integer' % (value, name)
+                message = f'{value} is an invalid value for {name} since it cannot be used as an Integer'
                 logger.error(message)
                 raise RuntimeError(message)
             try:
-                value = int(value)
+                int(value)
             except:
-                raise RuntimeError('type %s not valid for %s' % (type(value), name))
+                raise RuntimeError(f'type {type(value)} not valid for {name}')
 
 
 class Time(Parameter):

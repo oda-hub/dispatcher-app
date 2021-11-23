@@ -155,7 +155,7 @@ class Instrument:
                         raise InternalError("Error when setting the parameter %s: "
                                             "default unit not specified" % par.name)
                 else:
-                    self.logger.warning("units_name for the parameter %s not specified" % par.name)
+                    self.logger.warning("units_name for the parameter %s not specified", par.name)
 
             self.logger.info("after normalizing, set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
                              par, par.name, par.value, par_dic.get(par.name, None))
