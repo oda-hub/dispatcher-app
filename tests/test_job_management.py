@@ -1697,14 +1697,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
             params['scw_list'] = scw_list_string
             assert 'scw_list' in jdata['products']['api_code']
             assert 'scw_list' in jdata['products']['analysis_parameters']
-            # very specific case to be considered for the way the dispatcher
-            # handles scw_list with one single element
-            if scw_list_size == 1 and \
-                    (use_scws_value is None or use_scws_value == 'form_list' or use_scws_value == 'not_included') and \
-                    scw_list_passage == 'params':
-                assert jdata['products']['analysis_parameters']['scw_list'] == scw_list_string
-            else:
-                assert jdata['products']['analysis_parameters']['scw_list'] == scw_list
+            assert jdata['products']['analysis_parameters']['scw_list'] == scw_list
 
             assert processed_scw_list == scw_list
 
