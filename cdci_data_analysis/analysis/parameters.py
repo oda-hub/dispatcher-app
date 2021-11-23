@@ -232,7 +232,7 @@ class Parameter(object):
     @default_units.setter
     def default_units(self, par_unit):
         if self._allowed_types is not None:
-            self.chekc_units(par_unit, self._allowed_units, self.name)
+            self.check_units(par_unit, self._allowed_units, self.name)
 
         self._default_units = par_unit
 
@@ -254,8 +254,8 @@ class Parameter(object):
     @units.setter
     def units(self,units):
 
-        if self._allowed_units is not None and self._allowed_units != []:
-            self.chekc_units(units, self._allowed_units, self.name)
+        if self._allowed_units is not None:
+            self.check_units(units, self._allowed_units, self.name)
 
         self._units = units
 
@@ -303,8 +303,12 @@ class Parameter(object):
     def get_form(self,wtform_cls,key,validators,defaults):
          return   wtform_cls('key', validators=validators, default=defaults)
 
+    def chekc_units(self, *args, **kwargs):
+        logger.warning('please update to new interface! -- ....')
+        return self.check_units(*args, **kwargs)
+
     @staticmethod
-    def chekc_units(units, allowed, name):
+    def check_units(units, allowed, name):
         if units not in allowed:
             raise RuntimeError('wrong units for par: %s, found: %s, allowed: %s' % (name, units, allowed))
 
