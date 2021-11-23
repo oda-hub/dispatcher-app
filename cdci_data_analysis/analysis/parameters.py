@@ -411,7 +411,7 @@ class Float(Parameter):
             try:
                 float(value)
             except:
-                raise RuntimeError('type %s not valid for %s' % (type(value), name))
+                raise RuntimeError(f'type {type(value)} not valid for {name}')
 
 
 class Integer(Parameter):
@@ -454,13 +454,13 @@ class Integer(Parameter):
             pass
         else:
             if isinstance(value, float):
-                message = '%s is an invalid value for %s since it cannot be used as an Integer' % (value, name)
+                message = f'{value} is an invalid value for {name} since it cannot be used as an Integer'
                 logger.error(message)
                 raise RuntimeError(message)
             try:
                 int(value)
             except:
-                raise RuntimeError('type %s not valid for %s' % (type(value), name))
+                raise RuntimeError(f'type {type(value)} not valid for {name}')
 
 
 class Time(Parameter):
