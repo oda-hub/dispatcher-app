@@ -1,4 +1,5 @@
 import ast
+from _pytest import outcomes
 
 import pytest
 
@@ -59,26 +60,6 @@ def test_repeating_parameters(add_duplicate):
         assert instrument.get_par_by_name("duplicate-name") == p1
 
 
-@pytest.mark.parametrize("value",  [25, 25., 25.64547871216879451687311211245117852145229614585985498212321,
-                                    "25", "25.", "25.64547871216879451687311211245117852145229614585985498212321",
-                                    "aaaa"])
-def test_float_defaults(value):
-    if isinstance(value, str) and not value.replace('.', '').isdigit():
-        with pytest.raises(RuntimeError):
-            Float(
-                value=value,
-                name="p_float"
-            )
-    else:
-        p_float = Float(
-            value=value,
-            name="p_float"
-        )
-
-        assert p_float.get_value_in_default_format() == float(value)
-        assert type(p_float.value) == float
-
-
 @pytest.mark.parametrize("e_units", ['eV', 'W', '', None])
 def test_spectral_boundaries_defaults(e_units):
     # test with a not allowed unit
@@ -101,21 +82,39 @@ def test_spectral_boundaries_defaults(e_units):
         assert type(p_spectral_boundary.value) == float
 
 
-@pytest.mark.parametrize("value",  [25, 25., 25.64547871216879451687311211245117852145229614585985498212321,
-                                    "25", "25.", "25.64547871216879451687311211245117852145229614585985498212321",
-                                    "aaaa"])
-def test_integer_defaults(value):
-    if not (isinstance(value, int) or (isinstance(value, str) and value.isdigit())):
-        with pytest.raises(RuntimeError):
-            Integer(
-                value=value,
-                name="p_integer"
-            )
-    else:
-        p_integer = Integer(
-            value=value,
-            name="p_integer"
-        )
-        assert p_integer.value == int(value)
-        assert p_integer.get_value_in_default_format() == int(value)
-        assert type(p_integer.value) == int
+
+def test_parameter_normalization_no_units():
+    for parameter_type, input_value, outcome in [
+            (Float, 25, 25.0),
+            (Float, 25., 25.0),
+            (Float, 25.64547871216879451687311, 25.64547871216879451687311),
+            (Float, "25", 25.0),
+            (Float, "25.", 25.0),
+            (Float, "25.64547871216879451687311", 25.64547871216879451687311),
+            (Float, "2.5e1", 25.0),
+            (Float, "aaaa", RuntimeError),
+            (Integer, 25, 25),
+            (Integer, 25., RuntimeError),
+            (Integer, 25.64547871216879451687311, RuntimeError),
+            (Integer, "25", 25),
+            (Integer, "25.", RuntimeError),
+            (Integer, "25.64547871216879451687311", RuntimeError),
+            (Integer, "aaaa", RuntimeError)
+        ]:
+
+        def constructor():
+            return parameter_type(value=input_value, name="my-parameter-name")
+
+        if isinstance(outcome, type) and issubclass(outcome, Exception):
+            with pytest.raises(outcome):
+                constructor()
+        else:
+            parameter = constructor()
+
+            # this is redundant
+            assert parameter.get_value_in_default_format() == parameter.value
+
+            assert parameter.value == outcome
+            assert type(parameter.value) == type(outcome)
+            
+
