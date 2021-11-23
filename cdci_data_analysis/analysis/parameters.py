@@ -409,7 +409,7 @@ class Float(Parameter):
             pass
         else:
             try:
-                value = float(value)
+                float(value)
             except:
                 raise RuntimeError('type %s not valid for %s' % (type(value), name))
 
@@ -458,7 +458,7 @@ class Integer(Parameter):
                 logger.error(message)
                 raise RuntimeError(message)
             try:
-                value = int(value)
+                int(value)
             except:
                 raise RuntimeError('type %s not valid for %s' % (type(value), name))
 
