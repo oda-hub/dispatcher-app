@@ -202,6 +202,7 @@ class Parameter(object):
         self.units = units
         self.value = value
         self.units_name = units_name
+        # TODO any ideas on what this represents? seems to be no longer in use
         #self._wtform_dict=wtform_dict
 
     @property
@@ -209,8 +210,7 @@ class Parameter(object):
         return self._value
 
     @value.setter
-    def value(self,v):
-        #print ('set',self.name,v,self._allowed_values)
+    def value(self, v):
         if v is not None:
             if self.check_value is not None:
                 self.check_value(v, units=self.units,name=self.name)
@@ -218,8 +218,8 @@ class Parameter(object):
                 if v not in self._allowed_values:
                     raise RuntimeError('value',v,'not allowed, allowed=',self._allowed_values)
             #print('set->',self.name,v,type(v))
-            if type(v)==str or isinstance(v, six.string_types):
-                self._value=v.strip()
+            if isinstance(v, str) or isinstance(v, six.string_types):
+                self._value = v.strip()
             else:
                 self._value = v
         else:
@@ -252,8 +252,7 @@ class Parameter(object):
         return self._units
 
     @units.setter
-    def units(self,units):
-
+    def units(self, units):
         if self._allowed_units is not None:
             self.check_units(units, self._allowed_units, self.name)
 
@@ -300,8 +299,8 @@ class Parameter(object):
     def get_value_in_default_format(self):
         return self.value
 
-    def get_form(self,wtform_cls,key,validators,defaults):
-         return   wtform_cls('key', validators=validators, default=defaults)
+    def get_form(self, wtform_cls, key, validators, defaults):
+         return wtform_cls('key', validators=validators, default=defaults)
 
     def chekc_units(self, *args, **kwargs):
         logger.warning('please update to new interface! -- ....')
@@ -356,13 +355,13 @@ class Parameter(object):
 
 
 class Name(Parameter):
-    def __init__(self,value=None, name_format='str', name=None):
+    def __init__(self, value=None, name_format='str', name=None):
         _allowed_units = ['str']
-        super(Name,self).__init__(value=value,
-                                  units=name_format,
-                                  check_value=self.check_name_value,
-                                  name=name,
-                                  allowed_units=_allowed_units)
+        super().__init__(value=value,
+                         units=name_format,
+                         check_value=self.check_name_value,
+                         name=name,
+                         allowed_units=_allowed_units)
 
     @staticmethod
     def check_name_value(value, units=None, name=None):
@@ -385,7 +384,7 @@ class Float(Parameter):
                          allowed_units=allowed_units)
                                    #wtform_dict=wtform_dict)
 
-        self.value=value
+        self.value = value
 
     @property
     def value(self):
@@ -429,7 +428,7 @@ class Integer(Parameter):
                          allowed_units=_allowed_units)
                                    #wtform_dict=wtform_dict)
 
-        self.value=value
+        self.value = value
 
     @property
     def value(self):
