@@ -23,6 +23,7 @@ from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import D
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
 from flask import Markup
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 # symmetric shared secret for the decoding of the token
@@ -107,6 +108,9 @@ generalized_email_patterns = {
     'time_request_str': [
         r'(because at )([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.*?)( \()',
         '(first requested at )(.*? .*?)( job_id:)'
+    ],
+    'token_exp_time_str': [
+        '(and will be valid until )(.*? .*?)(.<br>)'
     ],
     'products_url': [
         '(href=")(.*?)(">url)',
@@ -1427,8 +1431,6 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
         token_payload["exp"] = exp_time
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-    # set the time the request was initiated
-    time_request = time.time()
 
     # based on the previous test
     name_parameter_value = "01" * 600
@@ -1439,18 +1441,19 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
         instrument="empty-async",
         product_type="numerical",
         string_like_name=name_parameter_value,
-        token=encoded_token,
-        time_request=time_request
+        token=encoded_token
     )
 
-    c = requests.get(server + "/run_analysis",
-                     params=dict_param)
+    jdata = ask(server,
+                dict_param,
+                expected_query_status=["submitted"],
+                max_time_s=150,
+                )
 
-    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+    logger.info("response from run_analysis: %s", json.dumps(jdata, indent=4))
 
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
 
-    jdata = c.json()
     assert jdata['exit_status']['email_status'] == 'email sent'
 
     dispatcher_job_state.assert_email("submitted")
@@ -1462,7 +1465,22 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
 
     if expired_token:
         # let make sure the token used for the previous request expires
-        time.sleep(12)
+        time.sleep(15)
+
+    # set the time the request was initiated
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    token_exp_time_str = datetime.fromtimestamp(float(token_payload["exp"])).strftime("%Y-%m-%d %H:%M:%S")
+
+    reference_email = get_reference_email(state='submitted',
+                                          time_request_str=time_request_str,
+                                          products_url=expected_products_url,
+                                          job_id=dispatcher_job_state.job_id[:8],
+                                          variation_suffixes=["numeric-very-long-not-permanent"],
+                                          require=True,
+                                          token_exp_time_str=token_exp_time_str
+                                          )
 
     # extract api_code and url from the email
     msg = email.message_from_string(dispatcher_local_mail_server.get_email_record()['data'])
@@ -1472,6 +1490,17 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
 
             extracted_product_url = extract_products_url(content_text_html)
             assert expected_products_url == extracted_product_url
+
+            fn = store_email(content_text_html,
+                             state='submitted',
+                             time_request_str=time_request_str,
+                             products_url=expected_products_url,
+                             variation_suffixes=["numeric-very-long-not-permanent"])
+
+            if reference_email is not None:
+                open("adapted_reference.html", "w").write(ignore_html_patterns(reference_email))
+                assert ignore_html_patterns(reference_email) == ignore_html_patterns(
+                    content_text_html), f"please inspect {fn} and possibly copy it to {fn.replace('to_review', 'reference')}"
 
             # # verify product url does not contain token
             # extracted_parsed = parse.urlparse(extracted_product_url)
