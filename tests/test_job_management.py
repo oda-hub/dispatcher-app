@@ -172,7 +172,7 @@ def get_reference_attachment(**email_attachment_args):
 # substitute several patterns for comparison
 def adapt_html(html_content, **email_args):
     for arg, patterns in generalized_email_patterns.items():
-        if email_args[arg] is not None:
+        if arg in email_args and email_args[arg] is not None:
             for pattern in patterns:
                 html_content = re.sub(pattern, r"\g<1>" + email_args[arg] + r"\g<3>", html_content)
 
