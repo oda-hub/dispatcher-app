@@ -475,8 +475,6 @@ class Time(Parameter):
                                    allowed_units=None)
                                   #wtform_dict=wtform_dict)
 
-        self._set_time(value, format=T_format)
-
     def get_value_in_default_format(self) -> Union[str, float, None]:
         return getattr(self._astropy_time, self.default_units)
 
