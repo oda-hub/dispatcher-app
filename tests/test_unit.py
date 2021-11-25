@@ -10,8 +10,11 @@ from cdci_data_analysis.analysis.queries import (
     InstrumentQuery,
     Float,
     Name,
+    Time,
+    TimeDelta
 )
 
+import numpy as np
 
 @pytest.mark.parametrize("add_duplicate", [True, False])
 def test_repeating_parameters(add_duplicate):
@@ -119,3 +122,34 @@ def test_integer_defaults(value):
         assert p_integer.value == int(value)
         assert p_integer.get_value_in_default_format() == int(value)
         assert type(p_integer.value) == int
+
+
+def test_time_parameter():
+    for parameter_type, input_value, format_args, outcome in [
+            (Time, '2017-03-06T13:26:48.000', {'T_format': 'isot'}, '2017-03-06T13:26:48.000'),
+            (TimeDelta, 1000., {'delta_T_format': 'sec'}, np.float64(1000.))
+    ]:
+        def constructor():
+            return parameter_type(value=input_value,
+                                  name="my-parameter-name",
+                                  **format_args
+                                  )
+
+        if isinstance(outcome, type) and issubclass(outcome, Exception):
+            with pytest.raises(outcome):
+                constructor()
+        else:
+            # this also sets the default value
+            parameter = constructor()
+
+            # this is redundant
+            assert parameter.get_value_in_default_format() == parameter.value
+
+            assert parameter.value == outcome
+            assert type(parameter.value) == type(outcome)
+
+            # setting value during request
+
+            assert parameter.set_par(input_value) == outcome
+            assert parameter.value == outcome
+            assert type(parameter.value) == type(outcome)

@@ -459,7 +459,7 @@ class Integer(Parameter):
 
 
 class Time(Parameter):
-    def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None, allowed_units=None):
+    def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None):
 
         #_allowed_units = astropyTime.FORMATS
 
@@ -471,8 +471,7 @@ class Time(Parameter):
                                    units=T_format,
                                    units_name=Time_format_name,
                                    default_units='isot',
-                                   name=name,
-                                   allowed_units=allowed_units)
+                                   name=name)
                                   #wtform_dict=wtform_dict)
 
     def get_value_in_default_format(self) -> Union[str, float, None]:
@@ -496,11 +495,10 @@ class Time(Parameter):
             pass
         
         self._astropy_time = astropyTime(value, format=format)
-        
         self._value =value
 
 
-class TimeDelta(Time):
+class TimeDelta(Parameter):
     def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None):
 
         # _allowed_units = astropyTime.FORMATS
@@ -510,14 +508,26 @@ class TimeDelta(Time):
         # wtform_dict['prod_list'] = TextAreaField
 
         super().__init__(value=value,
-                         T_format=delta_T_format,
-                         Time_format_name=delta_T_format_name,
-                         name=name,
-                         allowed_units=None)
+                         units=delta_T_format,
+                         units_name=delta_T_format_name,
+                         default_units='sec',
+                         name=name)
         # wtform_dict=wtform_dict)
 
-    def _set_time(self, value, format):
+    def get_value_in_default_format(self) -> Union[str, float, None]:
+        return getattr(self._astropy_time_delta, self.default_units)
 
+    @property
+    def value(self):
+        return self._astropy_time_delta.value
+
+    @value.setter
+    def value(self, v):
+
+        units = self.units
+        self._set_time(v, format=units)
+
+    def _set_time(self, value, format):
         try:
             value = ast.literal_eval(value)
         except:
