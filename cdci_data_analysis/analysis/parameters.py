@@ -459,7 +459,7 @@ class Integer(Parameter):
 
 
 class Time(Parameter):
-    def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None):
+    def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None, allowed_units=None):
 
         #_allowed_units = astropyTime.FORMATS
 
@@ -472,7 +472,7 @@ class Time(Parameter):
                                    units_name=Time_format_name,
                                    default_units='isot',
                                    name=name,
-                                   allowed_units=None)
+                                   allowed_units=allowed_units)
                                   #wtform_dict=wtform_dict)
 
     def get_value_in_default_format(self) -> Union[str, float, None]:
@@ -500,7 +500,7 @@ class Time(Parameter):
         self._value =value
 
 
-class TimeDelta(Parameter):
+class TimeDelta(Time):
     def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None):
 
         # _allowed_units = astropyTime.FORMATS
@@ -509,25 +509,12 @@ class TimeDelta(Parameter):
         # wtform_dict['mjd'] = FloatField
         # wtform_dict['prod_list'] = TextAreaField
 
-        super(TimeDelta, self).__init__(value=value,
-                                   units=delta_T_format,
-                                   units_name=delta_T_format_name,
-                                   name=name,
-                                   allowed_units=None)
+        super().__init__(value=value,
+                         T_format=delta_T_format,
+                         Time_format_name=delta_T_format_name,
+                         name=name,
+                         allowed_units=None)
         # wtform_dict=wtform_dict)
-
-
-        self._set_time(value, format=delta_T_format)
-
-    @property
-    def value(self):
-        return self._astropy_time_delta.value
-
-    @value.setter
-    def value(self, v):
-
-        units = self.units
-        self._set_time(v, format=units)
 
     def _set_time(self, value, format):
 
@@ -535,11 +522,9 @@ class TimeDelta(Parameter):
             value = ast.literal_eval(value)
         except:
             pass
-
-        #print ('value',value)
         self._astropy_time_delta = astropyTimeDelta(value, format=format)
-
         self._value = value
+
 
 class InputProdList(Parameter):
     def __init__(self, value=None, _format='names_list', name: str=None):
@@ -622,9 +607,6 @@ class Angle(Parameter):
                                        allowed_units=None)
             # wtform_dict=wtform_dict)
 
-
-            self._set_angle(value, units=units)
-
         @property
         def value(self):
             return self._astropy_angle.value
@@ -634,12 +616,10 @@ class Angle(Parameter):
             if units is None:
                 units = self.units
 
-
-
             self._set_angle(v, units=units)
 
         def _set_angle(self, value, units):
-            if value=='' or value is None:
+            if value == '' or value is None:
                 pass
             else:
                 self._astropy_angle = astropyAngle(value, unit=units)
