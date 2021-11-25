@@ -184,7 +184,12 @@ class Parameter(object):
         self.check_value = check_value
 
         if allowed_units is not None:
-            allowed_units = allowed_units.copy()
+            # handles case of []
+            if not allowed_units:
+                logger.warning("allowed_units was set to []")
+                allowed_units = None
+            else:
+                allowed_units = allowed_units.copy()
 
         if allowed_types is not None:
             allowed_types = allowed_types.copy()
@@ -252,9 +257,6 @@ class Parameter(object):
 
     @units.setter
     def units(self, units):
-        if not self._allowed_units:
-            logger.warning("_allowed_units was set to []")
-            self._allowed_units = None
         if self._allowed_units is not None:
             self.check_units(units, self._allowed_units, self.name)
 
