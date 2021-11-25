@@ -2012,7 +2012,7 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
         error_message = (f'[ InstrumentQueryBackEnd : empty-async ] constructor failed: '
                          f'Input values did not match the format class {time_format}:\n')
         if time_format == 'isot':
-            error_message += f'TypeError: Input values for {time_format} class must be strings'
+            error_message += 'ValueError: Time 57818 does not match isot format'
         else:
             error_message += f'TypeError: for {time_format} class, input should be (long) doubles, string, ' \
                              f'or Decimal, and second values are only allowed for (long) doubles.'

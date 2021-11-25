@@ -488,12 +488,6 @@ class Time(Parameter):
         self._set_time(v, format=units)
 
     def _set_time(self, value, format):
-       
-        try:
-            value=ast.literal_eval(value)
-        except:
-            pass
-        
         self._astropy_time = astropyTime(value, format=format)
         self._value =value
 
@@ -528,10 +522,6 @@ class TimeDelta(Parameter):
         self._set_time(v, format=units)
 
     def _set_time(self, value, format):
-        try:
-            value = ast.literal_eval(value)
-        except:
-            pass
         self._astropy_time_delta = astropyTimeDelta(value, format=format)
         self._value = value
 
@@ -611,10 +601,10 @@ class InputProdList(Parameter):
 class Angle(Parameter):
         def __init__(self,value=None, units=None,name=None):
 
-            super(Angle, self).__init__(value=value,
-                                       units=units,
-                                       name=name,
-                                       allowed_units=None)
+            super().__init__(value=value,
+                             units=units,
+                             name=name,
+                             allowed_units=None)
             # wtform_dict=wtform_dict)
 
         @property

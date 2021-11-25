@@ -130,7 +130,7 @@ def test_time_parameter():
         (Time, 57818.560277777775, {'T_format': 'mjd'}, 57818.560277777775, '2017-03-06T13:26:48.000'),
         (Time, '57818.560277777775', {'T_format': 'mjd'}, 57818.560277777775, '2017-03-06T13:26:48.000'),
         (Time, '2017-03-06Z13:26:48.000', {'T_format': 'isot'}, ValueError, None),
-        (Time, 'abc', {'T_format': 'mjd'}, ValueError, None),
+        (Time, 'aaaa', {'T_format': 'mjd'}, ValueError, None),
         (TimeDelta, 1000., {'delta_T_format': 'sec'}, np.float64(1000.), np.float64(1000.))
     ]:
         def constructor():
