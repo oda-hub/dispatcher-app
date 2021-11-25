@@ -125,9 +125,13 @@ def test_integer_defaults(value):
 
 
 def test_time_parameter():
-    for parameter_type, input_value, format_args, outcome in [
-            (Time, '2017-03-06T13:26:48.000', {'T_format': 'isot'}, '2017-03-06T13:26:48.000'),
-            (TimeDelta, 1000., {'delta_T_format': 'sec'}, np.float64(1000.))
+    for parameter_type, input_value, format_args, outcome, outcome_default_format in [
+        (Time, '2017-03-06T13:26:48.000', {'T_format': 'isot'}, '2017-03-06T13:26:48.000', '2017-03-06T13:26:48.000'),
+        (Time, 57818.560277777775, {'T_format': 'mjd'}, 57818.560277777775, '2017-03-06T13:26:48.000'),
+        (Time, '57818.560277777775', {'T_format': 'mjd'}, 57818.560277777775, '2017-03-06T13:26:48.000'),
+        (Time, '2017-03-06Z13:26:48.000', {'T_format': 'isot'}, ValueError, None),
+        (Time, 'abc', {'T_format': 'mjd'}, ValueError, None),
+        (TimeDelta, 1000., {'delta_T_format': 'sec'}, np.float64(1000.), np.float64(1000.))
     ]:
         def constructor():
             return parameter_type(value=input_value,
@@ -142,14 +146,8 @@ def test_time_parameter():
             # this also sets the default value
             parameter = constructor()
 
-            # this is redundant
-            assert parameter.get_value_in_default_format() == parameter.value
-
             assert parameter.value == outcome
-            assert type(parameter.value) == type(outcome)
 
             # setting value during request
-
-            assert parameter.set_par(input_value) == outcome
+            assert parameter.set_par(input_value) == outcome_default_format
             assert parameter.value == outcome
-            assert type(parameter.value) == type(outcome)
