@@ -25,7 +25,6 @@ from builtins import (bytes, str, open, super, range,
 
 __author__ = "Andrea Tramacere"
 import six
-import ast
 import decorator
 import logging
 
@@ -231,7 +230,7 @@ class Parameter(object):
 
     @default_units.setter
     def default_units(self, par_unit):
-        if self._allowed_types is not None:
+        if self._allowed_units is not None:
             self.check_units(par_unit, self._allowed_units, self.name)
 
         self._default_units = par_unit
@@ -253,6 +252,9 @@ class Parameter(object):
 
     @units.setter
     def units(self, units):
+        if not self._allowed_units:
+            logger.warning("_allowed_units was set to []")
+            self._allowed_units = None
         if self._allowed_units is not None:
             self.check_units(units, self._allowed_units, self.name)
 
