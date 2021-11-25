@@ -384,8 +384,6 @@ class Float(Parameter):
                          allowed_units=allowed_units)
                                    #wtform_dict=wtform_dict)
 
-        self.value = value
-
     @property
     def value(self):
         return self._v
@@ -427,8 +425,6 @@ class Integer(Parameter):
                          name=name,
                          allowed_units=_allowed_units)
                                    #wtform_dict=wtform_dict)
-
-        self.value = value
 
     @property
     def value(self):
