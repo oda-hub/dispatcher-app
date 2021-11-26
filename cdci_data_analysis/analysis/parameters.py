@@ -52,6 +52,7 @@ def check_par_list(func, par_list, *args, **kwargs):
         return func(par_list, *args, **kwargs)
 
 
+# TODO this class seems not to be in use anywhere, not even the plugins
 class ParameterGroup(object):
 
     def __init__(self, par_list, name, exclusive=True, def_selected=None, selected=None):
@@ -62,11 +63,11 @@ class ParameterGroup(object):
 
         self.msk = np.ones(len(par_list), dtype=np.bool)
 
-        if exclusive == True:
+        if exclusive:
             self.msk[::] = False
 
             if def_selected is None:
-                self.msk[0] == True
+                self.msk[0] = True
 
         if def_selected is not None:
             self.select(def_selected)
