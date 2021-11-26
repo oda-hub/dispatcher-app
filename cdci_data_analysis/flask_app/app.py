@@ -388,13 +388,26 @@ class Product(Resource):
 @app.route('/post_product_to_gallery', methods=['POST'])
 def post_product_to_gallery():
     logger.info("request.args: %s ", request.args)
-    output_post = None
+    logger.info("request.files: %s ", request.files)
     # extract content using job_id and session_id
     par_dic = request.values.to_dict()
     job_id = par_dic['job_id']
     session_id = par_dic['session_id']
 
-    output_post = drupal_helper.post_to_product_gallery(session_id=session_id, job_id=job_id)
+    jwt_token = drupal_helper.discover_mmoda_pg_token()
+
+    img_fid = None
+
+    # process files sent
+    if request.files:
+        for f in request.files:
+            print('file received ', f)
+            file = request.files['media']
+            # upload file to drupal
+            output_img_post = drupal_helper.post_picture_to_gallery(file, jwt_token=jwt_token)
+            img_fid = output_img_post['fid'][0]['value']
+
+    output_post = drupal_helper.post_to_product_gallery(session_id=session_id, job_id=job_id, jwt_token=jwt_token, img_fid=img_fid)
 
     return output_post
 

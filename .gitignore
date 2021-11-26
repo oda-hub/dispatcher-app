@@ -32,10 +32,12 @@ emax-last
 jdata.json
 .vscode/settings.json
 /venv
+/tests/.mmoda-pg-token
 /tests/isgri_query_mosaic.fits
 /tests/query_catalog.fits
 /tests/data/dummy_prods/isgri_query_mosaic.fits
 /tests/data/dummy_prods/query_catalog.fits
+/tests/data/dummy_prods/ds9.jpeg
 /tests/local_smtp_log
 .coverage.*
 .coverage

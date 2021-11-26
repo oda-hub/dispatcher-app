@@ -1317,9 +1317,12 @@ def test_product_gallery_post_product(dispatcher_live_fixture):
         'job_id': job_id,
         'session_id': session_id
     }
+    # send test img
+    img_file_obj = {'media': open('data/dummy_prods/ds9.jpeg', 'rb')}
 
     c = requests.post(server + "/post_product_to_gallery",
                       params={**params},
+                      files=img_file_obj
                       )
 
     assert c.status_code == 200

@@ -1,5 +1,4 @@
-# TODO a smart way to get the JWT token is needed
-body = {
+body_article = {
     "_links": {
         "type": {
             "href": "http://cdciweb02.isdc.unige.ch/mmoda-pg/rest/type/node/article"
@@ -11,10 +10,34 @@ body = {
     "body": [{
         "format": "full_html",
         "value": ""
-    }],
-    "field_image": [
+    }]
+}
+
+body_img = {
+    "_links": {
+        "type": {
+            "href": "http://cdciweb02.isdc.unige.ch/mmoda-pg/rest/type/file/image"
+        }
+    },
+    "filename": [
         {
-            "target_id": 802
+            "value": ""
+        }
+    ],
+    "filemime": {
+        "value": ""
+    },
+    "uri": [
+        {
+            "value": ""
+        }
+    ],
+    "type": {
+        "target_id": "file"
+    },
+    "data": [
+        {
+            "value": ""
         }
     ]
 }
