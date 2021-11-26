@@ -186,7 +186,7 @@ class Parameter(object):
         if allowed_units is not None:
             # handles case of []
             if not allowed_units:
-                logger.warning("allowed_units was set to []")
+                logger.warning("an empty list for the allowed_units is considered as None")
                 allowed_units = None
             else:
                 allowed_units = allowed_units.copy()
