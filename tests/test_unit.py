@@ -11,7 +11,10 @@ from cdci_data_analysis.analysis.queries import (
     Float,
     Name,
     Time,
-    TimeDelta
+    TimeDelta,
+    ParameterRange,
+    ParameterTuple,
+    Angle
 )
 
 import numpy as np
@@ -151,3 +154,51 @@ def test_time_parameter():
             # setting value during request
             assert parameter.set_par(input_value) == outcome_default_format
             assert parameter.value == outcome
+
+
+def test_param_range():
+    for parameter_type_p1, value_p1, parameter_type_p2, value_p2, outcome, outcome_message in [
+        (Time, '2017-03-06T13:26:48.000', Time, '2017-03-06T13:26:49.000', None, None),
+        (Float, '2017', Time, '2017-03-06T13:26:48.000', RuntimeError, 'pars must be of the same type'),
+        (float, '2017', Time, '2017-03-06T13:26:48.000', RuntimeError, 'pars must be of the same type'),
+        (float, '2017', float, '2018', RuntimeError, 'both p1 and p2 must be Parameters objects, found float for p1 and float for p2')
+    ]:
+        p1 = parameter_type_p1(value_p1)
+        p2 = parameter_type_p2(value_p2)
+
+        def constructor(par1, par2):
+            return ParameterRange(par1, par2, 'test-range')
+        if isinstance(outcome, type) and issubclass(outcome, Exception):
+            with pytest.raises(outcome, match=outcome_message):
+                constructor(p1, p2)
+        else:
+            p_range = constructor(p1, p2)
+            assert p_range.to_list() == [p1, p2]
+
+
+def test_param_tuple():
+    pf1 = Float('2017')
+    pf2 = Float('2017')
+    pf3 = Float('2017')
+    pf4 = Float('2017')
+
+    pi1 = Integer('2017')
+    pi2 = Integer('2017')
+    pi3 = Integer('2017')
+    pi4 = Integer('2017')
+    for parameter_list, outcome, outcome_message in [
+        ([pf1, pf2, pf3, pf4], None, None),
+        ([pf1, pi2, pi3, pi4], RuntimeError, 'pars must be of the same type'),
+        ([pi1, pi2, pi3, 2017], RuntimeError, 'all the members of the tuple must be Parameters instances, found a int'),
+    ]:
+
+        def constructor():
+            return ParameterTuple(parameter_list, 'test-tuple')
+
+        if isinstance(outcome, type) and issubclass(outcome, Exception):
+            with pytest.raises(outcome, match=outcome_message):
+                constructor()
+        else:
+            p_range = constructor()
+            assert all(map(lambda x, y: x == y, p_range.to_list(), parameter_list))
+
