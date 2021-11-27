@@ -150,6 +150,7 @@ def test_time_parameter():
             parameter = constructor()
 
             assert parameter.value == outcome
+            assert parameter.get_value_in_default_format() == outcome_default_format
 
             # setting value during request
             assert parameter.set_par(input_value) == outcome_default_format
