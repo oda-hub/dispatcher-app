@@ -401,8 +401,7 @@ def post_product_to_gallery():
     # process files sent
     if request.files:
         for f in request.files:
-            print('file received ', f)
-            file = request.files['media']
+            file = request.files[f]
             # upload file to drupal
             output_img_post = drupal_helper.post_picture_to_gallery(file, jwt_token=jwt_token)
             img_fid = output_img_post['fid'][0]['value']
