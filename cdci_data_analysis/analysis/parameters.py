@@ -599,9 +599,14 @@ class Angle(Parameter):
 
         super().__init__(value=value,
                          units=units,
+                         # TODO can we safely make this assumption?
+                         default_units='deg',
                          name=name,
                          allowed_units=None)
         # wtform_dict=wtform_dict)
+
+    def get_value_in_default_format(self) -> Union[str, float, None]:
+        return getattr(self._astropy_angle, self.default_units)
 
     @property
     def value(self):

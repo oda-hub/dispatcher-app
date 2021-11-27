@@ -127,6 +127,36 @@ def test_integer_defaults(value):
         assert type(p_integer.value) == int
 
 
+def test_angle_parameter():
+    for parameter_type, input_value, format_args, outcome, outcome_default_format in [
+        (Angle, -29.74516667, {'units': 'deg'}, -29.74516667, -29.74516667),
+        (Angle, -29.74516667, {}, -29.74516667, -29.74516667),
+        (Angle, '-29.74516667', {}, -29.74516667, -29.74516667),
+        (Angle, 'aaaaa', {}, ValueError, None),
+        (Angle, -0.519151094946, {'units': 'rad'}, -0.519151094946, -29.745166670001282)
+    ]:
+        def constructor():
+            return parameter_type(value=input_value,
+                                  name="my-parameter-name",
+                                  **format_args
+                                  )
+
+        if isinstance(outcome, type) and issubclass(outcome, Exception):
+            with pytest.raises(outcome):
+                constructor()
+        else:
+            # this also sets the default value
+            parameter = constructor()
+
+            assert parameter.value == outcome
+            assert parameter.get_value_in_default_format() == outcome_default_format
+
+            # setting value during request
+            assert parameter.set_par(input_value) == outcome_default_format
+            assert parameter.value == outcome
+
+
+
 def test_time_parameter():
     for parameter_type, input_value, format_args, outcome, outcome_default_format in [
         (Time, '2017-03-06T13:26:48.000', {'T_format': 'isot'}, '2017-03-06T13:26:48.000', '2017-03-06T13:26:48.000'),
@@ -134,7 +164,9 @@ def test_time_parameter():
         (Time, '57818.560277777775', {'T_format': 'mjd'}, 57818.560277777775, '2017-03-06T13:26:48.000'),
         (Time, '2017-03-06Z13:26:48.000', {'T_format': 'isot'}, ValueError, None),
         (Time, 'aaaa', {'T_format': 'mjd'}, ValueError, None),
-        (TimeDelta, 1000., {'delta_T_format': 'sec'}, np.float64(1000.), np.float64(1000.))
+        (TimeDelta, 1000., {'delta_T_format': 'sec'}, np.float64(1000.), np.float64(1000.)),
+        (TimeDelta, '1000.', {'delta_T_format': 'sec'}, np.float64(1000.), np.float64(1000.)),
+        (TimeDelta, 'aaaa', {'delta_T_format': 'sec'}, ValueError, None)
     ]:
         def constructor():
             return parameter_type(value=input_value,
