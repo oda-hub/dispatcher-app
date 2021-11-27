@@ -544,12 +544,9 @@ class InputProdList(Parameter):
     def _split(str_list):
         if type(str_list) == list:
             pass
-        elif type(str_list) == str or type(str(str_list)) == str:
-            if ',' in str_list:
-                str_list = str_list.split(',')
-            else:
-                # TODO this format is actually not supported, especially considering what we do inside the instrument class butI might be wrong
-                str_list = str_list.split(' ')
+        elif isinstance(str_list, str) or isinstance(str(str_list), str):
+            str_list = str(str_list)
+            str_list = str_list.split(',')
         else:
             raise RuntimeError('parameter format is not correct')
 
@@ -586,8 +583,9 @@ class InputProdList(Parameter):
     @staticmethod
     def check_list_value(value, units, name='par'):
         if units == 'names_list':
-            # TODO the last condition was quite unclear to me, and probably useless
-            if not (isinstance(value, list) or isinstance(value, str) or isinstance(str(value), str)):
+            # TODO the condition 'isinstance(str(value), str))' was quite unclear to me, and probably useless since could lead to unexpected behavior
+            if not (isinstance(value, list) or isinstance(value, str)
+                    or isinstance(value, float) or isinstance(value, int)):
                 raise RuntimeError(f'value of the parameter {name} is not a valid product list format, but {type(value)} has been found')
         else:
             raise RuntimeError(name, 'units not valid', units)

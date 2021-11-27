@@ -71,9 +71,12 @@ def test_input_prod_list():
     for parameter_type, input_value, format_args, outcome in [
         (InputProdList, [1, 2, 3], {'_format': 'names_list'}, [1, 2, 3]),
         (InputProdList, [1, 2, 3], {}, [1, 2, 3]),
-        (InputProdList, 1, {'_format': 'names_list'}, TypeError),
-        (InputProdList, 'asd', {'_format': 'names_list'}, ['asd']),
-        (InputProdList, '1 2 34', {'_format': 'names_list'}, ['1', '2', '34']),
+        (InputProdList, [1, 2, 3], {'_format': 'things_list'}, RuntimeError),
+        (InputProdList, {}, {}, RuntimeError),
+        (InputProdList, 1, {'_format': 'names_list'}, ['1']),
+        (InputProdList, 'aaa', {'_format': 'names_list'}, ['aaa']),
+        (InputProdList, '1 2 34', {'_format': 'names_list'}, ['1 2 34']),
+        (InputProdList, [1, '2', 3], {'_format': 'names_list'}, [1, '2', 3]),
     ]:
         def constructor():
             return parameter_type(value=input_value,
