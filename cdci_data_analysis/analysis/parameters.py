@@ -538,8 +538,6 @@ class InputProdList(Parameter):
                          allowed_units=_allowed_units)
         # wtform_dict=wtform_dict)
 
-        self._split(value)
-
     @staticmethod
     def _split(str_list):
         if type(str_list) == list:
