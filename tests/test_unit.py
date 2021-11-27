@@ -14,10 +14,12 @@ from cdci_data_analysis.analysis.queries import (
     TimeDelta,
     ParameterRange,
     ParameterTuple,
-    Angle
+    Angle,
+    InputProdList
 )
 
 import numpy as np
+
 
 @pytest.mark.parametrize("add_duplicate", [True, False])
 def test_repeating_parameters(add_duplicate):
@@ -63,6 +65,29 @@ def test_repeating_parameters(add_duplicate):
         ]
     else:
         assert instrument.get_par_by_name("duplicate-name") == p1
+
+
+def test_input_prod_list():
+    for parameter_type, input_value, format_args, outcome in [
+        (InputProdList, [1, 2, 3], {'_format': 'names_list'}, [1, 2, 3]),
+        (InputProdList, [1, 2, 3], {}, [1, 2, 3]),
+        (InputProdList, 1, {'_format': 'names_list'}, TypeError),
+        (InputProdList, 'asd', {'_format': 'names_list'}, ['asd']),
+        (InputProdList, '1 2 34', {'_format': 'names_list'}, ['1', '2', '34']),
+    ]:
+        def constructor():
+            return parameter_type(value=input_value,
+                                  name="my-parameter-name",
+                                  **format_args
+                                  )
+        if isinstance(outcome, type) and issubclass(outcome, Exception):
+            with pytest.raises(outcome):
+                constructor()
+        else:
+            # this also sets the default value
+            parameter = constructor()
+            # check stuff on the inputProdList
+            assert parameter.value == outcome
 
 
 @pytest.mark.parametrize("value",  [25, 25., 25.64547871216879451687311211245117852145229614585985498212321,
@@ -154,7 +179,6 @@ def test_angle_parameter():
             # setting value during request
             assert parameter.set_par(input_value) == outcome_default_format
             assert parameter.value == outcome
-
 
 
 def test_time_parameter():
