@@ -578,7 +578,7 @@ class Angle(Parameter):
 class Energy(Float):
     def __init__(self, value=None, E_units='keV', name=None, check_value=None):
         if check_value is None:
-            check_value = self.check_float_value
+            check_value = self.check_energy_value
 
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
 
