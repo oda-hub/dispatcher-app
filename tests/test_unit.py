@@ -93,26 +93,6 @@ def test_input_prod_list():
             assert parameter.value == outcome
 
 
-@pytest.mark.parametrize("value",  [25, 25., 25.64547871216879451687311211245117852145229614585985498212321,
-                                    "25", "25.", "25.64547871216879451687311211245117852145229614585985498212321",
-                                    "aaaa"])
-def test_float_defaults(value):
-    if isinstance(value, str) and not value.replace('.', '').isdigit():
-        with pytest.raises(RuntimeError):
-            Float(
-                value=value,
-                name="p_float"
-            )
-    else:
-        p_float = Float(
-            value=value,
-            name="p_float"
-        )
-
-        assert p_float.get_value_in_default_format() == float(value)
-        assert type(p_float.value) == float
-
-
 @pytest.mark.parametrize("e_units", ['eV', 'W', '', None])
 def test_spectral_boundaries_defaults(e_units):
     # test with a not allowed unit
@@ -133,26 +113,6 @@ def test_spectral_boundaries_defaults(e_units):
         assert p_spectral_boundary.get_value_in_default_format() == p_spectral_boundary.value
         assert p_spectral_boundary.get_value_in_default_format() == float(10.)
         assert type(p_spectral_boundary.value) == float
-
-
-@pytest.mark.parametrize("value",  [25, 25., 25.64547871216879451687311211245117852145229614585985498212321,
-                                    "25", "25.", "25.64547871216879451687311211245117852145229614585985498212321",
-                                    "aaaa"])
-def test_integer_defaults(value):
-    if not (isinstance(value, int) or (isinstance(value, str) and value.isdigit())):
-        with pytest.raises(RuntimeError):
-            Integer(
-                value=value,
-                name="p_integer"
-            )
-    else:
-        p_integer = Integer(
-            value=value,
-            name="p_integer"
-        )
-        assert p_integer.value == int(value)
-        assert p_integer.get_value_in_default_format() == int(value)
-        assert type(p_integer.value) == int
 
 
 def test_angle_parameter():

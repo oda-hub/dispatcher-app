@@ -25,7 +25,6 @@ from builtins import (bytes, str, open, super, range,
 
 __author__ = "Andrea Tramacere"
 
-import six
 import decorator
 import logging
 
@@ -197,14 +196,12 @@ class Parameter(object):
         self._allowed_units = allowed_units
         self._allowed_values = allowed_values
         self._allowed_types = allowed_types
-        self._default_type = default_type
         self._default_units = default_units
         self.name = name
+        self.default_type = default_type
         self.units = units
         self.value = value
         self.units_name = units_name
-        # TODO any ideas on what this represents? seems to be no longer in use
-        # self._wtform_dict=wtform_dict
 
     @property
     def value(self):
@@ -217,9 +214,8 @@ class Parameter(object):
                 self.check_value(v, units=self.units, name=self.name)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
-                    raise RuntimeError('value', v, 'not allowed, allowed=', self._allowed_values)
-            # print('set->',self.name,v,type(v))
-            if isinstance(v, str) or isinstance(v, six.string_types):
+                    raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
+            if isinstance(v, str):
                 self._value = v.strip()
             else:
                 self._value = v
@@ -310,49 +306,19 @@ class Parameter(object):
     @staticmethod
     def check_units(units, allowed, name):
         if units not in allowed:
-            raise RuntimeError('wrong units for par: %s, found: %s, allowed: %s' % (name, units, allowed))
+            raise RuntimeError(f'wrong units for par: {name}, found: {units}, allowed: {allowed}')
 
     @staticmethod
     def check_type(par_type, allowed, name):
-        if type not in allowed:
-            raise RuntimeError('wrong type for par: %s, found: %s, allowed: %s' % (name, par_type, allowed))
+        if par_type not in allowed:
+            raise RuntimeError(f'wrong type for par: {name}, found: {par_type}, allowed: {allowed}')
 
     @staticmethod
     def check_value(val, units, par_name):
         pass
 
-    # def get_form_field(self,key=None,default=None,validators=None,wtform_dict=None,wtform=None):
-    #     if key is None:
-    #        key=self.name
-    #
-    #     if wtform is  None and wtform_dict is  None:
-    #
-    #         wtform_dict=self._wtform_dict
-    #
-    #     if default is not None:
-    #         self.check_value(default,self.units)
-    #     else:
-    #         default=self.value
-    #
-    #
-    #     if wtform is not None and wtform_dict is not None:
-    #         raise RuntimeError('either you provide wtform or wtform_dict or you pass a wtform_dict to the constructor')
-    #
-    #     elif wtform_dict is not None:
-    #         wtform=wtform_dict[self.units]
-    #
-    #     else:
-    #         raise RuntimeError('yuo must provide wtform or wtform_dict')
-    #
-    #     return wtform(label=key, validators=validators, default=default)
-
     def reprJSON(self):
         return dict(name=self.name, units=self.units, value=self.value)
-
-
-# class Instrument(Parameter):
-#    def __init__(self,T_format,name,value=None):
-# wtform_dict = {'iso': SelectField}
 
 
 class Name(Parameter):
@@ -372,7 +338,6 @@ class Name(Parameter):
 class Float(Parameter):
     def __init__(self, value=None, units=None, name=None, allowed_units=None, default_units=None, check_value=None):
 
-        # wtform_dict = {'keV': FloatField}
         if check_value is None:
             check_value = self.check_float_value
 
@@ -383,7 +348,6 @@ class Float(Parameter):
                          name=name,
                          default_type=float,
                          allowed_units=allowed_units)
-        # wtform_dict=wtform_dict)
 
     @property
     def value(self):
@@ -402,15 +366,14 @@ class Float(Parameter):
 
     @staticmethod
     def check_float_value(value, units=None, name=None):
-        # print('check type of ',name,'value', value, 'type',type(value))
         if value is None or value == '':
             pass
         else:
             try:
                 float(value)
             except:
-                raise RuntimeError(f'unable to interpret value {value} (of type {type(value)}) '
-                                   f'as float for the parameter {name}')
+                raise RuntimeError(f'the Float parameter {name} cannot be assigned the value {value} '
+                                   f'of type {type(value).__name__}')
 
 
 class Integer(Parameter):
@@ -418,15 +381,13 @@ class Integer(Parameter):
 
         _allowed_units = None
 
-        # wtform_dict = {'keV': FloatField}
-
         super().__init__(value=value,
                          units=units,
                          check_value=self.check_int_value,
                          default_type=int,
+                         allowed_types=[int],
                          name=name,
                          allowed_units=_allowed_units)
-        # wtform_dict=wtform_dict)
 
     @property
     def value(self):
@@ -457,23 +418,18 @@ class Integer(Parameter):
             try:
                 int(value)
             except:
-                raise RuntimeError(f'type {type(value)} not valid for {name}')
+                raise RuntimeError(f'the Integer parameter {name} cannot be assigned the value {value} '
+                                   f'of type {type(value).__name__}')
 
 
 class Time(Parameter):
     def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None):
-        # _allowed_units = astropyTime.FORMATS
-
-        # wtform_dict = {'iso': StringField}
-        # wtform_dict['mjd'] = FloatField
-        # wtform_dict['prod_list'] = TextAreaField
 
         super().__init__(value=value,
                          units=T_format,
                          units_name=Time_format_name,
                          default_units='isot',
                          name=name)
-        # wtform_dict=wtform_dict)
 
     def get_value_in_default_format(self) -> Union[str, float, None]:
         return getattr(self._astropy_time, self.default_units)
@@ -494,18 +450,12 @@ class Time(Parameter):
 
 class TimeDelta(Parameter):
     def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None):
-        # _allowed_units = astropyTime.FORMATS
-
-        # wtform_dict = {'iso': StringField}
-        # wtform_dict['mjd'] = FloatField
-        # wtform_dict['prod_list'] = TextAreaField
 
         super().__init__(value=value,
                          units=delta_T_format,
                          units_name=delta_T_format_name,
                          default_units='sec',
                          name=name)
-        # wtform_dict=wtform_dict)
 
     def get_value_in_default_format(self) -> Union[str, float, None]:
         return getattr(self._astropy_time_delta, self.default_units)
@@ -537,7 +487,6 @@ class InputProdList(Parameter):
                          check_value=self.check_list_value,
                          name=name,
                          allowed_units=_allowed_units)
-        # wtform_dict=wtform_dict)
 
     @staticmethod
     def _split(str_list):
@@ -563,13 +512,12 @@ class InputProdList(Parameter):
 
     @value.setter
     def value(self, v):
-        # print('set', self.name, v, self._allowed_values)
         if v is not None:
             if self.check_value is not None:
                 self.check_value(v, units=self.units, name=self.name)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
-                    raise RuntimeError('value', v, 'not allowed, allowed=', self._allowed_values)
+                    raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
             if v == [''] or v is None or str(v) == '':
                 self._value = ['']
             else:
@@ -583,11 +531,10 @@ class InputProdList(Parameter):
     def check_list_value(value, units, name='par'):
         if units == 'names_list':
             # TODO the condition 'isinstance(str(value), str))' was quite unclear to me, and probably useless since could lead to unexpected behavior
-            if not (isinstance(value, list) or isinstance(value, str)
-                    or isinstance(value, float) or isinstance(value, int)):
+            if not isinstance(value, (list, str, float, int)):
                 raise RuntimeError(f'value of the parameter {name} is not a valid product list format, but {type(value)} has been found')
         else:
-            raise RuntimeError(name, 'units not valid', units)
+            raise RuntimeError(f'{name} units not valid {units}')
 
 
 class Angle(Parameter):
@@ -599,7 +546,6 @@ class Angle(Parameter):
                          default_units='deg',
                          name=name,
                          allowed_units=None)
-        # wtform_dict=wtform_dict)
 
     def get_value_in_default_format(self) -> Union[str, float, None]:
         return getattr(self._astropy_angle, self.default_units)
@@ -623,32 +569,12 @@ class Angle(Parameter):
             self._value = self._astropy_angle.value
 
 
-# TODO I guess we can get rid of this unused code
-# class AngularDistance(Parameter):
-#     def __init__(self, angular_units,name, value=None):
-#         _allowed_units = ['deg']
-#         super(AngularDistance, self).__init__(value=value,
-#                                      units=angular_units,
-#                                      check_value=self.check_angle_value,
-#                                      name=name,
-#                                      allowed_units=_allowed_units)
-#
-#
-#
-#     @staticmethod
-#     def check_angle_value(value, units=None, name=None):
-#         print('check type of ', name, 'value', value, 'type', type(value))
-#         pass
-#
-
-
 class Energy(Float):
     def __init__(self, value=None, E_units='keV', name=None, check_value=None):
         if check_value is None:
             check_value = self.check_float_value
 
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
-        # wtform_dict = {'keV': FloatField}
 
         super().__init__(value=value,
                          units=E_units,
@@ -656,7 +582,6 @@ class Energy(Float):
                          check_value=check_value,
                          name=name,
                          allowed_units=_allowed_units)
-        # wtform_dict=wtform_dict)
 
 
 class SpectralBoundary(Energy):
@@ -666,14 +591,12 @@ class SpectralBoundary(Energy):
 class DetectionThreshold(Float):
     def __init__(self, value=None, units='sigma', name=None):
         _allowed_units = ['sigma']
-        # wtform_dict = {'keV': FloatField}
 
         super().__init__(value=value,
                          units=units,
                          check_value=self.check_value,
                          name=name,
                          allowed_units=_allowed_units)
-        # wtform_dict=wtform_dict)
 
 
 class UserCatalog(Parameter):
