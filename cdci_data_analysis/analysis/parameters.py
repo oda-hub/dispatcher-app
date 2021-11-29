@@ -316,7 +316,7 @@ class Parameter(object):
             raise RuntimeError(f'wrong type for par: {name}, found: {par_type}, allowed: {allowed}')
 
     @staticmethod
-    def check_value(val, units, par_name):
+    def check_value(val, units, name):
         pass
 
     def reprJSON(self):
