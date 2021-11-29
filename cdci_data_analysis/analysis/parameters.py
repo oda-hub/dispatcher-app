@@ -362,7 +362,8 @@ class Float(Parameter):
             self._v = None
 
     def get_value_in_default_format(self):
-        return float(self.value)
+        self.check_float_value(self.value, name=self.name)
+        return float(self.value) if self.value is not None else None
 
     @staticmethod
     def check_float_value(value, units=None, name=None):
@@ -403,7 +404,7 @@ class Integer(Parameter):
 
     def get_value_in_default_format(self):
         self.check_int_value(self.value, name=self.name)
-        return int(self.value)
+        return int(self.value) if self.value is not None else None
 
     @staticmethod
     def check_int_value(value, units=None, name=None):
