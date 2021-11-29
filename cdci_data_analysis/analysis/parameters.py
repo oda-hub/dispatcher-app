@@ -402,7 +402,7 @@ class Integer(Parameter):
     @value.setter
     def value(self, v):
         if v is not None and v != '':
-            self.check_value(v, name=self.name)
+            self.check_value(v, name=self.name, units=self.units)
             self._v = int(v)
         else:
             self._v = None
