@@ -409,7 +409,8 @@ class Float(Parameter):
             try:
                 float(value)
             except:
-                raise RuntimeError(f'type {type(value)} not valid for {name}')
+                raise RuntimeError(f'unable to interpret value {value} (of type {type(value)}) '
+                                   f'as float for the parameter {name}')
 
 
 class Integer(Parameter):
