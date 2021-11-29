@@ -3,12 +3,14 @@ import ast
 import pytest
 
 from cdci_data_analysis.analysis.instrument import Instrument
-from cdci_data_analysis.analysis.parameters import Integer, SpectralBoundary
 from cdci_data_analysis.analysis.queries import (
     ProductQuery,
     SourceQuery,
     InstrumentQuery,
     Float,
+    Integer,
+    Energy,
+    SpectralBoundary,
     Name,
     Time,
     TimeDelta,
@@ -93,11 +95,14 @@ def test_input_prod_list():
             assert parameter.value == outcome
 
 
-def test_spectral_boundaries_defaults():
+def test_energy_defaults():
     for parameter_type, input_value, outcome, e_units, expected_type in [
+        (Energy, 10., 10., 'keV', float),
         (SpectralBoundary, 10., 10., 'keV', float),
+        (SpectralBoundary, 10, 10., 'keV', float),
         (SpectralBoundary, 10., 10., 'eV', float),
         (SpectralBoundary, 10., RuntimeError, 'W', None),
+        (SpectralBoundary, 'ssss', RuntimeError, None, None),
     ]:
         def constructor():
             return parameter_type(value=input_value,
