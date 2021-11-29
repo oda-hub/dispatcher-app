@@ -531,20 +531,10 @@ class ProductQuery(BaseQuery):
 
             #status=1
             job.set_failed()
-            # TODO is this really helpful ?
             if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
                 raise
 
             raise InternalError(None)
-            # e_message = getattr(e, 'message', '')
-            # debug_message = repr(e) + ' : ' + getattr(e, 'debug_message', '')
-            #
-            # query_out.set_failed('get_dataserver_products found job failed',
-            #                      logger=logger,
-            #                      sentry_client=sentry_client,
-            #                      excep=e,
-            #                      e_message=e_message,
-            #                      debug_message=debug_message)
 
         logger.info('--> data_server_query_status %d' % query_out.get_status())
         logger.info('--> end product query ')
