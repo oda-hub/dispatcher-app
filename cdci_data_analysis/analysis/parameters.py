@@ -407,7 +407,8 @@ class Float(Parameter):
             try:
                 float(value)
             except:
-                raise RuntimeError(f'type {type(value)} not valid for {name}')
+                raise RuntimeError(f'the Float parameter {name} cannot be assigned with the value {value} '
+                                   f'of type {type(value).__name__}')
 
 
 class Integer(Parameter):
@@ -455,7 +456,8 @@ class Integer(Parameter):
             try:
                 int(value)
             except:
-                raise RuntimeError(f'type {type(value)} not valid for {name}')
+                raise RuntimeError(f'the Integer parameter {name} cannot be assigned with the value {value} '
+                                   f'of type {type(value).__name__}')
 
 
 class Time(Parameter):
