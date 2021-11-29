@@ -380,7 +380,6 @@ class Float(Parameter):
                          default_units=default_units,
                          name=name,
                          default_type=float,
-                         allowed_types=[float],
                          allowed_units=allowed_units)
         # wtform_dict=wtform_dict)
 
@@ -422,6 +421,7 @@ class Integer(Parameter):
                          units=units,
                          check_value=self.check_int_value,
                          default_type=int,
+                         allowed_types=[int],
                          name=name,
                          allowed_units=_allowed_units)
         # wtform_dict=wtform_dict)
