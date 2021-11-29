@@ -216,7 +216,7 @@ class Parameter(object):
                 self.check_value(v, units=self.units, name=self.name)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
-                    raise RuntimeError('value', v, 'not allowed, allowed=', self._allowed_values)
+                    raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
             if isinstance(v, str):
                 self._value = v.strip()
             else:
@@ -308,12 +308,12 @@ class Parameter(object):
     @staticmethod
     def check_units(units, allowed, name):
         if units not in allowed:
-            raise RuntimeError('wrong units for par: %s, found: %s, allowed: %s' % (name, units, allowed))
+            raise RuntimeError(f'wrong units for par: {name}, found: {units}, allowed: {allowed}')
 
     @staticmethod
     def check_type(par_type, allowed, name):
         if par_type not in allowed:
-            raise RuntimeError('wrong type for par: %s, found: %s, allowed: %s' % (name, par_type, allowed))
+            raise RuntimeError(f'wrong type for par: {name}, found: {par_type}, allowed: {allowed}')
 
     @staticmethod
     def check_value(val, units, par_name):
@@ -567,7 +567,7 @@ class InputProdList(Parameter):
                 self.check_value(v, units=self.units, name=self.name)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
-                    raise RuntimeError('value', v, 'not allowed, allowed=', self._allowed_values)
+                    raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
             if v == [''] or v is None or str(v) == '':
                 self._value = ['']
             else:
@@ -584,7 +584,7 @@ class InputProdList(Parameter):
             if not isinstance(value, (list, str, float, int)):
                 raise RuntimeError(f'value of the parameter {name} is not a valid product list format, but {type(value)} has been found')
         else:
-            raise RuntimeError(name, 'units not valid', units)
+            raise RuntimeError(f'{name} units not valid {units}')
 
 
 class Angle(Parameter):
