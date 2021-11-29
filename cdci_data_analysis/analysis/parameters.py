@@ -569,25 +569,6 @@ class Angle(Parameter):
             self._value = self._astropy_angle.value
 
 
-# TODO I guess we can get rid of this unused code
-# class AngularDistance(Parameter):
-#     def __init__(self, angular_units,name, value=None):
-#         _allowed_units = ['deg']
-#         super(AngularDistance, self).__init__(value=value,
-#                                      units=angular_units,
-#                                      check_value=self.check_angle_value,
-#                                      name=name,
-#                                      allowed_units=_allowed_units)
-#
-#
-#
-#     @staticmethod
-#     def check_angle_value(value, units=None, name=None):
-#         print('check type of ', name, 'value', value, 'type', type(value))
-#         pass
-#
-
-
 class Energy(Float):
     def __init__(self, value=None, E_units='keV', name=None, check_value=None):
         if check_value is None:
