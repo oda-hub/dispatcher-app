@@ -196,9 +196,9 @@ class Parameter(object):
         self._allowed_units = allowed_units
         self._allowed_values = allowed_values
         self._allowed_types = allowed_types
-        self._default_type = default_type
         self._default_units = default_units
         self.name = name
+        self.default_type = default_type
         self.units = units
         self.value = value
         self.units_name = units_name
@@ -380,6 +380,7 @@ class Float(Parameter):
                          default_units=default_units,
                          name=name,
                          default_type=float,
+                         allowed_types=[float],
                          allowed_units=allowed_units)
         # wtform_dict=wtform_dict)
 
