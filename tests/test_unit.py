@@ -93,26 +93,26 @@ def test_input_prod_list():
             assert parameter.value == outcome
 
 
-@pytest.mark.parametrize("e_units", ['eV', 'W', '', None])
-def test_spectral_boundaries_defaults(e_units):
-    # test with a not allowed unit
-    if e_units == 'W':
-        with pytest.raises(RuntimeError):
-            SpectralBoundary(
-                value=10.,
-                name="p_spectral_boundary",
-                E_units=e_units,
-            )
-    else:
-        p_spectral_boundary = SpectralBoundary(
-            value=10.,
-            name="p_spectral_boundary",
-            E_units=e_units,
-        )
+def test_spectral_boundaries_defaults():
+    for parameter_type, input_value, outcome, e_units, expected_type in [
+        (SpectralBoundary, 10., 10., 'keV', float),
+        (SpectralBoundary, 10., 10., 'eV', float),
+        (SpectralBoundary, 10., RuntimeError, 'W', None),
+    ]:
+        def constructor():
+            return parameter_type(value=input_value,
+                                  name="p_spectral_boundary",
+                                  E_units=e_units
+                                  )
+        if isinstance(outcome, type) and issubclass(outcome, Exception):
+            with pytest.raises(outcome):
+                constructor()
+        else:
+            p_spectral_boundary = constructor()
 
-        assert p_spectral_boundary.get_value_in_default_format() == p_spectral_boundary.value
-        assert p_spectral_boundary.get_value_in_default_format() == float(10.)
-        assert type(p_spectral_boundary.value) == float
+            assert p_spectral_boundary.get_value_in_default_format() == p_spectral_boundary.value
+            assert p_spectral_boundary.get_value_in_default_format() == outcome
+            assert type(p_spectral_boundary.value) == expected_type
 
 
 def test_angle_parameter():
