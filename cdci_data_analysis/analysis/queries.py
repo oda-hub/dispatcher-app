@@ -533,8 +533,9 @@ class ProductQuery(BaseQuery):
             job.set_failed()
             if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
                 raise
+            e_message = getattr(e, 'message', None)
 
-            raise InternalError(None)
+            raise InternalError(e_message)
 
         logger.info('--> data_server_query_status %d' % query_out.get_status())
         logger.info('--> end product query ')
