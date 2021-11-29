@@ -407,7 +407,7 @@ class Float(Parameter):
             try:
                 float(value)
             except:
-                raise RuntimeError(f'the Float parameter {name} cannot be assigned with the value {value} '
+                raise RuntimeError(f'the Float parameter {name} cannot be assigned the value {value} '
                                    f'of type {type(value).__name__}')
 
 
@@ -456,7 +456,7 @@ class Integer(Parameter):
             try:
                 int(value)
             except:
-                raise RuntimeError(f'the Integer parameter {name} cannot be assigned with the value {value} '
+                raise RuntimeError(f'the Integer parameter {name} cannot be assigned the value {value} '
                                    f'of type {type(value).__name__}')
 
 
