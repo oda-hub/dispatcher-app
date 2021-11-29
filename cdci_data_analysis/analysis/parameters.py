@@ -25,6 +25,8 @@ from builtins import (bytes, str, open, super, range,
 
 __author__ = "Andrea Tramacere"
 
+# TODO importing six necessary for compatibility with the plugin, to be removed in the future with the necessary adaptations
+import six
 import decorator
 import logging
 
