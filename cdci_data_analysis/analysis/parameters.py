@@ -312,7 +312,7 @@ class Parameter(object):
 
     @staticmethod
     def check_type(par_type, allowed, name):
-        if type not in allowed:
+        if par_type not in allowed:
             raise RuntimeError('wrong type for par: %s, found: %s, allowed: %s' % (name, par_type, allowed))
 
     @staticmethod
