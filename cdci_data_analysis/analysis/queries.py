@@ -533,7 +533,8 @@ class ProductQuery(BaseQuery):
             job.set_failed()
             if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
                 raise
-            e_message = getattr(e, 'message', None)
+
+            e_message = repr(e) + '\n' + getattr(e, 'message', '') + '\n' + getattr(e, 'debug_message', '')
 
             raise InternalError(e_message)
 
