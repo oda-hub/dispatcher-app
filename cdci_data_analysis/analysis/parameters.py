@@ -25,7 +25,6 @@ from builtins import (bytes, str, open, super, range,
 
 __author__ = "Andrea Tramacere"
 
-import six
 import decorator
 import logging
 
@@ -218,8 +217,7 @@ class Parameter(object):
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
                     raise RuntimeError('value', v, 'not allowed, allowed=', self._allowed_values)
-            # print('set->',self.name,v,type(v))
-            if isinstance(v, str) or isinstance(v, six.string_types):
+            if isinstance(v, str):
                 self._value = v.strip()
             else:
                 self._value = v
@@ -582,8 +580,7 @@ class InputProdList(Parameter):
     def check_list_value(value, units, name='par'):
         if units == 'names_list':
             # TODO the condition 'isinstance(str(value), str))' was quite unclear to me, and probably useless since could lead to unexpected behavior
-            if not (isinstance(value, list) or isinstance(value, str)
-                    or isinstance(value, float) or isinstance(value, int)):
+            if not isinstance(value, (list, str, float, int)):
                 raise RuntimeError(f'value of the parameter {name} is not a valid product list format, but {type(value)} has been found')
         else:
             raise RuntimeError(name, 'units not valid', units)
