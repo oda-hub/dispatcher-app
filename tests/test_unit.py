@@ -262,3 +262,44 @@ def test_param_tuple():
             p_range = constructor()
             assert all(map(lambda x, y: x == y, p_range.to_list(), parameter_list))
 
+
+def test_parameter_normalization_no_units():
+    for parameter_type, input_value, outcome in [
+            (Float, 25, 25.0),
+            (Float, 25., 25.0),
+            (Float, 25.64547871216879451687311, 25.64547871216879451687311),
+            (Float, "25", 25.0),
+            (Float, "25.", 25.0),
+            (Float, "25.64547871216879451687311", 25.64547871216879451687311),
+            (Float, "2.5e1", 25.0),
+            (Float, "aaaa", RuntimeError),
+            (Integer, 25, 25),
+            (Integer, 25., RuntimeError),
+            (Integer, 25.64547871216879451687311, RuntimeError),
+            (Integer, "25", 25),
+            (Integer, "25.", RuntimeError),
+            (Integer, "25.64547871216879451687311", RuntimeError),
+            (Integer, "aaaa", RuntimeError)
+        ]:
+
+        def constructor():
+            return parameter_type(value=input_value, name="my-parameter-name")
+
+        if isinstance(outcome, type) and issubclass(outcome, Exception):
+            with pytest.raises(outcome):
+                constructor()
+        else:
+            # this also sets the default value
+            parameter = constructor()
+
+            # this is redundant
+            assert parameter.get_value_in_default_format() == parameter.value
+
+            assert parameter.value == outcome
+            assert type(parameter.value) == type(outcome)
+
+            # setting value during request
+            
+            assert parameter.set_par(input_value) == outcome
+            assert parameter.value == outcome
+            assert type(parameter.value) == type(outcome)
