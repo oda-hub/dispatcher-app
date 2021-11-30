@@ -8,12 +8,16 @@ on:
     branches: [ "*" ]
   pull_request:
     branches: [ "*" ]
-    types: [ labeled ]
+    types:
+    - labeled
+    - opened
+    - synchronize
+    - reopened
 
 
 jobs:
   build:
-    # if: ${{ github.event.label.name == 'test-plugins' }}
+    if: contains(github.event.pull_request.labels.*.name, 'test-labels')
     runs-on: ubuntu-latest
 
     strategy:
