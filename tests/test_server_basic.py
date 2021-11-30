@@ -1301,3 +1301,33 @@ def test_empty_sentry(dispatcher_live_fixture_empty_sentry):
     assert jdata["exit_status"]["debug_message"] == ""
     assert jdata["exit_status"]["error_message"] == ""
     assert jdata["exit_status"]["message"] == ""
+
+
+def test_get_query_products_exception(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'failing',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status='failed'
+                )
+
+    print("jdata : ", jdata)
+
+    assert jdata['exit_status']['message'] == 'InternalError()\nfailing query\n'

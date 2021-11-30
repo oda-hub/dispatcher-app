@@ -531,8 +531,9 @@ class ProductQuery(BaseQuery):
 
             #status=1
             job.set_failed()
-            if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
-                raise
+            # TODO are we sure this is still used? Because I instead found DISPATCHER_DEBUG_MODE env
+            # if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
+            #     raise
 
             e_message = repr(e) + '\n' + getattr(e, 'message', '') + '\n' + getattr(e, 'debug_message', '')
 
