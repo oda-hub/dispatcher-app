@@ -524,18 +524,14 @@ class ProductQuery(BaseQuery):
             raise
 
         except Exception as e:
-
             # TODO: could we avoid these? they make error tracking hard
-            # TODO we could use the very same approach used when test_communication fails
             logger.exception("failed to get query products")
+            e_message = repr(e) + '\n' + getattr(e, 'message', '') + '\n' + getattr(e, 'debug_message', '')
 
             #status=1
             job.set_failed()
-            # TODO are we sure this is still used? Because I instead found DISPATCHER_DEBUG_MODE env
-            # if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
+            # if os.environ.get('DISPATCHER_DEBUG_MODE', 'yes') == 'yes':
             #     raise
-
-            e_message = repr(e) + '\n' + getattr(e, 'message', '') + '\n' + getattr(e, 'debug_message', '')
 
             raise InternalError(e_message)
 
