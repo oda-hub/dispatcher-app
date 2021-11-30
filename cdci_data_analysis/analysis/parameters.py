@@ -198,10 +198,10 @@ class Parameter(object):
         self._allowed_units = allowed_units
         self._allowed_values = allowed_values
         self._allowed_types = allowed_types
-        self._default_units = default_units
         self.name = name
-        self.default_type = default_type
         self.units = units
+        self.default_units = default_units
+        self.default_type = default_type
         self.value = value
         self.units_name = units_name
 
@@ -230,7 +230,7 @@ class Parameter(object):
 
     @default_units.setter
     def default_units(self, par_unit):
-        if self._allowed_units is not None:
+        if par_unit is not None and self._allowed_units is not None:
             self.check_units(par_unit, self._allowed_units, self.name)
 
         self._default_units = par_unit
@@ -241,7 +241,7 @@ class Parameter(object):
 
     @default_type.setter
     def default_type(self, par_type):
-        if self._allowed_types is not None:
+        if par_type is not None and self._allowed_types is not None:
             self.check_type(par_type, self._allowed_types, self.name)
 
         self._default_type = par_type
@@ -252,7 +252,7 @@ class Parameter(object):
 
     @units.setter
     def units(self, units):
-        if self._allowed_units is not None:
+        if units is not None and self._allowed_units is not None:
             self.check_units(units, self._allowed_units, self.name)
 
         self._units = units
