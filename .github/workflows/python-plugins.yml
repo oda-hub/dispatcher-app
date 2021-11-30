@@ -30,6 +30,12 @@ jobs:
         - antares
         # - polar
 
+    services:
+      antares-backend:
+        image: densavchenko/antares:5429d35
+        ports: 
+        - 5002:8000
+
     steps:
     - uses: actions/checkout@v2
     
