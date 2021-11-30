@@ -37,12 +37,12 @@ __author__ = "Andrea Tramacere"
 from cdci_data_analysis.analysis.instrument import Instrument
 from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float
 
-from .data_server_dispatcher import EmptyProductQuery, DataServerNumericQuery, FailingProductQuery
-
+from .data_server_dispatcher import EmptyProductQuery, DataServerNumericQuery, FailingProductQuery, DataServerParametricQuery
 
 # duplicated with jemx, but this staticmethod makes it complex.
 # this all should be done commonly, for all parameters - limits are common thing
 from ...analysis.exceptions import RequestNotUnderstood
+from ...analysis.parameters import SpectralBoundary
 
 
 class BoundaryFloat(Float):
@@ -74,6 +74,11 @@ def my_instr_factory():
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
                                              parameters_list=[p])
 
+    # let's build a simple parameter to its list
+    sb = SpectralBoundary(value=10., name='sb')
+    parametrical_query = DataServerParametricQuery('parametrical_parameters_dummy_query',
+                                                   parameters_list=[sb])
+
     # this dicts binds the product query name to the product name from frontend
     # eg my_instr_image is the parameter passed by the fronted to access the
     # the MyInstrMosaicQuery, and the dictionary will bind
@@ -84,9 +89,10 @@ def my_instr_factory():
     query_dictionary['dummy'] = 'empty_parameters_dummy_query'
     query_dictionary['numerical'] = 'numerical_parameters_dummy_query'
     query_dictionary['failing'] = 'failing_parameters_dummy_query'
+    query_dictionary['parametrical'] = 'parametrical_parameters_dummy_query'
 
     return Instrument('empty',
                       src_query=src_query,
                       instrumet_query=instr_query,
-                      product_queries_list=[empty_query, numerical_query, failing_query],
+                      product_queries_list=[empty_query, numerical_query, failing_query, parametrical_query],
                       query_dictionary=query_dictionary)

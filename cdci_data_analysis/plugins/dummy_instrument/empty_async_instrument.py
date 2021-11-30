@@ -50,9 +50,10 @@ def my_instr_factory():
                                   catalog_name='user_catalog')
 
     # my_instr_image_query -> name given to this query
-    empty_query = EmptyProductQuery('empty_parameters_dummy_query',)
+    empty_query = EmptyProductQuery('empty_parameters_dummy_query')
     # let's build a simple parameter to its list
-    p = Float(value=10., name='p', units='W',)
+    p = Float(value=10., name='p', units='W')
+
     string_parameter = Name(value="default-name", name='string_like_name')
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
                                              parameters_list=[p, string_parameter])

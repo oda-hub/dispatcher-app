@@ -24,8 +24,9 @@ from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
 
 __author__ = "Andrea Tramacere"
+
+# TODO importing six necessary for compatibility with the plugin, to be removed in the future with the necessary adaptations
 import six
-import ast
 import decorator
 import logging
 
@@ -42,9 +43,9 @@ logger = logging.getLogger(__name__)
 
 
 @decorator.decorator
-def check_par_list(func,par_list,*args, **kwargs):
+def check_par_list(func, par_list, *args, **kwargs):
     for par in par_list:
-        if isinstance(par,Parameter):
+        if isinstance(par, Parameter):
             pass
         else:
             raise RuntimeError('each parameter in the par_list has to be an instance of Parameters')
@@ -52,23 +53,24 @@ def check_par_list(func,par_list,*args, **kwargs):
         return func(par_list, *args, **kwargs)
 
 
+# TODO this class seems not to be in use anywhere, not even the plugins
 class ParameterGroup(object):
 
-    def __init__(self,par_list,name,exclusive=True,def_selected=None,selected=None):
-        self.name=name
-        self._par_list=par_list
+    def __init__(self, par_list, name, exclusive=True, def_selected=None, selected=None):
+        self.name = name
+        self._par_list = par_list
         self._check_pars(par_list)
-        self.exclusive=True
+        self.exclusive = True
 
         self.msk = np.ones(len(par_list), dtype=np.bool)
 
-        if exclusive==True:
-            self.msk[::]=False
+        if exclusive:
+            self.msk[::] = False
 
             if def_selected is None:
-                self.msk[0]==True
+                self.msk[0] = True
 
-        if  def_selected is not None:
+        if def_selected is not None:
             self.select(def_selected)
 
         if selected is not None:
@@ -82,81 +84,76 @@ class ParameterGroup(object):
     def names(self):
         return [p.name for p in self._par_list]
 
-    def select(self,name):
-        if isinstance(name,Parameter):
-            name=Parameter.value
-        for ID,p in enumerate(self._par_list):
-            if p.name==name:
-                self.msk[ID]=True
-                self._selected=self._par_list[ID].name
+    def select(self, name):
+        if isinstance(name, Parameter):
+            name = Parameter.value
+        for ID, p in enumerate(self._par_list):
+            if p.name == name:
+                self.msk[ID] = True
+                self._selected = self._par_list[ID].name
 
-        if self.msk.sum()>1 and self.exclusive==True:
+        if self.msk.sum() > 1 and self.exclusive == True:
             raise RuntimeError('only one paramter can be selected in mutually exclusive groups')
 
     def _check_pars(self, par_list):
         for p in par_list:
-            if isinstance(p,Parameter):
-               pass
-            elif isinstance(p,ParameterRange):
+            if isinstance(p, Parameter):
+                pass
+            elif isinstance(p, ParameterRange):
                 pass
             else:
-                raise RuntimeError('you can group Paramters or ParamtersRanges found',type(p))
+                raise RuntimeError('you can group Paramters or ParamtersRanges found', type(p))
 
     def to_list(self):
-        _l=[]
+        _l = []
         for p in self._par_list:
-            if isinstance(p,Parameter):
-               _l.append(p)
-            elif isinstance(p,ParameterRange):
+            if isinstance(p, Parameter):
+                _l.append(p)
+            elif isinstance(p, ParameterRange):
                 _l.extend(p.to_list())
         return _l
 
-    def add_par(self,par):
+    def add_par(self, par):
         self.par_list.append(par)
-        self.msk=np.append(self.msk,False)
+        self.msk = np.append(self.msk, False)
 
-    def build_selector(self,name):
-        return  Parameter(name, allowed_values=self.names)
+    def build_selector(self, name):
+        return Parameter(name, allowed_values=self.names)
 
 
 class ParameterRange(object):
 
-    def __init__(self,p1,p2,name):
-        self._check_pars(p1,p2)
-        self.name=name
-        self.p1=p1
-        self.p2=p2
+    def __init__(self, p1, p2, name):
+        self._check_pars(p1, p2)
+        self.name = name
+        self.p1 = p1
+        self.p2 = p2
 
-    def _check_pars(self,p1,p2):
-        if type(p1)!=type(p2):
-            raise RuntimeError('pars must be of the same time')
-
-        for p in (p1,p2):
-            try:
-                assert (isinstance(p,Parameter))
-            except:
-                raise RuntimeError('both p1 and p2 must be Parameters objects, found',type(p))
+    def _check_pars(self, p1, p2):
+        if type(p1) != type(p2):
+            raise RuntimeError('pars must be of the same type')
+        if not isinstance(p1, Parameter) or not isinstance(p2, Parameter):
+            raise RuntimeError(
+                f'both p1 and p2 must be Parameters objects, found {type(p1).__name__} for p1 and {type(p2).__name__} for p2')
 
     def to_list(self):
-        return [self.p1,self.p2]
+        return [self.p1, self.p2]
 
 
 class ParameterTuple(object):
 
-    def __init__(self,p_list,name):
+    def __init__(self, p_list, name):
         self._check_pars(p_list)
-        self.name=name
-        self.p_list=tuple(p_list)
+        self.name = name
+        self.p_list = tuple(p_list)
 
-    def _check_pars(self,p_list):
-        if any( type(x)!=type(p_list[0]) for x in p_list):
-            raise RuntimeError('pars must be of the same time')
+    def _check_pars(self, p_list):
+        for p in p_list:
+            if not isinstance(p, Parameter):
+                raise RuntimeError(f'all the members of the tuple must be Parameters instances, found a {type(p).__name__}')
 
-        for p in (p_list):
-            try:
-                assert (isinstance(p,Parameter))
-            except:
-                raise RuntimeError('both p1 and p2 must be Parameters objects, found',type(p))
+            if not isinstance(p, type(p_list[0])):
+                raise RuntimeError('pars must be of the same type')
 
     def to_list(self):
         return self.p_list
@@ -166,100 +163,109 @@ class Parameter(object):
     def __init__(self,
                  value=None,
                  units=None,
-                 name: Union[str, None]=None, 
-                 allowed_units=[],
+                 name: Union[str, None] = None,
+                 allowed_units=None,
                  default_units=None,
+                 default_type=None,
+                 allowed_types=None,
                  check_value=None,
                  allowed_values=None,
                  units_name=None):
 
+        if (units is None or units == '') and \
+                default_units is not None and default_units != '':
+            # TODO ideally those should be renamed as singular (unit and default_unit)
+            #  but they are as such because they're used also in plugins
+            #
+            units = default_units
+
         self.check_value = check_value
 
-        if allowed_units is None:
-            allowed_units = []
-        else:
-            allowed_units = allowed_units.copy()
+        if allowed_units is not None:
+            # handles case of []
+            if not allowed_units:
+                logger.warning("an empty list for the allowed_units is considered as None")
+                allowed_units = None
+            else:
+                allowed_units = allowed_units.copy()
 
-        if not ( name is None or type(name) in [ str ] ):
-            raise RuntimeError(f"can not initialize parameter with name {name} and type {type(name)}")
+        if allowed_types is not None:
+            allowed_types = allowed_types.copy()
+
+        # if not (name is None or type(name) in [str]):
+        #     raise RuntimeError(f"can not initialize parameter with name {name} and type {type(name)}")
 
         self._allowed_units = allowed_units
         self._allowed_values = allowed_values
-        self._default_units = default_units
+        self._allowed_types = allowed_types
         self.name = name
         self.units = units
+        self.default_units = default_units
+        self.default_type = default_type
         self.value = value
         self.units_name = units_name
-        #self._wtform_dict=wtform_dict
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, par_name):
+        if not (par_name is None or type(par_name) in [str]):
+            raise RuntimeError(f"can not initialize parameter with name {par_name} and type {type(par_name).__name__}")
+        self._name = par_name
 
     @property
     def value(self):
         return self._value
 
     @value.setter
-    def value(self,v):
-        #print ('set',self.name,v,self._allowed_values)
+    def value(self, v):
         if v is not None:
             if self.check_value is not None:
-                self.check_value(v, units=self.units,name=self.name)
+                self.check_value(v, units=self.units, name=self.name)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
-                    raise RuntimeError('value',v,'not allowed, allowed=',self._allowed_values)
-            #print('set->',self.name,v,type(v))
-            if type(v)==str or isinstance(v, six.string_types):
-                self._value=v.strip()
+                    raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
+            if isinstance(v, str):
+                self._value = v.strip()
             else:
                 self._value = v
         else:
-            self._value=None
+            self._value = None
 
     @property
     def default_units(self):
         return self._default_units
 
     @default_units.setter
-    def default_units(self, units):
+    def default_units(self, par_unit):
+        if par_unit is not None and self._allowed_units is not None:
+            self.check_units(par_unit, self._allowed_units, self.name)
 
-        if self._allowed_units != [] and self._allowed_units is not None:
-            self.chekc_units(units, self._allowed_units, self.name)
+        self._default_units = par_unit
 
-        self._default_units = units
+    @property
+    def default_type(self):
+        return self._default_type
+
+    @default_type.setter
+    def default_type(self, par_type):
+        if par_type is not None and self._allowed_types is not None:
+            self.check_type(par_type, self._allowed_types, self.name)
+
+        self._default_type = par_type
 
     @property
     def units(self):
         return self._units
 
     @units.setter
-    def units(self,units):
-
-        if self._allowed_units !=[] and self._allowed_units is not None:
-
-            self.chekc_units(units, self._allowed_units, self.name)
+    def units(self, units):
+        if units is not None and self._allowed_units is not None:
+            self.check_units(units, self._allowed_units, self.name)
 
         self._units = units
-
-    # def set_unit_from_form(self, form, verbose=False):
-    #     par_name = self.name
-    #     units_name = self.units_name
-    #     v = None
-    #     u = None
-    #     in_dictionary = False
-    #
-    #     if units_name is not None:
-    #         if units_name in form.keys():
-    #             in_dictionary = True
-    #             v = form[par_name]
-    #
-    #     if in_dictionary is True:
-    #         # check that the value fits it
-    #         if v == self.value:
-    #             form[units_name] =
-    #     else:
-    #         # set the default value
-    #         form[par_name] =
-    #
-    #         if verbose is True:
-    #             logger.debug('setting par: ', par_name, ' not in dictionary, setting to the default value')
 
     def set_value_from_form(self, form, verbose=False):
         par_name = self.name
@@ -289,7 +295,7 @@ class Parameter(object):
             return self.set_par(value=v, units=u)
         else:
             if verbose is True:
-                logger.debug('setting par: %s in the dictionary to its default value' % par_name )
+                logger.debug('setting par: %s in the dictionary to its default value' % par_name)
             # set the default value
             return self.value
 
@@ -297,63 +303,44 @@ class Parameter(object):
         if units is not None:
             self.units = units
         self.value = value
-        return value
+        return self.get_value_in_default_format()
 
-    def get_form(self,wtform_cls,key,validators,defaults):
-         return   wtform_cls('key', validators=validators, default=defaults)
+    def get_value_in_default_format(self):
+        return self.value
+
+    def get_form(self, wtform_cls, key, validators, defaults):
+        return wtform_cls('key', validators=validators, default=defaults)
+
+    def chekc_units(self, *args, **kwargs):
+        logger.warning('please update to new interface! -- ....')
+        return self.check_units(*args, **kwargs)
 
     @staticmethod
-    def chekc_units(units, allowed, name):
+    def check_units(units, allowed, name):
         if units not in allowed:
-            # TODO this exception is not properly formatted, it could be problematic
-            raise RuntimeError('wrong units for par: %s' % name, ' found: ', units, ' allowed:', allowed)
+            raise RuntimeError(f'wrong units for par: {name}, found: {units}, allowed: {allowed}')
 
     @staticmethod
-    def check_value(val,units,par_name):
-        pass
+    def check_type(par_type, allowed, name):
+        if par_type not in allowed:
+            raise RuntimeError(f'wrong type for par: {name}, found: {par_type}, allowed: {allowed}')
 
-    # def get_form_field(self,key=None,default=None,validators=None,wtform_dict=None,wtform=None):
-    #     if key is None:
-    #        key=self.name
-    #
-    #     if wtform is  None and wtform_dict is  None:
-    #
-    #         wtform_dict=self._wtform_dict
-    #
-    #     if default is not None:
-    #         self.check_value(default,self.units)
-    #     else:
-    #         default=self.value
-    #
-    #
-    #     if wtform is not None and wtform_dict is not None:
-    #         raise RuntimeError('either you provide wtform or wtform_dict or you pass a wtform_dict to the constructor')
-    #
-    #     elif wtform_dict is not None:
-    #         wtform=wtform_dict[self.units]
-    #
-    #     else:
-    #         raise RuntimeError('yuo must provide wtform or wtform_dict')
-    #
-    #     return wtform(label=key, validators=validators, default=default)
+    @staticmethod
+    def check_value(val, units, name):
+        pass
 
     def reprJSON(self):
         return dict(name=self.name, units=self.units, value=self.value)
 
 
-#class Instrument(Parameter):
-#    def __init__(self,T_format,name,value=None):
-        #wtform_dict = {'iso': SelectField}
-
-
 class Name(Parameter):
-    def __init__(self,value=None, name_format='str', name=None):
+    def __init__(self, value=None, name_format='str', name=None):
         _allowed_units = ['str']
-        super(Name,self).__init__(value=value,
-                                  units=name_format,
-                                  check_value=self.check_name_value,
-                                  name=name,
-                                  allowed_units=_allowed_units)
+        super().__init__(value=value,
+                         units=name_format,
+                         check_value=self.check_name_value,
+                         name=name,
+                         allowed_units=_allowed_units)
 
     @staticmethod
     def check_name_value(value, units=None, name=None):
@@ -361,20 +348,18 @@ class Name(Parameter):
 
 
 class Float(Parameter):
-    def __init__(self,value=None,units=None,name=None):
+    def __init__(self, value=None, units=None, name=None, allowed_units=None, default_units=None, check_value=None):
 
-        _allowed_units = None
+        if check_value is None:
+            check_value = self.check_float_value
 
-        #wtform_dict = {'keV': FloatField}
-
-        super(Float, self).__init__(value=value,
-                                   units=units,
-                                   check_value=self.check_float_value,
-                                   name=name,
-                                   allowed_units=_allowed_units)
-                                   #wtform_dict=wtform_dict)
-
-        self.value=value
+        super().__init__(value=value,
+                         units=units,
+                         check_value=check_value,
+                         default_units=default_units,
+                         name=name,
+                         default_type=float,
+                         allowed_units=allowed_units)
 
     @property
     def value(self):
@@ -382,47 +367,43 @@ class Float(Parameter):
 
     @value.setter
     def value(self, v):
-        if v is not None and v!='':
-            self.check_float_value(v, name=self.name, units=self.units)
-            self._v = np.float(v)
-
+        if v is not None and v != '':
+            self.check_value(v, name=self.name, units=self.units)
+            self._v = float(v)
         else:
-            self._v=None
+            self._v = None
+
+    def get_value_in_default_format(self):
+        self.check_value(self.value, name=self.name, units=self.units)
+        return float(self.value) if self.value is not None else None
 
     @staticmethod
     def check_float_value(value, units=None, name=None):
-        #print('check type of ',name,'value', value, 'type',type(value))
-        if value is None or value=='':
+        if value is None or value == '':
             pass
         else:
             try:
-              value=ast.literal_eval(value)
+                float(value)
             except:
-                pass
-            value=np.float(value)
-            if type(value) == int or type(value) == np.int:
-                pass
-            elif type(value) == float or type(value) == np.float:
-                pass
-            else:
-                raise RuntimeError('type of ', name, 'not valid', type(value))
+                raise RuntimeError(f'the Float parameter {name} cannot be assigned the value {value} '
+                                   f'of type {type(value).__name__}')
 
 
 class Integer(Parameter):
-    def __init__(self,value=None,units=None,name=None):
+    def __init__(self, value=None, units=None, name=None, check_value=None):
 
         _allowed_units = None
 
-        #wtform_dict = {'keV': FloatField}
+        if check_value is None:
+            check_value = self.check_int_value
 
-        super(Integer, self).__init__(value=value,
-                                   units=units,
-                                   check_value=self.check_int_value,
-                                   name=name,
-                                   allowed_units=_allowed_units)
-                                   #wtform_dict=wtform_dict)
-
-        self.value=value
+        super().__init__(value=value,
+                         units=units,
+                         check_value=check_value,
+                         default_type=int,
+                         allowed_types=[int],
+                         name=name,
+                         allowed_units=_allowed_units)
 
     @property
     def value(self):
@@ -430,60 +411,44 @@ class Integer(Parameter):
 
     @value.setter
     def value(self, v):
-        if v is not None and v!='':
-            self.check_int_value(v,name=self.name)
-            self._v = np.int(v)
-
+        if v is not None and v != '':
+            self.check_value(v, name=self.name, units=self.units)
+            self._v = int(v)
         else:
-            self._v=None
+            self._v = None
 
+    def get_value_in_default_format(self):
+        self.check_value(self.value, name=self.name, units=self.units)
+        return int(self.value) if self.value is not None else None
 
     @staticmethod
-    def check_int_value(value, units=None,name=None):
-        #print('check type of ',name,'value', value, 'type',type(value))
-        if value is None or value=='':
+    def check_int_value(value, units=None, name=None):
+        # print('check type of ',name,'value', value, 'type',type(value))
+        if value is None or value == '':
             pass
         else:
+            if isinstance(value, float):
+                message = f'{value} is an invalid value for {name} since it cannot be used as an Integer'
+                logger.error(message)
+                raise RuntimeError(message)
             try:
-              value=ast.literal_eval(value)
+                int(value)
             except:
-                pass
-            value=np.int(value)
-            if type(value) == int or type(value) == np.int:
-                pass
-            elif type(value) == float or type(value) == np.float:
-                pass
-            else:
-                raise RuntimeError('type of ', name, 'not valid', type(value))
+                raise RuntimeError(f'the Integer parameter {name} cannot be assigned the value {value} '
+                                   f'of type {type(value).__name__}')
 
 
 class Time(Parameter):
     def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None):
 
-        #_allowed_units = astropyTime.FORMATS
+        super().__init__(value=value,
+                         units=T_format,
+                         units_name=Time_format_name,
+                         default_units='isot',
+                         name=name)
 
-        #wtform_dict = {'iso': StringField}
-        #wtform_dict['mjd'] = FloatField
-        #wtform_dict['prod_list'] = TextAreaField
-
-        super(Time, self).__init__(value=value,
-                                   units=T_format,
-                                   units_name=Time_format_name,
-                                   default_units='isot',
-                                   name=name,
-                                   allowed_units=None)
-                                  #wtform_dict=wtform_dict)
-
-        self._set_time(value, format=T_format)
-
-    def set_par(self, value, units=None):
-        # sets the value to the format initially specified in the form
-        if units is not None:
-            self.units = units
-        self.value = value
-        # return the relative isot format value
-        # afterwards also the units_name will be set to isot
-        return self._astropy_time.isot
+    def get_value_in_default_format(self) -> Union[str, float, None]:
+        return getattr(self._astropy_time, self.default_units)
 
     @property
     def value(self):
@@ -491,40 +456,25 @@ class Time(Parameter):
 
     @value.setter
     def value(self, v):
-      
-        units=self.units
+        units = self.units
         self._set_time(v, format=units)
 
     def _set_time(self, value, format):
-       
-        try:
-            value=ast.literal_eval(value)
-        except:
-            pass
-        
         self._astropy_time = astropyTime(value, format=format)
-        
-        self._value =value
+        self._value = value
 
 
 class TimeDelta(Parameter):
     def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None):
 
-        # _allowed_units = astropyTime.FORMATS
+        super().__init__(value=value,
+                         units=delta_T_format,
+                         units_name=delta_T_format_name,
+                         default_units='sec',
+                         name=name)
 
-        # wtform_dict = {'iso': StringField}
-        # wtform_dict['mjd'] = FloatField
-        # wtform_dict['prod_list'] = TextAreaField
-
-        super(TimeDelta, self).__init__(value=value,
-                                   units=delta_T_format,
-                                   units_name=delta_T_format_name,
-                                   name=name,
-                                   allowed_units=None)
-        # wtform_dict=wtform_dict)
-
-
-        self._set_time(value, format=delta_T_format)
+    def get_value_in_default_format(self) -> Union[str, float, None]:
+        return getattr(self._astropy_time_delta, self.default_units)
 
     @property
     def value(self):
@@ -532,50 +482,37 @@ class TimeDelta(Parameter):
 
     @value.setter
     def value(self, v):
-
         units = self.units
         self._set_time(v, format=units)
 
     def _set_time(self, value, format):
-
-        try:
-            value = ast.literal_eval(value)
-        except:
-            pass
-
-        #print ('value',value)
         self._astropy_time_delta = astropyTimeDelta(value, format=format)
-
         self._value = value
 
+
 class InputProdList(Parameter):
-    def __init__(self, value=None, _format='names_list', name: str=None):
+    # TODO removal of the leading underscore would probably make sense
+    def __init__(self, value=None, _format='names_list', name: str = None):
         _allowed_units = ['names_list']
 
         if value is None:
-            value=[]
+            value = []
 
-        super(InputProdList, self).__init__(value=value,
-                                            units=_format,
-                                            check_value=self.check_list_value,
-                                            name=name,
-                                            allowed_units=_allowed_units)
-                                  #wtform_dict=wtform_dict)
+        super().__init__(value=value,
+                         units=_format,
+                         check_value=self.check_list_value,
+                         name=name,
+                         allowed_units=_allowed_units)
 
-        self._split(value)
-
-
-    def _split(self,str_list):
-
+    @staticmethod
+    def _split(str_list):
         if type(str_list) == list:
-               pass
-        elif type(str_list) == str or type(str(str_list)) == str:
-            if ',' in str_list:
-                str_list = str_list.split(',')
-            else:
-                str_list = str_list.split(' ')
+            pass
+        elif isinstance(str_list, str) or isinstance(str(str_list), str):
+            str_list = str(str_list)
+            str_list = str_list.split(',')
         else:
-           raise RuntimeError('parameter format is not correct')
+            raise RuntimeError('parameter format is not correct')
 
         if str_list == ['']:
             str_list = []
@@ -584,214 +521,113 @@ class InputProdList(Parameter):
 
     @property
     def value(self):
-        if self._value==[''] or self._value is None:
+        if self._value == [''] or self._value is None:
             return []
         else:
             return self._value
 
     @value.setter
     def value(self, v):
-        #print('set', self.name, v, self._allowed_values)
         if v is not None:
             if self.check_value is not None:
                 self.check_value(v, units=self.units, name=self.name)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
-                    raise RuntimeError('value', v, 'not allowed, allowed=', self._allowed_values)
+                    raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
             if v == [''] or v is None or str(v) == '':
-                self._value=['']
+                self._value = ['']
             else:
                 self._value = v
         else:
             self._value = ['']
-        self._value=self._split(self._value)
-        #print ('set to ',self._value)
-
+        self._value = self._split(self._value)
+        # print ('set to ',self._value)
 
     @staticmethod
-    def check_list_value(value,units,name='par'):
-        if units=='names_list':
-            try:
-                #print(type(value))
-                assert (type(value) == list or type(value) == str  or type(str(value))== str)
-            except:
-                raise RuntimeError('par:',name,', value is not product list format : list of strings','it is',type(value),value)
+    def check_list_value(value, units, name='par'):
+        if units == 'names_list':
+            # TODO the condition 'isinstance(str(value), str))' was quite unclear to me, and probably useless since could lead to unexpected behavior
+            if not isinstance(value, (list, str, float, int)):
+                raise RuntimeError(f'value of the parameter {name} is not a valid product list format, but {type(value).__name__} has been found')
         else:
-            raise  RuntimeError(name,'units not valid',units)
-
-
-
-
+            raise RuntimeError(f'{name} units not valid {units}')
 
 
 class Angle(Parameter):
-        def __init__(self,value=None, units=None,name=None):
+    def __init__(self, value=None, units=None, name=None):
 
-            super(Angle, self).__init__(value=value,
-                                       units=units,
-                                       name=name,
-                                       allowed_units=None)
-            # wtform_dict=wtform_dict)
+        super().__init__(value=value,
+                         units=units,
+                         # TODO can we safely make this assumption?
+                         default_units='deg',
+                         name=name,
+                         allowed_units=None)
 
+    def get_value_in_default_format(self) -> Union[str, float, None]:
+        return getattr(self._astropy_angle, self.default_units)
 
-            self._set_angle(value, units=units)
+    @property
+    def value(self):
+        return self._astropy_angle.value
 
-        @property
-        def value(self):
-            return self._astropy_angle.value
+    @value.setter
+    def value(self, v, units=None):
+        if units is None:
+            units = self.units
 
-        @value.setter
-        def value(self, v, units=None):
-            if units is None:
-                units = self.units
+        self._set_angle(v, units=units)
 
-
-
-            self._set_angle(v, units=units)
-
-        def _set_angle(self, value, units):
-            if value=='' or value is None:
-                pass
-            else:
-                self._astropy_angle = astropyAngle(value, unit=units)
-                self._value = self._astropy_angle.value
-
-# class AngularDistance(Parameter):
-#     def __init__(self, angular_units,name, value=None):
-#         _allowed_units = ['deg']
-#         super(AngularDistance, self).__init__(value=value,
-#                                      units=angular_units,
-#                                      check_value=self.check_angle_value,
-#                                      name=name,
-#                                      allowed_units=_allowed_units)
-#
-#
-#
-#     @staticmethod
-#     def check_angle_value(value, units=None, name=None):
-#         print('check type of ', name, 'value', value, 'type', type(value))
-#         pass
-#
-
-
-
-class SpectralBoundary(Parameter):
-    def __init__(self,value=None,E_units='keV',name=None):
-
-        _allowed_units = ['keV','eV','MeV','GeV','TeV','Hz','MHz','GHz']
-
-        #wtform_dict = {'keV': FloatField}
-
-        super(SpectralBoundary, self).__init__(value=value,
-                                   units=E_units,
-                                   check_value=self.check_energy_value,
-                                   name=name,
-                                   allowed_units=_allowed_units)
-                                   #wtform_dict=wtform_dict)
-
-
-
-
-    @staticmethod
-    def check_energy_value(value, units=None,name=None):
-        #print('check type of ',name,'value', value, 'type',type(value))
-
-
-        try:
-            value=ast.literal_eval(value)
-        except:
-            pass
-
-        if type(value)==int or type(value)==np.int:
-            pass
-        elif type(value)==float or type(value)==np.float:
+    def _set_angle(self, value, units):
+        if value == '' or value is None:
             pass
         else:
-            raise RuntimeError('type of ',name,'not valid',type(value))
+            self._astropy_angle = astropyAngle(value, unit=units)
+            self._value = self._astropy_angle.value
 
 
-class Energy(Parameter):
-    def __init__(self,value=None,E_units=None,name=None):
+class Energy(Float):
+    def __init__(self, value=None, E_units='keV', name=None, check_value=None):
+        if check_value is None:
+            check_value = self.check_energy_value
 
-        _allowed_units = ['keV','eV','MeV','GeV','TeV']
+        _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
 
-        #wtform_dict = {'keV': FloatField}
+        super().__init__(value=value,
+                         units=E_units,
+                         default_units='keV',
+                         check_value=check_value,
+                         name=name,
+                         allowed_units=_allowed_units)
 
-        super(Energy, self).__init__(value=value,
-                                   units=E_units,
-                                   check_value=self.check_energy_value,
-                                   name=name,
-                                   allowed_units=_allowed_units)
-                                   #wtform_dict=wtform_dict)
-
-
-
-
+    # TODO re-introduced for retro-compatibility
     @staticmethod
-    def check_energy_value(value, units=None,name=None):
-        #print('check type of ',name,'value', value, 'type',type(value))
+    def check_energy_value(value, units=None, name=None):
+        Float.check_float_value(value, units, name)
 
 
-        try:
-            value=ast.literal_eval(value)
-        except:
-            pass
-
-        if type(value)==int or type(value)==np.int:
-            pass
-        elif type(value)==float or type(value)==np.float:
-            pass
-        else:
-            raise RuntimeError('type of ',name,'not valid',type(value))
+class SpectralBoundary(Energy):
+    pass
 
 
-
-
-
-class DetectionThreshold(Parameter):
-    def __init__(self,value=None,units='sigma',name=None):
-
+class DetectionThreshold(Float):
+    def __init__(self, value=None, units='sigma', name=None):
         _allowed_units = ['sigma']
 
-        #wtform_dict = {'keV': FloatField}
-
-        super(DetectionThreshold, self).__init__(value=value,
-                                   units=units,
-                                   check_value=self.check_value,
-                                   name=name,
-                                   allowed_units=_allowed_units)
-                                   #wtform_dict=wtform_dict)
-
-
-
-
-    @staticmethod
-    def check_value(value, units=None,name=None):
-        #print('check type of ',name,'value', value, 'type',type(value))
-
-
-        try:
-            value=ast.literal_eval(value)
-        except:
-            pass
-
-        if type(value)==int or type(value)==np.int:
-            pass
-        elif type(value)==float or type(value)==np.float:
-            pass
-        else:
-            raise RuntimeError('type of ',name,'not valid',type(value))
-
+        super().__init__(value=value,
+                         units=units,
+                         check_value=self.check_value,
+                         name=name,
+                         allowed_units=_allowed_units)
 
 
 class UserCatalog(Parameter):
-    def __init__(self, value=None,name_format='str', name=None):
+    def __init__(self, value=None, name_format='str', name=None):
         _allowed_units = ['str']
-        super(UserCatalog,self).__init__(value=value,
-                                  units=name_format,
-                                  check_value=self.check_name_value,
-                                  name=name,
-                                  allowed_units=_allowed_units)
+        super().__init__(value=value,
+                         units=name_format,
+                         check_value=self.check_name_value,
+                         name=name,
+                         allowed_units=_allowed_units)
 
     @staticmethod
     def check_name_value(value, units=None, name=None):
