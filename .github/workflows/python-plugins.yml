@@ -13,7 +13,7 @@ on:
 
 jobs:
   build:
-    if: ${{ github.event.label.name == 'test-plugins' }}
+    # if: ${{ github.event.label.name == 'test-plugins' }}
     runs-on: ubuntu-latest
 
     strategy:
