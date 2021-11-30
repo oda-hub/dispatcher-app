@@ -192,8 +192,8 @@ class Parameter(object):
         if allowed_types is not None:
             allowed_types = allowed_types.copy()
 
-        if not (name is None or type(name) in [str]):
-            raise RuntimeError(f"can not initialize parameter with name {name} and type {type(name)}")
+        # if not (name is None or type(name) in [str]):
+        #     raise RuntimeError(f"can not initialize parameter with name {name} and type {type(name)}")
 
         self._allowed_units = allowed_units
         self._allowed_values = allowed_values
@@ -204,6 +204,16 @@ class Parameter(object):
         self.default_type = default_type
         self.value = value
         self.units_name = units_name
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, par_name):
+        if not (par_name is None or type(par_name) in [str]):
+            raise RuntimeError(f"can not initialize parameter with name {par_name} and type {type(par_name).__name__}")
+        self._name = par_name
 
     @property
     def value(self):
@@ -538,7 +548,7 @@ class InputProdList(Parameter):
         if units == 'names_list':
             # TODO the condition 'isinstance(str(value), str))' was quite unclear to me, and probably useless since could lead to unexpected behavior
             if not isinstance(value, (list, str, float, int)):
-                raise RuntimeError(f'value of the parameter {name} is not a valid product list format, but {type(value)} has been found')
+                raise RuntimeError(f'value of the parameter {name} is not a valid product list format, but {type(value).__name__} has been found')
         else:
             raise RuntimeError(f'{name} units not valid {units}')
 
