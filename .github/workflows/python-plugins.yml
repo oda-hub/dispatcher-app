@@ -51,7 +51,7 @@ jobs:
         python -m pip install --upgrade pip flake8 pytest mypy pylint pytest-cov    
         
         if [ -f plugin/requirements.txt ]; then 
-          pip install -r <(plugin/requirements.txt grep -v oda-hub/dispatcher-app | grep -v cdci-data-analysis) .[test]; 
+          pip install -r <(plugin/requirements.txt grep -v oda-hub/dispatcher-app | grep -v cdci-data-analysis) ./plugin[test] .[test]; 
         fi        
         
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
