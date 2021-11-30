@@ -24,7 +24,11 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9]
-        plugin-name: [integral, integral-all-sky, antares, polar]
+        plugin-name:
+        - integral
+        - integral-all-sky
+        - antares
+        # - polar
 
     steps:
     - uses: actions/checkout@v2
