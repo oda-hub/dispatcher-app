@@ -31,7 +31,7 @@ jobs:
 
 
     - name: Clone ${{ matrix.plugin-name }} plugin 
-      uses: actions/setup-python@v2
+      uses: actions/checkout@v2
       with:
         repository: 'https://github.com/oda-hub/dispatcher-plugin-${{matrix.plugin-name}}'
         path: plugin   
