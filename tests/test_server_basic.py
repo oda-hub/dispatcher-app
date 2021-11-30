@@ -803,7 +803,7 @@ def test_scws_list_file(dispatcher_live_fixture):
         'product_type': 'numerical',
         'query_type': "Dummy",
         'instrument': 'empty',
-        'p': 5,
+        'p': 5.,
         'use_scws': 'user_file',
         'token': encoded_token
     }
@@ -839,6 +839,9 @@ def test_scws_list_file(dispatcher_live_fixture):
 
     restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic({
         **params,
+        "p": 5.,
+        "RA": 83.,
+        "DEC": 22.,
         "src_name": "1E 1740.7-2942",
         "p_list": ["5"],
         "sub": "mtm@mtmco.net"}
@@ -899,6 +902,8 @@ def test_catalog_file(dispatcher_live_fixture):
             'selected_catalog': json.dumps(catalog_object.get_dictionary()),
             'sub': 'mtm@mtmco.net',
             'p_list': [],
+            'RA': 83.,
+            'DEC': 22.,
             'src_name': '1E 1740.7-2942',
         }
     )
@@ -962,6 +967,8 @@ def test_user_catalog(dispatcher_live_fixture):
             **params,
             'sub': 'mtm@mtmco.net',
             'p_list': [],
+            'RA': 83.,
+            'DEC': 22.,
             'src_name': '1E 1740.7-2942',
         }
     )
@@ -1194,7 +1201,9 @@ def test_image(dispatcher_live_fixture):
         {
             **params,
             'p_list': [],
-            'p': '55',
+            'p': 55.,
+            'RA': 83.0,
+            'DEC': 22.0,
             'src_name': '1E 1740.7-2942',
             'sub': 'mtm@mtmco.net',
         }

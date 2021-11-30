@@ -1726,14 +1726,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
             params['scw_list'] = scw_list_string
             assert 'scw_list' in jdata['products']['api_code']
             assert 'scw_list' in jdata['products']['analysis_parameters']
-            # very specific case to be considered for the way the dispatcher
-            # handles scw_list with one single element
-            if scw_list_size == 1 and \
-                    (use_scws_value is None or use_scws_value == 'form_list' or use_scws_value == 'not_included') and \
-                    scw_list_passage == 'params':
-                assert jdata['products']['analysis_parameters']['scw_list'] == scw_list_string
-            else:
-                assert jdata['products']['analysis_parameters']['scw_list'] == scw_list
+            assert jdata['products']['analysis_parameters']['scw_list'] == scw_list
 
             assert processed_scw_list == scw_list
 
@@ -1982,6 +1975,28 @@ scwl_dict = {"scw_list": "115000860010.001,115000870010.001,115000980010.001,115
     assert len(my_globals['scwl_dict']['scw_list']) > max_length
 
 
+@pytest.mark.parametrize('sb_value', [25, 25., 25.64547871216879451687311211245117852145229614585985498212321])
+def test_spectral_parameter(dispatcher_live_fixture, sb_value):
+
+    server = dispatcher_live_fixture
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Dummy",
+        instrument="empty",
+        product_type="parametrical",
+        sb=sb_value
+    )
+
+    jdata = ask(server,
+                dict_param,
+                expected_query_status='done'
+                )
+
+    assert 'sb' in jdata['products']['analysis_parameters']
+    assert float(sb_value) == jdata['products']['analysis_parameters']['sb']
+
+
 @pytest.mark.parametrize('time_combinations', [[57818.560277777775, 57818.64753472222],
                                                ['2017-03-06T13:26:48.000', '2017-03-06T15:32:27.000'],
                                                ['2017-03-06T13:26:48.000', 57818.64753472222],
@@ -2026,7 +2041,7 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
         error_message = (f'[ InstrumentQueryBackEnd : empty-async ] constructor failed: '
                          f'Input values did not match the format class {time_format}:\n')
         if time_format == 'isot':
-            error_message += f'TypeError: Input values for {time_format} class must be strings'
+            error_message += 'ValueError: Time 57818 does not match isot format'
         else:
             error_message += f'TypeError: for {time_format} class, input should be (long) doubles, string, ' \
                              f'or Decimal, and second values are only allowed for (long) doubles.'
