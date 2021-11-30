@@ -17,7 +17,8 @@ on:
 
 jobs:
   build:
-    if: contains(github.event.pull_request.labels.*.name, 'test-labels')
+    # if: contains(github.event.pull_request.labels.*.name, 'test-plugins')
+
     runs-on: ubuntu-latest
 
     strategy:
