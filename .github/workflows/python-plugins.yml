@@ -33,7 +33,7 @@ jobs:
     - name: Clone ${{ matrix.plugin-name }} plugin 
       uses: actions/checkout@v2
       with:
-        repository: 'https://github.com/oda-hub/dispatcher-plugin-${{matrix.plugin-name}}'
+        repository: 'oda-hub/dispatcher-plugin-${{matrix.plugin-name}}'
         path: plugin   
 
 
