@@ -201,7 +201,7 @@ class Instrument:
                            verbose,
                            use_scws,
                            sentry_client=None):
-        error_message = 'Error while {step} from the frontend{temp_dir_content_msg}'
+        error_message = 'Error while {step} from the frontend{temp_dir_content_msg}{additional}'
         # TODO probably exception handling can be further improved and/or optmized
         try:
             # set catalog
@@ -217,10 +217,16 @@ class Instrument:
                                                                       temp_dir=temp_dir)
             step = 'setting input scw_list file'
             self.set_input_products_from_fronted(input_file_path=input_file_path, par_dic=par_dic, verbose=verbose)
+        except RequestNotUnderstood as e:
+            error_message = error_message.format(step=step,
+                                                 temp_dir_content_msg=' ',
+                                                 additional=getattr(e, 'message', ''))
+            raise RequestNotUnderstood(error_message)
         except Exception as e:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='' if not os.path.exists(temp_dir) else
-                                                 f', content of the temporary directory is {os.listdir(temp_dir)}')
+                                                 f', content of the temporary directory is {os.listdir(temp_dir)}',
+                                                 additional='')
 
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
@@ -557,14 +563,23 @@ class Instrument:
             user_catalog_file = par_dic['user_catalog_file']
 
         if 'user_catalog_dictionary' in par_dic.keys() and par_dic['user_catalog_dictionary'] is not None:
+            catalog_to_build = None
             if type(par_dic['user_catalog_dictionary']) == dict:
-                self.set_par('user_catalog', build_catalog(par_dic['user_catalog_dictionary']))
+                catalog_to_build = par_dic['user_catalog_dictionary']
             else:
-                catalog_dic = json.loads(par_dic['selected_catalog'])
-                self.set_par('user_catalog', build_catalog(catalog_dic))
+                catalog_to_build = json.loads(par_dic['selected_catalog'])
+            if catalog_to_build is not None:
+                try:
+                    catalog_dic = build_catalog(catalog_to_build)
+                except RuntimeError:
+                    raise RequestNotUnderstood("catalog format not valid")
+                self.set_par('user_catalog', catalog_dic)
         # setting user_catalog in the par_dic, either loading it from the file or aas an object
         if user_catalog_file is not None:
-            catalog_object = load_user_catalog(user_catalog_file)
+            try:
+                catalog_object = load_user_catalog(user_catalog_file)
+            except RuntimeError:
+                raise RequestNotUnderstood("catalog format not valid")
             self.set_par('user_catalog', catalog_object)
             # TODO set selected_catalog ? in this way it will show up in the email url link
             # and used consistently for the job_id generation
@@ -573,14 +588,19 @@ class Instrument:
             par_dic.pop('user_catalog_file', None)
         else:
             if 'catalog_selected_objects' in par_dic.keys():
-                catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)
+                try:
+                    catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)
+                except RuntimeError:
+                    raise RequestNotUnderstood("catalog format not valid")
             else:
                 catalog_selected_objects = None
             if 'selected_catalog' in par_dic.keys():
                 catalog_dic = json.loads(par_dic['selected_catalog'])
-                user_catalog = build_catalog(catalog_dic, catalog_selected_objects)
+                try:
+                    user_catalog = build_catalog(catalog_dic, catalog_selected_objects)
+                except RuntimeError:
+                    raise RequestNotUnderstood("catalog format not valid")
                 self.set_par('user_catalog', user_catalog)
-
 
 def load_user_catalog(user_catalog_file):
     return BasicCatalog.from_file(user_catalog_file)
