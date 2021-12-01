@@ -1526,11 +1526,9 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
 @pytest.mark.not_safe_parallel
 @pytest.mark.test_catalog
 @pytest.mark.parametrize("catalog_passage", ['file', 'params'])
-@pytest.mark.parametrize("correct_format", [True, False])
 def test_email_catalog(dispatcher_long_living_fixture,
                        dispatcher_local_mail_server,
-                       catalog_passage,
-                       correct_format
+                       catalog_passage
                        ):
     DispatcherJobState.remove_scratch_folders()
 
@@ -1557,33 +1555,18 @@ def test_email_catalog(dispatcher_long_living_fixture,
         'token': encoded_token
     }
 
-    if correct_format:
-        expected_query_status = ["submitted"]
-        expected_status_code = 200
-    else:
-        expected_query_status = None
-        expected_status_code = 400
-        if catalog_passage == 'file':
-            error_message = ('Error while setting catalog file from the frontend catalog format not valid, '
-                    'the formats accepted are ascii.ecsv and fits table (standard OSA catalog)')
-        else:
-            error_message = ('Error while setting catalog file from the frontend '
-                             'ValueError(\'Inconsistent data column lengths: {9, 10}\')')
-
     if catalog_passage == 'file':
-        file_path = DispatcherJobState.create_catalog_file(catalog_value=5, wrong_format=not correct_format)
+        file_path = DispatcherJobState.create_catalog_file(catalog_value=5)
         list_file = open(file_path)
         list_file_content = list_file.read()
-        if correct_format:
-            catalog_object_dict = BasicCatalog.from_file(file_path).get_dictionary()
+        catalog_object_dict = BasicCatalog.from_file(file_path).get_dictionary()
     elif catalog_passage == 'params':
-        catalog_object_dict = DispatcherJobState.create_catalog_object(wrong_format=not correct_format)
+        catalog_object_dict = DispatcherJobState.create_catalog_object()
         params['selected_catalog'] = json.dumps(catalog_object_dict)
 
     jdata = ask(server,
                 params,
-                expected_query_status=expected_query_status,
-                expected_status_code=expected_status_code,
+                expected_query_status=["submitted"],
                 max_time_s=150,
                 method='post',
                 files={"user_catalog_file": list_file_content}
@@ -1591,29 +1574,25 @@ def test_email_catalog(dispatcher_long_living_fixture,
 
     if list_file is not None:
         list_file.close()
-    if correct_format:
-        dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
-        params['selected_catalog'] = json.dumps(catalog_object_dict),
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    params['selected_catalog'] = json.dumps(catalog_object_dict),
 
-        completed_dict_param = {**params,
-                                'src_name': '1E 1740.7-2942',
-                                'RA': 265.97845833,
-                                'DEC': -29.74516667,
-                                'T1': '2017-03-06T13:26:48.000',
-                                'T2': '2017-03-06T15:32:27.000',
-                                }
+    completed_dict_param = {**params,
+                            'src_name': '1E 1740.7-2942',
+                            'RA': 265.97845833,
+                            'DEC': -29.74516667,
+                            'T1': '2017-03-06T13:26:48.000',
+                            'T2': '2017-03-06T15:32:27.000',
+                            }
 
-        products_url = get_expected_products_url(completed_dict_param,
-                                                 session_id=dispatcher_job_state.session_id,
-                                                 job_id=dispatcher_job_state.job_id,
-                                                 token=encoded_token)
-        # email validation
-        validate_catalog_email_content(message_record=dispatcher_local_mail_server.get_email_record(),
-                                       products_url=products_url,
-                                       dispatcher_live_fixture=server)
-    else:
-        assert jdata['error_message'] == error_message
-
+    products_url = get_expected_products_url(completed_dict_param,
+                                             session_id=dispatcher_job_state.session_id,
+                                             job_id=dispatcher_job_state.job_id,
+                                             token=encoded_token)
+    # email validation
+    validate_catalog_email_content(message_record=dispatcher_local_mail_server.get_email_record(),
+                                   products_url=products_url,
+                                   dispatcher_live_fixture=server)
 
 
 @pytest.mark.not_safe_parallel
