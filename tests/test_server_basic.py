@@ -1312,7 +1312,9 @@ def test_empty_sentry(dispatcher_live_fixture_empty_sentry):
     assert jdata["exit_status"]["message"] == ""
 
 
+@pytest.mark.xfail
 def test_get_query_products_exception(dispatcher_live_fixture):
+    # TODO this test will be re-inserted when refactoring the error propagation (https://github.com/oda-hub/dispatcher-app/issues/273)
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
