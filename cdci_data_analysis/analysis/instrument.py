@@ -559,23 +559,9 @@ class Instrument:
 
     def set_catalog(self, par_dic):
         user_catalog_file = None
-        if 'user_catalog_file' in par_dic.keys():
+        if 'user_catalog_file' in par_dic.keys() and par_dic['user_catalog_file'] is not None:
             user_catalog_file = par_dic['user_catalog_file']
-
-        if 'user_catalog_dictionary' in par_dic.keys() and par_dic['user_catalog_dictionary'] is not None:
-            catalog_to_build = None
-            if type(par_dic['user_catalog_dictionary']) == dict:
-                catalog_to_build = par_dic['user_catalog_dictionary']
-            else:
-                catalog_to_build = json.loads(par_dic['selected_catalog'])
-            if catalog_to_build is not None:
-                try:
-                    catalog_dic = build_catalog(catalog_to_build)
-                except RuntimeError:
-                    raise RequestNotUnderstood("catalog format not valid")
-                self.set_par('user_catalog', catalog_dic)
-        # setting user_catalog in the par_dic, either loading it from the file or aas an object
-        if user_catalog_file is not None:
+            # setting user_catalog in the par_dic, either loading it from the file or aas an object
             try:
                 catalog_object = load_user_catalog(user_catalog_file)
             except RuntimeError:
@@ -589,7 +575,8 @@ class Instrument:
         else:
             if 'catalog_selected_objects' in par_dic.keys():
                 try:
-                    catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)
+                    catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','),
+                                                        dtype=np.int)
                 except RuntimeError:
                     raise RequestNotUnderstood("catalog format not valid")
             else:
@@ -601,6 +588,20 @@ class Instrument:
                 except RuntimeError:
                     raise RequestNotUnderstood("catalog format not valid")
                 self.set_par('user_catalog', user_catalog)
+
+        if 'user_catalog_dictionary' in par_dic.keys() and par_dic['user_catalog_dictionary'] is not None:
+            catalog_to_build = None
+            if type(par_dic['user_catalog_dictionary']) == dict:
+                catalog_to_build = par_dic['user_catalog_dictionary']
+            else:
+                catalog_to_build = json.loads(par_dic['selected_catalog'])
+            if catalog_to_build is not None:
+                try:
+                    catalog_dic = build_catalog(catalog_to_build)
+                except RuntimeError:
+                    raise RequestNotUnderstood("catalog format not valid")
+                self.set_par('user_catalog', catalog_dic)
+
 
 def load_user_catalog(user_catalog_file):
     return BasicCatalog.from_file(user_catalog_file)
