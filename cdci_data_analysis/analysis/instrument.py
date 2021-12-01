@@ -558,14 +558,14 @@ class Instrument:
                 par_dic['user_catalog_file'] = cat_file_path
 
     def set_catalog(self, par_dic):
-        user_catalog_file = None
         if 'user_catalog_file' in par_dic.keys() and par_dic['user_catalog_file'] is not None:
             user_catalog_file = par_dic['user_catalog_file']
             # setting user_catalog in the par_dic, either loading it from the file or aas an object
             try:
                 catalog_object = load_user_catalog(user_catalog_file)
             except RuntimeError:
-                raise RequestNotUnderstood("catalog format not valid")
+                raise RequestNotUnderstood("catalog format not valid, the formats accepted are ascii.ecsv "
+                                           "and fits table (standard OSA catalog)")
             self.set_par('user_catalog', catalog_object)
             self.set_par('selected_catalog', json.dumps(catalog_object.get_dictionary()))
             # TODO not needed in the frontend
@@ -573,6 +573,7 @@ class Instrument:
         else:
             if 'catalog_selected_objects' in par_dic.keys():
                 try:
+                    # TODO not sure it makes sense here
                     catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','),
                                                         dtype=np.int)
                 except RuntimeError:
@@ -588,7 +589,6 @@ class Instrument:
                 self.set_par('user_catalog', user_catalog)
 
         if 'user_catalog_dictionary' in par_dic.keys() and par_dic['user_catalog_dictionary'] is not None:
-            catalog_to_build = None
             if type(par_dic['user_catalog_dictionary']) == dict:
                 catalog_to_build = par_dic['user_catalog_dictionary']
             else:
