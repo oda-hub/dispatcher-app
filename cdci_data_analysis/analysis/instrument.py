@@ -584,8 +584,9 @@ class Instrument:
                 catalog_dic = json.loads(par_dic['selected_catalog'])
                 try:
                     user_catalog = build_catalog(catalog_dic, catalog_selected_objects)
-                except RuntimeError:
-                    raise RequestNotUnderstood("catalog format not valid")
+                except Exception as e:
+                    e_message = repr(e)
+                    raise RequestNotUnderstood(e_message)
                 self.set_par('user_catalog', user_catalog)
 
         if 'user_catalog_dictionary' in par_dic.keys() and par_dic['user_catalog_dictionary'] is not None:
