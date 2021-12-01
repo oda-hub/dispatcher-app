@@ -594,6 +594,7 @@ class Instrument:
                     raise RequestNotUnderstood(e_message)
                 self.set_par('user_catalog', user_catalog)
 
+        # TODO is this case still in use?
         if 'user_catalog_dictionary' in par_dic.keys() and par_dic['user_catalog_dictionary'] is not None:
             if type(par_dic['user_catalog_dictionary']) == dict:
                 catalog_to_build = par_dic['user_catalog_dictionary']
