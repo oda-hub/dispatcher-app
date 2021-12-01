@@ -563,9 +563,9 @@ class Instrument:
         return cat_file_path
 
     def set_catalog(self, par_dic):
+        # setting user_catalog in the par_dic, either loading it from the file or aas an object
         if 'user_catalog_file' in par_dic.keys() and par_dic['user_catalog_file'] is not None:
             user_catalog_file = par_dic['user_catalog_file']
-            # setting user_catalog in the par_dic, either loading it from the file or aas an object
             try:
                 catalog_object = load_user_catalog(user_catalog_file)
             except RuntimeError:
@@ -576,9 +576,9 @@ class Instrument:
             # TODO not needed in the frontend
             par_dic.pop('user_catalog_file', None)
         else:
+            # TODO is this case still in use?
             if 'catalog_selected_objects' in par_dic.keys():
                 try:
-                    # TODO not sure it makes sense here
                     catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','),
                                                         dtype=np.int)
                 except:
