@@ -569,7 +569,7 @@ class Instrument:
             try:
                 catalog_object = load_user_catalog(user_catalog_file)
             except RuntimeError:
-                raise RequestNotUnderstood('format not valid, a catalog should be provided in a FITS (typical standard OSA catalog) or '
+                raise RequestNotUnderstood('format not valid, a catalog should be provided as a FITS (typical standard OSA catalog) or '
                                            '<a href=https://docs.astropy.org/en/stable/api/astropy.io.ascii.Ecsv.html>ECSV</a> table.')
             self.set_par('user_catalog', catalog_object)
             self.set_par('selected_catalog', json.dumps(catalog_object.get_dictionary()))
