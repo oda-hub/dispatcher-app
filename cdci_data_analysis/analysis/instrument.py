@@ -223,7 +223,7 @@ class Instrument:
         except RequestNotUnderstood as e:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='',
-                                                 additional=getattr(e, 'message', ''))
+                                                 additional=': '+getattr(e, 'message', ''))
             raise RequestNotUnderstood(error_message)
         except Exception as e:
             error_message = error_message.format(step=step,
@@ -569,8 +569,8 @@ class Instrument:
             try:
                 catalog_object = load_user_catalog(user_catalog_file)
             except RuntimeError:
-                raise RequestNotUnderstood("catalog format not valid, the formats accepted are ascii.ecsv "
-                                           "and fits table (standard OSA catalog)")
+                raise RequestNotUnderstood('format not valid, this should be a FITS (typical standard OSA catalog) or '
+                                           '<a href=https://docs.astropy.org/en/stable/api/astropy.io.ascii.Ecsv.html>ECSV</a> table.')
             self.set_par('user_catalog', catalog_object)
             self.set_par('selected_catalog', json.dumps(catalog_object.get_dictionary()))
             # TODO not needed in the frontend
@@ -581,8 +581,8 @@ class Instrument:
                     # TODO not sure it makes sense here
                     catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','),
                                                         dtype=np.int)
-                except RuntimeError:
-                    raise RequestNotUnderstood("catalog format not valid")
+                except:
+                    raise RequestNotUnderstood("format not valid")
             else:
                 catalog_selected_objects = None
             if 'selected_catalog' in par_dic.keys():

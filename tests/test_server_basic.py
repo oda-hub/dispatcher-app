@@ -883,8 +883,9 @@ def test_catalog_file(dispatcher_live_fixture, correct_format):
     else:
         expected_query_status = None
         expected_status_code = 400
-        error_message = ('Error while setting catalog file from the frontend catalog format not valid, '
-                         'the formats accepted are ascii.ecsv and fits table (standard OSA catalog)')
+        error_message = ('Error while setting catalog file from the frontend : format not valid, '
+                         'this should be a FITS (typical standard OSA catalog) or '
+                         '<a href=https://docs.astropy.org/en/stable/api/astropy.io.ascii.Ecsv.html>ECSV</a> table.')
 
     jdata = ask(server,
                 params,
