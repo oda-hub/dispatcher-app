@@ -37,7 +37,7 @@ __author__ = "Andrea Tramacere"
 from cdci_data_analysis.analysis.instrument import Instrument
 from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float
 
-from .data_server_dispatcher import EmptyProductQuery, DataServerNumericQuery, DataServerParametricQuery
+from .data_server_dispatcher import EmptyProductQuery, DataServerNumericQuery, FailingProductQuery, DataServerParametricQuery
 
 # duplicated with jemx, but this staticmethod makes it complex.
 # this all should be done commonly, for all parameters - limits are common thing
@@ -67,6 +67,8 @@ def my_instr_factory():
 
     # my_instr_image_query -> name given to this query
     empty_query = EmptyProductQuery('empty_parameters_dummy_query',)
+    # my_instr_image_query -> name given to this query
+    failing_query = FailingProductQuery('failing_parameters_dummy_query', )
     # let's build a simple parameter to its list
     p = BoundaryFloat(value=10., name='p', units='W',)
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
@@ -86,10 +88,11 @@ def my_instr_factory():
     # nor product, only a simple query that does not return anything
     query_dictionary['dummy'] = 'empty_parameters_dummy_query'
     query_dictionary['numerical'] = 'numerical_parameters_dummy_query'
+    query_dictionary['failing'] = 'failing_parameters_dummy_query'
     query_dictionary['parametrical'] = 'parametrical_parameters_dummy_query'
 
     return Instrument('empty',
                       src_query=src_query,
                       instrumet_query=instr_query,
-                      product_queries_list=[empty_query, numerical_query, parametrical_query],
+                      product_queries_list=[empty_query, numerical_query, failing_query, parametrical_query],
                       query_dictionary=query_dictionary)

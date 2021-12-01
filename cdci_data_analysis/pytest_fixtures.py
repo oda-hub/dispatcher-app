@@ -92,7 +92,6 @@ def default_token_payload():
 @pytest.fixture
 def dispatcher_nodebug(monkeypatch):
     monkeypatch.delenv('DISPATCHER_DEBUG_MODE', raising=False)
-    # monkeypatch.setenv('DISPATCHER_DEBUG_MODE', 'no')
 
 
 def run_analysis(server, params, method='get', files=None):

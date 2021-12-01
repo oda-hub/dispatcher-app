@@ -42,6 +42,7 @@ from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.analysis.queries import ProductQuery
 from cdci_data_analysis.analysis.products import BaseQueryProduct, QueryOutput, QueryProductList, ImageProduct
 from cdci_data_analysis.analysis.instrument import Instrument
+from cdci_data_analysis.analysis.exceptions import InternalError
 
 from oda_api.data_products import NumpyDataProduct, NumpyDataUnit
 
@@ -219,6 +220,15 @@ class EmptyProductQuery(ProductQuery):
         # return True
         results = dict(authorization=True, needed_roles=[])
         return results
+
+
+class FailingProductQuery(EmptyProductQuery):
+
+    def __init__(self, name='unset-name', config=None, instrument=None):
+        super().__init__(name)
+
+    def get_dummy_products(self, instrument, config=None, **kwargs):
+        raise InternalError("failing query")
 
 
 class DataServerNumericQuery(ProductQuery):
