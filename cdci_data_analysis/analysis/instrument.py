@@ -201,13 +201,16 @@ class Instrument:
                            verbose,
                            use_scws,
                            sentry_client=None):
-        error_message = 'Error while {step} from the frontend{temp_dir_content_msg}{additional}'
+        error_message = 'Error while {step} {temp_dir_content_msg}{additional}'
         # TODO probably exception handling can be further improved and/or optmized
         try:
             # set catalog
-            step = 'uploading catalog file'
-            self.upload_catalog_from_fronted(par_dic=par_dic, request=request, temp_dir=temp_dir)
-            step = 'setting catalog file'
+            step = 'uploading catalog file from the frontend'
+            cat_file_path = self.upload_catalog_from_fronted(par_dic=par_dic, request=request, temp_dir=temp_dir)
+            if cat_file_path is not None:
+                step = 'setting catalog file from the frontend'
+            else:
+                step = 'setting catalog object'
             self.set_catalog(par_dic)
 
             # set scw_list
@@ -219,7 +222,7 @@ class Instrument:
             self.set_input_products_from_fronted(input_file_path=input_file_path, par_dic=par_dic, verbose=verbose)
         except RequestNotUnderstood as e:
             error_message = error_message.format(step=step,
-                                                 temp_dir_content_msg=' ',
+                                                 temp_dir_content_msg='',
                                                  additional=getattr(e, 'message', ''))
             raise RequestNotUnderstood(error_message)
         except Exception as e:
@@ -551,11 +554,13 @@ class Instrument:
         return has_prods
 
     def upload_catalog_from_fronted(self, par_dic, request, temp_dir):
+        cat_file_path = None
         if request.method == 'POST':
             # save to a temporary folder, and delete it afterwards
             cat_file_path = upload_file('user_catalog_file', temp_dir)
             if cat_file_path is not None:
                 par_dic['user_catalog_file'] = cat_file_path
+        return cat_file_path
 
     def set_catalog(self, par_dic):
         if 'user_catalog_file' in par_dic.keys() and par_dic['user_catalog_file'] is not None:
@@ -584,8 +589,8 @@ class Instrument:
                 catalog_dic = json.loads(par_dic['selected_catalog'])
                 try:
                     user_catalog = build_catalog(catalog_dic, catalog_selected_objects)
-                except Exception as e:
-                    e_message = repr(e)
+                except ValueError as e:
+                    e_message = str(e)
                     raise RequestNotUnderstood(e_message)
                 self.set_par('user_catalog', user_catalog)
 
