@@ -1718,26 +1718,23 @@ def test_email_scws_list(dispatcher_long_living_fixture,
     elif scw_list_passage == 'both' and scw_list_format == 'spaced_string':
         if use_scws_value == 'user_file' or use_scws_value == 'no':
             error_message = error_message_scw_list_found_parameter
-        elif scw_list_size == 1 and \
-                (use_scws_value == 'form_list' or use_scws_value is None or use_scws_value == 'not_included'):
+        elif (use_scws_value == 'form_list' or use_scws_value is None or use_scws_value == 'not_included') and \
+                scw_list_size == 1:
             error_message = error_message_scw_list_found_file
         else:
             error_message = error_message_scw_list_wrong_format_parameter
         assert jdata['error_message'] == error_message
 
-    elif scw_list_passage == 'file' and use_scws_value != 'user_file' and scw_list_format != 'spaced_string':
+    elif scw_list_passage == 'file' and use_scws_value != 'user_file' and \
+            (scw_list_format != 'spaced_string' or (scw_list_format == 'spaced_string' and scw_list_size == 1)):
         error_message = error_message_scw_list_missing_parameter if use_scws_value == 'form_list' \
             else error_message_scw_list_found_file
+
         assert jdata['error_message'] == error_message
 
     elif scw_list_passage == 'file' and scw_list_format == 'spaced_string' and scw_list_size > 1:
         error_message = error_message_scw_list_missing_parameter if use_scws_value == 'form_list' \
             else error_message_scw_list_wrong_format_file
-        assert jdata['error_message'] == error_message
-
-    elif scw_list_passage == 'file' and use_scws_value != 'user_file' and scw_list_format == 'spaced_string' and scw_list_size == 1:
-        error_message = error_message_scw_list_missing_parameter if use_scws_value == 'form_list' \
-            else error_message_scw_list_found_file
         assert jdata['error_message'] == error_message
 
     elif scw_list_passage == 'params' and \
