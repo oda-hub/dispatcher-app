@@ -542,7 +542,8 @@ class Instrument:
                         # check if they are space-separated, and in case raise exception since it's unsupported
                         ll_space_separated = ll.split()
                         if len(ll_space_separated) > 1:
-                            raise RequestNotUnderstood('a space separated science windows list is a not supported format')
+                            raise RequestNotUnderstood('a space separated science windows list is an unsupported format, '
+                                                       'please provide it as a comme separated list')
                         lines.extend(ll.split(","))
                     lines = [item.strip() for item in lines]
                     cleaned_lines=[]
