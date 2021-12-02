@@ -539,7 +539,11 @@ class Instrument:
                     _lines = f.readlines()
                     lines = []
                     for ll in _lines:
-                         lines.extend(ll.split(","))
+                        # check if they are space-separated, and in case raise exception since it's unsupported
+                        ll_space_separated = ll.split()
+                        if len(ll_space_separated) > 1:
+                            raise RequestNotUnderstood('a space separated science windows list is a not supported format')
+                        lines.extend(ll.split(","))
                     lines = [item.strip() for item in lines]
                     cleaned_lines=[]
                     for line in lines:
@@ -548,7 +552,9 @@ class Instrument:
 
                 par_dic[input_prod_list_name] = cleaned_lines
                 has_prods= len(lines) >= 1
-            except:
+            except RequestNotUnderstood as e:
+                raise e
+            except Exception:
                 has_prods=False
 
         return has_prods

@@ -1598,7 +1598,7 @@ def test_email_catalog(dispatcher_long_living_fixture,
 @pytest.mark.not_safe_parallel
 @pytest.mark.test_email_scws_list
 @pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
-@pytest.mark.parametrize("scw_list_format", ['list', 'string'])
+@pytest.mark.parametrize("scw_list_format", ['list', 'string', 'spaced_string'])
 @pytest.mark.parametrize("call_back_action", ['done', 'failed'])
 @pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
 @pytest.mark.parametrize("scw_list_size", [1, 5, 40])
@@ -1681,6 +1681,9 @@ def test_email_scws_list(dispatcher_long_living_fixture,
     except KeyError:
         processed_scw_list = None
 
+    error_message_scw_list_wrong_format = (
+        'Error while setting input scw_list file : a space separated science windows list is a not supported format')
+
     error_message_scw_list_missing_parameter = (
         'scw_list parameter was expected to be passed, but it has not been found, '
         'please check the inputs')
@@ -1706,7 +1709,17 @@ def test_email_scws_list(dispatcher_long_living_fixture,
             else error_message_scw_list_found_file
         assert jdata['error_message'] == error_message
 
-    elif scw_list_passage == 'file' and use_scws_value != 'user_file':
+    elif scw_list_passage == 'file' and use_scws_value != 'user_file' and scw_list_format != 'spaced_string':
+        error_message = error_message_scw_list_missing_parameter if use_scws_value == 'form_list' \
+            else error_message_scw_list_found_file
+        assert jdata['error_message'] == error_message
+
+    elif scw_list_passage == 'file' and scw_list_format == 'spaced_string' and scw_list_size > 1:
+        error_message = error_message_scw_list_missing_parameter if use_scws_value == 'form_list' \
+            else error_message_scw_list_wrong_format
+        assert jdata['error_message'] == error_message
+
+    elif scw_list_passage == 'file' and use_scws_value != 'user_file' and scw_list_format == 'spaced_string' and scw_list_size == 1:
         error_message = error_message_scw_list_missing_parameter if use_scws_value == 'form_list' \
             else error_message_scw_list_found_file
         assert jdata['error_message'] == error_message

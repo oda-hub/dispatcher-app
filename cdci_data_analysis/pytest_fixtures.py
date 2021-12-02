@@ -734,6 +734,8 @@ class DispatcherJobState:
         with open('scw_list_files/' + file_name, 'w+') as outlist_file:
             if format == 'string':
                 outlist_file.write(",".join(scw_list))
+            elif format == 'spaced_string':
+                outlist_file.write(" ".join(scw_list))
             elif format == 'list':
                 for scw in scw_list:
                     outlist_file.write(str(scw) + '\n')
