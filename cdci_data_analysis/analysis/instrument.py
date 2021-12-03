@@ -583,13 +583,13 @@ class Instrument:
             # TODO not needed in the frontend
             par_dic.pop('user_catalog_file', None)
         else:
-            # TODO is this case still in use?
+            # TODO comes from the frontend when user selects "use as catalog"
             if 'catalog_selected_objects' in par_dic.keys():
                 try:
                     catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=int)
                 except:
                     # TODO of course to provide a better message
-                    raise RequestNotUnderstood("catalog_selected_objects format not valid")
+                    raise RequestNotUnderstood("the selected catalog is wrongly formatted, please check your inputs")
             else:
                 catalog_selected_objects = None
             if 'selected_catalog' in par_dic.keys():

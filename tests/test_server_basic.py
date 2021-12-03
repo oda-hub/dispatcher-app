@@ -929,7 +929,7 @@ def test_catalog_file(dispatcher_live_fixture, correct_format):
 
 @pytest.mark.test_catalog
 @pytest.mark.parametrize("correct_format", [True, False])
-@pytest.mark.parametrize("catalog_selected_objects", [1, "1", "", None])
+@pytest.mark.parametrize("catalog_selected_objects", [1, "1", "1,1,1", "", "aaa", None])
 def test_user_catalog(dispatcher_live_fixture, correct_format, catalog_selected_objects):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -954,14 +954,19 @@ def test_user_catalog(dispatcher_live_fixture, correct_format, catalog_selected_
                           ["ERR_RAD", "<i8"]]
     )
 
-    if correct_format:
-        expected_query_status = ["done"]
-        expected_status_code = 200
-    else:
+    correct_catalog_selected_objects = catalog_selected_objects != "" and catalog_selected_objects != "aaa"
+
+    expected_query_status = ["done"]
+    expected_status_code = 200
+    if not correct_format or not correct_catalog_selected_objects:
         selected_catalog_dict['cat_column_list'][8].append(0)
         expected_query_status = None
         expected_status_code = 400
-        error_message = 'Error while setting catalog object : Inconsistent data column lengths: {1, 2}'
+        error_message = 'Error while setting catalog object : '
+        if not correct_catalog_selected_objects:
+            error_message += 'the selected catalog is wrongly formatted, please check your inputs'
+        else:
+            error_message += 'Inconsistent data column lengths: {1, 2}'
 
     params = {
         **default_params,
@@ -969,6 +974,7 @@ def test_user_catalog(dispatcher_live_fixture, correct_format, catalog_selected_
         'query_type': "Dummy",
         'instrument': 'empty',
         'selected_catalog': json.dumps(selected_catalog_dict),
+        'catalog_selected_objects': catalog_selected_objects,
         'token': encoded_token
     }
 
@@ -979,7 +985,9 @@ def test_user_catalog(dispatcher_live_fixture, correct_format, catalog_selected_
                 max_time_s=150,
                 method='post'
                 )
-    if correct_format:
+    if not correct_format or not correct_catalog_selected_objects:
+        assert jdata['error_message'] == error_message
+    else:
         assert 'selected_catalog' in jdata['products']['analysis_parameters']
         assert jdata['products']['analysis_parameters']['selected_catalog'] == json.dumps(selected_catalog_dict)
         assert 'user_catalog_file' not in jdata['products']['analysis_parameters']
@@ -987,12 +995,14 @@ def test_user_catalog(dispatcher_live_fixture, correct_format, catalog_selected_
         job_id = jdata['products']['job_id']
         session_id = jdata['session_id']
         # adapting some values to string
+        str_fied_params = {}
         for k, v in params.items():
-            params[k] = str(v)
+            if v is not None:
+                str_fied_params[k] = str(v)
 
         restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic(
             {
-                **params,
+                **str_fied_params,
                 'sub': 'mtm@mtmco.net',
                 'p_list': [],
                 'RA': 83.,
@@ -1003,8 +1013,7 @@ def test_user_catalog(dispatcher_live_fixture, correct_format, catalog_selected_
         calculated_job_id = make_hash(restricted_par_dic)
 
         assert job_id == calculated_job_id
-    else:
-        assert jdata['error_message'] == error_message
+
 
 
 @pytest.mark.odaapi
