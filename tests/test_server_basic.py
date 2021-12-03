@@ -929,7 +929,8 @@ def test_catalog_file(dispatcher_live_fixture, correct_format):
 
 @pytest.mark.test_catalog
 @pytest.mark.parametrize("correct_format", [True, False])
-def test_user_catalog(dispatcher_live_fixture, correct_format):
+@pytest.mark.parametrize("catalog_selected_objects", [1, "1", "", None])
+def test_user_catalog(dispatcher_live_fixture, correct_format, catalog_selected_objects):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 

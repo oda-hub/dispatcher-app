@@ -586,10 +586,10 @@ class Instrument:
             # TODO is this case still in use?
             if 'catalog_selected_objects' in par_dic.keys():
                 try:
-                    catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','),
-                                                        dtype=np.int)
+                    catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=int)
                 except:
-                    raise RequestNotUnderstood("format not valid")
+                    # TODO of course to provide a better message
+                    raise RequestNotUnderstood("catalog_selected_objects format not valid")
             else:
                 catalog_selected_objects = None
             if 'selected_catalog' in par_dic.keys():
