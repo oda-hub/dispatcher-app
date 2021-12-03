@@ -580,7 +580,7 @@ class Instrument:
                                            '<a href=https://docs.astropy.org/en/stable/api/astropy.io.ascii.Ecsv.html>ECSV</a> table.')
             self.set_par('user_catalog', catalog_object)
             self.set_par('selected_catalog', json.dumps(catalog_object.get_dictionary()))
-            # TODO not needed in the frontend
+            # not needed in the frontend
             par_dic.pop('user_catalog_file', None)
         else:
             # TODO comes from the frontend when user selects "use as catalog"
@@ -601,7 +601,7 @@ class Instrument:
                     raise RequestNotUnderstood(e_message)
                 self.set_par('user_catalog', user_catalog)
 
-        # TODO is this case still in use?
+        # TODO this is not used from the frontend, perhaps it was in the past
         if 'user_catalog_dictionary' in par_dic.keys() and par_dic['user_catalog_dictionary'] is not None:
             if type(par_dic['user_catalog_dictionary']) == dict:
                 catalog_to_build = par_dic['user_catalog_dictionary']
