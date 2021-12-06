@@ -344,8 +344,7 @@ class InstrumentQueryBackEnd:
 
         roles = tokenHelper.get_token_roles(decoded_token)
 
-        # TODO perhaps re-use the existing 'content manager' ?
-        required_roles = ['administrator', 'jobs manager']
+        required_roles = ['administrator', 'job manager']
         if not all(item in roles for item in required_roles):
             lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
             message = (
