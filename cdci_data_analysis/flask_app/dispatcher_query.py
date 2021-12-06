@@ -565,7 +565,6 @@ class InstrumentQueryBackEnd:
         # but it is re-attached to the url within the email
         # when sending it since it is used by the frontend
 
-        # why use both `request` and `self.par_dict`? par_dict should be derived from request while preserving list
         self.use_scws = self.par_dic.pop('use_scws', None)
         #
         if 'scw_list' in self.par_dic.keys():
@@ -578,6 +577,10 @@ class InstrumentQueryBackEnd:
                 self.par_dic['scw_list'] = _p
             # it could be a comma-separated string, so let's convert to a list
             elif len(_p) == 1:
+                _p_space_separated = _p[0].split()
+                if len(_p_space_separated) > 1:
+                    raise RequestNotUnderstood('a space separated science windows list is an unsupported format, '
+                                               'please provide it as a comme separated list')
                 _p = str(_p)[1:-1].replace('\'','').split(",")
                 if len(_p) > 1:
                     # TODO to be extended also to cases with one element,

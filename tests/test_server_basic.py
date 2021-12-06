@@ -852,7 +852,8 @@ def test_scws_list_file(dispatcher_live_fixture):
 
 
 @pytest.mark.test_catalog
-def test_catalog_file(dispatcher_live_fixture):
+@pytest.mark.parametrize("correct_format", [True, False])
+def test_catalog_file(dispatcher_live_fixture, correct_format):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
@@ -871,49 +872,65 @@ def test_catalog_file(dispatcher_live_fixture):
         'token': encoded_token
     }
 
-    file_path = DispatcherJobState.create_catalog_file(catalog_value=5)
+    file_path = DispatcherJobState.create_catalog_file(catalog_value=5, wrong_format= not correct_format)
 
     list_file = open(file_path)
 
-    catalog_object = BasicCatalog.from_file(file_path)
+    if correct_format:
+        catalog_object = BasicCatalog.from_file(file_path)
+        expected_query_status = ["done"]
+        expected_status_code = 200
+    else:
+        expected_query_status = None
+        expected_status_code = 400
+        error_message = ('Error while setting catalog file from the frontend : format not valid, '
+                         'a catalog should be provided as a FITS (typical standard OSA catalog) or '
+                         '<a href=https://docs.astropy.org/en/stable/api/astropy.io.ascii.Ecsv.html>ECSV</a> table.')
 
     jdata = ask(server,
                 params,
-                expected_query_status=["done"],
+                expected_query_status=expected_query_status,
+                expected_status_code=expected_status_code,
                 max_time_s=150,
                 method='post',
                 files={"user_catalog_file": list_file.read()}
                 )
 
-    list_file.close()
-    assert 'selected_catalog' in jdata['products']['analysis_parameters']
-    assert json.dumps(catalog_object.get_dictionary()) == jdata['products']['analysis_parameters']['selected_catalog']
-    assert 'user_catalog_file' not in jdata['products']['analysis_parameters']
-    # test job_id
-    job_id = jdata['products']['job_id']
+    if correct_format:
+        list_file.close()
+        assert 'selected_catalog' in jdata['products']['analysis_parameters']
+        assert json.dumps(catalog_object.get_dictionary()) == jdata['products']['analysis_parameters']['selected_catalog']
+        assert 'user_catalog_file' not in jdata['products']['analysis_parameters']
+        # test job_id
+        job_id = jdata['products']['job_id']
 
-    # adapting some values to string
-    for k, v in params.items():
-        params[k] = str(v)
+        # adapting some values to string
+        for k, v in params.items():
+            params[k] = str(v)
 
-    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic(
-        {
-            **params,
-            'selected_catalog': json.dumps(catalog_object.get_dictionary()),
-            'sub': 'mtm@mtmco.net',
-            'p_list': [],
-            'RA': 83.,
-            'DEC': 22.,
-            'src_name': '1E 1740.7-2942',
-        }
-    )
-    calculated_job_id = make_hash(restricted_par_dic)
+        restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic(
+            {
+                **params,
+                'selected_catalog': json.dumps(catalog_object.get_dictionary()),
+                'sub': 'mtm@mtmco.net',
+                'p_list': [],
+                'RA': 83.,
+                'DEC': 22.,
+                'src_name': '1E 1740.7-2942',
+            }
+        )
+        calculated_job_id = make_hash(restricted_par_dic)
 
-    assert job_id == calculated_job_id
+        assert job_id == calculated_job_id
+
+    else:
+        assert jdata['error_message'] == error_message
 
 
 @pytest.mark.test_catalog
-def test_user_catalog(dispatcher_live_fixture):
+@pytest.mark.parametrize("correct_format", [True, False])
+@pytest.mark.parametrize("catalog_selected_objects", [1, "1", "1,1,1", "", "aaa", None])
+def test_user_catalog(dispatcher_live_fixture, correct_format, catalog_selected_objects):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
@@ -936,50 +953,73 @@ def test_user_catalog(dispatcher_live_fixture):
                           ["dec", "<f8"], ["NEW_SOURCE", "<i8"], ["ISGRI_FLAG", "<i8"], ["FLAG", "<i8"],
                           ["ERR_RAD", "<i8"]]
     )
+
+    correct_catalog_selected_objects = catalog_selected_objects != "" and catalog_selected_objects != "aaa"
+
+    expected_query_status = ["done"]
+    expected_status_code = 200
+    if not correct_format or not correct_catalog_selected_objects:
+        selected_catalog_dict['cat_column_list'][8].append(0)
+        expected_query_status = None
+        expected_status_code = 400
+        error_message = 'Error while setting catalog object : '
+        if not correct_catalog_selected_objects:
+            error_message += 'the selected catalog is wrongly formatted, please check your inputs'
+        else:
+            error_message += 'Inconsistent data column lengths: {1, 2}'
+
     params = {
         **default_params,
         'product_type': 'dummy',
         'query_type': "Dummy",
         'instrument': 'empty',
         'selected_catalog': json.dumps(selected_catalog_dict),
+        'catalog_selected_objects': catalog_selected_objects,
         'token': encoded_token
     }
 
     jdata = ask(server,
                 params,
-                expected_query_status=["done"],
+                expected_query_status=expected_query_status,
+                expected_status_code=expected_status_code,
                 max_time_s=150,
                 method='post'
                 )
+    if not correct_format or not correct_catalog_selected_objects:
+        assert jdata['error_message'] == error_message
+    else:
+        assert 'selected_catalog' in jdata['products']['analysis_parameters']
+        assert jdata['products']['analysis_parameters']['selected_catalog'] == json.dumps(selected_catalog_dict)
+        assert 'user_catalog_file' not in jdata['products']['analysis_parameters']
+        # test job_id
+        job_id = jdata['products']['job_id']
+        session_id = jdata['session_id']
+        # adapting some values to string
+        str_fied_params = {}
+        for k, v in params.items():
+            if v is not None:
+                str_fied_params[k] = str(v)
 
-    assert 'selected_catalog' in jdata['products']['analysis_parameters']
-    assert jdata['products']['analysis_parameters']['selected_catalog'] == json.dumps(selected_catalog_dict)
-    assert 'user_catalog_file' not in jdata['products']['analysis_parameters']
-    # test job_id
-    job_id = jdata['products']['job_id']
-    session_id = jdata['session_id']
-    # adapting some values to string
-    for k, v in params.items():
-        params[k] = str(v)
+        restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic(
+            {
+                **str_fied_params,
+                'sub': 'mtm@mtmco.net',
+                'p_list': [],
+                'RA': 83.,
+                'DEC': 22.,
+                'src_name': '1E 1740.7-2942',
+            }
+        )
+        calculated_job_id = make_hash(restricted_par_dic)
 
-    restricted_par_dic = InstrumentQueryBackEnd.restricted_par_dic(
-        {
-            **params,
-            'sub': 'mtm@mtmco.net',
-            'p_list': [],
-            'RA': 83.,
-            'DEC': 22.,
-            'src_name': '1E 1740.7-2942',
-        }
-    )
-    calculated_job_id = make_hash(restricted_par_dic)
+        assert job_id == calculated_job_id
 
-    assert job_id == calculated_job_id
 
 
 @pytest.mark.odaapi
 @pytest.mark.test_catalog
-def test_user_catalog_oda_api(dispatcher_live_fixture):
+@pytest.mark.parametrize("correct_format", [True, False])
+def test_user_catalog_oda_api(dispatcher_live_fixture, correct_format):
     import oda_api.api
     import oda_api.data_products
 
@@ -1003,43 +1043,54 @@ def test_user_catalog_oda_api(dispatcher_live_fixture):
         cat_column_descr=[["meta_ID", "<i8"], ["src_names","<U6"], ["significance", "<i8"], ["ra", "<f8"], ["dec", "<f8"], ["NEW_SOURCE", "<i8"], ["ISGRI_FLAG","<i8"],["FLAG","<i8"],["ERR_RAD","<i8"]]
     )
 
+    if not correct_format:
+        selected_catalog_dict['cat_column_list'][8].append(0)
+
     disp = oda_api.api.DispatcherAPI(
         url=dispatcher_live_fixture,
         wait=False)
-
-    prods = disp.get_product(
+    get_product_args = dict(
         product_type="Dummy",
         instrument="empty",
         product="numerical",
         token=encoded_token,
         selected_catalog=json.dumps(selected_catalog_dict)
     )
-
-    logger.info("product: %s", prods)
-    logger.info("product show %s", prods.show())
-
-    session_id = disp.session_id
-    job_id = disp.job_id
-
-    # check query output are generated
-    query_output_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
-    # the aliased version might have been created
-    query_output_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
-    assert os.path.exists(query_output_json_fn) or os.path.exists(query_output_json_fn_aliased)
-    # get the query output
-    if os.path.exists(query_output_json_fn):
-        f = open(query_output_json_fn)
+    if not correct_format:
+        with pytest.raises(oda_api.api.RequestNotUnderstood):
+            disp.get_product(
+                **get_product_args
+            )
     else:
-        f = open(query_output_json_fn_aliased)
+        prods = disp.get_product(
+            **get_product_args
+        )
 
-    jdata = json.load(f)
+        logger.info("product: %s", prods)
+        logger.info("product show %s", prods.show())
 
-    assert "selected_catalog" in jdata["prod_dictionary"]["analysis_parameters"]
-    assert jdata["prod_dictionary"]["analysis_parameters"]["selected_catalog"] == json.dumps(selected_catalog_dict)
+        session_id = disp.session_id
+        job_id = disp.job_id
 
-    # TODO the name of this method is misleading
-    api_cat_dict = json.loads(prods.dispatcher_catalog_1.get_api_dictionary())
-    assert api_cat_dict == selected_catalog_dict
+        # check query output are generated
+        query_output_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
+        # the aliased version might have been created
+        query_output_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
+        assert os.path.exists(query_output_json_fn) or os.path.exists(query_output_json_fn_aliased)
+        # get the query output
+        if os.path.exists(query_output_json_fn):
+            f = open(query_output_json_fn)
+        else:
+            f = open(query_output_json_fn_aliased)
+
+        jdata = json.load(f)
+
+        assert "selected_catalog" in jdata["prod_dictionary"]["analysis_parameters"]
+        assert jdata["prod_dictionary"]["analysis_parameters"]["selected_catalog"] == json.dumps(selected_catalog_dict)
+
+        # TODO the name of this method is misleading
+        api_cat_dict = json.loads(prods.dispatcher_catalog_1.get_api_dictionary())
+        assert api_cat_dict == selected_catalog_dict
 
 
 def test_value_range(dispatcher_long_living_fixture):

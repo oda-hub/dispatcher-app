@@ -201,13 +201,16 @@ class Instrument:
                            verbose,
                            use_scws,
                            sentry_client=None):
-        error_message = 'Error while {step} from the frontend{temp_dir_content_msg}'
+        error_message = 'Error while {step} {temp_dir_content_msg}{additional}'
         # TODO probably exception handling can be further improved and/or optmized
         try:
             # set catalog
-            step = 'uploading catalog file'
-            self.upload_catalog_from_fronted(par_dic=par_dic, request=request, temp_dir=temp_dir)
-            step = 'setting catalog file'
+            step = 'uploading catalog file from the frontend'
+            cat_file_path = self.upload_catalog_from_fronted(par_dic=par_dic, request=request, temp_dir=temp_dir)
+            if cat_file_path is not None:
+                step = 'setting catalog file from the frontend'
+            else:
+                step = 'setting catalog object'
             self.set_catalog(par_dic)
 
             # set scw_list
@@ -217,10 +220,16 @@ class Instrument:
                                                                       temp_dir=temp_dir)
             step = 'setting input scw_list file'
             self.set_input_products_from_fronted(input_file_path=input_file_path, par_dic=par_dic, verbose=verbose)
+        except RequestNotUnderstood as e:
+            error_message = error_message.format(step=step,
+                                                 temp_dir_content_msg='',
+                                                 additional=': '+getattr(e, 'message', ''))
+            raise RequestNotUnderstood(error_message)
         except Exception as e:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='' if not os.path.exists(temp_dir) else
-                                                 f', content of the temporary directory is {os.listdir(temp_dir)}')
+                                                 f', content of the temporary directory is {os.listdir(temp_dir)}',
+                                                 additional='')
 
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
@@ -530,7 +539,12 @@ class Instrument:
                     _lines = f.readlines()
                     lines = []
                     for ll in _lines:
-                         lines.extend(ll.split(","))
+                        # check if they are space-separated, and in case raise exception since it's unsupported
+                        ll_space_separated = ll.split()
+                        if len(ll_space_separated) > 1:
+                            raise RequestNotUnderstood('a space separated science windows list is an unsupported format, '
+                                                       'please provide it as a comme separated list')
+                        lines.extend(ll.split(","))
                     lines = [item.strip() for item in lines]
                     cleaned_lines=[]
                     for line in lines:
@@ -539,46 +553,52 @@ class Instrument:
 
                 par_dic[input_prod_list_name] = cleaned_lines
                 has_prods= len(lines) >= 1
-            except:
+            except RequestNotUnderstood as e:
+                raise e
+            except Exception:
                 has_prods=False
 
         return has_prods
 
     def upload_catalog_from_fronted(self, par_dic, request, temp_dir):
+        cat_file_path = None
         if request.method == 'POST':
             # save to a temporary folder, and delete it afterwards
             cat_file_path = upload_file('user_catalog_file', temp_dir)
             if cat_file_path is not None:
                 par_dic['user_catalog_file'] = cat_file_path
+        return cat_file_path
 
     def set_catalog(self, par_dic):
-        user_catalog_file = None
-        if 'user_catalog_file' in par_dic.keys():
-            user_catalog_file = par_dic['user_catalog_file']
-
-        if 'user_catalog_dictionary' in par_dic.keys() and par_dic['user_catalog_dictionary'] is not None:
-            if type(par_dic['user_catalog_dictionary']) == dict:
-                self.set_par('user_catalog', build_catalog(par_dic['user_catalog_dictionary']))
-            else:
-                catalog_dic = json.loads(par_dic['selected_catalog'])
-                self.set_par('user_catalog', build_catalog(catalog_dic))
         # setting user_catalog in the par_dic, either loading it from the file or aas an object
-        if user_catalog_file is not None:
-            catalog_object = load_user_catalog(user_catalog_file)
+        if 'user_catalog_file' in par_dic.keys() and par_dic['user_catalog_file'] is not None:
+            user_catalog_file = par_dic['user_catalog_file']
+            try:
+                catalog_object = load_user_catalog(user_catalog_file)
+            except RuntimeError:
+                raise RequestNotUnderstood('format not valid, a catalog should be provided as a FITS (typical standard OSA catalog) or '
+                                           '<a href=https://docs.astropy.org/en/stable/api/astropy.io.ascii.Ecsv.html>ECSV</a> table.')
             self.set_par('user_catalog', catalog_object)
-            # TODO set selected_catalog ? in this way it will show up in the email url link
-            # and used consistently for the job_id generation
             self.set_par('selected_catalog', json.dumps(catalog_object.get_dictionary()))
-            # TODO verify that the file path is not needed in the frontend (should not)
+            # not needed in the frontend
             par_dic.pop('user_catalog_file', None)
         else:
+            # TODO comes from the frontend when user selects "use as catalog"
             if 'catalog_selected_objects' in par_dic.keys():
-                catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=np.int)
+                try:
+                    catalog_selected_objects = np.array(par_dic['catalog_selected_objects'].split(','), dtype=int)
+                except:
+                    # TODO of course to provide a better message
+                    raise RequestNotUnderstood("the selected catalog is wrongly formatted, please check your inputs")
             else:
                 catalog_selected_objects = None
             if 'selected_catalog' in par_dic.keys():
                 catalog_dic = json.loads(par_dic['selected_catalog'])
-                user_catalog = build_catalog(catalog_dic, catalog_selected_objects)
+                try:
+                    user_catalog = build_catalog(catalog_dic, catalog_selected_objects)
+                except ValueError as e:
+                    e_message = str(e)
+                    raise RequestNotUnderstood(e_message)
                 self.set_par('user_catalog', user_catalog)
 
 
