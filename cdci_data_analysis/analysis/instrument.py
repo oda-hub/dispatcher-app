@@ -601,19 +601,6 @@ class Instrument:
                     raise RequestNotUnderstood(e_message)
                 self.set_par('user_catalog', user_catalog)
 
-        # TODO this is not used from the frontend, perhaps it was in the past
-        if 'user_catalog_dictionary' in par_dic.keys() and par_dic['user_catalog_dictionary'] is not None:
-            if type(par_dic['user_catalog_dictionary']) == dict:
-                catalog_to_build = par_dic['user_catalog_dictionary']
-            else:
-                catalog_to_build = json.loads(par_dic['selected_catalog'])
-            if catalog_to_build is not None:
-                try:
-                    catalog_dic = build_catalog(catalog_to_build)
-                except RuntimeError:
-                    raise RequestNotUnderstood("catalog format not valid")
-                self.set_par('user_catalog', catalog_dic)
-
 
 def load_user_catalog(user_catalog_file):
     return BasicCatalog.from_file(user_catalog_file)
