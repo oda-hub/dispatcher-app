@@ -118,7 +118,7 @@ def download_products():
     return query.download_products()
 
 
-class InvalidUsage(Exception):
+class UnknownDispatcherException(Exception):
     status_code = 400
 
     def __init__(self, message, status_code=None, payload=None):
@@ -134,7 +134,7 @@ class InvalidUsage(Exception):
         return rv
 
 
-@app.errorhandler(InvalidUsage)
+@app.errorhandler(UnknownDispatcherException)
 def handle_invalid_usage(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
@@ -273,8 +273,8 @@ def run_analysis():
         else:
             logger.warning("sentry not used")
 
-        raise InvalidUsage('request not valid',
-                           status_code=410,
+        raise UnknownDispatcherException('request not valid',
+                           status_code=500,
                            payload={'error_message': str(e), **common_exception_payload()})
 
 
