@@ -265,6 +265,13 @@ def run_analysis():
                                   repr(e), traceback.format_exc())
         print("exception in run_analysis: %s %s",
               repr(e), traceback.format_exc())
+        sentry_url = getattr(app.config.get('conf'), 'sentry_url', None)
+        if sentry_url is not None:
+            sentry_client = Sentry(app, dsn=sentry_url)
+            sentry_client.capture('raven.events.Message',
+                                  message=f'exception in run_analysis: {str(e)}')
+        else:
+            logger.warning("sentry not used")
 
         raise InvalidUsage('request not valid',
                            status_code=410,
