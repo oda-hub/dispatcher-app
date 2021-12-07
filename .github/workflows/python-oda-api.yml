@@ -51,7 +51,7 @@ jobs:
         fi        
         
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip install -e .[test]
+        pip install -e .[test] oda-knowledge-base
     
     - name: Test oda_api with pytest
       run: |
