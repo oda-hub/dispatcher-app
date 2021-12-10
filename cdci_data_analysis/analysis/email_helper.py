@@ -191,6 +191,20 @@ def send_email(
     # TODO: enable this sometimes
     # compressed_request_url = compress_request_url_params(request_url)
 
+    include_extra_message_submitted_status = False
+    if status == 'submitted':
+        # get all the number of already submitted emails in the directory
+        email_history_dirs_same_job_id = f"scratch_*_{job_id}*/email_history"
+        submitted_email_pattern = os.path.join(
+            email_history_dirs_same_job_id,
+            'email_submitted_*.email'
+        )
+        submitted_email_files = glob.glob(submitted_email_pattern)
+        logger.info("submitted_email_files: %s as %s", len(submitted_email_files), submitted_email_pattern)
+        # additional message for more submitted-status emails
+        if len(submitted_email_files) > 1:
+            include_extra_message_submitted_status = True;
+
     if len(request_url) > 2000:
         possibly_compressed_request_url = ""
         permanent_url = False
@@ -218,6 +232,7 @@ def send_email(
             'instrument': instrument,
             'product_type': product_type,
             'time_request': time_request,
+            'include_extra_message_submitted_status': include_extra_message_submitted_status,
             'request_url': possibly_compressed_request_url,
             'api_code_no_token': api_code_no_token,
             'api_code': api_code,
