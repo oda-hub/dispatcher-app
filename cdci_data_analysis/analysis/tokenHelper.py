@@ -34,6 +34,10 @@ def get_token_user_email_address(decoded_token):
     return ''
 
 
+def get_token_expiration_time(decoded_token):
+    return decoded_token['exp']
+
+
 def get_token_user_timeout_threshold_email(decoded_token):
     # extract user threshold
     return decoded_token['tem'] if 'tem' in decoded_token else None
