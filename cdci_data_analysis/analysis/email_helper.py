@@ -390,8 +390,8 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
 
             time_last_email_submitted_sent = max(times)
             time_from_last_submitted_email = time_.time() - float(time_last_email_submitted_sent)
-            time_to_expiration = float(token_expiration_time) - time_.time()
-            interval_ok = time_from_last_submitted_email > min(time_to_expiration, email_sending_job_submitted_interval)
+            time_to_token_expiration = float(token_expiration_time) - time_.time()
+            interval_ok = time_from_last_submitted_email > min(time_to_token_expiration, email_sending_job_submitted_interval)
 
         logger.info("email_sending_job_submitted: %s", email_sending_job_submitted)
         logger.info("interval_ok: %s", interval_ok)
