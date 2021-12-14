@@ -97,7 +97,7 @@ def post_to_product_gallery(session_id, job_id, jwt_token, img_fid=None):
                 body_gallery_article_node['field_instrument'] = [{
                     "target_id": int(output['tid'])
                 }]
-            if output['vid'] == 'products' and output['name'] == product_type:
+            if output['vid'] == 'product_type' and output['name'] == product_type:
                 # info for the product
                 body_gallery_article_node['field_product'] = [{
                     "target_id": int(output['tid'])
