@@ -1395,6 +1395,7 @@ def test_get_query_products_exception(dispatcher_live_fixture):
     assert jdata['exit_status']['message'] == 'InternalError()\nfailing query\n'
 
 
+@pytest.mark.test_drupal
 def test_product_gallery_post_product(dispatcher_live_fixture):
     server = dispatcher_live_fixture
 
