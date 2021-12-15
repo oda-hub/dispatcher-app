@@ -78,7 +78,7 @@ def post_to_product_gallery(session_id, job_id, jwt_token, content_type=ContentT
         analysis_parameters_json_content_original.pop('token', None)
         analysis_parameters_json_content_original_str = email_helper.wrap_python_code(
             json.dumps(analysis_parameters_json_content_original))
-        body_value = 'Body of the article with the analysis_parameters.json: <br/><br/>' \
+        body_value = 'Body with the analysis_parameters.json: <br/><br/>' \
                      '<div style="background-color: lightgray; display: inline-block; padding: 5px;">' + \
                      analysis_parameters_json_content_original_str.replace("\n", "<br>") + '</div>'
         instrument = analysis_parameters_json_content_original['instrument']
