@@ -1396,7 +1396,7 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 
 @pytest.mark.test_drupal
-def test_product_gallery_post_product(dispatcher_live_fixture):
+def test_product_gallery_post_article(dispatcher_live_fixture):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
@@ -1429,7 +1429,8 @@ def test_product_gallery_post_product(dispatcher_live_fixture):
 
     params = {
         'job_id': job_id,
-        'session_id': session_id
+        'session_id': session_id,
+
     }
 
     # send test img
