@@ -401,7 +401,7 @@ def post_product_to_gallery():
     job_id = par_dic['job_id']
     session_id = par_dic['session_id']
     # extract type of content to post
-    content_type = drupal_helper.ContentType[par_dic.get('content_type', 'article')]
+    content_type = drupal_helper.ContentType[str.upper(par_dic.get('content_type', 'article'))]
 
     jwt_token = drupal_helper.discover_mmoda_pg_token()
 
