@@ -402,7 +402,7 @@ def post_product_to_gallery():
     session_id = par_dic['session_id']
     # extract type of content to post
     content_type = drupal_helper.ContentType[str.upper(par_dic.get('content_type', 'article'))]
-    title_product = par_dic.get('title', None)
+    product_title = par_dic.get('product_title', None)
 
     jwt_token = drupal_helper.discover_mmoda_pg_token()
 
@@ -417,7 +417,7 @@ def post_product_to_gallery():
             img_fid = output_img_post['fid'][0]['value']
 
     output_post = drupal_helper.post_to_product_gallery(session_id=session_id, job_id=job_id, jwt_token=jwt_token,
-                                                        content_type=content_type, img_fid=img_fid)
+                                                        product_title=product_title, content_type=content_type, img_fid=img_fid)
 
     return output_post
 

@@ -6,6 +6,7 @@ import logging
 import jwt
 import glob
 import pytest
+from datetime import datetime
 from functools import reduce
 import yaml
 import gzip
@@ -1426,11 +1427,11 @@ def test_product_gallery_post_article(dispatcher_live_fixture):
 
     job_id = jdata['products']['job_id']
     session_id = jdata['session_id']
-
+    product_title = "_".join([params['instrument'], params['query_type'], datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")])
     params = {
         'job_id': job_id,
         'session_id': session_id,
-
+        'product_title': product_title
     }
 
     # send test img
