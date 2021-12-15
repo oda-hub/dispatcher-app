@@ -5,7 +5,6 @@ simplejson
 flask
 astropy>=2.0.3
 pylogstash_context>=0.1.19
-pathlib
 gunicorn
 decorator
 python-logstash
@@ -26,3 +25,7 @@ aiosmtpd
 marshmallow
 requests
 -e git+https://github.com/oda-hub/oda_api.git#egg=oda_api
+
+
+# TODO: needed by some plugins: migrate
+simple_logger

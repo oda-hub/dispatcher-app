@@ -523,13 +523,14 @@ class ProductQuery(BaseQuery):
             logger.error("passing request issue: %s", e)
             raise
 
-        except Exception as e: # TODO: could we avoid these? they make error tracking hard
+        except Exception as e:
+            # TODO: could we avoid these? they make error tracking hard
             # TODO we could use the very same approach used when test_communication fails
             logger.exception("failed to get query products")
+            e_message = repr(e) + '\n' + getattr(e, 'message', '') + '\n' + getattr(e, 'debug_message', '')
 
             #status=1
             job.set_failed()
-
             if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
                 raise
 
@@ -542,6 +543,8 @@ class ProductQuery(BaseQuery):
                                  excep=e,
                                  e_message=e_message,
                                  debug_message=debug_message)
+            # TODO to use this approach when we will refactor the handling of exceptions
+            # raise InternalError(e_message)
 
         logger.info('--> data_server_query_status %d' % query_out.get_status())
         logger.info('--> end product query ')

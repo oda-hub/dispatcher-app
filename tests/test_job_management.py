@@ -23,6 +23,7 @@ from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import D
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
 from flask import Markup
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 # symmetric shared secret for the decoding of the token
@@ -108,6 +109,9 @@ generalized_email_patterns = {
         r'(because at )([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.*?)( \()',
         '(first requested at )(.*? .*?)( job_id:)'
     ],
+    'token_exp_time_str': [
+        '(and will be valid until )(.*? .*?)(.<br>)'
+    ],
     'products_url': [
         '(href=")(.*?)(">url)',
     ],
@@ -168,7 +172,7 @@ def get_reference_attachment(**email_attachment_args):
 # substitute several patterns for comparison
 def adapt_html(html_content, **email_args):
     for arg, patterns in generalized_email_patterns.items():
-        if email_args[arg] is not None:
+        if arg in email_args and email_args[arg] is not None:
             for pattern in patterns:
                 html_content = re.sub(pattern, r"\g<1>" + email_args[arg] + r"\g<3>", html_content)
 
@@ -858,9 +862,9 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     else:
         assert r.text == ("Unfortunately, your privileges are not sufficient for this type of request.\n"
                           "Your privilege roles include ['general'], but the following roles are"
-                          " missing: administrator, jobs manager.")
+                          " missing: administrator, job manager.")
 
-    admin_token = jwt.encode({**token_payload, 'roles': 'private, user manager, admin, jobs manager, administrator'}, secret_key, algorithm='HS256')
+    admin_token = jwt.encode({**token_payload, 'roles': 'private, user manager, admin, job manager, administrator'}, secret_key, algorithm='HS256')
     r = requests.get(dispatcher_long_living_fixture + "/inspect-state", params=dict(token=admin_token))
     dispatcher_state_report = r.json()
     logger.info('dispatcher_state_report: %s', dispatcher_state_report)
@@ -1427,8 +1431,6 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
         token_payload["exp"] = exp_time
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-    # set the time the request was initiated
-    time_request = time.time()
 
     # based on the previous test
     name_parameter_value = "01" * 600
@@ -1439,18 +1441,19 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
         instrument="empty-async",
         product_type="numerical",
         string_like_name=name_parameter_value,
-        token=encoded_token,
-        time_request=time_request
+        token=encoded_token
     )
 
-    c = requests.get(server + "/run_analysis",
-                     params=dict_param)
+    jdata = ask(server,
+                dict_param,
+                expected_query_status=["submitted"],
+                max_time_s=150,
+                )
 
-    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+    logger.info("response from run_analysis: %s", json.dumps(jdata, indent=4))
 
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
 
-    jdata = c.json()
     assert jdata['exit_status']['email_status'] == 'email sent'
 
     dispatcher_job_state.assert_email("submitted")
@@ -1462,7 +1465,22 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
 
     if expired_token:
         # let make sure the token used for the previous request expires
-        time.sleep(12)
+        time.sleep(15)
+
+    # set the time the request was initiated
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    token_exp_time_str = datetime.fromtimestamp(float(token_payload["exp"])).strftime("%Y-%m-%d %H:%M:%S")
+
+    reference_email = get_reference_email(state='submitted',
+                                          time_request_str=time_request_str,
+                                          products_url=expected_products_url,
+                                          job_id=dispatcher_job_state.job_id[:8],
+                                          variation_suffixes=["numeric-very-long-not-permanent"],
+                                          require=True,
+                                          token_exp_time_str=token_exp_time_str
+                                          )
 
     # extract api_code and url from the email
     msg = email.message_from_string(dispatcher_local_mail_server.get_email_record()['data'])
@@ -1472,6 +1490,17 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
 
             extracted_product_url = extract_products_url(content_text_html)
             assert expected_products_url == extracted_product_url
+
+            fn = store_email(content_text_html,
+                             state='submitted',
+                             time_request_str=time_request_str,
+                             products_url=expected_products_url,
+                             variation_suffixes=["numeric-very-long-not-permanent"])
+
+            if reference_email is not None:
+                open("adapted_reference.html", "w").write(ignore_html_patterns(reference_email))
+                assert ignore_html_patterns(reference_email) == ignore_html_patterns(
+                    content_text_html), f"please inspect {fn} and possibly copy it to {fn.replace('to_review', 'reference')}"
 
             # # verify product url does not contain token
             # extracted_parsed = parse.urlparse(extracted_product_url)
@@ -1545,7 +1574,6 @@ def test_email_catalog(dispatcher_long_living_fixture,
 
     if list_file is not None:
         list_file.close()
-
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
     params['selected_catalog'] = json.dumps(catalog_object_dict),
 
@@ -1570,7 +1598,7 @@ def test_email_catalog(dispatcher_long_living_fixture,
 @pytest.mark.not_safe_parallel
 @pytest.mark.test_email_scws_list
 @pytest.mark.parametrize("use_scws_value", ['form_list', 'user_file', 'no', None, 'not_included'])
-@pytest.mark.parametrize("scw_list_format", ['list', 'string'])
+@pytest.mark.parametrize("scw_list_format", ['list', 'string', 'spaced_string'])
 @pytest.mark.parametrize("call_back_action", ['done', 'failed'])
 @pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
 @pytest.mark.parametrize("scw_list_size", [1, 5, 40])
@@ -1605,6 +1633,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
 
     scw_list = [f"0665{i:04d}0010.001" for i in range(scw_list_size)]
     scw_list_string = ",".join(scw_list)
+    scw_list_spaced_string = " ".join(scw_list)
     scw_list_file_obj = None
     ask_method = 'get' if (scw_list_passage == 'params' or
                            (scw_list_passage == 'not_passed' and use_scws_value != 'user_file')) \
@@ -1627,6 +1656,8 @@ def test_email_scws_list(dispatcher_long_living_fixture,
             params['scw_list'] = scw_list
         elif scw_list_format == 'string':
             params['scw_list'] = scw_list_string
+        elif scw_list_format == 'spaced_string':
+            params['scw_list'] = scw_list_spaced_string
 
     # this sets global variable
     requests.get(server + '/api/par-names')
@@ -1653,6 +1684,12 @@ def test_email_scws_list(dispatcher_long_living_fixture,
     except KeyError:
         processed_scw_list = None
 
+    error_message_scw_list_wrong_format_file = (
+        'Error while setting input scw_list file : a space separated science windows list is an unsupported format, '
+        'please provide it as a comme separated list')
+    error_message_scw_list_wrong_format_parameter = ('a space separated science windows list is an unsupported format, '
+                                                     'please provide it as a comme separated list')
+
     error_message_scw_list_missing_parameter = (
         'scw_list parameter was expected to be passed, but it has not been found, '
         'please check the inputs')
@@ -1673,19 +1710,40 @@ def test_email_scws_list(dispatcher_long_living_fixture,
             else error_message_scw_list_missing_parameter
         assert jdata['error_message'] == error_message
         
-    elif scw_list_passage == 'both':
+    elif scw_list_passage == 'both' and scw_list_format != 'spaced_string':
         error_message = error_message_scw_list_found_parameter if (use_scws_value == 'user_file' or use_scws_value == 'no') \
             else error_message_scw_list_found_file
         assert jdata['error_message'] == error_message
 
-    elif scw_list_passage == 'file' and use_scws_value != 'user_file':
+    elif scw_list_passage == 'both' and scw_list_format == 'spaced_string':
+        if use_scws_value == 'user_file' or use_scws_value == 'no':
+            error_message = error_message_scw_list_found_parameter
+        elif (use_scws_value == 'form_list' or use_scws_value is None or use_scws_value == 'not_included') and \
+                scw_list_size == 1:
+            error_message = error_message_scw_list_found_file
+        else:
+            error_message = error_message_scw_list_wrong_format_parameter
+        assert jdata['error_message'] == error_message
+
+    elif scw_list_passage == 'file' and use_scws_value != 'user_file' and \
+            (scw_list_format != 'spaced_string' or (scw_list_format == 'spaced_string' and scw_list_size == 1)):
         error_message = error_message_scw_list_missing_parameter if use_scws_value == 'form_list' \
             else error_message_scw_list_found_file
+
+        assert jdata['error_message'] == error_message
+
+    elif scw_list_passage == 'file' and scw_list_format == 'spaced_string' and scw_list_size > 1:
+        error_message = error_message_scw_list_missing_parameter if use_scws_value == 'form_list' \
+            else error_message_scw_list_wrong_format_file
         assert jdata['error_message'] == error_message
 
     elif scw_list_passage == 'params' and \
             (use_scws_value == 'user_file' or use_scws_value == 'no'):
         assert jdata['error_message'] == error_message_scw_list_found_parameter
+
+    elif scw_list_passage == 'params' and \
+            scw_list_format == 'spaced_string' and scw_list_size > 1:
+        assert jdata['error_message'] == error_message_scw_list_wrong_format_parameter
 
     else:
         if scw_list_passage == 'not_passed':
@@ -1697,14 +1755,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
             params['scw_list'] = scw_list_string
             assert 'scw_list' in jdata['products']['api_code']
             assert 'scw_list' in jdata['products']['analysis_parameters']
-            # very specific case to be considered for the way the dispatcher
-            # handles scw_list with one single element
-            if scw_list_size == 1 and \
-                    (use_scws_value is None or use_scws_value == 'form_list' or use_scws_value == 'not_included') and \
-                    scw_list_passage == 'params':
-                assert jdata['products']['analysis_parameters']['scw_list'] == scw_list_string
-            else:
-                assert jdata['products']['analysis_parameters']['scw_list'] == scw_list
+            assert jdata['products']['analysis_parameters']['scw_list'] == scw_list
 
             assert processed_scw_list == scw_list
 
@@ -1953,6 +2004,28 @@ scwl_dict = {"scw_list": "115000860010.001,115000870010.001,115000980010.001,115
     assert len(my_globals['scwl_dict']['scw_list']) > max_length
 
 
+@pytest.mark.parametrize('sb_value', [25, 25., 25.64547871216879451687311211245117852145229614585985498212321])
+def test_spectral_parameter(dispatcher_live_fixture, sb_value):
+
+    server = dispatcher_live_fixture
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Dummy",
+        instrument="empty",
+        product_type="parametrical",
+        sb=sb_value
+    )
+
+    jdata = ask(server,
+                dict_param,
+                expected_query_status='done'
+                )
+
+    assert 'sb' in jdata['products']['analysis_parameters']
+    assert float(sb_value) == jdata['products']['analysis_parameters']['sb']
+
+
 @pytest.mark.parametrize('time_combinations', [[57818.560277777775, 57818.64753472222],
                                                ['2017-03-06T13:26:48.000', '2017-03-06T15:32:27.000'],
                                                ['2017-03-06T13:26:48.000', 57818.64753472222],
@@ -1997,7 +2070,7 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
         error_message = (f'[ InstrumentQueryBackEnd : empty-async ] constructor failed: '
                          f'Input values did not match the format class {time_format}:\n')
         if time_format == 'isot':
-            error_message += f'TypeError: Input values for {time_format} class must be strings'
+            error_message += 'ValueError: Time 57818 does not match isot format'
         else:
             error_message += f'TypeError: for {time_format} class, input should be (long) doubles, string, ' \
                              f'or Decimal, and second values are only allowed for (long) doubles.'
@@ -2054,9 +2127,9 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
-@pytest.mark.parametrize("roles", ["general, jobs manager, administrator", ""])
+@pytest.mark.parametrize("roles", ["general, job manager, administrator", ""])
 def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
-    required_roles = ['administrator', 'jobs manager']
+    required_roles = ['administrator', 'job manager']
     DispatcherJobState.remove_scratch_folders()
 
     server = dispatcher_live_fixture
@@ -2109,7 +2182,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
     elif request_cred == 'public':
         error_message = 'A token must be provided.'
     elif request_cred == 'private':
-        if 'jobs manager' not in roles and 'administrator' not in roles:
+        if 'job manager' not in roles and 'administrator' not in roles:
             lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
             error_message = (
                 f'Unfortunately, your privileges are not sufficient for this type of request.\n'
@@ -2125,7 +2198,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
 
     scratch_dir_mtime = os.stat(scratch_dir_fn).st_mtime
 
-    if request_cred != 'private' or ('jobs manager' not in roles and 'administrator' not in roles):
+    if request_cred != 'private' or ('job manager' not in roles and 'administrator' not in roles):
         # email not supposed to be sent for public request
         assert c.status_code == status_code
         assert c.text == error_message

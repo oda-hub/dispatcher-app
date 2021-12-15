@@ -347,8 +347,10 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
         if email_sending_job_submitted_interval is None:
             # in case this didn't come with the token take the default value from the configuration
             email_sending_job_submitted_interval = config.email_sending_job_submitted_default_interval
-
         logger.info("email_sending_job_submitted_interval: %s", email_sending_job_submitted_interval)
+
+        token_expiration_time = tokenHelper.get_token_expiration_time(decoded_token)
+        logger.info("token_expiration_time: %s", token_expiration_time)
 
         email_history_dir = os.path.join(scratch_dir + '/email_history')
         logger.info("email_history_dir: %s", email_history_dir)
@@ -373,7 +375,8 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
 
             time_last_email_submitted_sent = max(times)
             time_from_last_submitted_email = time_.time() - float(time_last_email_submitted_sent)
-            interval_ok = time_from_last_submitted_email > email_sending_job_submitted_interval
+            time_to_expiration = float(token_expiration_time) - time_.time()
+            interval_ok = time_from_last_submitted_email > min(time_to_expiration, email_sending_job_submitted_interval)
 
         logger.info("email_sending_job_submitted: %s", email_sending_job_submitted)
         logger.info("interval_ok: %s", interval_ok)
