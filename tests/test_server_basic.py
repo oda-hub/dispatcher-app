@@ -1393,3 +1393,46 @@ def test_get_query_products_exception(dispatcher_live_fixture):
     print("jdata : ", jdata)
 
     assert jdata['exit_status']['message'] == 'InternalError()\nfailing query\n'
+
+
+def test_product_gallery_post_product(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, unige-hpc-full",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 55,
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
+
+    params = {
+        'job_id': job_id,
+        'session_id': session_id
+    }
+
+    c = requests.post(server + "/post_product_to_gallery",
+                      params={**params},
+                      )
+
+    assert c.status_code == 200
