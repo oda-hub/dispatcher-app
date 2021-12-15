@@ -4,7 +4,6 @@ import requests
 import base64
 from enum import Enum, auto
 
-from os import getcwd, path
 
 from cdci_data_analysis.analysis import email_helper
 from ..analysis.exceptions import RequestNotUnderstood
@@ -19,8 +18,8 @@ class ContentType(Enum):
 
 
 def discover_mmoda_pg_token():
-    if path.exists(path.join(getcwd(), ".mmoda-pg-token")):
-        return open(path.join(getcwd(), ".mmoda-pg-token")).read().strip()
+    if os.path.exists(os.path.join(os.getcwd(), ".mmoda-pg-token")):
+        return open(os.path.join(os.getcwd(), ".mmoda-pg-token")).read().strip()
     return ''
 
 
