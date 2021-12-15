@@ -1,7 +1,7 @@
 body_article = {
     "_links": {
         "type": {
-            "href": "http://cdciweb02.isdc.unige.ch/mmoda-pg/rest/type/node/article"
+            "href": "http://cdciweb02.isdc.unige.ch/mmoda-pg/rest/type/node/"
         }
     },
     "title": {

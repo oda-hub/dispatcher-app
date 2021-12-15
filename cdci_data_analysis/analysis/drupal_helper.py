@@ -2,12 +2,20 @@ import os
 import json
 import requests
 import base64
+from enum import Enum, auto
 
 from os import getcwd, path
 
 from cdci_data_analysis.analysis import email_helper
 from ..analysis.exceptions import RequestNotUnderstood
 from ..flask_app.templates import body_article_product_gallery
+
+
+class ContentType(Enum):
+    ARTICLE = auto()
+    DATA_PRODUCT = auto()
+    OBSERVATION = auto()
+    ASTROPHYSICAL_ENTITY = auto()
 
 
 def discover_mmoda_pg_token():
@@ -47,23 +55,24 @@ def post_picture_to_gallery(img, jwt_token):
     return output_post
 
 
-def post_to_product_gallery(session_id, job_id, jwt_token, img_fid=None):
+def post_to_product_gallery(session_id, job_id, jwt_token, content_type=ContentType.ARTICLE, img_fid=None):
     body_gallery_article_node = body_article_product_gallery.body_article.copy()
+
+    # set the type of content to post
+    link_content_type = body_gallery_article_node["_links"]["type"]["href"] + str.lower(content_type.name)
+    body_gallery_article_node["_links"]["type"]["href"] = link_content_type
+
     # get products
     scratch_dir_json_fn = f'scratch_sid_{session_id}_jid_{job_id}'
     # the aliased version might have been created
     scratch_dir_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased'
     analysis_parameters_json_content_original = None
-    query_output_json_content_original = None
-    body_value = None
     #
     if os.path.exists(scratch_dir_json_fn):
         analysis_parameters_json_content_original = json.load(open(scratch_dir_json_fn + '/analysis_parameters.json'))
-        query_output_json_content_original = json.load(open(scratch_dir_json_fn + '/query_output.json'))
     elif os.path.exists(scratch_dir_json_fn_aliased):
         analysis_parameters_json_content_original = json.load(
             open(scratch_dir_json_fn_aliased + '/analysis_parameters.json'))
-        query_output_json_content_original = json.load(open(scratch_dir_json_fn_aliased + '/query_output.json'))
 
     if analysis_parameters_json_content_original is not None:
         analysis_parameters_json_content_original.pop('token', None)
