@@ -2,8 +2,10 @@ import os
 import json
 import requests
 import base64
-from enum import Enum, auto
+import time as _time
 
+from datetime import datetime
+from enum import Enum, auto
 
 from cdci_data_analysis.analysis import email_helper
 from ..analysis.exceptions import RequestNotUnderstood
@@ -54,12 +56,19 @@ def post_picture_to_gallery(img, jwt_token):
     return output_post
 
 
-def post_to_product_gallery(session_id, job_id, jwt_token, content_type=ContentType.ARTICLE, img_fid=None):
+def post_to_product_gallery(session_id, job_id, jwt_token, product_title=None, content_type=ContentType.ARTICLE, img_fid=None):
     body_gallery_article_node = body_article_product_gallery.body_article.copy()
 
     # set the type of content to post
     link_content_type = body_gallery_article_node["_links"]["type"]["href"] + str.lower(content_type.name)
     body_gallery_article_node["_links"]["type"]["href"] = link_content_type
+
+    # set the product title
+    if product_title is None:
+        current_time_formatted = datetime.fromtimestamp(_time.time()).strftime("%Y-%m-%d %H:%M:%S")
+        product_title = str.lower(content_type.name) + ' ' + current_time_formatted
+
+    body_gallery_article_node["title"]["value"] = product_title
 
     # get products
     scratch_dir_json_fn = f'scratch_sid_{session_id}_jid_{job_id}'
