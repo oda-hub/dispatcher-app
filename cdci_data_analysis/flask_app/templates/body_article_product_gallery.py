@@ -5,7 +5,7 @@ body_article = {
         }
     },
     "title": {
-        "value": "Article posted from the dispatcher with image"
+        "value": "Posted from the dispatcher with image"
     },
     "body": [{
         "format": "full_html",
