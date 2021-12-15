@@ -103,17 +103,22 @@ def post_to_product_gallery(session_id, job_id, jwt_token, content_type=ContentT
         for output in output_post:
             if output['vid'] == 'Instruments' and output['name'] == instrument:
                 # info for the instrument
-                body_gallery_article_node['field_instrument'] = [{
+                body_gallery_article_node['field_instrumentused'] = [{
                     "target_id": int(output['tid'])
                 }]
             if output['vid'] == 'product_type' and output['name'] == product_type:
                 # info for the product
-                body_gallery_article_node['field_product'] = [{
+                body_gallery_article_node['field_data_product_type'] = [{
                     "target_id": int(output['tid'])
                 }]
+
     # setting img fid if available
     if img_fid is not None:
-        body_gallery_article_node['field_image'] = [{
+        img_field_key = 'field_image'
+        if content_type == ContentType.DATA_PRODUCT:
+            img_field_key = 'field_image_png'
+
+        body_gallery_article_node[img_field_key] = [{
             "target_id": int(img_fid)
         }]
     # post the article
