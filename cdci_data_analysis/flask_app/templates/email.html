@@ -15,8 +15,8 @@ available at the URL {{ oda_site.frontend_url }}.<br>
 {% if request.status == "submitted" %}
 Once products will be ready, you will receive a new email.<br>
 {% if request.include_extra_message_submitted_status %}
-This is not the first email of this type you receive, we are aware of it.
-This is intended to update you regarding the status of the processing of your request.
+This is not the first email of this type you receive, we are aware of it.<br>
+This is intended to update you regarding the status of the processing of your request.<br>
 {% endif %}
 {% elif request.status == "done" %}
 Your request is now <b>ready</b>.<br>
