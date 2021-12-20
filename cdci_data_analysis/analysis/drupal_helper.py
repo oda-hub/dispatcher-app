@@ -118,11 +118,12 @@ def post_data_product_to_gallery(session_id, job_id, jwt_token,
         analysis_parameters_json_content_original.pop('token', None)
         analysis_parameters_json_content_original_str = email_helper.wrap_python_code(
             json.dumps(analysis_parameters_json_content_original))
-        body_value = 'Body with the analysis_parameters.json: <br/><br/>' \
-                     '<div style="background-color: lightgray; display: inline-block; padding: 5px;">' + \
-                     analysis_parameters_json_content_original_str.replace("\n", "<br>") + '</div>'
         instrument = analysis_parameters_json_content_original['instrument']
         product_type = analysis_parameters_json_content_original['product_type']
+
+        body_value = (f'''Instrument: <b>{instrument}</b> <br/>
+        <br/>'
+                     ''')
     else:
         raise RequestNotUnderstood(message="Request data ont found",
                                    payload={'error_message': 'error while posting article'})
