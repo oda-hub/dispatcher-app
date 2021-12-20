@@ -78,15 +78,19 @@ def post_picture_to_gallery(img, jwt_token):
     return output_post
 
 
-def post_to_product_gallery(session_id, job_id, jwt_token,
-                            product_title=None,
-                            content_type=ContentType.ARTICLE,
-                            img_fid=None,
-                            user_id_product_creator=None):
+def post_content_to_gallery(content_type=ContentType.ARTICLE, **kwargs):
+    if content_type == content_type.DATA_PRODUCT:
+        return post_data_product_to_gallery(**kwargs)
+
+
+def post_data_product_to_gallery(session_id, job_id, jwt_token,
+                                 product_title=None,
+                                 img_fid=None,
+                                 user_id_product_creator=None):
     body_gallery_article_node = body_article_product_gallery.body_article.copy()
 
     # set the type of content to post
-    link_content_type = body_gallery_article_node["_links"]["type"]["href"] + str.lower(content_type.name)
+    link_content_type = body_gallery_article_node["_links"]["type"]["href"] + 'data_product'
     body_gallery_article_node["_links"]["type"]["href"] = link_content_type
 
     # set the product title
@@ -94,7 +98,7 @@ def post_to_product_gallery(session_id, job_id, jwt_token,
         product_title = ''
 
     current_time_formatted = datetime.fromtimestamp(_time.time()).strftime("%Y-%m-%d %H:%M:%S")
-    product_title = "_".join([product_title, str.lower(content_type.name), current_time_formatted])
+    product_title = "_".join([product_title, 'data_product', current_time_formatted])
 
     body_gallery_article_node["title"]["value"] = product_title
 
@@ -155,11 +159,7 @@ def post_to_product_gallery(session_id, job_id, jwt_token,
 
     # setting img fid if available
     if img_fid is not None:
-        img_field_key = 'field_image'
-        if content_type == ContentType.DATA_PRODUCT:
-            img_field_key = 'field_image_png'
-
-        body_gallery_article_node[img_field_key] = [{
+        body_gallery_article_node['field_image_png'] = [{
             "target_id": int(img_fid)
         }]
     # post the article

@@ -436,8 +436,9 @@ def post_product_to_gallery():
             output_img_post = drupal_helper.post_picture_to_gallery(file, jwt_token=jwt_pg_token)
             img_fid = output_img_post['fid'][0]['value']
 
-    output_post = drupal_helper.post_to_product_gallery(session_id=session_id, job_id=job_id, jwt_token=jwt_pg_token,
-                                                        product_title=product_title, content_type=content_type, img_fid=img_fid,
+    output_post = drupal_helper.post_content_to_gallery(content_type=content_type, session_id=session_id,
+                                                        job_id=job_id, jwt_token=jwt_pg_token,
+                                                        product_title=product_title, img_fid=img_fid,
                                                         user_id_product_creator=user_id_product_creator)
 
     return output_post
