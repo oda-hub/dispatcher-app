@@ -1432,6 +1432,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture):
         'job_id': job_id,
         'session_id': session_id,
         'product_title': product_title,
+        'content_type': 'data_product',
         'token': encoded_token
     }
 
