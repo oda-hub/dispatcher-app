@@ -1431,7 +1431,8 @@ def test_product_gallery_post_article(dispatcher_live_fixture):
     params = {
         'job_id': job_id,
         'session_id': session_id,
-        'product_title': product_title
+        'product_title': product_title,
+        'token': encoded_token
     }
 
     # send test img

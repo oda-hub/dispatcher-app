@@ -8,6 +8,7 @@ Created on Wed May 10 10:55:20 2017
 import string
 import random
 import hashlib
+import jwt
 
 from raven.contrib.flask import Sentry
 
@@ -19,7 +20,7 @@ from flask_restx import Api, Resource, reqparse
 import time as _time
 from urllib.parse import urlencode
 
-from cdci_data_analysis.analysis import drupal_helper
+from cdci_data_analysis.analysis import drupal_helper, tokenHelper
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError
@@ -396,6 +397,27 @@ class Product(Resource):
 def post_product_to_gallery():
     logger.info("request.args: %s ", request.args)
     logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    if token is None:
+        return make_response('A token must be provided.'), 403
+    try:
+        secret_key = app.config.get('conf').secret_key
+        decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+        logger.info("==> token %s", decoded_token)
+    except jwt.exceptions.ExpiredSignatureError:
+        # raise RequestNotAuthorized("The token provided is expired.")
+        return make_response('The token provided is expired.'), 403
+    except jwt.exceptions.InvalidTokenError:
+        # raise RequestNotAuthorized("The token provided is not valid.")
+        return make_response('The token provided is not valid.'), 403
+
+    jwt_pg_token = drupal_helper.discover_mmoda_pg_token()
+    # extract email address and then the relative user_id
+    # TODO perhaps extend considering the user_name passed as a parameter
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = drupal_helper.get_user_id(user_email, jwt_pg_token)
+
     # extract content using job_id and session_id
     par_dic = request.values.to_dict()
     job_id = par_dic['job_id']
@@ -404,8 +426,6 @@ def post_product_to_gallery():
     content_type = drupal_helper.ContentType[str.upper(par_dic.get('content_type', 'article'))]
     product_title = par_dic.get('product_title', None)
 
-    jwt_token = drupal_helper.discover_mmoda_pg_token()
-
     img_fid = None
 
     # process files sent
@@ -413,11 +433,12 @@ def post_product_to_gallery():
         for f in request.files:
             file = request.files[f]
             # upload file to drupal
-            output_img_post = drupal_helper.post_picture_to_gallery(file, jwt_token=jwt_token)
+            output_img_post = drupal_helper.post_picture_to_gallery(file, jwt_token=jwt_pg_token)
             img_fid = output_img_post['fid'][0]['value']
 
-    output_post = drupal_helper.post_to_product_gallery(session_id=session_id, job_id=job_id, jwt_token=jwt_token,
-                                                        product_title=product_title, content_type=content_type, img_fid=img_fid)
+    output_post = drupal_helper.post_to_product_gallery(session_id=session_id, job_id=job_id, jwt_token=jwt_pg_token,
+                                                        product_title=product_title, content_type=content_type, img_fid=img_fid,
+                                                        user_id_product_creator=user_id_product_creator)
 
     return output_post
 

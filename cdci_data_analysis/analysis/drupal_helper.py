@@ -25,6 +25,28 @@ def discover_mmoda_pg_token():
     return ''
 
 
+def get_user_id(user_email, jwt_token) -> str:
+    user_id = None
+    headers = {
+        'Content-type': 'application/hal+json',
+        'Authorization': 'Bearer ' + jwt_token
+    }
+
+    # get the user id
+    log_res = requests.get(f"http://cdciweb02.isdc.unige.ch/mmoda-pg/users/{user_email}?_format=hal_json",
+                           headers=headers
+                           )
+    output_get = log_res.json()
+    if log_res.status_code < 200 or log_res.status_code >= 300:
+        raise RequestNotUnderstood(output_get['message'],
+                                   status_code=log_res.status_code,
+                                   payload={'error_message': 'error while retrieving the user id'})
+    if isinstance(output_get, list) and len(output_get) == 1:
+        user_id = output_get[0]['uid']
+
+    return user_id
+
+
 def post_picture_to_gallery(img, jwt_token):
     body_post_img = body_article_product_gallery.body_img.copy()
     bytes_img = img.read()
@@ -56,7 +78,11 @@ def post_picture_to_gallery(img, jwt_token):
     return output_post
 
 
-def post_to_product_gallery(session_id, job_id, jwt_token, product_title=None, content_type=ContentType.ARTICLE, img_fid=None):
+def post_to_product_gallery(session_id, job_id, jwt_token,
+                            product_title=None,
+                            content_type=ContentType.ARTICLE,
+                            img_fid=None,
+                            user_id_product_creator=None):
     body_gallery_article_node = body_article_product_gallery.body_article.copy()
 
     # set the type of content to post
@@ -98,6 +124,11 @@ def post_to_product_gallery(session_id, job_id, jwt_token, product_title=None, c
                                    payload={'error_message': 'error while posting article'})
 
     body_gallery_article_node["body"][0]["value"] = body_value
+
+    if user_id_product_creator is not None:
+        body_gallery_article_node["uid"] = [{
+                    "target_id": user_id_product_creator
+                }]
 
     headers = {
         'Content-type': 'application/hal+json',
