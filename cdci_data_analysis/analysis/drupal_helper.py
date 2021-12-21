@@ -168,8 +168,9 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
         # set the observation information
         t1 = analysis_parameters_json_content_original['T1']
         t2 = analysis_parameters_json_content_original['T2']
+        observation_id = get_observation_id(product_gallery_url, t1, t2, "", jwt_token)
         body_gallery_article_node["field_derived_from_observation"] = [{
-            "target_id": user_id_product_creator
+            "target_id": observation_id
         }]
 
         body_value = (f'''''')
