@@ -422,7 +422,7 @@ def post_product_to_gallery():
                                                         user_email=user_email,
                                                         jwt_token=jwt_pg_token)
 
-    # extract observation id
+    # TODO extract observation id
     observation_id = None
 
     # extract content using job_id and session_id
@@ -434,7 +434,6 @@ def post_product_to_gallery():
     product_title = par_dic.get('product_title', None)
 
     img_fid = None
-
     # process files sent
     if request.files:
         for f in request.files:
