@@ -413,7 +413,7 @@ def post_product_to_gallery():
         # raise RequestNotAuthorized("The token provided is not valid.")
         return make_response('The token provided is not valid.'), 403
 
-    jwt_pg_token = drupal_helper.discover_mmoda_pg_token(app_config.product_gallery_jwt_token_location)
+    jwt_pg_token = drupal_helper.get_mmoda_pg_token(app_config.product_gallery_jwt_token_location)
     product_gallery_url = app_config.product_gallery_url
     # extract email address and then the relative user_id
     # TODO perhaps extend considering the user_name passed as a parameter
@@ -421,9 +421,6 @@ def post_product_to_gallery():
     user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
                                                         user_email=user_email,
                                                         jwt_token=jwt_pg_token)
-
-    # TODO extract observation id
-    observation_id = None
 
     # extract content using job_id and session_id
     par_dic = request.values.to_dict()
@@ -448,7 +445,6 @@ def post_product_to_gallery():
                                                         content_type=content_type, session_id=session_id,
                                                         job_id=job_id, jwt_token=jwt_pg_token,
                                                         product_title=product_title, img_fid=img_fid,
-                                                        observation_id=observation_id,
                                                         user_id_product_creator=user_id_product_creator)
 
     return output_post

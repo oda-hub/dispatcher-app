@@ -19,7 +19,7 @@ class ContentType(Enum):
     ASTROPHYSICAL_ENTITY = auto()
 
 
-def discover_mmoda_pg_token(jwt_token__file_path):
+def get_mmoda_pg_token(jwt_token__file_path):
     if os.path.exists(os.path.join(os.getcwd(), jwt_token__file_path)):
         return open(os.path.join(os.getcwd(), jwt_token__file_path)).read().strip()
     return ''
@@ -83,10 +83,43 @@ def post_content_to_gallery(content_type=ContentType.ARTICLE, **kwargs):
         return post_data_product_to_gallery(**kwargs)
 
 
+def get_observation_id(product_gallery_url, t1, t2, title, jwt_token):
+    # post new obseravtion with a specific time range
+    body_gallery_article_node = body_article_product_gallery.body_article.copy()
+    # set the type of content to post
+    body_gallery_article_node["_links"]["type"]["href"] = body_gallery_article_node["_links"]["type"]["href"] + 'observation'
+
+    body_gallery_article_node["title"]["value"] = title
+
+    # set the datarange
+
+    body_gallery_article_node["field_timerange"] = [{
+        "value": t1,
+        "end_value": t2
+    }]
+    headers = {
+        'Content-type': 'application/hal+json',
+        'Authorization': 'Bearer ' + jwt_token
+    }
+    # post the article
+    log_res = requests.post(f"{product_gallery_url}/node?_format=hal_json",
+                            data=json.dumps(body_gallery_article_node),
+                            headers=headers
+                            )
+    output_post = log_res.json()
+    if log_res.status_code < 200 or log_res.status_code >= 300:
+        raise RequestNotUnderstood(output_post['message'],
+                                   status_code=log_res.status_code,
+                                   payload={'error_message': 'error while posting article'})
+
+    # extract the id of the observation
+    observation_id = output_post['nid'][0]['value']
+    return observation_id
+
+
 def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_token,
                                  product_title=None,
                                  img_fid=None,
-                                 observation_id=None,
                                  user_id_product_creator=None):
     body_gallery_article_node = body_article_product_gallery.body_article.copy()
 
@@ -132,6 +165,12 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
                 "value": e2_kev
             }]
         product_type = analysis_parameters_json_content_original['product_type']
+        # set the observation information
+        t1 = analysis_parameters_json_content_original['T1']
+        t2 = analysis_parameters_json_content_original['T2']
+        body_gallery_article_node["field_derived_from_observation"] = [{
+            "target_id": user_id_product_creator
+        }]
 
         body_value = (f'''''')
     else:
@@ -143,11 +182,6 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
     # set the user id of the author of the data product
     if user_id_product_creator is not None:
         body_gallery_article_node["uid"] = [{
-            "target_id": user_id_product_creator
-        }]
-    # set the observation id
-    if observation_id is not None:
-        body_gallery_article_node["field_derived_from_observation"] = [{
             "target_id": user_id_product_creator
         }]
 
