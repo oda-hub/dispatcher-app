@@ -418,6 +418,9 @@ def post_product_to_gallery():
     user_email = tokenHelper.get_token_user_email_address(decoded_token)
     user_id_product_creator = drupal_helper.get_user_id(user_email, jwt_pg_token)
 
+    # extract observation id
+    observation_id = None
+
     # extract content using job_id and session_id
     par_dic = request.values.to_dict()
     job_id = par_dic['job_id']
@@ -439,6 +442,7 @@ def post_product_to_gallery():
     output_post = drupal_helper.post_content_to_gallery(content_type=content_type, session_id=session_id,
                                                         job_id=job_id, jwt_token=jwt_pg_token,
                                                         product_title=product_title, img_fid=img_fid,
+                                                        observation_id=observation_id,
                                                         user_id_product_creator=user_id_product_creator)
 
     return output_post

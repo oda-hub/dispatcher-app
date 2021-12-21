@@ -86,6 +86,7 @@ def post_content_to_gallery(content_type=ContentType.ARTICLE, **kwargs):
 def post_data_product_to_gallery(session_id, job_id, jwt_token,
                                  product_title=None,
                                  img_fid=None,
+                                 observation_id=None,
                                  user_id_product_creator=None):
     body_gallery_article_node = body_article_product_gallery.body_article.copy()
 
@@ -130,10 +131,16 @@ def post_data_product_to_gallery(session_id, job_id, jwt_token,
 
     body_gallery_article_node["body"][0]["value"] = body_value
 
+    # set the user id of the author of the data product
     if user_id_product_creator is not None:
         body_gallery_article_node["uid"] = [{
-                    "target_id": user_id_product_creator
-                }]
+            "target_id": user_id_product_creator
+        }]
+    # set the observation id
+    if observation_id is not None:
+        body_gallery_article_node["field_derived_from_observation"] = [{
+            "target_id": user_id_product_creator
+        }]
 
     headers = {
         'Content-type': 'application/hal+json',
