@@ -120,11 +120,20 @@ def post_data_product_to_gallery(session_id, job_id, jwt_token,
         analysis_parameters_json_content_original_str = email_helper.wrap_python_code(
             json.dumps(analysis_parameters_json_content_original))
         instrument = analysis_parameters_json_content_original['instrument']
+        # set the energy range
+        e1_kev = analysis_parameters_json_content_original['E1_keV']
+        if e1_kev is not None:
+            body_gallery_article_node["field_e1_kev"] = [{
+                "value": e1_kev
+            }]
+        e2_kev = analysis_parameters_json_content_original['E2_keV']
+        if e2_kev is not None:
+            body_gallery_article_node["field_e2_kev"] = [{
+                "value": e2_kev
+            }]
         product_type = analysis_parameters_json_content_original['product_type']
 
-        body_value = (f'''Instrument: <b>{instrument}</b> <br/>
-        <br/>'
-                     ''')
+        body_value = (f'''''')
     else:
         raise RequestNotUnderstood(message="Request data ont found",
                                    payload={'error_message': 'error while posting article'})
