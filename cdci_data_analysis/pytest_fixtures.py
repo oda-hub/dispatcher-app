@@ -357,6 +357,9 @@ dispatcher:
         email_sending_timeout_default_threshold: 1800
         email_sending_job_submitted: True
         email_sending_job_submitted_default_interval: 60
+    product_gallery_options:
+        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda-pg"
+        product_gallery_jwt_token_location: ".mmoda-pg-token"
     """)
 
     yield fn

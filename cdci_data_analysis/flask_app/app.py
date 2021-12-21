@@ -402,7 +402,8 @@ def post_product_to_gallery():
     if token is None:
         return make_response('A token must be provided.'), 403
     try:
-        secret_key = app.config.get('conf').secret_key
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
         decoded_token = tokenHelper.get_decoded_token(token, secret_key)
         logger.info("==> token %s", decoded_token)
     except jwt.exceptions.ExpiredSignatureError:
@@ -412,11 +413,14 @@ def post_product_to_gallery():
         # raise RequestNotAuthorized("The token provided is not valid.")
         return make_response('The token provided is not valid.'), 403
 
-    jwt_pg_token = drupal_helper.discover_mmoda_pg_token()
+    jwt_pg_token = drupal_helper.discover_mmoda_pg_token(app_config.product_gallery_jwt_token_location)
+    product_gallery_url = app_config.product_gallery_url
     # extract email address and then the relative user_id
     # TODO perhaps extend considering the user_name passed as a parameter
     user_email = tokenHelper.get_token_user_email_address(decoded_token)
-    user_id_product_creator = drupal_helper.get_user_id(user_email, jwt_pg_token)
+    user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
+                                                        user_email=user_email,
+                                                        jwt_token=jwt_pg_token)
 
     # extract observation id
     observation_id = None
@@ -436,10 +440,13 @@ def post_product_to_gallery():
         for f in request.files:
             file = request.files[f]
             # upload file to drupal
-            output_img_post = drupal_helper.post_picture_to_gallery(file, jwt_token=jwt_pg_token)
+            output_img_post = drupal_helper.post_picture_to_gallery(product_gallery_url=product_gallery_url,
+                                                                    img=file,
+                                                                    jwt_token=jwt_pg_token)
             img_fid = output_img_post['fid'][0]['value']
 
-    output_post = drupal_helper.post_content_to_gallery(content_type=content_type, session_id=session_id,
+    output_post = drupal_helper.post_content_to_gallery(product_gallery_url=product_gallery_url,
+                                                        content_type=content_type, session_id=session_id,
                                                         job_id=job_id, jwt_token=jwt_pg_token,
                                                         product_title=product_title, img_fid=img_fid,
                                                         observation_id=observation_id,

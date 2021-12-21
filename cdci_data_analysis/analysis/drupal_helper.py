@@ -19,13 +19,13 @@ class ContentType(Enum):
     ASTROPHYSICAL_ENTITY = auto()
 
 
-def discover_mmoda_pg_token():
-    if os.path.exists(os.path.join(os.getcwd(), ".mmoda-pg-token")):
-        return open(os.path.join(os.getcwd(), ".mmoda-pg-token")).read().strip()
+def discover_mmoda_pg_token(jwt_token__file_path):
+    if os.path.exists(os.path.join(os.getcwd(), jwt_token__file_path)):
+        return open(os.path.join(os.getcwd(), jwt_token__file_path)).read().strip()
     return ''
 
 
-def get_user_id(user_email, jwt_token) -> str:
+def get_user_id(product_gallery_url, user_email, jwt_token) -> str:
     user_id = None
     headers = {
         'Content-type': 'application/hal+json',
@@ -33,7 +33,7 @@ def get_user_id(user_email, jwt_token) -> str:
     }
 
     # get the user id
-    log_res = requests.get(f"http://cdciweb02.isdc.unige.ch/mmoda-pg/users/{user_email}?_format=hal_json",
+    log_res = requests.get(f"{product_gallery_url}/users/{user_email}?_format=hal_json",
                            headers=headers
                            )
     output_get = log_res.json()
@@ -47,7 +47,7 @@ def get_user_id(user_email, jwt_token) -> str:
     return user_id
 
 
-def post_picture_to_gallery(img, jwt_token):
+def post_picture_to_gallery(product_gallery_url, img, jwt_token):
     body_post_img = body_article_product_gallery.body_img.copy()
     bytes_img = img.read()
     b_64_img = base64.b64encode(bytes_img).decode("utf8")
@@ -58,7 +58,7 @@ def post_picture_to_gallery(img, jwt_token):
     body_post_img["uri"][0]["value"] = "public://" + img_name
     body_post_img["filename"][0]["value"] = img_name
     body_post_img["filemime"]["value"] = "image/" + img_extension
-    body_post_img["_links"]["type"]["href"] = "http://cdciweb02.isdc.unige.ch/mmoda-pg/rest/type/file/image"
+    body_post_img["_links"]["type"]["href"] = f"{product_gallery_url}/rest/type/file/image"
 
     headers = {
         'Content-type': 'application/hal+json',
@@ -66,7 +66,7 @@ def post_picture_to_gallery(img, jwt_token):
     }
 
     # post the image
-    log_res = requests.post("http://cdciweb02.isdc.unige.ch/mmoda-pg/entity/file?_format=hal_json",
+    log_res = requests.post(f"{product_gallery_url}/entity/file?_format=hal_json",
                             data=json.dumps(body_post_img),
                             headers=headers
                             )
@@ -83,7 +83,7 @@ def post_content_to_gallery(content_type=ContentType.ARTICLE, **kwargs):
         return post_data_product_to_gallery(**kwargs)
 
 
-def post_data_product_to_gallery(session_id, job_id, jwt_token,
+def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_token,
                                  product_title=None,
                                  img_fid=None,
                                  observation_id=None,
@@ -157,7 +157,7 @@ def post_data_product_to_gallery(session_id, job_id, jwt_token,
     }
     # TODO improve this REST endpoint to accept multiple input terms, and give one result per input
     # get all the taxonomy terms
-    log_res = requests.get("http://cdciweb02.isdc.unige.ch/mmoda-pg/taxonomy/term_name/all",
+    log_res = requests.get(f"{product_gallery_url}/taxonomy/term_name/all",
                            headers=headers
                            )
     output_post = log_res.json()
@@ -180,7 +180,7 @@ def post_data_product_to_gallery(session_id, job_id, jwt_token,
             "target_id": int(img_fid)
         }]
     # post the article
-    log_res = requests.post("http://cdciweb02.isdc.unige.ch/mmoda-pg/node?_format=hal_json",
+    log_res = requests.post(f"{product_gallery_url}/node?_format=hal_json",
                             data=json.dumps(body_gallery_article_node),
                             headers=headers
                             )
