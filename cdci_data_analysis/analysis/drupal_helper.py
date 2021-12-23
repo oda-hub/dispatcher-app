@@ -182,15 +182,10 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
     link_content_type = body_gallery_article_node["_links"]["type"]["href"] + 'data_product'
     body_gallery_article_node["_links"]["type"]["href"] = link_content_type
 
-    # set the product title
-    if product_title is None:
-        product_title = ''
     # set the initial body content
     body_value = ''
     current_time_formatted = datetime.fromtimestamp(_time.time()).strftime("%Y-%m-%d %H:%M:%S")
-    product_title = "_".join([product_title, 'data_product', current_time_formatted])
-
-    body_gallery_article_node["title"]["value"] = product_title
+    product_title = ''
 
     # get products
     scratch_dir_json_fn = f'scratch_sid_{session_id}_jid_{job_id}'
@@ -235,6 +230,13 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
         body_gallery_article_node[field_name] = [{
             "value": v
         }]
+
+    # set the product title
+    if product_title is None:
+        src_name = kwargs.get('src_name', 'source')
+        product_title = "_".join([src_name, product_type])
+
+    body_gallery_article_node["title"]["value"] = product_title
 
     body_gallery_article_node["body"][0]["value"] = body_value
 

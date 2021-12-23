@@ -1412,6 +1412,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture):
 
     params = {
         **default_params,
+        'src_name': 'Mrk 421',
         'product_type': 'numerical',
         'query_type': "Dummy",
         'instrument': 'empty',
