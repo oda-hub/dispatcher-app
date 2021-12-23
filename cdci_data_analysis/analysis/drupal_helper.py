@@ -2,9 +2,12 @@ import os
 import json
 import requests
 import base64
+import copy
+import uuid
 import time as _time
 
 from datetime import datetime
+from dateutil import parser
 from enum import Enum, auto
 
 from cdci_data_analysis.analysis import email_helper
@@ -48,7 +51,9 @@ def get_user_id(product_gallery_url, user_email, jwt_token) -> str:
 
 
 def post_picture_to_gallery(product_gallery_url, img, jwt_token):
-    body_post_img = body_article_product_gallery.body_img.copy()
+    # body_post_img = body_article_product_gallery.body_img.copy()
+    body_post_img = copy.deepcopy(body_article_product_gallery.body_img)
+
     bytes_img = img.read()
     b_64_img = base64.b64encode(bytes_img).decode("utf8")
     img_name = img.filename
@@ -85,45 +90,74 @@ def post_content_to_gallery(**kwargs):
         return post_data_product_to_gallery(**kwargs)
 
 
-def get_observation_id(product_gallery_url, t1, t2, title, jwt_token):
-    # post new obseravtion with a specific time range
-    body_gallery_article_node = body_article_product_gallery.body_article.copy()
-    # set the type of content to post
-    body_gallery_article_node["_links"]["type"]["href"] = body_gallery_article_node["_links"]["type"]["href"] + 'observation'
+def get_observation_drupal_id(product_gallery_url, jwt_token, t1=None, t2=None, observation_id=None):
+    observation_drupal_id = None
+    if observation_id is not None:
+        # get from the drupal the relative id
+        headers = {
+            'Content-type': 'application/hal+json',
+            'Authorization': 'Bearer ' + jwt_token
+        }
+        # post the article
+        log_res = requests.get(f"{product_gallery_url}/observations/{observation_id}?_format=hal_json",
+                               headers=headers
+                               )
+        output_get = log_res.json()
+        if log_res.status_code < 200 or log_res.status_code >= 300:
+            raise RequestNotUnderstood(output_get['message'],
+                                       status_code=log_res.status_code,
+                                       payload={'error_message': 'error while retrieving the user id'})
+        if isinstance(output_get, list) and len(output_get) == 1:
+            observation_drupal_id = output_get[0]['nid']
+    else:
+        # post new observation with or without a specific time range
+        # body_gallery_observation_node = body_article_product_gallery.body_article.copy()
+        body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_article)
+        # set the type of content to post
+        body_gallery_observation_node["_links"]["type"]["href"] = body_gallery_observation_node["_links"]["type"]["href"] + 'observation'
 
-    body_gallery_article_node["title"]["value"] = title
+        if t1 is not None and t2 is not None:
+            # format the time fields, from the format request
+            t1_formatted = parser.parse(t1).strftime('%Y-%m-%dT%H:%M:%S')
+            t2_formatted = parser.parse(t2).strftime('%Y-%m-%dT%H:%M:%S')
+            # set the daterange
+            body_gallery_observation_node["field_timerange"] = [{
+                "value": t1_formatted,
+                "end_value": t2_formatted
+            }]
 
-    # set the datarange
+            body_gallery_observation_node["title"]["value"] = "_".join(["observation", t1_formatted, t2_formatted])
+        else:
+            # assign a randomly generate id in case to time range is provided
+            body_gallery_observation_node["title"]["value"] = "_".join(["observation", str(uuid.uuid4())])
 
-    body_gallery_article_node["field_timerange"] = [{
-        "value": t1,
-        "end_value": t2
-    }]
-    headers = {
-        'Content-type': 'application/hal+json',
-        'Authorization': 'Bearer ' + jwt_token
-    }
-    # post the article
-    log_res = requests.post(f"{product_gallery_url}/node?_format=hal_json",
-                            data=json.dumps(body_gallery_article_node),
-                            headers=headers
-                            )
-    output_post = log_res.json()
-    if log_res.status_code < 200 or log_res.status_code >= 300:
-        raise RequestNotUnderstood(output_post['message'],
-                                   status_code=log_res.status_code,
-                                   payload={'error_message': 'error while posting article'})
+        headers = {
+            'Content-type': 'application/hal+json',
+            'Authorization': 'Bearer ' + jwt_token
+        }
+        # post the article
+        log_res = requests.post(f"{product_gallery_url}/node?_format=hal_json",
+                                data=json.dumps(body_gallery_observation_node),
+                                headers=headers
+                                )
+        output_post = log_res.json()
+        if log_res.status_code < 200 or log_res.status_code >= 300:
+            raise RequestNotUnderstood(output_post['message'],
+                                       status_code=log_res.status_code,
+                                       payload={'error_message': 'error while posting article'})
 
-    # extract the id of the observation
-    observation_id = output_post['nid'][0]['value']
-    return observation_id
+        # extract the id of the observation
+        observation_drupal_id = output_post['nid'][0]['value']
+    return observation_drupal_id
 
 
 def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_token,
                                  product_title=None,
                                  img_fid=None,
+                                 observation_id=None,
                                  user_id_product_creator=None):
-    body_gallery_article_node = body_article_product_gallery.body_article.copy()
+    # body_gallery_article_node = body_article_product_gallery.body_article.copy()
+    body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_article)
 
     # set the type of content to post
     link_content_type = body_gallery_article_node["_links"]["type"]["href"] + 'data_product'
@@ -167,13 +201,15 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
                 "value": e2_kev
             }]
         product_type = analysis_parameters_json_content_original['product_type']
-        # set the observation information
+        # set the observation information by default if not provided by the user
+
         t1 = analysis_parameters_json_content_original['T1']
         t2 = analysis_parameters_json_content_original['T2']
-        # observation_id = get_observation_id(product_gallery_url, t1, t2, "", jwt_token)
-        # body_gallery_article_node["field_derived_from_observation"] = [{
-        #     "target_id": observation_id
-        # }]
+        observation_drupal_id = get_observation_drupal_id(product_gallery_url, jwt_token,
+                                                          t1=t1, t2=t2, observation_id=observation_id)
+        body_gallery_article_node["field_derived_from_observation"] = [{
+            "target_id": observation_drupal_id
+        }]
 
         body_value = (f'''''')
     else:
