@@ -206,31 +206,23 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
 
     if analysis_parameters_json_content_original is not None:
         analysis_parameters_json_content_original.pop('token', None)
-        analysis_parameters_json_content_original_str = email_helper.wrap_python_code(
-            json.dumps(analysis_parameters_json_content_original))
-        instrument = analysis_parameters_json_content_original['instrument']
-        # set the energy range
-        e1_kev = analysis_parameters_json_content_original['E1_keV']
-        if e1_kev is not None:
-            body_gallery_article_node["field_e1_kev"] = [{
-                "value": e1_kev
-            }]
-        e2_kev = analysis_parameters_json_content_original['E2_keV']
-        if e2_kev is not None:
-            body_gallery_article_node["field_e2_kev"] = [{
-                "value": e2_kev
-            }]
-        product_type = analysis_parameters_json_content_original['product_type']
-        # set the observation information by default if not provided by the user
-
-        t1 = analysis_parameters_json_content_original['T1']
-        t2 = analysis_parameters_json_content_original['T2']
+        instrument = analysis_parameters_json_content_original.pop('instrument')
+        product_type = analysis_parameters_json_content_original.pop('product_type')
+        # time data for the observation
+        t1 = analysis_parameters_json_content_original.pop('T1')
+        t2 = analysis_parameters_json_content_original.pop('T2')
         observation_drupal_id = get_observation_drupal_id(product_gallery_url, jwt_token,
                                                           t1=t1, t2=t2, observation_id=observation_id)
         body_gallery_article_node["field_derived_from_observation"] = [{
             "target_id": observation_drupal_id
         }]
-
+        # TODO no need to set all the parameters by default
+        # for k, v in analysis_parameters_json_content_original.items():
+        #     # assuming the name of the field in drupal starts always with field_
+        #     field_name = str.lower('field_' + k)
+        #     body_gallery_article_node[field_name] = [{
+        #         "value": v
+        #     }]
         body_value = (f'''''')
     else:
         raise RequestNotUnderstood(message="Request data ont found",
@@ -239,7 +231,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
     # let's go through the kwargs and if any overwrite some values for the product to post
     for k, v in kwargs.items():
         # assuming the name of the field in drupal starts always with field_
-        field_name = 'field_' + k
+        field_name = str.lower('field_' + k)
         body_gallery_article_node[field_name] = [{
             "value": v
         }]
