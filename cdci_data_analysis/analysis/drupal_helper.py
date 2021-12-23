@@ -153,7 +153,7 @@ def get_observation_drupal_id(product_gallery_url, jwt_token, t1=None, t2=None, 
         body_gallery_observation_node["_links"]["type"]["href"] = body_gallery_observation_node["_links"]["type"]["href"] + 'observation'
 
         if t1 is not None and t2 is not None:
-            # check if noe observation with that daterange already exists
+            # TODO check if an observation with that daterange already exists
 
             # format the time fields, from the format request
             t1_formatted = parser.parse(t1).strftime('%Y-%m-%dT%H:%M:%S')
