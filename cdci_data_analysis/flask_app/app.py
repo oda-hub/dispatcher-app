@@ -424,13 +424,9 @@ def post_product_to_gallery():
 
     # extract content using job_id and session_id
     par_dic = request.values.to_dict()
-    job_id = par_dic['job_id']
-    session_id = par_dic['session_id']
-    # extract type of content to post
-    content_type = drupal_helper.ContentType[str.upper(par_dic.get('content_type', 'article'))]
-    product_title = par_dic.get('product_title', None)
+    par_dic.pop('token')
+    par_dic['user_id_product_creator'] = user_id_product_creator
 
-    img_fid = None
     # process files sent
     if request.files:
         for f in request.files:
@@ -440,12 +436,11 @@ def post_product_to_gallery():
                                                                     img=file,
                                                                     jwt_token=jwt_pg_token)
             img_fid = output_img_post['fid'][0]['value']
+            par_dic['img_fid'] = img_fid
 
     output_post = drupal_helper.post_content_to_gallery(product_gallery_url=product_gallery_url,
-                                                        content_type=content_type, session_id=session_id,
-                                                        job_id=job_id, jwt_token=jwt_pg_token,
-                                                        product_title=product_title, img_fid=img_fid,
-                                                        user_id_product_creator=user_id_product_creator)
+                                                        jwt_token=jwt_pg_token,
+                                                        **par_dic)
 
     return output_post
 
