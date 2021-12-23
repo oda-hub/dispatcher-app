@@ -91,9 +91,9 @@ def post_content_to_gallery(product_gallery_url,
     if content_type == content_type.DATA_PRODUCT:
         session_id = kwargs.pop('session_id')
         job_id = kwargs.pop('job_id')
-        product_title = kwargs.pop('product_title')
-        img_fid = kwargs.pop('img_fid')
-        observation_id = kwargs.pop('observation_id')
+        product_title = kwargs.pop('product_title', None)
+        img_fid = kwargs.pop('img_fid', None)
+        observation_id = kwargs.pop('observation_id', None)
         user_id_product_creator = kwargs.pop('user_id_product_creator')
         return post_data_product_to_gallery(product_gallery_url=product_gallery_url,
                                             session_id=session_id,
