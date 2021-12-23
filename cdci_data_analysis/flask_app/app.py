@@ -427,19 +427,9 @@ def post_product_to_gallery():
     par_dic.pop('token')
     par_dic['user_id_product_creator'] = user_id_product_creator
 
-    # process files sent
-    if request.files:
-        for f in request.files:
-            file = request.files[f]
-            # upload file to drupal
-            output_img_post = drupal_helper.post_picture_to_gallery(product_gallery_url=product_gallery_url,
-                                                                    img=file,
-                                                                    jwt_token=jwt_pg_token)
-            img_fid = output_img_post['fid'][0]['value']
-            par_dic['img_fid'] = img_fid
-
     output_post = drupal_helper.post_content_to_gallery(product_gallery_url=product_gallery_url,
                                                         jwt_token=jwt_pg_token,
+                                                        files=request.files,
                                                         **par_dic)
 
     return output_post

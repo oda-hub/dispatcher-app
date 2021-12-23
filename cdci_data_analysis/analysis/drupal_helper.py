@@ -85,16 +85,29 @@ def post_picture_to_gallery(product_gallery_url, img, jwt_token):
 
 def post_content_to_gallery(product_gallery_url,
                             jwt_token,
+                            files=None,
                             **kwargs):
+    par_dic = copy.deepcopy(kwargs)
     # extract type of content to post
-    content_type = ContentType[str.upper(kwargs.pop('content_type', 'article'))]
+    content_type = ContentType[str.upper(par_dic.pop('content_type', 'article'))]
     if content_type == content_type.DATA_PRODUCT:
-        session_id = kwargs.pop('session_id')
-        job_id = kwargs.pop('job_id')
-        product_title = kwargs.pop('product_title', None)
-        img_fid = kwargs.pop('img_fid', None)
-        observation_id = kwargs.pop('observation_id', None)
-        user_id_product_creator = kwargs.pop('user_id_product_creator')
+        # process files sent
+        if files is not None:
+            for f in files:
+                file = files[f]
+                # upload file to drupal
+                output_img_post = post_picture_to_gallery(product_gallery_url=product_gallery_url,
+                                                          img=file,
+                                                          jwt_token=jwt_token)
+                img_fid = output_img_post['fid'][0]['value']
+                par_dic['img_fid'] = img_fid
+
+        session_id = par_dic.pop('session_id')
+        job_id = par_dic.pop('job_id')
+        product_title = par_dic.pop('product_title', None)
+        img_fid = par_dic.pop('img_fid', None)
+        observation_id = par_dic.pop('observation_id', None)
+        user_id_product_creator = par_dic.pop('user_id_product_creator')
         return post_data_product_to_gallery(product_gallery_url=product_gallery_url,
                                             session_id=session_id,
                                             job_id=job_id,
@@ -103,7 +116,7 @@ def post_content_to_gallery(product_gallery_url,
                                             img_fid=img_fid,
                                             observation_id=observation_id,
                                             user_id_product_creator=user_id_product_creator,
-                                            **kwargs)
+                                            **par_dic)
 
 
 def get_observation_drupal_id(product_gallery_url, jwt_token, t1=None, t2=None, observation_id=None):
@@ -185,7 +198,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
     # set the initial body content
     body_value = ''
     current_time_formatted = datetime.fromtimestamp(_time.time()).strftime("%Y-%m-%d %H:%M:%S")
-    product_title = ''
+    product_type = ''
 
     # get products
     scratch_dir_json_fn = f'scratch_sid_{session_id}_jid_{job_id}'

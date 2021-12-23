@@ -1432,7 +1432,6 @@ def test_product_gallery_post_article(dispatcher_live_fixture):
     params = {
         'job_id': job_id,
         'session_id': session_id,
-        'product_title': product_title,
         'observation_id': 'test observation',
         'content_type': 'data_product',
         'E1_keV': 45,
