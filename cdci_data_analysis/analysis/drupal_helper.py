@@ -4,9 +4,8 @@ import requests
 import base64
 import copy
 import uuid
-import time as _time
 
-from datetime import datetime
+from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
 from enum import Enum, auto
 
@@ -83,10 +82,19 @@ def post_picture_to_gallery(product_gallery_url, img, jwt_token):
 
 
 def post_content_to_gallery(product_gallery_url,
+                            decoded_token,
                             jwt_token,
                             files=None,
                             **kwargs):
     par_dic = copy.deepcopy(kwargs)
+    # extract email address and then the relative user_id
+    # TODO perhaps extend considering the user_name passed as a parameter
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
+                                          user_email=user_email,
+                                          jwt_token=jwt_token)
+
+    par_dic['user_id_product_creator'] = user_id_product_creator
     # extract type of content to post
     content_type = ContentType[str.upper(par_dic.pop('content_type', 'article'))]
     if content_type == content_type.DATA_PRODUCT:

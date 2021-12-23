@@ -415,19 +415,13 @@ def post_product_to_gallery():
 
     jwt_pg_token = drupal_helper.get_mmoda_pg_token(app_config.product_gallery_jwt_token_location)
     product_gallery_url = app_config.product_gallery_url
-    # extract email address and then the relative user_id
-    # TODO perhaps extend considering the user_name passed as a parameter
-    user_email = tokenHelper.get_token_user_email_address(decoded_token)
-    user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
-                                                        user_email=user_email,
-                                                        jwt_token=jwt_pg_token)
 
     # extract content using job_id and session_id
     par_dic = request.values.to_dict()
     par_dic.pop('token')
-    par_dic['user_id_product_creator'] = user_id_product_creator
 
     output_post = drupal_helper.post_content_to_gallery(product_gallery_url=product_gallery_url,
+                                                        decoded_token=decoded_token,
                                                         jwt_token=jwt_pg_token,
                                                         files=request.files,
                                                         **par_dic)
