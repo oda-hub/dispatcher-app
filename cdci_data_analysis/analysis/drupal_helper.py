@@ -83,11 +83,27 @@ def post_picture_to_gallery(product_gallery_url, img, jwt_token):
     return output_post
 
 
-def post_content_to_gallery(**kwargs):
+def post_content_to_gallery(product_gallery_url,
+                            jwt_token,
+                            **kwargs):
     # extract type of content to post
     content_type = ContentType[str.upper(kwargs.pop('content_type', 'article'))]
     if content_type == content_type.DATA_PRODUCT:
-        return post_data_product_to_gallery(**kwargs)
+        session_id = kwargs.pop('session_id')
+        job_id = kwargs.pop('job_id')
+        product_title = kwargs.pop('product_title')
+        img_fid = kwargs.pop('img_fid')
+        observation_id = kwargs.pop('observation_id')
+        user_id_product_creator = kwargs.pop('user_id_product_creator')
+        return post_data_product_to_gallery(product_gallery_url=product_gallery_url,
+                                            session_id=session_id,
+                                            job_id=job_id,
+                                            jwt_token=jwt_token,
+                                            product_title=product_title,
+                                            img_fid=img_fid,
+                                            observation_id=observation_id,
+                                            user_id_product_creator=user_id_product_creator,
+                                            **kwargs)
 
 
 def get_observation_drupal_id(product_gallery_url, jwt_token, t1=None, t2=None, observation_id=None):
@@ -117,6 +133,8 @@ def get_observation_drupal_id(product_gallery_url, jwt_token, t1=None, t2=None, 
         body_gallery_observation_node["_links"]["type"]["href"] = body_gallery_observation_node["_links"]["type"]["href"] + 'observation'
 
         if t1 is not None and t2 is not None:
+            # check if noe observation with that daterange already exists
+
             # format the time fields, from the format request
             t1_formatted = parser.parse(t1).strftime('%Y-%m-%dT%H:%M:%S')
             t2_formatted = parser.parse(t2).strftime('%Y-%m-%dT%H:%M:%S')
@@ -155,7 +173,8 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
                                  product_title=None,
                                  img_fid=None,
                                  observation_id=None,
-                                 user_id_product_creator=None):
+                                 user_id_product_creator=None,
+                                 **kwargs):
     # body_gallery_article_node = body_article_product_gallery.body_article.copy()
     body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_article)
 
@@ -166,7 +185,8 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
     # set the product title
     if product_title is None:
         product_title = ''
-
+    # set the initial body content
+    body_value = ''
     current_time_formatted = datetime.fromtimestamp(_time.time()).strftime("%Y-%m-%d %H:%M:%S")
     product_title = "_".join([product_title, 'data_product', current_time_formatted])
 
@@ -215,6 +235,14 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
     else:
         raise RequestNotUnderstood(message="Request data ont found",
                                    payload={'error_message': 'error while posting article'})
+
+    # let's go through the kwargs and if any overwrite some values for the product to post
+    for k, v in kwargs.items():
+        # assuming the name of the field in drupal starts always with field_
+        field_name = 'field_' + k
+        body_gallery_article_node[field_name] = [{
+            "value": v
+        }]
 
     body_gallery_article_node["body"][0]["value"] = body_value
 

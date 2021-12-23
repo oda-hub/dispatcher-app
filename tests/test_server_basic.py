@@ -1434,6 +1434,8 @@ def test_product_gallery_post_article(dispatcher_live_fixture):
         'product_title': product_title,
         'observation_id': 'test observation',
         'content_type': 'data_product',
+        'e1_kev': 45,
+        'e2_kev': 95,
         'token': encoded_token
     }
 
