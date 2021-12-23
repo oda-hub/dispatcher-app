@@ -10,7 +10,6 @@ from datetime import datetime
 from dateutil import parser
 from enum import Enum, auto
 
-from cdci_data_analysis.analysis import email_helper
 from ..analysis.exceptions import RequestNotUnderstood
 from ..flask_app.templates import body_article_product_gallery
 
@@ -197,7 +196,6 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
 
     # set the initial body content
     body_value = ''
-    current_time_formatted = datetime.fromtimestamp(_time.time()).strftime("%Y-%m-%d %H:%M:%S")
     product_type = ''
 
     # get products
