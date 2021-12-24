@@ -1432,12 +1432,13 @@ def test_product_gallery_post_article(dispatcher_live_fixture):
     params = {
         'job_id': job_id,
         'session_id': session_id,
-        'observation_id': 'test observation',
         'content_type': 'data_product',
         'E1_keV': 45,
         'E2_kev': 95,
         'DEC': 145,
         'RA': 95.23,
+        'T1': '2019-01-01',
+        'T2': '2021-12-01',
         'token': encoded_token
     }
 

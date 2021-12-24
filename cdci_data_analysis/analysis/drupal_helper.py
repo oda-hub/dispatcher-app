@@ -4,6 +4,7 @@ import requests
 import base64
 import copy
 import uuid
+import datetime
 
 from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
@@ -126,6 +127,80 @@ def post_content_to_gallery(product_gallery_url,
                                             **par_dic)
 
 
+def get_observations_range(product_gallery_url, jwt_token, t1=None, t2=None):
+    observations = []
+    # get from the drupal the relative id
+    headers = {
+        'Content-type': 'application/hal+json',
+        'Authorization': 'Bearer ' + jwt_token
+    }
+    if t1 is None or t2 is None:
+        formatted_range = 'all'
+    else:
+        # format the time fields, from the format request, with +/- 1ms
+        t1_minor = parser.parse(t1) - datetime.timedelta(seconds=1)
+        t2_plus = parser.parse(t2) + datetime.timedelta(seconds=1)
+        t1_minor_formatted = t1_minor.strftime('%Y-%m-%dT%H:%M:%S')
+        t2_plus_formatted = t2_plus.strftime('%Y-%m-%dT%H:%M:%S')
+        # eg /mmoda-pg/observations/range/2018-12-31T23%3A59%3A59--2021-12-01T00%3A00%3A01
+        formatted_range = f'{t1_minor_formatted}--{t2_plus_formatted}'
+    # post the article
+    log_res = requests.get(f"{product_gallery_url}/observations/range/{formatted_range}?_format=hal_json",
+                           headers=headers
+                           )
+    output_get = log_res.json()
+    if log_res.status_code < 200 or log_res.status_code >= 300:
+        raise RequestNotUnderstood(output_get['message'],
+                                   status_code=log_res.status_code,
+                                   payload={'error_message': 'error while retrieving the user id'})
+    if isinstance(output_get, list):
+        observations = output_get
+
+    return observations
+
+
+def post_observation(product_gallery_url, jwt_token, t1=None, t2=None):
+    # post new observation with or without a specific time range
+    body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_article)
+    # set the type of content to post
+    body_gallery_observation_node["_links"]["type"]["href"] = body_gallery_observation_node["_links"]["type"][
+                                                                  "href"] + 'observation'
+    if t1 is not None and t2 is not None:
+        # format the time fields, from the format request
+        t1_formatted = parser.parse(t1).strftime('%Y-%m-%dT%H:%M:%S')
+        t2_formatted = parser.parse(t2).strftime('%Y-%m-%dT%H:%M:%S')
+        # set the daterange
+        body_gallery_observation_node["field_timerange"] = [{
+            "value": t1_formatted,
+            "end_value": t2_formatted
+        }]
+
+        body_gallery_observation_node["title"]["value"] = "_".join(["observation", t1_formatted, t2_formatted])
+    else:
+        # assign a randomly generate id in case to time range is provided
+        body_gallery_observation_node["title"]["value"] = "_".join(["observation", str(uuid.uuid4())])
+
+    headers = {
+        'Content-type': 'application/hal+json',
+        'Authorization': 'Bearer ' + jwt_token
+    }
+    # post the article
+    log_res = requests.post(f"{product_gallery_url}/node?_format=hal_json",
+                            data=json.dumps(body_gallery_observation_node),
+                            headers=headers
+                            )
+    output_post = log_res.json()
+    if log_res.status_code < 200 or log_res.status_code >= 300:
+        raise RequestNotUnderstood(output_post['message'],
+                                   status_code=log_res.status_code,
+                                   payload={'error_message': 'error while posting a new observation'})
+
+    # extract the id of the observation
+    observation_drupal_id = output_post['nid'][0]['value']
+
+    return observation_drupal_id
+
+
 def get_observation_drupal_id(product_gallery_url, jwt_token, t1=None, t2=None, observation_id=None):
     observation_drupal_id = None
     if observation_id is not None:
@@ -146,46 +221,22 @@ def get_observation_drupal_id(product_gallery_url, jwt_token, t1=None, t2=None, 
         if isinstance(output_get, list) and len(output_get) == 1:
             observation_drupal_id = output_get[0]['nid']
     else:
-        # post new observation with or without a specific time range
-        # body_gallery_observation_node = body_article_product_gallery.body_article.copy()
-        body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_article)
-        # set the type of content to post
-        body_gallery_observation_node["_links"]["type"]["href"] = body_gallery_observation_node["_links"]["type"]["href"] + 'observation'
 
         if t1 is not None and t2 is not None:
-            # TODO check if an observation with that daterange already exists
+            observations_range = get_observations_range(product_gallery_url, jwt_token, t1=t1, t2=t2)
+            for observation in observations_range:
+                times = observation['field_timerange'].split(' - ')
+                parsed_t1 = parser.parse(t1)
+                parsed_t2 = parser.parse(t2)
+                t_start = parser.parse(times[0])
+                t_end = parser.parse(times[1])
+                if t_start == parsed_t1 and t_end == parsed_t2:
+                    observation_drupal_id = observation['nid']
+                    break
 
-            # format the time fields, from the format request
-            t1_formatted = parser.parse(t1).strftime('%Y-%m-%dT%H:%M:%S')
-            t2_formatted = parser.parse(t2).strftime('%Y-%m-%dT%H:%M:%S')
-            # set the daterange
-            body_gallery_observation_node["field_timerange"] = [{
-                "value": t1_formatted,
-                "end_value": t2_formatted
-            }]
+        if observation_drupal_id is None:
+            observation_drupal_id = post_observation(product_gallery_url, jwt_token, t1, t2)
 
-            body_gallery_observation_node["title"]["value"] = "_".join(["observation", t1_formatted, t2_formatted])
-        else:
-            # assign a randomly generate id in case to time range is provided
-            body_gallery_observation_node["title"]["value"] = "_".join(["observation", str(uuid.uuid4())])
-
-        headers = {
-            'Content-type': 'application/hal+json',
-            'Authorization': 'Bearer ' + jwt_token
-        }
-        # post the article
-        log_res = requests.post(f"{product_gallery_url}/node?_format=hal_json",
-                                data=json.dumps(body_gallery_observation_node),
-                                headers=headers
-                                )
-        output_post = log_res.json()
-        if log_res.status_code < 200 or log_res.status_code >= 300:
-            raise RequestNotUnderstood(output_post['message'],
-                                       status_code=log_res.status_code,
-                                       payload={'error_message': 'error while posting article'})
-
-        # extract the id of the observation
-        observation_drupal_id = output_post['nid'][0]['value']
     return observation_drupal_id
 
 
@@ -205,7 +256,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
     # set the initial body content
     body_value = ''
     product_type = ''
-
+    t1 = t2 = None
     # get products
     scratch_dir_json_fn = f'scratch_sid_{session_id}_jid_{job_id}'
     # the aliased version might have been created
@@ -225,11 +276,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
         # time data for the observation
         t1 = analysis_parameters_json_content_original.pop('T1')
         t2 = analysis_parameters_json_content_original.pop('T2')
-        observation_drupal_id = get_observation_drupal_id(product_gallery_url, jwt_token,
-                                                          t1=t1, t2=t2, observation_id=observation_id)
-        body_gallery_article_node["field_derived_from_observation"] = [{
-            "target_id": observation_drupal_id
-        }]
+
         # TODO no need to set all the parameters by default
         # for k, v in analysis_parameters_json_content_original.items():
         #     # assuming the name of the field in drupal starts always with field_
@@ -242,6 +289,18 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
         raise RequestNotUnderstood(message="Request data ont found",
                                    payload={'error_message': 'error while posting article'})
 
+    # set observation
+    if 'T1' in kwargs:
+        t1 = kwargs.pop('T1')
+    if 'T2' in kwargs:
+        t2 = kwargs.pop('T2')
+
+    observation_drupal_id = get_observation_drupal_id(product_gallery_url, jwt_token,
+                                                      t1=t1, t2=t2, observation_id=observation_id)
+    body_gallery_article_node["field_derived_from_observation"] = [{
+        "target_id": observation_drupal_id
+    }]
+
     # let's go through the kwargs and if any overwrite some values for the product to post
     for k, v in kwargs.items():
         # assuming the name of the field in drupal starts always with field_
@@ -249,6 +308,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
         body_gallery_article_node[field_name] = [{
             "value": v
         }]
+
 
     # set the product title
     if product_title is None:
