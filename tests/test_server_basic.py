@@ -1432,7 +1432,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture):
     params = {
         'job_id': job_id,
         'session_id': session_id,
-        'src_name': 'Mrk 421',
+        'src_name': '1E 1740.7-2942',
         'content_type': 'data_product',
         'E1_keV': 45,
         'E2_kev': 95,

@@ -301,14 +301,6 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
         "target_id": observation_drupal_id
     }]
 
-    # let's go through the kwargs and if any overwrite some values for the product to post
-    for k, v in kwargs.items():
-        # assuming the name of the field in drupal starts always with field_
-        field_name = str.lower('field_' + k)
-        body_gallery_article_node[field_name] = [{
-            "value": v
-        }]
-
     # set the product title
     if product_title is None:
         # TODO to be used for the AstrophysicalEntity
@@ -323,6 +315,14 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
     if user_id_product_creator is not None:
         body_gallery_article_node["uid"] = [{
             "target_id": user_id_product_creator
+        }]
+
+    # let's go through the kwargs and if any overwrite some values for the product to post
+    for k, v in kwargs.items():
+        # assuming the name of the field in drupal starts always with field_
+        field_name = str.lower('field_' + k)
+        body_gallery_article_node[field_name] = [{
+            "value": v
         }]
 
     headers = {
