@@ -309,10 +309,10 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
             "value": v
         }]
 
-
     # set the product title
     if product_title is None:
-        src_name = kwargs.get('src_name', 'source')
+        # TODO to be used for the AstrophysicalEntity
+        src_name = kwargs.pop('src_name', 'source')
         product_title = "_".join([src_name, product_type])
 
     body_gallery_article_node["title"]["value"] = product_title
