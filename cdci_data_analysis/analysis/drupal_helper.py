@@ -260,13 +260,13 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
     product_type = ''
     t1 = t2 = None
     # get products
-    scratch_dir_json_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    scratch_dir = f'scratch_sid_{session_id}_jid_{job_id}'
     # the aliased version might have been created
     scratch_dir_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased'
     analysis_parameters_json_content_original = None
     #
-    if os.path.exists(scratch_dir_json_fn):
-        analysis_parameters_json_content_original = json.load(open(scratch_dir_json_fn + '/analysis_parameters.json'))
+    if os.path.exists(scratch_dir):
+        analysis_parameters_json_content_original = json.load(open(scratch_dir + '/analysis_parameters.json'))
     elif os.path.exists(scratch_dir_json_fn_aliased):
         analysis_parameters_json_content_original = json.load(
             open(scratch_dir_json_fn_aliased + '/analysis_parameters.json'))
@@ -286,10 +286,12 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
         #     body_gallery_article_node[field_name] = [{
         #         "value": v
         #     }]
-        body_value = (f'''''')
+        body_value = ''
     else:
-        raise RequestNotUnderstood(message="Request data ont found",
-                                   payload={'error_message': 'error while posting article'})
+        raise RequestNotUnderstood(message="Request data not found",
+                                   payload={'error_message': 'error while posting data product: '
+                                                             'results of the ODA product request could not be found, '
+                                                             'perhaps wrong job_id was passed?'})
 
     # set observation
     if 'T1' in kwargs:

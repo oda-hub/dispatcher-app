@@ -413,6 +413,17 @@ def post_product_to_gallery():
         # raise RequestNotAuthorized("The token provided is not valid.")
         return make_response('The token provided is not valid.'), 403
 
+    roles = tokenHelper.get_token_roles(decoded_token)
+
+    required_roles = ['gallery poster']
+    if not all(item in roles for item in required_roles):
+        lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+        message = (
+            f"Unfortunately, your privileges are not sufficient to post in the product gallery.\n"
+            f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
+        )
+        return make_response(message), 403
+
     jwt_pg_token = drupal_helper.get_mmoda_pg_token(app_config.product_gallery_jwt_token_location)
     product_gallery_url = app_config.product_gallery_url
 

@@ -1406,7 +1406,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture):
     # let's generate a valid token
     token_payload = {
         **default_token_payload,
-        "roles": "general, unige-hpc-full",
+        "roles": "general, gallery poster",
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
