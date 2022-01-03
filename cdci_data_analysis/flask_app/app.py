@@ -423,7 +423,8 @@ def update_gallery_jwt_token_exp():
         )
         return make_response(message), 403
 
-    jwt_pg_token = drupal_helper.get_mmoda_pg_token(app_config.product_gallery_jwt_token_location)
+    # jwt_pg_token = drupal_helper.get_mmoda_pg_token(app_config.product_gallery_jwt_token_location)
+    jwt_pg_token = drupal_helper.generate_gallery_jwt_token(app_config.product_gallery_secret_key)
     product_gallery_secret_key = app_config.product_gallery_secret_key
 
     par_dic = request.values.to_dict()

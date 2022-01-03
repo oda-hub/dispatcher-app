@@ -1,5 +1,7 @@
 import os
 import json
+import time
+
 import jwt
 from typing import Optional, Tuple
 
@@ -35,6 +37,23 @@ def get_mmoda_pg_token(gallery_jwt_token_file_path):
         return open(os.path.join(os.getcwd(), gallery_jwt_token_file_path)).read().strip()
     return ''
 
+
+# TODO user_id is probably not really necessary
+def generate_gallery_jwt_token(gallery_jwt_token_secret_key, user_id=None):
+    iat = time.time()
+    drupal_obj = None
+    if user_id is not None:
+        drupal_obj = dict(
+            uid=user_id
+        )
+    token_payload = dict(iat=iat,
+                         exp=iat + 3600,
+                         drupal=drupal_obj
+                         )
+
+    out_token = jwt.encode(token_payload, gallery_jwt_token_secret_key, algorithm=default_algorithm)
+
+    return out_token
 
 def update_exp_time_token(gallery_jwt_token, gallery_jwt_token_secret_key, new_exp_duration=None):
     if gallery_jwt_token_secret_key is None:
