@@ -298,7 +298,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
         t1 = kwargs.pop('T1')
     if 'T2' in kwargs:
         t2 = kwargs.pop('T2')
-
+    # TODO provide the user with information regarding how the observation was assigned (eg derived, created new)
     observation_drupal_id = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
                                                       t1=t1, t2=t2, observation_id=observation_id)
     body_gallery_article_node["field_derived_from_observation"] = [{
