@@ -55,6 +55,7 @@ dispatcher:
         email_sending_job_submitted_default_interval: 5
 
     # product gallery related set of options
+    # in case no integration with the product gallery is provided, these options will be ignored
     product_gallery_options:
         # url of the product gallery home
         product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda-pg/"

@@ -1,5 +1,7 @@
 import os
 import json
+from typing import Optional
+
 import requests
 import base64
 import copy
@@ -27,7 +29,7 @@ def get_mmoda_pg_token(jwt_token__file_path):
     return ''
 
 
-def get_user_id(product_gallery_url, user_email, jwt_token) -> str:
+def get_user_id(product_gallery_url, user_email, jwt_token) -> Optional[str]:
     user_id = None
     headers = {
         'Content-type': 'application/hal+json',
