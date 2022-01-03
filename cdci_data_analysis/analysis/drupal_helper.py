@@ -1,7 +1,7 @@
 import os
 import json
 import jwt
-from typing import Optional
+from typing import Optional, Tuple
 
 import requests
 import base64
@@ -230,7 +230,7 @@ def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
 
 
 def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t2=None, observation_id=None) \
-        -> Optional[str, str]:
+        -> Tuple[Optional[str], Optional[str]]:
     observation_drupal_id = None
     observation_information_message = None
     if observation_id is not None:
