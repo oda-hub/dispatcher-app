@@ -1,4 +1,4 @@
-body_article = {
+body_node = {
     "_links": {
         "type": {
             "href": "http://cdciweb02.isdc.unige.ch/mmoda-pg/rest/type/node/"

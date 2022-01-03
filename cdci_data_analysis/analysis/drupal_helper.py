@@ -129,7 +129,7 @@ def post_content_to_gallery(product_gallery_url,
                                             **par_dic)
 
 
-def get_observations_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
+def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
     observations = []
     # get from the drupal the relative id
     headers = {
@@ -163,7 +163,7 @@ def get_observations_range(product_gallery_url, gallery_jwt_token, t1=None, t2=N
 
 def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
     # post new observation with or without a specific time range
-    body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_article)
+    body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_node)
     # set the type of content to post
     body_gallery_observation_node["_links"]["type"]["href"] = body_gallery_observation_node["_links"]["type"][
                                                                   "href"] + 'observation'
@@ -225,7 +225,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t
     else:
 
         if t1 is not None and t2 is not None:
-            observations_range = get_observations_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2)
+            observations_range = get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2)
             for observation in observations_range:
                 times = observation['field_timerange'].split(' - ')
                 parsed_t1 = parser.parse(t1)
@@ -249,7 +249,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
                                  user_id_product_creator=None,
                                  **kwargs):
     # body_gallery_article_node = body_article_product_gallery.body_article.copy()
-    body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_article)
+    body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_node)
 
     # set the type of content to post
     link_content_type = body_gallery_article_node["_links"]["type"]["href"] + 'data_product'
