@@ -146,7 +146,7 @@ def get_observations_range(product_gallery_url, gallery_jwt_token, t1=None, t2=N
         t2_plus_formatted = t2_plus.strftime('%Y-%m-%dT%H:%M:%S')
         # eg /mmoda-pg/observations/range/2018-12-31T23%3A59%3A59--2021-12-01T00%3A00%3A01
         formatted_range = f'{t1_minor_formatted}--{t2_plus_formatted}'
-    # post the article
+
     log_res = requests.get(f"{product_gallery_url}/observations/range/{formatted_range}?_format=hal_json",
                            headers=headers
                            )
@@ -186,7 +186,7 @@ def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
         'Content-type': 'application/hal+json',
         'Authorization': 'Bearer ' + gallery_jwt_token
     }
-    # post the article
+
     log_res = requests.post(f"{product_gallery_url}/node?_format=hal_json",
                             data=json.dumps(body_gallery_observation_node),
                             headers=headers
@@ -211,7 +211,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t
             'Content-type': 'application/hal+json',
             'Authorization': 'Bearer ' + gallery_jwt_token
         }
-        # post the article
+
         log_res = requests.get(f"{product_gallery_url}/observations/{observation_id}?_format=hal_json",
                                headers=headers
                                )
@@ -355,7 +355,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
         body_gallery_article_node['field_image_png'] = [{
             "target_id": int(img_fid)
         }]
-    # post the article
+    # finally, post the data product to the galery
     log_res = requests.post(f"{product_gallery_url}/node?_format=hal_json",
                             data=json.dumps(body_gallery_article_node),
                             headers=headers
