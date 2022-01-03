@@ -80,7 +80,7 @@ def post_picture_to_gallery(product_gallery_url, img, gallery_jwt_token):
     if log_res.status_code < 200 or log_res.status_code >= 300:
         raise RequestNotUnderstood(output_post['message'],
                                    status_code=log_res.status_code,
-                                   payload={'error_message': 'error while posting article'})
+                                   payload={'error_message': 'error while posting a picture to the gallery'})
     return output_post
 
 
@@ -154,7 +154,7 @@ def get_observations_range(product_gallery_url, gallery_jwt_token, t1=None, t2=N
     if log_res.status_code < 200 or log_res.status_code >= 300:
         raise RequestNotUnderstood(output_get['message'],
                                    status_code=log_res.status_code,
-                                   payload={'error_message': 'error while retrieving the user id'})
+                                   payload={'error_message': 'error while getting the observation range'})
     if isinstance(output_get, list):
         observations = output_get
 
@@ -219,7 +219,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t
         if log_res.status_code < 200 or log_res.status_code >= 300:
             raise RequestNotUnderstood(output_get['message'],
                                        status_code=log_res.status_code,
-                                       payload={'error_message': 'error while retrieving the user id'})
+                                       payload={'error_message': 'error while retrieving the observation information'})
         if isinstance(output_get, list) and len(output_get) == 1:
             observation_drupal_id = output_get[0]['nid']
     else:
