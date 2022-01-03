@@ -430,9 +430,10 @@ def update_gallery_jwt_token_exp():
     gallery_jwt_token_duration = par_dic.pop('gallery_jwt_token_duration', None)
 
     updated_token = drupal_helper.update_exp_time_token(gallery_jwt_token=jwt_pg_token,
-                                        gallery_jwt_token_secret_key=product_gallery_secret_key,
-                                        new_exp_duration=gallery_jwt_token_duration)
+                                                        gallery_jwt_token_secret_key=product_gallery_secret_key,
+                                                        new_exp_duration=gallery_jwt_token_duration)
 
+    return updated_token
 
 
 @app.route('/post_product_to_gallery', methods=['POST'])

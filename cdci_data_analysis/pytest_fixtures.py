@@ -360,6 +360,7 @@ dispatcher:
     product_gallery_options:
         product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda-pg"
         product_gallery_jwt_token_location: ".mmoda-pg-token"
+        product_gallery_secret_key: 'secretkey_test'
     """)
 
     yield fn

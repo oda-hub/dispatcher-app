@@ -45,7 +45,7 @@ def update_exp_time_token(gallery_jwt_token, gallery_jwt_token_secret_key, new_e
     if new_exp_duration is None:
         new_exp_duration = 3600
 
-    token_payload['exp'] = token_payload['exp'] + new_exp_duration
+    token_payload['exp'] = token_payload['exp'] + float(new_exp_duration)
 
     out_token = jwt.encode(token_payload, gallery_jwt_token_secret_key, algorithm=default_algorithm)
 
