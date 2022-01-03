@@ -458,7 +458,7 @@ def post_product_to_gallery():
 
     roles = tokenHelper.get_token_roles(decoded_token)
 
-    required_roles = ['gallery poster']
+    required_roles = ['gallery contributor']
     if not all(item in roles for item in required_roles):
         lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
         message = (

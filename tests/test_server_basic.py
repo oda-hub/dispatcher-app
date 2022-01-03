@@ -1437,6 +1437,7 @@ def test_update_gallery_jwt_token(dispatcher_live_fixture, gallery_jwt_token_dur
 
     assert updated_expected_gallery_encoded_token == updated_gallery_encoded_token
 
+
 @pytest.mark.test_drupal
 def test_product_gallery_post_article(dispatcher_live_fixture):
     server = dispatcher_live_fixture
@@ -1447,7 +1448,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture):
     # let's generate a valid token
     token_payload = {
         **default_token_payload,
-        "roles": "general, gallery poster",
+        "roles": "general, gallery contributor",
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
