@@ -61,5 +61,7 @@ dispatcher:
         product_gallery_url: PRODUCT_GALLERY_URL
         # location of the product gallery jwt token
         product_gallery_jwt_token_location: TOKEN_FILE_LOCATION
+        # jwt token secret key used for updating the token
+        product_gallery_secret_key: YOUR_VERY_OWN_PRODUCT_GALLERY_SECRET_KEY
 
 

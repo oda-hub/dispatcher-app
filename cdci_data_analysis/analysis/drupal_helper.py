@@ -1,5 +1,6 @@
 import os
 import json
+import jwt
 from typing import Optional
 
 import requests
@@ -11,9 +12,12 @@ import datetime
 from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
 from enum import Enum, auto
+from jwt.exceptions import ExpiredSignatureError
 
 from ..analysis.exceptions import RequestNotUnderstood
 from ..flask_app.templates import body_article_product_gallery
+
+default_algorithm = 'HS256'
 
 
 class ContentType(Enum):
@@ -27,6 +31,25 @@ def get_mmoda_pg_token(gallery_jwt_token_file_path):
     if os.path.exists(os.path.join(os.getcwd(), gallery_jwt_token_file_path)):
         return open(os.path.join(os.getcwd(), gallery_jwt_token_file_path)).read().strip()
     return ''
+
+
+def update_exp_time_token(gallery_jwt_token, gallery_jwt_token_secret_key, new_exp_duration=None):
+    if gallery_jwt_token_secret_key is None:
+        raise RuntimeError("unable to update token without valid secret key")
+
+    try:
+        token_payload = jwt.decode(gallery_jwt_token, gallery_jwt_token_secret_key, algorithms=[default_algorithm])
+    except ExpiredSignatureError as e:
+        raise RuntimeError("refusing to update invalid token")
+
+    if new_exp_duration is None:
+        new_exp_duration = 3600
+
+    token_payload['exp'] = token_payload['exp'] + new_exp_duration
+
+    out_token = jwt.encode(token_payload, gallery_jwt_token_secret_key, algorithm=default_algorithm)
+
+    return out_token
 
 
 def get_user_id(product_gallery_url, user_email, gallery_jwt_token) -> Optional[str]:
