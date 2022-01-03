@@ -16,8 +16,11 @@ from jwt.exceptions import ExpiredSignatureError
 
 from ..analysis.exceptions import RequestNotUnderstood
 from ..flask_app.templates import body_article_product_gallery
+from ..app_logging import app_logging
 
 default_algorithm = 'HS256'
+
+logger = app_logging.getLogger('drupal_helper')
 
 
 class ContentType(Enum):
@@ -276,7 +279,6 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
                                  observation_id=None,
                                  user_id_product_creator=None,
                                  **kwargs):
-    # body_gallery_article_node = body_article_product_gallery.body_article.copy()
     body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_node)
 
     # set the type of content to post
@@ -326,12 +328,15 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
         t1 = kwargs.pop('T1')
     if 'T2' in kwargs:
         t2 = kwargs.pop('T2')
-    # TODO provide the user with information regarding how the observation was assigned (eg derived, created new)
+
     observation_drupal_id, observation_information_message = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
                                                       t1=t1, t2=t2, observation_id=observation_id)
     body_gallery_article_node["field_derived_from_observation"] = [{
         "target_id": observation_drupal_id
     }]
+
+    if observation_information_message is not None:
+        logger.info("==> information about assigned observation: %s", observation_information_message)
 
     # set the product title
     if product_title is None:
