@@ -226,8 +226,10 @@ def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
     return observation_drupal_id
 
 
-def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t2=None, observation_id=None):
+def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t2=None, observation_id=None) \
+        -> Optional[str, str]:
     observation_drupal_id = None
+    observation_information_message = None
     if observation_id is not None:
         # get from the drupal the relative id
         headers = {
@@ -245,6 +247,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t
                                        payload={'error_message': 'error while retrieving the observation information'})
         if isinstance(output_get, list) and len(output_get) == 1:
             observation_drupal_id = output_get[0]['nid']
+            observation_information_message = 'observation assigned by the user'
     else:
 
         if t1 is not None and t2 is not None:
@@ -257,12 +260,14 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t
                 t_end = parser.parse(times[1])
                 if t_start == parsed_t1 and t_end == parsed_t2:
                     observation_drupal_id = observation['nid']
+                    observation_information_message = 'observation assigned from the provided time range'
                     break
 
         if observation_drupal_id is None:
             observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, t1, t2)
+            observation_information_message = 'a new observation has been posted'
 
-    return observation_drupal_id
+    return observation_drupal_id, observation_information_message
 
 
 def post_data_product_to_gallery(product_gallery_url, session_id, job_id, gallery_jwt_token,
@@ -322,7 +327,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
     if 'T2' in kwargs:
         t2 = kwargs.pop('T2')
     # TODO provide the user with information regarding how the observation was assigned (eg derived, created new)
-    observation_drupal_id = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
+    observation_drupal_id, observation_information_message = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
                                                       t1=t1, t2=t2, observation_id=observation_id)
     body_gallery_article_node["field_derived_from_observation"] = [{
         "target_id": observation_drupal_id
