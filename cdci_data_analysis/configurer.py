@@ -236,8 +236,7 @@ class ConfigEnv(object):
                                      disp_dict['email_options']['email_sending_job_submitted'],
                                      disp_dict['email_options']['email_sending_job_submitted_default_interval'],
                                      disp_dict['product_gallery_options']['product_gallery_url'],
-                                     disp_dict['product_gallery_options']['product_gallery_jwt_token_location'],
-                                     disp_dict['product_gallery_options']['product_gallery_secret_key']
+                                     disp_dict['product_gallery_options']['product_gallery_secret_key_location']
                                      )
 
         # not used?
@@ -287,8 +286,7 @@ class ConfigEnv(object):
                             email_sending_job_submitted,
                             email_sending_job_submitted_default_interval,
                             product_gallery_url,
-                            product_gallery_jwt_token_location,
-                            product_gallery_secret_key
+                            product_gallery_secret_key_location
                             ):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
@@ -311,8 +309,7 @@ class ConfigEnv(object):
         self.email_sending_job_submitted = email_sending_job_submitted
         self.email_sending_job_submitted_default_interval = email_sending_job_submitted_default_interval
         self.product_gallery_url = product_gallery_url
-        self.product_gallery_jwt_token_location = product_gallery_jwt_token_location
-        self.product_gallery_secret_key = product_gallery_secret_key
+        self.product_gallery_secret_key_location = product_gallery_secret_key_location
 
     def get_data_serve_conf(self, instr_name):
         if instr_name in self.data_server_conf_dict.keys():

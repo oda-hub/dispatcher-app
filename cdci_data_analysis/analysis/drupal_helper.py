@@ -32,9 +32,15 @@ class ContentType(Enum):
     ASTROPHYSICAL_ENTITY = auto()
 
 
-def get_mmoda_pg_token(gallery_jwt_token_file_path):
-    if os.path.exists(os.path.join(os.getcwd(), gallery_jwt_token_file_path)):
-        return open(os.path.join(os.getcwd(), gallery_jwt_token_file_path)).read().strip()
+# def get_pg_token(gallery_jwt_token_file_path):
+#     if os.path.exists(os.path.join(os.getcwd(), gallery_jwt_token_file_path)):
+#         return open(os.path.join(os.getcwd(), gallery_jwt_token_file_path)).read().strip()
+#     return ''
+
+
+def get_pg_secret_key(gallery_secret_key_file_path):
+    if os.path.exists(os.path.join(os.getcwd(), gallery_secret_key_file_path)):
+        return open(os.path.join(os.getcwd(), gallery_secret_key_file_path)).read().strip()
     return ''
 
 
