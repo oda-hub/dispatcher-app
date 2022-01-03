@@ -23,17 +23,17 @@ class ContentType(Enum):
     ASTROPHYSICAL_ENTITY = auto()
 
 
-def get_mmoda_pg_token(jwt_token__file_path):
-    if os.path.exists(os.path.join(os.getcwd(), jwt_token__file_path)):
-        return open(os.path.join(os.getcwd(), jwt_token__file_path)).read().strip()
+def get_mmoda_pg_token(gallery_jwt_token_file_path):
+    if os.path.exists(os.path.join(os.getcwd(), gallery_jwt_token_file_path)):
+        return open(os.path.join(os.getcwd(), gallery_jwt_token_file_path)).read().strip()
     return ''
 
 
-def get_user_id(product_gallery_url, user_email, jwt_token) -> Optional[str]:
+def get_user_id(product_gallery_url, user_email, gallery_jwt_token) -> Optional[str]:
     user_id = None
     headers = {
         'Content-type': 'application/hal+json',
-        'Authorization': 'Bearer ' + jwt_token
+        'Authorization': 'Bearer ' + gallery_jwt_token
     }
 
     # get the user id
@@ -51,7 +51,7 @@ def get_user_id(product_gallery_url, user_email, jwt_token) -> Optional[str]:
     return user_id
 
 
-def post_picture_to_gallery(product_gallery_url, img, jwt_token):
+def post_picture_to_gallery(product_gallery_url, img, gallery_jwt_token):
     # body_post_img = body_article_product_gallery.body_img.copy()
     body_post_img = copy.deepcopy(body_article_product_gallery.body_img)
 
@@ -68,7 +68,7 @@ def post_picture_to_gallery(product_gallery_url, img, jwt_token):
 
     headers = {
         'Content-type': 'application/hal+json',
-        'Authorization': 'Bearer ' + jwt_token
+        'Authorization': 'Bearer ' + gallery_jwt_token
     }
 
     # post the image
@@ -86,7 +86,7 @@ def post_picture_to_gallery(product_gallery_url, img, jwt_token):
 
 def post_content_to_gallery(product_gallery_url,
                             decoded_token,
-                            jwt_token,
+                            gallery_jwt_token,
                             files=None,
                             **kwargs):
     par_dic = copy.deepcopy(kwargs)
@@ -95,7 +95,7 @@ def post_content_to_gallery(product_gallery_url,
     user_email = tokenHelper.get_token_user_email_address(decoded_token)
     user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
                                           user_email=user_email,
-                                          jwt_token=jwt_token)
+                                          gallery_jwt_token=gallery_jwt_token)
 
     par_dic['user_id_product_creator'] = user_id_product_creator
     # extract type of content to post
@@ -104,11 +104,11 @@ def post_content_to_gallery(product_gallery_url,
         # process files sent
         if files is not None:
             for f in files:
-                file = files[f]
+                file_obj = files[f]
                 # upload file to drupal
                 output_img_post = post_picture_to_gallery(product_gallery_url=product_gallery_url,
-                                                          img=file,
-                                                          jwt_token=jwt_token)
+                                                          img=file_obj,
+                                                          gallery_jwt_token=gallery_jwt_token)
                 img_fid = output_img_post['fid'][0]['value']
                 par_dic['img_fid'] = img_fid
 
@@ -121,7 +121,7 @@ def post_content_to_gallery(product_gallery_url,
         return post_data_product_to_gallery(product_gallery_url=product_gallery_url,
                                             session_id=session_id,
                                             job_id=job_id,
-                                            jwt_token=jwt_token,
+                                            gallery_jwt_token=gallery_jwt_token,
                                             product_title=product_title,
                                             img_fid=img_fid,
                                             observation_id=observation_id,
@@ -129,12 +129,12 @@ def post_content_to_gallery(product_gallery_url,
                                             **par_dic)
 
 
-def get_observations_range(product_gallery_url, jwt_token, t1=None, t2=None):
+def get_observations_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
     observations = []
     # get from the drupal the relative id
     headers = {
         'Content-type': 'application/hal+json',
-        'Authorization': 'Bearer ' + jwt_token
+        'Authorization': 'Bearer ' + gallery_jwt_token
     }
     if t1 is None or t2 is None:
         formatted_range = 'all'
@@ -161,7 +161,7 @@ def get_observations_range(product_gallery_url, jwt_token, t1=None, t2=None):
     return observations
 
 
-def post_observation(product_gallery_url, jwt_token, t1=None, t2=None):
+def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
     # post new observation with or without a specific time range
     body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_article)
     # set the type of content to post
@@ -184,7 +184,7 @@ def post_observation(product_gallery_url, jwt_token, t1=None, t2=None):
 
     headers = {
         'Content-type': 'application/hal+json',
-        'Authorization': 'Bearer ' + jwt_token
+        'Authorization': 'Bearer ' + gallery_jwt_token
     }
     # post the article
     log_res = requests.post(f"{product_gallery_url}/node?_format=hal_json",
@@ -203,13 +203,13 @@ def post_observation(product_gallery_url, jwt_token, t1=None, t2=None):
     return observation_drupal_id
 
 
-def get_observation_drupal_id(product_gallery_url, jwt_token, t1=None, t2=None, observation_id=None):
+def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t2=None, observation_id=None):
     observation_drupal_id = None
     if observation_id is not None:
         # get from the drupal the relative id
         headers = {
             'Content-type': 'application/hal+json',
-            'Authorization': 'Bearer ' + jwt_token
+            'Authorization': 'Bearer ' + gallery_jwt_token
         }
         # post the article
         log_res = requests.get(f"{product_gallery_url}/observations/{observation_id}?_format=hal_json",
@@ -225,7 +225,7 @@ def get_observation_drupal_id(product_gallery_url, jwt_token, t1=None, t2=None, 
     else:
 
         if t1 is not None and t2 is not None:
-            observations_range = get_observations_range(product_gallery_url, jwt_token, t1=t1, t2=t2)
+            observations_range = get_observations_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2)
             for observation in observations_range:
                 times = observation['field_timerange'].split(' - ')
                 parsed_t1 = parser.parse(t1)
@@ -237,12 +237,12 @@ def get_observation_drupal_id(product_gallery_url, jwt_token, t1=None, t2=None, 
                     break
 
         if observation_drupal_id is None:
-            observation_drupal_id = post_observation(product_gallery_url, jwt_token, t1, t2)
+            observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, t1, t2)
 
     return observation_drupal_id
 
 
-def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_token,
+def post_data_product_to_gallery(product_gallery_url, session_id, job_id, gallery_jwt_token,
                                  product_title=None,
                                  img_fid=None,
                                  observation_id=None,
@@ -297,7 +297,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
     if 'T2' in kwargs:
         t2 = kwargs.pop('T2')
 
-    observation_drupal_id = get_observation_drupal_id(product_gallery_url, jwt_token,
+    observation_drupal_id = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
                                                       t1=t1, t2=t2, observation_id=observation_id)
     body_gallery_article_node["field_derived_from_observation"] = [{
         "target_id": observation_drupal_id
@@ -329,7 +329,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, jwt_to
 
     headers = {
         'Content-type': 'application/hal+json',
-        'Authorization': 'Bearer ' + jwt_token
+        'Authorization': 'Bearer ' + gallery_jwt_token
     }
     # TODO improve this REST endpoint to accept multiple input terms, and give one result per input
     # get all the taxonomy terms
