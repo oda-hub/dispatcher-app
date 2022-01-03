@@ -66,11 +66,7 @@ def get_user_id(product_gallery_url, user_email, gallery_jwt_token) -> Optional[
     log_res = requests.get(f"{product_gallery_url}/users/{user_email}?_format=hal_json",
                            headers=headers
                            )
-    output_get = log_res.json()
-    if log_res.status_code < 200 or log_res.status_code >= 300:
-        raise RequestNotUnderstood(output_get['message'],
-                                   status_code=log_res.status_code,
-                                   payload={'error_message': 'error while retrieving the user id'})
+    output_get = analyze_drupal_output(log_res, operation_performed="retrieving the user id")
     if isinstance(output_get, list) and len(output_get) == 1:
         user_id = output_get[0]['uid']
 
@@ -102,11 +98,7 @@ def post_picture_to_gallery(product_gallery_url, img, gallery_jwt_token):
                             data=json.dumps(body_post_img),
                             headers=headers
                             )
-    output_post = log_res.json()
-    if log_res.status_code < 200 or log_res.status_code >= 300:
-        raise RequestNotUnderstood(output_post['message'],
-                                   status_code=log_res.status_code,
-                                   payload={'error_message': 'error while posting a picture to the gallery'})
+    output_post = analyze_drupal_output(log_res, operation_performed="posting a picture to the product gallery")
     return output_post
 
 
@@ -176,11 +168,7 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
     log_res = requests.get(f"{product_gallery_url}/observations/range/{formatted_range}?_format=hal_json",
                            headers=headers
                            )
-    output_get = log_res.json()
-    if log_res.status_code < 200 or log_res.status_code >= 300:
-        raise RequestNotUnderstood(output_get['message'],
-                                   status_code=log_res.status_code,
-                                   payload={'error_message': 'error while getting the observation range'})
+    output_get = analyze_drupal_output(log_res, operation_performed="getting the observation range")
     if isinstance(output_get, list):
         observations = output_get
 
@@ -217,11 +205,7 @@ def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
                             data=json.dumps(body_gallery_observation_node),
                             headers=headers
                             )
-    output_post = log_res.json()
-    if log_res.status_code < 200 or log_res.status_code >= 300:
-        raise RequestNotUnderstood(output_post['message'],
-                                   status_code=log_res.status_code,
-                                   payload={'error_message': 'error while posting a new observation'})
+    output_post = analyze_drupal_output(log_res, operation_performed="posting a new observation")
 
     # extract the id of the observation
     observation_drupal_id = output_post['nid'][0]['value']
@@ -243,11 +227,8 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t
         log_res = requests.get(f"{product_gallery_url}/observations/{observation_id}?_format=hal_json",
                                headers=headers
                                )
-        output_get = log_res.json()
-        if log_res.status_code < 200 or log_res.status_code >= 300:
-            raise RequestNotUnderstood(output_get['message'],
-                                       status_code=log_res.status_code,
-                                       payload={'error_message': 'error while retrieving the observation information'})
+        output_get = analyze_drupal_output(log_res, operation_performed="retrieving the observation information")
+
         if isinstance(output_get, list) and len(output_get) == 1:
             observation_drupal_id = output_get[0]['nid']
             observation_information_message = 'observation assigned by the user'
@@ -371,7 +352,8 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
     log_res = requests.get(f"{product_gallery_url}/taxonomy/term_name/all",
                            headers=headers
                            )
-    output_post = log_res.json()
+    output_post = analyze_drupal_output(log_res,
+                                        operation_performed="retrieving the taxonomy terms from the product gallery")
     if type(output_post) == list and len(output_post) > 0:
         for output in output_post:
             if output['vid'] == 'Instruments' and output['name'] == instrument:
@@ -395,10 +377,16 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
                             data=json.dumps(body_gallery_article_node),
                             headers=headers
                             )
-    output_post = log_res.json()
-    if log_res.status_code < 200 or log_res.status_code >= 300:
-        raise RequestNotUnderstood(output_post['message'],
-                                   status_code=log_res.status_code,
-                                   payload={'error_message': 'error while posting article'})
+
+    output_post = analyze_drupal_output(log_res, operation_performed="posting data product to the gallery")
 
     return output_post
+
+
+def analyze_drupal_output(drupal_output, operation_performed=None):
+    json_output = drupal_output.json()
+    if drupal_output.status_code < 200 or drupal_output.status_code >= 300:
+        raise RequestNotUnderstood(json_output['message'],
+                                   status_code=drupal_output.status_code,
+                                   payload={'error_message': f'error while performing: {operation_performed}'})
+    return json_output
