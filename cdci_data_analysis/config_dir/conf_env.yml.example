@@ -58,8 +58,8 @@ dispatcher:
     # in case no integration with the product gallery is provided, these options will be ignored
     product_gallery_options:
         # url of the product gallery home
-        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda-pg/"
+        product_gallery_url: PRODUCT_GALLERY_URL
         # location of the product gallery jwt token
-        product_gallery_jwt_token_location: ".mmoda-pg-token"
+        product_gallery_jwt_token_location: TOKEN_FILE_LOCATION
 
 
