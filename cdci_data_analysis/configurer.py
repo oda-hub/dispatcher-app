@@ -236,7 +236,7 @@ class ConfigEnv(object):
                                      disp_dict['email_options']['email_sending_job_submitted'],
                                      disp_dict['email_options']['email_sending_job_submitted_default_interval'],
                                      disp_dict['product_gallery_options']['product_gallery_url'],
-                                     disp_dict['product_gallery_options']['product_gallery_secret_key_location']
+                                     disp_dict['product_gallery_options']['product_gallery_secret_key']
                                      )
 
         # not used?
