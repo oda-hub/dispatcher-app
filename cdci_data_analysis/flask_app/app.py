@@ -393,51 +393,6 @@ class Product(Resource):
                            e, status_code=410)
 
 
-# TODO extend to update other fields
-@app.route('/update_gallery_jwt_token_exp')
-def update_gallery_jwt_token_exp():
-    token = request.args.get('token', None)
-    if token is None:
-        return make_response('A token must be provided.'), 403
-    try:
-        app_config = app.config.get('conf')
-        secret_key = app_config.secret_key
-        decoded_token = tokenHelper.get_decoded_token(token, secret_key)
-        logger.info("==> token %s", decoded_token)
-    except jwt.exceptions.ExpiredSignatureError:
-        # raise RequestNotAuthorized("The token provided is expired.")
-        return make_response('The token provided is expired.'), 403
-    except jwt.exceptions.InvalidTokenError:
-        # raise RequestNotAuthorized("The token provided is not valid.")
-        return make_response('The token provided is not valid.'), 403
-
-    roles = tokenHelper.get_token_roles(decoded_token)
-
-    # TODO perhaps define a specific role for this kind of operation, more administrative
-    required_roles = ['administrator']
-    if not all(item in roles for item in required_roles):
-        lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
-        message = (
-            f"Unfortunately, your privileges are not sufficient to update the product gallery token.\n"
-            f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
-        )
-        return make_response(message), 403
-
-    # jwt_pg_token = drupal_helper.get_pg_secret_key(app_config.product_gallery_jwt_token_location)
-    product_gallery_secret_key = drupal_helper.get_pg_secret_key(app_config.product_gallery_secret_key)
-    jwt_pg_token = drupal_helper.generate_gallery_jwt_token(product_gallery_secret_key)
-    product_gallery_secret_key = app_config.product_gallery_secret_key
-
-    par_dic = request.values.to_dict()
-    gallery_jwt_token_duration = par_dic.pop('gallery_jwt_token_duration', None)
-
-    updated_token = drupal_helper.update_exp_time_token(gallery_jwt_token=jwt_pg_token,
-                                                        gallery_jwt_token_secret_key=product_gallery_secret_key,
-                                                        new_exp_duration=gallery_jwt_token_duration)
-
-    return updated_token
-
-
 @app.route('/post_product_to_gallery', methods=['POST'])
 def post_product_to_gallery():
     logger.info("request.args: %s ", request.args)
@@ -469,7 +424,8 @@ def post_product_to_gallery():
         )
         return make_response(message), 403
 
-    jwt_pg_token = drupal_helper.get_mmoda_pg_token(app_config.product_gallery_jwt_token_location)
+    gallery_secret_key = drupal_helper.get_pg_secret_key(app_config.product_gallery_secret_key_location)
+    # gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key)
     product_gallery_url = app_config.product_gallery_url
 
     par_dic = request.values.to_dict()
@@ -477,7 +433,7 @@ def post_product_to_gallery():
 
     output_post = drupal_helper.post_content_to_gallery(product_gallery_url=product_gallery_url,
                                                         decoded_token=decoded_token,
-                                                        jwt_token=jwt_pg_token,
+                                                        gallery_secret_key=gallery_secret_key,
                                                         files=request.files,
                                                         **par_dic)
 

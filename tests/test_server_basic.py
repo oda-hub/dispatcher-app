@@ -20,7 +20,6 @@ from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 logger = logging.getLogger(__name__)
 # symmetric shared secret for the decoding of the token
 secret_key = 'secretkey_test'
-product_gallery_secret_key = 'secretkey_test'
 
 """
 this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
@@ -1398,44 +1397,44 @@ def test_get_query_products_exception(dispatcher_live_fixture):
     assert jdata['exit_status']['message'] == 'InternalError()\nfailing query\n'
 
 
-@pytest.mark.test_drupal
-@pytest.mark.parametrize("gallery_jwt_token_duration", [5000])
-def test_update_gallery_jwt_token(dispatcher_live_fixture, gallery_jwt_token_duration):
-    server = dispatcher_live_fixture
-
-    logger.info("constructed server: %s", server)
-
-    # let's generate a valid token for ODA
-    token_payload = {
-        **default_token_payload,
-        "roles": "administrator",
-    }
-    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-
-    # let's generate a valid token for the gallery
-    gallery_token_payload = {
-        'iat': time.time(),
-        'exp': time.time() + 3600
-    }
-    gallery_encoded_token = jwt.encode(gallery_token_payload, product_gallery_secret_key, algorithm='HS256')
-    with open('.mmoda-pg-token', 'w') as mpt:
-        mpt.write(gallery_encoded_token)
-
-    params = {
-        'gallery_jwt_token_duration': gallery_jwt_token_duration,
-        'token': encoded_token
-    }
-
-    c = requests.get(server + "/update_gallery_jwt_token_exp",
-                     params={**params}
-                     )
-    assert c.status_code == 200
-    updated_gallery_encoded_token = c.text
-
-    gallery_token_payload['exp'] = gallery_token_payload['exp'] + gallery_jwt_token_duration
-    updated_expected_gallery_encoded_token = jwt.encode(gallery_token_payload, product_gallery_secret_key, algorithm='HS256')
-
-    assert updated_expected_gallery_encoded_token == updated_gallery_encoded_token
+# @pytest.mark.test_drupal
+# @pytest.mark.parametrize("gallery_jwt_token_duration", [5000])
+# def test_update_gallery_jwt_token(dispatcher_live_fixture, gallery_jwt_token_duration):
+#     server = dispatcher_live_fixture
+#
+#     logger.info("constructed server: %s", server)
+#
+#     # let's generate a valid token for ODA
+#     token_payload = {
+#         **default_token_payload,
+#         "roles": "administrator",
+#     }
+#     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+#
+#     # let's generate a valid token for the gallery
+#     gallery_token_payload = {
+#         'iat': time.time(),
+#         'exp': time.time() + 3600
+#     }
+#     gallery_encoded_token = jwt.encode(gallery_token_payload, product_gallery_secret_key, algorithm='HS256')
+#     with open('.mmoda-pg-token', 'w') as mpt:
+#         mpt.write(gallery_encoded_token)
+#
+#     params = {
+#         'gallery_jwt_token_duration': gallery_jwt_token_duration,
+#         'token': encoded_token
+#     }
+#
+#     c = requests.get(server + "/update_gallery_jwt_token_exp",
+#                      params={**params}
+#                      )
+#     assert c.status_code == 200
+#     updated_gallery_encoded_token = c.text
+#
+#     gallery_token_payload['exp'] = gallery_token_payload['exp'] + gallery_jwt_token_duration
+#     updated_expected_gallery_encoded_token = jwt.encode(gallery_token_payload, product_gallery_secret_key, algorithm='HS256')
+#
+#     assert updated_expected_gallery_encoded_token == updated_gallery_encoded_token
 
 
 @pytest.mark.test_drupal
@@ -1458,7 +1457,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture):
         'product_type': 'numerical',
         'query_type': "Dummy",
         'instrument': 'empty',
-        'p': 55,
+        'p': 5,
         'token': encoded_token
     }
 
@@ -1476,6 +1475,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture):
         'session_id': session_id,
         'src_name': '1E 1740.7-2942',
         'content_type': 'data_product',
+        'product_title': product_title,
         'E1_keV': 45,
         'E2_kev': 95,
         'DEC': 145,

@@ -14,7 +14,6 @@ import datetime
 from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
 from enum import Enum, auto
-from jwt.exceptions import ExpiredSignatureError
 
 from ..analysis.exceptions import RequestNotUnderstood
 from ..flask_app.templates import body_article_product_gallery
@@ -32,10 +31,21 @@ class ContentType(Enum):
     ASTROPHYSICAL_ENTITY = auto()
 
 
-# def get_pg_token(gallery_jwt_token_file_path):
-#     if os.path.exists(os.path.join(os.getcwd(), gallery_jwt_token_file_path)):
-#         return open(os.path.join(os.getcwd(), gallery_jwt_token_file_path)).read().strip()
-#     return ''
+def analyze_drupal_output(drupal_output, operation_performed=None):
+    if drupal_output.status_code < 200 or drupal_output.status_code >= 300:
+        raise RequestNotUnderstood(drupal_output.text,
+                                   status_code=drupal_output.status_code,
+                                   payload={'error_message': f'error while performing: {operation_performed}'})
+    else:
+        return drupal_output.json()
+
+
+def get_drupal_request_headers(gallery_jwt_token):
+    headers = {
+        'Content-type': 'application/hal+json',
+        'Authorization': 'Bearer ' + gallery_jwt_token
+    }
+    return headers
 
 
 def get_pg_secret_key(gallery_secret_key_file_path):
@@ -47,45 +57,40 @@ def get_pg_secret_key(gallery_secret_key_file_path):
 # TODO user_id is probably not really necessary
 def generate_gallery_jwt_token(gallery_jwt_token_secret_key, user_id=None):
     iat = time.time()
-    drupal_obj = None
+    token_payload = dict(iat=iat,
+                         exp=iat + 3600)
     if user_id is not None:
         drupal_obj = dict(
             uid=user_id
         )
-    token_payload = dict(iat=iat,
-                         exp=iat + 3600,
-                         drupal=drupal_obj
-                         )
+        token_payload['drupal']=drupal_obj
 
     out_token = jwt.encode(token_payload, gallery_jwt_token_secret_key, algorithm=default_algorithm)
 
     return out_token
 
-def update_exp_time_token(gallery_jwt_token, gallery_jwt_token_secret_key, new_exp_duration=None):
-    if gallery_jwt_token_secret_key is None:
-        raise RuntimeError("unable to update token without valid secret key")
-
-    try:
-        token_payload = jwt.decode(gallery_jwt_token, gallery_jwt_token_secret_key, algorithms=[default_algorithm])
-    except ExpiredSignatureError as e:
-        raise RuntimeError("refusing to update invalid token")
-
-    if new_exp_duration is None:
-        new_exp_duration = 3600
-
-    token_payload['exp'] = token_payload['exp'] + float(new_exp_duration)
-
-    out_token = jwt.encode(token_payload, gallery_jwt_token_secret_key, algorithm=default_algorithm)
-
-    return out_token
+# def update_exp_time_token(gallery_jwt_token, gallery_jwt_token_secret_key, new_exp_duration=None):
+#     if gallery_jwt_token_secret_key is None:
+#         raise RuntimeError("unable to update token without valid secret key")
+#
+#     try:
+#         token_payload = jwt.decode(gallery_jwt_token, gallery_jwt_token_secret_key, algorithms=[default_algorithm])
+#     except ExpiredSignatureError as e:
+#         raise RuntimeError("refusing to update invalid token")
+#
+#     if new_exp_duration is None:
+#         new_exp_duration = 3600
+#
+#     token_payload['exp'] = token_payload['exp'] + float(new_exp_duration)
+#
+#     out_token = jwt.encode(token_payload, gallery_jwt_token_secret_key, algorithm=default_algorithm)
+#
+#     return out_token
 
 
 def get_user_id(product_gallery_url, user_email, gallery_jwt_token) -> Optional[str]:
     user_id = None
-    headers = {
-        'Content-type': 'application/hal+json',
-        'Authorization': 'Bearer ' + gallery_jwt_token
-    }
+    headers = get_drupal_request_headers(gallery_jwt_token)
 
     # get the user id
     log_res = requests.get(f"{product_gallery_url}/users/{user_email}?_format=hal_json",
@@ -111,12 +116,9 @@ def post_picture_to_gallery(product_gallery_url, img, gallery_jwt_token):
     body_post_img["uri"][0]["value"] = "public://" + img_name
     body_post_img["filename"][0]["value"] = img_name
     body_post_img["filemime"]["value"] = "image/" + img_extension
-    body_post_img["_links"]["type"]["href"] = f"{product_gallery_url}/rest/type/file/image"
+    body_post_img["_links"]["type"]["href"] = os.path.join(product_gallery_url, body_post_img["_links"]["type"]["href"])
 
-    headers = {
-        'Content-type': 'application/hal+json',
-        'Authorization': 'Bearer ' + gallery_jwt_token
-    }
+    headers = get_drupal_request_headers(gallery_jwt_token)
 
     # post the image
     log_res = requests.post(f"{product_gallery_url}/entity/file?_format=hal_json",
@@ -129,16 +131,20 @@ def post_picture_to_gallery(product_gallery_url, img, gallery_jwt_token):
 
 def post_content_to_gallery(product_gallery_url,
                             decoded_token,
-                            gallery_jwt_token,
+                            gallery_secret_key,
                             files=None,
                             **kwargs):
     par_dic = copy.deepcopy(kwargs)
+    # generate the token without the user_id
+    gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key)
     # extract email address and then the relative user_id
     # TODO perhaps extend considering the user_name passed as a parameter
     user_email = tokenHelper.get_token_user_email_address(decoded_token)
     user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
                                           user_email=user_email,
                                           gallery_jwt_token=gallery_jwt_token)
+    # update the token
+    gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
 
     par_dic['user_id_product_creator'] = user_id_product_creator
     # extract type of content to post
@@ -175,10 +181,7 @@ def post_content_to_gallery(product_gallery_url,
 def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
     observations = []
     # get from the drupal the relative id
-    headers = {
-        'Content-type': 'application/hal+json',
-        'Authorization': 'Bearer ' + gallery_jwt_token
-    }
+    headers = get_drupal_request_headers(gallery_jwt_token)
     if t1 is None or t2 is None:
         formatted_range = 'all'
     else:
@@ -204,8 +207,8 @@ def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
     # post new observation with or without a specific time range
     body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_node)
     # set the type of content to post
-    body_gallery_observation_node["_links"]["type"]["href"] = body_gallery_observation_node["_links"]["type"][
-                                                                  "href"] + 'observation'
+    body_gallery_observation_node["_links"]["type"]["href"] = os.path.join(product_gallery_url, body_gallery_observation_node["_links"]["type"][
+                                                                  "href"], 'observation')
     if t1 is not None and t2 is not None:
         # format the time fields, from the format request
         t1_formatted = parser.parse(t1).strftime('%Y-%m-%dT%H:%M:%S')
@@ -221,10 +224,7 @@ def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
         # assign a randomly generate id in case to time range is provided
         body_gallery_observation_node["title"]["value"] = "_".join(["observation", str(uuid.uuid4())])
 
-    headers = {
-        'Content-type': 'application/hal+json',
-        'Authorization': 'Bearer ' + gallery_jwt_token
-    }
+    headers = get_drupal_request_headers(gallery_jwt_token)
 
     log_res = requests.post(f"{product_gallery_url}/node?_format=hal_json",
                             data=json.dumps(body_gallery_observation_node),
@@ -244,10 +244,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t
     observation_information_message = None
     if observation_id is not None:
         # get from the drupal the relative id
-        headers = {
-            'Content-type': 'application/hal+json',
-            'Authorization': 'Bearer ' + gallery_jwt_token
-        }
+        headers = get_drupal_request_headers(gallery_jwt_token)
 
         log_res = requests.get(f"{product_gallery_url}/observations/{observation_id}?_format=hal_json",
                                headers=headers
@@ -288,8 +285,8 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
     body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_node)
 
     # set the type of content to post
-    link_content_type = body_gallery_article_node["_links"]["type"]["href"] + 'data_product'
-    body_gallery_article_node["_links"]["type"]["href"] = link_content_type
+    body_gallery_article_node["_links"]["type"]["href"] = os.path.join(product_gallery_url, body_gallery_article_node["_links"]["type"][
+                                                                  "href"], 'data_product')
 
     # set the initial body content
     body_value = ''
@@ -344,10 +341,10 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
     if observation_information_message is not None:
         logger.info("==> information about assigned observation: %s", observation_information_message)
 
+    # TODO to be used for the AstrophysicalEntity
+    src_name = kwargs.pop('src_name', 'source')
     # set the product title
     if product_title is None:
-        # TODO to be used for the AstrophysicalEntity
-        src_name = kwargs.pop('src_name', 'source')
         product_title = "_".join([src_name, product_type])
 
     body_gallery_article_node["title"]["value"] = product_title
@@ -368,10 +365,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
             "value": v
         }]
 
-    headers = {
-        'Content-type': 'application/hal+json',
-        'Authorization': 'Bearer ' + gallery_jwt_token
-    }
+    headers = get_drupal_request_headers(gallery_jwt_token)
     # TODO improve this REST endpoint to accept multiple input terms, and give one result per input
     # get all the taxonomy terms
     log_res = requests.get(f"{product_gallery_url}/taxonomy/term_name/all",
@@ -397,7 +391,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
         body_gallery_article_node['field_image_png'] = [{
             "target_id": int(img_fid)
         }]
-    # finally, post the data product to the galery
+    # finally, post the data product to the gallery
     log_res = requests.post(f"{product_gallery_url}/node?_format=hal_json",
                             data=json.dumps(body_gallery_article_node),
                             headers=headers
@@ -406,12 +400,3 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
     output_post = analyze_drupal_output(log_res, operation_performed="posting data product to the gallery")
 
     return output_post
-
-
-def analyze_drupal_output(drupal_output, operation_performed=None):
-    json_output = drupal_output.json()
-    if drupal_output.status_code < 200 or drupal_output.status_code >= 300:
-        raise RequestNotUnderstood(json_output['message'],
-                                   status_code=drupal_output.status_code,
-                                   payload={'error_message': f'error while performing: {operation_performed}'})
-    return json_output

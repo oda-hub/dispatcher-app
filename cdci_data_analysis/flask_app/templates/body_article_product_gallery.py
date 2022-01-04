@@ -1,7 +1,7 @@
 body_node = {
     "_links": {
         "type": {
-            "href": "http://cdciweb02.isdc.unige.ch/mmoda-pg/rest/type/node/"
+            "href": "rest/type/node/"
         }
     },
     "title": {
@@ -16,7 +16,7 @@ body_node = {
 body_img = {
     "_links": {
         "type": {
-            "href": "http://cdciweb02.isdc.unige.ch/mmoda-pg/rest/type/file/image"
+            "href": "rest/type/file/image"
         }
     },
     "filename": [
