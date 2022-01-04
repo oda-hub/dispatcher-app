@@ -40,11 +40,12 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
         return drupal_output.json()
 
 
-def get_drupal_request_headers(gallery_jwt_token):
+def get_drupal_request_headers(gallery_jwt_token=None):
     headers = {
-        'Content-type': 'application/hal+json',
-        'Authorization': 'Bearer ' + gallery_jwt_token
+        'Content-type': 'application/hal+json'
     }
+    if gallery_jwt_token is not None:
+        headers['Authorization'] = 'Bearer ' + gallery_jwt_token
     return headers
 
 
@@ -70,9 +71,9 @@ def generate_gallery_jwt_token(gallery_jwt_token_secret_key, user_id=None):
     return out_token
 
 
-def get_user_id(product_gallery_url, user_email, gallery_jwt_token) -> Optional[str]:
+def get_user_id(product_gallery_url, user_email) -> Optional[str]:
     user_id = None
-    headers = get_drupal_request_headers(gallery_jwt_token)
+    headers = get_drupal_request_headers()
 
     # get the user id
     log_res = requests.get(f"{product_gallery_url}/users/{user_email}?_format=hal_json",
@@ -117,13 +118,10 @@ def post_content_to_gallery(product_gallery_url,
                             files=None,
                             **kwargs):
     par_dic = copy.deepcopy(kwargs)
-    # generate the token without the user_id
-    gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key)
     # extract email address and then the relative user_id
     user_email = tokenHelper.get_token_user_email_address(decoded_token)
     user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
-                                          user_email=user_email,
-                                          gallery_jwt_token=gallery_jwt_token)
+                                          user_email=user_email)
     # update the token
     gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
 
