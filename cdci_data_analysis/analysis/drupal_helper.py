@@ -49,13 +49,6 @@ def get_drupal_request_headers(gallery_jwt_token=None):
     return headers
 
 
-def get_pg_secret_key(gallery_secret_key_file_path):
-    if os.path.exists(os.path.join(os.getcwd(), gallery_secret_key_file_path)):
-        return open(os.path.join(os.getcwd(), gallery_secret_key_file_path)).read().strip()
-    return ''
-
-
-# TODO user_id is probably not really necessary
 def generate_gallery_jwt_token(gallery_jwt_token_secret_key, user_id=None):
     iat = time.time()
     token_payload = dict(iat=iat,

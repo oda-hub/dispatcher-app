@@ -60,6 +60,6 @@ dispatcher:
         # url of the product gallery home
         product_gallery_url: PRODUCT_GALLERY_URL
         # location of the secret key used for generating tokens
-        product_gallery_secret_key_location: PRODUCT_GALLERY_SECRET_KEY_LOCATION
+        product_gallery_secret_key: PRODUCT_GALLERY_SECRET_KEY
 
 

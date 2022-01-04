@@ -424,8 +424,7 @@ def post_product_to_gallery():
         )
         return make_response(message), 403
 
-    gallery_secret_key = drupal_helper.get_pg_secret_key(app_config.product_gallery_secret_key_location)
-    # gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key)
+    gallery_secret_key = app_config.product_gallery_secret_key
     product_gallery_url = app_config.product_gallery_url
 
     par_dic = request.values.to_dict()

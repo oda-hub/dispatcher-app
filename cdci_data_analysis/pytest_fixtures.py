@@ -359,7 +359,7 @@ dispatcher:
         email_sending_job_submitted_default_interval: 60
     product_gallery_options:
         product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda-pg"
-        product_gallery_secret_key_location: ".mmoda-pg-secret-key"
+        product_gallery_secret_key: 'secretkey_test'
     """)
 
     yield fn
