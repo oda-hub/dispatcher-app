@@ -54,5 +54,12 @@ dispatcher:
         # for when a request has been submitted
         email_sending_job_submitted_default_interval: 5
 
+    # product gallery related set of options
+    # in case no integration with the product gallery is provided, these options will be ignored
+    product_gallery_options:
+        # url of the product gallery home
+        product_gallery_url: PRODUCT_GALLERY_URL
+        # location of the secret key used for generating tokens
+        product_gallery_secret_key: PRODUCT_GALLERY_SECRET_KEY
 
 

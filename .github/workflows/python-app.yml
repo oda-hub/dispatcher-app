@@ -51,7 +51,7 @@ jobs:
 
     - name: Test with pytest
       run: |
-        python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG 
+        python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m 'not test_drupal'
 
     # I wonder how this interacts with the Github App. But this is not only for PR. Also this does not always work
     - name: Codecov

@@ -347,7 +347,6 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
         if email_sending_job_submitted_interval is None:
             # in case this didn't come with the token take the default value from the configuration
             email_sending_job_submitted_interval = config.email_sending_job_submitted_default_interval
-
         logger.info("email_sending_job_submitted_interval: %s", email_sending_job_submitted_interval)
 
         email_history_dir = os.path.join(scratch_dir + '/email_history')

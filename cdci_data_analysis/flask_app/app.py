@@ -5,10 +5,10 @@ Created on Wed May 10 10:55:20 2017
 
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
-
 import string
 import random
 import hashlib
+import jwt
 
 from raven.contrib.flask import Sentry
 
@@ -20,6 +20,7 @@ from flask_restx import Api, Resource, reqparse
 import time as _time
 from urllib.parse import urlencode
 
+from cdci_data_analysis.analysis import drupal_helper, tokenHelper
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError
@@ -392,6 +393,52 @@ class Product(Resource):
                            e, status_code=410)
 
 
+@app.route('/post_product_to_gallery', methods=['POST'])
+def post_product_to_gallery():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    if token is None:
+        return make_response('A token must be provided.'), 403
+    try:
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
+        decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+        logger.info("==> token %s", decoded_token)
+    except jwt.exceptions.ExpiredSignatureError:
+        # raise RequestNotAuthorized("The token provided is expired.")
+        return make_response('The token provided is expired.'), 403
+    except jwt.exceptions.InvalidTokenError:
+        # raise RequestNotAuthorized("The token provided is not valid.")
+        return make_response('The token provided is not valid.'), 403
+
+    roles = tokenHelper.get_token_roles(decoded_token)
+
+    required_roles = ['gallery contributor']
+    if not all(item in roles for item in required_roles):
+        lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+        message = (
+            f"Unfortunately, your privileges are not sufficient to post in the product gallery.\n"
+            f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
+        )
+        return make_response(message), 403
+
+    gallery_secret_key = app_config.product_gallery_secret_key
+    product_gallery_url = app_config.product_gallery_url
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    output_post = drupal_helper.post_content_to_gallery(product_gallery_url=product_gallery_url,
+                                                        decoded_token=decoded_token,
+                                                        gallery_secret_key=gallery_secret_key,
+                                                        files=request.files,
+                                                        **par_dic)
+
+    return output_post
+
+
 @ns_conf.route('/js9/<path:path>', methods=['GET', 'POST'])
 # @app.route('/js9/<path:path>',methods=['GET','POST'])
 class JS9(Resource):
@@ -575,7 +622,6 @@ def log_run_query_result(request_summary, result):
         raise
 
     return result
-
 
 
 if __name__ == "__main__":

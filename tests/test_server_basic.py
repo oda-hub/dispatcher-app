@@ -6,6 +6,7 @@ import logging
 import jwt
 import glob
 import pytest
+from datetime import datetime
 from functools import reduce
 import yaml
 import gzip
@@ -19,6 +20,7 @@ from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 logger = logging.getLogger(__name__)
 # symmetric shared secret for the decoding of the token
 secret_key = 'secretkey_test'
+
 """
 this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
 """
@@ -1393,3 +1395,62 @@ def test_get_query_products_exception(dispatcher_live_fixture):
     print("jdata : ", jdata)
 
     assert jdata['exit_status']['message'] == 'InternalError()\nfailing query\n'
+
+
+@pytest.mark.test_drupal
+def test_product_gallery_post_article(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'src_name': 'Mrk 421',
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 5,
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
+    product_title = "_".join([params['instrument'], params['query_type'], datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")])
+    params = {
+        'job_id': job_id,
+        'session_id': session_id,
+        'src_name': '1E 1740.7-2942',
+        'content_type': 'data_product',
+        'product_title': product_title,
+        'E1_keV': 45,
+        'E2_kev': 95,
+        'DEC': 145,
+        'RA': 95.23,
+        'T1': '2019-01-01',
+        'T2': '2021-12-01',
+        'token': encoded_token
+    }
+
+    # send test img
+    img_file_obj = {'media': open('data/dummy_prods/ds9.jpeg', 'rb')}
+
+    c = requests.post(server + "/post_product_to_gallery",
+                      params={**params},
+                      files=img_file_obj
+                      )
+
+    assert c.status_code == 200
