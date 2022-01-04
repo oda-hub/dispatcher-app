@@ -69,24 +69,6 @@ def generate_gallery_jwt_token(gallery_jwt_token_secret_key, user_id=None):
 
     return out_token
 
-# def update_exp_time_token(gallery_jwt_token, gallery_jwt_token_secret_key, new_exp_duration=None):
-#     if gallery_jwt_token_secret_key is None:
-#         raise RuntimeError("unable to update token without valid secret key")
-#
-#     try:
-#         token_payload = jwt.decode(gallery_jwt_token, gallery_jwt_token_secret_key, algorithms=[default_algorithm])
-#     except ExpiredSignatureError as e:
-#         raise RuntimeError("refusing to update invalid token")
-#
-#     if new_exp_duration is None:
-#         new_exp_duration = 3600
-#
-#     token_payload['exp'] = token_payload['exp'] + float(new_exp_duration)
-#
-#     out_token = jwt.encode(token_payload, gallery_jwt_token_secret_key, algorithm=default_algorithm)
-#
-#     return out_token
-
 
 def get_user_id(product_gallery_url, user_email, gallery_jwt_token) -> Optional[str]:
     user_id = None
@@ -138,7 +120,6 @@ def post_content_to_gallery(product_gallery_url,
     # generate the token without the user_id
     gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key)
     # extract email address and then the relative user_id
-    # TODO perhaps extend considering the user_name passed as a parameter
     user_email = tokenHelper.get_token_user_email_address(decoded_token)
     user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
                                           user_email=user_email,
