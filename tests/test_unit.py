@@ -23,6 +23,7 @@ from cdci_data_analysis.analysis.queries import (
 import numpy as np
 
 
+@pytest.mark.fast
 @pytest.mark.parametrize("add_duplicate", [True, False])
 def test_repeating_parameters(add_duplicate):
     src_query = SourceQuery("src_query")
@@ -68,7 +69,7 @@ def test_repeating_parameters(add_duplicate):
     else:
         assert instrument.get_par_by_name("duplicate-name") == p1
 
-
+@pytest.mark.fast
 def test_input_prod_list():
     for parameter_type, input_value, format_args, outcome in [
         (InputProdList, [1, 2, 3], {'_format': 'names_list'}, [1, 2, 3]),
@@ -94,7 +95,7 @@ def test_input_prod_list():
             # check stuff on the inputProdList
             assert parameter.value == outcome
 
-
+@pytest.mark.fast
 def test_energy_defaults():
     for parameter_type, input_value, outcome, e_units, expected_type in [
         (Energy, 10., 10., 'keV', float),
@@ -119,7 +120,7 @@ def test_energy_defaults():
             assert p_spectral_boundary.get_value_in_default_format() == outcome
             assert type(p_spectral_boundary.value) == expected_type
 
-
+@pytest.mark.fast
 def test_angle_parameter():
     for parameter_type, input_value, format_args, outcome, outcome_default_format in [
         (Angle, -29.74516667, {'units': 'deg'}, -29.74516667, -29.74516667),
@@ -148,7 +149,7 @@ def test_angle_parameter():
             assert parameter.set_par(input_value) == outcome_default_format
             assert parameter.value == outcome
 
-
+@pytest.mark.fast
 def test_time_parameter():
     for parameter_type, input_value, format_args, outcome, outcome_default_format in [
         (Time, '2017-03-06T13:26:48.000', {'T_format': 'isot'}, '2017-03-06T13:26:48.000', '2017-03-06T13:26:48.000'),
@@ -180,7 +181,7 @@ def test_time_parameter():
             assert parameter.set_par(input_value) == outcome_default_format
             assert parameter.value == outcome
 
-
+@pytest.mark.fast
 def test_param_range():
     for parameter_type_p1, value_p1, parameter_type_p2, value_p2, outcome, outcome_message in [
         (Time, '2017-03-06T13:26:48.000', Time, '2017-03-06T13:26:49.000', None, None),
@@ -200,7 +201,7 @@ def test_param_range():
             p_range = constructor(p1, p2)
             assert p_range.to_list() == [p1, p2]
 
-
+@pytest.mark.fast
 def test_param_tuple():
     pf1 = Float('2017')
     pf2 = Float('2017')
@@ -227,7 +228,7 @@ def test_param_tuple():
             p_range = constructor()
             assert all(map(lambda x, y: x == y, p_range.to_list(), parameter_list))
 
-
+@pytest.mark.fast
 def test_parameter_normalization_no_units():
     for parameter_type, input_value, outcome in [
             (Float, 25, 25.0),

@@ -55,8 +55,10 @@ jobs:
     - name: Test with pytest
       run: |
         echo "TEST_ONLY_FAST=\'$TEST_ONLY_FAST\'"
-        exit 1
-        #python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m 'not test_drupal'
+        if [ "$TEST_ONLY_FAST" == "true" ]; then
+            EXTRA_MARKERS="and fast"
+        fi
+        python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m "not test_drupal $EXTRA_MARKERS"
 
     # I wonder how this interacts with the Github App. But this is not only for PR. Also this does not always work
     - name: Codecov

@@ -53,7 +53,7 @@ default_token_payload = dict(
     tem=0,
 )
 
-
+@pytest.mark.fast
 def test_empty_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
@@ -123,6 +123,7 @@ def test_no_debug_mode_empty_request(dispatcher_live_fixture_no_debug_mode):
     logger.info(jdata['config'])
 
 
+@pytest.mark.fast
 def test_same_request_different_users(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -262,7 +263,7 @@ def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_
 
     assert analysis_parameters_json_content == analysis_parameters_json_content_original
 
-
+@pytest.mark.fast
 def test_valid_token(dispatcher_live_fixture):
     server = dispatcher_live_fixture
 
@@ -294,10 +295,10 @@ def test_valid_token(dispatcher_live_fixture):
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
 
-
+@pytest.mark.fast
 @pytest.mark.parametrize("instrument", ["", "None", None, "undefined"])
-def test_download_products_public(dispatcher_live_fixture, empty_products_files_fixture, instrument):    
-    server = dispatcher_live_fixture
+def test_download_products_public(dispatcher_long_living_fixture, empty_products_files_fixture, instrument):    
+    server = dispatcher_long_living_fixture
 
     logger.info("constructed server: %s", server)
 
@@ -329,6 +330,7 @@ def test_download_products_public(dispatcher_live_fixture, empty_products_files_
     assert data_downloaded == empty_products_files_fixture['content']
 
 
+@pytest.mark.fast
 def test_download_products_authorized_user(dispatcher_live_fixture, empty_products_user_files_fixture):
     server = dispatcher_live_fixture
 
@@ -373,6 +375,7 @@ def test_download_products_authorized_user(dispatcher_live_fixture, empty_produc
     assert data_downloaded == empty_products_user_files_fixture['content']
 
 
+@pytest.mark.fast
 def test_download_products_unauthorized_user(dispatcher_live_fixture, empty_products_user_files_fixture, default_params_dict):
     server = dispatcher_live_fixture
 
@@ -474,6 +477,7 @@ def test_modify_token(dispatcher_live_fixture, tem_value, tem_key_name):
             assert token_payload == payload_returned_token
 
 
+@pytest.mark.fast
 @pytest.mark.not_safe_parallel
 def test_invalid_token(dispatcher_live_fixture):
     server = dispatcher_live_fixture
@@ -521,6 +525,7 @@ def test_invalid_token(dispatcher_live_fixture):
     assert number_scartch_dirs == len(dir_list)
 
 
+@pytest.mark.fast
 def test_call_back_invalid_token(dispatcher_live_fixture):
     server = dispatcher_live_fixture
 
