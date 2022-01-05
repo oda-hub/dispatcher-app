@@ -42,6 +42,22 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
         return drupal_output.json()
 
 
+def execute_drupal_request(url, params, method='get', headers=None, files=None):
+    try:
+        if method == 'get':
+            return requests.get(url,
+                                params={**params},
+                                headers=headers)
+        elif method == 'post':
+            return requests.post(url,
+                                 data={**params},
+                                 files=files,
+                                 headers=headers
+                                 )
+    except ConnectionError as e:
+        logger.warning("connection to the drupal instance failed %s", e)
+
+
 def get_drupal_request_headers(gallery_jwt_token=None):
     headers = {
         'Content-type': 'application/hal+json'
@@ -71,9 +87,11 @@ def get_user_id(product_gallery_url, user_email) -> Optional[str]:
     headers = get_drupal_request_headers()
 
     # get the user id
-    log_res = requests.get(f"{product_gallery_url}/users/{user_email}?_format=hal_json",
-                           headers=headers
-                           )
+    log_res = execute_drupal_request(f"{product_gallery_url}/users/{user_email}?_format=hal_json",
+                                     headers=headers)
+    # log_res = requests.get(f"{product_gallery_url}/users/{user_email}?_format=hal_json",
+    #                        headers=headers
+    #                        )
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the user id")
     if isinstance(output_get, list) and len(output_get) == 1:
         user_id = output_get[0]['uid']
