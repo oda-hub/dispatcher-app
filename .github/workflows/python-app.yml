@@ -29,15 +29,15 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 pytest mypy pylint pytest-cov
+        pip install flake8 pytest mypy pylint pytest-cov pytest-xdist
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install -e .[test]
 
     - name: Lint with flake8
+      if: ${TEST_ONLY_FAST} != "true"
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || echo "failed lint"
@@ -45,6 +45,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || echo "failed second lint"
 
     - name: PyLint - more lint
+      if: ${TEST_ONLY_FAST} != "true"
       run: |
         pylint -E cdci_data_analysis || echo 'this is fine!'
 
@@ -58,7 +59,7 @@ jobs:
         if [ "$TEST_ONLY_FAST" == "true" ]; then
             EXTRA_MARKERS="and fast"
         fi
-        python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m "not test_drupal $EXTRA_MARKERS"
+        python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m "not test_drupal $EXTRA_MARKERS" --durations=0
 
     # I wonder how this interacts with the Github App. But this is not only for PR. Also this does not always work
     - name: Codecov

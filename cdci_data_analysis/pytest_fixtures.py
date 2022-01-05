@@ -574,16 +574,20 @@ def empty_products_user_files_fixture(default_params_dict, default_token_payload
 
 
 @pytest.fixture
-def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
-    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug, request):
+    if os.getenv('TEST_ONLY_FAST') == 'true':
+        # in this case, run all dispatchers long-living, since it's faster but less safe
+        yield request.getfixturevalue('dispatcher_long_living_fixture')
+    else:
+        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
 
-    service = dispatcher_state['url']
-    pid = dispatcher_state['pid']
+        service = dispatcher_state['url']
+        pid = dispatcher_state['pid']
 
-    yield service
-            
-    kill_child_processes(pid, signal.SIGINT)
-    os.kill(pid, signal.SIGINT)
+        yield service
+                
+        kill_child_processes(pid, signal.SIGINT)
+        os.kill(pid, signal.SIGINT)
     
 @pytest.fixture
 def dispatcher_live_fixture_empty_sentry(pytestconfig, dispatcher_test_conf_empty_sentry_fn, dispatcher_debug):
