@@ -9,6 +9,7 @@ from cdci_data_analysis.pytest_fixtures import (
             dispatcher_live_fixture_with_gallery,
             dispatcher_long_living_fixture,
             dispatcher_test_conf,
+            dispatcher_test_conf_with_gallery,
             dispatcher_test_conf_empty_sentry_fn,
             dispatcher_test_conf_with_gallery_fn,
             dispatcher_test_conf_fn,
