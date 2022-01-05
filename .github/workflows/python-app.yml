@@ -8,12 +8,16 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+    types: [labeled, unlabeled, opened, edited, synchronize]
 
 
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    env:
+      TEST_ONLY_FAST: ${{ contains( github.event.pull_request.labels.*.name, 'test-only-fast') }}
 
     strategy:
       matrix:
@@ -26,15 +30,15 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 pytest mypy pylint pytest-cov
+        pip install flake8 pytest mypy pylint pytest-cov pytest-xdist
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install -e .[test]
 
     - name: Lint with flake8
+      if: ${{ env.TEST_ONLY_FAST != 'true' }}
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || echo "failed lint"
@@ -42,16 +46,24 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || echo "failed second lint"
 
     - name: PyLint - more lint
+      if: ${{ env.TEST_ONLY_FAST != 'true' }}
       run: |
         pylint -E cdci_data_analysis || echo 'this is fine!'
 
     - name: MyPy
+      if: ${{ env.TEST_ONLY_FAST != 'true' }}
       run: |
         mypy cdci_data_analysis --ignore-missing-imports || echo 'this is fine too!'
 
-    - name: Test with pytest
+    - name: Test fast subset with pytest
       run: |
-        python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m 'not test_drupal'
+        python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m "not test_drupal and fast" --durations=0
+
+    - name: Test everything with pytest
+      if: ${{ env.TEST_ONLY_FAST != 'true' }}
+      run: |
+        python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m "not test_drupal" --durations=0
+
 
     # I wonder how this interacts with the Github App. But this is not only for PR. Also this does not always work
     - name: Codecov
