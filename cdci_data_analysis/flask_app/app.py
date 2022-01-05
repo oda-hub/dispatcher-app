@@ -184,7 +184,8 @@ def common_exception_payload():
 
     payload['config'] = {
         'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),
-                                                ['sentry_url', 'logstash_host', 'logstash_port', 'secret_key',
+                                                ['sentry_url', 'logstash_host', 'logstash_port','secret_key',
+                                                 'product_gallery_secret_key',
                                                  'smtp_server_password'])
     }
 
