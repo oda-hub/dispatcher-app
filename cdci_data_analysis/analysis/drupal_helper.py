@@ -92,9 +92,6 @@ def get_user_id(product_gallery_url, user_email) -> Optional[str]:
     # get the user id
     log_res = execute_drupal_request(f"{product_gallery_url}/users/{user_email}?_format=hal_json",
                                      headers=headers)
-    # log_res = requests.get(f"{product_gallery_url}/users/{user_email}?_format=hal_json",
-    #                        headers=headers
-    #                        )
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the user id")
     if isinstance(output_get, list) and len(output_get) == 1:
         user_id = output_get[0]['uid']
@@ -132,6 +129,7 @@ def post_content_to_gallery(product_gallery_url,
                             decoded_token,
                             gallery_secret_key,
                             files=None,
+                            sentry_client=None,
                             **kwargs):
     par_dic = copy.deepcopy(kwargs)
     # extract email address and then the relative user_id
@@ -150,11 +148,19 @@ def post_content_to_gallery(product_gallery_url,
             for f in files:
                 file_obj = files[f]
                 # upload file to drupal
-                output_img_post = post_picture_to_gallery(product_gallery_url=product_gallery_url,
-                                                          img=file_obj,
-                                                          gallery_jwt_token=gallery_jwt_token)
-                img_fid = output_img_post['fid'][0]['value']
-                par_dic['img_fid'] = img_fid
+                try:
+                    output_img_post = post_picture_to_gallery(product_gallery_url=product_gallery_url,
+                                                              img=file_obj,
+                                                              gallery_jwt_token=gallery_jwt_token)
+                    img_fid = output_img_post['fid'][0]['value']
+                    par_dic['img_fid'] = img_fid
+                except Exception as e:
+                    logger.error(f"exception when posting a file to the product gallery: {repr(e)}")
+                    if sentry_client is not None:
+                        sentry_client.capture('raven.events.Message',
+                                              message=f'exception when posting a file to the product gallery: {str(e)}')
+                    else:
+                        logger.warning("sentry not used")
 
         session_id = par_dic.pop('session_id')
         job_id = par_dic.pop('job_id')
@@ -162,7 +168,9 @@ def post_content_to_gallery(product_gallery_url,
         img_fid = par_dic.pop('img_fid', None)
         observation_id = par_dic.pop('observation_id', None)
         user_id_product_creator = par_dic.pop('user_id_product_creator')
-        return post_data_product_to_gallery(product_gallery_url=product_gallery_url,
+        output_data_product_post = None
+        try:
+            output_data_product_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
                                             session_id=session_id,
                                             job_id=job_id,
                                             gallery_jwt_token=gallery_jwt_token,
@@ -171,6 +179,15 @@ def post_content_to_gallery(product_gallery_url,
                                             observation_id=observation_id,
                                             user_id_product_creator=user_id_product_creator,
                                             **par_dic)
+        except Exception as e:
+                logger.error(f"exception when posting a data product to the product gallery: {repr(e)}")
+                if sentry_client is not None:
+                    sentry_client.capture('raven.events.Message',
+                                          message=f'exception when posting a file to the product gallery: {str(e)}')
+                else:
+                    logger.warning("sentry not used")
+
+        return output_data_product_post
 
 
 def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
