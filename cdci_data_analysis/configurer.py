@@ -235,8 +235,8 @@ class ConfigEnv(object):
                                      disp_dict['email_options']['email_sending_timeout_default_threshold'],
                                      disp_dict['email_options']['email_sending_job_submitted'],
                                      disp_dict['email_options']['email_sending_job_submitted_default_interval'],
-                                     disp_dict['product_gallery_options']['product_gallery_url'],
-                                     disp_dict['product_gallery_options']['product_gallery_secret_key']
+                                     disp_dict.get('product_gallery_options', {}).get('product_gallery_url', None),
+                                     disp_dict.get('product_gallery_options', {}).get('product_gallery_secret_key', None)
                                      )
 
         # not used?
