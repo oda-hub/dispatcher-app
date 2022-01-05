@@ -42,7 +42,9 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
         return drupal_output.json()
 
 
-def execute_drupal_request(url, params, method='get', headers=None, files=None):
+def execute_drupal_request(url, params=None, method='get', headers=None, files=None):
+    if params is None:
+        params = {}
     try:
         if method == 'get':
             return requests.get(url,
@@ -55,7 +57,8 @@ def execute_drupal_request(url, params, method='get', headers=None, files=None):
                                  headers=headers
                                  )
     except ConnectionError as e:
-        logger.warning("connection to the drupal instance failed %s", e)
+        logger.warning("the gallery is currently not accessible, we are experiencing a connection issue "
+                       "and investigating to solve it as soon as possible")
 
 
 def get_drupal_request_headers(gallery_jwt_token=None):
