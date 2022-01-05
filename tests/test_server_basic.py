@@ -12,7 +12,7 @@ import yaml
 import gzip
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
 
@@ -1398,8 +1398,10 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 
 @pytest.mark.test_drupal
-def test_product_gallery_post_article(dispatcher_live_fixture):
-    server = dispatcher_live_fixture
+def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery):
+    dispatcher_fetch_dummy_products('default')
+
+    server = dispatcher_live_fixture_with_gallery
 
     logger.info("constructed server: %s", server)
 

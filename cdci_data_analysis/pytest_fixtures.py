@@ -18,6 +18,8 @@ import tempfile
 import pytest
 import subprocess
 import os
+import signal
+import psutil
 import copy
 import time
 import hashlib
@@ -29,7 +31,6 @@ __this_dir__ = os.path.join(os.path.abspath(os.path.dirname(__file__)))
 
 logger = logging.getLogger()
 
-import signal, psutil
 def kill_child_processes(parent_pid, sig=signal.SIGINT):
     try:
         parent = psutil.Process(parent_pid)
@@ -357,12 +358,10 @@ dispatcher:
         email_sending_timeout_default_threshold: 1800
         email_sending_job_submitted: True
         email_sending_job_submitted_default_interval: 60
-    product_gallery_options:
-        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda-pg"
-        product_gallery_secret_key: 'secretkey_test'
     """)
 
     yield fn
+    
 
 @pytest.fixture
 def dispatcher_test_conf_empty_sentry_fn(dispatcher_test_conf_fn):
@@ -375,6 +374,22 @@ def dispatcher_test_conf_empty_sentry_fn(dispatcher_test_conf_fn):
         f.truncate()
 
     yield fn
+
+
+@pytest.fixture
+def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
+    fn = "test-dispatcher-conf-with-gallery.yaml"
+
+    with open(fn, "w") as f:
+        with open(dispatcher_test_conf_fn) as f_default:
+            f.write(f_default.read())
+
+        f.write('\n    product_gallery_options:'
+                '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda-pg"'
+               f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"')
+
+    yield fn
+
 
 @pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
@@ -566,10 +581,8 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_de
     pid = dispatcher_state['pid']
 
     yield service
-        
-    print(("child:", pid))
-    import os,signal
-    kill_child_processes(pid,signal.SIGINT)
+            
+    kill_child_processes(pid, signal.SIGINT)
     os.kill(pid, signal.SIGINT)
     
 @pytest.fixture
@@ -580,11 +593,24 @@ def dispatcher_live_fixture_empty_sentry(pytestconfig, dispatcher_test_conf_empt
     pid = dispatcher_state['pid']
 
     yield service
-        
+
     print(("child:", pid))
-    import os,signal
-    kill_child_processes(pid,signal.SIGINT)
+    kill_child_processes(pid, signal.SIGINT)
     os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_with_gallery(pytestconfig, dispatcher_test_conf_with_gallery_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_gallery_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
 
 
 @pytest.fixture
@@ -597,7 +623,7 @@ def dispatcher_live_fixture_no_debug_mode(pytestconfig, dispatcher_test_conf_fn,
     yield service
 
     print(("child:", pid))
-    import os, signal
+
     kill_child_processes(pid, signal.SIGINT)
     os.kill(pid, signal.SIGINT)
 
