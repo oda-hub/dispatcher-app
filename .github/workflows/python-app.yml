@@ -37,7 +37,7 @@ jobs:
         pip install -e .[test]
 
     - name: Lint with flake8
-      if: ${TEST_ONLY_FAST} != "true"
+      if: ${{ env.TEST_ONLY_FAST} != "true" }}
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || echo "failed lint"
@@ -45,7 +45,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || echo "failed second lint"
 
     - name: PyLint - more lint
-      if: ${TEST_ONLY_FAST} != "true"
+      if: ${{ env.TEST_ONLY_FAST} != "true" }}
       run: |
         pylint -E cdci_data_analysis || echo 'this is fine!'
 
