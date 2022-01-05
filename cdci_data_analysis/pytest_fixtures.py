@@ -392,6 +392,10 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
+def dispatcher_test_conf_with_gallery(dispatcher_test_conf_with_gallery_fn):
+    yield yaml.load(open(dispatcher_test_conf_with_gallery_fn), Loader=yaml.SafeLoader)['dispatcher']
+
+@pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
     yield yaml.load(open(dispatcher_test_conf_fn), Loader=yaml.SafeLoader)['dispatcher']
 

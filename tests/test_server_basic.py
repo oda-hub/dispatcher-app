@@ -1209,10 +1209,31 @@ def test_example_config(dispatcher_test_conf):
     )
 
     example_config = yaml.load(open(example_config_fn), Loader=yaml.SafeLoader)['dispatcher']
+    example_config.pop('product_gallery_options', None)
 
     mapper = lambda x, y: ".".join(map(str, x))
     example_config_keys = flatten_nested_structure(example_config, mapper)
     test_config_keys = flatten_nested_structure(dispatcher_test_conf, mapper)
+
+    print("\n\n\nexample_config_keys", example_config_keys)
+    print("\n\n\ntest_config_keys", test_config_keys)
+
+    assert set(example_config_keys) == set(test_config_keys)
+
+
+def test_example_config_with_gallery(dispatcher_test_conf_with_gallery):
+    import cdci_data_analysis.config_dir
+
+    example_config_fn = os.path.join(
+        os.path.dirname(cdci_data_analysis.__file__),
+        "config_dir/conf_env.yml.example"
+    )
+
+    example_config = yaml.load(open(example_config_fn), Loader=yaml.SafeLoader)['dispatcher']
+
+    mapper = lambda x, y: ".".join(map(str, x))
+    example_config_keys = flatten_nested_structure(example_config, mapper)
+    test_config_keys = flatten_nested_structure(dispatcher_test_conf_with_gallery, mapper)
 
     print("\n\n\nexample_config_keys", example_config_keys)
     print("\n\n\ntest_config_keys", test_config_keys)
