@@ -33,6 +33,8 @@ class ContentType(Enum):
 
 def analyze_drupal_output(drupal_output, operation_performed=None):
     if drupal_output.status_code < 200 or drupal_output.status_code >= 300:
+        logger.warning(f'error while performing the following operation on the product gallery: {operation_performed}')
+        logger.warning(f'the drupal instance returned the following error: {drupal_output.text}')
         raise RequestNotUnderstood(drupal_output.text,
                                    status_code=drupal_output.status_code,
                                    payload={'error_message': f'error while performing: {operation_performed}'})
