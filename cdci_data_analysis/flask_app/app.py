@@ -553,7 +553,7 @@ def conf_app(conf):
                                         set_by=f'command line {__file__}:{__name__}')
 
     app.config['conf'] = conf
-    if conf.sentry_url is not None:
+    if getattr(conf, 'sentry_url', None) is not None:
         sentry = Sentry(app, dsn=conf.sentry_url)
         logger.warning("sentry not used")
     return app
