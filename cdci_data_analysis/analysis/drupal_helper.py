@@ -43,7 +43,14 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
 
 
 # TODO extend to support the sending of the requests also in other formats besides hal_json
-def execute_drupal_request(url, params=None, data=None, method='get', headers=None, files=None, request_format='hal_json'):
+def execute_drupal_request(url,
+                           params=None,
+                           data=None,
+                           method='get',
+                           headers=None,
+                           files=None,
+                           request_format='hal_json',
+                           sentry_client=None):
     try:
         if method == 'get':
             if params is None:
@@ -64,9 +71,13 @@ def execute_drupal_request(url, params=None, data=None, method='get', headers=No
                                  files=files,
                                  headers=headers
                                  )
-    except ConnectionError as e:
-        logger.warning("the gallery is currently not accessible, we are experiencing a connection issue "
-                       "and investigating to solve it as soon as possible")
+    except Exception as e:
+        logger.warning(f"an issue occurred when performing a request to the product gallery: {repr(e)}")
+        if sentry_client is not None:
+            sentry_client.capture('raven.events.Message',
+                                  message=f'exception when performing a request to the product gallery: {str(e)}')
+        else:
+            logger.warning("sentry not used")
 
 
 def get_drupal_request_headers(gallery_jwt_token=None):
@@ -156,19 +167,11 @@ def post_content_to_gallery(product_gallery_url,
             for f in files:
                 file_obj = files[f]
                 # upload file to drupal
-                try:
-                    output_img_post = post_picture_to_gallery(product_gallery_url=product_gallery_url,
-                                                              img=file_obj,
-                                                              gallery_jwt_token=gallery_jwt_token)
-                    img_fid = output_img_post['fid'][0]['value']
-                    par_dic['img_fid'] = img_fid
-                except Exception as e:
-                    logger.error(f"exception when posting a file to the product gallery: {repr(e)}")
-                    if sentry_client is not None:
-                        sentry_client.capture('raven.events.Message',
-                                              message=f'exception when posting a file to the product gallery: {str(e)}')
-                    else:
-                        logger.warning("sentry not used")
+                output_img_post = post_picture_to_gallery(product_gallery_url=product_gallery_url,
+                                                          img=file_obj,
+                                                          gallery_jwt_token=gallery_jwt_token)
+                img_fid = output_img_post['fid'][0]['value']
+                par_dic['img_fid'] = img_fid
 
         session_id = par_dic.pop('session_id')
         job_id = par_dic.pop('job_id')
@@ -177,23 +180,15 @@ def post_content_to_gallery(product_gallery_url,
         observation_id = par_dic.pop('observation_id', None)
         user_id_product_creator = par_dic.pop('user_id_product_creator')
         output_data_product_post = None
-        try:
-            output_data_product_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
-                                            session_id=session_id,
-                                            job_id=job_id,
-                                            gallery_jwt_token=gallery_jwt_token,
-                                            product_title=product_title,
-                                            img_fid=img_fid,
-                                            observation_id=observation_id,
-                                            user_id_product_creator=user_id_product_creator,
-                                            **par_dic)
-        except Exception as e:
-                logger.error(f"exception when posting a data product to the product gallery: {repr(e)}")
-                if sentry_client is not None:
-                    sentry_client.capture('raven.events.Message',
-                                          message=f'exception when posting a file to the product gallery: {str(e)}')
-                else:
-                    logger.warning("sentry not used")
+        output_data_product_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
+                                        session_id=session_id,
+                                        job_id=job_id,
+                                        gallery_jwt_token=gallery_jwt_token,
+                                        product_title=product_title,
+                                        img_fid=img_fid,
+                                        observation_id=observation_id,
+                                        user_id_product_creator=user_id_product_creator,
+                                        **par_dic)
 
         return output_data_product_post
 
