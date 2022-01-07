@@ -72,10 +72,12 @@ def execute_drupal_request(url,
                                  headers=headers
                                  )
     except Exception as e:
-        logger.warning(f"an issue occurred when performing a request to the product gallery: {repr(e)}")
+        logger.warning(f"an issue occurred when performing a request to the product gallery, "
+                       f"this is likely to be a connection related problem, we are investigating and "
+                       f"try to solve the it as soon as possible")
         if sentry_client is not None:
             sentry_client.capture('raven.events.Message',
-                                  message=f'exception when performing a request to the product gallery: {str(e)}')
+                                  message=f'exception when performing a request to the product gallery: {repr(e)}')
         else:
             logger.warning("sentry not used")
 
