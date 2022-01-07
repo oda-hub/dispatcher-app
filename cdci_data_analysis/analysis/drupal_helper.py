@@ -106,13 +106,14 @@ def generate_gallery_jwt_token(gallery_jwt_token_secret_key, user_id=None):
     return out_token
 
 
-def get_user_id(product_gallery_url, user_email) -> Optional[str]:
+def get_user_id(product_gallery_url, user_email, sentry_client=None) -> Optional[str]:
     user_id = None
     headers = get_drupal_request_headers()
 
     # get the user id
     log_res = execute_drupal_request(f"{product_gallery_url}/users/{user_email}",
-                                     headers=headers)
+                                     headers=headers,
+                                     sentry_client=sentry_client)
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the user id")
     if isinstance(output_get, list) and len(output_get) == 1:
         user_id = output_get[0]['uid']
@@ -120,7 +121,7 @@ def get_user_id(product_gallery_url, user_email) -> Optional[str]:
     return user_id
 
 
-def post_picture_to_gallery(product_gallery_url, img, gallery_jwt_token):
+def post_picture_to_gallery(product_gallery_url, img, gallery_jwt_token, sentry_client=None):
     # body_post_img = body_article_product_gallery.body_img.copy()
     body_post_img = copy.deepcopy(body_article_product_gallery.body_img)
 
@@ -141,7 +142,8 @@ def post_picture_to_gallery(product_gallery_url, img, gallery_jwt_token):
     log_res = execute_drupal_request(f"{product_gallery_url}/entity/file",
                                      method='post',
                                      data=json.dumps(body_post_img),
-                                     headers=headers)
+                                     headers=headers,
+                                     sentry_client=sentry_client)
     output_post = analyze_drupal_output(log_res, operation_performed="posting a picture to the product gallery")
     return output_post
 
@@ -156,7 +158,8 @@ def post_content_to_gallery(product_gallery_url,
     # extract email address and then the relative user_id
     user_email = tokenHelper.get_token_user_email_address(decoded_token)
     user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
-                                          user_email=user_email)
+                                          user_email=user_email,
+                                          sentry_client=sentry_client)
     # update the token
     gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
 
@@ -171,7 +174,8 @@ def post_content_to_gallery(product_gallery_url,
                 # upload file to drupal
                 output_img_post = post_picture_to_gallery(product_gallery_url=product_gallery_url,
                                                           img=file_obj,
-                                                          gallery_jwt_token=gallery_jwt_token)
+                                                          gallery_jwt_token=gallery_jwt_token,
+                                                          sentry_client=sentry_client)
                 img_fid = output_img_post['fid'][0]['value']
                 par_dic['img_fid'] = img_fid
 
@@ -195,7 +199,7 @@ def post_content_to_gallery(product_gallery_url,
         return output_data_product_post
 
 
-def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
+def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None, sentry_client=None):
     observations = []
     # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
@@ -211,7 +215,8 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
         formatted_range = f'{t1_minor_formatted}--{t2_plus_formatted}'
 
     log_res = execute_drupal_request(f"{product_gallery_url}/observations/range/{formatted_range}",
-                                     headers=headers)
+                                     headers=headers,
+                                     sentry_client=sentry_client)
     output_get = analyze_drupal_output(log_res, operation_performed="getting the observation range")
     if isinstance(output_get, list):
         observations = output_get
@@ -219,7 +224,7 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
     return observations
 
 
-def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
+def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None, sentry_client=None):
     # post new observation with or without a specific time range
     body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_node)
     # set the type of content to post
@@ -245,7 +250,8 @@ def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
     log_res = execute_drupal_request(f"{product_gallery_url}/node",
                                      method='post',
                                      data=json.dumps(body_gallery_observation_node),
-                                     headers=headers)
+                                     headers=headers,
+                                     sentry_client=sentry_client)
 
     output_post = analyze_drupal_output(log_res, operation_performed="posting a new observation")
 
@@ -255,7 +261,10 @@ def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
     return observation_drupal_id
 
 
-def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t2=None, observation_id=None) \
+def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
+                              t1=None, t2=None,
+                              observation_id=None,
+                              sentry_client=None) \
         -> Tuple[Optional[str], Optional[str]]:
     observation_drupal_id = None
     observation_information_message = None
@@ -264,7 +273,8 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t
         headers = get_drupal_request_headers(gallery_jwt_token)
 
         log_res = execute_drupal_request(f"{product_gallery_url}/observations/{observation_id}",
-                                         headers=headers)
+                                         headers=headers,
+                                         sentry_client=sentry_client)
         output_get = analyze_drupal_output(log_res, operation_performed="retrieving the observation information")
 
         if isinstance(output_get, list) and len(output_get) == 1:
@@ -273,7 +283,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t
     else:
 
         if t1 is not None and t2 is not None:
-            observations_range = get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2)
+            observations_range = get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2, sentry_client=sentry_client)
             for observation in observations_range:
                 times = observation['field_timerange'].split(' - ')
                 parsed_t1 = parser.parse(t1)
@@ -286,7 +296,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t
                     break
 
         if observation_drupal_id is None:
-            observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, t1, t2)
+            observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, t1, t2, sentry_client=sentry_client)
             observation_information_message = 'a new observation has been posted'
 
     return observation_drupal_id, observation_information_message
@@ -297,6 +307,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
                                  img_fid=None,
                                  observation_id=None,
                                  user_id_product_creator=None,
+                                 sentry_client=None,
                                  **kwargs):
     body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_node)
 
@@ -410,7 +421,8 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
     log_res = execute_drupal_request(f"{product_gallery_url}/node",
                                      method='post',
                                      data=json.dumps(body_gallery_article_node),
-                                     headers=headers)
+                                     headers=headers,
+                                     sentry_client=sentry_client)
 
     output_post = analyze_drupal_output(log_res, operation_performed="posting data product to the gallery")
 
