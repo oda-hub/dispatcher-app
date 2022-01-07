@@ -434,13 +434,15 @@ def post_product_to_gallery():
     sentry_url = getattr(app_config, 'sentry_url', None)
     sentry_client = None
     if sentry_url is not None:
-        sentry_client = Sentry(app, dsn=sentry_url)
+        from raven import Client
+
+        sentry_client = Client(sentry_url)
 
     output_post = drupal_helper.post_content_to_gallery(product_gallery_url=product_gallery_url,
                                                         decoded_token=decoded_token,
                                                         gallery_secret_key=gallery_secret_key,
                                                         files=request.files,
-                                                        sentry_client = sentry_client,
+                                                        sentry_client=sentry_client,
                                                         **par_dic)
 
     return output_post

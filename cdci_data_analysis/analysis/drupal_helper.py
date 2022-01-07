@@ -42,17 +42,25 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
         return drupal_output.json()
 
 
-def execute_drupal_request(url, params=None, method='get', headers=None, files=None):
-    if params is None:
-        params = {}
+def execute_drupal_request(url, params=None, data=None, method='get', headers=None, files=None, request_format='hal_json'):
     try:
         if method == 'get':
+            if params is None:
+                params = {}
+            params['_format'] = request_format
             return requests.get(url,
                                 params={**params},
                                 headers=headers)
         elif method == 'post':
+            if data is None:
+                data = {}
+            if params is None:
+                params = {}
+            params['_format'] = request_format
+            # TODO extend to support the sending of the requests also in other formats besides hal_json
             return requests.post(url,
-                                 data={**params},
+                                 params=params,
+                                 data=data,
                                  files=files,
                                  headers=headers
                                  )
@@ -90,7 +98,7 @@ def get_user_id(product_gallery_url, user_email) -> Optional[str]:
     headers = get_drupal_request_headers()
 
     # get the user id
-    log_res = execute_drupal_request(f"{product_gallery_url}/users/{user_email}?_format=hal_json",
+    log_res = execute_drupal_request(f"{product_gallery_url}/users/{user_email}",
                                      headers=headers)
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the user id")
     if isinstance(output_get, list) and len(output_get) == 1:
@@ -117,10 +125,10 @@ def post_picture_to_gallery(product_gallery_url, img, gallery_jwt_token):
     headers = get_drupal_request_headers(gallery_jwt_token)
 
     # post the image
-    log_res = requests.post(f"{product_gallery_url}/entity/file?_format=hal_json",
-                            data=json.dumps(body_post_img),
-                            headers=headers
-                            )
+    log_res = execute_drupal_request(f"{product_gallery_url}/entity/file",
+                                     method='post',
+                                     data=json.dumps(body_post_img),
+                                     headers=headers)
     output_post = analyze_drupal_output(log_res, operation_performed="posting a picture to the product gallery")
     return output_post
 
@@ -205,9 +213,8 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
         # eg /mmoda-pg/observations/range/2018-12-31T23%3A59%3A59--2021-12-01T00%3A00%3A01
         formatted_range = f'{t1_minor_formatted}--{t2_plus_formatted}'
 
-    log_res = requests.get(f"{product_gallery_url}/observations/range/{formatted_range}?_format=hal_json",
-                           headers=headers
-                           )
+    log_res = execute_drupal_request(f"{product_gallery_url}/observations/range/{formatted_range}",
+                                     headers=headers)
     output_get = analyze_drupal_output(log_res, operation_performed="getting the observation range")
     if isinstance(output_get, list):
         observations = output_get
@@ -238,10 +245,11 @@ def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
 
     headers = get_drupal_request_headers(gallery_jwt_token)
 
-    log_res = requests.post(f"{product_gallery_url}/node?_format=hal_json",
-                            data=json.dumps(body_gallery_observation_node),
-                            headers=headers
-                            )
+    log_res = execute_drupal_request(f"{product_gallery_url}/node",
+                                     method='post',
+                                     data=json.dumps(body_gallery_observation_node),
+                                     headers=headers)
+
     output_post = analyze_drupal_output(log_res, operation_performed="posting a new observation")
 
     # extract the id of the observation
@@ -258,9 +266,8 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t
         # get from the drupal the relative id
         headers = get_drupal_request_headers(gallery_jwt_token)
 
-        log_res = requests.get(f"{product_gallery_url}/observations/{observation_id}?_format=hal_json",
-                               headers=headers
-                               )
+        log_res = execute_drupal_request(f"{product_gallery_url}/observations/{observation_id}",
+                                         headers=headers)
         output_get = analyze_drupal_output(log_res, operation_performed="retrieving the observation information")
 
         if isinstance(output_get, list) and len(output_get) == 1:
@@ -380,9 +387,8 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
     headers = get_drupal_request_headers(gallery_jwt_token)
     # TODO improve this REST endpoint to accept multiple input terms, and give one result per input
     # get all the taxonomy terms
-    log_res = requests.get(f"{product_gallery_url}/taxonomy/term_name/all",
-                           headers=headers
-                           )
+    log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_name/all?_format=hal_json",
+                                     headers=headers)
     output_post = analyze_drupal_output(log_res,
                                         operation_performed="retrieving the taxonomy terms from the product gallery")
     if type(output_post) == list and len(output_post) > 0:
@@ -404,10 +410,10 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
             "target_id": int(img_fid)
         }]
     # finally, post the data product to the gallery
-    log_res = requests.post(f"{product_gallery_url}/node?_format=hal_json",
-                            data=json.dumps(body_gallery_article_node),
-                            headers=headers
-                            )
+    log_res = execute_drupal_request(f"{product_gallery_url}/node",
+                                     method='post',
+                                     data=json.dumps(body_gallery_article_node),
+                                     headers=headers)
 
     output_post = analyze_drupal_output(log_res, operation_performed="posting data product to the gallery")
 
