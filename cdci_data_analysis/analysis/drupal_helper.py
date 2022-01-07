@@ -42,6 +42,7 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
         return drupal_output.json()
 
 
+# TODO extend to support the sending of the requests also in other formats besides hal_json
 def execute_drupal_request(url, params=None, data=None, method='get', headers=None, files=None, request_format='hal_json'):
     try:
         if method == 'get':
@@ -57,9 +58,8 @@ def execute_drupal_request(url, params=None, data=None, method='get', headers=No
             if params is None:
                 params = {}
             params['_format'] = request_format
-            # TODO extend to support the sending of the requests also in other formats besides hal_json
             return requests.post(url,
-                                 params=params,
+                                 params={**params},
                                  data=data,
                                  files=files,
                                  headers=headers
