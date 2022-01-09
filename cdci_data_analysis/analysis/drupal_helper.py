@@ -15,7 +15,7 @@ from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
 from enum import Enum, auto
 
-from ..analysis.exceptions import RequestNotUnderstood
+from ..analysis.exceptions import RequestNotUnderstood, BadRequest
 from ..flask_app.templates import body_article_product_gallery
 from ..app_logging import app_logging
 
@@ -29,22 +29,6 @@ class ContentType(Enum):
     DATA_PRODUCT = auto()
     OBSERVATION = auto()
     ASTROPHYSICAL_ENTITY = auto()
-
-
-class ProductGalleryException(Exception):
-    status_code = 400
-
-    def __init__(self, message, status_code=None, payload=None):
-        super().__init__()
-        self.message = message
-        if status_code is not None:
-            self.status_code = status_code
-        self.payload = payload
-
-    def to_dict(self):
-        rv = dict(self.payload or ())
-        rv['message'] = self.message
-        return rv
 
 
 def analyze_drupal_output(drupal_output, operation_performed=None):
@@ -98,9 +82,9 @@ def execute_drupal_request(url,
         else:
             logger.warning("sentry not used")
 
-        raise ProductGalleryException('issue when performing a request to the product gallery',
-                                      status_code=500,
-                                      payload={'error_message': str(e)})
+        raise BadRequest('issue when performing a request to the product gallery',
+                         status_code=500,
+                         payload={'error_message': str(e)})
 
 
 def get_drupal_request_headers(gallery_jwt_token=None):
