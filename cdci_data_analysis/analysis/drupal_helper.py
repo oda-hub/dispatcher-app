@@ -43,6 +43,7 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
 
 
 # TODO extend to support the sending of the requests also in other formats besides hal_json
+# not necessary at the moment, but perhaps in the future it will be
 def execute_drupal_request(url,
                            params=None,
                            data=None,
