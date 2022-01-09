@@ -425,24 +425,14 @@ def post_product_to_gallery():
         )
         return make_response(message), 403
 
-    gallery_secret_key = app_config.product_gallery_secret_key
-    product_gallery_url = app_config.product_gallery_url
-
     par_dic = request.values.to_dict()
     par_dic.pop('token')
-
-    sentry_url = getattr(app_config, 'sentry_url', None)
-    sentry_client = None
-    if sentry_url is not None:
-        from raven import Client
-
-        sentry_client = Client(sentry_url)
 
     output_post = drupal_helper.post_content_to_gallery(product_gallery_url=product_gallery_url,
                                                         decoded_token=decoded_token,
                                                         gallery_secret_key=gallery_secret_key,
+                                                        disp_conf=app_config,
                                                         files=request.files,
-                                                        sentry_client=sentry_client,
                                                         **par_dic)
 
     return output_post

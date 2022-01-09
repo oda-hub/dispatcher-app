@@ -153,12 +153,21 @@ def post_picture_to_gallery(product_gallery_url, img, gallery_jwt_token, sentry_
     return output_post
 
 
-def post_content_to_gallery(product_gallery_url,
-                            decoded_token,
-                            gallery_secret_key,
+def post_content_to_gallery(decoded_token,
                             files=None,
-                            sentry_client=None,
+                            disp_conf=None,
                             **kwargs):
+
+    gallery_secret_key = disp_conf.product_gallery_secret_key
+    product_gallery_url = disp_conf.product_gallery_url
+
+    sentry_url = getattr(disp_conf, 'sentry_url', None)
+    sentry_client = None
+    if sentry_url is not None:
+        from raven import Client
+
+        sentry_client = Client(sentry_url)
+
     par_dic = copy.deepcopy(kwargs)
     # extract email address and then the relative user_id
     user_email = tokenHelper.get_token_user_email_address(decoded_token)
