@@ -31,6 +31,22 @@ class ContentType(Enum):
     ASTROPHYSICAL_ENTITY = auto()
 
 
+class ProductGalleryException(Exception):
+    status_code = 400
+
+    def __init__(self, message, status_code=None, payload=None):
+        Exception.__init__(self)
+        self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
+
+    def to_dict(self):
+        rv = dict(self.payload or ())
+        rv['message'] = self.message
+        return rv
+
+
 def analyze_drupal_output(drupal_output, operation_performed=None):
     if drupal_output.status_code < 200 or drupal_output.status_code >= 300:
         logger.warning(f'error while performing the following operation on the product gallery: {operation_performed}')
@@ -82,7 +98,9 @@ def execute_drupal_request(url,
         else:
             logger.warning("sentry not used")
 
-        raise
+        raise ProductGalleryException('issue when performing a request to the product gallery',
+                                      status_code=500,
+                                      payload={'error_message': str(e)})
 
 
 def get_drupal_request_headers(gallery_jwt_token=None):
