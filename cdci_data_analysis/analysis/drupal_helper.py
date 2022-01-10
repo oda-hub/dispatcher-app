@@ -15,7 +15,7 @@ from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
 from enum import Enum, auto
 
-from ..analysis.exceptions import RequestNotUnderstood
+from ..analysis.exceptions import RequestNotUnderstood, InternalError
 from ..flask_app.templates import body_article_product_gallery
 from ..app_logging import app_logging
 
@@ -42,6 +42,51 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
         return drupal_output.json()
 
 
+# TODO extend to support the sending of the requests also in other formats besides hal_json
+# not necessary at the moment, but perhaps in the future it will be
+def execute_drupal_request(url,
+                           params=None,
+                           data=None,
+                           method='get',
+                           headers=None,
+                           files=None,
+                           request_format='hal_json',
+                           sentry_client=None):
+    try:
+        if method == 'get':
+            if params is None:
+                params = {}
+            params['_format'] = request_format
+            return requests.get(url,
+                                params={**params},
+                                headers=headers)
+        elif method == 'post':
+            if data is None:
+                data = {}
+            if params is None:
+                params = {}
+            params['_format'] = request_format
+            return requests.post(url,
+                                 params={**params},
+                                 data=data,
+                                 files=files,
+                                 headers=headers
+                                 )
+    except Exception as e:
+        logger.warning(f"an issue occurred when performing a request to the product gallery, "
+                       f"this is likely to be a connection related problem, we are investigating and "
+                       f"try to solve it as soon as possible")
+        if sentry_client is not None:
+            sentry_client.capture('raven.events.Message',
+                                  message=f'exception when performing a request to the product gallery: {repr(e)}')
+        else:
+            logger.warning("sentry not used")
+
+        raise InternalError('issue when performing a request to the product gallery',
+                         status_code=500,
+                         payload={'error_message': str(e)})
+
+
 def get_drupal_request_headers(gallery_jwt_token=None):
     headers = {
         'Content-type': 'application/hal+json'
@@ -66,14 +111,14 @@ def generate_gallery_jwt_token(gallery_jwt_token_secret_key, user_id=None):
     return out_token
 
 
-def get_user_id(product_gallery_url, user_email) -> Optional[str]:
+def get_user_id(product_gallery_url, user_email, sentry_client=None) -> Optional[str]:
     user_id = None
     headers = get_drupal_request_headers()
 
     # get the user id
-    log_res = requests.get(f"{product_gallery_url}/users/{user_email}?_format=hal_json",
-                           headers=headers
-                           )
+    log_res = execute_drupal_request(f"{product_gallery_url}/users/{user_email}",
+                                     headers=headers,
+                                     sentry_client=sentry_client)
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the user id")
     if isinstance(output_get, list) and len(output_get) == 1:
         user_id = output_get[0]['uid']
@@ -81,7 +126,7 @@ def get_user_id(product_gallery_url, user_email) -> Optional[str]:
     return user_id
 
 
-def post_picture_to_gallery(product_gallery_url, img, gallery_jwt_token):
+def post_picture_to_gallery(product_gallery_url, img, gallery_jwt_token, sentry_client=None):
     # body_post_img = body_article_product_gallery.body_img.copy()
     body_post_img = copy.deepcopy(body_article_product_gallery.body_img)
 
@@ -99,24 +144,36 @@ def post_picture_to_gallery(product_gallery_url, img, gallery_jwt_token):
     headers = get_drupal_request_headers(gallery_jwt_token)
 
     # post the image
-    log_res = requests.post(f"{product_gallery_url}/entity/file?_format=hal_json",
-                            data=json.dumps(body_post_img),
-                            headers=headers
-                            )
+    log_res = execute_drupal_request(f"{product_gallery_url}/entity/file",
+                                     method='post',
+                                     data=json.dumps(body_post_img),
+                                     headers=headers,
+                                     sentry_client=sentry_client)
     output_post = analyze_drupal_output(log_res, operation_performed="posting a picture to the product gallery")
     return output_post
 
 
-def post_content_to_gallery(product_gallery_url,
-                            decoded_token,
-                            gallery_secret_key,
+def post_content_to_gallery(decoded_token,
                             files=None,
+                            disp_conf=None,
                             **kwargs):
+
+    gallery_secret_key = disp_conf.product_gallery_secret_key
+    product_gallery_url = disp_conf.product_gallery_url
+
+    sentry_url = getattr(disp_conf, 'sentry_url', None)
+    sentry_client = None
+    if sentry_url is not None:
+        from raven import Client
+
+        sentry_client = Client(sentry_url)
+
     par_dic = copy.deepcopy(kwargs)
     # extract email address and then the relative user_id
     user_email = tokenHelper.get_token_user_email_address(decoded_token)
     user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
-                                          user_email=user_email)
+                                          user_email=user_email,
+                                          sentry_client=sentry_client)
     # update the token
     gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
 
@@ -131,7 +188,8 @@ def post_content_to_gallery(product_gallery_url,
                 # upload file to drupal
                 output_img_post = post_picture_to_gallery(product_gallery_url=product_gallery_url,
                                                           img=file_obj,
-                                                          gallery_jwt_token=gallery_jwt_token)
+                                                          gallery_jwt_token=gallery_jwt_token,
+                                                          sentry_client=sentry_client)
                 img_fid = output_img_post['fid'][0]['value']
                 par_dic['img_fid'] = img_fid
 
@@ -141,18 +199,21 @@ def post_content_to_gallery(product_gallery_url,
         img_fid = par_dic.pop('img_fid', None)
         observation_id = par_dic.pop('observation_id', None)
         user_id_product_creator = par_dic.pop('user_id_product_creator')
-        return post_data_product_to_gallery(product_gallery_url=product_gallery_url,
-                                            session_id=session_id,
-                                            job_id=job_id,
-                                            gallery_jwt_token=gallery_jwt_token,
-                                            product_title=product_title,
-                                            img_fid=img_fid,
-                                            observation_id=observation_id,
-                                            user_id_product_creator=user_id_product_creator,
-                                            **par_dic)
+        output_data_product_post = None
+        output_data_product_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
+                                        session_id=session_id,
+                                        job_id=job_id,
+                                        gallery_jwt_token=gallery_jwt_token,
+                                        product_title=product_title,
+                                        img_fid=img_fid,
+                                        observation_id=observation_id,
+                                        user_id_product_creator=user_id_product_creator,
+                                        **par_dic)
+
+        return output_data_product_post
 
 
-def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
+def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None, sentry_client=None):
     observations = []
     # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
@@ -167,9 +228,9 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
         # eg /mmoda-pg/observations/range/2018-12-31T23%3A59%3A59--2021-12-01T00%3A00%3A01
         formatted_range = f'{t1_minor_formatted}--{t2_plus_formatted}'
 
-    log_res = requests.get(f"{product_gallery_url}/observations/range/{formatted_range}?_format=hal_json",
-                           headers=headers
-                           )
+    log_res = execute_drupal_request(f"{product_gallery_url}/observations/range/{formatted_range}",
+                                     headers=headers,
+                                     sentry_client=sentry_client)
     output_get = analyze_drupal_output(log_res, operation_performed="getting the observation range")
     if isinstance(output_get, list):
         observations = output_get
@@ -177,7 +238,7 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
     return observations
 
 
-def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
+def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None, sentry_client=None):
     # post new observation with or without a specific time range
     body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_node)
     # set the type of content to post
@@ -200,10 +261,12 @@ def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
 
     headers = get_drupal_request_headers(gallery_jwt_token)
 
-    log_res = requests.post(f"{product_gallery_url}/node?_format=hal_json",
-                            data=json.dumps(body_gallery_observation_node),
-                            headers=headers
-                            )
+    log_res = execute_drupal_request(f"{product_gallery_url}/node",
+                                     method='post',
+                                     data=json.dumps(body_gallery_observation_node),
+                                     headers=headers,
+                                     sentry_client=sentry_client)
+
     output_post = analyze_drupal_output(log_res, operation_performed="posting a new observation")
 
     # extract the id of the observation
@@ -212,7 +275,10 @@ def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None):
     return observation_drupal_id
 
 
-def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t2=None, observation_id=None) \
+def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
+                              t1=None, t2=None,
+                              observation_id=None,
+                              sentry_client=None) \
         -> Tuple[Optional[str], Optional[str]]:
     observation_drupal_id = None
     observation_information_message = None
@@ -220,9 +286,9 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t
         # get from the drupal the relative id
         headers = get_drupal_request_headers(gallery_jwt_token)
 
-        log_res = requests.get(f"{product_gallery_url}/observations/{observation_id}?_format=hal_json",
-                               headers=headers
-                               )
+        log_res = execute_drupal_request(f"{product_gallery_url}/observations/{observation_id}",
+                                         headers=headers,
+                                         sentry_client=sentry_client)
         output_get = analyze_drupal_output(log_res, operation_performed="retrieving the observation information")
 
         if isinstance(output_get, list) and len(output_get) == 1:
@@ -231,7 +297,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t
     else:
 
         if t1 is not None and t2 is not None:
-            observations_range = get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2)
+            observations_range = get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2, sentry_client=sentry_client)
             for observation in observations_range:
                 times = observation['field_timerange'].split(' - ')
                 parsed_t1 = parser.parse(t1)
@@ -244,7 +310,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, t1=None, t
                     break
 
         if observation_drupal_id is None:
-            observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, t1, t2)
+            observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, t1, t2, sentry_client=sentry_client)
             observation_information_message = 'a new observation has been posted'
 
     return observation_drupal_id, observation_information_message
@@ -255,6 +321,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
                                  img_fid=None,
                                  observation_id=None,
                                  user_id_product_creator=None,
+                                 sentry_client=None,
                                  **kwargs):
     body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_node)
 
@@ -342,9 +409,8 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
     headers = get_drupal_request_headers(gallery_jwt_token)
     # TODO improve this REST endpoint to accept multiple input terms, and give one result per input
     # get all the taxonomy terms
-    log_res = requests.get(f"{product_gallery_url}/taxonomy/term_name/all",
-                           headers=headers
-                           )
+    log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_name/all?_format=hal_json",
+                                     headers=headers)
     output_post = analyze_drupal_output(log_res,
                                         operation_performed="retrieving the taxonomy terms from the product gallery")
     if type(output_post) == list and len(output_post) > 0:
@@ -366,10 +432,11 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
             "target_id": int(img_fid)
         }]
     # finally, post the data product to the gallery
-    log_res = requests.post(f"{product_gallery_url}/node?_format=hal_json",
-                            data=json.dumps(body_gallery_article_node),
-                            headers=headers
-                            )
+    log_res = execute_drupal_request(f"{product_gallery_url}/node",
+                                     method='post',
+                                     data=json.dumps(body_gallery_article_node),
+                                     headers=headers,
+                                     sentry_client=sentry_client)
 
     output_post = analyze_drupal_output(log_res, operation_performed="posting data product to the gallery")
 
