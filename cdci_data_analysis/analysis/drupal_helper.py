@@ -101,6 +101,11 @@ def execute_drupal_request(url,
             if n_tries_left > 0:
                 logger.debug(f"{e} exception during a request to the product gallery, {n_tries_left} tries left:"
                              f"\n sleeping {retry_sleep_s} seconds until retry")
+                if n_tries_left < round(n_max_tries / 2):
+                    logger.warning("a request to the product gallery is taking more time than expected")
+                else:
+                    logger.warning("there seems to be some problem in completing a request to the product gallery,"
+                                   " we are executing multiple attempts in order to successfully complete the request")
                 time.sleep(retry_sleep_s)
             else:
                 logger.warning(f"an issue occurred when performing a request to the product gallery, "
