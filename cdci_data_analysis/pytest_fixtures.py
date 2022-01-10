@@ -385,7 +385,7 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
             f.write(f_default.read())
 
         f.write('\n    product_gallery_options:'
-                '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda-pg"'
+                '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/gallery"'
                f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"')
 
     yield fn
