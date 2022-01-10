@@ -15,7 +15,7 @@ from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
 from enum import Enum, auto
 
-from ..analysis.exceptions import RequestNotUnderstood, BadRequest
+from ..analysis.exceptions import RequestNotUnderstood, InternalError
 from ..flask_app.templates import body_article_product_gallery
 from ..app_logging import app_logging
 
@@ -82,7 +82,7 @@ def execute_drupal_request(url,
         else:
             logger.warning("sentry not used")
 
-        raise BadRequest('issue when performing a request to the product gallery',
+        raise InternalError('issue when performing a request to the product gallery',
                          status_code=500,
                          payload={'error_message': str(e)})
 
