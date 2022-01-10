@@ -15,13 +15,16 @@ from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
 from enum import Enum, auto
 
-from ..analysis.exceptions import RequestNotUnderstood, InternalError
+from ..analysis.exceptions import RequestNotUnderstood, InternalError, RequestNotAuthorized
 from ..flask_app.templates import body_article_product_gallery
 from ..app_logging import app_logging
 
 default_algorithm = 'HS256'
 
 logger = app_logging.getLogger('drupal_helper')
+
+n_max_tries = 10
+retry_sleep_s = .5
 
 
 class ContentType(Enum):
@@ -52,39 +55,74 @@ def execute_drupal_request(url,
                            files=None,
                            request_format='hal_json',
                            sentry_client=None):
-    try:
-        if method == 'get':
-            if params is None:
-                params = {}
-            params['_format'] = request_format
-            return requests.get(url,
-                                params={**params},
-                                headers=headers)
-        elif method == 'post':
-            if data is None:
-                data = {}
-            if params is None:
-                params = {}
-            params['_format'] = request_format
-            return requests.post(url,
-                                 params={**params},
-                                 data=data,
-                                 files=files,
-                                 headers=headers
-                                 )
-    except Exception as e:
-        logger.warning(f"an issue occurred when performing a request to the product gallery, "
-                       f"this is likely to be a connection related problem, we are investigating and "
-                       f"try to solve it as soon as possible")
-        if sentry_client is not None:
-            sentry_client.capture('raven.events.Message',
-                                  message=f'exception when performing a request to the product gallery: {repr(e)}')
-        else:
-            logger.warning("sentry not used")
+    n_tries_left = n_max_tries
+    t0 = time.time()
+    while True:
+        try:
+            if method == 'get':
+                if params is None:
+                    params = {}
+                params['_format'] = request_format
+                res = requests.get(url,
+                                   params={**params},
+                                   headers=headers)
 
-        raise InternalError('issue when performing a request to the product gallery',
-                         status_code=500,
-                         payload={'error_message': str(e)})
+            elif method == 'post':
+                if data is None:
+                    data = {}
+                if params is None:
+                    params = {}
+                params['_format'] = request_format
+                res = requests.post(url,
+                                    params={**params},
+                                    data=data,
+                                    files=files,
+                                    headers=headers
+                                    )
+            else:
+                raise NotImplementedError
+            if res.status_code == 403:
+                try:
+                    response_json = res.json()
+                    error_msg = response_json['message']
+                    # a 403 has been noticed to be returned in two different cases:
+                    # * for not-valid token
+                    # * not-completed request
+                    raise RequestNotAuthorized(error_msg)
+                except json.decoder.JSONDecodeError:
+                    error_msg = res.text
+
+                if error_msg != "":
+                    # not valid token
+                    raise ConnectionError
+                else:
+                    RequestNotAuthorized(error_msg)
+            return res
+        except RequestNotAuthorized as e:
+            logger.warning(f"the token used for the request to the product gallery is not valid")
+            raise e
+
+        except (ConnectionError,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout) as e:
+            n_tries_left -= 1
+            if n_tries_left > 0:
+                logger.debug(f"connection problem during a request to the product gallery, {n_tries_left} tries left:"
+                             f"\n sleeping {retry_sleep_s} seconds until retry")
+                time.sleep(retry_sleep_s)
+            else:
+                logger.warning(f"an issue occurred when performing a request to the product gallery, "
+                               f"this prevented us to complete the request to the url: {url} \n"
+                               f"this is likely to be a connection related problem, we are investigating and "
+                               f"try to solve it as soon as possible")
+                if sentry_client is not None:
+                    sentry_client.capture('raven.events.Message',
+                                          message=f'exception when performing a request to the product gallery: {repr(e)}')
+                else:
+                    logger.warning("sentry not used")
+                raise InternalError('issue when performing a request to the product gallery',
+                                    status_code=500,
+                                    payload={'error_message': str(e)})
 
 
 def get_drupal_request_headers(gallery_jwt_token=None):
