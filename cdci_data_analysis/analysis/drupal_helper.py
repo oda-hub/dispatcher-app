@@ -253,8 +253,9 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
         # format the time fields, from the format request, with +/- 1ms
         t1_minor = parser.parse(t1) - datetime.timedelta(seconds=1)
         t2_plus = parser.parse(t2) + datetime.timedelta(seconds=1)
-        t1_minor_formatted = t1_minor.strftime('%Y-%m-%dT%H:%M:%S')
-        t2_plus_formatted = t2_plus.strftime('%Y-%m-%dT%H:%M:%S')
+        # using the format accepted by the product gallery
+        t1_minor_formatted = t1_minor.strftime('%Y-%d-%mT%H:%M:%S')
+        t2_plus_formatted = t2_plus.strftime('%Y-%d-%mT%H:%M:%S')
         # eg /mmoda-pg/observations/range/2018-12-31T23%3A59%3A59--2021-12-01T00%3A00%3A01
         formatted_range = f'{t1_minor_formatted}--{t2_plus_formatted}'
 
