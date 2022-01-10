@@ -90,23 +90,16 @@ def execute_drupal_request(url,
                     error_msg = response_json['message']
                 except json.decoder.JSONDecodeError:
                     error_msg = res.text
-
-                if error_msg != "":
-                    # not valid token
-                    raise ConnectionError
-                else:
-                    raise RequestNotAuthorized(error_msg)
+                raise RequestNotAuthorized(error_msg)
             return res
-        except RequestNotAuthorized as e:
-            logger.warning(f"the token used for the request to the product gallery is not valid")
-            raise e
 
         except (ConnectionError,
+                RequestNotAuthorized,
                 requests.exceptions.ConnectionError,
                 requests.exceptions.Timeout) as e:
             n_tries_left -= 1
             if n_tries_left > 0:
-                logger.debug(f"connection problem during a request to the product gallery, {n_tries_left} tries left:"
+                logger.debug(f"{e} exception during a request to the product gallery, {n_tries_left} tries left:"
                              f"\n sleeping {retry_sleep_s} seconds until retry")
                 time.sleep(retry_sleep_s)
             else:
