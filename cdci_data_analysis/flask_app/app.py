@@ -428,9 +428,7 @@ def post_product_to_gallery():
     par_dic = request.values.to_dict()
     par_dic.pop('token')
 
-    output_post = drupal_helper.post_content_to_gallery(product_gallery_url=product_gallery_url,
-                                                        decoded_token=decoded_token,
-                                                        gallery_secret_key=gallery_secret_key,
+    output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
                                                         disp_conf=app_config,
                                                         files=request.files,
                                                         **par_dic)
