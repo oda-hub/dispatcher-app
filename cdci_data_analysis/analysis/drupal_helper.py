@@ -84,11 +84,10 @@ def execute_drupal_request(url,
             if res.status_code == 403:
                 try:
                     response_json = res.json()
-                    error_msg = response_json['message']
                     # a 403 has been noticed to be returned in two different cases:
                     # * for not-valid token
                     # * not-completed request
-                    raise RequestNotAuthorized(error_msg)
+                    error_msg = response_json['message']
                 except json.decoder.JSONDecodeError:
                     error_msg = res.text
 
@@ -96,7 +95,7 @@ def execute_drupal_request(url,
                     # not valid token
                     raise ConnectionError
                 else:
-                    RequestNotAuthorized(error_msg)
+                    raise RequestNotAuthorized(error_msg)
             return res
         except RequestNotAuthorized as e:
             logger.warning(f"the token used for the request to the product gallery is not valid")
