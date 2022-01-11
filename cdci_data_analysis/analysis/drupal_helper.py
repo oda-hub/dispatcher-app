@@ -280,7 +280,8 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
         # format the time fields, from the format request, with +/- 1ms
         t1_minor = parser.parse(t1) - datetime.timedelta(seconds=1)
         t2_plus = parser.parse(t2) + datetime.timedelta(seconds=1)
-        # using the format accepted by the product gallery
+        # TODO it is now using the format accepted by the product gallery in drupal
+        # TODO but we should change this behavior at drupal level, this is not ideal and frequent source of confusion
         t1_minor_formatted = t1_minor.strftime('%Y-%d-%mT%H:%M:%S')
         t2_plus_formatted = t2_plus.strftime('%Y-%d-%mT%H:%M:%S')
         # eg /mmoda-pg/observations/range/2018-31-12T23%3A59%3A59--2021-01-12T00%3A00%3A01
