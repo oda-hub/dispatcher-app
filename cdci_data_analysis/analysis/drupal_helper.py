@@ -91,7 +91,7 @@ def execute_drupal_request(url,
                     error_msg = res.text
                 raise RequestNotAuthorized(error_msg)
 
-            if res.status_code == 404:
+            if res.status_code not in [200, 201]:
                 logger.warning(f"there seems to be some problem in completing a request to the product gallery:\n"
                                f"the requested url {url} lead to the error {res.text}, "
                                "this might be due to an error in the url or the page requested no longer exists, "
