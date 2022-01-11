@@ -95,14 +95,14 @@ def execute_drupal_request(url,
                     error_msg = res.text
                 raise RequestNotAuthorized(error_msg)
 
-            if res.status_code not in [200, 201]:
+            elif res.status_code not in [200, 201]:
                 logger.warning(f"there seems to be some problem in completing a request to the product gallery:\n"
                                f"the requested url {url} lead to the error {res.text}, "
                                "this might be due to an error in the url or the page requested no longer exists, "
                                "please check it and try to issue again the request")
                 raise InternalError('issue when performing a request to the product gallery',
                                     status_code=500,
-                                    payload={'error_message': str(e)})
+                                    payload={'error_message': res.text})
             else:
                 total_n_successful_post_requests += 1
 
