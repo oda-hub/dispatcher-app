@@ -15,13 +15,19 @@ from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
 from enum import Enum, auto
 
-from ..analysis.exceptions import RequestNotUnderstood, InternalError
+from ..analysis.exceptions import RequestNotUnderstood, InternalError, RequestNotAuthorized
 from ..flask_app.templates import body_article_product_gallery
 from ..app_logging import app_logging
 
 default_algorithm = 'HS256'
 
 logger = app_logging.getLogger('drupal_helper')
+
+n_max_tries = 10
+retry_sleep_s = .5
+
+total_n_successful_post_requests = 0
+total_n_post_request_retries = 0
 
 
 class ContentType(Enum):
@@ -52,39 +58,90 @@ def execute_drupal_request(url,
                            files=None,
                            request_format='hal_json',
                            sentry_client=None):
-    try:
-        if method == 'get':
-            if params is None:
-                params = {}
-            params['_format'] = request_format
-            return requests.get(url,
-                                params={**params},
-                                headers=headers)
-        elif method == 'post':
-            if data is None:
-                data = {}
-            if params is None:
-                params = {}
-            params['_format'] = request_format
-            return requests.post(url,
-                                 params={**params},
-                                 data=data,
-                                 files=files,
-                                 headers=headers
-                                 )
-    except Exception as e:
-        logger.warning(f"an issue occurred when performing a request to the product gallery, "
-                       f"this is likely to be a connection related problem, we are investigating and "
-                       f"try to solve it as soon as possible")
-        if sentry_client is not None:
-            sentry_client.capture('raven.events.Message',
-                                  message=f'exception when performing a request to the product gallery: {repr(e)}')
-        else:
-            logger.warning("sentry not used")
+    n_tries_left = n_max_tries
+    global total_n_successful_post_requests, total_n_post_request_retries
+    while True:
+        try:
+            if method == 'get':
+                if params is None:
+                    params = {}
+                params['_format'] = request_format
+                res = requests.get(url,
+                                   params={**params},
+                                   headers=headers)
 
-        raise InternalError('issue when performing a request to the product gallery',
-                         status_code=500,
-                         payload={'error_message': str(e)})
+            elif method == 'post':
+                if data is None:
+                    data = {}
+                if params is None:
+                    params = {}
+                params['_format'] = request_format
+                res = requests.post(url,
+                                    params={**params},
+                                    data=data,
+                                    files=files,
+                                    headers=headers
+                                    )
+            else:
+                raise NotImplementedError
+            if res.status_code == 403:
+                try:
+                    response_json = res.json()
+                    # a 403 has been noticed to be returned in two different cases:
+                    # * for not-valid token
+                    # * not-completed request
+                    error_msg = response_json['message']
+                except json.decoder.JSONDecodeError:
+                    error_msg = res.text
+                raise RequestNotAuthorized(error_msg)
+
+            elif res.status_code not in [200, 201]:
+                logger.warning(f"there seems to be some problem in completing a request to the product gallery:\n"
+                               f"the requested url {url} lead to the error {res.text}, "
+                               "this might be due to an error in the url or the page requested no longer exists, "
+                               "please check it and try to issue again the request")
+                raise InternalError('issue when performing a request to the product gallery',
+                                    status_code=500,
+                                    payload={'error_message': res.text})
+            else:
+                total_n_successful_post_requests += 1
+
+            return res
+
+        except (ConnectionError,
+                RequestNotAuthorized,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout) as e:
+
+            n_tries_left -= 1
+            total_n_post_request_retries += 1
+
+            if n_tries_left > 0:
+                if n_max_tries - n_tries_left > total_n_post_request_retries/total_n_successful_post_requests:
+                    logger.warning(f"a request to the url {url} of the product gallery is taking more time than expected, "
+                                   "we will investigate the problem and solve it as soon as possible")
+                else:
+                    logger.warning(f"there seems to be some problem in completing the request to the url {url} of the product gallery,"
+                                   " this is possibly temporary and we will retry the same request shortly")
+
+                logger.debug(f"{e} exception during a request to the url {url} of the product gallery\n"
+                             f"{n_tries_left} tries left, sleeping {retry_sleep_s} seconds until retry\n"
+                             f"average retries per request since dispatcher start: "
+                             f"{(total_n_post_request_retries / total_n_successful_post_requests):.2f}")
+                time.sleep(retry_sleep_s)
+            else:
+                logger.warning(f"an issue occurred when performing a request to the product gallery, "
+                               f"this prevented us to complete the request to the url: {url} \n"
+                               f"this is likely to be a connection related problem, we are investigating and "
+                               f"try to solve it as soon as possible")
+                if sentry_client is not None:
+                    sentry_client.capture('raven.events.Message',
+                                          message=f'exception when performing a request to the product gallery: {repr(e)}')
+                else:
+                    logger.warning("sentry not used")
+                raise InternalError('issue when performing a request to the product gallery',
+                                    status_code=500,
+                                    payload={'error_message': str(e)})
 
 
 def get_drupal_request_headers(gallery_jwt_token=None):
@@ -223,9 +280,11 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
         # format the time fields, from the format request, with +/- 1ms
         t1_minor = parser.parse(t1) - datetime.timedelta(seconds=1)
         t2_plus = parser.parse(t2) + datetime.timedelta(seconds=1)
-        t1_minor_formatted = t1_minor.strftime('%Y-%m-%dT%H:%M:%S')
-        t2_plus_formatted = t2_plus.strftime('%Y-%m-%dT%H:%M:%S')
-        # eg /mmoda-pg/observations/range/2018-12-31T23%3A59%3A59--2021-12-01T00%3A00%3A01
+        # TODO it is now using the format accepted by the product gallery in drupal
+        # TODO but we should change this behavior at drupal level, this is not ideal and frequent source of confusion
+        t1_minor_formatted = t1_minor.strftime('%Y-%d-%mT%H:%M:%S')
+        t2_plus_formatted = t2_plus.strftime('%Y-%d-%mT%H:%M:%S')
+        # eg /mmoda-pg/observations/range/2018-31-12T23%3A59%3A59--2021-01-12T00%3A00%3A01
         formatted_range = f'{t1_minor_formatted}--{t2_plus_formatted}'
 
     log_res = execute_drupal_request(f"{product_gallery_url}/observations/range/{formatted_range}",
