@@ -93,8 +93,7 @@ def execute_drupal_request(url,
 
             if res.status_code == 404:
                 logger.warning(f"there seems to be some problem in completing a request to the product gallery,"
-                               " this might be due to a an error in the url, "
-                               "or because we are attempting to load a page that no longer exists, "
+                               " this might be due to an error in the url or the page requested no longer exists, "
                                "please check it and try to issue again the request")
                 raise InternalError('issue when performing a request to the product gallery',
                                     status_code=500,
