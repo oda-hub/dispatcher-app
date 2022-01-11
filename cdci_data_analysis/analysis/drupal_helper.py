@@ -56,7 +56,6 @@ def execute_drupal_request(url,
                            request_format='hal_json',
                            sentry_client=None):
     n_tries_left = n_max_tries
-    t0 = time.time()
     while True:
         try:
             if method == 'get':
@@ -99,13 +98,14 @@ def execute_drupal_request(url,
                 requests.exceptions.Timeout) as e:
             n_tries_left -= 1
             if n_tries_left > 0:
+                if n_tries_left < round(n_max_tries / 2):
+                    logger.warning("a request to the product gallery is taking more time than expected, "
+                                   "we will investigate the problem and solve it as soon as possible")
+                else:
+                    logger.warning(f"there seems to be some problem in completing a request to the product gallery,"
+                                   " this is possibly temporary and we will retry the same request shortly")
                 logger.debug(f"{e} exception during a request to the product gallery, {n_tries_left} tries left:"
                              f"\n sleeping {retry_sleep_s} seconds until retry")
-                if n_tries_left < round(n_max_tries / 2):
-                    logger.warning("a request to the product gallery is taking more time than expected")
-                else:
-                    logger.warning("there seems to be some problem in completing a request to the product gallery,"
-                                   " we are executing multiple attempts in order to successfully complete the request")
                 time.sleep(retry_sleep_s)
             else:
                 logger.warning(f"an issue occurred when performing a request to the product gallery, "
