@@ -26,6 +26,9 @@ logger = app_logging.getLogger('drupal_helper')
 n_max_tries = 10
 retry_sleep_s = .5
 
+total_n_successful_post_requests = 0
+total_n_post_request_retries = 0
+
 
 class ContentType(Enum):
     ARTICLE = auto()
@@ -56,6 +59,7 @@ def execute_drupal_request(url,
                            request_format='hal_json',
                            sentry_client=None):
     n_tries_left = n_max_tries
+    global total_n_successful_post_requests, total_n_post_request_retries
     while True:
         try:
             if method == 'get':
@@ -99,6 +103,8 @@ def execute_drupal_request(url,
                 raise InternalError('issue when performing a request to the product gallery',
                                     status_code=500,
                                     payload={'error_message': str(e)})
+            else:
+                total_n_successful_post_requests += 1
 
             return res
 
@@ -106,16 +112,22 @@ def execute_drupal_request(url,
                 RequestNotAuthorized,
                 requests.exceptions.ConnectionError,
                 requests.exceptions.Timeout) as e:
+
             n_tries_left -= 1
+            total_n_post_request_retries += 1
+
             if n_tries_left > 0:
-                if n_tries_left < round(n_max_tries / 2):
-                    logger.warning("a request to the product gallery is taking more time than expected, "
+                if n_max_tries - n_tries_left > total_n_post_request_retries/total_n_successful_post_requests:
+                    logger.warning(f"a request to the url {url} of the product gallery is taking more time than expected, "
                                    "we will investigate the problem and solve it as soon as possible")
                 else:
-                    logger.warning(f"there seems to be some problem in completing a request to the product gallery,"
+                    logger.warning(f"there seems to be some problem in completing the request to the url {url} of the product gallery,"
                                    " this is possibly temporary and we will retry the same request shortly")
-                logger.debug(f"{e} exception during a request to the product gallery, {n_tries_left} tries left:"
-                             f"\n sleeping {retry_sleep_s} seconds until retry")
+
+                logger.debug(f"{e} exception during a request to the url {url} of the product gallery\n"
+                             f"{n_tries_left} tries left, sleeping {retry_sleep_s} seconds until retry\n"
+                             f"average retries per request since dispatcher start: "
+                             f"{(total_n_post_request_retries / total_n_successful_post_requests):.2f}")
                 time.sleep(retry_sleep_s)
             else:
                 logger.warning(f"an issue occurred when performing a request to the product gallery, "
