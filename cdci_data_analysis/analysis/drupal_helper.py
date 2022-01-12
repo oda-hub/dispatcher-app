@@ -277,11 +277,10 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
     if t1 is None or t2 is None:
         formatted_range = 'all'
     else:
-        # format the time fields, from the format request, with +/- 1ms
+        # format the time fields, drupal does not provide (yet) the option to filter by date using also the time,
+        # so the dates, properly formatted in ISO, without the time will be used
         t1_formatted = parser.parse(t1).strftime('%Y-%m-%d')
         t2formatted = parser.parse(t2).strftime('%Y-%m-%d')
-        # eg /mmoda-pg/observations/range/2018-31-12T23%3A59%3A59--2021-01-12T00%3A00%3A01
-        # formatted_range = f'{t1_minor_formatted}--{t2_plus_formatted}'
 
     log_res = execute_drupal_request(f"{product_gallery_url}/observations/range_t1_t2/{t1_formatted}/{t2formatted}/",
                                      headers=headers,
