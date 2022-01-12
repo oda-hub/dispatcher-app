@@ -1458,16 +1458,23 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery):
     job_id = jdata['products']['job_id']
     session_id = jdata['session_id']
     product_title = "_".join([params['instrument'], params['query_type'], datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")])
+
+    e1_kev = 45
+    e2_kev = 95
+
+    dec = 19
+    ra = 458
+
     params = {
         'job_id': job_id,
         'session_id': session_id,
         'src_name': '1E 1740.7-2942',
         'content_type': 'data_product',
         'product_title': product_title,
-        'E1_keV': 45,
-        'E2_kev': 95,
-        'DEC': 145,
-        'RA': 95.23,
+        'E1_keV': e1_kev,
+        'E2_kev': e2_kev,
+        'DEC': dec,
+        'RA': ra,
         'T1': '2003-03-15T23:27:40.0',
         'T2': '2003-03-16T00:03:12.0',
         'token': encoded_token
@@ -1482,3 +1489,20 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery):
                       )
 
     assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    assert 'title' in drupal_res_obj
+    assert drupal_res_obj['title'][0]['value'] == product_title
+
+    assert 'field_e1_kev' in drupal_res_obj
+    assert drupal_res_obj['field_e1_kev'][0]['value'] == e1_kev
+
+    assert 'field_e2_kev' in drupal_res_obj
+    assert drupal_res_obj['field_e2_kev'][0]['value'] == e2_kev
+
+    assert 'field_dec' in drupal_res_obj
+    assert drupal_res_obj['field_dec'][0]['value'] == dec
+
+    assert 'field_ra' in drupal_res_obj
+    assert drupal_res_obj['field_ra'][0]['value'] == ra
