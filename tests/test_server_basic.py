@@ -1468,8 +1468,8 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery):
         'E2_kev': 95,
         'DEC': 145,
         'RA': 95.23,
-        'T1': '2019-01-01',
-        'T2': '2021-12-01',
+        'T1': '2003-03-15T23:27:40.0',
+        'T2': '2003-03-16T00:03:12.0',
         'token': encoded_token
     }
 

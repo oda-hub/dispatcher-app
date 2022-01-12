@@ -278,16 +278,12 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
         formatted_range = 'all'
     else:
         # format the time fields, from the format request, with +/- 1ms
-        t1_minor = parser.parse(t1) - datetime.timedelta(seconds=1)
-        t2_plus = parser.parse(t2) + datetime.timedelta(seconds=1)
-        # TODO it is now using the format accepted by the product gallery in drupal
-        # TODO but we should change this behavior at drupal level, this is not ideal and frequent source of confusion
-        t1_minor_formatted = t1_minor.strftime('%Y-%d-%mT%H:%M:%S')
-        t2_plus_formatted = t2_plus.strftime('%Y-%d-%mT%H:%M:%S')
+        t1_formatted = parser.parse(t1).strftime('%Y-%m-%d')
+        t2formatted = parser.parse(t2).strftime('%Y-%m-%d')
         # eg /mmoda-pg/observations/range/2018-31-12T23%3A59%3A59--2021-01-12T00%3A00%3A01
-        formatted_range = f'{t1_minor_formatted}--{t2_plus_formatted}'
+        # formatted_range = f'{t1_minor_formatted}--{t2_plus_formatted}'
 
-    log_res = execute_drupal_request(f"{product_gallery_url}/observations/range/{formatted_range}",
+    log_res = execute_drupal_request(f"{product_gallery_url}/observations/range_t1_t2/{t1_formatted}/{t2formatted}/",
                                      headers=headers,
                                      sentry_client=sentry_client)
     output_get = analyze_drupal_output(log_res, operation_performed="getting the observation range")
