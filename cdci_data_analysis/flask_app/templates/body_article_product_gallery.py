@@ -13,10 +13,10 @@ body_node = {
     }]
 }
 
-body_img = {
+body_file = {
     "_links": {
         "type": {
-            "href": "rest/type/file/image"
+            "href": "rest/type/file/"
         }
     },
     "filename": [

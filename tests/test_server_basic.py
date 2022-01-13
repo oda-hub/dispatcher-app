@@ -1480,12 +1480,14 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery):
         'token': encoded_token
     }
 
-    # send test img
-    img_file_obj = {'media': open('data/dummy_prods/ds9.jpeg', 'rb')}
+    # send test img and test fits file
+    file_obj = {'img': open('data/dummy_prods/ds9.jpeg', 'rb'),
+                'fits_file_0': open('data/dummy_prods/isgri_query_lc.fits', 'rb'),
+                'fits_file_1': open('data/dummy_prods/query_catalog.fits', 'rb')}
 
     c = requests.post(server + "/post_product_to_gallery",
                       params={**params},
-                      files=img_file_obj
+                      files=file_obj
                       )
 
     assert c.status_code == 200

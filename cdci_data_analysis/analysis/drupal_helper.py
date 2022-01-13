@@ -183,29 +183,34 @@ def get_user_id(product_gallery_url, user_email, sentry_client=None) -> Optional
     return user_id
 
 
-def post_picture_to_gallery(product_gallery_url, img, gallery_jwt_token, sentry_client=None):
-    # body_post_img = body_article_product_gallery.body_img.copy()
-    body_post_img = copy.deepcopy(body_article_product_gallery.body_img)
+def post_file_to_gallery(product_gallery_url, file, gallery_jwt_token, file_type="image", sentry_client=None):
+    logger.info(f"uploading file {file} to the product gallery")
 
-    bytes_img = img.read()
-    b_64_img = base64.b64encode(bytes_img).decode("utf8")
-    img_name = img.filename
-    img_extension = os.path.splitext(img_name)[1][1:]
+    body_post_file = copy.deepcopy(body_article_product_gallery.body_file)
 
-    body_post_img["data"][0]["value"] = b_64_img
-    body_post_img["uri"][0]["value"] = "public://" + img_name
-    body_post_img["filename"][0]["value"] = img_name
-    body_post_img["filemime"]["value"] = "image/" + img_extension
-    body_post_img["_links"]["type"]["href"] = os.path.join(product_gallery_url, body_post_img["_links"]["type"]["href"])
+    bytes_file = file.read()
+    b_64_file = base64.b64encode(bytes_file).decode("utf8")
+    file_name = file.filename
+    img_extension = os.path.splitext(file_name)[1][1:]
+
+    body_post_file["data"][0]["value"] = b_64_file
+    body_post_file["uri"][0]["value"] = "public://" + file_name
+    body_post_file["filename"][0]["value"] = file_name
+    if file_type == "image":
+        body_post_file["filemime"]["value"] = "image/" + img_extension
+    else:
+        body_post_file["filemime"]["value"] = file_type
+    body_post_file["_links"]["type"]["href"] = os.path.join(product_gallery_url, body_post_file["_links"]["type"]["href"], file_type)
 
     headers = get_drupal_request_headers(gallery_jwt_token)
 
     # post the image
     log_res = execute_drupal_request(f"{product_gallery_url}/entity/file",
                                      method='post',
-                                     data=json.dumps(body_post_img),
+                                     data=json.dumps(body_post_file),
                                      headers=headers,
                                      sentry_client=sentry_client)
+    logger.info(f"file {file} successfully uploaded to the product gallery")
     output_post = analyze_drupal_output(log_res, operation_performed="posting a picture to the product gallery")
     return output_post
 
@@ -237,32 +242,46 @@ def post_content_to_gallery(decoded_token,
     par_dic['user_id_product_creator'] = user_id_product_creator
     # extract type of content to post
     content_type = ContentType[str.upper(par_dic.pop('content_type', 'article'))]
+    fits_file_fid_list = None
+    img_fid = None
     if content_type == content_type.DATA_PRODUCT:
         # process files sent
         if files is not None:
             for f in files:
-                file_obj = files[f]
-                # upload file to drupal
-                output_img_post = post_picture_to_gallery(product_gallery_url=product_gallery_url,
-                                                          img=file_obj,
-                                                          gallery_jwt_token=gallery_jwt_token,
-                                                          sentry_client=sentry_client)
-                img_fid = output_img_post['fid'][0]['value']
-                par_dic['img_fid'] = img_fid
+                if f == 'img':
+                    img_file_obj = files[f]
+                    # upload file to drupal
+                    output_img_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
+                                                           file_type="image",
+                                                           file=img_file_obj,
+                                                           gallery_jwt_token=gallery_jwt_token,
+                                                           sentry_client=sentry_client)
+                    img_fid = output_img_post['fid'][0]['value']
+                elif f.startswith('fits_file'):
+                    fits_file_obj = files[f]
+                    # upload file to drupal
+                    output_fits_file_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
+                                                                 file_type="document",
+                                                                 file=fits_file_obj,
+                                                                 gallery_jwt_token=gallery_jwt_token,
+                                                                 sentry_client=sentry_client)
+                    if fits_file_fid_list is None:
+                        fits_file_fid_list = []
+                    fits_file_fid_list.append(output_fits_file_post['fid'][0]['value'])
 
         session_id = par_dic.pop('session_id')
         job_id = par_dic.pop('job_id')
         product_title = par_dic.pop('product_title', None)
-        img_fid = par_dic.pop('img_fid', None)
         observation_id = par_dic.pop('observation_id', None)
         user_id_product_creator = par_dic.pop('user_id_product_creator')
-        output_data_product_post = None
+
         output_data_product_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
                                         session_id=session_id,
                                         job_id=job_id,
                                         gallery_jwt_token=gallery_jwt_token,
                                         product_title=product_title,
                                         img_fid=img_fid,
+                                        fits_file_fid_list=fits_file_fid_list,
                                         observation_id=observation_id,
                                         user_id_product_creator=user_id_product_creator,
                                         **par_dic)
@@ -373,6 +392,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
 def post_data_product_to_gallery(product_gallery_url, session_id, job_id, gallery_jwt_token,
                                  product_title=None,
                                  img_fid=None,
+                                 fits_file_fid_list=None,
                                  observation_id=None,
                                  user_id_product_creator=None,
                                  sentry_client=None,
@@ -485,6 +505,14 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
         body_gallery_article_node['field_image_png'] = [{
             "target_id": int(img_fid)
         }]
+    # setting fits file fid if available
+    if fits_file_fid_list is not None:
+        for fid in fits_file_fid_list:
+            if 'field_fits_file' not in body_gallery_article_node:
+                body_gallery_article_node['field_fits_file'] = []
+            body_gallery_article_node['field_fits_file'].append({
+                "target_id": int(fid)
+            })
     # finally, post the data product to the gallery
     log_res = execute_drupal_request(f"{product_gallery_url}/node",
                                      method='post',
