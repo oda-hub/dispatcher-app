@@ -212,32 +212,6 @@ def post_file_to_gallery(product_gallery_url, file, gallery_jwt_token, file_type
     return output_post
 
 
-def post_picture_to_gallery(product_gallery_url, img, gallery_jwt_token, sentry_client=None):
-    body_post_img = copy.deepcopy(body_article_product_gallery.body_img)
-
-    bytes_img = img.read()
-    b_64_img = base64.b64encode(bytes_img).decode("utf8")
-    img_name = img.filename
-    img_extension = os.path.splitext(img_name)[1][1:]
-
-    body_post_img["data"][0]["value"] = b_64_img
-    body_post_img["uri"][0]["value"] = "public://" + img_name
-    body_post_img["filename"][0]["value"] = img_name
-    body_post_img["filemime"]["value"] = "image/" + img_extension
-    body_post_img["_links"]["type"]["href"] = os.path.join(product_gallery_url, body_post_img["_links"]["type"]["href"])
-
-    headers = get_drupal_request_headers(gallery_jwt_token)
-
-    # post the image
-    log_res = execute_drupal_request(f"{product_gallery_url}/entity/file",
-                                     method='post',
-                                     data=json.dumps(body_post_img),
-                                     headers=headers,
-                                     sentry_client=sentry_client)
-    output_post = analyze_drupal_output(log_res, operation_performed="posting a picture to the product gallery")
-    return output_post
-
-
 def post_content_to_gallery(decoded_token,
                             files=None,
                             disp_conf=None,
@@ -297,7 +271,7 @@ def post_content_to_gallery(decoded_token,
         fits_file_fid = par_dic.pop('field_fits_file', None)
         observation_id = par_dic.pop('observation_id', None)
         user_id_product_creator = par_dic.pop('user_id_product_creator')
-        output_data_product_post = None
+
         output_data_product_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
                                         session_id=session_id,
                                         job_id=job_id,
