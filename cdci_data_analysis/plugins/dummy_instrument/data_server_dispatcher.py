@@ -343,3 +343,44 @@ class DataServerParametricQuery(ProductQuery):
     def check_query_roles(self, roles, par_dic):
         results = dict(authorization=True, needed_roles=[])
         return results
+
+class EchoProductQuery(ProductQuery):
+    def __init__(self, name, parameters_list=None):
+        if parameters_list is None:
+            parameters_list = []
+        super().__init__(name, parameters_list=parameters_list)
+     
+    def get_data_server_query(self, instrument, config=None, **kwargs):
+        param_names = instrument.get_parameters_name_list()
+        param_dict = {x: instrument.get_par_by_name(x).value for x in param_names}
+        return EchoServerDispatcher(instrument=instrument, param_dict=param_dict)
+    
+    def build_product_list(self, instrument, res, out_dir, api=False):
+        return [res]
+    
+    def process_product_method(self, instrument, prod_list, api=False, **kw):
+        query_out = QueryOutput()
+        query_out.prod_dictionary['echo'] = prod_list.prod_list[0]
+        return query_out
+    
+    def test_communication(self, instrument, query_type='Real', logger=None, config=None, sentry_client=None):
+        query_out = QueryOutput()
+        query_out.set_done()
+        return query_out
+    
+    def test_has_products(self, instrument, query_type='Real', logger=None, config=None, scratch_dir=None, sentry_client=None):
+        query_out = QueryOutput()
+        query_out.prod_dictionary['input_prod_list'] = []
+        query_out.set_done()
+        return query_out
+        
+
+class EchoServerDispatcher:
+    def __init__(self, instrument=None, param_dict=None):
+        self.param_dict = param_dict
+    
+    def run_query(self, *args, **kwargs):
+        query_out = QueryOutput()
+        query_out.set_done(job_status='done')
+        res = self.param_dict
+        return res, query_out

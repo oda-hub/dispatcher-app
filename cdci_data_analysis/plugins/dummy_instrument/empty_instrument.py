@@ -37,12 +37,16 @@ __author__ = "Andrea Tramacere"
 from cdci_data_analysis.analysis.instrument import Instrument
 from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float
 
-from .data_server_dispatcher import EmptyProductQuery, DataServerNumericQuery, FailingProductQuery, DataServerParametricQuery
+from .data_server_dispatcher import (EmptyProductQuery, 
+                                     DataServerNumericQuery, 
+                                     FailingProductQuery, 
+                                     DataServerParametricQuery, 
+                                     EchoProductQuery)
 
 # duplicated with jemx, but this staticmethod makes it complex.
 # this all should be done commonly, for all parameters - limits are common thing
 from ...analysis.exceptions import RequestNotUnderstood
-from ...analysis.parameters import SpectralBoundary
+from ...analysis.parameters import SpectralBoundary, Angle 
 
 
 class BoundaryFloat(Float):
@@ -78,6 +82,10 @@ def my_instr_factory():
     sb = SpectralBoundary(value=10., name='sb')
     parametrical_query = DataServerParametricQuery('parametrical_parameters_dummy_query',
                                                    parameters_list=[sb])
+    
+    ang = Angle(value=1., units='arcsec', name='ang')
+    echo_param_query =  EchoProductQuery('echo_parameters_dummy_query',
+                                            parameters_list=[ang])
 
     # this dicts binds the product query name to the product name from frontend
     # eg my_instr_image is the parameter passed by the fronted to access the
@@ -90,9 +98,10 @@ def my_instr_factory():
     query_dictionary['numerical'] = 'numerical_parameters_dummy_query'
     query_dictionary['failing'] = 'failing_parameters_dummy_query'
     query_dictionary['parametrical'] = 'parametrical_parameters_dummy_query'
+    query_dictionary['echo'] = 'echo_parameters_dummy_query'
 
     return Instrument('empty',
                       src_query=src_query,
                       instrumet_query=instr_query,
-                      product_queries_list=[empty_query, numerical_query, failing_query, parametrical_query],
+                      product_queries_list=[empty_query, numerical_query, failing_query, parametrical_query, echo_param_query],
                       query_dictionary=query_dictionary)

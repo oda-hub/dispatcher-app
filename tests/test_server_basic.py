@@ -1508,3 +1508,22 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery):
 
     assert 'field_ra' in drupal_res_obj
     assert drupal_res_obj['field_ra'][0]['value'] == ra
+
+@pytest.mark.fast
+def test_param_value(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    c = requests.get(server + "/run_analysis",
+                   params={'instrument': 'empty',
+                           'product_type': 'echo',
+                           'query_status': 'new',
+                           'query_type': 'Real',
+                           'ang': 2.0},
+                  )
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+
+    assert jdata['products']['echo']['ang'] == 2.0
