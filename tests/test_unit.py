@@ -124,6 +124,10 @@ def test_energy_defaults():
 def test_angle_parameter():
     for parameter_type, input_value, format_args, outcome, outcome_default_format in [
         (Angle, -29.74516667, {'units': 'deg'}, -29.74516667, -29.74516667),
+        (Angle, -29.74516667, {'units': 'deg', 'default_units': 'deg'}, -29.74516667, -29.74516667),
+        (Angle, 3, {'units': 'arcmin', 'default_units': 'deg'}, 3, 0.05),
+        (Angle, 3, {'units': 'arcmin', 'default_units': 'arcmin'}, 3, 3),
+        (Angle, 0.05, {'units': 'deg', 'default_units': 'arcmin'}, 0.05, 3),
         (Angle, 3, {'units': 'arcmin'}, 3, 0.05),
         (Angle, 1, {'units': 'arcsec'}, 1, 0.0002777777777777778),
         (Angle, -29.74516667, {}, -29.74516667, -29.74516667),
