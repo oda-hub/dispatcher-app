@@ -352,7 +352,9 @@ class EchoProductQuery(ProductQuery):
      
     def get_data_server_query(self, instrument, config=None, **kwargs):
         param_names = instrument.get_parameters_name_list()
-        param_dict = {x: instrument.get_par_by_name(x).value for x in param_names}
+        param_dict = {x: instrument.get_par_by_name(x).value for x in param_names if not x.startswith('special_')}
+        if 'special_ang' in param_names:
+            param_dict['special_ang'] = instrument.get_par_by_name('special_ang')._astropy_angle.arcsec
         return EchoServerDispatcher(instrument=instrument, param_dict=param_dict)
     
     def build_product_list(self, instrument, res, out_dir, api=False):

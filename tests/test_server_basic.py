@@ -1515,15 +1515,18 @@ def test_param_value(dispatcher_live_fixture):
     print("constructed server:", server)
 
     c = requests.get(server + "/run_analysis",
-                   params={'instrument': 'empty',
-                           'product_type': 'echo',
-                           'query_status': 'new',
-                           'query_type': 'Real',
-                           'ang': 2.0},
-                  )
+                     params={'instrument': 'empty',
+                             'product_type': 'echo',
+                             'query_status': 'new',
+                             'query_type': 'Real',
+                             'ang': 2.0,
+                             'special_ang': 3.0,
+                             },
+                    ) 
     
     assert c.status_code == 200
     print("content:", c.text)
     jdata=c.json()
 
-    assert jdata['products']['echo']['ang'] == 2.0
+    assert f"{jdata['products']['echo']['ang']:.5f}" == '0.00056'
+    assert jdata['products']['echo']['special_ang'] == 3.0
