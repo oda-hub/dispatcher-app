@@ -302,11 +302,21 @@ class Parameter(object):
     def set_par(self, value, units=None):
         if units is not None:
             self.units = units
-        self.value = value
-        return self.get_value_in_default_format()
 
-    def get_value_in_default_format(self):
+        if self.units is not None and self.default_units is not None and self.units != self.default_units:
+            # convert value in the default units and assigns it to the value
+            value = self.get_value_in_units(value, self.units, self.default_units)
+            self.units = self.default_units
+
+        self.value = value
+        return self.get_value_in_default_units()
+
+    def get_value_in_default_units(self):
         return self.value
+
+    @staticmethod
+    def get_value_in_units(value, units_in, units_out):
+        return value
 
     def get_form(self, wtform_cls, key, validators, defaults):
         return wtform_cls('key', validators=validators, default=defaults)
@@ -373,7 +383,7 @@ class Float(Parameter):
         else:
             self._v = None
 
-    def get_value_in_default_format(self):
+    def get_value_in_default_units(self):
         self.check_value(self.value, name=self.name, units=self.units)
         return float(self.value) if self.value is not None else None
 
@@ -417,7 +427,7 @@ class Integer(Parameter):
         else:
             self._v = None
 
-    def get_value_in_default_format(self):
+    def get_value_in_default_units(self):
         self.check_value(self.value, name=self.name, units=self.units)
         return int(self.value) if self.value is not None else None
 
@@ -447,7 +457,7 @@ class Time(Parameter):
                          default_units='isot',
                          name=name)
 
-    def get_value_in_default_format(self) -> Union[str, float, None]:
+    def get_value_in_default_units(self) -> Union[str, float, None]:
         return getattr(self._astropy_time, self.default_units)
 
     @property
@@ -473,7 +483,7 @@ class TimeDelta(Parameter):
                          default_units='sec',
                          name=name)
 
-    def get_value_in_default_format(self) -> Union[str, float, None]:
+    def get_value_in_default_units(self) -> Union[str, float, None]:
         return getattr(self._astropy_time_delta, self.default_units)
 
     @property
@@ -563,8 +573,13 @@ class Angle(Parameter):
                          name=name,
                          allowed_units=None)
 
-    def get_value_in_default_format(self) -> Union[str, float, None]:
+    def get_value_in_default_units(self) -> Union[str, float, None]:
         return getattr(self._astropy_angle, self.default_units)
+
+    @staticmethod
+    def get_value_in_units(value, units_in, units_out):
+        astropy_angle = astropyAngle(value, unit=units_in)
+        return getattr(astropy_angle, units_out)
 
     @property
     def value(self):

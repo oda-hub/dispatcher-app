@@ -1526,4 +1526,4 @@ def test_param_value(dispatcher_live_fixture):
     print("content:", c.text)
     jdata=c.json()
 
-    assert jdata['products']['echo']['ang'] == 2.0
+    assert jdata['products']['echo']['ang'] == 0.0005555555555555556

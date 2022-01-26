@@ -270,7 +270,7 @@ class Instrument:
         #  this was removed by 2f5b5dfb7e but turns out it is used by some plugins, see test_server_plugin_integral_all_sky
         self._current_par_dic=par_dic
 
-        # set pars values from the input parameters
+        # # set pars values from the input parameters
         query_out = self.set_pars_from_form(par_dic, verbose=verbose, sentry_client=sentry_client)
         if verbose:
             self.show_parameters_list()
