@@ -85,9 +85,10 @@ def my_instr_factory():
                                                    parameters_list=[sb])
 
     ang = Angle(value=1., units='arcsec', default_units='arcsec', name='ang')
+    ang_deg = Angle(value=1., units='deg', default_units='arcsec', name='ang_deg')
     energ = Energy(value=1., E_units='MeV', default_units='MeV', name='energ')
     echo_param_query = EchoProductQuery('echo_parameters_dummy_query',
-                                            parameters_list=[ang, energ])
+                                            parameters_list=[ang, ang_deg, energ])
 
     # this dicts binds the product query name to the product name from frontend
     # eg my_instr_image is the parameter passed by the fronted to access the
