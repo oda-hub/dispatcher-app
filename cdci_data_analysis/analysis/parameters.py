@@ -564,12 +564,12 @@ class InputProdList(Parameter):
 
 
 class Angle(Parameter):
-    def __init__(self, value=None, units=None, name=None):
+    def __init__(self, value=None, units=None, default_units='deg', name=None):
 
         super().__init__(value=value,
                          units=units,
                          # TODO can we safely make this assumption?
-                         default_units='deg',
+                         default_units=default_units,
                          name=name,
                          allowed_units=None)
 
@@ -599,7 +599,7 @@ class Angle(Parameter):
 
 
 class Energy(Float):
-    def __init__(self, value=None, E_units='keV', name=None, check_value=None):
+    def __init__(self, value=None, E_units='keV', default_units='keV', name=None, check_value=None):
         if check_value is None:
             check_value = self.check_energy_value
 
@@ -607,7 +607,7 @@ class Energy(Float):
 
         super().__init__(value=value,
                          units=E_units,
-                         default_units='keV',
+                         default_units=default_units,
                          check_value=check_value,
                          name=name,
                          allowed_units=_allowed_units)
