@@ -460,6 +460,11 @@ class Time(Parameter):
     def get_value_in_default_units(self) -> Union[str, float, None]:
         return getattr(self._astropy_time, self.default_units)
 
+    @staticmethod
+    def get_value_in_units(value, units_in, units_out):
+        astropy_time = astropyTime(value, format=units_in)
+        return getattr(astropy_time, units_out)
+
     @property
     def value(self):
         return self._astropy_time.value

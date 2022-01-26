@@ -116,8 +116,8 @@ def test_energy_defaults():
         else:
             p_spectral_boundary = constructor()
 
-            assert p_spectral_boundary.get_value_in_default_format() == p_spectral_boundary.value
-            assert p_spectral_boundary.get_value_in_default_format() == outcome
+            assert p_spectral_boundary.get_value_in_default_units() == p_spectral_boundary.value
+            assert p_spectral_boundary.get_value_in_default_units() == outcome
             assert type(p_spectral_boundary.value) == expected_type
 
 @pytest.mark.fast
@@ -143,11 +143,13 @@ def test_angle_parameter():
             parameter = constructor()
 
             assert parameter.value == outcome
-            assert parameter.get_value_in_default_format() == outcome_default_format
+            assert parameter.get_value_in_default_units() == outcome_default_format
 
             # setting value during request
             assert parameter.set_par(input_value) == outcome_default_format
-            assert parameter.value == outcome
+            assert parameter.value == outcome_default_format
+            if 'units' in format_args:
+                assert Angle.get_value_in_units(parameter.value, parameter.default_units, format_args['units']) == outcome
 
 @pytest.mark.fast
 def test_time_parameter():
@@ -175,11 +177,15 @@ def test_time_parameter():
             parameter = constructor()
 
             assert parameter.value == outcome
-            assert parameter.get_value_in_default_format() == outcome_default_format
+            assert parameter.get_value_in_default_units() == outcome_default_format
 
             # setting value during request
             assert parameter.set_par(input_value) == outcome_default_format
-            assert parameter.value == outcome
+            assert parameter.value == outcome_default_format
+            if 'T_format' in format_args:
+                assert Time.get_value_in_units(parameter.value, parameter.default_units, format_args['T_format']) == outcome
+            if 'delta_T_format' in format_args:
+                assert TimeDelta.get_value_in_units(parameter.value, parameter.default_units, format_args['delta_T_format']) == outcome
 
 @pytest.mark.fast
 def test_param_range():
@@ -263,7 +269,7 @@ def test_parameter_normalization_no_units():
             parameter = constructor()
 
             # this is redundant
-            assert parameter.get_value_in_default_format() == parameter.value
+            assert parameter.get_value_in_default_units() == parameter.value
 
             assert parameter.value == outcome
             assert type(parameter.value) == type(outcome)
