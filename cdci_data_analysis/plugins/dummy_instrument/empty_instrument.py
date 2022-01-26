@@ -82,9 +82,9 @@ def my_instr_factory():
     sb = SpectralBoundary(value=10., name='sb')
     parametrical_query = DataServerParametricQuery('parametrical_parameters_dummy_query',
                                                    parameters_list=[sb])
-    
+
     ang = Angle(value=1., units='arcsec', name='ang')
-    echo_param_query =  EchoProductQuery('echo_parameters_dummy_query',
+    echo_param_query = EchoProductQuery('echo_parameters_dummy_query',
                                             parameters_list=[ang])
 
     # this dicts binds the product query name to the product name from frontend

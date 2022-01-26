@@ -303,10 +303,10 @@ class Parameter(object):
         if units is not None:
             self.units = units
 
-        if self.units is not None and self.default_units is not None and self.units != self.default_units:
-            # convert value in the default units and assigns it to the value
-            value = self.get_value_in_units(value, self.units, self.default_units)
-            self.units = self.default_units
+        # if self.units is not None and self.default_units is not None and self.units != self.default_units:
+        #     # convert value in the default units and assigns it to the value
+        #     value = self.get_value_in_units(value, self.units, self.default_units)
+        #     self.units = self.default_units
 
         self.value = value
         return self.get_value_in_default_units()

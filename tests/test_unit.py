@@ -147,9 +147,9 @@ def test_angle_parameter():
 
             # setting value during request
             assert parameter.set_par(input_value) == outcome_default_format
-            assert parameter.value == outcome_default_format
-            if 'units' in format_args:
-                assert Angle.get_value_in_units(parameter.value, parameter.default_units, format_args['units']) == outcome
+            assert parameter.value == outcome
+            # if 'units' in format_args:
+            #     assert Angle.get_value_in_units(parameter.value, parameter.default_units, format_args['units']) == outcome
 
 @pytest.mark.fast
 def test_time_parameter():
@@ -181,11 +181,11 @@ def test_time_parameter():
 
             # setting value during request
             assert parameter.set_par(input_value) == outcome_default_format
-            assert parameter.value == outcome_default_format
-            if 'T_format' in format_args:
-                assert Time.get_value_in_units(parameter.value, parameter.default_units, format_args['T_format']) == outcome
-            if 'delta_T_format' in format_args:
-                assert TimeDelta.get_value_in_units(parameter.value, parameter.default_units, format_args['delta_T_format']) == outcome
+            assert parameter.value == outcome
+            # if 'T_format' in format_args:
+            #     assert Time.get_value_in_units(parameter.value, parameter.default_units, format_args['T_format']) == outcome
+            # if 'delta_T_format' in format_args:
+            #     assert TimeDelta.get_value_in_units(parameter.value, parameter.default_units, format_args['delta_T_format']) == outcome
 
 @pytest.mark.fast
 def test_param_range():

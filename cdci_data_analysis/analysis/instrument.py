@@ -271,7 +271,9 @@ class Instrument:
         self._current_par_dic=par_dic
 
         # # set pars values from the input parameters
-        query_out = self.set_pars_from_form(par_dic, verbose=verbose, sentry_client=sentry_client)
+        # query_out = self.set_pars_from_form(par_dic, verbose=verbose, sentry_client=sentry_client)
+        query_out = QueryOutput()
+        query_out.set_done()
         if verbose:
             self.show_parameters_list()
 

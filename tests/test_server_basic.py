@@ -1525,5 +1525,6 @@ def test_param_value(dispatcher_live_fixture):
     assert c.status_code == 200
     print("content:", c.text)
     jdata=c.json()
-
-    assert jdata['products']['echo']['ang'] == 0.0005555555555555556
+    # TODO notice the difference, is this acceptable?
+    assert jdata['products']['analysis_parameters']['ang'] == 0.0005555555555555556
+    assert jdata['products']['echo']['ang'] == 2
