@@ -569,7 +569,7 @@ class Angle(Parameter):
         super().__init__(value=value,
                          units=units,
                          # TODO can we safely make this assumption?
-                         default_units='deg',
+                         default_units=units if units is not None else 'deg',
                          name=name,
                          allowed_units=None)
 
@@ -607,7 +607,7 @@ class Energy(Float):
 
         super().__init__(value=value,
                          units=E_units,
-                         default_units='keV',
+                         default_units=E_units if E_units is not None else 'keV',
                          check_value=check_value,
                          name=name,
                          allowed_units=_allowed_units)
