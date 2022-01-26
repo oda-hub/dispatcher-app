@@ -56,5 +56,5 @@ jobs:
     
     - name: Test oda_api with pytest
       run: |
-        cd oda_api && DISPATCHER_MOCK_KB=yes python -m pytest tests -sv --full-trace --log-cli-level=DEBUG 
+        cd oda_api && DISPATCHER_MOCK_KB=yes python -m pytest tests -m 'not slow and not test_drupal' -sv --full-trace --log-cli-level=DEBUG 
     
