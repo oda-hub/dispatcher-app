@@ -303,20 +303,14 @@ class Parameter(object):
         if units is not None:
             self.units = units
 
-        # if self.units is not None and self.default_units is not None and self.units != self.default_units:
-        #     # convert value in the default units and assigns it to the value
-        #     value = self.get_value_in_units(value, self.units, self.default_units)
-        #     self.units = self.default_units
-
         self.value = value
         return self.get_value_in_default_units()
 
     def get_value_in_default_units(self):
         return self.value
 
-    @staticmethod
-    def get_value_in_units(value, units_in, units_out):
-        return value
+    def get_value_in_units(self, units):
+        return self.value
 
     def get_form(self, wtform_cls, key, validators, defaults):
         return wtform_cls('key', validators=validators, default=defaults)
@@ -460,10 +454,8 @@ class Time(Parameter):
     def get_value_in_default_units(self) -> Union[str, float, None]:
         return getattr(self._astropy_time, self.default_units)
 
-    @staticmethod
-    def get_value_in_units(value, units_in, units_out):
-        astropy_time = astropyTime(value, format=units_in)
-        return getattr(astropy_time, units_out)
+    def get_value_in_units(self, units):
+        return getattr(self._astropy_time, units)
 
     @property
     def value(self):
@@ -490,6 +482,9 @@ class TimeDelta(Parameter):
 
     def get_value_in_default_units(self) -> Union[str, float, None]:
         return getattr(self._astropy_time_delta, self.default_units)
+
+    def get_value_in_units(self, units):
+        return getattr(self._astropy_time_delta, units)
 
     @property
     def value(self):
@@ -581,10 +576,8 @@ class Angle(Parameter):
     def get_value_in_default_units(self) -> Union[str, float, None]:
         return getattr(self._astropy_angle, self.default_units)
 
-    @staticmethod
-    def get_value_in_units(value, units_in, units_out):
-        astropy_angle = astropyAngle(value, unit=units_in)
-        return getattr(astropy_angle, units_out)
+    def get_value_in_units(self, units) -> Union[str, float, None]:
+        return getattr(self._astropy_angle, units)
 
     @property
     def value(self):
