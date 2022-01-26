@@ -303,7 +303,7 @@ class Parameter(object):
         if units is not None:
             self.units = units
         self.value = value
-        return self.get_value_in_default_format()
+        return self.value
 
     def get_value_in_default_format(self):
         return self.value

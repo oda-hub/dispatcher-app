@@ -146,7 +146,7 @@ def test_angle_parameter():
             assert parameter.get_value_in_default_format() == outcome_default_format
 
             # setting value during request
-            assert parameter.set_par(input_value) == outcome_default_format
+            assert parameter.set_par(input_value) == outcome
             assert parameter.value == outcome
 
 @pytest.mark.fast
@@ -178,7 +178,7 @@ def test_time_parameter():
             assert parameter.get_value_in_default_format() == outcome_default_format
 
             # setting value during request
-            assert parameter.set_par(input_value) == outcome_default_format
+            assert parameter.set_par(input_value) == outcome
             assert parameter.value == outcome
 
 @pytest.mark.fast
