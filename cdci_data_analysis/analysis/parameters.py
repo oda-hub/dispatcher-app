@@ -316,7 +316,7 @@ class Parameter(object):
     def get_value_in_units(self, units):
         logger.warning(f'no explict conversion implemented for the parameter {self.name}, '
                        f'the non converted value is returned')
-        raise self.value
+        return self.value
 
     def get_form(self, wtform_cls, key, validators, defaults):
         return wtform_cls('key', validators=validators, default=defaults)
