@@ -456,7 +456,7 @@ class Time(Parameter):
                          name=name)
 
     def get_value_in_default_units(self) -> Union[str, float, None]:
-        return getattr(self._astropy_time, self.default_units)
+        return self.get_value_in_units(self.default_units)
 
     def get_value_in_units(self, units):
         return getattr(self._astropy_time, units)
@@ -485,7 +485,7 @@ class TimeDelta(Parameter):
                          name=name)
 
     def get_value_in_default_units(self) -> Union[str, float, None]:
-        return getattr(self._astropy_time_delta, self.default_units)
+        return self.get_value_in_units(self.default_units)
 
     def get_value_in_units(self, units):
         return getattr(self._astropy_time_delta, units)
@@ -578,7 +578,7 @@ class Angle(Parameter):
                          allowed_units=None)
 
     def get_value_in_default_units(self) -> Union[str, float, None]:
-        return getattr(self._astropy_angle, self.default_units)
+        return self.get_value_in_units(self.default_units)
 
     def get_value_in_units(self, units) -> Union[str, float, None]:
         return getattr(self._astropy_angle, units)
