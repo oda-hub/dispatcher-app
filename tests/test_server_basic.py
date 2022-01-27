@@ -1521,7 +1521,10 @@ def test_param_value(dispatcher_live_fixture):
                            'query_type': 'Real',
                            'ang': 2.0,
                            'ang_deg': 2.0,
-                           'energ': 2.0},
+                           'energ': 2.0,
+                           'T1': 57818.560277777775,
+                           'T2': 57819.560277777775,
+                           'T_format': 'mjd'},
                   )
     
     assert c.status_code == 200
@@ -1537,3 +1540,6 @@ def test_param_value(dispatcher_live_fixture):
 
     assert jdata['products']['analysis_parameters']['energ'] == 2
     assert jdata['products']['echo']['energ'] == 2
+
+    assert jdata['products']['analysis_parameters']['T1'] == '2017-03-06T13:26:48.000'
+    assert jdata['products']['echo']['T1'] == 57818.560277777775
