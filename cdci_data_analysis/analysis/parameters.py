@@ -314,7 +314,7 @@ class Parameter(object):
         return self.get_value_in_default_units()
 
     def get_value_in_units(self, units):
-        return self.value
+        raise RuntimeError('this method has to be implemented in the derived class')
 
     def get_form(self, wtform_cls, key, validators, defaults):
         return wtform_cls('key', validators=validators, default=defaults)
@@ -455,9 +455,6 @@ class Time(Parameter):
                          default_units='isot',
                          name=name)
 
-    def get_value_in_default_units(self) -> Union[str, float, None]:
-        return self.get_value_in_units(self.default_units)
-
     def get_value_in_units(self, units):
         return getattr(self._astropy_time, units)
 
@@ -483,9 +480,6 @@ class TimeDelta(Parameter):
                          units_name=delta_T_format_name,
                          default_units='sec',
                          name=name)
-
-    def get_value_in_default_units(self) -> Union[str, float, None]:
-        return self.get_value_in_units(self.default_units)
 
     def get_value_in_units(self, units):
         return getattr(self._astropy_time_delta, units)
@@ -576,9 +570,6 @@ class Angle(Parameter):
                          default_units=default_units,
                          name=name,
                          allowed_units=None)
-
-    def get_value_in_default_units(self) -> Union[str, float, None]:
-        return self.get_value_in_units(self.default_units)
 
     def get_value_in_units(self, units) -> Union[str, float, None]:
         return getattr(self._astropy_angle, units)
