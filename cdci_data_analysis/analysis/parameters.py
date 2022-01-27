@@ -314,7 +314,9 @@ class Parameter(object):
         return self.get_value_in_default_units()
 
     def get_value_in_units(self, units):
-        raise RuntimeError('this method has to be implemented in the derived class')
+        logger.warning(f'no explict conversion implemented for the parameter {self.name}, '
+                       f'the non converted value is returned')
+        raise self.value
 
     def get_form(self, wtform_cls, key, validators, defaults):
         return wtform_cls('key', validators=validators, default=defaults)
