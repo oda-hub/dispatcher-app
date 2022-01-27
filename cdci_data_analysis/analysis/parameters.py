@@ -307,7 +307,7 @@ class Parameter(object):
         return self.get_value_in_default_units()
 
     def get_value_in_default_units(self):
-        return self.value
+        return self.get_value_in_units(self.default_units)
 
     # to ensure backward compatibility
     def get_value_in_default_format(self):
