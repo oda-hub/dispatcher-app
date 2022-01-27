@@ -150,7 +150,8 @@ def test_angle_parameter():
 
             assert parameter.value == outcome
             assert parameter.get_value_in_default_units() == outcome_default_format
-
+            # backward compatibility
+            assert parameter.get_value_in_default_format() == outcome_default_format
             # setting value during request
             assert parameter.set_par(input_value) == outcome_default_format
             assert parameter.value == outcome
@@ -184,7 +185,8 @@ def test_time_parameter():
 
             assert parameter.value == outcome
             assert parameter.get_value_in_default_units() == outcome_default_format
-
+            # backward compatibility
+            assert parameter.get_value_in_default_format() == outcome_default_format
             # setting value during request
             assert parameter.set_par(input_value) == outcome_default_format
             assert parameter.value == outcome
@@ -262,7 +264,7 @@ def test_parameter_normalization_no_units():
             (Integer, "25.", RuntimeError),
             (Integer, "25.64547871216879451687311", RuntimeError),
             (Integer, "aaaa", RuntimeError)
-        ]:
+    ]:
 
         def constructor():
             return parameter_type(value=input_value, name="my-parameter-name")
@@ -276,7 +278,8 @@ def test_parameter_normalization_no_units():
 
             # this is redundant
             assert parameter.get_value_in_default_units() == parameter.value
-
+            # backward compatibility
+            assert parameter.get_value_in_default_format() == parameter.value
             assert parameter.value == outcome
             assert type(parameter.value) == type(outcome)
 
