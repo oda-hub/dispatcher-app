@@ -17,7 +17,8 @@ from cdci_data_analysis.analysis.queries import (
     ParameterRange,
     ParameterTuple,
     Angle,
-    InputProdList
+    InputProdList,
+    DetectionThreshold
 )
 
 import numpy as np
@@ -285,6 +286,37 @@ def test_parameter_normalization_no_units():
 
             # setting value during request
             
+            assert parameter.set_par(input_value) == outcome
+            assert parameter.value == outcome
+            assert type(parameter.value) == type(outcome)
+
+
+@pytest.mark.fast
+def test_parameter_normalization_with_units():
+    for parameter_type, input_value, outcome, args in [
+        (DetectionThreshold, 25, 25.0, {'units': 'sigma'},),
+        (DetectionThreshold, 25, RuntimeError, {'units': 'fake'},),
+    ]:
+
+        def constructor():
+            return parameter_type(value=input_value, name="my-parameter-name", **args)
+
+        if isinstance(outcome, type) and issubclass(outcome, Exception):
+            with pytest.raises(outcome):
+                constructor()
+        else:
+            # this also sets the default value
+            parameter = constructor()
+
+            # this is redundant
+            assert parameter.get_value_in_default_units() == parameter.value
+            # backward compatibility
+            assert parameter.get_value_in_default_format() == parameter.value
+            assert parameter.value == outcome
+            assert type(parameter.value) == type(outcome)
+
+            # setting value during request
+
             assert parameter.set_par(input_value) == outcome
             assert parameter.value == outcome
             assert type(parameter.value) == type(outcome)
