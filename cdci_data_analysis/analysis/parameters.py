@@ -662,8 +662,8 @@ class Energy(Float):
 
     # TODO re-introduced for retro-compatibility
     @staticmethod
-    def check_energy_value(value, units=None, name=None):
-        Float.check_float_value(value, units, name)
+    def check_energy_value(value, units=None, name=None, par_format=None):
+        Float.check_float_value(value, units=units, name=name, par_format=par_format)
 
 
 class SpectralBoundary(Energy):
@@ -691,5 +691,5 @@ class UserCatalog(Parameter):
                          allowed_units=_allowed_units)
 
     @staticmethod
-    def check_name_value(value, units=None, name=None):
+    def check_name_value(value, units=None, name=None, par_format=None):
         pass
