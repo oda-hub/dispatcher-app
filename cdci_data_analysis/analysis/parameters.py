@@ -492,8 +492,8 @@ class Time(Parameter):
 
     @value.setter
     def value(self, v):
-        units = self.units
-        self._set_time(v, par_format=units)
+        par_format = self.par_format
+        self._set_time(v, par_format=par_format)
 
     def _set_time(self, value, par_format):
         self._astropy_time = astropyTime(value, format=par_format)
