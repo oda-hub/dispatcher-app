@@ -393,6 +393,8 @@ class Float(Parameter):
                          default_units=default_units,
                          name=name,
                          default_type=float,
+                         # TODO added for consistency with Integer
+                         allowed_types=[int],
                          allowed_units=allowed_units)
 
     @property
@@ -549,7 +551,7 @@ class TimeDelta(Time):
 
 
 class InputProdList(Parameter):
-    # TODO removal of the leading underscore would probably make sense
+    # TODO removal of the leading underscore cannot be done for compatibility with the plugins
     def __init__(self, value=None, _format='names_list', name: str = None):
         _allowed_units = ['names_list']
 
@@ -588,7 +590,7 @@ class InputProdList(Parameter):
     def value(self, v):
         if v is not None:
             if self.check_value is not None:
-                self.check_value(v, list_format=self.par_format, name=self.name)
+                self.check_value(v, par_format=self.par_format, name=self.name)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
                     raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
@@ -602,13 +604,13 @@ class InputProdList(Parameter):
         # print ('set to ',self._value)
 
     @staticmethod
-    def check_list_value(value, list_format, name='par'):
-        if list_format == 'names_list':
+    def check_list_value(value, units=None, name=None, par_format=None):
+        if par_format == 'names_list':
             # TODO the condition 'isinstance(str(value), str))' was quite unclear to me, and probably useless since could lead to unexpected behavior
             if not isinstance(value, (list, str, float, int)):
                 raise RuntimeError(f'value of the parameter {name} is not a valid product list format, but {type(value).__name__} has been found')
         else:
-            raise RuntimeError(f'{name} units not valid {list_format}')
+            raise RuntimeError(f'{name} units not valid {par_format}')
 
 
 class Angle(Float):
