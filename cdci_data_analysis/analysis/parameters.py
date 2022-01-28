@@ -420,7 +420,7 @@ class Float(Parameter):
         return self.get_value_in_default_units()
 
     @staticmethod
-    def check_float_value(value, units=None, name=None):
+    def check_float_value(value, units=None, name=None, par_format=None):
         if value is None or value == '':
             pass
         else:
@@ -464,7 +464,7 @@ class Integer(Parameter):
         return int(self.value) if self.value is not None else None
 
     @staticmethod
-    def check_int_value(value, units=None, name=None):
+    def check_int_value(value, units=None, name=None, par_format=None):
         # print('check type of ',name,'value', value, 'type',type(value))
         if value is None or value == '':
             pass
