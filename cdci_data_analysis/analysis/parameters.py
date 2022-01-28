@@ -402,7 +402,7 @@ class Float(Parameter):
     @value.setter
     def value(self, v):
         if v is not None and v != '':
-            self.check_value(v, name=self.name, units=self.units, par_format=None)
+            self.check_value(v, name=self.name, units=self.units)
             self._v = float(v)
         else:
             self._v = None
@@ -413,14 +413,14 @@ class Float(Parameter):
         return self.value
 
     def get_value_in_default_units(self):
-        self.check_value(self.value, name=self.name, units=self.units, par_format=None)
+        self.check_value(self.value, name=self.name, units=self.units)
         return float(self.value) if self.value is not None else None
 
     def get_default_value(self):
         return self.get_value_in_default_units()
 
     @staticmethod
-    def check_float_value(value, units=None, name=None, par_format=None):
+    def check_float_value(value, units=None, name=None):
         if value is None or value == '':
             pass
         else:
@@ -460,11 +460,11 @@ class Integer(Parameter):
             self._v = None
 
     def get_value_in_default_units(self):
-        self.check_value(self.value, name=self.name, units=self.units, par_format=None)
+        self.check_value(self.value, name=self.name, units=self.units)
         return int(self.value) if self.value is not None else None
 
     @staticmethod
-    def check_int_value(value, units=None, name=None, par_format=None):
+    def check_int_value(value, units=None, name=None):
         # print('check type of ',name,'value', value, 'type',type(value))
         if value is None or value == '':
             pass
@@ -662,7 +662,7 @@ class Energy(Float):
 
     # TODO re-introduced for retro-compatibility
     @staticmethod
-    def check_energy_value(value, units=None, name=None, par_format=None):
+    def check_energy_value(value, units=None, name=None):
         Float.check_float_value(value, units=units, name=name)
 
 
