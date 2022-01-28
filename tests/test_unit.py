@@ -122,7 +122,7 @@ def test_energy_defaults():
 
 @pytest.mark.fast
 def test_angle_parameter():
-    for parameter_type, input_value, format_args, outcome, outcome_default_format in [
+    for parameter_type, input_value, format_args, outcome, outcome_default_units in [
         (Angle, -29.74516667, {'units': 'deg'}, -29.74516667, -29.74516667),
         (Angle, -29.74516667, {'units': 'deg', 'default_units': 'deg'}, -29.74516667, -29.74516667),
         (Angle, 3, {'units': 'arcmin', 'default_units': 'deg'}, 3, 0.05),
@@ -149,11 +149,11 @@ def test_angle_parameter():
             parameter = constructor()
 
             assert parameter.value == outcome
-            assert parameter.get_value_in_default_units() == outcome_default_format
-            # backward compatibility
-            assert parameter.get_value_in_default_format() == outcome_default_format
+            assert parameter.get_value_in_default_units() == outcome_default_units
+            # # backward compatibility
+            # assert parameter.get_value_in_default_format() == outcome_default_units
             # setting value during request
-            assert parameter.set_par(input_value) == outcome_default_format
+            assert parameter.set_par(input_value) == outcome_default_units
             assert parameter.value == outcome
             if 'units' in format_args:
                 assert parameter.get_value_in_units(format_args['units']) == outcome
@@ -184,16 +184,16 @@ def test_time_parameter():
             parameter = constructor()
 
             assert parameter.value == outcome
-            assert parameter.get_value_in_default_units() == outcome_default_format
+            # assert parameter.get_value_in_default_units() == outcome_default_format
             # backward compatibility
             assert parameter.get_value_in_default_format() == outcome_default_format
             # setting value during request
             assert parameter.set_par(input_value) == outcome_default_format
             assert parameter.value == outcome
             if 'T_format' in format_args:
-                assert parameter.get_value_in_units(format_args['T_format']) == outcome
+                assert parameter.get_value_in_format(format_args['T_format']) == outcome
             if 'delta_T_format' in format_args:
-                assert parameter.get_value_in_units(format_args['delta_T_format']) == outcome
+                assert parameter.get_value_in_format(format_args['delta_T_format']) == outcome
 
 @pytest.mark.fast
 def test_param_range():
