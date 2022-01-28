@@ -677,7 +677,7 @@ class DetectionThreshold(Float):
         super().__init__(value=value,
                          units=units,
                          # TODO to check if it's correct
-                         check_value=self.check_value,
+                         check_value=self.check_float_value,
                          name=name,
                          allowed_units=_allowed_units)
 
