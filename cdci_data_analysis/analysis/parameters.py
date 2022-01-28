@@ -283,13 +283,18 @@ class Parameter(object):
     def set_value_from_form(self, form, verbose=False):
         par_name = self.name
         units_name = self.units_name
+        par_format_name = self.par_format_name
         v = None
         u = None
+        f = None
         in_dictionary = False
-
+        # there is either a units or a format
         if units_name is not None:
             if units_name in form.keys():
                 u = form[units_name]
+        if par_format_name is not None:
+            if par_format_name in form.keys():
+                f = form[par_format_name]
 
         try:
             if par_name in form.keys():
@@ -305,7 +310,7 @@ class Parameter(object):
             raise
 
         if in_dictionary is True:
-            return self.set_par(value=v, units=u)
+            return self.set_par(value=v, units=u, par_format=f)
         else:
             if verbose is True:
                 logger.debug('setting par: %s in the dictionary to its default value' % par_name)

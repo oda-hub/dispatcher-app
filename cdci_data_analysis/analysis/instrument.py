@@ -154,6 +154,12 @@ class Instrument:
                     else:
                         raise InternalError("Error when setting the parameter %s: "
                                             "default unit not specified" % par.name)
+                if par.par_format_name is not None:
+                    if par.par_default_format is not None:
+                        updated_par_dic[par.par_format_name] = par.par_default_format
+                    else:
+                        raise InternalError("Error when setting the parameter %s: "
+                                            "default format not specified" % par.name)
                 else:
                     self.logger.warning("units_name for the parameter %s not specified", par.name)
 
