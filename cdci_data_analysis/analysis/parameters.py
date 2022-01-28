@@ -189,6 +189,10 @@ class Parameter(object):
             #
             units = default_units
 
+        if (par_format is None or par_format == '') and \
+                par_default_format is not None and par_default_format != '':
+            par_format = par_default_format
+
         self.check_value = check_value
 
         if allowed_units is not None:
@@ -236,7 +240,7 @@ class Parameter(object):
     def value(self, v):
         if v is not None:
             if self.check_value is not None:
-                self.check_value(v, units=self.units, name=self.name)
+                self.check_value(v, units=self.units, name=self.name, par_format=self.par_format)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
                     raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
@@ -356,7 +360,7 @@ class Parameter(object):
             raise RuntimeError(f'wrong type for par: {name}, found: {par_type}, allowed: {allowed}')
 
     @staticmethod
-    def check_value(val, units, name):
+    def check_value(val, units, name, par_format):
         pass
 
     def reprJSON(self):
@@ -373,7 +377,7 @@ class Name(Parameter):
                          allowed_units=_allowed_units)
 
     @staticmethod
-    def check_name_value(value, units=None, name=None):
+    def check_name_value(value, units=None, name=None, par_format=None):
         pass
 
 
