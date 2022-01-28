@@ -492,6 +492,11 @@ class Time(Parameter):
         return getattr(self._astropy_time, par_format)
 
     @property
+    def units(self):
+        # for backward compatibility
+        return self.par_format
+
+    @property
     def value(self):
         return self._astropy_time.value
 
@@ -514,8 +519,16 @@ class TimeDelta(Parameter):
                          par_default_format='sec',
                          name=name)
 
-    def get_value_in_units(self, units):
+    def get_default_value(self):
+        return self.get_value_in_default_format()
+
+    def get_value_in_format(self, units):
         return getattr(self._astropy_time_delta, units)
+
+    @property
+    def units(self):
+        # for backward compatibility
+        return self.par_format
 
     @property
     def value(self):
