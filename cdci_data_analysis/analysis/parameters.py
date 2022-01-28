@@ -402,7 +402,7 @@ class Float(Parameter):
     @value.setter
     def value(self, v):
         if v is not None and v != '':
-            self.check_value(v, name=self.name, units=self.units)
+            self.check_value(v, name=self.name, units=self.units, par_format=None)
             self._v = float(v)
         else:
             self._v = None
@@ -413,7 +413,7 @@ class Float(Parameter):
         return self.value
 
     def get_value_in_default_units(self):
-        self.check_value(self.value, name=self.name, units=self.units)
+        self.check_value(self.value, name=self.name, units=self.units, par_format=None)
         return float(self.value) if self.value is not None else None
 
     def get_default_value(self):
@@ -454,13 +454,13 @@ class Integer(Parameter):
     @value.setter
     def value(self, v):
         if v is not None and v != '':
-            self.check_value(v, name=self.name, units=self.units)
+            self.check_value(v, name=self.name, units=self.units, par_format=None)
             self._v = int(v)
         else:
             self._v = None
 
     def get_value_in_default_units(self):
-        self.check_value(self.value, name=self.name, units=self.units)
+        self.check_value(self.value, name=self.name, units=self.units, par_format=None)
         return int(self.value) if self.value is not None else None
 
     @staticmethod
