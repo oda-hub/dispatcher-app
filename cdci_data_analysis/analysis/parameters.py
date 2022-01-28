@@ -394,7 +394,7 @@ class Float(Parameter):
                          name=name,
                          default_type=float,
                          # TODO added for consistency with Integer
-                         allowed_types=[int],
+                         allowed_types=[float],
                          allowed_units=allowed_units)
 
     @property
