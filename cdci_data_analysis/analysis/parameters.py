@@ -528,14 +528,14 @@ class TimeDelta(Parameter):
 
 class InputProdList(Parameter):
     # TODO removal of the leading underscore would probably make sense
-    def __init__(self, value=None, par_format='names_list', name: str = None):
+    def __init__(self, value=None, _format='names_list', name: str = None):
         _allowed_units = ['names_list']
 
         if value is None:
             value = []
 
         super().__init__(value=value,
-                         par_format=par_format,
+                         par_format=_format,
                          check_value=self.check_list_value,
                          name=name,
                          allowed_units=_allowed_units)
