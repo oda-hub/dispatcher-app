@@ -360,7 +360,7 @@ class Parameter(object):
             raise RuntimeError(f'wrong type for par: {name}, found: {par_type}, allowed: {allowed}')
 
     @staticmethod
-    def check_value(val, units, name, par_format):
+    def check_value(val, units=None, name=None, par_format=None):
         pass
 
     def reprJSON(self):
@@ -676,6 +676,7 @@ class DetectionThreshold(Float):
 
         super().__init__(value=value,
                          units=units,
+                         # TODO to check if it's correct
                          check_value=self.check_value,
                          name=name,
                          allowed_units=_allowed_units)
