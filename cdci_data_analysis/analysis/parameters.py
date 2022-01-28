@@ -164,13 +164,22 @@ class Parameter(object):
                  value=None,
                  units=None,
                  name: Union[str, None] = None,
+
                  allowed_units=None,
                  default_units=None,
+                 units_name=None,
+
+                 par_format=None,
+                 par_default_format=None,
+                 par_format_name=None,
+
                  default_type=None,
                  allowed_types=None,
+
                  check_value=None,
                  allowed_values=None,
-                 units_name=None):
+
+                 ):
 
         if (units is None or units == '') and \
                 default_units is not None and default_units != '':
@@ -201,9 +210,12 @@ class Parameter(object):
         self.name = name
         self.units = units
         self.default_units = default_units
-        self.default_type = default_type
-        self.value = value
         self.units_name = units_name
+        self.default_type = default_type
+        self.par_format=par_format
+        self.par_default_format=par_default_format
+        self.par_format_name=par_format_name
+        self.value = value
 
     @property
     def name(self):
@@ -452,13 +464,13 @@ class Time(Parameter):
     def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None):
 
         super().__init__(value=value,
-                         units=T_format,
-                         units_name=Time_format_name,
-                         default_units='isot',
+                         par_format=T_format,
+                         par_format_name=Time_format_name,
+                         par_default_format='isot',
                          name=name)
 
-    def get_value_in_units(self, units):
-        return getattr(self._astropy_time, units)
+    def get_value_in_format(self, par_format):
+        return getattr(self._astropy_time, par_format)
 
     @property
     def value(self):
@@ -467,10 +479,10 @@ class Time(Parameter):
     @value.setter
     def value(self, v):
         units = self.units
-        self._set_time(v, format=units)
+        self._set_time(v, par_format=units)
 
-    def _set_time(self, value, format):
-        self._astropy_time = astropyTime(value, format=format)
+    def _set_time(self, value, par_format):
+        self._astropy_time = astropyTime(value, format=par_format)
         self._value = value
 
 
