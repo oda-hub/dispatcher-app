@@ -164,6 +164,7 @@ class Parameter(object):
                  value=None,
                  units=None,
                  name: Union[str, None] = None,
+                 # TODO should we remove units/type/format knowledge from the Parameter class?
 
                  allowed_units=None,
                  default_units=None,
@@ -311,21 +312,23 @@ class Parameter(object):
             # set the default value
             return self.value
 
-    def set_par(self, value, units=None):
+    def set_par(self, value, units=None, par_format=None):
         if units is not None:
             self.units = units
 
+        if par_format is not None:
+            self.par_format = par_format
+
         self.value = value
-        return self.get_value_in_default_units()
+        return self.get_default_value()
 
-    def get_value_in_default_units(self):
-        return self.get_value_in_units(self.default_units)
+    def get_default_value(self):
+        return self.value
 
-    # to ensure backward compatibility
     def get_value_in_default_format(self):
-        return self.get_value_in_default_units()
+        return self.get_value_in_format(self.par_default_format)
 
-    def get_value_in_units(self, units):
+    def get_value_in_format(self, units):
         logger.warning(f'no explict conversion implemented for the parameter {self.name}, '
                        f'the non converted value is returned')
         return self.value
@@ -395,9 +398,17 @@ class Float(Parameter):
         else:
             self._v = None
 
+    def get_value_in_units(self, units):
+        logger.warning(f'no explict conversion implemented for the parameter {self.name}, '
+                       f'the non converted value is returned')
+        return self.value
+
     def get_value_in_default_units(self):
         self.check_value(self.value, name=self.name, units=self.units)
         return float(self.value) if self.value is not None else None
+
+    def get_default_value(self):
+        return self.get_value_in_default_units()
 
     @staticmethod
     def check_float_value(value, units=None, name=None):
@@ -469,6 +480,9 @@ class Time(Parameter):
                          par_default_format='isot',
                          name=name)
 
+    def get_default_value(self):
+        return self.get_value_in_default_format()
+
     def get_value_in_format(self, par_format):
         return getattr(self._astropy_time, par_format)
 
@@ -490,9 +504,9 @@ class TimeDelta(Parameter):
     def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None):
 
         super().__init__(value=value,
-                         units=delta_T_format,
-                         units_name=delta_T_format_name,
-                         default_units='sec',
+                         par_format=delta_T_format,
+                         par_format_name=delta_T_format_name,
+                         par_default_format='sec',
                          name=name)
 
     def get_value_in_units(self, units):
@@ -514,14 +528,14 @@ class TimeDelta(Parameter):
 
 class InputProdList(Parameter):
     # TODO removal of the leading underscore would probably make sense
-    def __init__(self, value=None, _format='names_list', name: str = None):
+    def __init__(self, value=None, par_format='names_list', name: str = None):
         _allowed_units = ['names_list']
 
         if value is None:
             value = []
 
         super().__init__(value=value,
-                         units=_format,
+                         par_format=par_format,
                          check_value=self.check_list_value,
                          name=name,
                          allowed_units=_allowed_units)
@@ -575,7 +589,7 @@ class InputProdList(Parameter):
             raise RuntimeError(f'{name} units not valid {units}')
 
 
-class Angle(Parameter):
+class Angle(Float):
     def __init__(self, value=None, units=None, default_units='deg', name=None):
 
         super().__init__(value=value,
@@ -584,6 +598,9 @@ class Angle(Parameter):
                          default_units=default_units,
                          name=name,
                          allowed_units=None)
+
+    def get_value_in_default_units(self):
+        return self.get_value_in_units(self.default_units)
 
     def get_value_in_units(self, units) -> Union[str, float, None]:
         return getattr(self._astropy_angle, units)
@@ -646,7 +663,7 @@ class UserCatalog(Parameter):
     def __init__(self, value=None, name_format='str', name=None):
         _allowed_units = ['str']
         super().__init__(value=value,
-                         units=name_format,
+                         par_format=name_format,
                          check_value=self.check_name_value,
                          name=name,
                          allowed_units=_allowed_units)
