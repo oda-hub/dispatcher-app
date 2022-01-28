@@ -566,7 +566,7 @@ class InputProdList(Parameter):
     def value(self, v):
         if v is not None:
             if self.check_value is not None:
-                self.check_value(v, units=self.units, name=self.name)
+                self.check_value(v, list_format=self.par_format, name=self.name)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
                     raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
@@ -580,13 +580,13 @@ class InputProdList(Parameter):
         # print ('set to ',self._value)
 
     @staticmethod
-    def check_list_value(value, units, name='par'):
-        if units == 'names_list':
+    def check_list_value(value, list_format, name='par'):
+        if list_format == 'names_list':
             # TODO the condition 'isinstance(str(value), str))' was quite unclear to me, and probably useless since could lead to unexpected behavior
             if not isinstance(value, (list, str, float, int)):
                 raise RuntimeError(f'value of the parameter {name} is not a valid product list format, but {type(value).__name__} has been found')
         else:
-            raise RuntimeError(f'{name} units not valid {units}')
+            raise RuntimeError(f'{name} units not valid {list_format}')
 
 
 class Angle(Float):
