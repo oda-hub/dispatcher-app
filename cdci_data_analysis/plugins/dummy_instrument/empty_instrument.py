@@ -52,7 +52,7 @@ from ...analysis.parameters import SpectralBoundary, Angle, Energy
 
 class BoundaryFloat(Float):
     @staticmethod
-    def check_float_value(value, units=None, name=None):
+    def check_float_value(value, units=None, name=None, par_format=None):
         Float.check_float_value(value, units=units, name=name)
 
         value = float(value)
