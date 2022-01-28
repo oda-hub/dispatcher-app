@@ -477,12 +477,12 @@ class Integer(Parameter):
 
 
 class Time(Parameter):
-    def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None):
+    def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None, par_default_format='isot'):
 
         super().__init__(value=value,
                          par_format=T_format,
                          par_format_name=Time_format_name,
-                         par_default_format='isot',
+                         par_default_format=par_default_format,
                          name=name)
 
     def get_default_value(self):
@@ -495,6 +495,14 @@ class Time(Parameter):
     def units(self):
         # for backward compatibility
         return self.par_format
+
+    @units.setter
+    def units(self, units):
+        # for backward compatibility
+        if units is not None and self._allowed_units is not None:
+            self.check_units(units, self._allowed_units, self.name)
+
+        self.par_format = units
 
     @property
     def value(self):
@@ -510,25 +518,17 @@ class Time(Parameter):
         self._value = value
 
 
-class TimeDelta(Parameter):
-    def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None):
+class TimeDelta(Time):
+    def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None, par_default_format='sec'):
 
         super().__init__(value=value,
-                         par_format=delta_T_format,
-                         par_format_name=delta_T_format_name,
-                         par_default_format='sec',
+                         T_format=delta_T_format,
+                         Time_format_name=delta_T_format_name,
+                         par_default_format=par_default_format,
                          name=name)
-
-    def get_default_value(self):
-        return self.get_value_in_default_format()
 
     def get_value_in_format(self, units):
         return getattr(self._astropy_time_delta, units)
-
-    @property
-    def units(self):
-        # for backward compatibility
-        return self.par_format
 
     @property
     def value(self):
