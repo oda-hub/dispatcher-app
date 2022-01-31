@@ -160,18 +160,18 @@ class ParameterTuple(object):
 
 
 class Parameter(object):
+    """
+    format:
+    every parameter has a format. Format defines representation of the parameter value. 
+    Default format of  defines unique representation 
+    
+    TODO
+    """
     def __init__(self,
                  value=None,
                  units=None,
                  name: Union[str, None] = None,
                  # TODO should we remove units/type/format knowledge from the Parameter class?
-"""
-format:
-   every parameter has a format. Format defines representation of the parameter value. 
-   Default format of  defines unique representation 
-  
-TODO
-"""
                  allowed_units=None,
                  default_units=None,
                  units_name=None,
