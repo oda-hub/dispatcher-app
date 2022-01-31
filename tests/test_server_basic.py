@@ -1519,11 +1519,27 @@ def test_param_value(dispatcher_live_fixture):
                            'product_type': 'echo',
                            'query_status': 'new',
                            'query_type': 'Real',
-                           'ang': 2.0},
+                           'ang': 2.0,
+                           'ang_deg': 2.0,
+                           'energ': 2.0,
+                           'T1': 57818.560277777775,
+                           'T2': 57819.560277777775,
+                           'T_format': 'mjd'},
                   )
     
     assert c.status_code == 200
     print("content:", c.text)
     jdata=c.json()
+    # TODO notice the difference, is this acceptable?
+    assert jdata['products']['analysis_parameters']['ang'] == 2
+    assert jdata['products']['echo']['ang'] == 2
+    # converted in the default units, which for the ang_deg parameter is arcsec
+    assert jdata['products']['analysis_parameters']['ang_deg'] == 7200
+    # in the products it instead remains in deg
+    assert jdata['products']['echo']['ang_deg'] == 2
 
-    assert jdata['products']['echo']['ang'] == 2.0
+    assert jdata['products']['analysis_parameters']['energ'] == 2
+    assert jdata['products']['echo']['energ'] == 2
+
+    assert jdata['products']['analysis_parameters']['T1'] == '2017-03-06T13:26:48.000'
+    assert jdata['products']['echo']['T1'] == 57818.560277777775
