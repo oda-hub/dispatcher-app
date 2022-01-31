@@ -161,11 +161,22 @@ class ParameterTuple(object):
 
 class Parameter(object):
     """
+    # General notes
+
     format:
-    every parameter has a format. Format defines representation of the parameter value. 
-    Default format of  defines unique representation 
+        * Every `Parameter` has a *format*. *Format* defines representation of the parameter value in parameter URL, analysis_parameters dictionary, oda_api, and embedded in fits files.       
+        * Parameter dictionary may include format specifiers for each parameter.  If non-default format is used the parameter, parameter format specifier is required. If not specified, the default is used.
+        * *default format* of defines **unique** representation of the parameter. Any parameter value can be converted to default *format*. By using default parameter representations, it is possible to construct unique and deterministic request parameter dictionaries, URLs, oda_api codes.
+
+    unit:
+    * physical quantities are represented as floats (and should inherit from `Float`) and are scaled with *units*. The same value may be represented as different floats if units are correspondingly different.
+    * units are treated similarly to formats: there are unit specifiers and default units. 
     
-    TODO
+    type:
+    * each parameter is constructed with a value of some types. Types is verified at construction, and converted to default type. Further representations are defined by units and formats
+
+    
+    TODO see through that this is implemented
     """
     def __init__(self,
                  value=None,
