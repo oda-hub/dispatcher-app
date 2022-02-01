@@ -37,7 +37,8 @@ jobs:
     - name: Clone oda_api
       uses: actions/checkout@v2
       with:
-        repository: 'oda-hub/oda_api@adapt-tests-new-dummy-product'
+        repository: 'oda-hub/oda_api'
+        ref: 'adapt-tests-new-dummy-product'
         path: oda_api
 
 
