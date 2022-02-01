@@ -37,12 +37,17 @@ __author__ = "Andrea Tramacere"
 from cdci_data_analysis.analysis.instrument import Instrument
 from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float
 
-from .data_server_dispatcher import EmptyProductQuery, DataServerNumericQuery, FailingProductQuery, DataServerParametricQuery
+from .data_server_dispatcher import (EmptyProductQuery, 
+                                     DataServerNumericQuery, 
+                                     FailingProductQuery, 
+                                     DataServerParametricQuery, 
+                                     EchoProductQuery)
 
 # duplicated with jemx, but this staticmethod makes it complex.
 # this all should be done commonly, for all parameters - limits are common thing
 from ...analysis.exceptions import RequestNotUnderstood
-from ...analysis.parameters import SpectralBoundary
+from ...analysis.parameters import SpectralBoundary, Angle, Energy
+
 
 
 class BoundaryFloat(Float):
@@ -79,6 +84,12 @@ def my_instr_factory():
     parametrical_query = DataServerParametricQuery('parametrical_parameters_dummy_query',
                                                    parameters_list=[sb])
 
+    ang = Angle(value=1., units='arcsec', default_units='arcsec', name='ang')
+    ang_deg = Angle(value=1., units='deg', default_units='arcsec', name='ang_deg')
+    energ = Energy(value=1., E_units='MeV', name='energ')
+    echo_param_query = EchoProductQuery('echo_parameters_dummy_query',
+                                        parameters_list=[ang, ang_deg, energ])
+
     # this dicts binds the product query name to the product name from frontend
     # eg my_instr_image is the parameter passed by the fronted to access the
     # the MyInstrMosaicQuery, and the dictionary will bind
@@ -90,9 +101,10 @@ def my_instr_factory():
     query_dictionary['numerical'] = 'numerical_parameters_dummy_query'
     query_dictionary['failing'] = 'failing_parameters_dummy_query'
     query_dictionary['parametrical'] = 'parametrical_parameters_dummy_query'
+    query_dictionary['echo'] = 'echo_parameters_dummy_query'
 
     return Instrument('empty',
                       src_query=src_query,
                       instrumet_query=instr_query,
-                      product_queries_list=[empty_query, numerical_query, failing_query, parametrical_query],
+                      product_queries_list=[empty_query, numerical_query, failing_query, parametrical_query, echo_param_query],
                       query_dictionary=query_dictionary)

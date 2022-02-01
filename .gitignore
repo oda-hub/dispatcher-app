@@ -58,3 +58,4 @@ to_review_email.html
 email.text
 
 .vscode
+.venv

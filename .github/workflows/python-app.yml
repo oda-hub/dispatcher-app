@@ -33,7 +33,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 pytest mypy pylint pytest-cov pytest-xdist
+        pip install flake8 pytest mypy pylint pytest-cov pytest-xdist wheel
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install -e .[test]
 
