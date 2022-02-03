@@ -862,7 +862,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     else:
         assert r.text == ("Unfortunately, your privileges are not sufficient for this type of request.\n"
                           "Your privilege roles include ['general'], but the following roles are"
-                          " missing: administrator, job manager.")
+                          " missing: job manager.")
 
     admin_token = jwt.encode({**token_payload, 'roles': 'private, user manager, admin, job manager, administrator'}, secret_key, algorithm='HS256')
     r = requests.get(dispatcher_long_living_fixture + "/inspect-state", params=dict(token=admin_token))
