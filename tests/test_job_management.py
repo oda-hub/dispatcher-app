@@ -2127,7 +2127,7 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
-@pytest.mark.parametrize("roles", ["general, job manager, administrator", ""])
+@pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
 def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
     required_roles = ['administrator', 'job manager']
     DispatcherJobState.remove_scratch_folders()
@@ -2186,7 +2186,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
             lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
             error_message = (
                 f'Unfortunately, your privileges are not sufficient for this type of request.\n'
-                f'Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}.'
+                f'Your privilege roles include {roles}, but one of the following roles is required: {required_roles}.'
             )
 
     # for the email we only use the first 8 characters
