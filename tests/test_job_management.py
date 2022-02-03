@@ -2129,7 +2129,7 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
 def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
-    required_roles = ['administrator', 'job manager']
+    required_roles = ['job manager']
     DispatcherJobState.remove_scratch_folders()
 
     server = dispatcher_live_fixture
@@ -2182,11 +2182,11 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
     elif request_cred == 'public':
         error_message = 'A token must be provided.'
     elif request_cred == 'private':
-        if 'job manager' not in roles and 'administrator' not in roles:
+        if 'job manager' not in roles:
             lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
             error_message = (
                 f'Unfortunately, your privileges are not sufficient for this type of request.\n'
-                f'Your privilege roles include {roles}, but one of the following roles is required: {required_roles}.'
+                f'Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}.'
             )
 
     # for the email we only use the first 8 characters
@@ -2198,7 +2198,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
 
     scratch_dir_mtime = os.stat(scratch_dir_fn).st_mtime
 
-    if request_cred != 'private' or ('job manager' not in roles and 'administrator' not in roles):
+    if request_cred != 'private' or ('job manager' not in roles):
         # email not supposed to be sent for public request
         assert c.status_code == status_code
         assert c.text == error_message
