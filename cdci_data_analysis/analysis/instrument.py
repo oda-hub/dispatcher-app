@@ -586,8 +586,11 @@ class Instrument:
             except RuntimeError:
                 raise RequestNotUnderstood('format not valid, a catalog should be provided as a FITS (typical standard OSA catalog) or '
                                            '<a href=https://docs.astropy.org/en/stable/api/astropy.io.ascii.Ecsv.html>ECSV</a> table.')
-            self.set_par('user_catalog', catalog_object)
-            self.set_par('selected_catalog', json.dumps(catalog_object.get_dictionary()))
+            # normalize catalog
+            normalized_user_catalog = normalize_catalog(catalog_object)
+
+            self.set_par('user_catalog', normalized_user_catalog)
+            self.set_par('selected_catalog', json.dumps(normalized_user_catalog.get_dictionary()))
             # not needed in the frontend
             par_dic.pop('user_catalog_file', None)
         else:
@@ -600,6 +603,7 @@ class Instrument:
                     raise RequestNotUnderstood("the selected catalog is wrongly formatted, please check your inputs")
             else:
                 catalog_selected_objects = None
+
             if 'selected_catalog' in par_dic.keys():
                 catalog_dic = json.loads(par_dic['selected_catalog'])
                 try:
@@ -607,11 +611,24 @@ class Instrument:
                 except ValueError as e:
                     e_message = str(e)
                     raise RequestNotUnderstood(e_message)
-                self.set_par('user_catalog', user_catalog)
+                # normalize catalog
+                normalized_user_catalog = normalize_catalog(user_catalog)
+                self.set_par('user_catalog', normalized_user_catalog)
 
+
+# TODO consider if better to move those three functions inside catalog module
 
 def load_user_catalog(user_catalog_file):
     return BasicCatalog.from_file(user_catalog_file)
+
+
+# TODO here I would apply the normalization
+def normalize_catalog(catalog_object):
+    if isinstance(catalog_object, BasicCatalog):
+        catalog_object = catalog_object.get_dictionary()
+    normalized_catalog_object = dict()
+
+    return build_catalog(normalized_catalog_object)
 
 
 def build_catalog(cat_dic,catalog_selected_objects=None):
