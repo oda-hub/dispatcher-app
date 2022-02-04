@@ -934,6 +934,22 @@ def test_catalog_file(dispatcher_live_fixture, correct_format):
         assert jdata['error_message'] == error_message
 
 
+def test_catalog_normalization():
+    from cdci_data_analysis.analysis.instrument import normalize_catalog
+
+    catalog_first_format_str = "{\"cat_frame\": \"fk5\", \"cat_coord_units\": \"deg\", \"cat_column_list\": [[6, 15, 17, 20, 65, 75, 76], [\"3A 0114+650\", \"Cas A\", \"Gam Cas\", \"IGR J00234+6141\", \"RX J0146.9+6121\", \"Swift J0243.6+6124\", \"V709 Cas\"], [23.42287254333496, 11.746102333068848, 14.557199478149414, 7.326473712921143, 8.661062240600586, 22.566688537597656, 20.007556915283203], [19.539852142333984, 350.8506164550781, 14.176933288574219, 5.745247840881348, 26.80240249633789, 40.95994567871094, 7.214724063873291], [65.28630828857422, 58.809852600097656, 60.71382522583008, 61.7390022277832, 61.40255355834961, 61.441776275634766, 59.295379638671875], [-32768, -32768, -32768, -32768, -32768, -32768, -32768], [2, 2, 1, 2, 2, 2, 2], [0, 1, 0, 0, 0, 0, 0], [2.9999999242136255e-05, 0.00016999999934341758, 0.02500000037252903, 0.00018000000272877514, 0.0005600000149570405, 0.00041666667675599456, 0.0002800000074785203]], \"cat_column_names\": [\"meta_ID\", \"src_names\", \"significance\", \"ra\", \"dec\", \"NEW_SOURCE\", \"ISGRI_FLAG\", \"FLAG\", \"ERR_RAD\"], \"cat_column_descr\": [[\"meta_ID\", \"<i8\"], [\"src_names\", \"<U18\"], [\"significance\", \"<f8\"], [\"ra\", \"<f8\"], [\"dec\", \"<f8\"], [\"NEW_SOURCE\", \"<i8\"], [\"ISGRI_FLAG\", \"<i8\"], [\"FLAG\", \"<i8\"], [\"ERR_RAD\", \"|O\"]], \"cat_lat_name\": \"dec\", \"cat_lon_name\": \"ra\"}"
+    catalog_second_format_str = "{\"cat_column_descr\":[[\"meta_ID\",\"<i8\"],[\"src_names\",\"<U20\"],[\"significance\",\">f4\"],[\"ra\",\">f4\"],[\"dec\",\">f4\"],[\"NEW_SOURCE\",\">i2\"],[\"ISGRI_FLAG\",\"<i8\"],[\"FLAG\",\"<i8\"],[\"ERR_RAD\",\"<f8\"]],\"cat_column_list\":[[1,2,3,4,5,6,7],[\"3A 0114+650\",\"Cas A\",\"Gam Cas\",\"IGR J00234+6141\",\"RX J0146.9+6121\",\"Swift J0243.6+6124\",\"V709 Cas\"],[23.42287254333496,11.746102333068848,14.557199478149414,7.326473712921143,8.661062240600586,22.566688537597656,20.007556915283203],[19.539852142333984,350.8506164550781,14.176933288574219,5.745247840881348,26.80240249633789,40.95994567871094,7.214724063873291],[65.28630828857422,58.809852600097656,60.71382522583008,61.7390022277832,61.40255355834961,61.441776275634766,59.295379638671875],[-32768,-32768,-32768,-32768,-32768,-32768,-32768],[2,2,1,2,2,2,2],[0,0,0,0,0,0,0],[0.000029999999242136255,0.00016999999934341758,0.02500000037252903,0.00018000000272877514,0.0005600000149570405,0.00041666667675599456,0.0002800000074785203]],\"cat_column_names\":[\"meta_ID\",\"src_names\",\"significance\",\"ra\",\"dec\",\"NEW_SOURCE\",\"ISGRI_FLAG\",\"FLAG\",\"ERR_RAD\"],\"cat_coord_units\":\"deg\",\"cat_frame\":\"fk5\",\"cat_lat_name\":\"dec\",\"cat_lon_name\":\"ra\"}"
+
+    # based on the issue https://github.com/oda-hub/doc-review-guidelines/issues/74
+    catalog_first_format = json.loads(catalog_first_format_str)
+    catalog_second_format = json.loads(catalog_second_format_str)
+
+    normalized_catalog_first_format = normalize_catalog(catalog_first_format)
+    normalized_catalog_second_format = normalize_catalog(catalog_second_format)
+
+    assert normalized_catalog_first_format == normalized_catalog_second_format
+
+
 @pytest.mark.test_catalog
 @pytest.mark.parametrize("correct_format", [True, False])
 @pytest.mark.parametrize("catalog_selected_objects", [1, "1", "1,1,1", "", "aaa", None])
