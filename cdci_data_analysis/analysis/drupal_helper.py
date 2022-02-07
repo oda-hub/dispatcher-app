@@ -348,6 +348,22 @@ def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None, s
     return observation_drupal_id
 
 
+def get_astrophysical_entity_id(product_gallery_url, gallery_jwt_token, entity_title=None, sentry_client=None) \
+        -> Tuple[Optional[str]]:
+    entities_id = None
+    # get from the drupal the relative id
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/{entity_title}",
+                                     headers=headers,
+                                     sentry_client=sentry_client)
+    output_get = analyze_drupal_output(log_res, operation_performed="retrieving the astrophysical entity information")
+    if isinstance(output_get, list) and len(output_get) == 1:
+        entities_id = output_get[0]['nid']
+
+    return entities_id
+
+
 def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
                               t1=None, t2=None,
                               observation_id=None,
@@ -471,6 +487,15 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
         body_gallery_article_node["uid"] = [{
             "target_id": user_id_product_creator
         }]
+
+    # set the astrophysical entity source if available
+    if src_name is not None:
+        entity_id = get_astrophysical_entity_id(product_gallery_url, gallery_jwt_token, entity_title=src_name,
+                                                sentry_client=sentry_client)
+        if entity_id is not None:
+            body_gallery_article_node['field_describes_astro_entity'] = [{
+                "target_id": int(entity_id)
+            }]
 
     # let's go through the kwargs and if any overwrite some values for the product to post
     for k, v in kwargs.items():
