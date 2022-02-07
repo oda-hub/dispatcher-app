@@ -1468,7 +1468,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery):
     params = {
         'job_id': job_id,
         'session_id': session_id,
-        'src_name': '1E 1740.7-2942',
+        'src_name': 'Crab',
         'content_type': 'data_product',
         'product_title': product_title,
         'E1_keV': e1_kev,
@@ -1508,6 +1508,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery):
 
     assert 'field_ra' in drupal_res_obj
     assert drupal_res_obj['field_ra'][0]['value'] == ra
+
 
 @pytest.mark.fast
 def test_param_value(dispatcher_live_fixture):
