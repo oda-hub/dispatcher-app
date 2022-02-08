@@ -218,6 +218,41 @@ def inspect_state():
     return state_data_obj
 
 
+@app.route('/push-renku-branch', methods=['POST'])
+def push_renku_branch():
+    logger.info("request.args: %s ", request.args)
+
+    token = request.args.get('token', None)
+    if token is None:
+        return make_response('A token must be provided.'), 403
+    try:
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
+        decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+        logger.info("==> token %s", decoded_token)
+    except jwt.exceptions.ExpiredSignatureError:
+        # raise RequestNotAuthorized("The token provided is expired.")
+        return make_response('The token provided is expired.'), 403
+    except jwt.exceptions.InvalidTokenError:
+        # raise RequestNotAuthorized("The token provided is not valid.")
+        return make_response('The token provided is not valid.'), 403
+
+    roles = tokenHelper.get_token_roles(decoded_token)
+
+    required_roles = ['renku contributor']
+    if not all(item in roles for item in required_roles):
+        lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+        message = (
+            f"Unfortunately, your privileges are not sufficient to push your code in a renku branch.\n"
+            f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
+        )
+        return make_response(message), 403
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    ####
+
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
     """

@@ -321,6 +321,11 @@ class InstrumentQueryBackEnd:
             
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
+
+    @staticmethod
+    def create_renku_branch():
+        pass
+
     @staticmethod
     def inspect_state(app):
         token = request.args.get('token', None)
