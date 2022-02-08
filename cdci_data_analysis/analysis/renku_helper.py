@@ -37,7 +37,8 @@ def get_branch_name(job_id=None, session_id=None):
 
 
 def checkout_branch_renku_repo(repo, branch_name):
-    repo = repo.git.checkout('-b', branch_name)
+    repo.git.checkout('-b', branch_name)
+    # repo.heads.past_branch.checkout()
 
     return repo
 
