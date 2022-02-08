@@ -24,6 +24,7 @@ pyjwt
 aiosmtpd
 marshmallow
 requests
+GitPython
 -e git+https://github.com/oda-hub/oda_api.git#egg=oda_api
 
 

@@ -5,6 +5,7 @@ Created on Wed May 10 10:55:20 2017
 
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
+import glob
 import string
 import random
 import hashlib
@@ -20,7 +21,7 @@ from flask_restx import Api, Resource, reqparse
 import time as _time
 from urllib.parse import urlencode
 
-from cdci_data_analysis.analysis import drupal_helper, tokenHelper
+from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError
@@ -239,6 +240,7 @@ def push_renku_branch():
 
     roles = tokenHelper.get_token_roles(decoded_token)
 
+    # TODO could not think of better name
     required_roles = ['renku contributor']
     if not all(item in roles for item in required_roles):
         lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
@@ -250,8 +252,27 @@ def push_renku_branch():
 
     par_dic = request.values.to_dict()
     par_dic.pop('token')
+    # TODO check job_id is provided with the request
+    job_id = par_dic.pop('job_id')
 
-    ####
+    # Get the API code to push to the new renku branch
+    scratch_dir_pattern = f'scratch_sid_*_jid_{job_id}*'
+    list_scratch_folders = glob.glob(scratch_dir_pattern)
+    if len(list_scratch_folders) >= 1:
+        query_output_json_content_original = json.load(open(list_scratch_folders[0] + '/query_output.json'))
+        prod_dict = query_output_json_content_original['prod_dictionary']
+        # remove parameters that should not be shared
+        api_code = prod_dict.pop('api_code', None)
+    # get repository url
+    renku_repository_url = app_config.renku_repository_url
+    repo = renku_helper.clone_renku_repo(renku_repository_url)
+
+    branch_name = renku_helper.get_branch_name(job_id=job_id)
+
+    repo = renku_helper.checkout_branch_renku_repo(repo, branch_name)
+
+    return None
+
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():

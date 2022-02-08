@@ -1510,6 +1510,47 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery):
     assert drupal_res_obj['field_ra'][0]['value'] == ra
 
 
+@pytest.mark.test_renku
+def test_posting_renku(dispatcher_live_fixture_with_renku_options):
+    server = dispatcher_live_fixture_with_renku_options
+    print("constructed server:", server)
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, renku contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'src_name': 'Mrk 421',
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 5,
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+    job_id = jdata['products']['job_id']
+    params = {
+        'job_id': job_id,
+        'token': encoded_token
+    }
+    c = requests.post(server + "/push-renku-branch",
+                      params={**params}
+                      )
+
+    assert c.status_code == 200
+
+
 @pytest.mark.fast
 def test_param_value(dispatcher_live_fixture):
     server = dispatcher_live_fixture

@@ -392,8 +392,28 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
+def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
+    fn = "test-dispatcher-conf-with-gallery.yaml"
+
+    with open(fn, "w") as f:
+        with open(dispatcher_test_conf_fn) as f_default:
+            f.write(f_default.read())
+
+        f.write('\n    renku_options:'
+                '\n        renku_repository_url: "https://renkulab.io/gitlab/vladimir.savchenko/oda-sdss"')
+
+    yield fn
+
+
+@pytest.fixture
 def dispatcher_test_conf_with_gallery(dispatcher_test_conf_with_gallery_fn):
     yield yaml.load(open(dispatcher_test_conf_with_gallery_fn), Loader=yaml.SafeLoader)['dispatcher']
+
+
+@pytest.fixture
+def dispatcher_test_conf_with_renku_options(dispatcher_test_conf_with_renku_options_fn):
+    yield yaml.load(open(dispatcher_test_conf_with_renku_options_fn), Loader=yaml.SafeLoader)['dispatcher']
+
 
 @pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
@@ -619,6 +639,18 @@ def dispatcher_live_fixture_with_gallery(pytestconfig, dispatcher_test_conf_with
     kill_child_processes(pid, signal.SIGINT)
     os.kill(pid, signal.SIGINT)
 
+
+@pytest.fixture
+def dispatcher_live_fixture_with_renku_options(pytestconfig, dispatcher_test_conf_with_renku_options_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_renku_options_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
 
 
 @pytest.fixture
