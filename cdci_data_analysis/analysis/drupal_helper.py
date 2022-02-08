@@ -348,7 +348,7 @@ def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None, s
     return observation_drupal_id
 
 
-def get_source_astrophysical_entity_id(product_gallery_url, gallery_jwt_token, source_name=None, sentry_client=None) \
+def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token, source_name=None, sentry_client=None) \
         -> Optional[str]:
     entities_id = None
     # get from the drupal the relative id
@@ -490,7 +490,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
 
     # set the source astrophysical entity if available
     if src_name is not None:
-        source_entity_id = get_source_astrophysical_entity_id(product_gallery_url, gallery_jwt_token,
+        source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
                                                               source_name=src_name,
                                                               sentry_client=sentry_client)
         if source_entity_id is not None:
