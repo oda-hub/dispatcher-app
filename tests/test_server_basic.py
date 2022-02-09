@@ -10,6 +10,7 @@ from datetime import datetime
 from functools import reduce
 import yaml
 import gzip
+import random
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
@@ -1530,7 +1531,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options):
         'product_type': 'numerical',
         'query_type': "Dummy",
         'instrument': 'empty',
-        'p': 5,
+        'p': 5 + random.random(),
         'token': encoded_token
     }
 
