@@ -254,7 +254,7 @@ def push_renku_branch():
     par_dic.pop('token')
     # TODO check job_id is provided with the request
     job_id = par_dic.pop('job_id')
-
+    api_code = None
     # Get the API code to push to the new renku branch
     scratch_dir_pattern = f'scratch_sid_*_jid_{job_id}*'
     list_scratch_folders = glob.glob(scratch_dir_pattern)
@@ -271,7 +271,11 @@ def push_renku_branch():
 
     repo = renku_helper.checkout_branch_renku_repo(repo, branch_name)
 
-    return None
+    new_file_path = renku_helper.create_new_notebook_with_code(repo, api_code, job_id)
+
+    renku_helper.commit_and_push_file(repo, new_file_path)
+
+    return repo.remotes.origin.url
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
