@@ -264,8 +264,13 @@ def push_renku_branch():
         # remove parameters that should not be shared
         api_code = prod_dict.pop('api_code', None)
     # get repository url
-    renku_repository_url = app_config.renku_repository_url
-    repo = renku_helper.clone_renku_repo(renku_repository_url)
+    renku_repository_url = app_config.renku_gitlab_repository_url
+    renku_gitlab_token_name = app_config.renku_gitlab_token_name
+    renku_gitlab_token = app_config.renku_gitlab_token
+
+    repo = renku_helper.clone_renku_repo(renku_repository_url,
+                                         renku_gitlab_token_name=renku_gitlab_token_name,
+                                         renku_gitlab_token=renku_gitlab_token)
 
     branch_name = renku_helper.get_branch_name(job_id=job_id)
 

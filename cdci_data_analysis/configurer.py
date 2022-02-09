@@ -237,7 +237,9 @@ class ConfigEnv(object):
                                      disp_dict['email_options']['email_sending_job_submitted_default_interval'],
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_url', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_secret_key', None),
-                                     disp_dict.get('renku_options', {}).get('renku_repository_url', None)
+                                     disp_dict.get('renku_options', {}).get('renku_gitlab_repository_url', None),
+                                     disp_dict.get('renku_options', {}).get('renku_gitlab_token_name', None),
+                                     disp_dict.get('renku_options', {}).get('renku_gitlab_token', None)
                                      )
 
         # not used?
@@ -288,7 +290,9 @@ class ConfigEnv(object):
                             email_sending_job_submitted_default_interval,
                             product_gallery_url,
                             product_gallery_secret_key,
-                            renku_repository_url
+                            renku_gitlab_repository_url,
+                            renku_gitlab_token_name,
+                            renku_gitlab_token
                             ):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
@@ -312,7 +316,9 @@ class ConfigEnv(object):
         self.email_sending_job_submitted_default_interval = email_sending_job_submitted_default_interval
         self.product_gallery_url = product_gallery_url
         self.product_gallery_secret_key = product_gallery_secret_key
-        self.renku_repository_url = renku_repository_url
+        self.renku_gitlab_repository_url = renku_gitlab_repository_url
+        self.renku_gitlab_token_name = renku_gitlab_token_name
+        self.renku_gitlab_token = renku_gitlab_token
 
     def get_data_serve_conf(self, instr_name):
         if instr_name in self.data_server_conf_dict.keys():

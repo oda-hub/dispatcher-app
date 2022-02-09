@@ -3,6 +3,7 @@ import nbformat as nbf
 import time
 
 from git import Repo
+from urllib.parse import urlparse
 
 from ..app_logging import app_logging
 
@@ -17,11 +18,16 @@ def get_repo_name(repository_url):
     return repo_name
 
 
-def clone_renku_repo(renku_repository_url, repo_dir=None):
+def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_token_name=None, renku_gitlab_token=None):
     if repo_dir is None:
         repo_dir = get_repo_name(renku_repository_url)
 
-    repo = Repo.clone_from(renku_repository_url, repo_dir, branch='master')
+    url_parsed = urlparse(renku_repository_url)
+
+    if renku_gitlab_token_name is not None and renku_gitlab_token is not None:
+        url_parsed = url_parsed._replace(netloc=f'{renku_gitlab_token_name}:{renku_gitlab_token}@{url_parsed.hostname}')
+
+    repo = Repo.clone_from(url_parsed.geturl(), repo_dir, branch='master')
 
     logger.info(f'repository {renku_repository_url} successfully cloned')
 
@@ -71,8 +77,10 @@ def commit_and_push_file(repo, file_path):
     try:
         add_info = repo.index.add(file_path)
         commit_info = repo.index.commit("commit code from MMODA")
-        origin = repo.remote(name='origin')
-        push_info = origin.push(refspec='origin:' + str(repo.head.ref))
+        origin = repo.remote(name="origin")
+        # TODO make it work with methods from GitPython
+        # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
+        repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref))
     except Exception as e:
         logger.warning(f"something happened while pushing the the file {file_path}, {e}")
         raise e
