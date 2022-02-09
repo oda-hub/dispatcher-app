@@ -44,7 +44,8 @@ install_req = [
     "marshmallow",
     "black",
     "bs4",
-    "GitPython"
+    "GitPython",
+    "nbformat"
 ]
 
 test_req = [
