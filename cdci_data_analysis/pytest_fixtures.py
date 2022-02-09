@@ -400,7 +400,9 @@ def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
             f.write(f_default.read())
 
         f.write('\n    renku_options:'
-                '\n        renku_repository_url: "https://renkulab.io/gitlab/vladimir.savchenko/oda-sdss"')
+                '\n        renku_gitlab_repository_url: "https://renkulab.io/gitlab/vladimir.savchenko/oda-sdss"'
+                f'\n        renku_gitlab_token_name: "{os.getenv("RENKU_GITLAB_TOKEN_NAME", "token_name")}"'
+                f'\n        renku_gitlab_token: "{os.getenv("RENKU_GITLAB_TOKEN", "token")}"')
 
     yield fn
 
