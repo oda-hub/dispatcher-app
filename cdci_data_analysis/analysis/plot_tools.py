@@ -36,6 +36,7 @@ class Image(object):
                       w=None,
                       h=None, 
                       catalog=None, 
+                      sources_circle_size = 15,
                       x_scale = "linear", 
                       y_scale = "linear", 
                       x_range = None,
@@ -100,7 +101,7 @@ class Image(object):
                                                     lat=pixcrd[:, 1][msk]+0.5,
                                                     names=catalog.name[msk]))
 
-                fig.scatter(x='lon', y='lat', marker='circle', size=15,
+                fig.scatter(x='lon', y='lat', marker='circle', size=sources_circle_size,
                             line_color="white", fill_color=None, alpha=1.0, source=source)
 
                 labels = LabelSet(x='lon', y='lat', text='names', level='glyph',
