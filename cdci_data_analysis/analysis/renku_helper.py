@@ -11,6 +11,25 @@ from ..app_logging import app_logging
 logger = app_logging.getLogger('renku_helper')
 
 
+def push_api_code(api_code, job_id, renku_repository_url, renku_gitlab_token_name, renku_gitlab_token):
+    repo = clone_renku_repo(renku_repository_url,
+                            renku_gitlab_token_name=renku_gitlab_token_name,
+                            renku_gitlab_token=renku_gitlab_token)
+
+    branch_name = get_branch_name(job_id=job_id)
+
+    repo = checkout_branch_renku_repo(repo, branch_name)
+
+    new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
+
+    commit_and_push_file(repo, new_file_path)
+
+    # remove repository folder
+    remove_repository(repo)
+
+    return repo.remotes.origin.url
+
+
 def get_repo_name(repository_url):
     repo_name = repository_url.split('/')[-1]
     if repo_name.endswith('.git'):

@@ -267,23 +267,20 @@ def push_renku_branch():
     renku_repository_url = app_config.renku_gitlab_repository_url
     renku_gitlab_token_name = app_config.renku_gitlab_token_name
     renku_gitlab_token = app_config.renku_gitlab_token
+    if api_code is not None:
+        api_code_url = renku_helper.push_api_code(api_code=api_code,
+                                   job_id=job_id,
+                                   renku_repository_url=renku_repository_url,
+                                   renku_gitlab_token_name=renku_gitlab_token_name,
+                                   renku_gitlab_token=renku_gitlab_token)
 
-    repo = renku_helper.clone_renku_repo(renku_repository_url,
-                                         renku_gitlab_token_name=renku_gitlab_token_name,
-                                         renku_gitlab_token=renku_gitlab_token)
+        return api_code_url
 
-    branch_name = renku_helper.get_branch_name(job_id=job_id)
-
-    repo = renku_helper.checkout_branch_renku_repo(repo, branch_name)
-
-    new_file_path = renku_helper.create_new_notebook_with_code(repo, api_code, job_id)
-
-    renku_helper.commit_and_push_file(repo, new_file_path)
-
-    # remove repository folder
-    renku_helper.remove_repository(repo)
-
-    return repo.remotes.origin.url
+    else:
+        raise RequestNotUnderstood(message="Request data not found",
+                                   payload={'error_message': 'error while posting data in the renku branch: '
+                                                             'api_code was not found, '
+                                                             'perhaps wrong job_id was passed?'})
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
