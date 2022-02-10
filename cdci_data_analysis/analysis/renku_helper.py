@@ -7,25 +7,44 @@ from git import Repo
 from urllib.parse import urlparse
 
 from ..app_logging import app_logging
+from exceptions import RequestNotUnderstood
 
 logger = app_logging.getLogger('renku_helper')
 
 
-def push_api_code(api_code, job_id, renku_repository_url, renku_gitlab_token_name, renku_gitlab_token):
-    repo = clone_renku_repo(renku_repository_url,
-                            renku_gitlab_token_name=renku_gitlab_token_name,
-                            renku_gitlab_token=renku_gitlab_token)
+def push_api_code(api_code,
+                  job_id,
+                  renku_repository_url,
+                  renku_gitlab_token_name,
+                  renku_gitlab_token,
+                  sentry_client=None):
+    error_message = 'Error while {step}'
+    try:
+        step = 'cloning repository'
+        repo = clone_renku_repo(renku_repository_url,
+                                renku_gitlab_token_name=renku_gitlab_token_name,
+                                renku_gitlab_token=renku_gitlab_token)
+        step = 'assigning branch name'
+        branch_name = get_branch_name(job_id=job_id)
 
-    branch_name = get_branch_name(job_id=job_id)
+        step = f'checkout branch {branch_name}'
+        repo = checkout_branch_renku_repo(repo, branch_name)
 
-    repo = checkout_branch_renku_repo(repo, branch_name)
+        step = f'creating new notebook with the api code'
+        new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
 
-    new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
+        step = f'committing and pushing notebook {new_file_path} to the repository'
+        commit_and_push_file(repo, new_file_path)
 
-    commit_and_push_file(repo, new_file_path)
+        step = 'removing repository folder, since it is no longer necessary'
+        remove_repository(repo)
+    except Exception as e:
+        error_message = error_message.format(step=step)
 
-    # remove repository folder
-    remove_repository(repo)
+        if sentry_client is not None:
+            sentry_client.capture('raven.events.Message',
+                                  message=f'{error_message}\n{e}')
+        raise RequestNotUnderstood(error_message)
 
     return repo.remotes.origin.url
 
