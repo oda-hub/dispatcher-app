@@ -32,25 +32,52 @@ class Image(object):
         self.data=data
         self.header=header
 
-    def get_html_draw(self,w=None,h=None, catalog=None, plot=False):
+    def get_html_draw(self,
+                      w=None,
+                      h=None, 
+                      catalog=None, 
+                      x_scale = "linear", 
+                      y_scale = "linear", 
+                      x_range = None,
+                      y_range = None,
+                      x0 = 0,
+                      y0 = 0,
+                      dw = None,
+                      dh = None,
+                      x_label = None,
+                      y_label = None,
+                      enable_log_cmap = True,
+                      ):
 
         msk = ~np.isnan(self.data)
 
         min_v = self.data[msk].min()
-
         max_v = self.data[msk].max()
 
-        r = self.data.shape[0] * 2
-        c = self.data.shape[1] * 2
+        if x_range is None:
+            c = self.data.shape[1]
+            x_range = (0, c)
+        if y_range is None:
+            r = self.data.shape[0]
+            y_range=(0, r)
+        if dw is None:
+            dw = c
+        if dh is None:
+            dh = r
 
-        fig = figure(plot_width=w, plot_height=h, x_range=(0, c * 0.5), y_range=(0, r * 0.5),
+        fig = figure(plot_width = w, 
+                     plot_height = h, 
+                     x_axis_type = x_scale,
+                     y_axis_type = y_scale,
+                     x_range=x_range, 
+                     y_range=y_range,
+                     x_axis_label = x_label,
+                     y_axis_label = y_label,
                      tools=['pan,box_zoom,box_select,wheel_zoom,reset,save,crosshair'])
 
-        cur_wcs = wcs.WCS(self.header)
-        lin_color_mapper = LinearColorMapper(low = min_v, high = max_v, palette=Plasma256)
-        log_color_mapper = LogColorMapper(low = max(0, min_v), high = max_v, palette=Plasma256)
-
-        fig_im = fig.image(image=[self.data], x=[0], y=[0], dw=[c * 0.5], dh=[r * 0.5],
+        lin_color_mapper = LinearColorMapper(low = min_v, high = max_v, palette='Plasma256')
+        
+        fig_im = fig.image(image=[self.data], x=x0, y=y0, dw=dw, dh=dh,
                            color_mapper=lin_color_mapper)
 
         hover = HoverTool(tooltips=[("x", "$x"), ("y", "$y"), ("value", "@image")],
@@ -63,6 +90,7 @@ class Image(object):
             lon = catalog.ra
             lat = catalog.dec
 
+            cur_wcs = wcs.WCS(self.header)
 
             if len(lat) > 0.:
                 pixcrd = cur_wcs.wcs_world2pix(np.column_stack((lon, lat)), 0)
@@ -81,48 +109,54 @@ class Image(object):
                 fig.add_layout(labels)
 
 
-        lin_color_bar = ColorBar(color_mapper = lin_color_mapper, label_standoff=12, border_line_color=None, location=(0, 0))
-        log_color_bar = ColorBar(color_mapper = log_color_mapper, label_standoff=1, border_line_color=None, location=(0, 0))
+        lin_color_bar = ColorBar(color_mapper = lin_color_mapper, label_standoff=12, border_line_color=None, location=(0, 0), width=15)
 
         fig.add_layout(lin_color_bar, 'right')
-        fig.add_layout(log_color_bar, 'right')
-        log_color_bar.visible = False
-
+        
         graph_slider = RangeSlider(title='Sig. Range', start = min_v, end = max_v, step=(max_v - min_v) / 1000, value = (min_v, max_v * 0.8))
         
         graph_slider.js_link('value', lin_color_mapper, 'low', attr_selector = 0)
         graph_slider.js_link('value', lin_color_mapper, 'high', attr_selector = 1)
-        graph_slider.js_link('value', log_color_mapper, 'low', attr_selector = 0)
-        graph_slider.js_link('value', log_color_mapper, 'high', attr_selector = 1)
 
-        log_toggle = Toggle(label='Toggle Log. Norm', active=False)
-    
-        log_toggle.js_on_click(CustomJS(args = dict(lin_color_mapper = lin_color_mapper, 
-                                                    log_color_mapper = log_color_mapper, 
-                                                    fig_im = fig_im,
-                                                    graph_slider = graph_slider,
-                                                    min_v = min_v,
-                                                    lin_color_bar = lin_color_bar,
-                                                    log_color_bar = log_color_bar),
-                                        code = """
-                                               if (this.active) {
-                                                 graph_slider.value = [Math.max(0 + graph_slider.step, graph_slider.value[0]), graph_slider.value[1]];
-                                                 graph_slider.start = Math.max(0 + graph_slider.step, min_v);
-                                                 fig_im.glyph.color_mapper = log_color_mapper;
-                                                 log_color_bar.visible = true;
-                                                 lin_color_bar.visible = false;
-                                               } else {
-                                                 graph_slider.start = min_v;
-                                                 fig_im.glyph.color_mapper = lin_color_mapper;
-                                                 log_color_bar.visible = false;
-                                                 lin_color_bar.visible = true;
-                                               }
-                                               """
-                                        )
-                              )
+        widgets = [graph_slider]
         
+        if enable_log_cmap:
+            log_color_mapper = LogColorMapper(low = max(0, min_v), high = max_v, palette=Plasma256)
+            graph_slider.js_link('value', log_color_mapper, 'low', attr_selector = 0)
+            graph_slider.js_link('value', log_color_mapper, 'high', attr_selector = 1)
+            
+            log_color_bar = ColorBar(color_mapper = log_color_mapper, label_standoff=2, border_line_color=None, location=(0, 0), width=15)
+            fig.add_layout(log_color_bar, 'right')
+            log_color_bar.visible = False
 
-        layout = column(row(graph_slider, log_toggle), 
+
+            log_toggle = Toggle(label='Toggle Log. Norm', active=False)
+            log_toggle.js_on_click(CustomJS(args = dict(lin_color_mapper = lin_color_mapper, 
+                                                        log_color_mapper = log_color_mapper, 
+                                                        fig_im = fig_im,
+                                                        graph_slider = graph_slider,
+                                                        min_v = min_v,
+                                                        lin_color_bar = lin_color_bar,
+                                                        log_color_bar = log_color_bar),
+                                            code = """
+                                                if (this.active) {
+                                                    graph_slider.value = [Math.max(0 + graph_slider.step, graph_slider.value[0]), graph_slider.value[1]];
+                                                    graph_slider.start = Math.max(0 + graph_slider.step, min_v);
+                                                    fig_im.glyph.color_mapper = log_color_mapper;
+                                                    log_color_bar.visible = true;
+                                                    lin_color_bar.visible = false;
+                                                } else {
+                                                    graph_slider.start = min_v;
+                                                    fig_im.glyph.color_mapper = lin_color_mapper;
+                                                    log_color_bar.visible = false;
+                                                    lin_color_bar.visible = true;
+                                                }
+                                                """
+                                            )
+                                )
+            widgets.append(log_toggle)
+            
+        layout = column(row(widgets), 
                         fig)
 
         script, div = components(layout)
@@ -237,8 +271,8 @@ class ScatterPlot(object):
         self.fig.step(x,y,name=legend, mode="center")
         #print('b')
 
-    def add_line(self,x,y,legend=None,color=None):
-        self.fig.line(x,y,legend=legend,line_color=color)
+    def add_line(self,x,y,legend=None,color='red'):
+        self.fig.line(x,y,name=legend,line_color=color)
 
     def get_html_draw(self):
 
