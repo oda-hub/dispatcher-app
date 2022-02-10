@@ -280,6 +280,9 @@ def push_renku_branch():
 
     renku_helper.commit_and_push_file(repo, new_file_path)
 
+    # remove repository folder
+    renku_helper.remove_repository(repo)
+
     return repo.remotes.origin.url
 
 

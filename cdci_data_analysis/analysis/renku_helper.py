@@ -1,6 +1,7 @@
 import os.path
 import nbformat as nbf
 import time
+import shutil
 
 from git import Repo
 from urllib.parse import urlparse
@@ -85,4 +86,9 @@ def commit_and_push_file(repo, file_path):
     except Exception as e:
         logger.warning(f"something happened while pushing the the file {file_path}, {e}")
         raise e
+
+
+def remove_repository(repo):
+    if os.path.exists(repo.working_dir):
+        shutil.rmtree(repo.working_dir)
 
