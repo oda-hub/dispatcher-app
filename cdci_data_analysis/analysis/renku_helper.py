@@ -7,7 +7,7 @@ from git import Repo
 from urllib.parse import urlparse
 
 from ..app_logging import app_logging
-from exceptions import RequestNotUnderstood
+from .exceptions import RequestNotUnderstood
 
 logger = app_logging.getLogger('renku_helper')
 
