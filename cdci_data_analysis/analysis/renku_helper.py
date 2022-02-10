@@ -36,8 +36,6 @@ def push_api_code(api_code,
         step = f'committing and pushing notebook {new_file_path} to the repository'
         commit_and_push_file(repo, new_file_path)
 
-        step = 'removing repository folder, since it is no longer necessary'
-        remove_repository(repo)
     except Exception as e:
         error_message = error_message.format(step=step)
 
@@ -45,7 +43,10 @@ def push_api_code(api_code,
             sentry_client.capture('raven.events.Message',
                                   message=f'{error_message}\n{e}')
         raise RequestNotUnderstood(error_message)
-
+    finally:
+        logger.info("==> removing repository folder, since it is no longer necessary")
+        remove_repository(repo)
+    # TODO to actually return the renkulab url of the newly created branch
     return repo.remotes.origin.url
 
 
