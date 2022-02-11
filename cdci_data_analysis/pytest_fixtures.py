@@ -25,6 +25,8 @@ import time
 import hashlib
 import glob
 
+from urllib.parse import urlparse
+from git import Repo
 from threading import Thread
 
 __this_dir__ = os.path.join(os.path.abspath(os.path.dirname(__file__)))
@@ -393,7 +395,7 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
 
 @pytest.fixture
 def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
-    fn = "test-dispatcher-conf-with-gallery.yaml"
+    fn = "test-dispatcher-conf-with-renku-options.yaml"
 
     with open(fn, "w") as f:
         with open(dispatcher_test_conf_fn) as f_default:
@@ -401,8 +403,8 @@ def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
 
         f.write('\n    renku_options:'
                 '\n        renku_gitlab_repository_url: "https://renkulab.io/gitlab/gabriele.barni/test-dispatcher-endpoint"'
-                f'\n        renku_gitlab_token_name: "{os.getenv("RENKU_GITLAB_TOKEN_NAME", "token_name")}"'
-                f'\n        renku_gitlab_token: "{os.getenv("RENKU_GITLAB_TOKEN", "token")}"')
+               f'\n        renku_gitlab_token_name: "{os.getenv("RENKU_GITLAB_TOKEN_NAME", "token_name")}"'
+               f'\n        renku_gitlab_token: "{os.getenv("RENKU_GITLAB_TOKEN", "token")}"')
 
     yield fn
 
@@ -730,10 +732,56 @@ def dispatcher_fetch_dummy_products(dummy_product_pack: str, reuse=False):
     open(dispatcher_dummy_product_pack_state_fn, "w").write("%s"%time.time())
 
 
+def clone_gitlab_repo(repository_url, repo_dir=None, gitlab_token_name=None, gitlab_token=None, branch_name=None):
+    if repo_dir is None:
+        repo_dir = get_repo_name(repository_url)
+
+    if branch_name is None:
+        branch_name = 'master'
+
+    url_parsed = urlparse(repository_url)
+
+    if gitlab_token_name is not None and gitlab_token is not None:
+        url_parsed = url_parsed._replace(netloc=f'{gitlab_token_name}:{gitlab_token}@{url_parsed.hostname}')
+
+    repo = Repo.clone_from(url_parsed.geturl(), repo_dir, branch=branch_name)
+
+    logger.info(f'repository {repository_url} successfully cloned')
+
+    return repo
+
+
+def get_repo_name(repository_url):
+    repo_name = repository_url.split('/')[-1]
+    if repo_name.endswith('.git'):
+        repo_name = repo_name[0:-4]
+
+    return repo_name
+
+
 class DispatcherJobState:
     """
     manages state stored in scratch_* directories
     """
+
+    @staticmethod
+    def extract_api_code(session_id, job_id):
+        # check query output are generated
+        query_output_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
+        # the aliased version might have been created
+        query_output_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
+        # get the query output
+        if os.path.exists(query_output_json_fn):
+            f = open(query_output_json_fn)
+        else:
+            f = open(query_output_json_fn_aliased)
+
+        query_output_data = json.load(f)
+        extracted_api_code = None
+        if 'prod_dictionary' in query_output_data and 'api_code' in query_output_data['prod_dictionary']:
+            extracted_api_code = query_output_data['prod_dictionary']['api_code']
+
+        return extracted_api_code
 
     @staticmethod
     def generate_session_id():
