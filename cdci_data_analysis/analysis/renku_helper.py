@@ -1,6 +1,5 @@
 import os.path
 import nbformat as nbf
-import time
 import shutil
 
 from git import Repo
@@ -118,21 +117,20 @@ def checkout_branch_renku_repo(repo, branch_name):
     return repo
 
 
-def create_new_notebook_with_code(repo, code, job_id, file_name=None):
+def create_new_notebook_with_code(repo, api_code, job_id, file_name=None):
     repo_dir = repo.working_dir
 
     if file_name is None:
-        file_name = "_".join(["code", job_id, str(time.time())]) + '.ipynb'
+        file_name = "_".join(["api_code", job_id]) + '.ipynb'
 
     file_path = os.path.join(repo_dir, file_name)
 
     nb = nbf.v4.new_notebook()
 
-    text = """\
-    # Notebook automatically generated from MMODA"""
+    text = "# Notebook automatically generated from MMODA"
 
     nb['cells'] = [nbf.v4.new_markdown_cell(text),
-                   nbf.v4.new_code_cell(code)]
+                   nbf.v4.new_code_cell(api_code)]
 
     nbf.write(nb, file_path)
 

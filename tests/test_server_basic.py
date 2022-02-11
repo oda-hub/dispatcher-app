@@ -1,3 +1,5 @@
+import shutil
+
 import requests
 import time
 import json
@@ -9,12 +11,13 @@ import pytest
 from datetime import datetime
 from functools import reduce
 from urllib.parse import urlparse
+import nbformat as nbf
 import yaml
 import gzip
 import random
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products, clone_gitlab_repo
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
 
@@ -1542,6 +1545,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
                 max_time_s=150,
                 )
     job_id = jdata['products']['job_id']
+    session_id = jdata['products']['session_id']
     params = {
         'job_id': job_id,
         'token': encoded_token
@@ -1554,11 +1558,27 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
 
     # parse the repo url and build the renku one
     repo_url = dispatcher_test_conf_with_renku_options['renku_options']['renku_gitlab_repository_url']
+    gitlab_token_name = dispatcher_test_conf_with_renku_options['renku_options']['renku_gitlab_token_name']
+    gitlab_token = dispatcher_test_conf_with_renku_options['renku_options']['renku_gitlab_token']
     parsed_repo_url = urlparse(repo_url)
     namespace = parsed_repo_url.path.split('/')[2]
     project_name = parsed_repo_url.path.split('/')[-1]
 
     assert c.text == f'{parsed_repo_url.scheme}://{parsed_repo_url.hostname}/projects/{namespace}/{project_name}/sessions/new?autostart=1&branch=mmoda_request_{job_id}'
+
+    # validate content pushed
+    repo = clone_gitlab_repo(repo_url, gitlab_token_name=gitlab_token_name, gitlab_token=gitlab_token, branch_name=f'mmoda_request_{job_id}')
+    api_code_file_path = os.path.join(repo.working_dir,  "_".join(["api_code", job_id]) + '.ipynb')
+
+    extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
+
+    assert os.path.exists(api_code_file_path)
+    parsed_notebook = nbf.read(api_code_file_path, 4)
+    assert len(parsed_notebook.cells) == 2
+    assert parsed_notebook.cells[0].source == "# Notebook automatically generated from MMODA"
+    assert parsed_notebook.cells[1].source == extracted_api_code
+
+    shutil.rmtree(repo.working_dir)
 
 
 @pytest.mark.fast
