@@ -265,13 +265,11 @@ def push_renku_branch():
         api_code = prod_dict.pop('api_code', None)
     # get repository url
     renku_repository_url = app_config.renku_gitlab_repository_url
-    renku_gitlab_token_name = app_config.renku_gitlab_token_name
     renku_gitlab_token = app_config.renku_gitlab_token
     if api_code is not None:
         api_code_url = renku_helper.push_api_code(api_code=api_code,
                                    job_id=job_id,
                                    renku_repository_url=renku_repository_url,
-                                   renku_gitlab_token_name=renku_gitlab_token_name,
                                    renku_gitlab_token=renku_gitlab_token)
 
         return api_code_url

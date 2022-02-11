@@ -14,7 +14,6 @@ logger = app_logging.getLogger('renku_helper')
 def push_api_code(api_code,
                   job_id,
                   renku_repository_url,
-                  renku_gitlab_token_name,
                   renku_gitlab_token,
                   sentry_client=None):
     error_message = 'Error while {step}'
@@ -22,7 +21,6 @@ def push_api_code(api_code,
     try:
         step = 'cloning repository'
         repo = clone_renku_repo(renku_repository_url,
-                                renku_gitlab_token_name=renku_gitlab_token_name,
                                 renku_gitlab_token=renku_gitlab_token)
         repository_folder_path = repo.working_dir
         step = 'assigning branch name'
@@ -83,14 +81,14 @@ def get_repo_name(repository_url):
     return repo_name
 
 
-def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_token_name=None, renku_gitlab_token=None):
+def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_token=None):
     if repo_dir is None:
         repo_dir = get_repo_name(renku_repository_url)
 
     url_parsed = urlparse(renku_repository_url)
 
-    if renku_gitlab_token_name is not None and renku_gitlab_token is not None:
-        url_parsed = url_parsed._replace(netloc=f'{renku_gitlab_token_name}:{renku_gitlab_token}@{url_parsed.hostname}')
+    if renku_gitlab_token is not None:
+        url_parsed = url_parsed._replace(netloc=f'{renku_gitlab_token}@{url_parsed.hostname}')
 
     repo = Repo.clone_from(url_parsed.geturl(), repo_dir, branch='master')
 

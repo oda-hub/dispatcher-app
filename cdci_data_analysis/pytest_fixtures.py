@@ -396,14 +396,13 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
 @pytest.fixture
 def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
     fn = "test-dispatcher-conf-with-renku-options.yaml"
-
+    filesys_repo = 'file:///renkulab.io/gitlab/gabriele.barni/test-dispatcher-endpoint'
     with open(fn, "w") as f:
         with open(dispatcher_test_conf_fn) as f_default:
             f.write(f_default.read())
 
         f.write('\n    renku_options:'
                 '\n        renku_gitlab_repository_url: "https://renkulab.io/gitlab/gabriele.barni/test-dispatcher-endpoint"'
-               f'\n        renku_gitlab_token_name: "{os.getenv("RENKU_GITLAB_TOKEN_NAME", "token_name")}"'
                f'\n        renku_gitlab_token: "{os.getenv("RENKU_GITLAB_TOKEN", "token")}"')
 
     yield fn
@@ -732,7 +731,7 @@ def dispatcher_fetch_dummy_products(dummy_product_pack: str, reuse=False):
     open(dispatcher_dummy_product_pack_state_fn, "w").write("%s"%time.time())
 
 
-def clone_gitlab_repo(repository_url, repo_dir=None, gitlab_token_name=None, gitlab_token=None, branch_name=None):
+def clone_gitlab_repo(repository_url, repo_dir=None, gitlab_token=None, branch_name=None):
     if repo_dir is None:
         repo_dir = get_repo_name(repository_url)
 
@@ -741,8 +740,8 @@ def clone_gitlab_repo(repository_url, repo_dir=None, gitlab_token_name=None, git
 
     url_parsed = urlparse(repository_url)
 
-    if gitlab_token_name is not None and gitlab_token is not None:
-        url_parsed = url_parsed._replace(netloc=f'{gitlab_token_name}:{gitlab_token}@{url_parsed.hostname}')
+    if gitlab_token is not None:
+        url_parsed = url_parsed._replace(netloc=f'{gitlab_token}@{url_parsed.hostname}')
 
     repo = Repo.clone_from(url_parsed.geturl(), repo_dir, branch=branch_name)
 
