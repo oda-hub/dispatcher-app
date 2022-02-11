@@ -15,6 +15,8 @@ def push_api_code(api_code,
                   job_id,
                   renku_repository_url,
                   renku_gitlab_ssh_key_file,
+                  renku_project_url,
+                  renku_gitlab_user_name,
                   sentry_client=None):
     error_message = 'Error while {step}'
     repository_folder_path = None
@@ -36,7 +38,9 @@ def push_api_code(api_code,
         commit_and_push_file(repo, new_file_path)
 
         step = f'generating a valid url to start a new session on the new branch'
-        renku_session_url = generate_renku_session_url(repo)
+        renku_session_url = generate_renku_session_url(repo,
+                                                       renku_project_url=renku_project_url,
+                                                       renku_gitlab_user_name=renku_gitlab_user_name)
 
     except Exception as e:
         error_message = error_message.format(step=step)
@@ -52,23 +56,21 @@ def push_api_code(api_code,
     return renku_session_url
 
 
-def generate_renku_session_url(repo):
-    generated_renku_new_session_url = None
+def generate_renku_session_url(repo, renku_project_url, renku_gitlab_user_name):
     original_url = repo.remotes.origin.url
 
-    original_url_parsed = urlparse(original_url)
-
     # in our case the namespace and project_name are to be provided, extracted from the url of the repository
-    new_session_autostart_url = "{scheme}://{hostname}/projects/{namespace}/{project_name}/sessions/new?autostart=1{branch}"
+    new_session_autostart_url = "{renku_project_url}/{namespace}/{project_name}/sessions/new?autostart=1{branch}"
 
-    # extract namespace
-    namespace = original_url_parsed.path.split('/')[2]
+    namespace = renku_gitlab_user_name
     # get name of the repository/project
     project_name = get_repo_name(original_url)
 
     generated_renku_new_session_url = new_session_autostart_url.format(
-        scheme=original_url_parsed.scheme, hostname=original_url_parsed.hostname,
-        namespace=namespace, project_name=project_name, branch=f'&branch={repo.active_branch}')
+        renku_project_url=renku_project_url,
+        namespace=namespace,
+        project_name=project_name,
+        branch=f'&branch={repo.active_branch}')
 
     return generated_renku_new_session_url
 

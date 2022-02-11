@@ -263,14 +263,19 @@ def push_renku_branch():
         prod_dict = query_output_json_content_original['prod_dictionary']
         # remove parameters that should not be shared
         api_code = prod_dict.pop('api_code', None)
-    # get repository url
+
     renku_repository_url = app_config.renku_gitlab_repository_url
     renku_gitlab_ssh_key_file = app_config.renku_gitlab_ssh_key_file
+    renku_gitlab_user_name = app_config.renku_gitlab_user_name
+    renku_project_url = app_config.renku_project_url
+
     if api_code is not None:
         api_code_url = renku_helper.push_api_code(api_code=api_code,
-                                   job_id=job_id,
-                                   renku_repository_url=renku_repository_url,
-                                   renku_gitlab_ssh_key_file=renku_gitlab_ssh_key_file)
+                                                  job_id=job_id,
+                                                  renku_repository_url=renku_repository_url,
+                                                  renku_gitlab_user_name=renku_gitlab_user_name,
+                                                  renku_project_url=renku_project_url,
+                                                  renku_gitlab_ssh_key_file=renku_gitlab_ssh_key_file)
 
         return api_code_url
 
