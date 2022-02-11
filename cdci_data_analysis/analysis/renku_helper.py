@@ -86,7 +86,7 @@ def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_ssh_key_f
         repo_dir = get_repo_name(renku_repository_url)
 
     git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_file}'
-    # with Repo.git.custom_environment(GIT_SSH_COMMAND=git_ssh_cmd):
+
     repo = Repo.clone_from(renku_repository_url, repo_dir, branch='master', env=dict(GIT_SSH_COMMAND=git_ssh_cmd))
 
     logger.info(f'repository {renku_repository_url} successfully cloned')
