@@ -403,7 +403,7 @@ def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
 
         f.write('\n    renku_options:'
                 '\n        renku_gitlab_repository_url: "https://renkulab.io/gitlab/gabriele.barni/test-dispatcher-endpoint"'
-               f'\n        renku_gitlab_token: "{os.getenv("RENKU_GITLAB_TOKEN", "token")}"')
+               f'\n        ssh_key_file: "{os.getenv("SSH_KEY_FILE", "ssh_key_file")}"')
 
     yield fn
 

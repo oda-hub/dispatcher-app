@@ -14,14 +14,14 @@ logger = app_logging.getLogger('renku_helper')
 def push_api_code(api_code,
                   job_id,
                   renku_repository_url,
-                  renku_gitlab_token,
+                  renku_gitlab_ssh_key_file,
                   sentry_client=None):
     error_message = 'Error while {step}'
     repository_folder_path = None
     try:
         step = 'cloning repository'
         repo = clone_renku_repo(renku_repository_url,
-                                renku_gitlab_token=renku_gitlab_token)
+                                renku_gitlab_ssh_key_file=renku_gitlab_ssh_key_file)
         repository_folder_path = repo.working_dir
         step = 'assigning branch name'
         branch_name = get_branch_name(job_id=job_id)
@@ -81,16 +81,13 @@ def get_repo_name(repository_url):
     return repo_name
 
 
-def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_token=None):
+def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_ssh_key_file=None):
     if repo_dir is None:
         repo_dir = get_repo_name(renku_repository_url)
 
-    url_parsed = urlparse(renku_repository_url)
-
-    if renku_gitlab_token is not None:
-        url_parsed = url_parsed._replace(netloc=f'{renku_gitlab_token}@{url_parsed.hostname}')
-
-    repo = Repo.clone_from(url_parsed.geturl(), repo_dir, branch='master')
+    git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_file}'
+    # with Repo.git.custom_environment(GIT_SSH_COMMAND=git_ssh_cmd):
+    repo = Repo.clone_from(renku_repository_url, repo_dir, branch='master', env=dict(GIT_SSH_COMMAND=git_ssh_cmd))
 
     logger.info(f'repository {renku_repository_url} successfully cloned')
 

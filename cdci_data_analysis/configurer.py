@@ -238,8 +238,7 @@ class ConfigEnv(object):
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_url', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_secret_key', None),
                                      disp_dict.get('renku_options', {}).get('renku_gitlab_repository_url', None),
-                                     disp_dict.get('renku_options', {}).get('renku_gitlab_token_name', None),
-                                     disp_dict.get('renku_options', {}).get('renku_gitlab_token', None)
+                                     disp_dict.get('renku_options', {}).get('ssh_key_file', None)
                                      )
 
         # not used?
@@ -291,8 +290,7 @@ class ConfigEnv(object):
                             product_gallery_url,
                             product_gallery_secret_key,
                             renku_gitlab_repository_url,
-                            renku_gitlab_token_name,
-                            renku_gitlab_token
+                            renku_gitlab_ssh_key_file
                             ):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
@@ -317,8 +315,7 @@ class ConfigEnv(object):
         self.product_gallery_url = product_gallery_url
         self.product_gallery_secret_key = product_gallery_secret_key
         self.renku_gitlab_repository_url = renku_gitlab_repository_url
-        self.renku_gitlab_token_name = renku_gitlab_token_name
-        self.renku_gitlab_token = renku_gitlab_token
+        self.renku_gitlab_ssh_key_file = renku_gitlab_ssh_key_file
 
     def get_data_serve_conf(self, instr_name):
         if instr_name in self.data_server_conf_dict.keys():
