@@ -22,6 +22,7 @@ from cdci_data_analysis.pytest_fixtures import (
             default_token_payload,
             dispatcher_live_fixture_empty_sentry,
             dispatcher_live_fixture_with_renku_options,
+            dispatcher_test_conf_with_renku_options,
             dispatcher_test_conf_with_renku_options_fn
         )
 

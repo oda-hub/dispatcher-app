@@ -8,6 +8,7 @@ import glob
 import pytest
 from datetime import datetime
 from functools import reduce
+from urllib.parse import urlparse
 import yaml
 import gzip
 import random
@@ -1512,7 +1513,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery):
 
 
 @pytest.mark.test_renku
-def test_posting_renku(dispatcher_live_fixture_with_renku_options):
+def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_test_conf_with_renku_options):
     server = dispatcher_live_fixture_with_renku_options
     print("constructed server:", server)
     logger.info("constructed server: %s", server)
@@ -1550,6 +1551,14 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options):
                       )
 
     assert c.status_code == 200
+
+    # parse the repo url and build the renku one
+    repo_url = dispatcher_test_conf_with_renku_options['renku_options']['renku_gitlab_repository_url']
+    parsed_repo_url = urlparse(repo_url)
+    namespace = parsed_repo_url.path.split('/')[2]
+    project_name = parsed_repo_url.path.split('/')[-1]
+
+    assert c.text == f'{parsed_repo_url.scheme}://{parsed_repo_url.hostname}/projects/{namespace}/{project_name}/sessions/new?autostart=1&branch=mmoda_request_{job_id}'
 
 
 @pytest.mark.fast
