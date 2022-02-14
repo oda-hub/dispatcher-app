@@ -512,13 +512,13 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             "value": v
         }]
 
+    headers = get_drupal_request_headers(gallery_jwt_token)
     # extract user-provided instrument and product_type
     if instrument in kwargs:
         instrument = kwargs.pop('instrument')
     if product_type in kwargs:
         product_type = kwargs.pop('product_type')
-    if product_type is not None and instrument is not None:
-        headers = get_drupal_request_headers(gallery_jwt_token)
+    if product_type is not None or instrument is not None:
         # TODO improve this REST endpoint on drupal to accept multiple input terms, and give one result per input
         # get all the taxonomy terms
         log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_name/all?_format=hal_json",

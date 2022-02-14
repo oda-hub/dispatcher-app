@@ -355,8 +355,6 @@ class InstrumentQueryBackEnd:
             # raise RequestNotAuthorized(message=message)
             return make_response(message), 403
 
-        # TODO! what is missing ?
-
         records = []
 
         for scratch_dir in glob.glob("scratch_sid_*_jid_*"):
