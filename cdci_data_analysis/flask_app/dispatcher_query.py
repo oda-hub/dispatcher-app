@@ -344,8 +344,8 @@ class InstrumentQueryBackEnd:
 
         roles = tokenHelper.get_token_roles(decoded_token)
 
-        required_roles = ['administrator', 'job manager']
-        if not all(item in roles for item in required_roles):
+        required_roles = ['job manager']
+        if not any(item in roles for item in required_roles):
             lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
             message = (
                 f"Unfortunately, your privileges are not sufficient for this type of request.\n"
