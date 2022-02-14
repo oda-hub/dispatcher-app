@@ -504,19 +504,11 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
                 "target_id": int(source_entity_id)
             }]
 
-    # let's go through the kwargs and if any overwrite some values for the product to post
-    for k, v in kwargs.items():
-        # assuming the name of the field in drupal starts always with field_
-        field_name = str.lower('field_' + k)
-        body_gallery_article_node[field_name] = [{
-            "value": v
-        }]
-
     headers = get_drupal_request_headers(gallery_jwt_token)
     # extract user-provided instrument and product_type
-    if instrument in kwargs:
+    if 'instrument' in kwargs:
         instrument = kwargs.pop('instrument')
-    if product_type in kwargs:
+    if 'product_type' in kwargs:
         product_type = kwargs.pop('product_type')
     if product_type is not None or instrument is not None:
         # TODO improve this REST endpoint on drupal to accept multiple input terms, and give one result per input
@@ -537,6 +529,14 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
                     body_gallery_article_node['field_data_product_type'] = [{
                         "target_id": int(output['tid'])
                     }]
+
+    # let's go through the kwargs and if any overwrite some values for the product to post
+    for k, v in kwargs.items():
+        # assuming the name of the field in drupal starts always with field_
+        field_name = str.lower('field_' + k)
+        body_gallery_article_node[field_name] = [{
+            "value": v
+        }]
 
     # setting img fid if available
     if img_fid is not None:
