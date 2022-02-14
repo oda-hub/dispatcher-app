@@ -269,8 +269,8 @@ def post_content_to_gallery(decoded_token,
                         fits_file_fid_list = []
                     fits_file_fid_list.append(output_fits_file_post['fid'][0]['value'])
 
-        session_id = par_dic.pop('session_id')
-        job_id = par_dic.pop('job_id')
+        session_id = par_dic.pop('session_id', None)
+        job_id = par_dic.pop('job_id', None)
         product_title = par_dic.pop('product_title', None)
         observation_id = par_dic.pop('observation_id', None)
         user_id_product_creator = par_dic.pop('user_id_product_creator')
@@ -405,7 +405,9 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
     return observation_drupal_id, observation_information_message
 
 
-def post_data_product_to_gallery(product_gallery_url, session_id, job_id, gallery_jwt_token,
+def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
+                                 session_id=None,
+                                 job_id=None,
                                  product_title=None,
                                  img_fid=None,
                                  fits_file_fid_list=None,
@@ -421,41 +423,44 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
 
     # set the initial body content
     body_value = ''
-    product_type = ''
-    t1 = t2 = None
-    # get products
-    scratch_dir = f'scratch_sid_{session_id}_jid_{job_id}'
-    # the aliased version might have been created
-    scratch_dir_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased'
-    analysis_parameters_json_content_original = None
-    #
-    if os.path.exists(scratch_dir):
-        analysis_parameters_json_content_original = json.load(open(scratch_dir + '/analysis_parameters.json'))
-    elif os.path.exists(scratch_dir_json_fn_aliased):
-        analysis_parameters_json_content_original = json.load(
-            open(scratch_dir_json_fn_aliased + '/analysis_parameters.json'))
+    t1 = t2 = instrument = product_type = None
+    if session_id is not None and job_id is not None:
 
-    if analysis_parameters_json_content_original is not None:
-        analysis_parameters_json_content_original.pop('token', None)
-        instrument = analysis_parameters_json_content_original.pop('instrument')
-        product_type = analysis_parameters_json_content_original.pop('product_type')
-        # time data for the observation
-        t1 = analysis_parameters_json_content_original.pop('T1')
-        t2 = analysis_parameters_json_content_original.pop('T2')
+        # in case job_id and session_id are passed then it automatically extracts the product information
+        # related to the specific job, otherwise what will be posted will hav to entirely provided by the user
 
-        # TODO no need to set all the parameters by default
-        # for k, v in analysis_parameters_json_content_original.items():
-        #     # assuming the name of the field in drupal starts always with field_
-        #     field_name = str.lower('field_' + k)
-        #     body_gallery_article_node[field_name] = [{
-        #         "value": v
-        #     }]
-        body_value = ''
-    else:
-        raise RequestNotUnderstood(message="Request data not found",
-                                   payload={'error_message': 'error while posting data product: '
-                                                             'results of the ODA product request could not be found, '
-                                                             'perhaps wrong job_id was passed?'})
+        scratch_dir = f'scratch_sid_{session_id}_jid_{job_id}'
+        # the aliased version might have been created
+        scratch_dir_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased'
+        analysis_parameters_json_content_original = None
+        #
+        if os.path.exists(scratch_dir):
+            analysis_parameters_json_content_original = json.load(open(scratch_dir + '/analysis_parameters.json'))
+        elif os.path.exists(scratch_dir_json_fn_aliased):
+            analysis_parameters_json_content_original = json.load(
+                open(scratch_dir_json_fn_aliased + '/analysis_parameters.json'))
+
+        if analysis_parameters_json_content_original is not None:
+            analysis_parameters_json_content_original.pop('token', None)
+            instrument = analysis_parameters_json_content_original.pop('instrument')
+            product_type = analysis_parameters_json_content_original.pop('product_type')
+            # time data for the observation
+            t1 = analysis_parameters_json_content_original.pop('T1')
+            t2 = analysis_parameters_json_content_original.pop('T2')
+
+            # TODO no need to set all the parameters by default
+            # for k, v in analysis_parameters_json_content_original.items():
+            #     # assuming the name of the field in drupal starts always with field_
+            #     field_name = str.lower('field_' + k)
+            #     body_gallery_article_node[field_name] = [{
+            #         "value": v
+            #     }]
+            body_value = ''
+        else:
+            raise RequestNotUnderstood(message="Request data not found",
+                                       payload={'error_message': 'error while posting data product: '
+                                                                 'results of the ODA product request could not be found, '
+                                                                 'perhaps wrong job_id was passed?'})
 
     # set observation
     if 'T1' in kwargs:
@@ -465,6 +470,7 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
 
     observation_drupal_id, observation_information_message = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
                                                       t1=t1, t2=t2, observation_id=observation_id)
+
     body_gallery_article_node["field_derived_from_observation"] = [{
         "target_id": observation_drupal_id
     }]
@@ -507,24 +513,30 @@ def post_data_product_to_gallery(product_gallery_url, session_id, job_id, galler
         }]
 
     headers = get_drupal_request_headers(gallery_jwt_token)
-    # TODO improve this REST endpoint to accept multiple input terms, and give one result per input
-    # get all the taxonomy terms
-    log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_name/all?_format=hal_json",
-                                     headers=headers)
-    output_post = analyze_drupal_output(log_res,
-                                        operation_performed="retrieving the taxonomy terms from the product gallery")
-    if type(output_post) == list and len(output_post) > 0:
-        for output in output_post:
-            if output['vid'] == 'Instruments' and output['name'] == instrument:
-                # info for the instrument
-                body_gallery_article_node['field_instrumentused'] = [{
-                    "target_id": int(output['tid'])
-                }]
-            if output['vid'] == 'product_type' and output['name'] == product_type:
-                # info for the product
-                body_gallery_article_node['field_data_product_type'] = [{
-                    "target_id": int(output['tid'])
-                }]
+    # extract user-provided instrument and product_type
+    if instrument in kwargs:
+        instrument = kwargs.pop('instrument')
+    if product_type in kwargs:
+        product_type = kwargs.pop('product_type')
+    if product_type is not None or instrument is not None:
+        # TODO improve this REST endpoint on drupal to accept multiple input terms, and give one result per input
+        # get all the taxonomy terms
+        log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_name/all?_format=hal_json",
+                                         headers=headers)
+        output_post = analyze_drupal_output(log_res,
+                                            operation_performed="retrieving the taxonomy terms from the product gallery")
+        if type(output_post) == list and len(output_post) > 0:
+            for output in output_post:
+                if instrument is not None and output['vid'] == 'Instruments' and output['name'] == instrument:
+                    # info for the instrument
+                    body_gallery_article_node['field_instrumentused'] = [{
+                        "target_id": int(output['tid'])
+                    }]
+                if product_type is not None and output['vid'] == 'product_type' and output['name'] == product_type:
+                    # info for the product
+                    body_gallery_article_node['field_data_product_type'] = [{
+                        "target_id": int(output['tid'])
+                    }]
 
     # setting img fid if available
     if img_fid is not None:
