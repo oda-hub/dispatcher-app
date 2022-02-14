@@ -11,8 +11,16 @@ from astropy import wcs
 
 from bokeh.models import FuncTickFormatter, FixedTicker
 
-from bokeh.layouts import row, widgetbox,gridplot
-from bokeh.models import CustomJS, Slider,HoverTool,ColorBar,LinearColorMapper,LabelSet,ColumnDataSource
+from bokeh.layouts import row, column, gridplot
+from bokeh.models import (CustomJS,
+                          Toggle, 
+                          RangeSlider,
+                          HoverTool,
+                          ColorBar,
+                          LinearColorMapper,
+                          LabelSet,
+                          ColumnDataSource,
+                          LogColorMapper)
 from bokeh.embed import components
 from bokeh.plotting import figure
 from bokeh.palettes import Plasma256
@@ -24,136 +32,133 @@ class Image(object):
         self.data=data
         self.header=header
 
-    def change_image_contrast(self, attr, old, new):
-        # print attr,old,new
-        self.fig_im.glyph.color_mapper.update(low=self.graph_min_slider.value, high=self.graph_max_slider.value)
-
-
-    def get_html_draw(self,w=None,h=None, catalog=None, plot=False, vmin=None, vmax=None):
-
-        #import plotly
-        #import plotly.graph_objs as go
-        #from plotly.graph_objs import  Layout
-
-        # print('vmin,vmax',vmin,vmax)
-
-
-
-
+    def get_html_draw(self,
+                      w=None,
+                      h=None, 
+                      catalog=None, 
+                      sources_circle_size = 15,
+                      x_scale = "linear", 
+                      y_scale = "linear", 
+                      x_range = None,
+                      y_range = None,
+                      x0 = 0,
+                      y0 = 0,
+                      dw = None,
+                      dh = None,
+                      x_label = None,
+                      y_label = None,
+                      enable_log_cmap = True,
+                      ):
 
         msk = ~np.isnan(self.data)
 
-        if vmin is None:
-            min_s = self.data[msk].min()
+        min_v = self.data[msk].min()
+        max_v = self.data[msk].max()
 
-        if vmax is None:
-            max_s = self.data[msk].max()
+        if x_range is None:
+            c = self.data.shape[1]
+            x_range = (0, c)
+        if y_range is None:
+            r = self.data.shape[0]
+            y_range=(0, r)
+        if dw is None:
+            dw = c
+        if dh is None:
+            dh = r
 
-
-
-        r = self.data.shape[0] * 2
-        c = self.data.shape[1] * 2
-
-
-
-        fig = figure(plot_width=w, plot_height=h, x_range=(0, c * 0.5), y_range=(0, r * 0.5),
+        fig = figure(plot_width = w, 
+                     plot_height = h, 
+                     x_axis_type = x_scale,
+                     y_axis_type = y_scale,
+                     x_range=x_range, 
+                     y_range=y_range,
+                     x_axis_label = x_label,
+                     y_axis_label = y_label,
                      tools=['pan,box_zoom,box_select,wheel_zoom,reset,save,crosshair'])
 
-        w = wcs.WCS(self.header)
-        color_mapper = LinearColorMapper(low=vmin, high=vmax, palette=Plasma256)
-
-        fig_im = fig.image(image=[self.data], x=[0], y=[0], dw=[c * 0.5], dh=[r * 0.5],
-                           color_mapper=color_mapper)
+        lin_color_mapper = LinearColorMapper(low = min_v, high = max_v, palette='Plasma256')
+        
+        fig_im = fig.image(image=[self.data], x=x0, y=y0, dw=dw, dh=dh,
+                           color_mapper=lin_color_mapper)
 
         hover = HoverTool(tooltips=[("x", "$x"), ("y", "$y"), ("value", "@image")],
                           renderers=[fig_im])
 
         fig.add_tools(hover)
 
-        #fig, (ax) = plt.subplots(1, 1, figsize=(4, 3), subplot_kw={'projection': WCS(self.header)})
-        #im = ax.imshow(self.data,
-        #               origin='lower',
-        #               zorder=1,
-        #               interpolation='none',
-        #               aspect='equal',
-        #               cmap=plt.get_cmap('jet'),
-        #               vmin=vmin,
-        #               vmax=vmax)
-
         if catalog is not None:
 
             lon = catalog.ra
             lat = catalog.dec
 
+            cur_wcs = wcs.WCS(self.header)
 
             if len(lat) > 0.:
-                pixcrd = w.wcs_world2pix(np.column_stack((lon, lat)), 0)
+                pixcrd = cur_wcs.wcs_world2pix(np.column_stack((lon, lat)), 0)
 
                 msk = ~np.isnan(pixcrd[:, 0])
-                #ax.plot(pixcrd[:, 0][msk], pixcrd[:, 1][msk], 'o', mfc='none')
                 source = ColumnDataSource(data=dict(lon=pixcrd[:, 0][msk]+0.5,
                                                     lat=pixcrd[:, 1][msk]+0.5,
                                                     names=catalog.name[msk]))
-                #for ID, (x, y) in enumerate(pixcrd):
-                #    if msk[ID]:
-                #        # print ('xy',(pixcrd[:, 0][ID], pixcrd[:, 1][ID]))
-                #        ax.annotate('%s' % catalog.name[ID], xy=(x, y), color='white')
-                #print(pixcrd[:][msk])
-                fig.scatter(x='lon', y='lat', marker='circle', size=15,
+
+                fig.scatter(x='lon', y='lat', marker='circle', size=sources_circle_size,
                             line_color="white", fill_color=None, alpha=1.0, source=source)
 
                 labels = LabelSet(x='lon', y='lat', text='names', level='glyph',
                                   x_offset=5, y_offset=5, render_mode='canvas', source=source, text_color='white')
 
                 fig.add_layout(labels)
-                #print'cat', catalog[msk]
 
 
-        color_bar = ColorBar(color_mapper=color_mapper,
-                             label_standoff=12, border_line_color=None, location=(0, 0))
+        lin_color_bar = ColorBar(color_mapper = lin_color_mapper, label_standoff=12, border_line_color=None, location=(0, 0), width=15)
 
-        JS_code_slider = """
-                   var vmin = low_slider.value;
-                   var vmax = high_slider.value;
-                   fig_im.glyph.color_mapper.high = vmax;
-                   fig_im.glyph.color_mapper.low = vmin;
-               """
+        fig.add_layout(lin_color_bar, 'right')
+        
+        graph_slider = RangeSlider(title='Sig. Range', start = min_v, end = max_v, step=(max_v - min_v) / 1000, value = (min_v, max_v * 0.8))
+        
+        graph_slider.js_link('value', lin_color_mapper, 'low', attr_selector = 0)
+        graph_slider.js_link('value', lin_color_mapper, 'high', attr_selector = 1)
 
-
-        callback = CustomJS(args=dict(fig_im=fig_im), code=JS_code_slider)
-
-        self.graph_min_slider = Slider(title="Sig. Min", start=min_s, end=max_s, step=1, value=min_s, callback=callback)
-        self.graph_max_slider = Slider(title="Sig. Max", start=min_s, end=max_s, step=1, value=max_s * 0.8,callback=callback)
-
-
-        self.graph_min_slider.on_change('value', self.change_image_contrast)
-        self.graph_max_slider.on_change('value', self.change_image_contrast)
-
-        callback.args["low_slider"] = self.graph_min_slider
-        callback.args["high_slider"] = self.graph_max_slider
-
-        #ax.set_xlabel('RA')
-        #ax.set_ylabel('DEC')
-        #ax.grid(True, color='white')
-        #fig.colorbar(im, ax=ax)
-
-        #plugins.connect(fig, plugins.MousePosition(fontsize=14))
-        #if plot == True:
-        #    print('plot', plot)
-        #    mpld3.show()
+        widgets = [graph_slider]
+        
+        if enable_log_cmap:
+            log_color_mapper = LogColorMapper(low = max(0, min_v), high = max_v, palette=Plasma256)
+            graph_slider.js_link('value', log_color_mapper, 'low', attr_selector = 0)
+            graph_slider.js_link('value', log_color_mapper, 'high', attr_selector = 1)
+            
+            log_color_bar = ColorBar(color_mapper = log_color_mapper, label_standoff=2, border_line_color=None, location=(0, 0), width=15)
+            fig.add_layout(log_color_bar, 'right')
+            log_color_bar.visible = False
 
 
-        fig.add_layout(color_bar, 'right')
-
-        layout = row(
-            fig, widgetbox(self.graph_min_slider, self.graph_max_slider),
-        )
-
-        #curdoc().add_root(layout)
-
-        #output_file("slider.html", title="slider.py example")
-        #from bokeh.io import  show
-        #show(layout)
+            log_toggle = Toggle(label='Toggle Log. Norm', active=False)
+            log_toggle.js_on_click(CustomJS(args = dict(lin_color_mapper = lin_color_mapper, 
+                                                        log_color_mapper = log_color_mapper, 
+                                                        fig_im = fig_im,
+                                                        graph_slider = graph_slider,
+                                                        min_v = min_v,
+                                                        lin_color_bar = lin_color_bar,
+                                                        log_color_bar = log_color_bar),
+                                            code = """
+                                                if (this.active) {
+                                                    graph_slider.value = [Math.max(0 + graph_slider.step, graph_slider.value[0]), graph_slider.value[1]];
+                                                    graph_slider.start = Math.max(0 + graph_slider.step, min_v);
+                                                    fig_im.glyph.color_mapper = log_color_mapper;
+                                                    log_color_bar.visible = true;
+                                                    lin_color_bar.visible = false;
+                                                } else {
+                                                    graph_slider.start = min_v;
+                                                    fig_im.glyph.color_mapper = lin_color_mapper;
+                                                    log_color_bar.visible = false;
+                                                    lin_color_bar.visible = true;
+                                                }
+                                                """
+                                            )
+                                )
+            widgets.append(log_toggle)
+            
+        layout = column(row(widgets), 
+                        fig)
 
         script, div = components(layout)
 
@@ -267,8 +272,8 @@ class ScatterPlot(object):
         self.fig.step(x,y,name=legend, mode="center")
         #print('b')
 
-    def add_line(self,x,y,legend=None,color=None):
-        self.fig.line(x,y,legend=legend,line_color=color)
+    def add_line(self,x,y,legend=None,color='red'):
+        self.fig.line(x,y,name=legend,line_color=color)
 
     def get_html_draw(self):
 
