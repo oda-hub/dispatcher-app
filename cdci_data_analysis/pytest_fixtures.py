@@ -25,7 +25,6 @@ import time
 import hashlib
 import glob
 
-from urllib.parse import urlparse
 from git import Repo
 from threading import Thread
 

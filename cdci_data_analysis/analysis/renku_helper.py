@@ -3,7 +3,6 @@ import nbformat as nbf
 import shutil
 
 from git import Repo
-from urllib.parse import urlparse
 
 from ..app_logging import app_logging
 from .exceptions import RequestNotUnderstood
