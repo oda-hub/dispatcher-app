@@ -1429,7 +1429,9 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 
 @pytest.mark.test_drupal
-def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery):
+@pytest.mark.parametrize("provide_job_id", [True, False])
+@pytest.mark.parametrize("provide_session_id", [True, False])
+def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, provide_job_id, provide_session_id):
     dispatcher_fetch_dummy_products('default')
 
     server = dispatcher_live_fixture_with_gallery
@@ -1469,6 +1471,11 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery):
 
     dec = 19
     ra = 458
+
+    if not provide_job_id:
+        job_id = None
+    if not provide_session_id:
+        session_id = None
 
     params = {
         'job_id': job_id,
