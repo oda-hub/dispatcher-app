@@ -382,13 +382,13 @@ class ImageProduct(BaseQueryProduct):
                                            **kwargs)
 
 
-    def get_html_draw(self, catalog=None, data_ID=0):
+    def get_html_draw(self, catalog=None, data_ID=0, **image_kwargs):
         _du=self.data.get_data_unit(ID=data_ID)
         im=Image(data=_du.data,header=_du.header)
         w=600
         (r,c)=_du.data.shape
         ratio=float(r)/c
-        html_dict=im.get_html_draw(w=w,h=int(w*ratio),catalog=catalog)
+        html_dict=im.get_html_draw(w=w,h=int(w*ratio),catalog=catalog, **image_kwargs)
 
         res_dict = {}
         res_dict['image']=html_dict
