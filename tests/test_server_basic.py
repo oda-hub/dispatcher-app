@@ -1431,7 +1431,9 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 @pytest.mark.test_drupal
 @pytest.mark.parametrize("provide_job_id", [True, False])
 @pytest.mark.parametrize("provide_session_id", [True, False])
-def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, provide_job_id, provide_session_id):
+@pytest.mark.parametrize("provide_instrument", [True, False])
+@pytest.mark.parametrize("provide_product_type", [True, False])
+def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_session_id, provide_instrument, provide_product_type):
     dispatcher_fetch_dummy_products('default')
 
     server = dispatcher_live_fixture_with_gallery
@@ -1445,13 +1447,15 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, prov
         "roles": "general, gallery contributor",
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    instrument = 'empty'
+    product_type = 'numerical'
 
     params = {
         **default_params,
         'src_name': 'Mrk 421',
-        'product_type': 'numerical',
+        'product_type': product_type,
         'query_type': "Dummy",
-        'instrument': 'empty',
+        'instrument': instrument,
         'p': 5,
         'token': encoded_token
     }
@@ -1476,10 +1480,21 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, prov
         job_id = None
     if not provide_session_id:
         session_id = None
+    if not provide_instrument:
+        instrument = None
+    else:
+        # a difference value
+        instrument = 'isgri'
+    if not provide_product_type:
+        product_type = None
+    else:
+        product_type = 'isgri_lc'
 
     params = {
         'job_id': job_id,
         'session_id': session_id,
+        'instrument': instrument,
+        'product_type': product_type,
         'src_name': 'Crab',
         'content_type': 'data_product',
         'product_title': product_title,
@@ -1520,6 +1535,16 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, prov
 
     assert 'field_ra' in drupal_res_obj
     assert drupal_res_obj['field_ra'][0]['value'] == ra
+
+    if provide_instrument or (provide_job_id and provide_session_id):
+        link_field_instrumentused = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                                                 'rest/relation/node/data_product/field_instrumentused')
+        assert link_field_instrumentused in drupal_res_obj['_links']
+
+    if provide_product_type or (provide_job_id and provide_session_id):
+        link_field_data_product_type = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                                                 'rest/relation/node/data_product/field_data_product_type')
+        assert link_field_data_product_type in drupal_res_obj['_links']
 
 
 @pytest.mark.test_renku
