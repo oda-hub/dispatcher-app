@@ -43,7 +43,9 @@ install_req = [
     "pyjwt",
     "marshmallow",
     "black",
-    "bs4"
+    "bs4",
+    "GitPython",
+    "nbformat"
 ]
 
 test_req = [

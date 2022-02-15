@@ -1,3 +1,5 @@
+import shutil
+
 import requests
 import time
 import json
@@ -8,11 +10,14 @@ import glob
 import pytest
 from datetime import datetime
 from functools import reduce
+from urllib.parse import urlparse
+import nbformat as nbf
 import yaml
 import gzip
+import random
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products, clone_gitlab_repo, get_repo_name
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
 
@@ -1540,6 +1545,72 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
         link_field_data_product_type = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
                                                  'rest/relation/node/data_product/field_data_product_type')
         assert link_field_data_product_type in drupal_res_obj['_links']
+
+
+@pytest.mark.test_renku
+def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_test_conf_with_renku_options):
+    server = dispatcher_live_fixture_with_renku_options
+    print("constructed server:", server)
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, renku contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'src_name': 'Mrk 421',
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 5 + random.random(),
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+    job_id = jdata['products']['job_id']
+    session_id = jdata['products']['session_id']
+    params = {
+        'job_id': job_id,
+        'token': encoded_token
+    }
+    c = requests.post(server + "/push-renku-branch",
+                      params={**params}
+                      )
+
+    assert c.status_code == 200
+
+    # parse the repo url and build the renku one
+    repo_url = dispatcher_test_conf_with_renku_options['renku_options']['renku_gitlab_repository_url']
+    renku_gitlab_user_name = dispatcher_test_conf_with_renku_options['renku_options']['renku_gitlab_user_name']
+    renku_project_url = dispatcher_test_conf_with_renku_options['renku_options']['renku_project_url']
+    renku_gitlab_ssh_key_file = dispatcher_test_conf_with_renku_options['renku_options']['ssh_key_file']
+    project_name = get_repo_name(repo_url)
+
+    # assert c.text == f'{parsed_repo_url.scheme}://{parsed_repo_url.hostname}/projects/{namespace}/{project_name}/sessions/new?autostart=1&branch=mmoda_request_{job_id}'
+    assert c.text == f"{renku_project_url}/{renku_gitlab_user_name}/{project_name}/sessions/new?autostart=1&branch=mmoda_request_{job_id}"
+
+    # validate content pushed
+    repo = clone_gitlab_repo(repo_url, renku_gitlab_ssh_key_file=renku_gitlab_ssh_key_file, branch_name=f'mmoda_request_{job_id}')
+    api_code_file_path = os.path.join(repo.working_dir,  "_".join(["api_code", job_id]) + '.ipynb')
+
+    extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
+
+    assert os.path.exists(api_code_file_path)
+    parsed_notebook = nbf.read(api_code_file_path, 4)
+    assert len(parsed_notebook.cells) == 2
+    assert parsed_notebook.cells[0].source == "# Notebook automatically generated from MMODA"
+    assert parsed_notebook.cells[1].source == extracted_api_code
+
+    shutil.rmtree(repo.working_dir)
 
 
 @pytest.mark.fast

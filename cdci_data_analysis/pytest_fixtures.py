@@ -25,6 +25,7 @@ import time
 import hashlib
 import glob
 
+from git import Repo
 from threading import Thread
 
 __this_dir__ = os.path.join(os.path.abspath(os.path.dirname(__file__)))
@@ -392,8 +393,31 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
+def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
+    fn = "test-dispatcher-conf-with-renku-options.yaml"
+    filesys_repo = 'file:///renkulab.io/gitlab/gabriele.barni/test-dispatcher-endpoint'
+    with open(fn, "w") as f:
+        with open(dispatcher_test_conf_fn) as f_default:
+            f.write(f_default.read())
+
+        f.write('\n    renku_options:'
+                '\n        renku_gitlab_repository_url: "git@renkulab.io:gabriele.barni/test-dispatcher-endpoint.git"'
+                '\n        renku_gitlab_user_name: "gabriele.barni"'
+                '\n        renku_project_url: "http://renkulab.io/projects"'
+               f'\n        ssh_key_file: "{os.getenv("SSH_KEY_FILE", "ssh_key_file")}"')
+
+    yield fn
+
+
+@pytest.fixture
 def dispatcher_test_conf_with_gallery(dispatcher_test_conf_with_gallery_fn):
     yield yaml.load(open(dispatcher_test_conf_with_gallery_fn), Loader=yaml.SafeLoader)['dispatcher']
+
+
+@pytest.fixture
+def dispatcher_test_conf_with_renku_options(dispatcher_test_conf_with_renku_options_fn):
+    yield yaml.load(open(dispatcher_test_conf_with_renku_options_fn), Loader=yaml.SafeLoader)['dispatcher']
+
 
 @pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
@@ -620,6 +644,18 @@ def dispatcher_live_fixture_with_gallery(pytestconfig, dispatcher_test_conf_with
     os.kill(pid, signal.SIGINT)
 
 
+@pytest.fixture
+def dispatcher_live_fixture_with_renku_options(pytestconfig, dispatcher_test_conf_with_renku_options_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_renku_options_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
 
 @pytest.fixture
 def dispatcher_live_fixture_no_debug_mode(pytestconfig, dispatcher_test_conf_fn, dispatcher_nodebug):
@@ -696,10 +732,61 @@ def dispatcher_fetch_dummy_products(dummy_product_pack: str, reuse=False):
     open(dispatcher_dummy_product_pack_state_fn, "w").write("%s"%time.time())
 
 
+def clone_gitlab_repo(repository_url, repo_dir=None, renku_gitlab_ssh_key_file=None, branch_name=None):
+    if repo_dir is None:
+        repo_dir = get_repo_name(repository_url)
+
+    if branch_name is None:
+        branch_name = 'master'
+
+    git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_file}'
+
+    repo = Repo.clone_from(repository_url, repo_dir, branch=branch_name, env=dict(GIT_SSH_COMMAND=git_ssh_cmd))
+
+    logger.info(f'repository {repository_url} successfully cloned')
+
+    return repo
+
+
+def get_repo_name(repository_url):
+    repo_name = repository_url.split('/')[-1]
+    if repo_name.endswith('.git'):
+        repo_name = repo_name[0:-4]
+
+    return repo_name
+
+
+def get_repo_name(repository_url):
+    repo_name = repository_url.split('/')[-1]
+    if repo_name.endswith('.git'):
+        repo_name = repo_name[0:-4]
+
+    return repo_name
+
+
 class DispatcherJobState:
     """
     manages state stored in scratch_* directories
     """
+
+    @staticmethod
+    def extract_api_code(session_id, job_id):
+        # check query output are generated
+        query_output_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
+        # the aliased version might have been created
+        query_output_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
+        # get the query output
+        if os.path.exists(query_output_json_fn):
+            f = open(query_output_json_fn)
+        else:
+            f = open(query_output_json_fn_aliased)
+
+        query_output_data = json.load(f)
+        extracted_api_code = None
+        if 'prod_dictionary' in query_output_data and 'api_code' in query_output_data['prod_dictionary']:
+            extracted_api_code = query_output_data['prod_dictionary']['api_code']
+
+        return extracted_api_code
 
     @staticmethod
     def generate_session_id():

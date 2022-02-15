@@ -5,6 +5,7 @@ Created on Wed May 10 10:55:20 2017
 
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
+import glob
 import string
 import random
 import hashlib
@@ -20,7 +21,7 @@ from flask_restx import Api, Resource, reqparse
 import time as _time
 from urllib.parse import urlencode
 
-from cdci_data_analysis.analysis import drupal_helper, tokenHelper
+from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError
@@ -216,6 +217,73 @@ def inspect_state():
 
     state_data_obj = InstrumentQueryBackEnd.inspect_state(app)
     return state_data_obj
+
+
+@app.route('/push-renku-branch', methods=['POST'])
+def push_renku_branch():
+    logger.info("request.args: %s ", request.args)
+
+    token = request.args.get('token', None)
+    if token is None:
+        return make_response('A token must be provided.'), 403
+    try:
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
+        decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+        logger.info("==> token %s", decoded_token)
+    except jwt.exceptions.ExpiredSignatureError:
+        # raise RequestNotAuthorized("The token provided is expired.")
+        return make_response('The token provided is expired.'), 403
+    except jwt.exceptions.InvalidTokenError:
+        # raise RequestNotAuthorized("The token provided is not valid.")
+        return make_response('The token provided is not valid.'), 403
+
+    roles = tokenHelper.get_token_roles(decoded_token)
+
+    # TODO could not think of better name
+    required_roles = ['renku contributor']
+    if not all(item in roles for item in required_roles):
+        lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+        message = (
+            f"Unfortunately, your privileges are not sufficient to push your code in a renku branch.\n"
+            f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
+        )
+        return make_response(message), 403
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+    # TODO check job_id is provided with the request
+    job_id = par_dic.pop('job_id')
+    api_code = None
+    # Get the API code to push to the new renku branch
+    scratch_dir_pattern = f'scratch_sid_*_jid_{job_id}*'
+    list_scratch_folders = glob.glob(scratch_dir_pattern)
+    if len(list_scratch_folders) >= 1:
+        query_output_json_content_original = json.load(open(list_scratch_folders[0] + '/query_output.json'))
+        prod_dict = query_output_json_content_original['prod_dictionary']
+        # remove parameters that should not be shared
+        api_code = prod_dict.pop('api_code', None)
+
+    renku_repository_url = app_config.renku_gitlab_repository_url
+    renku_gitlab_ssh_key_file = app_config.renku_gitlab_ssh_key_file
+    renku_gitlab_user_name = app_config.renku_gitlab_user_name
+    renku_project_url = app_config.renku_project_url
+
+    if api_code is not None:
+        api_code_url = renku_helper.push_api_code(api_code=api_code,
+                                                  job_id=job_id,
+                                                  renku_repository_url=renku_repository_url,
+                                                  renku_gitlab_user_name=renku_gitlab_user_name,
+                                                  renku_project_url=renku_project_url,
+                                                  renku_gitlab_ssh_key_file=renku_gitlab_ssh_key_file)
+
+        return api_code_url
+
+    else:
+        raise RequestNotUnderstood(message="Request data not found",
+                                   payload={'error_message': 'error while posting data in the renku branch: '
+                                                             'api_code was not found, '
+                                                             'perhaps wrong job_id was passed?'})
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
