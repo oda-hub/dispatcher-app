@@ -103,7 +103,7 @@ def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_ssh_key_f
 
 def get_list_remote_branches_repo(repo):
 
-    list_branches = repo.git.branch("-r", "--format=%(refname:short)").split("\n")
+    list_branches = repo.git.branch("-a", "--format=%(refname:short)").split("\n")
 
     return list_branches
 
