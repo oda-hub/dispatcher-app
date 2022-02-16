@@ -33,7 +33,7 @@ def push_api_code(api_code,
         step = f'creating new notebook with the api code'
         new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
 
-        step = f'committing and pushing notebook {new_file_path} to the repository'
+        step = f'committing and pushing the api code to the renku repository'
         commit_and_push_file(repo, new_file_path)
 
         step = f'generating a valid url to start a new session on the new branch'
