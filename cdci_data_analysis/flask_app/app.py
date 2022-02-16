@@ -6,6 +6,7 @@ Created on Wed May 10 10:55:20 2017
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
 import glob
+import re
 import string
 import random
 import hashlib
@@ -261,8 +262,10 @@ def push_renku_branch():
     if len(list_scratch_folders) >= 1:
         query_output_json_content_original = json.load(open(list_scratch_folders[0] + '/query_output.json'))
         prod_dict = query_output_json_content_original['prod_dictionary']
-        # remove parameters that should not be shared
+        # remove parameters that should not be shared (eg token)
         api_code = prod_dict.pop('api_code', None)
+        token_pattern = r"(\'|\")token(\'|\"):.\s?(\'|\").*?(\'|\")"
+        api_code = re.sub(token_pattern, '"token": "input()",', api_code, flags=re.DOTALL)
 
     renku_repository_url = app_config.renku_gitlab_repository_url
     renku_gitlab_ssh_key_file = app_config.renku_gitlab_ssh_key_file
