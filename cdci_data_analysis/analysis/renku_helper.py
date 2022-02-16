@@ -1,4 +1,6 @@
 import os.path
+import re
+
 import nbformat as nbf
 import shutil
 
@@ -27,14 +29,18 @@ def push_api_code(api_code,
         step = 'assigning branch name'
         branch_name = get_branch_name(job_id=job_id)
 
+        step = f'checking the branch already exists'
+        job_id_branch_already_exists = check_job_id_branch_is_present(repo, job_id)
+
         step = f'checkout branch {branch_name}'
         repo = checkout_branch_renku_repo(repo, branch_name)
 
-        step = f'creating new notebook with the api code'
-        new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
+        if not job_id_branch_already_exists:
+            step = f'creating new notebook with the api code'
+            new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
 
-        step = f'committing and pushing the api code to the renku repository'
-        commit_and_push_file(repo, new_file_path)
+            step = f'committing and pushing the api code to the renku repository'
+            commit_and_push_file(repo, new_file_path)
 
         step = f'generating a valid url to start a new session on the new branch'
         renku_session_url = generate_renku_session_url(repo,
@@ -93,6 +99,22 @@ def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_ssh_key_f
     logger.info(f'repository {renku_repository_url} successfully cloned')
 
     return repo
+
+
+def get_list_remote_branches_repo(repo):
+
+    list_branches = repo.git.branch("-r", "--format=%(refname:short)").split("\n")
+
+    return list_branches
+
+
+def check_job_id_branch_is_present(repo, job_id):
+    list_branches = get_list_remote_branches_repo(repo)
+
+    r = re.compile(f".*_{job_id}")
+    filtered_list = list(filter(r.match, list_branches))
+
+    return len(filtered_list) == 1
 
 
 def get_branch_name(job_id=None, session_id=None):
