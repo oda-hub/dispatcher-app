@@ -1549,7 +1549,8 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
 
 
 @pytest.mark.test_renku
-def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_test_conf_with_renku_options):
+@pytest.mark.parametrize("existing_branch", [True, False])
+def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_test_conf_with_renku_options, existing_branch):
     server = dispatcher_live_fixture_with_renku_options
     print("constructed server:", server)
     logger.info("constructed server: %s", server)
@@ -1561,6 +1562,10 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
         "roles": "general, renku contributor",
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    p = 5
+
+    if not existing_branch:
+        p += random.random()
 
     params = {
         **default_params,
@@ -1568,7 +1573,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
         'product_type': 'numerical',
         'query_type': "Dummy",
         'instrument': 'empty',
-        'p': 5 + random.random(),
+        'p': p,
         'token': encoded_token
     }
 
