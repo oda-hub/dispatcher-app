@@ -267,13 +267,11 @@ class ScatterPlot(object):
 
 
 
-    def add_step_line(self,x,y,legend=None):
-        #print('a')
-        self.fig.step(x,y,name=legend, mode="center")
-        #print('b')
+    def add_step_line(self, x, y, legend=None):
+        self.fig.step(x, y, legend_label=legend, mode="center")
 
-    def add_line(self,x,y,legend=None,color='red'):
-        self.fig.line(x,y,name=legend,line_color=color)
+    def add_line(self, x, y, legend=None, color='red'):
+        self.fig.line(x, y, legend_label=legend, line_color=color)
 
     def get_html_draw(self):
 
