@@ -264,7 +264,7 @@ def push_renku_branch():
         prod_dict = query_output_json_content_original['prod_dictionary']
         # remove parameters that should not be shared (eg token)
         api_code = prod_dict.pop('api_code', None)
-        token_pattern = r"(\'|\")token(\'|\"):.\s?(\'|\").*?(\'|\")"
+        token_pattern = r"(\'|\")token(\'|\"):.\s?(\'|\").*?(\'|\"),?"
         api_code = re.sub(token_pattern, '"token": "input()",', api_code, flags=re.DOTALL)
 
     renku_repository_url = app_config.renku_gitlab_repository_url
