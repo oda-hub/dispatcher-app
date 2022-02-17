@@ -470,10 +470,10 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
 
     observation_drupal_id, observation_information_message = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
                                                       t1=t1, t2=t2, observation_id=observation_id)
-
-    body_gallery_article_node["field_derived_from_observation"] = [{
-        "target_id": observation_drupal_id
-    }]
+    if observation_drupal_id is not None:
+        body_gallery_article_node["field_derived_from_observation"] = [{
+            "target_id": observation_drupal_id
+        }]
 
     if observation_information_message is not None:
         logger.info("==> information about assigned observation: %s", observation_information_message)
