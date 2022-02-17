@@ -1434,7 +1434,8 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 @pytest.mark.parametrize("provide_session_id", [True, False])
 @pytest.mark.parametrize("provide_instrument", [True, False])
 @pytest.mark.parametrize("provide_product_type", [True, False])
-def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_session_id, provide_instrument, provide_product_type):
+@pytest.mark.parametrize("timerange_parameters", ["time", "observation_id", None])
+def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_session_id, provide_instrument, provide_product_type, timerange_parameters):
     dispatcher_fetch_dummy_products('default')
 
     server = dispatcher_live_fixture_with_gallery
@@ -1503,10 +1504,13 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
         'E2_kev': e2_kev,
         'DEC': dec,
         'RA': ra,
-        'T1': '2003-03-15T23:27:40.0',
-        'T2': '2003-03-16T00:03:12.0',
         'token': encoded_token
     }
+    if timerange_parameters == 'time':
+        params['T1'] = '2003-03-15T23:27:40.0'
+        params['T2'] = '2003-03-16T00:03:12.0'
+    elif timerange_parameters == 'observation_id':
+        params['observation_id'] = 'test observation'
 
     # send test img and test fits file
     file_obj = {'img': open('data/dummy_prods/ds9.jpeg', 'rb'),
@@ -1546,6 +1550,14 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
         link_field_data_product_type = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
                                                  'rest/relation/node/data_product/field_data_product_type')
         assert link_field_data_product_type in drupal_res_obj['_links']
+
+    link_field_derived_from_observation = os.path.join(
+        dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+        'rest/relation/node/data_product/field_derived_from_observation')
+    if timerange_parameters is None and provide_job_id is None and provide_session_id is None:
+        assert link_field_derived_from_observation not in drupal_res_obj['_links']
+    else:
+        assert link_field_derived_from_observation in drupal_res_obj['_links']
 
 
 @pytest.mark.test_renku
