@@ -32,10 +32,10 @@ def push_api_code(api_code,
         step = f'checking the branch already exists'
         job_id_branch_already_exists = check_job_id_branch_is_present(repo, job_id)
 
-        step = f'checkout branch {branch_name}'
-        repo = checkout_branch_renku_repo(repo, branch_name)
-
         if not job_id_branch_already_exists:
+            step = f'checkout branch {branch_name}'
+            repo = checkout_branch_renku_repo(repo, branch_name)
+
             step = f'creating new notebook with the api code'
             new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
 
