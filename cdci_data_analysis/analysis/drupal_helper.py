@@ -398,7 +398,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
                     observation_information_message = 'observation assigned from the provided time range'
                     break
 
-        if observation_drupal_id is None:
+        if observation_drupal_id is None and (t1 is not None and t2 is not None):
             observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, t1, t2, sentry_client=sentry_client)
             observation_information_message = 'a new observation has been posted'
 
