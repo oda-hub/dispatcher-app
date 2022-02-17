@@ -1554,10 +1554,10 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
     link_field_derived_from_observation = os.path.join(
         dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
         'rest/relation/node/data_product/field_derived_from_observation')
-    if timerange_parameters is None and provide_job_id is None and provide_session_id is None:
-        assert link_field_derived_from_observation not in drupal_res_obj['_links']
-    else:
+    if timerange_parameters is not None or (provide_job_id and provide_session_id):
         assert link_field_derived_from_observation in drupal_res_obj['_links']
+    else:
+        assert link_field_derived_from_observation not in drupal_res_obj['_links']
 
 
 @pytest.mark.test_renku
