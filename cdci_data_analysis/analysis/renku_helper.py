@@ -1,4 +1,6 @@
 import os.path
+import re
+
 import nbformat as nbf
 import shutil
 
@@ -27,19 +29,28 @@ def push_api_code(api_code,
         step = 'assigning branch name'
         branch_name = get_branch_name(job_id=job_id)
 
-        step = f'checkout branch {branch_name}'
-        repo = checkout_branch_renku_repo(repo, branch_name)
+        step = f'checking the branch already exists'
+        job_id_branch_already_exists = check_job_id_branch_is_present(repo, job_id)
 
-        step = f'creating new notebook with the api code'
-        new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
+        if not job_id_branch_already_exists:
+            step = f'checkout branch {branch_name}'
+            repo = checkout_branch_renku_repo(repo, branch_name)
 
-        step = f'committing and pushing notebook {new_file_path} to the repository'
-        commit_and_push_file(repo, new_file_path)
+            step = f'removing token from the api_code'
+            token_pattern = r"(\'|\")token(\'|\"):.\s?(\'|\").*?(\'|\"),?"
+            api_code = re.sub(token_pattern, '"token": "<INSERT_YOUR_TOKEN_HERE>",', api_code, flags=re.DOTALL)
+
+            step = f'creating new notebook with the api code'
+            new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
+
+            step = f'committing and pushing the api code to the renku repository'
+            commit_and_push_file(repo, new_file_path)
 
         step = f'generating a valid url to start a new session on the new branch'
         renku_session_url = generate_renku_session_url(repo,
                                                        renku_project_url=renku_project_url,
-                                                       renku_gitlab_user_name=renku_gitlab_user_name)
+                                                       renku_gitlab_user_name=renku_gitlab_user_name,
+                                                       branch_name=branch_name)
 
     except Exception as e:
         error_message = error_message.format(step=step)
@@ -50,12 +61,12 @@ def push_api_code(api_code,
         raise RequestNotUnderstood(error_message)
     finally:
         logger.info("==> removing repository folder, since it is no longer necessary")
-        remove_repository(repository_folder_path)
+        remove_repository(renku_repository_url, repository_folder_path)
     # TODO to actually return the renkulab url of the newly created branch
     return renku_session_url
 
 
-def generate_renku_session_url(repo, renku_project_url, renku_gitlab_user_name):
+def generate_renku_session_url(repo, renku_project_url, renku_gitlab_user_name, branch_name):
     original_url = repo.remotes.origin.url
 
     # in our case the namespace and project_name are to be provided, extracted from the url of the repository
@@ -69,7 +80,7 @@ def generate_renku_session_url(repo, renku_project_url, renku_gitlab_user_name):
         renku_project_url=renku_project_url,
         namespace=namespace,
         project_name=project_name,
-        branch=f'&branch={repo.active_branch}')
+        branch=f'&branch={branch_name}')
 
     return generated_renku_new_session_url
 
@@ -93,6 +104,22 @@ def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_ssh_key_f
     logger.info(f'repository {renku_repository_url} successfully cloned')
 
     return repo
+
+
+def get_list_remote_branches_repo(repo):
+
+    list_branches = repo.git.branch("-a", "--format=%(refname:short)").split("\n")
+
+    return list_branches
+
+
+def check_job_id_branch_is_present(repo, job_id):
+    list_branches = get_list_remote_branches_repo(repo)
+
+    r = re.compile(f".*_{job_id}")
+    filtered_list = list(filter(r.match, list_branches))
+
+    return len(filtered_list) == 1
 
 
 def get_branch_name(job_id=None, session_id=None):
@@ -147,7 +174,10 @@ def commit_and_push_file(repo, file_path):
         raise e
 
 
-def remove_repository(repo_working_dir_path):
+def remove_repository(renku_repository_url, repo_working_dir_path):
+    if repo_working_dir_path is None:
+        repo_working_dir_path = get_repo_name(renku_repository_url)
+
     if repo_working_dir_path is not None and os.path.exists(repo_working_dir_path):
         shutil.rmtree(repo_working_dir_path)
 
