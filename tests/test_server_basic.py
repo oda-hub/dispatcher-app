@@ -1610,7 +1610,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
 
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
     token_pattern = r"(\'|\")token(\'|\"):.\s?(\'|\").*?(\'|\")"
-    extracted_api_code = re.sub(token_pattern, '"token": "input()",', extracted_api_code, flags=re.DOTALL)
+    extracted_api_code = re.sub(token_pattern, '"token": "<INSERT_YOUR_TOKEN_HERE>",', extracted_api_code, flags=re.DOTALL)
 
     assert os.path.exists(api_code_file_path)
     parsed_notebook = nbf.read(api_code_file_path, 4)
