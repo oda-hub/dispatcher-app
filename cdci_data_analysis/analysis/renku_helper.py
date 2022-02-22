@@ -1,5 +1,6 @@
 import os.path
 import re
+import traceback
 
 import nbformat as nbf
 import shutil
@@ -55,6 +56,8 @@ def push_api_code(api_code,
     except Exception as e:
         error_message = error_message.format(step=step)
 
+        traceback.print_exc()
+
         if sentry_client is not None:
             sentry_client.capture('raven.events.Message',
                                   message=f'{error_message}\n{e}')
@@ -94,8 +97,11 @@ def get_repo_name(repository_url):
 
 
 def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_ssh_key_file=None):
+    logger.info('clone_renku_repo with renku_repository_url=%s, repo_dir=%s, renku_gitlab_ssh_key_file=%s', renku_repository_url, repo_dir, renku_gitlab_ssh_key_file)
+
     if repo_dir is None:
         repo_dir = get_repo_name(renku_repository_url)
+        logger.info('constructing repo_dir=%s', repo_dir)
 
     git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_file}'
 
