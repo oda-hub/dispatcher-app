@@ -1,5 +1,7 @@
 import os.path
 import re
+import tempfile
+import traceback
 
 import nbformat as nbf
 import shutil
@@ -55,6 +57,8 @@ def push_api_code(api_code,
     except Exception as e:
         error_message = error_message.format(step=step)
 
+        traceback.print_exc()
+
         if sentry_client is not None:
             sentry_client.capture('raven.events.Message',
                                   message=f'{error_message}\n{e}')
@@ -67,22 +71,10 @@ def push_api_code(api_code,
 
 
 def generate_renku_session_url(repo, renku_project_url, renku_gitlab_user_name, branch_name):
-    original_url = repo.remotes.origin.url
-
-    # in our case the namespace and project_name are to be provided, extracted from the url of the repository
-    new_session_autostart_url = "{renku_project_url}/{namespace}/{project_name}/sessions/new?autostart=1{branch}"
-
-    namespace = renku_gitlab_user_name
-    # get name of the repository/project
-    project_name = get_repo_name(original_url)
-
-    generated_renku_new_session_url = new_session_autostart_url.format(
-        renku_project_url=renku_project_url,
-        namespace=namespace,
-        project_name=project_name,
-        branch=f'&branch={branch_name}')
-
-    return generated_renku_new_session_url
+    # original_url = repo.remotes.origin.url
+    # TODO: project url could be derived from renku projects base path and original_url. the config values should be renamed then    
+    return f"{renku_project_url}/sessions/new?autostart=1&branch={branch_name}"
+    
 
 
 def get_repo_name(repository_url):
@@ -92,12 +84,19 @@ def get_repo_name(repository_url):
 
     return repo_name
 
+def get_repo_local_path(repository_url):
+    return tempfile.mkdtemp(prefix=get_repo_name(repository_url))    
+
 
 def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_ssh_key_file=None):
-    if repo_dir is None:
-        repo_dir = get_repo_name(renku_repository_url)
+    logger.info('clone_renku_repo with renku_repository_url=%s, repo_dir=%s, renku_gitlab_ssh_key_file=%s', renku_repository_url, repo_dir, renku_gitlab_ssh_key_file)
 
-    git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_file}'
+    if repo_dir is None:
+        repo_dir = get_repo_local_path(renku_repository_url)
+        logger.info('constructing repo_dir=%s', repo_dir)
+
+    # TODO or store known hosts on build/boot
+    git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_file} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
 
     repo = Repo.clone_from(renku_repository_url, repo_dir, branch='master', env=dict(GIT_SSH_COMMAND=git_ssh_cmd))
 
@@ -176,8 +175,13 @@ def commit_and_push_file(repo, file_path):
 
 def remove_repository(renku_repository_url, repo_working_dir_path):
     if repo_working_dir_path is None:
-        repo_working_dir_path = get_repo_name(renku_repository_url)
+        repo_working_dir_path = get_repo_local_path(renku_repository_url)
 
+    logger.info('removing repo_working_dir_path=%s created for renku_repository_url=%s', repo_working_dir_path, renku_repository_url)
+    
     if repo_working_dir_path is not None and os.path.exists(repo_working_dir_path):
-        shutil.rmtree(repo_working_dir_path)
+        try:
+            shutil.rmtree(repo_working_dir_path)
+        except OSError as e:
+            logger.error('unable to remove repo directory repo_working_dir_path=%s !')
 
