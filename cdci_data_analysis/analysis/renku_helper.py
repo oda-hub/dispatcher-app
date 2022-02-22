@@ -103,7 +103,8 @@ def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_ssh_key_f
         repo_dir = get_repo_name(renku_repository_url)
         logger.info('constructing repo_dir=%s', repo_dir)
 
-    git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_file}'
+    # TODO or store known hosts on build/boot
+    git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_file} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
 
     repo = Repo.clone_from(renku_repository_url, repo_dir, branch='master', env=dict(GIT_SSH_COMMAND=git_ssh_cmd))
 
