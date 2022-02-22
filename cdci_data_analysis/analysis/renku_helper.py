@@ -70,22 +70,10 @@ def push_api_code(api_code,
 
 
 def generate_renku_session_url(repo, renku_project_url, renku_gitlab_user_name, branch_name):
-    original_url = repo.remotes.origin.url
-
-    # in our case the namespace and project_name are to be provided, extracted from the url of the repository
-    new_session_autostart_url = "{renku_project_url}/{namespace}/{project_name}/sessions/new?autostart=1{branch}"
-
-    namespace = renku_gitlab_user_name
-    # get name of the repository/project
-    project_name = get_repo_name(original_url)
-
-    generated_renku_new_session_url = new_session_autostart_url.format(
-        renku_project_url=renku_project_url,
-        namespace=namespace,
-        project_name=project_name,
-        branch=f'&branch={branch_name}')
-
-    return generated_renku_new_session_url
+    # original_url = repo.remotes.origin.url
+    # TODO: project url could be derived from renku projects base path and original_url. the config values should be renamed then    
+    return f"{renku_project_url}/sessions/new?autostart=1&branch={branch_name}"
+    
 
 
 def get_repo_name(repository_url):
