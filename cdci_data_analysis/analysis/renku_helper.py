@@ -95,12 +95,15 @@ def get_repo_name(repository_url):
 
     return repo_name
 
+def get_repo_local_path(repository_url):
+    return os.path.abspath(get_repo_name(repository_url))
+
 
 def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_ssh_key_file=None):
     logger.info('clone_renku_repo with renku_repository_url=%s, repo_dir=%s, renku_gitlab_ssh_key_file=%s', renku_repository_url, repo_dir, renku_gitlab_ssh_key_file)
 
     if repo_dir is None:
-        repo_dir = get_repo_name(renku_repository_url)
+        repo_dir = get_repo_local_path(renku_repository_url)
         logger.info('constructing repo_dir=%s', repo_dir)
 
     # TODO or store known hosts on build/boot
@@ -183,7 +186,7 @@ def commit_and_push_file(repo, file_path):
 
 def remove_repository(renku_repository_url, repo_working_dir_path):
     if repo_working_dir_path is None:
-        repo_working_dir_path = get_repo_name(renku_repository_url)
+        repo_working_dir_path = get_repo_local_path(renku_repository_url)
 
     logger.info('removing repo_working_dir_path=%s created for renku_repository_url=%s', repo_working_dir_path, renku_repository_url)
     
