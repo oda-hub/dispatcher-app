@@ -185,6 +185,11 @@ def remove_repository(renku_repository_url, repo_working_dir_path):
     if repo_working_dir_path is None:
         repo_working_dir_path = get_repo_name(renku_repository_url)
 
+    logger.info('removing repo_working_dir_path=%s created for renku_repository_url=%s', repo_working_dir_path, renku_repository_url)
+    
     if repo_working_dir_path is not None and os.path.exists(repo_working_dir_path):
-        shutil.rmtree(repo_working_dir_path)
+        try:
+            shutil.rmtree(repo_working_dir_path)
+        except OSError as e:
+            logger.error('unable to remove repo directory repo_working_dir_path=%s !')
 
