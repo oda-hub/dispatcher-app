@@ -270,6 +270,12 @@ def push_renku_branch():
     renku_gitlab_user_name = app_config.renku_gitlab_user_name
     renku_project_url = app_config.renku_project_url
 
+    renku_logger = logger.getChild('push_renku_branch')
+    renku_logger.info('renku_repository_url: %s', renku_repository_url)
+    renku_logger.info('renku_gitlab_user_name: %s', renku_gitlab_user_name)
+    renku_logger.info('renku_project_url: %s', renku_project_url)
+
+
     if api_code is not None:
         api_code_url = renku_helper.push_api_code(api_code=api_code,
                                                   job_id=job_id,
