@@ -1,5 +1,6 @@
 import os.path
 import re
+import tempfile
 import traceback
 
 import nbformat as nbf
@@ -84,7 +85,7 @@ def get_repo_name(repository_url):
     return repo_name
 
 def get_repo_local_path(repository_url):
-    return os.path.abspath(get_repo_name(repository_url))
+    return tempfile.mkdtemp(prefix=get_repo_name(repository_url))    
 
 
 def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_ssh_key_file=None):
