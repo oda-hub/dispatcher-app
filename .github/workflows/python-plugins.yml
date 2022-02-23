@@ -60,9 +60,10 @@ jobs:
         
         if [ -f plugin/requirements.txt ]; then 
           < plugin/requirements.txt grep -v oda-hub/dispatcher-app | grep -v cdci-data-analysis | grep -v oda_api > plugin-req.txt
-          pip install -r plugin-req.txt ./plugin[test] .[test]; 
+          pip install -r plugin-req.txt; 
         fi        
-        
+        pip install -e  ./plugin[test]
+
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install -e .[test]
     
