@@ -28,6 +28,8 @@ jobs:
         - integral
         - integral-all-sky
         - antares
+        - gw
+        - legacysurvey
         # - polar
 
     services:
