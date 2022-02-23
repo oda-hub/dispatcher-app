@@ -28,6 +28,7 @@ GitPython
 nbformat
 -e git+https://github.com/oda-hub/oda_api.git#egg=oda_api
 
+MarkupSafe==2.0.1
 
 # TODO: needed by some plugins: migrate
 simple_logger
