@@ -18,7 +18,7 @@ import gzip
 import random
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products, clone_gitlab_repo, get_repo_name
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products, clone_gitlab_repo, get_repo_path
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
 
@@ -1574,7 +1574,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
         "roles": "general, renku contributor",
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-    p = 5
+    p = 7
 
     if not existing_branch:
         p += random.random()
@@ -1608,13 +1608,13 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
 
     # parse the repo url and build the renku one
     repo_url = dispatcher_test_conf_with_renku_options['renku_options']['renku_gitlab_repository_url']
-    renku_gitlab_user_name = dispatcher_test_conf_with_renku_options['renku_options']['renku_gitlab_user_name']
-    renku_project_url = dispatcher_test_conf_with_renku_options['renku_options']['renku_project_url']
+    renku_base_project_url = dispatcher_test_conf_with_renku_options['renku_options']['renku_base_project_url']
     renku_gitlab_ssh_key_file = dispatcher_test_conf_with_renku_options['renku_options']['ssh_key_file']
-    project_name = get_repo_name(repo_url)
+    repo_path = get_repo_path(repo_url)
+    renku_project_url = f'{renku_base_project_url}/{repo_path}'
 
     # assert c.text == f'{parsed_repo_url.scheme}://{parsed_repo_url.hostname}/projects/{namespace}/{project_name}/sessions/new?autostart=1&branch=mmoda_request_{job_id}'
-    assert c.text == f"{renku_project_url}/{renku_gitlab_user_name}/{project_name}/sessions/new?autostart=1&branch=mmoda_request_{job_id}"
+    assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}"
 
     # validate content pushed
     repo = clone_gitlab_repo(repo_url, renku_gitlab_ssh_key_file=renku_gitlab_ssh_key_file, branch_name=f'mmoda_request_{job_id}')
