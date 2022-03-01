@@ -64,7 +64,7 @@ def push_api_code(api_code,
     finally:
         logger.info("==> removing repository folder, since it is no longer necessary")
         remove_repository(renku_repository_url, repository_folder_path)
-    # TODO to actually return the renkulab url of the newly created branch
+
     return renku_session_url
 
 
