@@ -109,7 +109,8 @@ def get_list_terms(decoded_token, group, disp_conf=None, sentry_client=None):
                                                                    "from the product gallery")
     else:
         raise RequestNotUnderstood('error while requesting a list of terms: '
-                                   'a not valid group identified was provided')
+                                   'this is likely to be related to a not valid group identifier '
+                                   ' please check your inputs and try again')
 
     if output_request is not None and type(output_request) == list and len(output_request) > 0:
         for output in output_request:

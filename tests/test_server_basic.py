@@ -1454,7 +1454,8 @@ def test_list_terms(dispatcher_live_fixture_with_gallery, type_group):
         assert c.status_code == 400
         jdata = c.json()
         assert jdata['error_message'] == ('error while requesting a list of terms: '
-                                          'a not valid group identified was provided')
+                                          'this is likely to be related to a not valid group identifier '
+                                          ' please check your inputs and try again')
 
     else:
         assert c.status_code == 200
