@@ -402,8 +402,7 @@ def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
 
         f.write('\n    renku_options:'
                 '\n        renku_gitlab_repository_url: "git@renkulab.io:gabriele.barni/test-dispatcher-endpoint.git"'
-                '\n        renku_gitlab_user_name: "gabriele.barni"'
-                '\n        renku_project_url: "http://renkulab.io/projects"'
+                '\n        renku_base_project_url: "http://renkulab.io/projects"'
                f'\n        ssh_key_file: "{os.getenv("SSH_KEY_FILE", "ssh_key_file")}"')
 
     yield fn
@@ -734,7 +733,7 @@ def dispatcher_fetch_dummy_products(dummy_product_pack: str, reuse=False):
 
 def clone_gitlab_repo(repository_url, repo_dir=None, renku_gitlab_ssh_key_file=None, branch_name=None):
     if repo_dir is None:
-        repo_dir = get_repo_name(repository_url)
+        repo_dir = tempfile.mkdtemp(prefix=get_repo_name(repository_url))
 
     if branch_name is None:
         branch_name = 'master'
@@ -756,12 +755,13 @@ def get_repo_name(repository_url):
     return repo_name
 
 
-def get_repo_name(repository_url):
-    repo_name = repository_url.split('/')[-1]
-    if repo_name.endswith('.git'):
-        repo_name = repo_name[0:-4]
-
-    return repo_name
+def get_repo_path(repository_url):
+    if repository_url.endswith('.git'):
+        repo_path = repository_url.split(':', 1)[-1]
+        repo_path = repo_path[0:-4]
+    else:
+        repo_path = repository_url.split('/')[1:-1]
+    return repo_path
 
 
 class DispatcherJobState:

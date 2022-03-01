@@ -18,8 +18,7 @@ def push_api_code(api_code,
                   job_id,
                   renku_repository_url,
                   renku_gitlab_ssh_key_file,
-                  renku_project_url,
-                  renku_gitlab_user_name,
+                  renku_base_project_url,
                   sentry_client=None):
     error_message = 'Error while {step}'
     repository_folder_path = None
@@ -50,8 +49,7 @@ def push_api_code(api_code,
 
         step = f'generating a valid url to start a new session on the new branch'
         renku_session_url = generate_renku_session_url(repo,
-                                                       renku_project_url=renku_project_url,
-                                                       renku_gitlab_user_name=renku_gitlab_user_name,
+                                                       renku_base_project_url=renku_base_project_url,
                                                        branch_name=branch_name)
 
     except Exception as e:
@@ -70,11 +68,21 @@ def push_api_code(api_code,
     return renku_session_url
 
 
-def generate_renku_session_url(repo, renku_project_url, renku_gitlab_user_name, branch_name):
-    # original_url = repo.remotes.origin.url
-    # TODO: project url could be derived from renku projects base path and original_url. the config values should be renamed then    
+def generate_renku_session_url(repo, renku_base_project_url, branch_name):
+    original_url = repo.remotes.origin.url
+    repo_path = get_repo_path(original_url)
+    renku_project_url = f'{renku_base_project_url}/{repo_path}'
+    # TODO: project url could be derived from renku projects base path and original_url. the config values should be renamed then
     return f"{renku_project_url}/sessions/new?autostart=1&branch={branch_name}"
     
+
+def get_repo_path(repository_url):
+    if repository_url.endswith('.git'):
+        repo_path = repository_url.split(':', 1)[-1]
+        repo_path = repo_path[0:-4]
+    else:
+        repo_path = repository_url.split('/')[1:-1]
+    return repo_path
 
 
 def get_repo_name(repository_url):
