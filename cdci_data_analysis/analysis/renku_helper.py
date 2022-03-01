@@ -72,7 +72,6 @@ def generate_renku_session_url(repo, renku_base_project_url, branch_name):
     original_url = repo.remotes.origin.url
     repo_path = get_repo_path(original_url)
     renku_project_url = f'{renku_base_project_url}/{repo_path}'
-    # TODO: project url could be derived from renku projects base path and original_url. the config values should be renamed then
     return f"{renku_project_url}/sessions/new?autostart=1&branch={branch_name}"
     
 
