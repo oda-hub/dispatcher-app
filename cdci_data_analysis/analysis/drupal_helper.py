@@ -9,8 +9,8 @@ import requests
 import base64
 import copy
 import uuid
-import datetime
 
+from flask import make_response
 from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
 from enum import Enum, auto
@@ -35,6 +35,33 @@ class ContentType(Enum):
     DATA_PRODUCT = auto()
     OBSERVATION = auto()
     ASTROPHYSICAL_ENTITY = auto()
+    
+    
+def check_token_validity(token, secret_key):
+    if token is None:
+        return make_response('A token must be provided.'), 403
+    try:
+        decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+        logger.info("==> token %s", decoded_token)
+    except jwt.exceptions.ExpiredSignatureError:
+        # raise RequestNotAuthorized("The token provided is expired.")
+        return make_response('The token provided is expired.'), 403
+    except jwt.exceptions.InvalidTokenError:
+        # raise RequestNotAuthorized("The token provided is not valid.")
+        return make_response('The token provided is not valid.'), 403
+
+    roles = tokenHelper.get_token_roles(decoded_token)
+
+    required_roles = ['gallery contributor']
+    if not all(item in roles for item in required_roles):
+        lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+        message = (
+            f"Unfortunately, your privileges are not sufficient to post in the product gallery.\n"
+            f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
+        )
+        return make_response(message), 403
+
+    return decoded_token
 
 
 def analyze_drupal_output(drupal_output, operation_performed=None):
@@ -46,6 +73,51 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
                                    payload={'error_message': f'error while performing: {operation_performed}'})
     else:
         return drupal_output.json()
+
+
+def get_list_terms(decoded_token, group, disp_conf=None, sentry_client=None):
+    gallery_secret_key = disp_conf.product_gallery_secret_key
+    product_gallery_url = disp_conf.product_gallery_url
+    # extract email address and then the relative user_id
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
+                                          user_email=user_email,
+                                          sentry_client=sentry_client)
+    # update the token
+    gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+
+    headers = get_drupal_request_headers(gallery_jwt_token)
+    output_request = None
+    output_list = None
+    if str.lower(group) == 'instruments':
+        log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary/Instruments?_format=hal_json",
+                                         headers=headers)
+        output_request = analyze_drupal_output(log_res,
+                                               operation_performed="retrieving the list of available "
+                                                                   "instruments from the product gallery")
+    elif str.lower(group) == 'products':
+        log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary/Products?_format=hal_json",
+                                         headers=headers)
+        output_request = analyze_drupal_output(log_res,
+                                               operation_performed="retrieving the list of available "
+                                                                   "instruments from the product gallery")
+    elif str.lower(group) == 'sources':
+        log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/source/all?_format=hal_json",
+                                         headers=headers)
+        output_request = analyze_drupal_output(log_res,
+                                               operation_performed="retrieving the list of available sources "
+                                                                   "from the product gallery")
+
+    if type(output_request) == list and len(output_request) > 0:
+        for output in output_request:
+            if output_list is None:
+                output_list = []
+            if 'name' in output:
+                output_list.append(output['name'])
+            elif 'title' in output:
+                output_list.append(output['title'])
+
+    return output_list
 
 
 # TODO extend to support the sending of the requests also in other formats besides hal_json
