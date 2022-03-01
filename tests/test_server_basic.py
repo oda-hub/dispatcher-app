@@ -1430,7 +1430,7 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 
 @pytest.mark.test_drupal
-@pytest.mark.parametrize("type_group", ['instruments', 'products', 'sources'])
+@pytest.mark.parametrize("type_group", ['instruments', 'Instruments', 'products', 'sources', 'aaaaaa', None])
 def test_list_terms(dispatcher_live_fixture_with_gallery, type_group):
     server = dispatcher_live_fixture_with_gallery
 
@@ -1450,11 +1450,16 @@ def test_list_terms(dispatcher_live_fixture_with_gallery, type_group):
                      params={**params}
                      )
 
-    assert c.status_code == 200
+    if type_group is None or type_group == 'aaaaaa':
+        assert c.status_code == 400
+        jdata = c.json()
+        assert jdata['error_message'] == ('error while requesting a list of terms: '
+                                          'a not valid group identified was provided')
 
-    list_terms = c.json()
-
-    print('List of terms returned: ', list_terms)
+    else:
+        assert c.status_code == 200
+        list_terms = c.json()
+        print('List of terms returned: ', list_terms)
 
 
 @pytest.mark.test_drupal

@@ -87,28 +87,31 @@ def get_list_terms(decoded_token, group, disp_conf=None, sentry_client=None):
     gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
 
     headers = get_drupal_request_headers(gallery_jwt_token)
-    output_request = None
     output_list = None
-    if str.lower(group) == 'instruments':
+
+    if group is not None and str.lower(group) == 'instruments':
         log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary/Instruments?_format=hal_json",
                                          headers=headers)
         output_request = analyze_drupal_output(log_res,
                                                operation_performed="retrieving the list of available "
                                                                    "instruments from the product gallery")
-    elif str.lower(group) == 'products':
+    elif group is not None and str.lower(group) == 'products':
         log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary/Products?_format=hal_json",
                                          headers=headers)
         output_request = analyze_drupal_output(log_res,
                                                operation_performed="retrieving the list of available "
                                                                    "instruments from the product gallery")
-    elif str.lower(group) == 'sources':
+    elif group is not None and str.lower(group) == 'sources':
         log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/source/all?_format=hal_json",
                                          headers=headers)
         output_request = analyze_drupal_output(log_res,
                                                operation_performed="retrieving the list of available sources "
                                                                    "from the product gallery")
+    else:
+        raise RequestNotUnderstood('error while requesting a list of terms: '
+                                   'a not valid group identified was provided')
 
-    if type(output_request) == list and len(output_request) > 0:
+    if output_request is not None and type(output_request) == list and len(output_request) > 0:
         for output in output_request:
             if output_list is None:
                 output_list = []
