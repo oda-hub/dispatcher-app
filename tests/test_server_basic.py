@@ -1430,6 +1430,34 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 
 @pytest.mark.test_drupal
+@pytest.mark.parametrize("type_group", ['instruments', 'products', 'sources'])
+def test_list_terms(dispatcher_live_fixture_with_gallery, type_group):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {'group': type_group,
+              'token': encoded_token}
+
+    c = requests.get(server + "/get_list_terms",
+                     params={**params}
+                     )
+
+    assert c.status_code == 200
+
+    list_terms = c.json()
+
+    print('List of terms returned: ', list_terms)
+
+
+@pytest.mark.test_drupal
 @pytest.mark.parametrize("provide_job_id", [True, False])
 @pytest.mark.parametrize("provide_session_id", [True, False])
 @pytest.mark.parametrize("provide_instrument", [True, False])
