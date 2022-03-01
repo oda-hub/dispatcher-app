@@ -193,6 +193,7 @@ def execute_drupal_request(url,
             total_n_post_request_retries += 1
 
             if n_tries_left > 0:
+                # TODO to handle the case total_n_successful_post_requests=0
                 if n_max_tries - n_tries_left > total_n_post_request_retries/total_n_successful_post_requests:
                     logger.warning(f"a request to the url {url} of the product gallery is taking more time than expected, "
                                    "we will investigate the problem and solve it as soon as possible")
