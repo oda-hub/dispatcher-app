@@ -10,7 +10,6 @@ import base64
 import copy
 import uuid
 
-from flask import make_response
 from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
 from enum import Enum, auto
