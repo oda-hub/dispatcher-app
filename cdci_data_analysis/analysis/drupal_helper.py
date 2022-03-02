@@ -572,7 +572,10 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     src_name = kwargs.pop('src_name', 'source')
     # set the product title
     if product_title is None:
-        product_title = "_".join([src_name, product_type])
+        if product_type is None:
+            product_title = src_name
+        else:
+            product_title = "_".join([src_name, product_type])
 
     body_gallery_article_node["title"]["value"] = product_title
 
