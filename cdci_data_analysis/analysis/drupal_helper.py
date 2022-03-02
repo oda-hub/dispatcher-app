@@ -48,7 +48,7 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
         return drupal_output.json()
 
 
-def get_list_terms(decoded_token, group, disp_conf=None, sentry_client=None):
+def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_client=None):
     gallery_secret_key = disp_conf.product_gallery_secret_key
     product_gallery_url = disp_conf.product_gallery_url
     # extract email address and then the relative user_id
@@ -63,13 +63,19 @@ def get_list_terms(decoded_token, group, disp_conf=None, sentry_client=None):
     output_list = None
 
     if group is not None and str.lower(group) == 'instruments':
-        log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary/Instruments?_format=hal_json",
+        if os.environ.get('DISPATCHER_DEBUG_MODE', 'no') == 'yes':
+            parent = 'all'
+        else:
+            parent = 'production'
+        log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary_parent/instruments/{parent}?_format=hal_json",
                                          headers=headers)
         output_request = analyze_drupal_output(log_res,
                                                operation_performed="retrieving the list of available "
                                                                    "instruments from the product gallery")
     elif group is not None and str.lower(group) == 'products':
-        log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary/Products?_format=hal_json",
+        if parent is None:
+            parent = 'all'
+        log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary_parent/products/{parent}?_format=hal_json",
                                          headers=headers)
         output_request = analyze_drupal_output(log_res,
                                                operation_performed="retrieving the list of available "

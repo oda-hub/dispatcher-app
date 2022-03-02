@@ -500,10 +500,12 @@ def get_list_terms():
         return make_response(message), 403
 
     group = request.args.get('group', None)
+    parent = request.args.get('parent', None)
 
     list_terms = drupal_helper.get_list_terms(disp_conf=app_config,
-                                              decoded_token=decoded_token,
-                                              group=group)
+                                              group=group,
+                                              parent=parent,
+                                              decoded_token=decoded_token)
 
     output_request = json.dumps(list_terms)
 
