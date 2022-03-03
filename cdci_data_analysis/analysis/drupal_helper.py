@@ -311,6 +311,34 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
     return observations
 
 
+def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name, astro_entity_type=None,  sentry_client=None):
+    # post new observation with or without a specific time range
+    body_gallery_astro_entity_node = copy.deepcopy(body_article_product_gallery.body_node)
+    # set the type of content to post
+    body_gallery_astro_entity_node["_links"]["type"]["href"] = os.path.join(product_gallery_url,
+                                                                      body_gallery_astro_entity_node["_links"]["type"]["href"],
+                                                                      'astro_entity')
+    # TODO perhaps a bit of duplication here?
+    body_gallery_astro_entity_node["title"]["value"] = astro_entity_name
+    body_gallery_astro_entity_node["field_source_name"]["value"] = astro_entity_name
+    # TODO define also the type, a taxonomy term is to be assigned
+
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/node",
+                                     method='post',
+                                     data=json.dumps(body_gallery_astro_entity_node),
+                                     headers=headers,
+                                     sentry_client=sentry_client)
+
+    output_post = analyze_drupal_output(log_res, operation_performed="posting a new astrophysical entity")
+
+    # extract the id of the observation
+    astro_entity_drupal_id = output_post['nid'][0]['value']
+
+    return astro_entity_drupal_id
+
+
 def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None, sentry_client=None):
     # post new observation with or without a specific time range
     body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_node)
@@ -413,6 +441,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
                                  fits_file_fid_list=None,
                                  observation_id=None,
                                  user_id_product_creator=None,
+                                 insert_new_source=False,
                                  sentry_client=None,
                                  **kwargs):
     body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_node)
@@ -497,8 +526,14 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     # set the source astrophysical entity if available
     if src_name is not None:
         source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
-                                                              source_name=src_name,
-                                                              sentry_client=sentry_client)
+                                                                             source_name=src_name,
+                                                                             sentry_client=sentry_client)
+        # create a new source ? yes if the user wants it
+        if source_entity_id is None and insert_new_source:
+            source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
+                                                 astro_entity_name=src_name,
+                                                 sentry_client=sentry_client)
+
         if source_entity_id is not None:
             body_gallery_article_node['field_describes_astro_entity'] = [{
                 "target_id": int(source_entity_id)
