@@ -16,6 +16,7 @@ import nbformat as nbf
 import yaml
 import gzip
 import random
+import string
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products, clone_gitlab_repo, get_repo_name
@@ -1435,7 +1436,9 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 @pytest.mark.parametrize("provide_instrument", [True, False])
 @pytest.mark.parametrize("provide_product_type", [True, False])
 @pytest.mark.parametrize("timerange_parameters", ["time", "observation_id", None])
-def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_session_id, provide_instrument, provide_product_type, timerange_parameters):
+@pytest.mark.parametrize("type_source", ["known", "new", None])
+@pytest.mark.parametrize("insert_new_source", [True, False])
+def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_session_id, provide_instrument, provide_product_type, timerange_parameters, type_source, insert_new_source):
     dispatcher_fetch_dummy_products('default')
 
     server = dispatcher_live_fixture_with_gallery
@@ -1492,19 +1495,26 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
     else:
         product_type = 'isgri_lc'
 
+    source_name = None
+    if type_source == "known":
+        source_name = "Crab"
+    elif type_source == "new":
+        source_name = "new_source_" + ''.join(random.choices(string.digits + string.ascii_lowercase, k=5))
+
     params = {
         'job_id': job_id,
         'session_id': session_id,
         'instrument': instrument,
         'product_type': product_type,
-        'src_name': 'Crab',
+        'src_name': source_name,
         'content_type': 'data_product',
         'product_title': product_title,
         'E1_keV': e1_kev,
         'E2_kev': e2_kev,
         'DEC': dec,
         'RA': ra,
-        'token': encoded_token
+        'token': encoded_token,
+        'insert_new_source': insert_new_source
     }
     if timerange_parameters == 'time':
         params['T1'] = '2003-03-15T23:27:40.0'
