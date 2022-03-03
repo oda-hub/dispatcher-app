@@ -274,17 +274,20 @@ def post_content_to_gallery(decoded_token,
         product_title = par_dic.pop('product_title', None)
         observation_id = par_dic.pop('observation_id', None)
         user_id_product_creator = par_dic.pop('user_id_product_creator')
+        # TODO perhaps there's a smarter way to do this
+        insert_new_source = par_dic.pop('insert_new_source', 'False') == 'True'
 
         output_data_product_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
-                                        session_id=session_id,
-                                        job_id=job_id,
-                                        gallery_jwt_token=gallery_jwt_token,
-                                        product_title=product_title,
-                                        img_fid=img_fid,
-                                        fits_file_fid_list=fits_file_fid_list,
-                                        observation_id=observation_id,
-                                        user_id_product_creator=user_id_product_creator,
-                                        **par_dic)
+                                                                session_id=session_id,
+                                                                job_id=job_id,
+                                                                gallery_jwt_token=gallery_jwt_token,
+                                                                product_title=product_title,
+                                                                img_fid=img_fid,
+                                                                fits_file_fid_list=fits_file_fid_list,
+                                                                observation_id=observation_id,
+                                                                user_id_product_creator=user_id_product_creator,
+                                                                insert_new_source=insert_new_source,
+                                                                **par_dic)
 
         return output_data_product_post
 
@@ -316,11 +319,13 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
     body_gallery_astro_entity_node = copy.deepcopy(body_article_product_gallery.body_node)
     # set the type of content to post
     body_gallery_astro_entity_node["_links"]["type"]["href"] = os.path.join(product_gallery_url,
-                                                                      body_gallery_astro_entity_node["_links"]["type"]["href"],
-                                                                      'astro_entity')
+                                                                            body_gallery_astro_entity_node["_links"]["type"]["href"],
+                                                                            'astro_entity')
     # TODO perhaps a bit of duplication here?
     body_gallery_astro_entity_node["title"]["value"] = astro_entity_name
-    body_gallery_astro_entity_node["field_source_name"]["value"] = astro_entity_name
+    body_gallery_astro_entity_node["field_source_name"] = [{
+            "value": astro_entity_name
+        }]
     # TODO define also the type, a taxonomy term is to be assigned
 
     headers = get_drupal_request_headers(gallery_jwt_token)
