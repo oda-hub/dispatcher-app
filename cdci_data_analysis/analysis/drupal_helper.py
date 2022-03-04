@@ -539,6 +539,14 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     if observation_information_message is not None:
         logger.info("==> information about assigned observation: %s", observation_information_message)
 
+    # TODO to be used for the AstrophysicalEntity
+    src_name = kwargs.pop('src_name', 'source')
+    # set the product title
+    if product_title is None:
+        product_title = "_".join([src_name, product_type])
+
+    body_gallery_article_node["title"]["value"] = product_title
+
     body_gallery_article_node["body"][0]["value"] = body_value
 
     # set the user id of the author of the data product
@@ -546,6 +554,16 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
         body_gallery_article_node["uid"] = [{
             "target_id": user_id_product_creator
         }]
+
+    # set the source astrophysical entity if available
+    if src_name is not None:
+        source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
+                                                                             source_name=src_name,
+                                                                             sentry_client=sentry_client)
+        if source_entity_id is not None:
+            body_gallery_article_node['field_describes_astro_entity'] = [{
+                "target_id": int(source_entity_id)
+            }]
 
     headers = get_drupal_request_headers(gallery_jwt_token)
     # extract user-provided instrument and product_type
@@ -572,27 +590,6 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
                     body_gallery_article_node['field_data_product_type'] = [{
                         "target_id": int(output['tid'])
                     }]
-
-    # TODO to be used for the AstrophysicalEntity
-    src_name = kwargs.pop('src_name', 'source')
-    # set the product title
-    if product_title is None:
-        if product_type is None:
-            product_title = src_name
-        else:
-            product_title = "_".join([src_name, product_type])
-
-    body_gallery_article_node["title"]["value"] = product_title
-
-    # set the source astrophysical entity if available
-    if src_name is not None:
-        source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
-                                                                             source_name=src_name,
-                                                                             sentry_client=sentry_client)
-        if source_entity_id is not None:
-            body_gallery_article_node['field_describes_astro_entity'] = [{
-                "target_id": int(source_entity_id)
-            }]
 
     # let's go through the kwargs and if any overwrite some values for the product to post
     for k, v in kwargs.items():
