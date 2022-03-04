@@ -115,9 +115,13 @@ def execute_drupal_request(url,
 
             n_tries_left -= 1
             total_n_post_request_retries += 1
+            if total_n_successful_post_requests == 0:
+                average_retries_request = 0
+            else:
+                average_retries_request = total_n_post_request_retries/total_n_successful_post_requests
 
             if n_tries_left > 0:
-                if n_max_tries - n_tries_left > total_n_post_request_retries/total_n_successful_post_requests:
+                if n_max_tries - n_tries_left > average_retries_request:
                     logger.warning(f"a request to the url {url} of the product gallery is taking more time than expected, "
                                    "we will investigate the problem and solve it as soon as possible")
                 else:
@@ -127,7 +131,7 @@ def execute_drupal_request(url,
                 logger.debug(f"{e} exception during a request to the url {url} of the product gallery\n"
                              f"{n_tries_left} tries left, sleeping {retry_sleep_s} seconds until retry\n"
                              f"average retries per request since dispatcher start: "
-                             f"{(total_n_post_request_retries / total_n_successful_post_requests):.2f}")
+                             f"{average_retries_request:.2f}")
                 time.sleep(retry_sleep_s)
             else:
                 logger.warning(f"an issue occurred when performing a request to the product gallery, "
