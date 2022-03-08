@@ -59,7 +59,7 @@ def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_cli
     gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
 
     headers = get_drupal_request_headers(gallery_jwt_token)
-    output_list = None
+    output_list = []
     output_request = None
     log_res = None
 
@@ -85,11 +85,8 @@ def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_cli
         output_request = analyze_drupal_output(log_res,
                                                operation_performed=f"retrieving the list of available {group} "
                                                                    "from the product gallery")
-    else:
-        output_list = []
 
     if output_request is not None and type(output_request) == list and len(output_request) >= 0:
-        output_list = []
         for output in output_request:
             if 'name' in output:
                 output_list.append(output['name'])
