@@ -3,7 +3,7 @@ import json
 import time
 
 import jwt
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 
 import requests
 import base64
@@ -175,10 +175,13 @@ def execute_drupal_request(url,
 
             n_tries_left -= 1
             total_n_post_request_retries += 1
+            if total_n_successful_post_requests == 0:
+                average_retries_request = 0
+            else:
+                average_retries_request = total_n_post_request_retries/total_n_successful_post_requests
 
             if n_tries_left > 0:
-                # TODO to handle the case total_n_successful_post_requests=0
-                if n_max_tries - n_tries_left > total_n_post_request_retries/total_n_successful_post_requests:
+                if n_max_tries - n_tries_left > average_retries_request:
                     logger.warning(f"a request to the url {url} of the product gallery is taking more time than expected, "
                                    "we will investigate the problem and solve it as soon as possible")
                 else:
@@ -188,7 +191,7 @@ def execute_drupal_request(url,
                 logger.debug(f"{e} exception during a request to the url {url} of the product gallery\n"
                              f"{n_tries_left} tries left, sleeping {retry_sleep_s} seconds until retry\n"
                              f"average retries per request since dispatcher start: "
-                             f"{(total_n_post_request_retries / total_n_successful_post_requests):.2f}")
+                             f"{average_retries_request:.2f}")
                 time.sleep(retry_sleep_s)
             else:
                 logger.warning(f"an issue occurred when performing a request to the product gallery, "
@@ -409,6 +412,32 @@ def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None, s
     return observation_drupal_id
 
 
+# TODO to further optimize in two separate calls
+def get_instrument_product_type_id(product_gallery_url, gallery_jwt_token, product_type=None, instrument=None, sentry_client=None) \
+        -> Dict:
+    output_dict = {}
+
+    headers = get_drupal_request_headers(gallery_jwt_token)
+    if product_type is not None or instrument is not None:
+        # TODO improve this REST endpoint on drupal to accept multiple input terms, and give one result per input
+        # get all the taxonomy terms
+        log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_name/all?_format=hal_json",
+                                         headers=headers,
+                                         sentry_client=sentry_client)
+        output_post = analyze_drupal_output(log_res,
+                                            operation_performed="retrieving the taxonomy terms from the product gallery")
+        if type(output_post) == list and len(output_post) > 0:
+            for output in output_post:
+                if instrument is not None and output['vid'] == 'Instruments' and output['name'] == instrument:
+                    # info for the instrument
+                    output_dict['instrument_id'] = int(output['tid'])
+                if product_type is not None and output['vid'] == 'product_type' and output['name'] == product_type:
+                    # info for the product
+                    output_dict['product_type_id'] = int(output['tid'])
+
+    return output_dict
+
+
 def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token, source_name=None, sentry_client=None) \
         -> Optional[str]:
     entities_id = None
@@ -523,6 +552,12 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
                                                                  'results of the ODA product request could not be found, '
                                                                  'perhaps wrong job_id was passed?'})
 
+    # extract user-provided instrument and product_type
+    if 'instrument' in kwargs:
+        instrument = kwargs.pop('instrument')
+    if 'product_type' in kwargs:
+        product_type = kwargs.pop('product_type')
+
     # set observation
     if 'T1' in kwargs:
         t1 = kwargs.pop('T1')
@@ -539,14 +574,6 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     if observation_information_message is not None:
         logger.info("==> information about assigned observation: %s", observation_information_message)
 
-    # TODO to be used for the AstrophysicalEntity
-    src_name = kwargs.pop('src_name', 'source')
-    # set the product title
-    if product_title is None:
-        product_title = "_".join([src_name, product_type])
-
-    body_gallery_article_node["title"]["value"] = product_title
-
     body_gallery_article_node["body"][0]["value"] = body_value
 
     # set the user id of the author of the data product
@@ -555,6 +582,8 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             "target_id": user_id_product_creator
         }]
 
+    # TODO to be used for the AstrophysicalEntity
+    src_name = kwargs.pop('src_name', 'source')
     # set the source astrophysical entity if available
     if src_name is not None:
         source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
@@ -565,31 +594,30 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
                 "target_id": int(source_entity_id)
             }]
 
-    headers = get_drupal_request_headers(gallery_jwt_token)
-    # extract user-provided instrument and product_type
-    if 'instrument' in kwargs:
-        instrument = kwargs.pop('instrument')
-    if 'product_type' in kwargs:
-        product_type = kwargs.pop('product_type')
-    if product_type is not None or instrument is not None:
-        # TODO improve this REST endpoint on drupal to accept multiple input terms, and give one result per input
-        # get all the taxonomy terms
-        log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_name/all?_format=hal_json",
-                                         headers=headers)
-        output_post = analyze_drupal_output(log_res,
-                                            operation_performed="retrieving the taxonomy terms from the product gallery")
-        if type(output_post) == list and len(output_post) > 0:
-            for output in output_post:
-                if instrument is not None and output['vid'] == 'Instruments' and output['name'] == instrument:
-                    # info for the instrument
-                    body_gallery_article_node['field_instrumentused'] = [{
-                        "target_id": int(output['tid'])
-                    }]
-                if product_type is not None and output['vid'] == 'product_type' and output['name'] == product_type:
-                    # info for the product
-                    body_gallery_article_node['field_data_product_type'] = [{
-                        "target_id": int(output['tid'])
-                    }]
+    # set the product title
+    if product_title is None:
+        if product_type is None:
+            product_title = src_name
+        else:
+            product_title = "_".join([src_name, product_type])
+
+    body_gallery_article_node["title"]["value"] = product_title
+
+    ids_obj = get_instrument_product_type_id(product_gallery_url=product_gallery_url,
+                                                               gallery_jwt_token=gallery_jwt_token,
+                                                               product_type=product_type,
+                                                               instrument=instrument)
+    if 'instrument_id' in ids_obj:
+        # info for the instrument
+        body_gallery_article_node['field_instrumentused'] = [{
+            "target_id": ids_obj['instrument_id']
+        }]
+
+    if 'product_type_id' in ids_obj:
+        # info for the product
+        body_gallery_article_node['field_data_product_type'] = [{
+            "target_id": ids_obj['product_type_id']
+        }]
 
     # let's go through the kwargs and if any overwrite some values for the product to post
     for k, v in kwargs.items():
@@ -613,6 +641,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
                 "target_id": int(fid)
             })
     # finally, post the data product to the gallery
+    headers = get_drupal_request_headers(gallery_jwt_token)
     log_res = execute_drupal_request(f"{product_gallery_url}/node",
                                      method='post',
                                      data=json.dumps(body_gallery_article_node),

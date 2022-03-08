@@ -1469,7 +1469,9 @@ def test_list_terms(dispatcher_live_fixture_with_gallery, type_group):
 @pytest.mark.parametrize("provide_instrument", [True, False])
 @pytest.mark.parametrize("provide_product_type", [True, False])
 @pytest.mark.parametrize("timerange_parameters", ["time", "observation_id", None])
-def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_session_id, provide_instrument, provide_product_type, timerange_parameters):
+@pytest.mark.parametrize("provide_product_title", [True, False])
+@pytest.mark.parametrize("provide_source", [True, False])
+def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_session_id, provide_instrument, provide_product_type, timerange_parameters, provide_product_title, provide_source):
     dispatcher_fetch_dummy_products('default')
 
     server = dispatcher_live_fixture_with_gallery
@@ -1484,12 +1486,12 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
     instrument = 'empty'
-    product_type = 'numerical'
+    product_type_analysis = 'numerical'
 
     params = {
         **default_params,
         'src_name': 'Mrk 421',
-        'product_type': product_type,
+        'product_type': product_type_analysis,
         'query_type': "Dummy",
         'instrument': instrument,
         'p': 5,
@@ -1504,13 +1506,20 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
 
     job_id = jdata['products']['job_id']
     session_id = jdata['session_id']
-    product_title = "_".join([params['instrument'], params['query_type'], datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")])
 
     e1_kev = 45
     e2_kev = 95
 
     dec = 19
     ra = 458
+
+    src_name = None
+    if provide_source:
+        src_name = 'Crab'
+
+    product_title = None
+    if provide_product_title:
+        product_title = "_".join([params['instrument'], params['query_type'], datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")])
 
     if not provide_job_id:
         job_id = None
@@ -1522,16 +1531,16 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
         # a difference value
         instrument = 'isgri'
     if not provide_product_type:
-        product_type = None
+        product_type_product_gallery = None
     else:
-        product_type = 'isgri_lc'
+        product_type_product_gallery = 'isgri_lc'
 
     params = {
         'job_id': job_id,
         'session_id': session_id,
         'instrument': instrument,
-        'product_type': product_type,
-        'src_name': 'Crab',
+        'product_type': product_type_product_gallery,
+        'src_name': src_name,
         'content_type': 'data_product',
         'product_title': product_title,
         'E1_keV': e1_kev,
@@ -1559,6 +1568,17 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
     assert c.status_code == 200
 
     drupal_res_obj = c.json()
+
+    if not provide_source:
+        src_name = 'source'
+
+    if not provide_product_title:
+        if provide_product_type:
+            product_title = "_".join([src_name, product_type_product_gallery])
+        elif provide_job_id and provide_session_id:
+            product_title = "_".join([src_name, product_type_analysis])
+        else:
+            product_title = src_name
 
     assert 'title' in drupal_res_obj
     assert drupal_res_obj['title'][0]['value'] == product_title
