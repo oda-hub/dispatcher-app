@@ -466,6 +466,12 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
                                                                  'results of the ODA product request could not be found, '
                                                                  'perhaps wrong job_id was passed?'})
 
+    # extract user-provided instrument and product_type
+    if 'instrument' in kwargs:
+        instrument = kwargs.pop('instrument')
+    if 'product_type' in kwargs:
+        product_type = kwargs.pop('product_type')
+
     # set observation
     if 'T1' in kwargs:
         t1 = kwargs.pop('T1')
@@ -512,11 +518,6 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     body_gallery_article_node["title"]["value"] = product_title
 
     headers = get_drupal_request_headers(gallery_jwt_token)
-    # extract user-provided instrument and product_type
-    if 'instrument' in kwargs:
-        instrument = kwargs.pop('instrument')
-    if 'product_type' in kwargs:
-        product_type = kwargs.pop('product_type')
     if product_type is not None or instrument is not None:
         # TODO improve this REST endpoint on drupal to accept multiple input terms, and give one result per input
         # get all the taxonomy terms
