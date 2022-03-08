@@ -47,7 +47,7 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
         return drupal_output.json()
 
 
-def get_list_terms(decoded_token, group, parent=None, parent_id=None, disp_conf=None, sentry_client=None):
+def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_client=None):
     gallery_secret_key = disp_conf.product_gallery_secret_key
     product_gallery_url = disp_conf.product_gallery_url
     # extract email address and then the relative user_id
@@ -60,6 +60,7 @@ def get_list_terms(decoded_token, group, parent=None, parent_id=None, disp_conf=
 
     headers = get_drupal_request_headers(gallery_jwt_token)
     output_list = None
+    log_res = None
 
     if group is not None and str.lower(group) == 'instruments':
         if os.environ.get('DISPATCHER_DEBUG_MODE', 'no') == 'yes':
@@ -68,35 +69,31 @@ def get_list_terms(decoded_token, group, parent=None, parent_id=None, disp_conf=
             parent = 'production'
         log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary_parent/instruments/{parent}?_format=hal_json",
                                          headers=headers)
-        output_request = analyze_drupal_output(log_res,
-                                               operation_performed="retrieving the list of available "
-                                                                   "instruments from the product gallery")
-    elif group is not None and str.lower(group) == 'products':
-        if parent is None and parent_id is None:
-            parent = 'all'
-            url_request = f"{product_gallery_url}/taxonomy/term_vocabulary_parent/products/{parent}?_format=hal_json"
-        elif parent is not None:
-            url_request = f"{product_gallery_url}/taxonomy/term_vocabulary_parent/products/{parent}?_format=hal_json"
-        elif parent_id is not None:
-            url_request = f"{product_gallery_url}/taxonomy/term_vocabulary_parent_id/products/{parent_id}?_format=hal_json"
 
-        log_res = execute_drupal_request(url_request,
-                                             headers=headers)
-        output_request = analyze_drupal_output(log_res,
-                                               operation_performed="retrieving the list of available "
-                                                                   "instruments from the product gallery")
+    elif group is not None and str.lower(group) == 'products':
+        if parent is None:
+            parent = 'all'
+        log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary_parent/products/{parent}?_format=hal_json",
+                                         headers=headers)
+
     elif group is not None and str.lower(group) == 'sources':
         log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/source/all?_format=hal_json",
                                          headers=headers)
+
+    if log_res is not None:
         output_request = analyze_drupal_output(log_res,
-                                               operation_performed="retrieving the list of available sources "
+                                               operation_performed=f"retrieving the list of available {group} "
                                                                    "from the product gallery")
     else:
         raise RequestNotUnderstood('error while requesting a list of terms: '
                                    'this is likely to be related to a not valid group identifier '
                                    ' please check your inputs and try again')
 
-    if output_request is not None and type(output_request) == list and len(output_request) > 0:
+    if output_request is not None and type(output_request) == list and len(output_request) >= 0:
+        if len(output_request) == 0:
+            raise RequestNotUnderstood('it seems that no results has been returned: '
+                                       'this is likely to be related to a not valid parameter in your request, '
+                                       ' please check your inputs and try again')
         for output in output_request:
             if output_list is None:
                 output_list = []
