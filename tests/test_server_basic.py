@@ -1430,6 +1430,48 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 
 @pytest.mark.test_drupal
+@pytest.mark.parametrize("type_group", ['instruments', 'Instruments', 'products', 'sources', 'aaaaaa', None])
+@pytest.mark.parametrize("parent", ['isgri', 'production', 'all', 'aaaaaa', None])
+def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {'group': type_group,
+              'parent': parent,
+              'token': encoded_token}
+
+    c = requests.get(server + "/get_list_terms",
+                     params={**params}
+                     )
+
+    # if type_group is None or type_group == 'aaaaaa':
+    #     assert c.status_code == 400
+    #     jdata = c.json()
+    #     assert jdata['error_message'] == ('error while requesting a list of terms: '
+    #                                       'this is likely to be related to a not valid group identifier '
+    #                                       ' please check your inputs and try again')
+    #
+    # else:
+    assert c.status_code == 200
+    list_terms = c.json()
+    print('List of terms returned: ', list_terms)
+    assert isinstance(list_terms, list)
+    if type_group is None or type_group == 'aaaaaa' or \
+            (type_group == 'products' and (parent == 'production' or parent == 'aaaaaa')):
+        assert len(list_terms) == 0
+    else:
+        assert len(list_terms) > 0
+
+
+@pytest.mark.test_drupal
 @pytest.mark.parametrize("provide_job_id", [True, False])
 @pytest.mark.parametrize("provide_session_id", [True, False])
 @pytest.mark.parametrize("provide_instrument", [True, False])

@@ -9,7 +9,6 @@ import requests
 import base64
 import copy
 import uuid
-import datetime
 
 from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
@@ -46,6 +45,55 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
                                    payload={'error_message': f'error while performing: {operation_performed}'})
     else:
         return drupal_output.json()
+
+
+def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_client=None):
+    gallery_secret_key = disp_conf.product_gallery_secret_key
+    product_gallery_url = disp_conf.product_gallery_url
+    # extract email address and then the relative user_id
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
+                                          user_email=user_email,
+                                          sentry_client=sentry_client)
+    # update the token
+    gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+
+    headers = get_drupal_request_headers(gallery_jwt_token)
+    output_list = []
+    output_request = None
+    log_res = None
+
+    if group is not None and str.lower(group) == 'instruments':
+        if os.environ.get('DISPATCHER_DEBUG_MODE', 'no') == 'yes':
+            parent = 'all'
+        else:
+            parent = 'production'
+        log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary_parent/instruments/{parent}?_format=hal_json",
+                                         headers=headers)
+
+    elif group is not None and str.lower(group) == 'products':
+        if parent is None:
+            parent = 'all'
+        log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary_parent/products/{parent}?_format=hal_json",
+                                         headers=headers)
+
+    elif group is not None and str.lower(group) == 'sources':
+        log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/source/all?_format=hal_json",
+                                         headers=headers)
+
+    if log_res is not None:
+        output_request = analyze_drupal_output(log_res,
+                                               operation_performed=f"retrieving the list of available {group} "
+                                                                   "from the product gallery")
+
+    if output_request is not None and type(output_request) == list and len(output_request) >= 0:
+        for output in output_request:
+            if 'name' in output:
+                output_list.append(output['name'])
+            elif 'title' in output:
+                output_list.append(output['title'])
+
+    return output_list
 
 
 # TODO extend to support the sending of the requests also in other formats besides hal_json
