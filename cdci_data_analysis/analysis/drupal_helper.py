@@ -60,6 +60,7 @@ def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_cli
 
     headers = get_drupal_request_headers(gallery_jwt_token)
     output_list = None
+    output_request = None
     log_res = None
 
     if group is not None and str.lower(group) == 'instruments':
@@ -85,18 +86,11 @@ def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_cli
                                                operation_performed=f"retrieving the list of available {group} "
                                                                    "from the product gallery")
     else:
-        raise RequestNotUnderstood('error while requesting a list of terms: '
-                                   'this is likely to be related to a not valid group identifier '
-                                   ' please check your inputs and try again')
+        output_list = []
 
     if output_request is not None and type(output_request) == list and len(output_request) >= 0:
-        if len(output_request) == 0:
-            raise RequestNotUnderstood('it seems that no results has been returned: '
-                                       'this is likely to be related to a not valid parameter in your request, '
-                                       ' please check your inputs and try again')
+        output_list = []
         for output in output_request:
-            if output_list is None:
-                output_list = []
             if 'name' in output:
                 output_list.append(output['name'])
             elif 'title' in output:
