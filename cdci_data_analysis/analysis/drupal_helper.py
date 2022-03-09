@@ -605,7 +605,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
         }]
 
     # TODO to be used for the AstrophysicalEntity
-    src_name = kwargs.pop('src_name', 'source')
+    src_name = kwargs.pop('src_name', None)
     # set the source astrophysical entity if available
     if src_name is not None:
         source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
@@ -623,18 +623,23 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             }]
 
     # set the product title
+    # TODO agree on a better logic to better assign the product title
     if product_title is None:
-        if product_type is None:
+        if product_type is None and src_name is None:
+            "_".join(["data_product", str(uuid.uuid4())])
+        elif product_type is None and src_name is not None:
             product_title = src_name
+        elif product_type is not None and src_name is None:
+            product_title = product_type
         else:
             product_title = "_".join([src_name, product_type])
 
     body_gallery_article_node["title"]["value"] = product_title
 
     ids_obj = get_instrument_product_type_id(product_gallery_url=product_gallery_url,
-                                                               gallery_jwt_token=gallery_jwt_token,
-                                                               product_type=product_type,
-                                                               instrument=instrument)
+                                             gallery_jwt_token=gallery_jwt_token,
+                                             product_type=product_type,
+                                             instrument=instrument)
     if 'instrument_id' in ids_obj:
         # info for the instrument
         body_gallery_article_node['field_instrumentused'] = [{
