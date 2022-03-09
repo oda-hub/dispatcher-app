@@ -1477,13 +1477,11 @@ def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
 @pytest.mark.parametrize("provide_session_id", [True, False])
 @pytest.mark.parametrize("provide_instrument", [True, False])
 @pytest.mark.parametrize("provide_product_type", [True, False])
-@pytest.mark.parametrize("timerange_parameters", ["time", "observation_id", None])
+@pytest.mark.parametrize("timerange_parameters", ["time_range", "observation_id", None])
 @pytest.mark.parametrize("type_source", ["known", "new", None])
 @pytest.mark.parametrize("insert_new_source", [True, False])
-def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_session_id, provide_instrument, provide_product_type, timerange_parameters, type_source, insert_new_source):
 @pytest.mark.parametrize("provide_product_title", [True, False])
-@pytest.mark.parametrize("provide_source", [True, False])
-def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_session_id, provide_instrument, provide_product_type, timerange_parameters, provide_product_title, provide_source):
+def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_session_id, provide_instrument, provide_product_type, timerange_parameters, type_source, insert_new_source, provide_product_title):
     dispatcher_fetch_dummy_products('default')
 
     server = dispatcher_live_fixture_with_gallery
@@ -1525,9 +1523,11 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
     dec = 19
     ra = 458
 
-    src_name = None
-    if provide_source:
-        src_name = 'Crab'
+    source_name = None
+    if type_source == "known":
+        source_name = "Crab"
+    elif type_source == "new":
+        source_name = "new_source_" + ''.join(random.choices(string.digits + string.ascii_lowercase, k=5))
 
     product_title = None
     if provide_product_title:
@@ -1547,20 +1547,12 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
     else:
         product_type_product_gallery = 'isgri_lc'
 
-    source_name = None
-    if type_source == "known":
-        source_name = "Crab"
-    elif type_source == "new":
-        source_name = "new_source_" + ''.join(random.choices(string.digits + string.ascii_lowercase, k=5))
-
     params = {
         'job_id': job_id,
         'session_id': session_id,
         'instrument': instrument,
-        'product_type': product_type,
         'src_name': source_name,
         'product_type': product_type_product_gallery,
-        'src_name': src_name,
         'content_type': 'data_product',
         'product_title': product_title,
         'E1_keV': e1_kev,
@@ -1570,7 +1562,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
         'token': encoded_token,
         'insert_new_source': insert_new_source
     }
-    if timerange_parameters == 'time':
+    if timerange_parameters == 'time_range':
         params['T1'] = '2003-03-15T23:27:40.0'
         params['T2'] = '2003-03-16T00:03:12.0'
     elif timerange_parameters == 'observation_id':
@@ -1590,16 +1582,16 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
 
     drupal_res_obj = c.json()
 
-    if not provide_source:
-        src_name = 'source'
+    if type_source is None:
+        source_name = 'source'
 
     if not provide_product_title:
         if provide_product_type:
-            product_title = "_".join([src_name, product_type_product_gallery])
+            product_title = "_".join([source_name, product_type_product_gallery])
         elif provide_job_id and provide_session_id:
-            product_title = "_".join([src_name, product_type_analysis])
+            product_title = "_".join([source_name, product_type_analysis])
         else:
-            product_title = src_name
+            product_title = source_name
 
     assert 'title' in drupal_res_obj
     assert drupal_res_obj['title'][0]['value'] == product_title
