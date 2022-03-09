@@ -1582,19 +1582,24 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
 
     drupal_res_obj = c.json()
 
-    if type_source is None:
-        source_name = 'source'
-
     if not provide_product_title:
-        if provide_product_type:
+        if provide_product_type and type_source is not None:
             product_title = "_".join([source_name, product_type_product_gallery])
-        elif provide_job_id and provide_session_id:
-            product_title = "_".join([source_name, product_type_analysis])
-        else:
+        elif provide_product_type and type_source is None:
+            product_title = product_type_product_gallery
+        elif not provide_product_type and type_source is not None:
             product_title = source_name
+        elif not provide_product_type and type_source is None:
+            if provide_job_id and provide_session_id:
+                product_title = product_type_analysis
+            else:
+                product_title = None
 
     assert 'title' in drupal_res_obj
-    assert drupal_res_obj['title'][0]['value'] == product_title
+    if product_title is not None:
+        assert drupal_res_obj['title'][0]['value'] == product_title
+    else:
+        assert drupal_res_obj['title'][0]['value'].startswith('data_product_')
 
     assert 'field_e1_kev' in drupal_res_obj
     assert drupal_res_obj['field_e1_kev'][0]['value'] == e1_kev

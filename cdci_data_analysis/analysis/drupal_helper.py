@@ -626,7 +626,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     # TODO agree on a better logic to better assign the product title
     if product_title is None:
         if product_type is None and src_name is None:
-            "_".join(["data_product", str(uuid.uuid4())])
+            product_title = "_".join(["data_product", str(uuid.uuid4())])
         elif product_type is None and src_name is not None:
             product_title = src_name
         elif product_type is not None and src_name is None:
