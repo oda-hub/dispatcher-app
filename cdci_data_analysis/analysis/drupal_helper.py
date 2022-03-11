@@ -10,6 +10,8 @@ import base64
 import copy
 import uuid
 
+import xml.etree.ElementTree as ET
+
 from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
 from enum import Enum, auto
@@ -684,3 +686,29 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     output_post = analyze_drupal_output(log_res, operation_performed="posting data product to the gallery")
 
     return output_post
+
+
+def resolve_source(name_resolver_url: str, src_name: str = None):
+        resolved_obj = None
+        if src_name is not None:
+            res = requests.get(name_resolver_url + src_name)
+            if res.status_code == 200:
+                resolved_obj = {}
+
+            xml_resolved_obj = ET.fromstring(res.content)
+
+            for sesame in xml_resolved_obj:
+                for target in sesame:
+                    if target.tag == 'name':
+                        resolved_obj['name'] = target.text
+                    elif target.tag == 'Resolver':
+                        splitted_attrib_value = target.attrib['name'].split('=')
+                        if len(splitted_attrib_value) == 2:
+                            resolved_obj['resolver'] = splitted_attrib_value[1]
+                        for resolver in target:
+                            if resolver.tag == 'jradeg':
+                                resolved_obj['RA'] = float(resolver.text)
+                            elif resolver.tag == 'jdedeg':
+                                resolved_obj['DEC'] = float(resolver.text)
+
+        return resolved_obj
