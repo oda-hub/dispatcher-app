@@ -702,6 +702,7 @@ def resolve_source(name_resolver_url: str, entities_portal_url: str = None, src_
                     if target.tag == 'name':
                         resolved_obj['name'] = target.text
                     elif target.tag == 'Resolver':
+                        resolved_obj['entity_portal_link'] = entities_portal_url.format(src_name)
                         splitted_attrib_value = target.attrib['name'].split('=')
                         if len(splitted_attrib_value) == 2:
                             resolved_obj['resolver'] = splitted_attrib_value[1]
@@ -713,8 +714,5 @@ def resolve_source(name_resolver_url: str, entities_portal_url: str = None, src_
                     elif target.tag == 'INFO':
                         if 'nothing found' in str.lower(target.text):
                             resolved_obj['message'] = f'Unknown object !'
-                        else:
-                            entities_portal_url.format(src_name)
-                            resolved_obj['entity_portal_link'] = entities_portal_url
 
         return resolved_obj
