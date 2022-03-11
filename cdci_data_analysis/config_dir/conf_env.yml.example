@@ -61,5 +61,7 @@ dispatcher:
         product_gallery_url: PRODUCT_GALLERY_URL
         # location of the secret key used for generating tokens
         product_gallery_secret_key: PRODUCT_GALLERY_SECRET_KEY
+        # url of the name resolver
+        name_resolver_url: NAME_RESOLVER_URL
 
 
