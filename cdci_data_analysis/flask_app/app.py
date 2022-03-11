@@ -506,6 +506,8 @@ def resolve_object_name():
     resolve_object = drupal_helper.resolve_source(name_resolver_url=name_resolver_url,
                                                   src_name=src_name)
 
+    return resolve_object
+
 
 @app.route('/get_list_terms', methods=['GET'])
 def get_list_terms():
