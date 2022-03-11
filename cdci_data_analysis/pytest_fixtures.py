@@ -388,7 +388,8 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
         f.write('\n    product_gallery_options:'
                 '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/gallery"'
                 f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"'
-                f'\n        name_resolver_url: "http://cdsweb.u-strasbg.fr/cgi-bin/nph-sesame/-oxp/NSV?"')
+                '\n        name_resolver_url: "http://cdsweb.u-strasbg.fr/cgi-bin/nph-sesame/-oxp/NSV?"'
+                '\n        entities_portal_url: "http://cdsportal.u-strasbg.fr/?target={target}"')
 
     yield fn
 
