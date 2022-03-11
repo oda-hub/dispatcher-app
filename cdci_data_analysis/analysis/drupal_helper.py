@@ -608,7 +608,6 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             "target_id": user_id_product_creator
         }]
 
-    # TODO to be used for the AstrophysicalEntity
     src_name = kwargs.pop('src_name', None)
     src_portal_link = kwargs.pop('entity_portal_link', None)
     # set the source astrophysical entity if available
@@ -629,7 +628,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             }]
 
     # set the product title
-    # TODO agree on a better logic to better assign the product title
+    # TODO agree on a better logic to assign the product title
     if product_title is None:
         if product_type is None and src_name is None:
             product_title = "_".join(["data_product", str(uuid.uuid4())])
