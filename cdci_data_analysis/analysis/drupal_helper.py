@@ -710,5 +710,8 @@ def resolve_source(name_resolver_url: str, src_name: str = None):
                                 resolved_obj['RA'] = float(resolver.text)
                             elif resolver.tag == 'jdedeg':
                                 resolved_obj['DEC'] = float(resolver.text)
+                    elif target.tag == 'INFO':
+                        if 'nothing found' in str.lower(target.text):
+                            resolved_obj['message'] = f'Unknown object !'
 
         return resolved_obj
