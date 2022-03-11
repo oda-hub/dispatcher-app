@@ -502,8 +502,10 @@ def resolve_object_name():
     src_name = request.args.get('src_name', None)
 
     name_resolver_url = app_config.name_resolver_url
+    entities_portal_url = app_config.entities_portal_url
 
     resolve_object = drupal_helper.resolve_source(name_resolver_url=name_resolver_url,
+                                                  entities_portal_url=entities_portal_url,
                                                   src_name=src_name)
 
     return resolve_object

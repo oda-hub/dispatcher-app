@@ -688,7 +688,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     return output_post
 
 
-def resolve_source(name_resolver_url: str, src_name: str = None):
+def resolve_source(name_resolver_url: str, entities_portal_url: str = None, src_name: str = None):
         resolved_obj = None
         if src_name is not None:
             res = requests.get(name_resolver_url + src_name)
@@ -713,5 +713,8 @@ def resolve_source(name_resolver_url: str, src_name: str = None):
                     elif target.tag == 'INFO':
                         if 'nothing found' in str.lower(target.text):
                             resolved_obj['message'] = f'Unknown object !'
+                        else:
+                            entities_portal_url.format(src_name)
+                            resolved_obj['entity_portal_link'] = entities_portal_url
 
         return resolved_obj
