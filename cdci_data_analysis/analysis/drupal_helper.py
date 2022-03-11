@@ -368,7 +368,7 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
     return observations
 
 
-def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name, astro_entity_type=None,  sentry_client=None):
+def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name, astro_entity_portal_link=None,  sentry_client=None):
     # post new observation with or without a specific time range
     body_gallery_astro_entity_node = copy.deepcopy(body_article_product_gallery.body_node)
     # set the type of content to post
@@ -380,7 +380,9 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
     body_gallery_astro_entity_node["field_source_name"] = [{
             "value": astro_entity_name
         }]
-    # TODO define also the type, a taxonomy term is to be assigned
+    body_gallery_astro_entity_node["field_link"] = [{
+        "value": astro_entity_portal_link
+    }]
 
     headers = get_drupal_request_headers(gallery_jwt_token)
 
@@ -608,6 +610,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
 
     # TODO to be used for the AstrophysicalEntity
     src_name = kwargs.pop('src_name', None)
+    src_portal_link = kwargs.pop('entity_portal_link', None)
     # set the source astrophysical entity if available
     if src_name is not None:
         source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
@@ -617,6 +620,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
         if source_entity_id is None and insert_new_source:
             source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
                                                  astro_entity_name=src_name,
+                                                 astro_entity_portal_link=src_portal_link,
                                                  sentry_client=sentry_client)
 
         if source_entity_id is not None:
