@@ -1431,6 +1431,52 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 
 @pytest.mark.test_drupal
+@pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'fake_object', 'fake object', None])
+def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_to_resolve):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {'name': source_to_resolve,
+              'token': encoded_token}
+
+    c = requests.get(server + "/resolve_name",
+                     params={**params}
+                     )
+
+    assert c.status_code == 200
+    resolved_obj = c.json()
+    print('Resolved object returned: ', resolved_obj)
+
+    if source_to_resolve is None:
+        assert resolved_obj == {}
+    elif source_to_resolve == 'fake_object' or source_to_resolve == 'fake object':
+        assert 'name' in resolved_obj
+        assert 'message' in resolved_obj
+
+        # the name resolver replaces automatically underscores with spaces in the returned name
+        assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
+        assert resolved_obj['message'] == 'Unknown object !'
+    else:
+        assert 'name' in resolved_obj
+        assert 'resolver' in resolved_obj
+        assert 'DEC' in resolved_obj
+        assert 'RA' in resolved_obj
+        assert 'entity_portal_link' in resolved_obj
+
+        assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
+        assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery["product_gallery_options"]["entities_portal_url"]\
+            .format(source_to_resolve)
+
+
+@pytest.mark.test_drupal
 @pytest.mark.parametrize("type_group", ['instruments', 'Instruments', 'products', 'sources', 'aaaaaa', None])
 @pytest.mark.parametrize("parent", ['isgri', 'production', 'all', 'aaaaaa', None])
 def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
@@ -1453,14 +1499,6 @@ def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
                      params={**params}
                      )
 
-    # if type_group is None or type_group == 'aaaaaa':
-    #     assert c.status_code == 400
-    #     jdata = c.json()
-    #     assert jdata['error_message'] == ('error while requesting a list of terms: '
-    #                                       'this is likely to be related to a not valid group identifier '
-    #                                       ' please check your inputs and try again')
-    #
-    # else:
     assert c.status_code == 200
     list_terms = c.json()
     print('List of terms returned: ', list_terms)

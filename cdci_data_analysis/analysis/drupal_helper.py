@@ -691,10 +691,10 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     return output_post
 
 
-def resolve_source(name_resolver_url: str, entities_portal_url: str = None, src_name: str = None):
-        resolved_obj = None
-        if src_name is not None:
-            res = requests.get(name_resolver_url + src_name)
+def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: str = None):
+        resolved_obj = {}
+        if name is not None:
+            res = requests.get(name_resolver_url + name)
             if res.status_code == 200:
                 resolved_obj = {}
 
@@ -705,7 +705,7 @@ def resolve_source(name_resolver_url: str, entities_portal_url: str = None, src_
                     if target.tag == 'name':
                         resolved_obj['name'] = target.text
                     elif target.tag == 'Resolver':
-                        resolved_obj['entity_portal_link'] = entities_portal_url.format(src_name)
+                        resolved_obj['entity_portal_link'] = entities_portal_url.format(name)
                         splitted_attrib_value = target.attrib['name'].split('=')
                         if len(splitted_attrib_value) == 2:
                             resolved_obj['resolver'] = splitted_attrib_value[1]
@@ -716,6 +716,6 @@ def resolve_source(name_resolver_url: str, entities_portal_url: str = None, src_
                                 resolved_obj['DEC'] = float(resolver.text)
                     elif target.tag == 'INFO':
                         if 'nothing found' in str.lower(target.text):
-                            resolved_obj['message'] = f'Unknown object !'
+                            resolved_obj['message'] = 'Unknown object !'
 
         return resolved_obj
