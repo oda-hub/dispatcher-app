@@ -62,7 +62,7 @@ def push_api_code(api_code,
         raise RequestNotUnderstood(error_message)
     finally:
         logger.info("==> removing repository folder, since it is no longer necessary")
-        remove_repository(repo)
+        remove_repository(repo, renku_repository_url)
 
     return renku_session_url
 
@@ -179,7 +179,7 @@ def commit_and_push_file(repo, file_path):
         raise e
 
 
-def remove_repository(repo):
+def remove_repository(repo, renku_repository_url):
     repo_working_dir_path = None
     if repo is not None:
         repo_working_dir_path = repo.working_dir
