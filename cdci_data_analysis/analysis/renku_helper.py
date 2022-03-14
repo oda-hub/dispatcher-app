@@ -21,12 +21,11 @@ def push_api_code(api_code,
                   renku_base_project_url,
                   sentry_client=None):
     error_message = 'Error while {step}'
-    repository_folder_path = None
+    repo = None
     try:
         step = 'cloning repository'
         repo = clone_renku_repo(renku_repository_url,
                                 renku_gitlab_ssh_key_file=renku_gitlab_ssh_key_file)
-        repository_folder_path = repo.working_dir
         step = 'assigning branch name'
         branch_name = get_branch_name(job_id=job_id)
 
@@ -63,7 +62,7 @@ def push_api_code(api_code,
         raise RequestNotUnderstood(error_message)
     finally:
         logger.info("==> removing repository folder, since it is no longer necessary")
-        remove_repository(renku_repository_url, repository_folder_path)
+        remove_repository(repo)
 
     return renku_session_url
 
@@ -180,13 +179,13 @@ def commit_and_push_file(repo, file_path):
         raise e
 
 
-def remove_repository(renku_repository_url, repo_working_dir_path):
-    if repo_working_dir_path is None:
-        repo_working_dir_path = get_repo_local_path(renku_repository_url)
+def remove_repository(repo):
+    repo_working_dir_path = None
+    if repo is not None:
+        repo_working_dir_path = repo.working_dir
 
-    logger.info('removing repo_working_dir_path=%s created for renku_repository_url=%s', repo_working_dir_path, renku_repository_url)
-    
     if repo_working_dir_path is not None and os.path.exists(repo_working_dir_path):
+        logger.info('removing repo_working_dir_path=%s created for renku_repository_url=%s', repo_working_dir_path, renku_repository_url)
         try:
             shutil.rmtree(repo_working_dir_path)
         except OSError as e:
