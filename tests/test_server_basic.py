@@ -1457,7 +1457,7 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
 
     if source_to_resolve is None:
         assert resolved_obj == {}
-    elif source_to_resolve == 'fake_object' or source_to_resolve == 'fake object':
+    elif source_to_resolve == 'fake object':
         assert 'name' in resolved_obj
         assert 'message' in resolved_obj
 
