@@ -714,8 +714,9 @@ def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: 
                                 resolved_obj['RA'] = float(resolver.text)
                             elif resolver.tag == 'jdedeg':
                                 resolved_obj['DEC'] = float(resolver.text)
+                            elif resolver.tag == 'INFO':
+                                resolved_obj['message'] = resolver.text.strip()
                     elif target.tag == 'INFO':
-                        if 'nothing found' in str.lower(target.text):
-                            resolved_obj['message'] = 'Unknown object !'
+                        resolved_obj['message'] = target.text.strip()
 
         return resolved_obj
