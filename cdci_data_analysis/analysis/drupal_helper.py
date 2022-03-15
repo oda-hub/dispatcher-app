@@ -10,6 +10,8 @@ import base64
 import copy
 import uuid
 
+import xml.etree.ElementTree as ET
+
 from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
 from enum import Enum, auto
@@ -326,17 +328,20 @@ def post_content_to_gallery(decoded_token,
         product_title = par_dic.pop('product_title', None)
         observation_id = par_dic.pop('observation_id', None)
         user_id_product_creator = par_dic.pop('user_id_product_creator')
+        # TODO perhaps there's a smarter way to do this
+        insert_new_source = par_dic.pop('insert_new_source', 'False') == 'True'
 
         output_data_product_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
-                                        session_id=session_id,
-                                        job_id=job_id,
-                                        gallery_jwt_token=gallery_jwt_token,
-                                        product_title=product_title,
-                                        img_fid=img_fid,
-                                        fits_file_fid_list=fits_file_fid_list,
-                                        observation_id=observation_id,
-                                        user_id_product_creator=user_id_product_creator,
-                                        **par_dic)
+                                                                session_id=session_id,
+                                                                job_id=job_id,
+                                                                gallery_jwt_token=gallery_jwt_token,
+                                                                product_title=product_title,
+                                                                img_fid=img_fid,
+                                                                fits_file_fid_list=fits_file_fid_list,
+                                                                observation_id=observation_id,
+                                                                user_id_product_creator=user_id_product_creator,
+                                                                insert_new_source=insert_new_source,
+                                                                **par_dic)
 
         return output_data_product_post
 
@@ -361,6 +366,38 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
         observations = output_get
 
     return observations
+
+
+def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name, astro_entity_portal_link=None,  sentry_client=None):
+    # post new observation with or without a specific time range
+    body_gallery_astro_entity_node = copy.deepcopy(body_article_product_gallery.body_node)
+    # set the type of content to post
+    body_gallery_astro_entity_node["_links"]["type"]["href"] = os.path.join(product_gallery_url,
+                                                                            body_gallery_astro_entity_node["_links"]["type"]["href"],
+                                                                            'astro_entity')
+    # TODO perhaps a bit of duplication here?
+    body_gallery_astro_entity_node["title"]["value"] = astro_entity_name
+    body_gallery_astro_entity_node["field_source_name"] = [{
+            "value": astro_entity_name
+        }]
+    body_gallery_astro_entity_node["field_link"] = [{
+        "value": astro_entity_portal_link
+    }]
+
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/node",
+                                     method='post',
+                                     data=json.dumps(body_gallery_astro_entity_node),
+                                     headers=headers,
+                                     sentry_client=sentry_client)
+
+    output_post = analyze_drupal_output(log_res, operation_performed="posting a new astrophysical entity")
+
+    # extract the id of the observation
+    astro_entity_drupal_id = output_post['nid'][0]['value']
+
+    return astro_entity_drupal_id
 
 
 def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None, sentry_client=None):
@@ -491,6 +528,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
                                  fits_file_fid_list=None,
                                  observation_id=None,
                                  user_id_product_creator=None,
+                                 insert_new_source=False,
                                  sentry_client=None,
                                  **kwargs):
     body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_node)
@@ -570,31 +608,43 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             "target_id": user_id_product_creator
         }]
 
-    # TODO to be used for the AstrophysicalEntity
-    src_name = kwargs.pop('src_name', 'source')
+    src_name = kwargs.pop('src_name', None)
+    src_portal_link = kwargs.pop('entity_portal_link', None)
     # set the source astrophysical entity if available
     if src_name is not None:
         source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
                                                                              source_name=src_name,
                                                                              sentry_client=sentry_client)
+        # create a new source ? yes if the user wants it
+        if source_entity_id is None and insert_new_source:
+            source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
+                                                 astro_entity_name=src_name,
+                                                 astro_entity_portal_link=src_portal_link,
+                                                 sentry_client=sentry_client)
+
         if source_entity_id is not None:
             body_gallery_article_node['field_describes_astro_entity'] = [{
                 "target_id": int(source_entity_id)
             }]
 
     # set the product title
+    # TODO agree on a better logic to assign the product title
     if product_title is None:
-        if product_type is None:
+        if product_type is None and src_name is None:
+            product_title = "_".join(["data_product", str(uuid.uuid4())])
+        elif product_type is None and src_name is not None:
             product_title = src_name
+        elif product_type is not None and src_name is None:
+            product_title = product_type
         else:
             product_title = "_".join([src_name, product_type])
 
     body_gallery_article_node["title"]["value"] = product_title
 
     ids_obj = get_instrument_product_type_id(product_gallery_url=product_gallery_url,
-                                                               gallery_jwt_token=gallery_jwt_token,
-                                                               product_type=product_type,
-                                                               instrument=instrument)
+                                             gallery_jwt_token=gallery_jwt_token,
+                                             product_type=product_type,
+                                             instrument=instrument)
     if 'instrument_id' in ids_obj:
         # info for the instrument
         body_gallery_article_node['field_instrumentused'] = [{
@@ -639,3 +689,34 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     output_post = analyze_drupal_output(log_res, operation_performed="posting data product to the gallery")
 
     return output_post
+
+
+def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: str = None):
+        resolved_obj = {}
+        if name is not None:
+            res = requests.get(name_resolver_url + name)
+            if res.status_code == 200:
+                resolved_obj = {}
+
+            xml_resolved_obj = ET.fromstring(res.content)
+
+            for sesame in xml_resolved_obj:
+                for target in sesame:
+                    if target.tag == 'name':
+                        resolved_obj['name'] = target.text
+                    elif target.tag == 'Resolver':
+                        resolved_obj['entity_portal_link'] = entities_portal_url.format(name)
+                        splitted_attrib_value = target.attrib['name'].split('=')
+                        if len(splitted_attrib_value) == 2:
+                            resolved_obj['resolver'] = splitted_attrib_value[1]
+                        for resolver in target:
+                            if resolver.tag == 'jradeg':
+                                resolved_obj['RA'] = float(resolver.text)
+                            elif resolver.tag == 'jdedeg':
+                                resolved_obj['DEC'] = float(resolver.text)
+                            elif resolver.tag == 'INFO':
+                                resolved_obj['message'] = resolver.text.strip()
+                    elif target.tag == 'INFO':
+                        resolved_obj['message'] = target.text.strip()
+
+        return resolved_obj
