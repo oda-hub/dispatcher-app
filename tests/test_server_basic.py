@@ -1431,7 +1431,7 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 
 @pytest.mark.test_drupal
-@pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'fake_object', 'fake object', None])
+@pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'fake object', None])
 def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_to_resolve):
     server = dispatcher_live_fixture_with_gallery
 
@@ -1462,8 +1462,8 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
         assert 'message' in resolved_obj
 
         # the name resolver replaces automatically underscores with spaces in the returned name
-        assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
-        assert resolved_obj['message'] == 'Unknown object !'
+        assert resolved_obj['name'] == source_to_resolve
+        assert 'Nothing found' in resolved_obj['message']
     else:
         assert 'name' in resolved_obj
         assert 'resolver' in resolved_obj
