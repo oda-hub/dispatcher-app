@@ -267,7 +267,7 @@ def push_renku_branch():
         api_code = prod_dict.pop('api_code', None)
 
     renku_repository_url = app_config.renku_gitlab_repository_url
-    renku_gitlab_ssh_key_file = app_config.renku_gitlab_ssh_key_file
+    renku_gitlab_ssh_key_path = app_config.renku_gitlab_ssh_key_path
     renku_base_project_url = app_config.renku_base_project_url
 
     renku_logger = logger.getChild('push_renku_branch')
@@ -279,7 +279,7 @@ def push_renku_branch():
                                                   job_id=job_id,
                                                   renku_repository_url=renku_repository_url,
                                                   renku_base_project_url=renku_base_project_url,
-                                                  renku_gitlab_ssh_key_file=renku_gitlab_ssh_key_file)
+                                                  renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
 
         return api_code_url
 

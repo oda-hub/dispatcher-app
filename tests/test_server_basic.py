@@ -1671,7 +1671,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     # parse the repo url and build the renku one
     repo_url = dispatcher_test_conf_with_renku_options['renku_options']['renku_gitlab_repository_url']
     renku_base_project_url = dispatcher_test_conf_with_renku_options['renku_options']['renku_base_project_url']
-    renku_gitlab_ssh_key_file = dispatcher_test_conf_with_renku_options['renku_options']['ssh_key_file']
+    renku_gitlab_ssh_key_path = dispatcher_test_conf_with_renku_options['renku_options']['ssh_key_path']
     repo_path = get_repo_path(repo_url)
     renku_project_url = f'{renku_base_project_url}/{repo_path}'
 
@@ -1679,7 +1679,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}"
 
     # validate content pushed
-    repo = clone_gitlab_repo(repo_url, renku_gitlab_ssh_key_file=renku_gitlab_ssh_key_file, branch_name=f'mmoda_request_{job_id}')
+    repo = clone_gitlab_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path, branch_name=f'mmoda_request_{job_id}')
     api_code_file_path = os.path.join(repo.working_dir,  "_".join(["api_code", job_id]) + '.ipynb')
 
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)

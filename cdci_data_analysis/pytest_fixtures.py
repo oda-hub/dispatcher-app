@@ -403,7 +403,7 @@ def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
         f.write('\n    renku_options:'
                 '\n        renku_gitlab_repository_url: "git@renkulab.io:gabriele.barni/test-dispatcher-endpoint.git"'
                 '\n        renku_base_project_url: "http://renkulab.io/projects"'
-               f'\n        ssh_key_file: "{os.getenv("SSH_KEY_FILE", "ssh_key_file")}"')
+               f'\n        ssh_key_path: "{os.getenv("SSH_KEY_FILE", "ssh_key_file")}"')
 
     yield fn
 
@@ -731,14 +731,14 @@ def dispatcher_fetch_dummy_products(dummy_product_pack: str, reuse=False):
     open(dispatcher_dummy_product_pack_state_fn, "w").write("%s"%time.time())
 
 
-def clone_gitlab_repo(repository_url, repo_dir=None, renku_gitlab_ssh_key_file=None, branch_name=None):
+def clone_gitlab_repo(repository_url, repo_dir=None, renku_gitlab_ssh_key_path=None, branch_name=None):
     if repo_dir is None:
         repo_dir = tempfile.mkdtemp(prefix=get_repo_name(repository_url))
 
     if branch_name is None:
         branch_name = 'master'
 
-    git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_file}'
+    git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_path}'
 
     repo = Repo.clone_from(repository_url, repo_dir, branch=branch_name, env=dict(GIT_SSH_COMMAND=git_ssh_cmd))
 
