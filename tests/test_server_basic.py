@@ -16,6 +16,7 @@ import nbformat as nbf
 import yaml
 import gzip
 import random
+import string
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products, clone_gitlab_repo, get_repo_path
@@ -1430,6 +1431,52 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 
 @pytest.mark.test_drupal
+@pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'fake object', None])
+def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_to_resolve):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {'name': source_to_resolve,
+              'token': encoded_token}
+
+    c = requests.get(server + "/resolve_name",
+                     params={**params}
+                     )
+
+    assert c.status_code == 200
+    resolved_obj = c.json()
+    print('Resolved object returned: ', resolved_obj)
+
+    if source_to_resolve is None:
+        assert resolved_obj == {}
+    elif source_to_resolve == 'fake object':
+        assert 'name' in resolved_obj
+        assert 'message' in resolved_obj
+
+        # the name resolver replaces automatically underscores with spaces in the returned name
+        assert resolved_obj['name'] == source_to_resolve
+        assert 'Nothing found' in resolved_obj['message']
+    else:
+        assert 'name' in resolved_obj
+        assert 'resolver' in resolved_obj
+        assert 'DEC' in resolved_obj
+        assert 'RA' in resolved_obj
+        assert 'entity_portal_link' in resolved_obj
+
+        assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
+        assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery["product_gallery_options"]["entities_portal_url"]\
+            .format(source_to_resolve)
+
+
+@pytest.mark.test_drupal
 @pytest.mark.parametrize("type_group", ['instruments', 'Instruments', 'products', 'sources', 'aaaaaa', None])
 @pytest.mark.parametrize("parent", ['isgri', 'production', 'all', 'aaaaaa', None])
 def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
@@ -1452,14 +1499,6 @@ def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
                      params={**params}
                      )
 
-    # if type_group is None or type_group == 'aaaaaa':
-    #     assert c.status_code == 400
-    #     jdata = c.json()
-    #     assert jdata['error_message'] == ('error while requesting a list of terms: '
-    #                                       'this is likely to be related to a not valid group identifier '
-    #                                       ' please check your inputs and try again')
-    #
-    # else:
     assert c.status_code == 200
     list_terms = c.json()
     print('List of terms returned: ', list_terms)
@@ -1476,10 +1515,11 @@ def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
 @pytest.mark.parametrize("provide_session_id", [True, False])
 @pytest.mark.parametrize("provide_instrument", [True, False])
 @pytest.mark.parametrize("provide_product_type", [True, False])
-@pytest.mark.parametrize("timerange_parameters", ["time", "observation_id", None])
+@pytest.mark.parametrize("timerange_parameters", ["time_range", "observation_id", None])
+@pytest.mark.parametrize("type_source", ["known", "new", None])
+@pytest.mark.parametrize("insert_new_source", [True, False])
 @pytest.mark.parametrize("provide_product_title", [True, False])
-@pytest.mark.parametrize("provide_source", [True, False])
-def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_session_id, provide_instrument, provide_product_type, timerange_parameters, provide_product_title, provide_source):
+def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_session_id, provide_instrument, provide_product_type, timerange_parameters, type_source, insert_new_source, provide_product_title):
     dispatcher_fetch_dummy_products('default')
 
     server = dispatcher_live_fixture_with_gallery
@@ -1521,9 +1561,11 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
     dec = 19
     ra = 458
 
-    src_name = None
-    if provide_source:
-        src_name = 'Crab'
+    source_name = None
+    if type_source == "known":
+        source_name = "Crab"
+    elif type_source == "new":
+        source_name = "new_source_" + ''.join(random.choices(string.digits + string.ascii_lowercase, k=5))
 
     product_title = None
     if provide_product_title:
@@ -1547,17 +1589,18 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
         'job_id': job_id,
         'session_id': session_id,
         'instrument': instrument,
+        'src_name': source_name,
         'product_type': product_type_product_gallery,
-        'src_name': src_name,
         'content_type': 'data_product',
         'product_title': product_title,
         'E1_keV': e1_kev,
         'E2_kev': e2_kev,
         'DEC': dec,
         'RA': ra,
-        'token': encoded_token
+        'token': encoded_token,
+        'insert_new_source': insert_new_source
     }
-    if timerange_parameters == 'time':
+    if timerange_parameters == 'time_range':
         params['T1'] = '2003-03-15T23:27:40.0'
         params['T2'] = '2003-03-16T00:03:12.0'
     elif timerange_parameters == 'observation_id':
@@ -1577,19 +1620,24 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
 
     drupal_res_obj = c.json()
 
-    if not provide_source:
-        src_name = 'source'
-
     if not provide_product_title:
-        if provide_product_type:
-            product_title = "_".join([src_name, product_type_product_gallery])
-        elif provide_job_id and provide_session_id:
-            product_title = "_".join([src_name, product_type_analysis])
-        else:
-            product_title = src_name
+        if provide_product_type and type_source is not None:
+            product_title = "_".join([source_name, product_type_product_gallery])
+        elif provide_product_type and type_source is None:
+            product_title = product_type_product_gallery
+        elif not provide_product_type and type_source is not None:
+            product_title = source_name
+        elif not provide_product_type and type_source is None:
+            if provide_job_id and provide_session_id:
+                product_title = product_type_analysis
+            else:
+                product_title = None
 
     assert 'title' in drupal_res_obj
-    assert drupal_res_obj['title'][0]['value'] == product_title
+    if product_title is not None:
+        assert drupal_res_obj['title'][0]['value'] == product_title
+    else:
+        assert drupal_res_obj['title'][0]['value'].startswith('data_product_')
 
     assert 'field_e1_kev' in drupal_res_obj
     assert drupal_res_obj['field_e1_kev'][0]['value'] == e1_kev

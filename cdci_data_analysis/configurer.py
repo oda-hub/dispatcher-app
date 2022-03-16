@@ -237,6 +237,8 @@ class ConfigEnv(object):
                                      disp_dict['email_options']['email_sending_job_submitted_default_interval'],
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_url', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_secret_key', None),
+                                     disp_dict.get('product_gallery_options', {}).get('name_resolver_url', None),
+                                     disp_dict.get('product_gallery_options', {}).get('entities_portal_url', None),
                                      disp_dict.get('renku_options', {}).get('renku_gitlab_repository_url', None),
                                      disp_dict.get('renku_options', {}).get('renku_base_project_url', None),
                                      disp_dict.get('renku_options', {}).get('ssh_key_path', None)
@@ -290,6 +292,8 @@ class ConfigEnv(object):
                             email_sending_job_submitted_default_interval,
                             product_gallery_url,
                             product_gallery_secret_key,
+                            name_resolver_url,
+                            entities_portal_url,
                             renku_gitlab_repository_url,
                             renku_base_project_url,
                             renku_gitlab_ssh_key_path
@@ -316,6 +320,8 @@ class ConfigEnv(object):
         self.email_sending_job_submitted_default_interval = email_sending_job_submitted_default_interval
         self.product_gallery_url = product_gallery_url
         self.product_gallery_secret_key = product_gallery_secret_key
+        self.name_resolver_url = name_resolver_url
+        self.entities_portal_url = entities_portal_url
         self.renku_gitlab_repository_url = renku_gitlab_repository_url
         self.renku_gitlab_ssh_key_path = renku_gitlab_ssh_key_path
         self.renku_base_project_url = renku_base_project_url

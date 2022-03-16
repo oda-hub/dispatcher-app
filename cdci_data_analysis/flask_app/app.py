@@ -466,6 +466,47 @@ class Product(Resource):
                            e, status_code=410)
 
 
+@app.route('/resolve_name', methods=['GET'])
+def resolve_name():
+    logger.info("request.args: %s ", request.args)
+    token = request.args.get('token', None)
+    if token is None:
+        return make_response('A token must be provided.'), 403
+    try:
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
+        decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+        logger.info("==> token %s", decoded_token)
+    except jwt.exceptions.ExpiredSignatureError:
+        # raise RequestNotAuthorized("The token provided is expired.")
+        return make_response('The token provided is expired.'), 403
+    except jwt.exceptions.InvalidTokenError:
+        # raise RequestNotAuthorized("The token provided is not valid.")
+        return make_response('The token provided is not valid.'), 403
+
+    roles = tokenHelper.get_token_roles(decoded_token)
+    # TODO to be extended in case this functionality will be needed in more contexts
+    required_roles = ['gallery contributor']
+    if not any(item in roles for item in required_roles):
+        lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+        message = (
+            f"Unfortunately, your privileges are not sufficient to post in the product gallery.\n"
+            f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
+        )
+        return make_response(message), 403
+
+    name = request.args.get('name', None)
+
+    name_resolver_url = app_config.name_resolver_url
+    entities_portal_url = app_config.entities_portal_url
+
+    resolve_object = drupal_helper.resolve_name(name_resolver_url=name_resolver_url,
+                                                entities_portal_url=entities_portal_url,
+                                                name=name)
+
+    return resolve_object
+
+
 @app.route('/get_list_terms', methods=['GET'])
 def get_list_terms():
     logger.info("request.args: %s ", request.args)
