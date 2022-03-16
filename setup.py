@@ -45,7 +45,8 @@ install_req = [
     "black",
     "bs4",
     "GitPython",
-    "nbformat"
+    "nbformat",
+    "giturlparse"
 ]
 
 test_req = [

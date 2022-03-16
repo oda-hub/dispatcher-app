@@ -21,6 +21,7 @@ celery
 redis
 psutil
 pyjwt
+giturlparse
 aiosmtpd
 marshmallow
 requests
