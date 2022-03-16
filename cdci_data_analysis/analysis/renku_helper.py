@@ -7,6 +7,7 @@ import nbformat as nbf
 import shutil
 
 from git import Repo
+import giturlparse
 
 from ..app_logging import app_logging
 from .exceptions import RequestNotUnderstood
@@ -17,17 +18,15 @@ logger = app_logging.getLogger('renku_helper')
 def push_api_code(api_code,
                   job_id,
                   renku_repository_url,
-                  renku_gitlab_ssh_key_file,
-                  renku_project_url,
-                  renku_gitlab_user_name,
+                  renku_gitlab_ssh_key_path,
+                  renku_base_project_url,
                   sentry_client=None):
     error_message = 'Error while {step}'
-    repository_folder_path = None
+    repo = None
     try:
         step = 'cloning repository'
         repo = clone_renku_repo(renku_repository_url,
-                                renku_gitlab_ssh_key_file=renku_gitlab_ssh_key_file)
-        repository_folder_path = repo.working_dir
+                                renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
         step = 'assigning branch name'
         branch_name = get_branch_name(job_id=job_id)
 
@@ -50,8 +49,7 @@ def push_api_code(api_code,
 
         step = f'generating a valid url to start a new session on the new branch'
         renku_session_url = generate_renku_session_url(repo,
-                                                       renku_project_url=renku_project_url,
-                                                       renku_gitlab_user_name=renku_gitlab_user_name,
+                                                       renku_base_project_url=renku_base_project_url,
                                                        branch_name=branch_name)
 
     except Exception as e:
@@ -65,38 +63,51 @@ def push_api_code(api_code,
         raise RequestNotUnderstood(error_message)
     finally:
         logger.info("==> removing repository folder, since it is no longer necessary")
-        remove_repository(renku_repository_url, repository_folder_path)
-    # TODO to actually return the renkulab url of the newly created branch
+        remove_repository(repo, renku_repository_url)
+
     return renku_session_url
 
 
-def generate_renku_session_url(repo, renku_project_url, renku_gitlab_user_name, branch_name):
-    # original_url = repo.remotes.origin.url
-    # TODO: project url could be derived from renku projects base path and original_url. the config values should be renamed then    
+def generate_renku_session_url(repo, renku_base_project_url, branch_name):
+    original_url = repo.remotes.origin.url
+    repo_path = get_repo_path(original_url)
+    renku_project_url = f'{renku_base_project_url}/{repo_path}'
     return f"{renku_project_url}/sessions/new?autostart=1&branch={branch_name}"
     
 
+def get_repo_path(repository_url):
+    git_parsed_url = giturlparse.parse(repository_url)
+    if git_parsed_url.valid:
+        repo_path = git_parsed_url.pathname
+        match = re.search(".git$", repo_path)
+        if match:
+            repo_path = repo_path[0:-4]
+        return repo_path
+    else:
+        raise Exception(f"{repository_url} is not in a valid repository url format of, please check it and try again")
+
 
 def get_repo_name(repository_url):
-    repo_name = repository_url.split('/')[-1]
-    if repo_name.endswith('.git'):
-        repo_name = repo_name[0:-4]
+    git_parsed_url = giturlparse.parse(repository_url)
+    if git_parsed_url.valid:
+        return git_parsed_url.name
+    else:
+        raise Exception(f"{repository_url} is not in a valid repository url format of, please check it and try again")
 
-    return repo_name
 
 def get_repo_local_path(repository_url):
     return tempfile.mkdtemp(prefix=get_repo_name(repository_url))    
 
 
-def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_ssh_key_file=None):
-    logger.info('clone_renku_repo with renku_repository_url=%s, repo_dir=%s, renku_gitlab_ssh_key_file=%s', renku_repository_url, repo_dir, renku_gitlab_ssh_key_file)
+def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_ssh_key_path=None):
+    logger.info('clone_renku_repo with renku_repository_url=%s, repo_dir=%s, renku_gitlab_ssh_key_file=%s', renku_repository_url, repo_dir, renku_gitlab_ssh_key_path)
 
     if repo_dir is None:
         repo_dir = get_repo_local_path(renku_repository_url)
         logger.info('constructing repo_dir=%s', repo_dir)
 
     # TODO or store known hosts on build/boot
-    git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_file} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
+    git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_path} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
 
     repo = Repo.clone_from(renku_repository_url, repo_dir, branch='master', env=dict(GIT_SSH_COMMAND=git_ssh_cmd))
 
@@ -173,13 +184,13 @@ def commit_and_push_file(repo, file_path):
         raise e
 
 
-def remove_repository(renku_repository_url, repo_working_dir_path):
-    if repo_working_dir_path is None:
-        repo_working_dir_path = get_repo_local_path(renku_repository_url)
+def remove_repository(repo, renku_repository_url):
+    repo_working_dir_path = None
+    if repo is not None:
+        repo_working_dir_path = repo.working_dir
 
-    logger.info('removing repo_working_dir_path=%s created for renku_repository_url=%s', repo_working_dir_path, renku_repository_url)
-    
     if repo_working_dir_path is not None and os.path.exists(repo_working_dir_path):
+        logger.info('removing repo_working_dir_path=%s created for renku_repository_url=%s', repo_working_dir_path, renku_repository_url)
         try:
             shutil.rmtree(repo_working_dir_path)
         except OSError as e:

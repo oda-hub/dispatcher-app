@@ -240,9 +240,8 @@ class ConfigEnv(object):
                                      disp_dict.get('product_gallery_options', {}).get('name_resolver_url', None),
                                      disp_dict.get('product_gallery_options', {}).get('entities_portal_url', None),
                                      disp_dict.get('renku_options', {}).get('renku_gitlab_repository_url', None),
-                                     disp_dict.get('renku_options', {}).get('renku_gitlab_user_name', None),
-                                     disp_dict.get('renku_options', {}).get('renku_project_url', None),
-                                     disp_dict.get('renku_options', {}).get('ssh_key_file', None)
+                                     disp_dict.get('renku_options', {}).get('renku_base_project_url', None),
+                                     disp_dict.get('renku_options', {}).get('ssh_key_path', None)
                                      )
 
         # not used?
@@ -296,9 +295,8 @@ class ConfigEnv(object):
                             name_resolver_url,
                             entities_portal_url,
                             renku_gitlab_repository_url,
-                            renku_gitlab_user_name,
-                            renku_project_url,
-                            renku_gitlab_ssh_key_file
+                            renku_base_project_url,
+                            renku_gitlab_ssh_key_path
                             ):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
@@ -325,9 +323,8 @@ class ConfigEnv(object):
         self.name_resolver_url = name_resolver_url
         self.entities_portal_url = entities_portal_url
         self.renku_gitlab_repository_url = renku_gitlab_repository_url
-        self.renku_gitlab_ssh_key_file = renku_gitlab_ssh_key_file
-        self.renku_gitlab_user_name = renku_gitlab_user_name
-        self.renku_project_url = renku_project_url
+        self.renku_gitlab_ssh_key_path = renku_gitlab_ssh_key_path
+        self.renku_base_project_url = renku_base_project_url
 
     def get_data_serve_conf(self, instr_name):
         if instr_name in self.data_server_conf_dict.keys():
