@@ -77,16 +77,23 @@ def generate_renku_session_url(repo, renku_base_project_url, branch_name):
 
 def get_repo_path(repository_url):
     git_parsed_url = giturlparse.parse(repository_url)
-    repo_path = git_parsed_url.pathname
-    match = re.search(".git$", repo_path)
-    if match:
-        repo_path = repo_path[0:-4]
-    return repo_path
+    if git_parsed_url.valid:
+        repo_path = git_parsed_url.pathname
+        match = re.search(".git$", repo_path)
+        if match:
+            repo_path = repo_path[0:-4]
+        return repo_path
+    else:
+        raise Exception(f"{repository_url} is not in a valid repository url format of, please check it and try again")
 
 
 def get_repo_name(repository_url):
     git_parsed_url = giturlparse.parse(repository_url)
-    return git_parsed_url.name
+    if git_parsed_url.valid:
+        return git_parsed_url.name
+    else:
+        raise Exception(f"{repository_url} is not in a valid repository url format of, please check it and try again")
+
 
 def get_repo_local_path(repository_url):
     return tempfile.mkdtemp(prefix=get_repo_name(repository_url))    
