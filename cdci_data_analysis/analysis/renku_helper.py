@@ -7,6 +7,7 @@ import nbformat as nbf
 import shutil
 
 from git import Repo
+import giturlparse
 
 from ..app_logging import app_logging
 from .exceptions import RequestNotUnderstood
@@ -75,20 +76,17 @@ def generate_renku_session_url(repo, renku_base_project_url, branch_name):
     
 
 def get_repo_path(repository_url):
-    if repository_url.endswith('.git'):
-        repo_path = repository_url.split(':', 1)[-1]
+    git_parsed_url = giturlparse.parse(repository_url)
+    repo_path = git_parsed_url.pathname
+    match = re.search(".git$", repo_path)
+    if match:
         repo_path = repo_path[0:-4]
-    else:
-        repo_path = repository_url.split('/')[1:-1]
     return repo_path
 
 
 def get_repo_name(repository_url):
-    repo_name = repository_url.split('/')[-1]
-    if repo_name.endswith('.git'):
-        repo_name = repo_name[0:-4]
-
-    return repo_name
+    git_parsed_url = giturlparse.parse(repository_url)
+    return git_parsed_url.name
 
 def get_repo_local_path(repository_url):
     return tempfile.mkdtemp(prefix=get_repo_name(repository_url))    
