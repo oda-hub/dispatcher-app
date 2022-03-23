@@ -395,6 +395,21 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
+def dispatcher_test_conf_with_gallery_no_resolver_fn(dispatcher_test_conf_fn):
+    fn = "test-dispatcher-conf-with-gallery.yaml"
+
+    with open(fn, "w") as f:
+        with open(dispatcher_test_conf_fn) as f_default:
+            f.write(f_default.read())
+
+        f.write('\n    product_gallery_options:'
+                '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/gallery"'
+                f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"')
+
+    yield fn
+
+
+@pytest.fixture
 def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
     fn = "test-dispatcher-conf-with-renku-options.yaml"
     filesys_repo = 'file:///renkulab.io/gitlab/gabriele.barni/test-dispatcher-endpoint'
@@ -413,6 +428,11 @@ def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
 @pytest.fixture
 def dispatcher_test_conf_with_gallery(dispatcher_test_conf_with_gallery_fn):
     yield yaml.load(open(dispatcher_test_conf_with_gallery_fn), Loader=yaml.SafeLoader)['dispatcher']
+
+
+@pytest.fixture
+def dispatcher_test_conf_with_gallery_no_resolver(dispatcher_test_conf_with_gallery_no_resolver_fn):
+    yield yaml.load(open(dispatcher_test_conf_with_gallery_no_resolver_fn), Loader=yaml.SafeLoader)['dispatcher']
 
 
 @pytest.fixture
@@ -635,6 +655,19 @@ def dispatcher_live_fixture_empty_sentry(pytestconfig, dispatcher_test_conf_empt
 @pytest.fixture
 def dispatcher_live_fixture_with_gallery(pytestconfig, dispatcher_test_conf_with_gallery_fn, dispatcher_debug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_gallery_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_with_gallery_no_resolver(pytestconfig, dispatcher_test_conf_with_gallery_no_resolver_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_gallery_no_resolver_fn)
 
     service = dispatcher_state['url']
     pid = dispatcher_state['pid']
