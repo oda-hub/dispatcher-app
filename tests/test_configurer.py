@@ -1,4 +1,4 @@
-from cdci_data_analysis.configurer import DataServerConf
+from cdci_data_analysis.configurer import DataServerConf, ConfigEnv
 import os
 import pytest
 import contextlib, os
@@ -79,7 +79,7 @@ def test_dsconf_pass_keys():
         conf = DataServerConf.from_conf_dict(conf_dict, required_keys, allowed_keys)
 
 
-def test_dsconf_legacy_plugin_keys(caplog):
+def test_confenv_legacy_plugin_keys(caplog):
     conf = DataServerConf(data_server_url="eggs",
                           data_server_port="bacon",
                           data_server_remote_cache=None,
@@ -94,3 +94,11 @@ def test_dsconf_legacy_plugin_keys(caplog):
     with pytest.raises(AttributeError):
         conf.data_server_spam 
 
+
+def test_config_no_resolver_urls(dispatcher_test_conf_with_gallery_no_resolver_fn):
+    conf = ConfigEnv.from_conf_file(dispatcher_test_conf_with_gallery_no_resolver_fn)
+
+    assert hasattr(conf, 'name_resolver_url')
+    assert conf.name_resolver_url is not None
+    assert hasattr(conf, 'entities_portal_url')
+    assert conf.entities_portal_url is not None
