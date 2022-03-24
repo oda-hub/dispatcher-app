@@ -697,10 +697,10 @@ def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: 
         res = requests.get(name_resolver_url.format(name))
         if res.status_code == 200:
             returned_resolved_obj = res.json()
-
             if 'success' in returned_resolved_obj:
                 resolved_obj['name'] = name.replace('_', ' ')
                 if returned_resolved_obj['success']:
+                    logger.info(f"object {name} successfully resolved")
                     if 'ra' in returned_resolved_obj:
                         resolved_obj['RA'] = float(returned_resolved_obj['ra'])
                     if 'dec' in returned_resolved_obj:
@@ -708,7 +708,15 @@ def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: 
                     resolved_obj['entity_portal_link'] = entities_portal_url.format(name)
                     resolved_obj['message'] = f'{name} successfully resolved'
                 elif not returned_resolved_obj['success']:
+                    logger.info(f"resolution of the object {name} unsuccessful")
                     resolved_obj['message'] = f'{name} could not be resolved'
-        # else:
-        #     resolved_obj['message'] = f'Error while resolving {name} could not be resolved'
+        else:
+            logger.warning(f"there seems to be some problem in completing the request for the resolution of the object: {name}\n"
+                           f"the request lead to the error {res.text}, "
+                           "this might be due to an error in the url or the service "
+                           "requested is currently not available, "
+                           "please check your request and try to issue it again")
+            raise InternalError('issue when performing a request to the local resolver',
+                                status_code=500,
+                                payload={'error_message': res.text})
     return resolved_obj
