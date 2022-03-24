@@ -10,8 +10,6 @@ import base64
 import copy
 import uuid
 
-import xml.etree.ElementTree as ET
-
 from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
 from enum import Enum, auto
