@@ -1463,10 +1463,9 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
 
         # the name resolver replaces automatically underscores with spaces in the returned name
         assert resolved_obj['name'] == source_to_resolve
-        assert 'Nothing found' in resolved_obj['message']
+        assert resolved_obj['message'] == f'{source_to_resolve} could not be resolved'
     else:
         assert 'name' in resolved_obj
-        assert 'resolver' in resolved_obj
         assert 'DEC' in resolved_obj
         assert 'RA' in resolved_obj
         assert 'entity_portal_link' in resolved_obj
