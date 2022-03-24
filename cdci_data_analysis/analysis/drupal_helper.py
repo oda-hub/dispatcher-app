@@ -692,31 +692,23 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
 
 
 def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: str = None):
-        resolved_obj = {}
-        if name is not None:
-            res = requests.get(name_resolver_url + name)
-            if res.status_code == 200:
-                resolved_obj = {}
+    resolved_obj = {}
+    if name is not None:
+        res = requests.get(name_resolver_url.format(name))
+        if res.status_code == 200:
+            returned_resolved_obj = res.json()
 
-            xml_resolved_obj = ET.fromstring(res.content)
-
-            for sesame in xml_resolved_obj:
-                for target in sesame:
-                    if target.tag == 'name':
-                        resolved_obj['name'] = target.text
-                    elif target.tag == 'Resolver':
-                        resolved_obj['entity_portal_link'] = entities_portal_url.format(name)
-                        splitted_attrib_value = target.attrib['name'].split('=')
-                        if len(splitted_attrib_value) == 2:
-                            resolved_obj['resolver'] = splitted_attrib_value[1]
-                        for resolver in target:
-                            if resolver.tag == 'jradeg':
-                                resolved_obj['RA'] = float(resolver.text)
-                            elif resolver.tag == 'jdedeg':
-                                resolved_obj['DEC'] = float(resolver.text)
-                            elif resolver.tag == 'INFO':
-                                resolved_obj['message'] = resolver.text.strip()
-                    elif target.tag == 'INFO':
-                        resolved_obj['message'] = target.text.strip()
-
-        return resolved_obj
+            if 'success' in returned_resolved_obj:
+                resolved_obj['name'] = name.replace('_', ' ')
+                if returned_resolved_obj['success']:
+                    if 'ra' in returned_resolved_obj:
+                        resolved_obj['RA'] = float(returned_resolved_obj['ra'])
+                    if 'dec' in returned_resolved_obj:
+                        resolved_obj['DEC'] = float(returned_resolved_obj['ra'])
+                    resolved_obj['entity_portal_link'] = entities_portal_url.format(name)
+                    resolved_obj['message'] = f'{name} successfully resolved'
+                elif not returned_resolved_obj['success']:
+                    resolved_obj['message'] = f'{name} could not be resolved'
+        # else:
+        #     resolved_obj['message'] = f'Error while resolving {name} could not be resolved'
+    return resolved_obj
