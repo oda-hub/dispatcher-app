@@ -237,7 +237,7 @@ class ConfigEnv(object):
                                      disp_dict['email_options']['email_sending_job_submitted_default_interval'],
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_url', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_secret_key', None),
-                                     disp_dict.get('product_gallery_options', {}).get('name_resolver_url', 'http://cdsweb.u-strasbg.fr/cgi-bin/nph-sesame/-oxp/NSV?'),
+                                     disp_dict.get('product_gallery_options', {}).get('name_resolver_url', 'https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}'),
                                      disp_dict.get('product_gallery_options', {}).get('entities_portal_url', 'http://cdsportal.u-strasbg.fr/?target={}'),
                                      disp_dict.get('renku_options', {}).get('renku_gitlab_repository_url', None),
                                      disp_dict.get('renku_options', {}).get('renku_base_project_url', None),
