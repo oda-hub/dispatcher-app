@@ -1476,7 +1476,7 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
 
 
 @pytest.mark.test_drupal
-@pytest.mark.parametrize("type_group", ['instruments', 'Instruments', 'products', 'sources', 'aaaaaa', None])
+@pytest.mark.parametrize("type_group", ['instruments', 'Instruments', 'products', 'sources', 'aaaaaa', '', None])
 @pytest.mark.parametrize("parent", ['isgri', 'production', 'all', 'aaaaaa', '', None])
 def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
     server = dispatcher_live_fixture_with_gallery
@@ -1502,7 +1502,7 @@ def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
     list_terms = c.json()
     print('List of terms returned: ', list_terms)
     assert isinstance(list_terms, list)
-    if type_group is None or type_group == 'aaaaaa' or \
+    if type_group is None or type_group == '' or type_group == 'aaaaaa' or \
             (type_group == 'products' and (parent == 'production' or parent == 'aaaaaa')):
         assert len(list_terms) == 0
     else:
