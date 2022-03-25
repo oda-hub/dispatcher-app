@@ -549,6 +549,47 @@ def get_list_terms():
     return output_request
 
 
+@app.route('/get_parents_term', methods=['GET'])
+def get_parents_term():
+    logger.info("request.args: %s ", request.args)
+    token = request.args.get('token', None)
+    if token is None:
+        return make_response('A token must be provided.'), 403
+    try:
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
+        decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+        logger.info("==> token %s", decoded_token)
+    except jwt.exceptions.ExpiredSignatureError:
+        # raise RequestNotAuthorized("The token provided is expired.")
+        return make_response('The token provided is expired.'), 403
+    except jwt.exceptions.InvalidTokenError:
+        # raise RequestNotAuthorized("The token provided is not valid.")
+        return make_response('The token provided is not valid.'), 403
+
+    roles = tokenHelper.get_token_roles(decoded_token)
+
+    required_roles = ['gallery contributor']
+    if not all(item in roles for item in required_roles):
+        lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+        message = (
+            f"Unfortunately, your privileges are not sufficient to post in the product gallery.\n"
+            f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
+        )
+        return make_response(message), 403
+
+    group = request.args.get('group', None)
+    term = request.args.get('term', None)
+
+    list_parents = drupal_helper.get_parents_term(disp_conf=app_config,
+                                                  term=term,
+                                                  group=group,
+                                                  decoded_token=decoded_token)
+
+    output_request = json.dumps(list_parents)
+
+    return output_request
+
 @app.route('/post_product_to_gallery', methods=['POST'])
 def post_product_to_gallery():
     logger.info("request.args: %s ", request.args)

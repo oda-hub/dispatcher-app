@@ -96,7 +96,7 @@ def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_cli
     return output_list
 
 
-def get_parent_term(decoded_token, term, group=None, disp_conf=None, sentry_client=None):
+def get_parents_term(decoded_token, term, group=None, disp_conf=None, sentry_client=None):
     gallery_secret_key = disp_conf.product_gallery_secret_key
     product_gallery_url = disp_conf.product_gallery_url
     # extract email address and then the relative user_id
@@ -120,8 +120,7 @@ def get_parent_term(decoded_token, term, group=None, disp_conf=None, sentry_clie
         msg = f"retrieving the list parents for the term {term}, "
         if group != '':
             msg += f"from the vocabulary {group}"
-        output_request = analyze_drupal_output(log_res,
-                                               operation_performed= msg + ", from the product gallery")
+        output_request = analyze_drupal_output(log_res, operation_performed=(msg + ", from the product gallery"))
 
     if output_request is not None and type(output_request) == list and len(output_request) >= 0:
         for output in output_request:
