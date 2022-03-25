@@ -10,8 +10,6 @@ import base64
 import copy
 import uuid
 
-import xml.etree.ElementTree as ET
-
 from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
 from enum import Enum, auto
@@ -692,31 +690,31 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
 
 
 def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: str = None):
-        resolved_obj = {}
-        if name is not None:
-            res = requests.get(name_resolver_url + name)
-            if res.status_code == 200:
-                resolved_obj = {}
-
-            xml_resolved_obj = ET.fromstring(res.content)
-
-            for sesame in xml_resolved_obj:
-                for target in sesame:
-                    if target.tag == 'name':
-                        resolved_obj['name'] = target.text
-                    elif target.tag == 'Resolver':
-                        resolved_obj['entity_portal_link'] = entities_portal_url.format(name)
-                        splitted_attrib_value = target.attrib['name'].split('=')
-                        if len(splitted_attrib_value) == 2:
-                            resolved_obj['resolver'] = splitted_attrib_value[1]
-                        for resolver in target:
-                            if resolver.tag == 'jradeg':
-                                resolved_obj['RA'] = float(resolver.text)
-                            elif resolver.tag == 'jdedeg':
-                                resolved_obj['DEC'] = float(resolver.text)
-                            elif resolver.tag == 'INFO':
-                                resolved_obj['message'] = resolver.text.strip()
-                    elif target.tag == 'INFO':
-                        resolved_obj['message'] = target.text.strip()
-
-        return resolved_obj
+    resolved_obj = {}
+    if name is not None:
+        res = requests.get(name_resolver_url.format(name))
+        if res.status_code == 200:
+            returned_resolved_obj = res.json()
+            if 'success' in returned_resolved_obj:
+                resolved_obj['name'] = name.replace('_', ' ')
+                if returned_resolved_obj['success']:
+                    logger.info(f"object {name} successfully resolved")
+                    if 'ra' in returned_resolved_obj:
+                        resolved_obj['RA'] = float(returned_resolved_obj['ra'])
+                    if 'dec' in returned_resolved_obj:
+                        resolved_obj['DEC'] = float(returned_resolved_obj['ra'])
+                    resolved_obj['entity_portal_link'] = entities_portal_url.format(name)
+                    resolved_obj['message'] = f'{name} successfully resolved'
+                elif not returned_resolved_obj['success']:
+                    logger.info(f"resolution of the object {name} unsuccessful")
+                    resolved_obj['message'] = f'{name} could not be resolved'
+        else:
+            logger.warning(f"there seems to be some problem in completing the request for the resolution of the object: {name}\n"
+                           f"the request lead to the error {res.text}, "
+                           "this might be due to an error in the url or the service "
+                           "requested is currently not available, "
+                           "please check your request and try to issue it again")
+            raise InternalError('issue when performing a request to the local resolver',
+                                status_code=500,
+                                payload={'error_message': res.text})
+    return resolved_obj
