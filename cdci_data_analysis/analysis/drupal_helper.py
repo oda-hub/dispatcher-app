@@ -97,7 +97,7 @@ def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_cli
                                          headers=headers)
 
     elif group is not None and str.lower(group) == 'products':
-        if parent is None:
+        if parent is None or parent == '':
             parent = 'all'
         log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary_parent/products/{parent}?_format=hal_json",
                                          headers=headers)
