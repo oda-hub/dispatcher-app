@@ -96,6 +96,43 @@ def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_cli
     return output_list
 
 
+def get_parent_term(decoded_token, term, group=None, disp_conf=None, sentry_client=None):
+    gallery_secret_key = disp_conf.product_gallery_secret_key
+    product_gallery_url = disp_conf.product_gallery_url
+    # extract email address and then the relative user_id
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
+                                          user_email=user_email,
+                                          sentry_client=sentry_client)
+    # update the token
+    gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+
+    headers = get_drupal_request_headers(gallery_jwt_token)
+    output_list = []
+    output_request = None
+
+    if group is None:
+        group = ''
+    log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/product_term_parent/{term}/{group}?_format=hal_json",
+                                     headers=headers)
+
+    if log_res is not None:
+        msg = f"retrieving the list parents for the term {term}, "
+        if group != '':
+            msg += f"from the vocabulary {group}"
+        output_request = analyze_drupal_output(log_res,
+                                               operation_performed= msg + ", from the product gallery")
+
+    if output_request is not None and type(output_request) == list and len(output_request) >= 0:
+        for output in output_request:
+            if 'name' in output:
+                output_list.append(output['name'])
+            elif 'title' in output:
+                output_list.append(output['title'])
+
+    return output_list
+
+
 # TODO extend to support the sending of the requests also in other formats besides hal_json
 # not necessary at the moment, but perhaps in the future it will be
 def execute_drupal_request(url,
