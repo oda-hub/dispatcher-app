@@ -1510,6 +1510,40 @@ def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
 
 
 @pytest.mark.test_drupal
+@pytest.mark.parametrize("group", ['instruments', 'Instruments', 'products', '', 'aaaaaa', None])
+@pytest.mark.parametrize("term", ['isgri_image', 'jemx_lc', 'aaaaaa', None])
+def test_parents_term(dispatcher_live_fixture_with_gallery, term, group):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {'term': term,
+              'group': group,
+              'token': encoded_token}
+
+    c = requests.get(server + "/get_parents_term",
+                     params={**params}
+                     )
+
+    assert c.status_code == 200
+    list_terms = c.json()
+    print('List of terms returned: ', list_terms)
+    assert isinstance(list_terms, list)
+    # if type_group is None or type_group == 'aaaaaa' or \
+    #         (type_group == 'products' and (parent == 'production' or parent == 'aaaaaa')):
+    #     assert len(list_terms) == 0
+    # else:
+    #     assert len(list_terms) > 0
+
+
+@pytest.mark.test_drupal
 @pytest.mark.parametrize("provide_job_id", [True, False])
 @pytest.mark.parametrize("provide_session_id", [True, False])
 @pytest.mark.parametrize("provide_instrument", [True, False])

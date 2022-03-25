@@ -111,8 +111,8 @@ def get_parents_term(decoded_token, term, group=None, disp_conf=None, sentry_cli
     output_list = []
     output_request = None
 
-    if group is None:
-        group = ''
+    if group is None or group == '':
+        group = 'all'
     log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/product_term_parent/{term}/{group}?_format=hal_json",
                                      headers=headers)
 
@@ -124,10 +124,8 @@ def get_parents_term(decoded_token, term, group=None, disp_conf=None, sentry_cli
 
     if output_request is not None and type(output_request) == list and len(output_request) >= 0:
         for output in output_request:
-            if 'name' in output:
-                output_list.append(output['name'])
-            elif 'title' in output:
-                output_list.append(output['title'])
+            if 'parent_target_id' in output:
+                output_list.append(output['parent_target_id'].split(','))
 
     return output_list
 
