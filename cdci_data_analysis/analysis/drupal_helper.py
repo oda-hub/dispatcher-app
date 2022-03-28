@@ -124,7 +124,7 @@ def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_cli
 def get_parents_term(decoded_token, term, group=None, disp_conf=None, sentry_client=None):
     gallery_secret_key = disp_conf.product_gallery_secret_key
     product_gallery_url = disp_conf.product_gallery_url
-    # extract email address and then the relative user_id
+    # extract email address and then the relative user_id from the mmoda token
     user_email = tokenHelper.get_token_user_email_address(decoded_token)
     user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
                                           user_email=user_email,
