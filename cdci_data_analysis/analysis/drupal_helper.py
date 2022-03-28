@@ -150,7 +150,8 @@ def get_parents_term(decoded_token, term, group=None, disp_conf=None, sentry_cli
     if output_request is not None and type(output_request) == list and len(output_request) >= 0:
         for output in output_request:
             if 'parent_target_id' in output:
-                output_list.append(output['parent_target_id'].split(','))
+                parents_list = output['parent_target_id'].split(',')
+                output_list.extend([r.strip() for r in parents_list])
 
     return output_list
 
