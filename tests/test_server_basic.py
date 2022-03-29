@@ -1510,6 +1510,37 @@ def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
 
 
 @pytest.mark.test_drupal
+@pytest.mark.parametrize("time_to_convert", ['2022-03-29T15:51:01', '', 'aaaaaa', None])
+def test_converttime_revnum(dispatcher_live_fixture_with_gallery, time_to_convert):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {'time_to_convert': time_to_convert,
+              'token': encoded_token}
+
+    c = requests.get(server + "/get_revnum",
+                     params={**params}
+                     )
+    if time_to_convert == 'aaaaaa':
+        assert c.status_code == 500
+    else:
+        assert c.status_code == 200
+        revnum_obj = c.json()
+        print('Rev number returned: ', revnum_obj)
+        assert 'revnum' in revnum_obj
+        if time_to_convert == '2022-03-29T15:51:01':
+            assert revnum_obj['revnum'] == 2485
+
+
+@pytest.mark.test_drupal
 @pytest.mark.parametrize("provide_job_id", [True, False])
 @pytest.mark.parametrize("provide_session_id", [True, False])
 @pytest.mark.parametrize("provide_instrument", [True, False])
