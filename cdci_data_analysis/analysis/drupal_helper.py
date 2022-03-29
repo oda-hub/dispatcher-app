@@ -718,3 +718,25 @@ def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: 
                                 status_code=500,
                                 payload={'error_message': res.text})
     return resolved_obj
+
+
+def get_revnum(service_url: str, time_to_convert: str = None):
+    resolved_obj = {}
+    if time_to_convert is None:
+        time_to_convert = time.time()
+
+    time_to_convert = parser.parse(time_to_convert).strftime('%Y-%m-%dT%H:%M:%S')
+    res = requests.get(service_url.format(time_to_convert))
+
+    if res.status_code == 200:
+        resolved_obj['revnum'] = res.content
+    else:
+        logger.warning(f"there seems to be some problem in completing the request for the conversion of the time: {time_to_convert}\n"
+                       f"the request lead to the error {res.text}, "
+                       "this might be due to an error in the url or the service "
+                       "requested is currently not available, "
+                       "please check your request and try to issue it again")
+        raise InternalError('issue when performing a request to the local resolver',
+                            status_code=500,
+                            payload={'error_message': res.text})
+    return resolved_obj

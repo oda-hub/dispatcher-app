@@ -389,7 +389,8 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
                 '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/gallery"'
                 f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"'
                 '\n        name_resolver_url: "https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}"'
-                '\n        entities_portal_url: "http://cdsportal.u-strasbg.fr/?target={}"')
+                '\n        entities_portal_url: "http://cdsportal.u-strasbg.fr/?target={}"'
+                '\n        converttime_revnum_service_url: "https://www.astro.unige.ch/mmoda/dispatch-data/gw/timesystem/api/v1.0/converttime/UTC/{}/REVNUM"')
 
     yield fn
 

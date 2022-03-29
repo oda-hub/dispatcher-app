@@ -239,6 +239,7 @@ class ConfigEnv(object):
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_secret_key', None),
                                      disp_dict.get('product_gallery_options', {}).get('name_resolver_url', 'https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}'),
                                      disp_dict.get('product_gallery_options', {}).get('entities_portal_url', 'http://cdsportal.u-strasbg.fr/?target={}'),
+                                     disp_dict.get('product_gallery_options', {}).get('converttime_revnum_service_url', 'https://www.astro.unige.ch/mmoda/dispatch-data/gw/timesystem/api/v1.0/converttime/UTC/{}/REVNUM'),
                                      disp_dict.get('renku_options', {}).get('renku_gitlab_repository_url', None),
                                      disp_dict.get('renku_options', {}).get('renku_base_project_url', None),
                                      disp_dict.get('renku_options', {}).get('ssh_key_path', None)
@@ -294,6 +295,7 @@ class ConfigEnv(object):
                             product_gallery_secret_key,
                             name_resolver_url,
                             entities_portal_url,
+                            converttime_revnum_service_url,
                             renku_gitlab_repository_url,
                             renku_base_project_url,
                             renku_gitlab_ssh_key_path
@@ -322,6 +324,7 @@ class ConfigEnv(object):
         self.product_gallery_secret_key = product_gallery_secret_key
         self.name_resolver_url = name_resolver_url
         self.entities_portal_url = entities_portal_url
+        self.converttime_revnum_service_url = converttime_revnum_service_url
         self.renku_gitlab_repository_url = renku_gitlab_repository_url
         self.renku_gitlab_ssh_key_path = renku_gitlab_ssh_key_path
         self.renku_base_project_url = renku_base_project_url
