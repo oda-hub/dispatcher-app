@@ -65,5 +65,7 @@ dispatcher:
         name_resolver_url: NAME_RESOLVER_URL
         # url of the online catalog for astrophysical entities
         entities_portal_url: ENTITIES_PORTAL_URL
+        # url for the conversion of a given time, in UTC format, to the correspondent REVNUM
+        converttime_revnum_service_url: COVERTTIME_REVNUM_SERVICE_URL
 
 
