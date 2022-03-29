@@ -12,6 +12,7 @@ import uuid
 
 from cdci_data_analysis.analysis import tokenHelper
 from dateutil import parser
+from datetime import datetime
 from enum import Enum, auto
 
 from ..analysis.exceptions import RequestNotUnderstood, InternalError, RequestNotAuthorized
@@ -722,14 +723,15 @@ def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: 
 
 def get_revnum(service_url: str, time_to_convert: str = None):
     resolved_obj = {}
-    if time_to_convert is None:
-        time_to_convert = time.time()
-
-    time_to_convert = parser.parse(time_to_convert).strftime('%Y-%m-%dT%H:%M:%S')
+    if time_to_convert is None or time_to_convert == '':
+        time_to_convert = datetime.now()
+    else:
+        time_to_convert = parser.parse(time_to_convert)
+    time_to_convert = time_to_convert.strftime('%Y-%m-%dT%H:%M:%S')
     res = requests.get(service_url.format(time_to_convert))
 
     if res.status_code == 200:
-        resolved_obj['revnum'] = res.content
+        resolved_obj['revnum'] = int(res.content)
     else:
         logger.warning(f"there seems to be some problem in completing the request for the conversion of the time: {time_to_convert}\n"
                        f"the request lead to the error {res.text}, "

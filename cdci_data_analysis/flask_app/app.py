@@ -538,9 +538,9 @@ def get_revnum():
 
     time_to_convert = request.args.get('time_to_convert', None)
 
-    service_url = app_config.service_url
+    converttime_revnum_service_url = app_config.converttime_revnum_service_url
 
-    resolve_object = drupal_helper.get_revnum(service_url=service_url, time_to_convert=time_to_convert)
+    resolve_object = drupal_helper.get_revnum(service_url=converttime_revnum_service_url, time_to_convert=time_to_convert)
 
     return resolve_object
 
