@@ -731,10 +731,9 @@ def get_revnum(service_url: str, time_to_convert: str = None):
         time_to_convert = time_to_convert.strftime('%Y-%m-%dT%H:%M:%S')
     except parser.ParserError as e:
         logger.warning(
-            f"problem when parsing the time {time_to_convert}")
-        raise InternalError('issue when performing a request to the local resolver',
-                            status_code=500,
-                            payload={'time parsing error': e})
+            f"error while parsing the time {time_to_convert}, "
+            f"please check your request and try to issue it again")
+        return resolved_obj
     res = requests.get(service_url.format(time_to_convert))
 
     if res.status_code == 200:
