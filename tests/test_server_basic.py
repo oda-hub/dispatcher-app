@@ -1529,12 +1529,12 @@ def test_converttime_revnum(dispatcher_live_fixture_with_gallery, time_to_conver
     c = requests.get(server + "/get_revnum",
                      params={**params}
                      )
+    assert c.status_code == 200
+    revnum_obj = c.json()
+    print('Rev number returned: ', revnum_obj)
     if time_to_convert == 'aaaaaa':
-        assert c.status_code == 500
+        assert revnum_obj == {}
     else:
-        assert c.status_code == 200
-        revnum_obj = c.json()
-        print('Rev number returned: ', revnum_obj)
         assert 'revnum' in revnum_obj
         if time_to_convert == '2022-03-29T15:51:01':
             assert revnum_obj['revnum'] == 2485
