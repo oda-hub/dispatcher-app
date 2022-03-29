@@ -744,7 +744,7 @@ def get_revnum(service_url: str, time_to_convert: str = None):
                        "this might be due to an error in the url or the service "
                        "requested is currently not available, "
                        "please check your request and try to issue it again")
-        raise InternalError('issue when performing a request to the local resolver',
+        raise InternalError('issue when performing a request to the timesystem service',
                             status_code=500,
                             payload={'error_message': res.text})
     return resolved_obj
