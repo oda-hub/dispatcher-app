@@ -763,7 +763,7 @@ def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: 
                     if 'ra' in returned_resolved_obj:
                         resolved_obj['RA'] = float(returned_resolved_obj['ra'])
                     if 'dec' in returned_resolved_obj:
-                        resolved_obj['DEC'] = float(returned_resolved_obj['ra'])
+                        resolved_obj['DEC'] = float(returned_resolved_obj['dec'])
                     resolved_obj['entity_portal_link'] = entities_portal_url.format(name)
                     resolved_obj['message'] = f'{name} successfully resolved'
                 elif not returned_resolved_obj['success']:
