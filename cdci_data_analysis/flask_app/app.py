@@ -759,6 +759,12 @@ def log_run_query_request():
     request_summary = {}
 
     try:
+        
+        try:
+            request_json = request.json
+        except:
+            request_json = {}
+
         logger.debug("output json request")
         logger.debug("request.args: %s", request.args)
         logger.debug("request.host: %s", request.host)
@@ -769,7 +775,7 @@ def log_run_query_request():
                         'host_url': request.host_url,
                         'host': request.host,
                         'args': dict(request.args),
-                        'json-data': dict(request.json or {}),
+                        'json-data': dict(request_json),
                         'form-data': dict(request.form or {}),
                         'raw-data': dict(request.data or ""),
                     }}
@@ -784,7 +790,7 @@ def log_run_query_request():
         logger.info("request_summary: %s", request_summary_json)
         logstash_message(app, request_summary_json)
     except Exception as e:
-        logger.error("failed to logstash request in log_run_query_request %s", e)
+        logger.error("failed to logstash request in log_run_query_request: %s\n%s", repr(e), traceback.format_exception())
         raise
 
     return request_summary
