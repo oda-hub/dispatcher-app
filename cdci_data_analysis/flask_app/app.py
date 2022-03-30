@@ -775,6 +775,9 @@ def log_run_query_request():
         except:
             request_json = {}
 
+        if request_json is None:
+            request_json = {}
+
         logger.debug("output json request")
         logger.debug("request.args: %s", request.args)
         logger.debug("request.host: %s", request.host)
