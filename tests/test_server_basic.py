@@ -1514,7 +1514,7 @@ def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
 @pytest.mark.parametrize("group", ['instruments', 'Instruments', 'products', '', 'aaaaaa', None])
 @pytest.mark.parametrize("term", ['isgri_image', 'jemx_lc', 'aaaaaa', None])
 def test_parents_term(dispatcher_live_fixture_with_gallery, term, group):
-  server = dispatcher_live_fixture_with_gallery
+    server = dispatcher_live_fixture_with_gallery
 
     logger.info("constructed server: %s", server)
 
