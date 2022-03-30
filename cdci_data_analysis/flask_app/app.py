@@ -507,6 +507,44 @@ def resolve_name():
     return resolve_object
 
 
+@app.route('/get_revnum', methods=['GET'])
+def get_revnum():
+    logger.info("request.args: %s ", request.args)
+    token = request.args.get('token', None)
+    if token is None:
+        return make_response('A token must be provided.'), 403
+    try:
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
+        decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+        logger.info("==> token %s", decoded_token)
+    except jwt.exceptions.ExpiredSignatureError:
+        # raise RequestNotAuthorized("The token provided is expired.")
+        return make_response('The token provided is expired.'), 403
+    except jwt.exceptions.InvalidTokenError:
+        # raise RequestNotAuthorized("The token provided is not valid.")
+        return make_response('The token provided is not valid.'), 403
+
+    roles = tokenHelper.get_token_roles(decoded_token)
+    # TODO to be extended in case this functionality will be needed in more contexts
+    required_roles = ['gallery contributor']
+    if not any(item in roles for item in required_roles):
+        lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+        message = (
+            f"Unfortunately, your privileges are not sufficient to post in the product gallery.\n"
+            f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
+        )
+        return make_response(message), 403
+
+    time_to_convert = request.args.get('time_to_convert', None)
+
+    converttime_revnum_service_url = app_config.converttime_revnum_service_url
+
+    resolve_object = drupal_helper.get_revnum(service_url=converttime_revnum_service_url, time_to_convert=time_to_convert)
+
+    return resolve_object
+
+
 @app.route('/get_list_terms', methods=['GET'])
 def get_list_terms():
     logger.info("request.args: %s ", request.args)
@@ -721,6 +759,12 @@ def log_run_query_request():
     request_summary = {}
 
     try:
+        
+        try:
+            request_json = request.json
+        except:
+            request_json = {}
+
         logger.debug("output json request")
         logger.debug("request.args: %s", request.args)
         logger.debug("request.host: %s", request.host)
@@ -731,7 +775,7 @@ def log_run_query_request():
                         'host_url': request.host_url,
                         'host': request.host,
                         'args': dict(request.args),
-                        'json-data': dict(request.json or {}),
+                        'json-data': dict(request_json),
                         'form-data': dict(request.form or {}),
                         'raw-data': dict(request.data or ""),
                     }}
@@ -746,7 +790,7 @@ def log_run_query_request():
         logger.info("request_summary: %s", request_summary_json)
         logstash_message(app, request_summary_json)
     except Exception as e:
-        logger.error("failed to logstash request in log_run_query_request %s", e)
+        logger.error("failed to logstash request in log_run_query_request: %s\n%s", repr(e), traceback.format_exception())
         raise
 
     return request_summary
