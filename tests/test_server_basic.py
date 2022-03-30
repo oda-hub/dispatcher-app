@@ -1448,7 +1448,7 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
     params = {'name': source_to_resolve,
               'token': encoded_token}
 
-    c = requests.get(server + "/resolve_name",
+    c = requests.get(os.path.join(server, "resolve_name"),
                      params={**params}
                      )
 
@@ -1495,7 +1495,7 @@ def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
               'parent': parent,
               'token': encoded_token}
 
-    c = requests.get(server + "/get_list_terms",
+    c = requests.get(os.path.join(server, "get_list_terms"),
                      params={**params}
                      )
 
@@ -1528,7 +1528,7 @@ def test_parents_term(dispatcher_live_fixture_with_gallery, term, group):
               'group': group,
               'token': encoded_token}
 
-    c = requests.get(server + "/get_parents_term",
+    c = requests.get(os.path.join(server, "get_parents_term"),
                      params={**params}
                      )
 
@@ -1570,7 +1570,7 @@ def test_converttime_revnum(dispatcher_live_fixture_with_gallery, time_to_conver
     params = {'time_to_convert': time_to_convert,
               'token': encoded_token}
 
-    c = requests.get(server + "/get_revnum",
+    c = requests.get(os.path.join(server, "get_revnum"),
                      params={**params}
                      )
     assert c.status_code == 200
