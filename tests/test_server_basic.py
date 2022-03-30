@@ -1512,7 +1512,7 @@ def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
 
 @pytest.mark.test_drupal
 @pytest.mark.parametrize("group", ['instruments', 'Instruments', 'products', '', 'aaaaaa', None])
-@pytest.mark.parametrize("term", ['isgri_image', 'jemx_lc', 'aaaaaa', None])
+@pytest.mark.parametrize("term", ['isgri', 'isgri_image', 'jemx_lc', 'aaaaaa', None])
 def test_parents_term(dispatcher_live_fixture_with_gallery, term, group):
     server = dispatcher_live_fixture_with_gallery
 
@@ -1536,11 +1536,21 @@ def test_parents_term(dispatcher_live_fixture_with_gallery, term, group):
     list_terms = c.json()
     print('List of terms returned: ', list_terms)
     assert isinstance(list_terms, list)
-    # if type_group is None or type_group == 'aaaaaa' or \
-    #         (type_group == 'products' and (parent == 'production' or parent == 'aaaaaa')):
-    #     assert len(list_terms) == 0
-    # else:
-    #     assert len(list_terms) > 0
+    if term is None or term == 'aaaaaa' or \
+            (term is not None and group == 'aaaaaa') or \
+            ((term == 'jemx_lc' or term == 'isgri_image') and group is not None and str.lower(group) == 'instruments'):
+        assert len(list_terms) == 0
+    else:
+        assert len(list_terms) > 0
+        if term == 'jemx_lc':
+            assert 'lightcurve' in list_terms
+        elif term == 'isgri_image':
+            assert 'image' in list_terms
+        elif term == 'isgri':
+            if group == 'products':
+                assert 'instruments' in list_terms
+            elif group == 'instruments':
+                assert 'production' in list_terms
   
  
 @pytest.mark.test_drupal
