@@ -520,8 +520,9 @@ def start_dispatcher(rootdir, test_conf_fn):
     service=url_store[0]
 
     return dict(
-        url=service, 
-        pid=p.pid
+            # url=service, 
+            url=http://127.0.0.1:8001/,
+            pid=p.pid
         )        
 
 
