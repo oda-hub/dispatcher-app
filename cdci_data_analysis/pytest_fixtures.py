@@ -125,11 +125,11 @@ def ask(server, params, expected_query_status, expected_job_status=None, max_tim
     if max_time_s is not None:
         assert t_spent < max_time_s
 
-    logger.info("content: %s", c.text[:1000])
-    if len(c.text) > 1000:
+    logger.info("content: %s", c.text[:2000])
+    if len(c.text) > 2000:
         print(".... (truncated)")
 
-    jdata=c.json()
+    jdata = c.json()
 
     if expected_status_code is not None:
         assert c.status_code == expected_status_code
@@ -340,14 +340,14 @@ def dispatcher_test_conf_fn(tmpdir):
 dispatcher:
     dummy_cache: dummy-cache
     products_url: PRODUCTS_URL
-    dispatcher_callback_url_base: http://localhost:8001
+    dispatcher_callback_url_base: http://localhost:8011
     sentry_url: "https://2ba7e5918358439485632251fa73658c@sentry.io/1467382"
     logstash_host: 
     logstash_port: 
     secret_key: 'secretkey_test'
     bind_options:
         bind_host: 0.0.0.0
-        bind_port: 8001
+        bind_port: 8011
     email_options:
         smtp_server: 'localhost'
         sender_email_address: 'team@odahub.io'
@@ -389,7 +389,8 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
                 '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/gallery"'
                 f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"'
                 '\n        name_resolver_url: "https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}"'
-                '\n        entities_portal_url: "http://cdsportal.u-strasbg.fr/?target={}"')
+                '\n        entities_portal_url: "http://cdsportal.u-strasbg.fr/?target={}"'
+                '\n        converttime_revnum_service_url: "https://www.astro.unige.ch/mmoda/dispatch-data/gw/timesystem/api/v1.0/converttime/UTC/{}/REVNUM"')
 
     yield fn
 
@@ -499,7 +500,7 @@ def start_dispatcher(rootdir, test_conf_fn):
             print(f"{C}following server: {line.rstrip()}{NC}" )
             m = re.search(r"Running on (.*?) \(Press CTRL\+C to quit\)", line)
             if m:
-                url_store[0] = m.group(1)[:-1]  # alaternatively get from configenv
+                url_store[0] = m.group(1).strip()  # alternatively get from configenv
                 print(f"{C}following server: found url:{url_store[0]}")
 
             if re.search("\* Debugger PIN:.*?", line):
@@ -516,12 +517,12 @@ def start_dispatcher(rootdir, test_conf_fn):
         time.sleep(0.2)
     time.sleep(0.5)
 
-    service=url_store[0]
+    service = url_store[0]
 
     return dict(
-        url=service, 
+        url=service,
         pid=p.pid
-        )        
+    )        
 
 
 @pytest.fixture

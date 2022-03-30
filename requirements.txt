@@ -33,3 +33,4 @@ MarkupSafe==2.0.1
 
 # TODO: needed by some plugins: migrate
 simple_logger
+matplotlib
