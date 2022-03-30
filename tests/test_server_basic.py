@@ -1685,7 +1685,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
                 'fits_file_0': open('data/dummy_prods/isgri_query_lc.fits', 'rb'),
                 'fits_file_1': open('data/dummy_prods/query_catalog.fits', 'rb')}
 
-    c = requests.post(server + "/post_product_to_gallery",
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
                       params={**params},
                       files=file_obj
                       )

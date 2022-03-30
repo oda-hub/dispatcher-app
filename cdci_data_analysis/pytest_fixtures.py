@@ -101,12 +101,12 @@ def run_analysis(server, params, method='get', files=None):
         if files is not None:
             logger.error("files cannot be attached to a get request")
             raise BadRequest("Invalid parameters for GET request")
-        return requests.get(server + "/run_analysis",
+        return requests.get(os.path.join(server, "run_analysis"),
                     params={**params},
                     )
 
     elif method == 'post':
-        return requests.post(server + "/run_analysis",
+        return requests.post(os.path.join(server, "run_analysis"),
                     data={**params},
                     files=files
                     )
