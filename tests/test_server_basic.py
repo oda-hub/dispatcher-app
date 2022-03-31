@@ -1448,7 +1448,7 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
     params = {'name': source_to_resolve,
               'token': encoded_token}
 
-    c = requests.get(server + "/resolve_name",
+    c = requests.get(os.path.join(server, "resolve_name"),
                      params={**params}
                      )
 
@@ -1477,8 +1477,8 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
 
 
 @pytest.mark.test_drupal
-@pytest.mark.parametrize("type_group", ['instruments', 'Instruments', 'products', 'sources', 'aaaaaa', None])
-@pytest.mark.parametrize("parent", ['isgri', 'production', 'all', 'aaaaaa', None])
+@pytest.mark.parametrize("type_group", ['instruments', 'Instruments', 'products', 'sources', 'aaaaaa', '', None])
+@pytest.mark.parametrize("parent", ['isgri', 'production', 'all', 'aaaaaa', '', None])
 def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
     server = dispatcher_live_fixture_with_gallery
 
@@ -1495,7 +1495,7 @@ def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
               'parent': parent,
               'token': encoded_token}
 
-    c = requests.get(server + "/get_list_terms",
+    c = requests.get(os.path.join(server, "get_list_terms"),
                      params={**params}
                      )
 
@@ -1503,13 +1503,56 @@ def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
     list_terms = c.json()
     print('List of terms returned: ', list_terms)
     assert isinstance(list_terms, list)
-    if type_group is None or type_group == 'aaaaaa' or \
+    if type_group is None or type_group == '' or type_group == 'aaaaaa' or \
             (type_group == 'products' and (parent == 'production' or parent == 'aaaaaa')):
         assert len(list_terms) == 0
     else:
         assert len(list_terms) > 0
 
 
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("group", ['instruments', 'Instruments', 'products', '', 'aaaaaa', None])
+@pytest.mark.parametrize("term", ['isgri', 'isgri_image', 'jemx_lc', 'aaaaaa', None])
+def test_parents_term(dispatcher_live_fixture_with_gallery, term, group):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    params = {'term': term,
+              'group': group,
+              'token': encoded_token}
+
+    c = requests.get(os.path.join(server, "get_parents_term"),
+                     params={**params}
+                     )
+
+    assert c.status_code == 200
+    list_terms = c.json()
+    print('List of terms returned: ', list_terms)
+    assert isinstance(list_terms, list)
+    if term is None or term == 'aaaaaa' or \
+            (term is not None and group == 'aaaaaa') or \
+            ((term == 'jemx_lc' or term == 'isgri_image') and group is not None and str.lower(group) == 'instruments'):
+        assert len(list_terms) == 0
+    else:
+        assert len(list_terms) > 0
+        if term == 'jemx_lc':
+            assert 'lightcurve' in list_terms
+        elif term == 'isgri_image':
+            assert 'image' in list_terms
+        elif term == 'isgri':
+            if group == 'products':
+                assert 'instruments' in list_terms
+            elif group == 'instruments':
+                assert 'production' in list_terms
+  
+ 
 @pytest.mark.test_drupal
 @pytest.mark.parametrize("time_to_convert", ['2022-03-29T15:51:01', '', 'aaaaaa', None])
 def test_converttime_revnum(dispatcher_live_fixture_with_gallery, time_to_convert):
@@ -1527,7 +1570,7 @@ def test_converttime_revnum(dispatcher_live_fixture_with_gallery, time_to_conver
     params = {'time_to_convert': time_to_convert,
               'token': encoded_token}
 
-    c = requests.get(server + "/get_revnum",
+    c = requests.get(os.path.join(server, "get_revnum"),
                      params={**params}
                      )
     assert c.status_code == 200
@@ -1642,7 +1685,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
                 'fits_file_0': open('data/dummy_prods/isgri_query_lc.fits', 'rb'),
                 'fits_file_1': open('data/dummy_prods/query_catalog.fits', 'rb')}
 
-    c = requests.post(server + "/post_product_to_gallery",
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
                       params={**params},
                       files=file_obj
                       )

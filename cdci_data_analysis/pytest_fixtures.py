@@ -101,12 +101,12 @@ def run_analysis(server, params, method='get', files=None):
         if files is not None:
             logger.error("files cannot be attached to a get request")
             raise BadRequest("Invalid parameters for GET request")
-        return requests.get(server + "/run_analysis",
+        return requests.get(os.path.join(server, "run_analysis"),
                     params={**params},
                     )
 
     elif method == 'post':
-        return requests.post(server + "/run_analysis",
+        return requests.post(os.path.join(server, "run_analysis"),
                     data={**params},
                     files=files
                     )
@@ -386,7 +386,7 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
             f.write(f_default.read())
 
         f.write('\n    product_gallery_options:'
-                '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/gallery"'
+                '\n        product_gallery_url: "http://cdciweb02.internal.odahub.io/mmoda/gallery"'
                 f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"'
                 '\n        name_resolver_url: "https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}"'
                 '\n        entities_portal_url: "http://cdsportal.u-strasbg.fr/?target={}"'

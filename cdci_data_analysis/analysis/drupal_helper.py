@@ -37,6 +37,31 @@ class ContentType(Enum):
     ASTROPHYSICAL_ENTITY = auto()
 
 
+def validate_token_gallery_request(token, secret_key):
+    if token is None:
+        return 'A token must be provided.', 403
+    try:
+        decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+        logger.info("==> token %s", decoded_token)
+    except jwt.exceptions.ExpiredSignatureError:
+        return 'The token provided is expired.', 403
+    except jwt.exceptions.InvalidTokenError:
+        return 'The token provided is not valid.', 403
+
+    roles = tokenHelper.get_token_roles(decoded_token)
+
+    required_roles = ['gallery contributor']
+    if not all(item in roles for item in required_roles):
+        lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+        message = (
+            f"Unfortunately, your privileges are not sufficient to post in the product gallery.\n"
+            f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
+        )
+        return message, 403
+
+    return decoded_token, None
+
+
 def analyze_drupal_output(drupal_output, operation_performed=None):
     if drupal_output.status_code < 200 or drupal_output.status_code >= 300:
         logger.warning(f'error while performing the following operation on the product gallery: {operation_performed}')
@@ -73,7 +98,7 @@ def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_cli
                                          headers=headers)
 
     elif group is not None and str.lower(group) == 'products':
-        if parent is None:
+        if parent is None or parent == '':
             parent = 'all'
         log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary_parent/products/{parent}?_format=hal_json",
                                          headers=headers)
@@ -93,6 +118,41 @@ def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_cli
                 output_list.append(output['name'])
             elif 'title' in output:
                 output_list.append(output['title'])
+
+    return output_list
+
+
+def get_parents_term(decoded_token, term, group=None, disp_conf=None, sentry_client=None):
+    gallery_secret_key = disp_conf.product_gallery_secret_key
+    product_gallery_url = disp_conf.product_gallery_url
+    # extract email address and then the relative user_id from the mmoda token
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
+                                          user_email=user_email,
+                                          sentry_client=sentry_client)
+    # update the token
+    gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+
+    headers = get_drupal_request_headers(gallery_jwt_token)
+    output_list = []
+    output_request = None
+
+    if group is None or group == '':
+        group = 'all'
+    log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/product_term_parent/{term}/{group}?_format=hal_json",
+                                     headers=headers)
+
+    if log_res is not None:
+        msg = f"retrieving the list parents for the term {term}, "
+        if group != '':
+            msg += f"from the vocabulary {group}"
+        output_request = analyze_drupal_output(log_res, operation_performed=(msg + ", from the product gallery"))
+
+    if output_request is not None and type(output_request) == list and len(output_request) >= 0:
+        for output in output_request:
+            if 'parent_target_id' in output:
+                parents_list = output['parent_target_id'].split(',')
+                output_list.extend([r.strip() for r in parents_list])
 
     return output_list
 
@@ -703,7 +763,7 @@ def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: 
                     if 'ra' in returned_resolved_obj:
                         resolved_obj['RA'] = float(returned_resolved_obj['ra'])
                     if 'dec' in returned_resolved_obj:
-                        resolved_obj['DEC'] = float(returned_resolved_obj['ra'])
+                        resolved_obj['DEC'] = float(returned_resolved_obj['dec'])
                     resolved_obj['entity_portal_link'] = entities_portal_url.format(name)
                     resolved_obj['message'] = f'{name} successfully resolved'
                 elif not returned_resolved_obj['success']:
