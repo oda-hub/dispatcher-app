@@ -273,6 +273,7 @@ def push_renku_branch():
     renku_logger = logger.getChild('push_renku_branch')
     renku_logger.info('renku_repository_url: %s', renku_repository_url)
     renku_logger.info('renku_base_project_url: %s', renku_base_project_url)
+    renku_logger.info('renku_gitlab_ssh_key_path: %s', renku_gitlab_ssh_key_path)
 
     if api_code is not None:
         api_code_url = renku_helper.push_api_code(api_code=api_code,
