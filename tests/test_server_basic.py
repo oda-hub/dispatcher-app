@@ -11,7 +11,6 @@ import glob
 import pytest
 from datetime import datetime
 from functools import reduce
-from urllib.parse import urlparse
 import nbformat as nbf
 import yaml
 import gzip
@@ -21,7 +20,7 @@ import string
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
-from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present
+from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path
 
 
 # logger
