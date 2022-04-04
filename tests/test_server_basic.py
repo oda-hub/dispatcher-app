@@ -1784,7 +1784,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
         'job_id': job_id,
         'token': encoded_token
     }
-    c = requests.post(server + "/push-renku-branch",
+    c = requests.post(os.path.join(server, "push-renku-branch"),
                       params={**params}
                       )
 
