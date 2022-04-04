@@ -767,23 +767,6 @@ def dispatcher_fetch_dummy_products(dummy_product_pack: str, reuse=False):
     open(dispatcher_dummy_product_pack_state_fn, "w").write("%s"%time.time())
 
 
-def get_repo_name(repository_url):
-    repo_name = repository_url.split('/')[-1]
-    if repo_name.endswith('.git'):
-        repo_name = repo_name[0:-4]
-
-    return repo_name
-
-
-def get_repo_path(repository_url):
-    if repository_url.endswith('.git'):
-        repo_path = repository_url.split(':', 1)[-1]
-        repo_path = repo_path[0:-4]
-    else:
-        repo_path = repository_url.split('/')[1:-1]
-    return repo_path
-
-
 class DispatcherJobState:
     """
     manages state stored in scratch_* directories
