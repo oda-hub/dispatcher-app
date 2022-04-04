@@ -774,7 +774,7 @@ def clone_gitlab_repo(repository_url, repo_dir=None, renku_gitlab_ssh_key_path=N
     if branch_name is None:
         branch_name = 'master'
 
-    git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_path}'
+    git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_path} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
 
     repo = Repo.clone_from(repository_url, repo_dir, branch=branch_name, env=dict(GIT_SSH_COMMAND=git_ssh_cmd))
 

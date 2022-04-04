@@ -21,6 +21,7 @@ import string
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products, clone_gitlab_repo, get_repo_path
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
+from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present
 
 
 # logger
@@ -1801,7 +1802,13 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}"
 
     # validate content pushed
-    repo = clone_gitlab_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path, branch_name=f'mmoda_request_{job_id}')
+    # repo = clone_gitlab_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path, branch_name=f'mmoda_request_{job_id}')
+    repo = clone_renku_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
+
+    assert check_job_id_branch_is_present(repo, job_id)
+
+    repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}')
+    repo.git.pull("--set-upstream", repo.remote().name, str(repo.head.ref))
     api_code_file_path = os.path.join(repo.working_dir,  "_".join(["api_code", job_id]) + '.ipynb')
 
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
