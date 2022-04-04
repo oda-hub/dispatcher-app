@@ -1798,11 +1798,9 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     repo_path = get_repo_path(repo_url)
     renku_project_url = f'{renku_base_project_url}/{repo_path}'
 
-    # assert c.text == f'{parsed_repo_url.scheme}://{parsed_repo_url.hostname}/projects/{namespace}/{project_name}/sessions/new?autostart=1&branch=mmoda_request_{job_id}'
     assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}"
 
     # validate content pushed
-    # repo = clone_gitlab_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path, branch_name=f'mmoda_request_{job_id}')
     repo = clone_renku_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
 
     assert check_job_id_branch_is_present(repo, job_id)
