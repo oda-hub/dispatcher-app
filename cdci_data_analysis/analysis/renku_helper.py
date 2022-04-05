@@ -17,7 +17,7 @@ logger = app_logging.getLogger('renku_helper')
 
 def push_api_code(api_code,
                   job_id,
-                  renku_repository_url,
+                  renku_gitlab_repository_url,
                   renku_gitlab_ssh_key_path,
                   renku_base_project_url,
                   sentry_client=None):
@@ -25,7 +25,7 @@ def push_api_code(api_code,
     repo = None
     try:
         step = 'cloning repository'
-        repo = clone_renku_repo(renku_repository_url,
+        repo = clone_renku_repo(renku_gitlab_repository_url,
                                 renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
         step = 'assigning branch name'
         branch_name = get_branch_name(job_id=job_id)
@@ -63,7 +63,7 @@ def push_api_code(api_code,
         raise RequestNotUnderstood(error_message)
     finally:
         logger.info("==> removing repository folder, since it is no longer necessary")
-        remove_repository(repo, renku_repository_url)
+        remove_repository(repo, renku_gitlab_repository_url)
 
     return renku_session_url
 

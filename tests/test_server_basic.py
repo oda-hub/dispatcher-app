@@ -11,7 +11,6 @@ import glob
 import pytest
 from datetime import datetime
 from functools import reduce
-from urllib.parse import urlparse
 import nbformat as nbf
 import yaml
 import gzip
@@ -19,8 +18,9 @@ import random
 import string
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products, clone_gitlab_repo, get_repo_path
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
+from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path
 
 
 # logger
@@ -1784,7 +1784,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
         'job_id': job_id,
         'token': encoded_token
     }
-    c = requests.post(server + "/push-renku-branch",
+    c = requests.post(os.path.join(server, "push-renku-branch"),
                       params={**params}
                       )
 
@@ -1797,11 +1797,15 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     repo_path = get_repo_path(repo_url)
     renku_project_url = f'{renku_base_project_url}/{repo_path}'
 
-    # assert c.text == f'{parsed_repo_url.scheme}://{parsed_repo_url.hostname}/projects/{namespace}/{project_name}/sessions/new?autostart=1&branch=mmoda_request_{job_id}'
     assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}"
 
     # validate content pushed
-    repo = clone_gitlab_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path, branch_name=f'mmoda_request_{job_id}')
+    repo = clone_renku_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
+
+    assert check_job_id_branch_is_present(repo, job_id)
+
+    repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}')
+    repo.git.pull("--set-upstream", repo.remote().name, str(repo.head.ref))
     api_code_file_path = os.path.join(repo.working_dir,  "_".join(["api_code", job_id]) + '.ipynb')
 
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)

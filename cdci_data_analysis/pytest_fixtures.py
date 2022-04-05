@@ -767,39 +767,6 @@ def dispatcher_fetch_dummy_products(dummy_product_pack: str, reuse=False):
     open(dispatcher_dummy_product_pack_state_fn, "w").write("%s"%time.time())
 
 
-def clone_gitlab_repo(repository_url, repo_dir=None, renku_gitlab_ssh_key_path=None, branch_name=None):
-    if repo_dir is None:
-        repo_dir = tempfile.mkdtemp(prefix=get_repo_name(repository_url))
-
-    if branch_name is None:
-        branch_name = 'master'
-
-    git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_path}'
-
-    repo = Repo.clone_from(repository_url, repo_dir, branch=branch_name, env=dict(GIT_SSH_COMMAND=git_ssh_cmd))
-
-    logger.info(f'repository {repository_url} successfully cloned')
-
-    return repo
-
-
-def get_repo_name(repository_url):
-    repo_name = repository_url.split('/')[-1]
-    if repo_name.endswith('.git'):
-        repo_name = repo_name[0:-4]
-
-    return repo_name
-
-
-def get_repo_path(repository_url):
-    if repository_url.endswith('.git'):
-        repo_path = repository_url.split(':', 1)[-1]
-        repo_path = repo_path[0:-4]
-    else:
-        repo_path = repository_url.split('/')[1:-1]
-    return repo_path
-
-
 class DispatcherJobState:
     """
     manages state stored in scratch_* directories
