@@ -1809,7 +1809,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     api_code_file_path = os.path.join(repo.working_dir,  "_".join(["api_code", job_id]) + '.ipynb')
 
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
-    token_pattern = r"(\'|\")token(\'|\"):.\s?(\'|\").*?(\'|\")"
+    token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
     extracted_api_code = re.sub(token_pattern, '# "token": getpass.getpass(),', extracted_api_code, flags=re.DOTALL)
 
     extracted_api_code = 'import getpass\n\n' + extracted_api_code
