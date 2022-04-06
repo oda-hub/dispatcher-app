@@ -173,7 +173,7 @@ def create_new_notebook_with_code(repo, api_code, job_id, file_name=None):
     return file_path
 
 
-def generate_request_url(params_dic, products_url):
+def generate_commit_request_url(params_dic, products_url):
     # generate the url for the commit message
     # this is a "default" value for use_scws
     params_dic['use_scws'] = 'no'
@@ -215,7 +215,7 @@ def commit_and_push_file(repo, file_path, user_name=None, user_email=None, produ
                 commit_msg += f" for a {request_dict['product_type']}"
             if 'instrument' in request_dict:
                 commit_msg += f" from the instrument {request_dict['instrument']}"
-            request_url = generate_request_url(request_dict, products_url)
+            request_url = generate_commit_request_url(request_dict, products_url)
             commit_msg += (f"\nthe original request was generated via {request_url}\n"
                            "to retrieve the result please follow the link")
 
