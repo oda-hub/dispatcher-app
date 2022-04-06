@@ -241,7 +241,8 @@ def push_renku_branch():
         return make_response('The token provided is not valid.'), 403
 
     roles = tokenHelper.get_token_roles(decoded_token)
-    user = tokenHelper.get_token_user(decoded_token)
+    user_name = tokenHelper.get_token_user(decoded_token)
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
 
     # TODO could not think of better name
     required_roles = ['renku contributor']
@@ -282,7 +283,7 @@ def push_renku_branch():
                                                   renku_gitlab_repository_url=renku_gitlab_repository_url,
                                                   renku_base_project_url=renku_base_project_url,
                                                   renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path,
-                                                  user=user)
+                                                  user_name=user_name, user_email=user_email)
 
         return api_code_url
 

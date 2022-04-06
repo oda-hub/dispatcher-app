@@ -6,7 +6,7 @@ import traceback
 import nbformat as nbf
 import shutil
 
-from git import Repo
+from git import Repo, Actor
 import giturlparse
 
 from ..app_logging import app_logging
@@ -21,7 +21,8 @@ def push_api_code(api_code,
                   renku_gitlab_ssh_key_path,
                   renku_base_project_url,
                   sentry_client=None,
-                  user=None):
+                  user_name=None,
+                  user_email=None):
     error_message = 'Error while {step}'
     repo = None
     try:
@@ -43,7 +44,7 @@ def push_api_code(api_code,
         new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
 
         step = f'committing and pushing the api code to the renku repository'
-        commit_and_push_file(repo, new_file_path, user=user)
+        commit_and_push_file(repo, new_file_path, user_name=user_name, user_email=user_email)
 
         step = f'generating a valid url to start a new session on the new branch'
         renku_session_url = generate_renku_session_url(repo,
@@ -168,13 +169,15 @@ def create_new_notebook_with_code(repo, api_code, job_id, file_name=None):
     return file_path
 
 
-def commit_and_push_file(repo, file_path, user=None):
+def commit_and_push_file(repo, file_path, user_name=None, user_email=None):
     try:
         add_info = repo.index.add(file_path)
         commit_msg = "commit code from MMODA"
-        if user is not None:
-            commit_msg += ", from user: " + user
-        commit_info = repo.index.commit(commit_msg)
+        author = None
+        if user_name is not None:
+            author = Actor(user_name, user_email)
+            commit_msg += ", from user: " + user_name
+        commit_info = repo.index.commit(commit_msg, author=author)
         origin = repo.remote(name="origin")
         # TODO make it work with methods from GitPython
         # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
