@@ -33,19 +33,19 @@ def push_api_code(api_code,
         step = f'checking the branch already exists'
         job_id_branch_already_exists = check_job_id_branch_is_present(repo, job_id)
 
-        if not job_id_branch_already_exists:
-            step = f'checkout branch {branch_name}'
-            repo = checkout_branch_renku_repo(repo, branch_name)
+        # if not job_id_branch_already_exists:
+        step = f'checkout branch {branch_name}'
+        repo = checkout_branch_renku_repo(repo, branch_name)
 
-            step = f'removing token from the api_code'
-            token_pattern = r"(\'|\")token(\'|\"):.\s?(\'|\").*?(\'|\"),?"
-            api_code = re.sub(token_pattern, '"token": "<INSERT_YOUR_TOKEN_HERE>",', api_code, flags=re.DOTALL)
+        step = f'removing token from the api_code'
+        token_pattern = r"(\'|\")token(\'|\"):.\s?(\'|\").*?(\'|\"),?"
+        api_code = re.sub(token_pattern, '"token": "<INSERT_YOUR_TOKEN_HERE>",', api_code, flags=re.DOTALL)
 
-            step = f'creating new notebook with the api code'
-            new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
+        step = f'creating new notebook with the api code'
+        new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
 
-            step = f'committing and pushing the api code to the renku repository'
-            commit_and_push_file(repo, new_file_path)
+        step = f'committing and pushing the api code to the renku repository'
+        commit_and_push_file(repo, new_file_path)
 
         step = f'generating a valid url to start a new session on the new branch'
         renku_session_url = generate_renku_session_url(repo,
@@ -177,7 +177,7 @@ def commit_and_push_file(repo, file_path):
         origin = repo.remote(name="origin")
         # TODO make it work with methods from GitPython
         # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
-        push_info = repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref))
+        push_info = repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref), "--force")
         logger.info("push operation complete")
     except Exception as e:
         logger.warning(f"something happened while pushing the the file {file_path}, {e}")
