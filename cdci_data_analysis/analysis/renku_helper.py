@@ -21,7 +21,8 @@ def push_api_code(api_code,
                   renku_gitlab_repository_url,
                   renku_gitlab_ssh_key_path,
                   renku_base_project_url,
-                  sentry_client=None):
+                  sentry_client=None,
+                  user=None):
     error_message = 'Error while {step}'
     repo = None
     try:
@@ -36,7 +37,7 @@ def push_api_code(api_code,
 
         step = f'removing token from the api_code'
         token_pattern = r"(\'|\")token(\'|\"):.\s?(\'|\").*?(\'|\"),?"
-        api_code = re.sub(token_pattern, '"token": "<INSERT_YOUR_TOKEN_HERE>",', api_code, flags=re.DOTALL)
+        api_code = re.sub(token_pattern, '# "token": "getpass.getpass()",', api_code, flags=re.DOTALL)
 
         step = f'creating new notebook with the api code'
         new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
@@ -159,6 +160,8 @@ def create_new_notebook_with_code(repo, api_code, job_id, file_name=None):
 
     text = "# Notebook automatically generated from MMODA"
 
+    api_code = "import getpass\n\n" + api_code
+
     nb['cells'] = [nbf.v4.new_markdown_cell(text),
                    nbf.v4.new_code_cell(api_code)]
 
@@ -167,10 +170,13 @@ def create_new_notebook_with_code(repo, api_code, job_id, file_name=None):
     return file_path
 
 
-def commit_and_push_file(repo, file_path):
+def commit_and_push_file(repo, file_path, user=None):
     try:
         add_info = repo.index.add(file_path)
-        commit_info = repo.index.commit("commit code from MMODA " + time.strftime('%Y-%m-%dT%H:%M:%S'))
+        commit_msg = "commit code from MMODA"
+        if user is not None:
+            commit_msg += " " + user
+        commit_info = repo.index.commit(commit_msg)
         origin = repo.remote(name="origin")
         # TODO make it work with methods from GitPython
         # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
