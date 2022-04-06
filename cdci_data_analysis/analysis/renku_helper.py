@@ -2,7 +2,6 @@ import os.path
 import re
 import tempfile
 import traceback
-import time
 
 import nbformat as nbf
 import shutil
