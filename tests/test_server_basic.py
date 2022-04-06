@@ -20,7 +20,7 @@ import string
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
-from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path
+from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url
 
 
 # logger
@@ -1780,6 +1780,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
                 )
     job_id = jdata['products']['job_id']
     session_id = jdata['products']['session_id']
+    request_dict = jdata['products']['analysis_parameters']
     params = {
         'job_id': job_id,
         'token': encoded_token
@@ -1791,6 +1792,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     assert c.status_code == 200
 
     # parse the repo url and build the renku one
+    products_url = dispatcher_test_conf_with_renku_options['products_url']
     repo_url = dispatcher_test_conf_with_renku_options['renku_options']['renku_gitlab_repository_url']
     renku_base_project_url = dispatcher_test_conf_with_renku_options['renku_options']['renku_base_project_url']
     renku_gitlab_ssh_key_path = dispatcher_test_conf_with_renku_options['renku_options']['ssh_key_path']
@@ -1819,6 +1821,14 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     assert len(parsed_notebook.cells) == 2
     assert parsed_notebook.cells[0].source == "# Notebook automatically generated from MMODA"
     assert parsed_notebook.cells[1].source == extracted_api_code
+
+    assert repo.head.reference.commit.message is not None
+    request_url = generate_commit_request_url(request_dict, products_url)
+    commit_message = (f"Stored API code of MMODA request by {token_payload['name']} for a {request_dict['product_type']}"
+                      f" from the instrument {request_dict['instrument']}"
+                      f"\nthe original request was generated via {request_url}\n"
+                      "to retrieve the result please follow the link")
+    assert repo.head.reference.commit.message == commit_message
 
     shutil.rmtree(repo.working_dir)
 
