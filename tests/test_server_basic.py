@@ -1769,15 +1769,24 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
         'product_type': 'numerical',
         'query_type': "Dummy",
         'instrument': 'empty',
+        'use_scws': 'user_file',
         'p': p,
         'token': encoded_token
     }
+
+    file_path = DispatcherJobState.create_p_value_file(p_value=5)
+    list_file = open(file_path)
 
     jdata = ask(server,
                 params,
                 expected_query_status=["done"],
                 max_time_s=150,
+                method='post',
+                files={'user_scw_list_file': list_file.read()}
                 )
+
+    list_file.close()
+
     job_id = jdata['products']['job_id']
     session_id = jdata['products']['session_id']
     request_dict = jdata['products']['analysis_parameters']
