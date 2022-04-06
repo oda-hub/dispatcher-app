@@ -2,6 +2,7 @@ import os.path
 import re
 import tempfile
 import traceback
+import time
 
 import nbformat as nbf
 import shutil
@@ -169,7 +170,7 @@ def create_new_notebook_with_code(repo, api_code, job_id, file_name=None):
 def commit_and_push_file(repo, file_path):
     try:
         add_info = repo.index.add(file_path)
-        commit_info = repo.index.commit("commit code from MMODA")
+        commit_info = repo.index.commit("commit code from MMODA " + time.strftime('%Y-%m-%dT%H:%M:%S'))
         origin = repo.remote(name="origin")
         # TODO make it work with methods from GitPython
         # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
