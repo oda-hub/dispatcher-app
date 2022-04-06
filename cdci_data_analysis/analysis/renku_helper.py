@@ -37,7 +37,7 @@ def push_api_code(api_code,
 
         step = f'removing token from the api_code'
         token_pattern = r"(\'|\")token(\'|\"):.\s?(\'|\").*?(\'|\"),?"
-        api_code = re.sub(token_pattern, '# "token": "getpass.getpass()",', api_code, flags=re.DOTALL)
+        api_code = re.sub(token_pattern, '# "token": getpass.getpass(),', api_code, flags=re.DOTALL)
         api_code = "import getpass\n\n" + api_code
 
         step = f'creating new notebook with the api code'
