@@ -259,6 +259,7 @@ def push_renku_branch():
     # TODO check job_id is provided with the request
     job_id = par_dic.pop('job_id')
     api_code = None
+    request_dict = None
     # Get the API code to push to the new renku branch
     scratch_dir_pattern = f'scratch_sid_*_jid_{job_id}*'
     list_scratch_folders = glob.glob(scratch_dir_pattern)
@@ -267,15 +268,18 @@ def push_renku_branch():
         prod_dict = query_output_json_content_original['prod_dictionary']
         # remove parameters that should not be shared (eg token)
         api_code = prod_dict.pop('api_code', None)
+        request_dict = prod_dict.pop('analysis_parameters', None)
 
     renku_gitlab_repository_url = app_config.renku_gitlab_repository_url
     renku_gitlab_ssh_key_path = app_config.renku_gitlab_ssh_key_path
     renku_base_project_url = app_config.renku_base_project_url
+    products_url = app_config.products_url
 
     renku_logger = logger.getChild('push_renku_branch')
     renku_logger.info('renku_gitlab_repository_url: %s', renku_gitlab_repository_url)
     renku_logger.info('renku_base_project_url: %s', renku_base_project_url)
     renku_logger.info('renku_gitlab_ssh_key_path: %s', renku_gitlab_ssh_key_path)
+    renku_logger.info('products_url: %s', products_url)
 
     if api_code is not None:
         api_code_url = renku_helper.push_api_code(api_code=api_code,
@@ -283,7 +287,8 @@ def push_renku_branch():
                                                   renku_gitlab_repository_url=renku_gitlab_repository_url,
                                                   renku_base_project_url=renku_base_project_url,
                                                   renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path,
-                                                  user_name=user_name, user_email=user_email)
+                                                  user_name=user_name, user_email=user_email,
+                                                  products_url=products_url, request_dict=request_dict)
 
         return api_code_url
 

@@ -5,9 +5,11 @@ import traceback
 
 import nbformat as nbf
 import shutil
+import giturlparse
 
 from git import Repo, Actor
-import giturlparse
+from collections import OrderedDict
+from urllib.parse import urlencode
 
 from ..app_logging import app_logging
 from .exceptions import RequestNotUnderstood
@@ -22,7 +24,9 @@ def push_api_code(api_code,
                   renku_base_project_url,
                   sentry_client=None,
                   user_name=None,
-                  user_email=None):
+                  user_email=None,
+                  products_url=None,
+                  request_dict=None):
     error_message = 'Error while {step}'
     repo = None
     try:
@@ -44,7 +48,7 @@ def push_api_code(api_code,
         new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
 
         step = f'committing and pushing the api code to the renku repository'
-        commit_and_push_file(repo, new_file_path, user_name=user_name, user_email=user_email)
+        commit_and_push_file(repo, new_file_path, user_name=user_name, user_email=user_email, products_url=products_url, request_dict=request_dict)
 
         step = f'generating a valid url to start a new session on the new branch'
         renku_session_url = generate_renku_session_url(repo,
@@ -169,14 +173,52 @@ def create_new_notebook_with_code(repo, api_code, job_id, file_name=None):
     return file_path
 
 
-def commit_and_push_file(repo, file_path, user_name=None, user_email=None):
+def generate_request_url(params_dic, products_url):
+    # generate the url for the commit message
+    # this is a "default" value for use_scws
+    params_dic['use_scws'] = 'no'
+    if 'scw_list' in params_dic:
+        # for the frontend
+        params_dic['use_scws'] = 'form_list'
+
+    if 'scw_list' in params_dic and type(params_dic['scw_list']) == list:
+        # setting proper scw_list formatting
+        # as comma-separated string for being properly read by the frontend
+        params_dic['scw_list'] = ",".join(params_dic['scw_list'])
+
+    _skip_list_ = ['token', 'session_id', 'job_id']
+
+    for key, value in dict(params_dic).items():
+        if key in _skip_list_ or value is None:
+            params_dic.pop(key)
+
+    par_dict = OrderedDict({
+        k: params_dic[k] for k in sorted(params_dic.keys())
+    })
+
+    request_url = '%s?%s' % (products_url, urlencode(par_dict))
+    return request_url
+
+
+def commit_and_push_file(repo, file_path, user_name=None, user_email=None, products_url=None, request_dict=None):
     try:
         add_info = repo.index.add(file_path)
-        commit_msg = "commit code from MMODA"
         author = None
+
+        commit_msg = "Stored API code of MMODA request"
         if user_name is not None:
             author = Actor(user_name, user_email)
-            commit_msg += ", from user: " + user_name
+            commit_msg += f" by {user_name}"
+
+        if request_dict is not None:
+            if 'product_type' in request_dict:
+                commit_msg += f" for a {request_dict['product_type']}"
+            if 'instrument' in request_dict:
+                commit_msg += f" from the instrument {request_dict['instrument']}"
+            request_url = generate_request_url(request_dict, products_url)
+            commit_msg += (f"\nthe original request was generated via {request_url}\n"
+                           "to retrieve the result please follow the link")
+
         commit_info = repo.index.commit(commit_msg, author=author)
         origin = repo.remote(name="origin")
         # TODO make it work with methods from GitPython
