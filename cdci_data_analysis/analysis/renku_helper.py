@@ -30,10 +30,6 @@ def push_api_code(api_code,
         step = 'assigning branch name'
         branch_name = get_branch_name(job_id=job_id)
 
-        step = f'checking the branch already exists'
-        job_id_branch_already_exists = check_job_id_branch_is_present(repo, job_id)
-
-        # if not job_id_branch_already_exists:
         step = f'checkout branch {branch_name}'
         repo = checkout_branch_renku_repo(repo, branch_name)
 
