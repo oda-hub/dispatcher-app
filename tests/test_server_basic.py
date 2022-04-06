@@ -1788,7 +1788,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
 
         list_file.close()
     elif scw_list_passage == 'params':
-        params['scw_list'] = [f"0665{i:04d}0010.001" for i in range(5)]
+        params['scw_list'] = [f"0665{i:04d}0010.001" for i in range(50)]
         params['use_scws'] = 'form_list'
         jdata = ask(server,
                     params,
