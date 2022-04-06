@@ -38,12 +38,13 @@ def push_api_code(api_code,
         step = f'removing token from the api_code'
         token_pattern = r"(\'|\")token(\'|\"):.\s?(\'|\").*?(\'|\"),?"
         api_code = re.sub(token_pattern, '# "token": "getpass.getpass()",', api_code, flags=re.DOTALL)
+        api_code = "import getpass\n\n" + api_code
 
         step = f'creating new notebook with the api code'
         new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
 
         step = f'committing and pushing the api code to the renku repository'
-        commit_and_push_file(repo, new_file_path)
+        commit_and_push_file(repo, new_file_path, user=user)
 
         step = f'generating a valid url to start a new session on the new branch'
         renku_session_url = generate_renku_session_url(repo,
@@ -160,8 +161,6 @@ def create_new_notebook_with_code(repo, api_code, job_id, file_name=None):
 
     text = "# Notebook automatically generated from MMODA"
 
-    api_code = "import getpass\n\n" + api_code
-
     nb['cells'] = [nbf.v4.new_markdown_cell(text),
                    nbf.v4.new_code_cell(api_code)]
 
@@ -175,7 +174,7 @@ def commit_and_push_file(repo, file_path, user=None):
         add_info = repo.index.add(file_path)
         commit_msg = "commit code from MMODA"
         if user is not None:
-            commit_msg += " " + user
+            commit_msg += ", from user: " + user
         commit_info = repo.index.commit(commit_msg)
         origin = repo.remote(name="origin")
         # TODO make it work with methods from GitPython

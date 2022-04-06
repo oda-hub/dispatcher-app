@@ -241,7 +241,7 @@ def push_renku_branch():
         return make_response('The token provided is not valid.'), 403
 
     roles = tokenHelper.get_token_roles(decoded_token)
-    user = tokenHelper.get_token_user()
+    user = tokenHelper.get_token_user(decoded_token)
 
     # TODO could not think of better name
     required_roles = ['renku contributor']
