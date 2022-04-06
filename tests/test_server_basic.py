@@ -1746,7 +1746,8 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
 
 @pytest.mark.test_renku
 @pytest.mark.parametrize("existing_branch", [True, False])
-def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_test_conf_with_renku_options, existing_branch):
+@pytest.mark.parametrize("scw_list_passage", ['file', 'params'])
+def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_test_conf_with_renku_options, existing_branch, scw_list_passage):
     server = dispatcher_live_fixture_with_renku_options
     print("constructed server:", server)
     logger.info("constructed server: %s", server)
@@ -1762,30 +1763,38 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
 
     if not existing_branch:
         p += random.random()
-
     params = {
         **default_params,
         'src_name': 'Mrk 421',
         'product_type': 'numerical',
         'query_type': "Dummy",
         'instrument': 'empty',
-        'use_scws': 'user_file',
         'p': p,
         'token': encoded_token
     }
 
-    file_path = DispatcherJobState.create_p_value_file(p_value=5)
-    list_file = open(file_path)
+    if scw_list_passage == 'file':
+        params['use_scws'] = 'user_file'
+        file_path = DispatcherJobState.create_p_value_file(p_value=5)
+        list_file = open(file_path)
 
-    jdata = ask(server,
-                params,
-                expected_query_status=["done"],
-                max_time_s=150,
-                method='post',
-                files={'user_scw_list_file': list_file.read()}
-                )
+        jdata = ask(server,
+                    params,
+                    expected_query_status=["done"],
+                    max_time_s=150,
+                    method='post',
+                    files={'user_scw_list_file': list_file.read()}
+                    )
 
-    list_file.close()
+        list_file.close()
+    elif scw_list_passage == 'params':
+        params['scw_list'] = [f"0665{i:04d}0010.001" for i in range(5)]
+        params['use_scws'] = 'form_list'
+        jdata = ask(server,
+                    params,
+                    expected_query_status=["done"],
+                    max_time_s=150
+                    )
 
     job_id = jdata['products']['job_id']
     session_id = jdata['products']['session_id']
