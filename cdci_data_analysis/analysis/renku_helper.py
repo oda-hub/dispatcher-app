@@ -57,6 +57,7 @@ def push_api_code(api_code,
 
     except Exception as e:
         error_message = error_message.format(step=step)
+        logger.warning(f"something happened while pushing the api_code: {step}, {e}")
 
         traceback.print_exc()
 
@@ -201,33 +202,29 @@ def generate_commit_request_url(params_dic, products_url):
 
 
 def commit_and_push_file(repo, file_path, user_name=None, user_email=None, products_url=None, request_dict=None):
-    try:
-        add_info = repo.index.add(file_path)
-        author = None
+    add_info = repo.index.add(file_path)
+    author = None
 
-        commit_msg = "Stored API code of MMODA request"
-        if user_name is not None:
-            author = Actor(user_name, user_email)
-            commit_msg += f" by {user_name}"
+    commit_msg = "Stored API code of MMODA request"
+    if user_name is not None:
+        author = Actor(user_name, user_email)
+        commit_msg += f" by {user_name}"
 
-        if request_dict is not None:
-            if 'product_type' in request_dict:
-                commit_msg += f" for a {request_dict['product_type']}"
-            if 'instrument' in request_dict:
-                commit_msg += f" from the instrument {request_dict['instrument']}"
-            request_url = generate_commit_request_url(request_dict, products_url)
-            commit_msg += (f"\nthe original request was generated via {request_url}\n"
-                           "to retrieve the result please follow the link")
+    if request_dict is not None:
+        if 'product_type' in request_dict:
+            commit_msg += f" for a {request_dict['product_type']}"
+        if 'instrument' in request_dict:
+            commit_msg += f" from the instrument {request_dict['instrument']}"
+        request_url = generate_commit_request_url(request_dict, products_url)
+        commit_msg += (f"\nthe original request was generated via {request_url}\n"
+                       "to retrieve the result please follow the link")
 
-        commit_info = repo.index.commit(commit_msg, author=author)
-        origin = repo.remote(name="origin")
-        # TODO make it work with methods from GitPython
-        # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
-        push_info = repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref), "--force")
-        logger.info("push operation complete")
-    except Exception as e:
-        logger.warning(f"something happened while pushing the the file {file_path}, {e}")
-        raise e
+    commit_info = repo.index.commit(commit_msg, author=author)
+    origin = repo.remote(name="origin")
+    # TODO make it work with methods from GitPython
+    # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
+    push_info = repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref), "--force")
+    logger.info("push operation complete")
 
 
 def remove_repository(repo, renku_repository_url):
