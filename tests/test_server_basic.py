@@ -554,7 +554,7 @@ def test_call_back_invalid_token(dispatcher_live_fixture):
     )
 
     # this should return status submitted, so email sent
-    c = requests.get(server + "/run_analysis",
+    c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
                      )
     assert c.status_code == 200
