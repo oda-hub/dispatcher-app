@@ -725,7 +725,7 @@ class InstrumentQueryBackEnd:
 
         self.validate_job_id(request_parameters_from_scratch_dir=True)
 
-        return self.generate_products_url_from_par_dict(
+        return email_helper.generate_products_url_from_par_dict(
             self.app.config['conf'].products_url,
             self.par_dic
             )
@@ -1692,7 +1692,7 @@ class InstrumentQueryBackEnd:
                                                                self.app.config['conf'],
                                                                decoded_token=self.decoded_token):
                         try:
-                            products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url,
+                            products_url = email_helper.generate_products_url_from_par_dict(self.app.config.get('conf').products_url,
                                                                                     self.par_dic)
                             email_api_code = DispatcherAPI.set_api_code(self.par_dic,
                                                                         url=self.app.config['conf'].products_url + "/dispatch-data"
