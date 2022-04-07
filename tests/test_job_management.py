@@ -612,7 +612,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     )
 
     # this should return status submitted, so email sent
-    c = requests.get(server + "/run_analysis",
+    c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
                      )                     
     assert c.status_code == 200
@@ -671,7 +671,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     for i in range(5):
         # imitating what a backend would do
         current_action = 'progress' if i > 2 else 'main_done'
-        c = requests.get(server + "/call_back",
+        c = requests.get(os.path.join(server, "call_back"),
                          params=dict(
                              job_id=dispatcher_job_state.job_id,
                              session_id=dispatcher_job_state.session_id,
@@ -684,7 +684,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                          ))
         assert dispatcher_job_state.load_job_state_record(f'node_{i}', "progressing")['full_report_dict']['action'] == current_action
 
-        c = requests.get(server + "/run_analysis",
+        c = requests.get(os.path.join(server, "run_analysis"),
                     params=dict(
                         query_status="submitted",  # whether query is new or not, this should work
                         query_type="Real",
@@ -698,7 +698,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
         assert c.json()['query_status'] == 'progress' # always progress!
 
     # we should now find progress records
-    c = requests.get(server + "/run_analysis",
+    c = requests.get(os.path.join(server, "run_analysis"),
                      {**dict_param, 
                       "query_status": "submitted",
                       "job_id": job_id,
@@ -713,7 +713,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     assert [c['action'] for c in jdata['job_monitor']['full_report_dict_list']] == [
         'main_done', 'main_done', 'main_done', 'progress', 'progress', 'progress']
 
-    c = requests.get(server + "/call_back",
+    c = requests.get(os.path.join(server, "call_back"),
                     params=dict(
                         job_id=dispatcher_job_state.job_id,
                         session_id=dispatcher_job_state.session_id,
@@ -726,7 +726,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                     ))
     assert c.status_code == 200
 
-    c = requests.get(server + "/run_analysis",
+    c = requests.get(os.path.join(server, "run_analysis"),
                      {
                         **dict_param,
                         "query_status": "submitted",
@@ -738,7 +738,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     assert c.json()['query_status'] == 'progress'
 
     # this does nothing special
-    c = requests.get(server + "/call_back",
+    c = requests.get(os.path.join(server, "call_back"),
                      params=dict(
                          job_id=dispatcher_job_state.job_id,
                          session_id=dispatcher_job_state.session_id,
@@ -753,7 +753,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     DataServerQuery.set_status('done')
 
     # this triggers email
-    c = requests.get(server + "/call_back",
+    c = requests.get(os.path.join(server, "call_back"),
                      params=dict(
                          job_id=dispatcher_job_state.job_id,
                          session_id=dispatcher_job_state.session_id,
@@ -795,7 +795,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
         )
         
     # this also triggers email (simulate a failed request)
-    c = requests.get(server + "/call_back",
+    c = requests.get(os.path.join(server, "call_back"),
                      params={
                          'job_id': dispatcher_job_state.job_id,
                          'session_id': dispatcher_job_state.session_id,
@@ -835,7 +835,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
 
     # TODO this will rewrite the value of the time_request in the query output, but it shouldn't be a problem?
     # This is not complete since DataServerQuery never returns done
-    c = requests.get(server + "/run_analysis",
+    c = requests.get(os.path.join(server, "run_analysis"),
                      params=dict(
                          query_status="ready",  # whether query is new or not, this should work
                          query_type="Real",
@@ -855,7 +855,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
 
     DataServerQuery.set_status('submitted') # sets the expected default for other tests
 
-    r = requests.get(dispatcher_long_living_fixture + "/inspect-state", params=dict(token=encoded_token))
+    r = requests.get(os.path.join(dispatcher_long_living_fixture, "inspect-state"), params=dict(token=encoded_token))
     assert r.status_code == 403
     if encoded_token is None:
         assert r.text == 'A token must be provided.'
@@ -865,7 +865,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                           " missing: job manager.")
 
     admin_token = jwt.encode({**token_payload, 'roles': 'private, user manager, admin, job manager, administrator'}, secret_key, algorithm='HS256')
-    r = requests.get(dispatcher_long_living_fixture + "/inspect-state", params=dict(token=admin_token))
+    r = requests.get(os.path.join(dispatcher_long_living_fixture, "inspect-state"), params=dict(token=admin_token))
     dispatcher_state_report = r.json()
     logger.info('dispatcher_state_report: %s', dispatcher_state_report)
 

@@ -108,12 +108,6 @@ def compress_request_url_params(request_url, consider_args=['selected_catalog', 
 def generate_products_url_from_par_dict(products_url, par_dict) -> str:
     par_dict = par_dict.copy()
 
-    # # generate the url for the commit message
-    # # this is a "default" value for use_scws
-    # if 'scw_list' in par_dict:
-    #     # for the frontend
-    #     par_dict['use_scws'] = 'form_list'
-
     if 'scw_list' in par_dict and type(par_dict['scw_list']) == list:
         # setting proper scw_list formatting
         # as comma-separated string for being properly read by the frontend

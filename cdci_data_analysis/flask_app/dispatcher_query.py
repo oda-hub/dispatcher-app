@@ -1026,8 +1026,7 @@ class InstrumentQueryBackEnd:
 
     def generate_products_url(self, products_url, request_par_dict) -> str:
         par_dict = self.set_use_scws(request_par_dict)
-        # request_par_dict['use_scws'] = getattr(self, 'use_scws', 'no')
-        return email_helper.generate_products_url_from_par_dict(products_url, request_par_dict)
+        return email_helper.generate_products_url_from_par_dict(products_url, par_dict)
 
     def run_query_mock(self, off_line=False):
 
