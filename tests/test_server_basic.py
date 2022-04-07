@@ -1841,7 +1841,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     assert parsed_notebook.cells[1].source == extracted_api_code
 
     assert repo.head.reference.commit.message is not None
-    request_url = generate_commit_request_url(request_dict, products_url)
+    request_url = generate_commit_request_url(products_url, request_dict)
     commit_message = (f"Stored API code of MMODA request by {token_payload['name']} for a {request_dict['product_type']}"
                       f" from the instrument {request_dict['instrument']}"
                       f"\nthe original request was generated via {request_url}\n"
