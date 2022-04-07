@@ -571,7 +571,7 @@ def test_call_back_invalid_token(dispatcher_live_fixture):
     # let make sure the token used for the previous request expires
     time.sleep(12)
 
-    c = requests.get(server + "/call_back",
+    c = requests.get(os.path.join(server, "call_back"),
                      params=dict(
                          job_id=dispatcher_job_state.job_id,
                          session_id=dispatcher_job_state.session_id,
