@@ -2,14 +2,11 @@ import os.path
 import re
 import tempfile
 import traceback
-
 import nbformat as nbf
 import shutil
 import giturlparse
 
 from git import Repo, Actor
-from collections import OrderedDict
-from urllib.parse import urlencode
 
 from ..app_logging import app_logging
 from .exceptions import RequestNotUnderstood
@@ -183,7 +180,7 @@ def generate_commit_request_url(params_dic, products_url):
         # for the frontend
         params_dic['use_scws'] = 'form_list'
 
-    request_url = generate_products_url_from_par_dict(params_dic)
+    request_url = generate_products_url_from_par_dict(products_url, params_dic)
     return request_url
 
 
