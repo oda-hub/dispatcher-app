@@ -23,7 +23,6 @@ import random
 
 from flask import jsonify, send_from_directory, make_response
 from flask import request, g
-from urllib.parse import urlencode
 import time as time_
 
 import tempfile
@@ -725,7 +724,7 @@ class InstrumentQueryBackEnd:
 
         self.validate_job_id(request_parameters_from_scratch_dir=True)
 
-        return self.generate_products_url_from_par_dict(
+        return self.generate_products_url(
             self.app.config['conf'].products_url,
             self.par_dic
             )
@@ -927,7 +926,7 @@ class InstrumentQueryBackEnd:
                 except KeyError as e:
                     raise MissingRequestParameter(repr(e))
                 # build the products URL and get also the original requested product
-                products_url = self.generate_products_url_from_file(self.config.products_url,
+                products_url = self.generate_products_url(self.config.products_url,
                                                                     request_par_dict=original_request_par_dic)
 
                 email_api_code = DispatcherAPI.set_api_code(original_request_par_dic,
@@ -1010,10 +1009,8 @@ class InstrumentQueryBackEnd:
         else:
             return json.load(open(scratch_dir_parameters[0]))
 
-    # TODO make sure that the list of parameters to ignore in the frontend is synchronized
-    def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
+    def set_use_scws(self, par_dict):
         par_dict = par_dict.copy()
-
         # this is a "default" value for use_scws
         par_dict['use_scws'] = 'no'
         if 'scw_list' in par_dict and self.use_scws is not None:
@@ -1025,26 +1022,11 @@ class InstrumentQueryBackEnd:
             # for the frontend
             par_dict['use_scws'] = self.use_scws
 
-        if 'scw_list' in par_dict and type(par_dict['scw_list']) == list:
-            # setting proper scw_list formatting
-            # as comma-separated string for being properly read by the frontend
-            par_dict['scw_list'] = ",".join(par_dict['scw_list'])
+        return par_dict
 
-        _skip_list_ = ['token', 'session_id', 'job_id']
-
-        for key, value in dict(par_dict).items():
-            if key in _skip_list_ or value is None:
-                par_dict.pop(key)
-
-        par_dict = OrderedDict({
-            k: par_dict[k] for k in sorted(par_dict.keys())
-        })
-
-        request_url = '%s?%s' % (products_url, urlencode(par_dict))
-        return request_url
-
-    def generate_products_url_from_file(self, products_url, request_par_dict) -> str:
-        return self.generate_products_url_from_par_dict(products_url, request_par_dict)
+    def generate_products_url(self, products_url, request_par_dict) -> str:
+        par_dict = self.set_use_scws(request_par_dict)
+        return email_helper.generate_products_url_from_par_dict(products_url, par_dict)
 
     def run_query_mock(self, off_line=False):
 
@@ -1709,7 +1691,7 @@ class InstrumentQueryBackEnd:
                                                                self.app.config['conf'],
                                                                decoded_token=self.decoded_token):
                         try:
-                            products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url,
+                            products_url = self.generate_products_url(self.app.config.get('conf').products_url,
                                                                                     self.par_dic)
                             email_api_code = DispatcherAPI.set_api_code(self.par_dic,
                                                                         url=self.app.config['conf'].products_url + "/dispatch-data"

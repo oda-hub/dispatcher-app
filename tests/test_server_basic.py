@@ -20,7 +20,7 @@ import string
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
-from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path
+from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url
 
 
 # logger
@@ -554,7 +554,7 @@ def test_call_back_invalid_token(dispatcher_live_fixture):
     )
 
     # this should return status submitted, so email sent
-    c = requests.get(server + "/run_analysis",
+    c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
                      )
     assert c.status_code == 200
@@ -571,7 +571,7 @@ def test_call_back_invalid_token(dispatcher_live_fixture):
     # let make sure the token used for the previous request expires
     time.sleep(12)
 
-    c = requests.get(server + "/call_back",
+    c = requests.get(os.path.join(server, "call_back"),
                      params=dict(
                          job_id=dispatcher_job_state.job_id,
                          session_id=dispatcher_job_state.session_id,
@@ -1746,7 +1746,8 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
 
 @pytest.mark.test_renku
 @pytest.mark.parametrize("existing_branch", [True, False])
-def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_test_conf_with_renku_options, existing_branch):
+@pytest.mark.parametrize("scw_list_passage", ['file', 'params'])
+def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_test_conf_with_renku_options, existing_branch, scw_list_passage):
     server = dispatcher_live_fixture_with_renku_options
     print("constructed server:", server)
     logger.info("constructed server: %s", server)
@@ -1762,7 +1763,6 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
 
     if not existing_branch:
         p += random.random()
-
     params = {
         **default_params,
         'src_name': 'Mrk 421',
@@ -1773,13 +1773,32 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
         'token': encoded_token
     }
 
-    jdata = ask(server,
-                params,
-                expected_query_status=["done"],
-                max_time_s=150,
-                )
+    if scw_list_passage == 'file':
+        params['use_scws'] = 'user_file'
+        file_path = DispatcherJobState.create_p_value_file(p_value=5)
+        list_file = open(file_path)
+
+        jdata = ask(server,
+                    params,
+                    expected_query_status=["done"],
+                    max_time_s=150,
+                    method='post',
+                    files={'user_scw_list_file': list_file.read()}
+                    )
+
+        list_file.close()
+    elif scw_list_passage == 'params':
+        params['scw_list'] = [f"0665{i:04d}0010.001" for i in range(50)]
+        params['use_scws'] = 'form_list'
+        jdata = ask(server,
+                    params,
+                    expected_query_status=["done"],
+                    max_time_s=150
+                    )
+
     job_id = jdata['products']['job_id']
     session_id = jdata['products']['session_id']
+    request_dict = jdata['products']['analysis_parameters']
     params = {
         'job_id': job_id,
         'token': encoded_token
@@ -1791,6 +1810,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     assert c.status_code == 200
 
     # parse the repo url and build the renku one
+    products_url = dispatcher_test_conf_with_renku_options['products_url']
     repo_url = dispatcher_test_conf_with_renku_options['renku_options']['renku_gitlab_repository_url']
     renku_base_project_url = dispatcher_test_conf_with_renku_options['renku_options']['renku_base_project_url']
     renku_gitlab_ssh_key_path = dispatcher_test_conf_with_renku_options['renku_options']['ssh_key_path']
@@ -1809,14 +1829,24 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     api_code_file_path = os.path.join(repo.working_dir,  "_".join(["api_code", job_id]) + '.ipynb')
 
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
-    token_pattern = r"(\'|\")token(\'|\"):.\s?(\'|\").*?(\'|\")"
-    extracted_api_code = re.sub(token_pattern, '"token": "<INSERT_YOUR_TOKEN_HERE>",', extracted_api_code, flags=re.DOTALL)
+    token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
+    extracted_api_code = re.sub(token_pattern, '# "token": getpass.getpass(),', extracted_api_code, flags=re.DOTALL)
+
+    extracted_api_code = 'import getpass\n\n' + extracted_api_code
 
     assert os.path.exists(api_code_file_path)
     parsed_notebook = nbf.read(api_code_file_path, 4)
     assert len(parsed_notebook.cells) == 2
     assert parsed_notebook.cells[0].source == "# Notebook automatically generated from MMODA"
     assert parsed_notebook.cells[1].source == extracted_api_code
+
+    assert repo.head.reference.commit.message is not None
+    request_url = generate_commit_request_url(products_url, request_dict)
+    commit_message = (f"Stored API code of MMODA request by {token_payload['name']} for a {request_dict['product_type']}"
+                      f" from the instrument {request_dict['instrument']}"
+                      f"\nthe original request was generated via {request_url}\n"
+                      "to retrieve the result please follow the link")
+    assert repo.head.reference.commit.message == commit_message
 
     shutil.rmtree(repo.working_dir)
 

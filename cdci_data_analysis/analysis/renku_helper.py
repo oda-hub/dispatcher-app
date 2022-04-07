@@ -2,15 +2,15 @@ import os.path
 import re
 import tempfile
 import traceback
-
 import nbformat as nbf
 import shutil
-
-from git import Repo
 import giturlparse
+
+from git import Repo, Actor
 
 from ..app_logging import app_logging
 from .exceptions import RequestNotUnderstood
+from .email_helper import generate_products_url_from_par_dict
 
 logger = app_logging.getLogger('renku_helper')
 
@@ -20,7 +20,11 @@ def push_api_code(api_code,
                   renku_gitlab_repository_url,
                   renku_gitlab_ssh_key_path,
                   renku_base_project_url,
-                  sentry_client=None):
+                  sentry_client=None,
+                  user_name=None,
+                  user_email=None,
+                  products_url=None,
+                  request_dict=None):
     error_message = 'Error while {step}'
     repo = None
     try:
@@ -30,22 +34,19 @@ def push_api_code(api_code,
         step = 'assigning branch name'
         branch_name = get_branch_name(job_id=job_id)
 
-        step = f'checking the branch already exists'
-        job_id_branch_already_exists = check_job_id_branch_is_present(repo, job_id)
+        step = f'checkout branch {branch_name}'
+        repo = checkout_branch_renku_repo(repo, branch_name)
 
-        if not job_id_branch_already_exists:
-            step = f'checkout branch {branch_name}'
-            repo = checkout_branch_renku_repo(repo, branch_name)
+        step = f'removing token from the api_code'
+        token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
+        api_code = re.sub(token_pattern, '# "token": getpass.getpass(),', api_code, flags=re.DOTALL)
+        api_code = "import getpass\n\n" + api_code
 
-            step = f'removing token from the api_code'
-            token_pattern = r"(\'|\")token(\'|\"):.\s?(\'|\").*?(\'|\"),?"
-            api_code = re.sub(token_pattern, '"token": "<INSERT_YOUR_TOKEN_HERE>",', api_code, flags=re.DOTALL)
+        step = f'creating new notebook with the api code'
+        new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
 
-            step = f'creating new notebook with the api code'
-            new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
-
-            step = f'committing and pushing the api code to the renku repository'
-            commit_and_push_file(repo, new_file_path)
+        step = f'committing and pushing the api code to the renku repository'
+        commit_and_push_file(repo, new_file_path, user_name=user_name, user_email=user_email, products_url=products_url, request_dict=request_dict)
 
         step = f'generating a valid url to start a new session on the new branch'
         renku_session_url = generate_renku_session_url(repo,
@@ -54,6 +55,7 @@ def push_api_code(api_code,
 
     except Exception as e:
         error_message = error_message.format(step=step)
+        logger.warning(f"something happened while pushing the api_code: {step}, {e}")
 
         traceback.print_exc()
 
@@ -170,18 +172,42 @@ def create_new_notebook_with_code(repo, api_code, job_id, file_name=None):
     return file_path
 
 
-def commit_and_push_file(repo, file_path):
-    try:
-        add_info = repo.index.add(file_path)
-        commit_info = repo.index.commit("commit code from MMODA")
-        origin = repo.remote(name="origin")
-        # TODO make it work with methods from GitPython
-        # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
-        push_info = repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref))
-        logger.info("push operation complete")
-    except Exception as e:
-        logger.warning(f"something happened while pushing the the file {file_path}, {e}")
-        raise e
+def generate_commit_request_url(products_url, params_dic, use_scws=None):
+    # generate the url for the commit message
+    # this is a "default" value for use_scws
+    params_dic['use_scws'] = 'no'
+    if 'scw_list' in params_dic:
+        # for the frontend
+        params_dic['use_scws'] = 'form_list'
+
+    request_url = generate_products_url_from_par_dict(products_url, params_dic)
+    return request_url
+
+
+def commit_and_push_file(repo, file_path, user_name=None, user_email=None, products_url=None, request_dict=None):
+    add_info = repo.index.add(file_path)
+    author = None
+
+    commit_msg = "Stored API code of MMODA request"
+    if user_name is not None:
+        author = Actor(user_name, user_email)
+        commit_msg += f" by {user_name}"
+
+    if request_dict is not None:
+        if 'product_type' in request_dict:
+            commit_msg += f" for a {request_dict['product_type']}"
+        if 'instrument' in request_dict:
+            commit_msg += f" from the instrument {request_dict['instrument']}"
+        request_url = generate_commit_request_url(products_url, request_dict)
+        commit_msg += (f"\nthe original request was generated via {request_url}\n"
+                       "to retrieve the result please follow the link")
+
+    commit_info = repo.index.commit(commit_msg, author=author)
+    origin = repo.remote(name="origin")
+    # TODO make it work with methods from GitPython
+    # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
+    push_info = repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref), "--force")
+    logger.info("push operation complete")
 
 
 def remove_repository(repo, renku_repository_url):
