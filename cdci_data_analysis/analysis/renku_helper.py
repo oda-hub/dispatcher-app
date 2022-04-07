@@ -13,6 +13,7 @@ from urllib.parse import urlencode
 
 from ..app_logging import app_logging
 from .exceptions import RequestNotUnderstood
+from .email_helper import generate_products_url_from_par_dict
 
 logger = app_logging.getLogger('renku_helper')
 
@@ -182,22 +183,7 @@ def generate_commit_request_url(params_dic, products_url):
         # for the frontend
         params_dic['use_scws'] = 'form_list'
 
-    if 'scw_list' in params_dic and type(params_dic['scw_list']) == list:
-        # setting proper scw_list formatting
-        # as comma-separated string for being properly read by the frontend
-        params_dic['scw_list'] = ",".join(params_dic['scw_list'])
-
-    _skip_list_ = ['token', 'session_id', 'job_id']
-
-    for key, value in dict(params_dic).items():
-        if key in _skip_list_ or value is None:
-            params_dic.pop(key)
-
-    par_dict = OrderedDict({
-        k: params_dic[k] for k in sorted(params_dic.keys())
-    })
-
-    request_url = '%s?%s' % (products_url, urlencode(par_dict))
+    request_url = generate_products_url_from_par_dict(params_dic)
     return request_url
 
 
