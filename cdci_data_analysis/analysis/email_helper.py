@@ -2,6 +2,8 @@ import time as time_
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
+from collections import OrderedDict
+from urllib.parse import urlencode
 import typing
 from ..analysis import tokenHelper
 import smtplib
@@ -100,6 +102,30 @@ def compress_request_url_params(request_url, consider_args=['selected_catalog', 
         **parsed_url._asdict(),
         'query': parse.urlencode(compressed_qs)
     }))
+
+
+# TODO make sure that the list of parameters to ignore in the frontend is synchronized
+def generate_products_url_from_par_dict(products_url, par_dict) -> str:
+
+    par_dict = par_dict.copy()
+
+    if 'scw_list' in par_dict and type(par_dict['scw_list']) == list:
+        # setting proper scw_list formatting
+        # as comma-separated string for being properly read by the frontend
+        par_dict['scw_list'] = ",".join(par_dict['scw_list'])
+
+    _skip_list_ = ['token', 'session_id', 'job_id']
+
+    for key, value in dict(par_dict).items():
+        if key in _skip_list_ or value is None:
+            par_dict.pop(key)
+
+    par_dict = OrderedDict({
+        k: par_dict[k] for k in sorted(par_dict.keys())
+    })
+
+    request_url = '%s?%s' % (products_url, urlencode(par_dict))
+    return request_url
 
 
 def wrap_python_code(code, max_length=100, max_str_length=None):
