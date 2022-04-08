@@ -30,8 +30,9 @@ def push_api_code(api_code,
     try:
         step = 'cloning repository'
         repo = clone_renku_repo(renku_gitlab_repository_url,
-        logger.info(step)
                                 renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
+        logger.info(step)
+        
         step = 'assigning branch name'
         branch_name = get_branch_name(job_id=job_id)
         logger.info(step)
