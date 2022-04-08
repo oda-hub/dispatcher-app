@@ -31,27 +31,35 @@ def push_api_code(api_code,
         step = 'cloning repository'
         repo = clone_renku_repo(renku_gitlab_repository_url,
                                 renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
+        logger.info(step)
+        
         step = 'assigning branch name'
         branch_name = get_branch_name(job_id=job_id)
+        logger.info(step)
 
         step = f'checkout branch {branch_name}'
         repo = checkout_branch_renku_repo(repo, branch_name)
+        logger.info(step)
 
         step = f'removing token from the api_code'
         token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
         api_code = re.sub(token_pattern, '# "token": getpass.getpass(),', api_code, flags=re.DOTALL)
         api_code = "import getpass\n\n" + api_code
+        logger.info(step)
 
         step = f'creating new notebook with the api code'
         new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
+        logger.info(step)
 
         step = f'committing and pushing the api code to the renku repository'
         commit_and_push_file(repo, new_file_path, user_name=user_name, user_email=user_email, products_url=products_url, request_dict=request_dict)
+        logger.info(step)
 
         step = f'generating a valid url to start a new session on the new branch'
         renku_session_url = generate_renku_session_url(repo,
                                                        renku_base_project_url=renku_base_project_url,
                                                        branch_name=branch_name)
+        logger.info(step)
 
     except Exception as e:
         error_message = error_message.format(step=step)
