@@ -449,9 +449,9 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
         # send submitted mail, status update
         sending_ok = email_sending_job_submitted and interval_ok and status_ok
         if sending_ok:
-            email_sending_check_result_msg = 'the email can  be sent'
+            email_sending_check_result_msg = 'the email can be sent'
         else:
-            email_sending_check_result_msg = 'the email cannot  be sent'
+            email_sending_check_result_msg = 'the email cannot be sent'
         if 'check_result_message' not in log_additional_info_obj:
             log_additional_info_obj['check_result_message'] = email_sending_check_result_msg
         else:
@@ -534,9 +534,9 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
             sending_ok = tokenHelper.get_token_user_done_email(decoded_token) and email_sending_timeout and \
                    duration_query > timeout_threshold_email
             if sending_ok:
-                email_sending_check_result_msg = 'the email can  be sent'
+                email_sending_check_result_msg = 'the email can be sent'
             else:
-                email_sending_check_result_msg = 'the email cannot  be sent'
+                email_sending_check_result_msg = 'the email cannot be sent'
             if 'check_result_message' not in log_additional_info_obj:
                 log_additional_info_obj['check_result_message'] = email_sending_check_result_msg
             else:
@@ -544,7 +544,13 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
 
         # or if failed
         elif status == 'failed':
-            sending_ok = tokenHelper.get_token_user_fail_email(decoded_token)
+            email_sending_failed = tokenHelper.get_token_user_fail_email(decoded_token)
+            log_additional_info_obj['email_sending_failed'] = email_sending_failed
+            if email_sending_failed:
+                log_additional_info_obj['check_result_message'] = 'the email can be sent'
+            else:
+                log_additional_info_obj['check_result_message'] = 'the email cannot be sent'
+            sending_ok = email_sending_failed
 
     log_email_sending_info(logger=logger,
                            status=status,
