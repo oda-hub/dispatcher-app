@@ -1175,6 +1175,16 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     jdata = c.json()
 
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+
+    # check the email in the email folders, and that the first one was produced
+    email_history_log_file_fn = os.path.join(dispatcher_job_state.scratch_dir, 'email_history', 'email_history_log.log')
+    assert os.path.exists(email_history_log_file_fn)
+    with open(email_history_log_file_fn) as email_history_log_content_fn:
+        history_log_content = json.loads(email_history_log_content_fn.read())
+        logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content[-1]['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content[-1]['status'] == 'submitted'
+        assert history_log_content[-1]['additional_information']['check_result_message'] == 'the email can  be sent'
     
     time_request = jdata['time_request']
     
@@ -1201,6 +1211,8 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     with open(email_history_log_file_fn) as email_history_log_content_fn:
         history_log_content = json.loads(email_history_log_content_fn.read())
         logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content[-1]['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content[-1]['status'] == 'done'
         assert history_log_content[-1]['additional_information']['check_result_message'] == 'the email can  be sent'
 
     # a number of done call_backs, but none should trigger the email sending since this already happened
@@ -1231,6 +1243,8 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     with open(email_history_log_file_fn) as email_history_log_content_fn:
         history_log_content = json.loads(email_history_log_content_fn.read())
         logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content[-1]['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content[-1]['status'] == 'done'
         assert history_log_content[-1]['additional_information']['check_result_message'] == 'multiple completion email detected'
 
 
