@@ -357,7 +357,9 @@ def log_email_sending_info(logger, status, time_request, scratch_dir, job_id, ad
     path_email_history_folder = os.path.join(scratch_dir, 'email_history')
     if not os.path.exists(path_email_history_folder):
         os.makedirs(path_email_history_folder)
-    message = (f'Time: {timestamp2isot(time_request)}, status: {status}, job_id: {job_id}\n'
+    message = (f'Time: {timestamp2isot(time_request)}\n'
+               f'status: {status}\n'
+               f'job_id: {job_id}\n'
                f'additional information:\n{additional_info}\n\n')
     email_history_log_fn = os.path.join(path_email_history_folder, 'email_history_log.log')
 
@@ -439,7 +441,11 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
 
         # send submitted mail, status update
         sending_ok = email_sending_job_submitted and interval_ok and status_ok
-        log_additional_info += f'\temail can  be sent: {sending_ok}\n'
+        if sending_ok:
+            email_sending_check_result_msg = 'the email can  be sent '
+        else:
+            email_sending_check_result_msg = 'the email cannot  be sent '
+        log_additional_info += f'{email_sending_check_result_msg}\n'
 
         # log email-send attempt info
     log_email_sending_info(logger=logger,
@@ -517,7 +523,11 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
 
             sending_ok = tokenHelper.get_token_user_done_email(decoded_token) and email_sending_timeout and \
                    duration_query > timeout_threshold_email
-            log_additional_info += f'\temail can  be sent: {sending_ok}\n'
+            if sending_ok:
+                email_sending_check_result_msg = 'the email can  be sent '
+            else:
+                email_sending_check_result_msg = 'the email cannot  be sent '
+            log_additional_info += f'{email_sending_check_result_msg}\n'
 
         # or if failed
         elif status == 'failed':
