@@ -412,7 +412,7 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
             )
         submitted_email_files = glob.glob(submitted_email_pattern)
         logger.info("submitted_email_files: %s as %s", len(submitted_email_files), submitted_email_pattern)
-        log_additional_info += f'\tnumber of submitted emails: {submitted_email_files}: {submitted_email_files}\n'
+        log_additional_info += f'\tnumber of submitted emails: {len(submitted_email_files)}: {submitted_email_files}\n'
 
         if len(submitted_email_files) >= 1:
             times = []
@@ -502,7 +502,7 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
                         email_sending_timeout and duration_query > timeout_threshold_email)
 
             done_email_files = glob.glob(f'scratch_*_jid_{job_id}*/email_history/*_done_*')
-            log_additional_info += f'\tnumber of done emails found: {done_email_files}\n'
+            log_additional_info += f'\tnumber of done emails found: {len(done_email_files)}\n'
             if len(done_email_files) >= 1:
                 logger.info("number of done emails sent: %s", len(done_email_files))
                 log_additional_info += '\tmultiple completion email detected\n'
