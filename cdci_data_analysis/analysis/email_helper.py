@@ -353,7 +353,28 @@ def store_email_api_code_attachment(api_code, status, scratch_dir, sending_time=
     return attachment_file_path
 
 
+def log_email_sending_info(logger, status, time_request, scratch_dir, job_id, additional_info=None):
+    path_email_history_folder = os.path.join(scratch_dir, 'email_history')
+    if not os.path.exists(path_email_history_folder):
+        os.makedirs(path_email_history_folder)
+    message = (f'Time: {timestamp2isot(time_request)}, status: {status}, job_id: {job_id}, '
+               f'additional information: {additional_info}')
+    email_history_log_fn = os.path.join(path_email_history_folder, 'email_history_log.log')
+
+    with open(email_history_log_fn, 'w+') as outfile:
+        outfile.write(message)
+
+    logger.info(f"logging email sending attempt into {email_history_log_fn} file")
+
+
 def is_email_to_send_run_query(logger, status, time_original_request, scratch_dir, job_id, config, decoded_token=None, sentry_client=None):
+    # log email-send attempt info
+    log_email_sending_info(logger=logger,
+                           status=status,
+                           time_request=time_original_request,
+                           scratch_dir=scratch_dir,
+                           job_id=job_id,
+                           )
     # get total request duration
     if decoded_token:
         # in case the job is just submitted and was not submitted before, at least since some time
@@ -415,7 +436,14 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
     return False
 
 
-def is_email_to_send_callback(logger, status, time_original_request, config, job_id, decoded_token=None):
+def is_email_to_send_callback(logger, status, time_original_request, scratch_dir, config, job_id, decoded_token=None):
+    log_email_sending_info(logger=logger,
+                           status=status,
+                           time_request=time_original_request,
+                           scratch_dir=scratch_dir,
+                           job_id=job_id,
+
+                           )
     if decoded_token:
         # in case the request was long and 'done'
         logger.info("considering email sending, status: %s, time_original_request: %s", status, time_original_request)
