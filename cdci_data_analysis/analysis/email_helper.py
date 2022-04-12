@@ -353,7 +353,7 @@ def store_email_api_code_attachment(api_code, status, scratch_dir, sending_time=
     return attachment_file_path
 
 
-def is_email_to_send_run_query(logger, status, time_original_request, scratch_dir, job_id, config, decoded_token=None):
+def is_email_to_send_run_query(logger, status, time_original_request, scratch_dir, job_id, config, decoded_token=None, sentry_client=None):
     # get total request duration
     if decoded_token:
         # in case the job is just submitted and was not submitted before, at least since some time
@@ -401,8 +401,16 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
         logger.info("email_sending_job_submitted: %s", email_sending_job_submitted)
         logger.info("interval_ok: %s", interval_ok)
 
+        status_ok = True
+        if status != 'submitted':
+            status_ok = False
+            if sentry_client is not None:
+                sentry_client.capture('raven.events.Message',
+                                      message=f'an email sending attempt has been detected at the completion '
+                                              f'of the run_query method with the status: {status}')
+
         # send submitted mail, status update
-        return email_sending_job_submitted and interval_ok and status == 'submitted'
+        return email_sending_job_submitted and interval_ok and status_ok
 
     return False
 
