@@ -1219,7 +1219,14 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
 
     dispatcher_job_state.assert_email("submitted")
     dispatcher_job_state.assert_email("done")
-        
+
+    # check the email in the email folders, and that the first one was produced
+    email_history_dir_fn = f'{dispatcher_job_state.scratch_dir}/email_history'
+    assert os.path.exists(os.path.join(email_history_dir_fn, 'email_history_log.log'))
+
+    email_history_log_content = open(email_history_dir_fn).read()
+
+
 
 def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
@@ -1660,7 +1667,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
             params['scw_list'] = scw_list_spaced_string
 
     # this sets global variable
-    requests.get(server + '/api/par-names')
+    requests.get(os.path.join(server, 'api', 'par-names'))
 
     def ask_here():
         return ask(server,
