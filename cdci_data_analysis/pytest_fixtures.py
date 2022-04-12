@@ -953,4 +953,4 @@ class DispatcherJobState:
         return json.load(open(f'{self.scratch_dir}/job_monitor_{state}_{message}_.json'))
 
     def load_emails(self):
-        return [ open(fn).read() for fn in glob.glob(f"{self.email_history_folder}/*") ]
+        return [ open(fn).read() for fn in glob.glob(f"{self.email_history_folder}/*") if 'email_history_log.log' not in fn ]
