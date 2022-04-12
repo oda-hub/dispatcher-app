@@ -1195,6 +1195,14 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     assert 'email_status' in jdata
     assert jdata['email_status'] == 'email sent'
 
+    # check the email in the email folders, and that the first one was produced
+    email_history_log_file_fn = os.path.join(dispatcher_job_state.scratch_dir, 'email_history', 'email_history_log.log')
+    assert os.path.exists(email_history_log_file_fn)
+    with open(email_history_log_file_fn) as email_history_log_content_fn:
+        history_log_content = json.loads(email_history_log_content_fn.read())
+        logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content[-1]['additional_information']['check_result_message'] == 'the email can  be sent'
+
     # a number of done call_backs, but none should trigger the email sending since this already happened
     for i in range(3):
         c = requests.get(server + "/call_back",
@@ -1220,12 +1228,10 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     dispatcher_job_state.assert_email("submitted")
     dispatcher_job_state.assert_email("done")
 
-    # check the email in the email folders, and that the first one was produced
-    email_history_dir_fn = f'{dispatcher_job_state.scratch_dir}/email_history'
-    assert os.path.exists(os.path.join(email_history_dir_fn, 'email_history_log.log'))
-
-    email_history_log_content = open(email_history_dir_fn).read()
-
+    with open(email_history_log_file_fn) as email_history_log_content_fn:
+        history_log_content = json.loads(email_history_log_content_fn.read())
+        logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content[-1]['additional_information']['check_result_message'] == 'multiple completion email detected'
 
 
 def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
