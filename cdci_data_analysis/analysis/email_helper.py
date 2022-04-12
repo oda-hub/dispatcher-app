@@ -437,13 +437,9 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
 
 
 def is_email_to_send_callback(logger, status, time_original_request, scratch_dir, config, job_id, decoded_token=None):
-    log_email_sending_info(logger=logger,
-                           status=status,
-                           time_request=time_original_request,
-                           scratch_dir=scratch_dir,
-                           job_id=job_id,
-
-                           )
+    log_additional_info = ""
+    sending_ok = False
+    time_check = time_.time()
     if decoded_token:
         # in case the request was long and 'done'
         logger.info("considering email sending, status: %s, time_original_request: %s", status, time_original_request)
@@ -452,35 +448,60 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
         if status == 'done':
             # get total request duration
             if time_original_request:
-                duration_query = time_.time() - float(time_original_request)
+                duration_query = time_check - float(time_original_request)
             else:
                 raise MissingRequestParameter('original request time not available')
-            timeout_threshold_email = tokenHelper.get_token_user_timeout_threshold_email(decoded_token)
-            if timeout_threshold_email is None:
-                # set it to the a default value, from the configuration
-                timeout_threshold_email = config.email_sending_timeout_default_threshold
 
+            timeout_threshold_email = tokenHelper.get_token_user_timeout_threshold_email(decoded_token)
+            info_parameter = 'extracted from token'
+            if timeout_threshold_email is None:
+                # set it to the default value, from the configuration
+                timeout_threshold_email = config.email_sending_timeout_default_threshold
+                info_parameter = 'extracted from the configuration'
+
+            log_additional_info += f'timeout_threshold_email: {timeout_threshold_email}, {info_parameter}\n'
             logger.info("timeout_threshold_email: %s", timeout_threshold_email)
 
             email_sending_timeout = tokenHelper.get_token_user_sending_timeout_email(decoded_token)
+            info_parameter = 'extracted from token'
             if email_sending_timeout is None:
                 email_sending_timeout = config.email_sending_timeout
+                info_parameter = 'extracted from the configuration'
 
+            log_additional_info += f'email_sending_timeout: {email_sending_timeout}, {info_parameter}\n'
             logger.info("email_sending_timeout: %s", email_sending_timeout)
+
             logger.info("duration_query > timeout_threshold_email %s", duration_query > timeout_threshold_email)
             logger.info("email_sending_timeout and duration_query > timeout_threshold_email %s",
                         email_sending_timeout and duration_query > timeout_threshold_email)
 
             done_email_files = glob.glob(f'scratch_*_jid_{job_id}*/email_history/*_done_*')
+            log_additional_info += f'number of done emails found: {done_email_files}\n'
             if len(done_email_files) >= 1:
                 logger.info("number of done emails sent: %s", len(done_email_files))
+                log_additional_info += 'multiple completion email detected\n'
+                log_email_sending_info(logger=logger,
+                                       status=status,
+                                       time_request=time_check,
+                                       scratch_dir=scratch_dir,
+                                       job_id=job_id,
+                                       additional_info=log_additional_info
+                                       )
                 raise MultipleDoneEmail("multiple completion email detected")
 
-            return tokenHelper.get_token_user_done_email(decoded_token) and email_sending_timeout and \
+            sending_ok = tokenHelper.get_token_user_done_email(decoded_token) and email_sending_timeout and \
                    duration_query > timeout_threshold_email
+            log_additional_info += f'email can  be sent: {sending_ok}\n'
 
         # or if failed
         elif status == 'failed':
-            return tokenHelper.get_token_user_fail_email(decoded_token)
+            sending_ok = tokenHelper.get_token_user_fail_email(decoded_token)
 
-    return False
+    log_email_sending_info(logger=logger,
+                           status=status,
+                           time_request=time_check,
+                           scratch_dir=scratch_dir,
+                           job_id=job_id,
+                           additional_info=log_additional_info
+                           )
+    return sending_ok
