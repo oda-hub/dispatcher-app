@@ -357,8 +357,8 @@ def log_email_sending_info(logger, status, time_request, scratch_dir, job_id, ad
     path_email_history_folder = os.path.join(scratch_dir, 'email_history')
     if not os.path.exists(path_email_history_folder):
         os.makedirs(path_email_history_folder)
-    message = (f'Time: {timestamp2isot(time_request)}, status: {status}, job_id: {job_id}, '
-               f'additional information: {additional_info}')
+    message = (f'Time: {timestamp2isot(time_request)}, status: {status}, job_id: {job_id}\n'
+               f'additional information:\n{additional_info}\n\n')
     email_history_log_fn = os.path.join(path_email_history_folder, 'email_history_log.log')
 
     with open(email_history_log_fn, 'w+') as outfile:
@@ -368,31 +368,36 @@ def log_email_sending_info(logger, status, time_request, scratch_dir, job_id, ad
 
 
 def is_email_to_send_run_query(logger, status, time_original_request, scratch_dir, job_id, config, decoded_token=None, sentry_client=None):
-    # log email-send attempt info
-    log_email_sending_info(logger=logger,
-                           status=status,
-                           time_request=time_original_request,
-                           scratch_dir=scratch_dir,
-                           job_id=job_id,
-                           )
+    log_additional_info = ""
+    sending_ok = False
+    time_check = time_.time()
     # get total request duration
     if decoded_token:
         # in case the job is just submitted and was not submitted before, at least since some time
         logger.info("considering email sending, status: %s, time_original_request: %s", status, time_original_request)
 
         email_sending_job_submitted = tokenHelper.get_token_user_submitted_email(decoded_token)
+        info_parameter = 'extracted from token'
         if email_sending_job_submitted is None:
             # in case this didn't come with the token take the default value from the configuration
             email_sending_job_submitted = config.email_sending_job_submitted
+            info_parameter = 'extracted from the configuration'
+
+        log_additional_info += f'\temail_sending_job_submitted: {email_sending_job_submitted}, {info_parameter}\n'
+        logger.info("email_sending_job_submitted: %s", email_sending_job_submitted)
 
         # get the amount of time passed from when the last email was sent
         interval_ok = True
 
         email_sending_job_submitted_interval = tokenHelper.get_token_user_sending_submitted_interval_email(decoded_token)
+        info_parameter = 'extracted from token'
         if email_sending_job_submitted_interval is None:
             # in case this didn't come with the token take the default value from the configuration
             email_sending_job_submitted_interval = config.email_sending_job_submitted_default_interval
+            info_parameter = 'extracted from the configuration'
+
         logger.info("email_sending_job_submitted_interval: %s", email_sending_job_submitted_interval)
+        log_additional_info += f'\temail_sending_job_submitted_interval: {email_sending_job_submitted_interval}, {info_parameter}\n'
 
         email_history_dir = os.path.join(scratch_dir + '/email_history')
         logger.info("email_history_dir: %s", email_history_dir)
@@ -407,6 +412,7 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
             )
         submitted_email_files = glob.glob(submitted_email_pattern)
         logger.info("submitted_email_files: %s as %s", len(submitted_email_files), submitted_email_pattern)
+        log_additional_info += f'\tnumber of submitted emails: {submitted_email_files}: {submitted_email_files}\n'
 
         if len(submitted_email_files) >= 1:
             times = []
@@ -416,14 +422,15 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
                     times.append(float(f_name.split('_')[2]))
 
             time_last_email_submitted_sent = max(times)
-            time_from_last_submitted_email = time_.time() - float(time_last_email_submitted_sent)
+            time_from_last_submitted_email = time_check - float(time_last_email_submitted_sent)
             interval_ok = time_from_last_submitted_email > email_sending_job_submitted_interval
 
-        logger.info("email_sending_job_submitted: %s", email_sending_job_submitted)
         logger.info("interval_ok: %s", interval_ok)
+        log_additional_info += f'\tinterval_ok: {interval_ok}\n'
 
         status_ok = True
         if status != 'submitted':
+            log_additional_info += f'\tstatus {status} is not valid for sending an email at the completion of a run_query operation\n'
             status_ok = False
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
@@ -431,9 +438,19 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
                                               f'of the run_query method with the status: {status}')
 
         # send submitted mail, status update
-        return email_sending_job_submitted and interval_ok and status_ok
+        sending_ok = email_sending_job_submitted and interval_ok and status_ok
+        log_additional_info += f'\temail can  be sent: {sending_ok}\n'
 
-    return False
+        # log email-send attempt info
+    log_email_sending_info(logger=logger,
+                           status=status,
+                           time_request=time_check,
+                           scratch_dir=scratch_dir,
+                           job_id=job_id,
+                           additional_info=log_additional_info
+                           )
+
+    return sending_ok
 
 
 def is_email_to_send_callback(logger, status, time_original_request, scratch_dir, config, job_id, decoded_token=None):
@@ -449,7 +466,16 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
             # get total request duration
             if time_original_request:
                 duration_query = time_check - float(time_original_request)
+                log_additional_info += f'\tduration of the query: {duration_query}\n'
             else:
+                log_additional_info += '\toriginal request time not available\n'
+                log_email_sending_info(logger=logger,
+                                       status=status,
+                                       time_request=time_check,
+                                       scratch_dir=scratch_dir,
+                                       job_id=job_id,
+                                       additional_info=log_additional_info
+                                       )
                 raise MissingRequestParameter('original request time not available')
 
             timeout_threshold_email = tokenHelper.get_token_user_timeout_threshold_email(decoded_token)
@@ -459,7 +485,7 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
                 timeout_threshold_email = config.email_sending_timeout_default_threshold
                 info_parameter = 'extracted from the configuration'
 
-            log_additional_info += f'timeout_threshold_email: {timeout_threshold_email}, {info_parameter}\n'
+            log_additional_info += f'\ttimeout_threshold_email: {timeout_threshold_email}, {info_parameter}\n'
             logger.info("timeout_threshold_email: %s", timeout_threshold_email)
 
             email_sending_timeout = tokenHelper.get_token_user_sending_timeout_email(decoded_token)
@@ -468,7 +494,7 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
                 email_sending_timeout = config.email_sending_timeout
                 info_parameter = 'extracted from the configuration'
 
-            log_additional_info += f'email_sending_timeout: {email_sending_timeout}, {info_parameter}\n'
+            log_additional_info += f'\temail_sending_timeout: {email_sending_timeout}, {info_parameter}\n'
             logger.info("email_sending_timeout: %s", email_sending_timeout)
 
             logger.info("duration_query > timeout_threshold_email %s", duration_query > timeout_threshold_email)
@@ -476,10 +502,10 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
                         email_sending_timeout and duration_query > timeout_threshold_email)
 
             done_email_files = glob.glob(f'scratch_*_jid_{job_id}*/email_history/*_done_*')
-            log_additional_info += f'number of done emails found: {done_email_files}\n'
+            log_additional_info += f'\tnumber of done emails found: {done_email_files}\n'
             if len(done_email_files) >= 1:
                 logger.info("number of done emails sent: %s", len(done_email_files))
-                log_additional_info += 'multiple completion email detected\n'
+                log_additional_info += '\tmultiple completion email detected\n'
                 log_email_sending_info(logger=logger,
                                        status=status,
                                        time_request=time_check,
@@ -491,7 +517,7 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
 
             sending_ok = tokenHelper.get_token_user_done_email(decoded_token) and email_sending_timeout and \
                    duration_query > timeout_threshold_email
-            log_additional_info += f'email can  be sent: {sending_ok}\n'
+            log_additional_info += f'\temail can  be sent: {sending_ok}\n'
 
         # or if failed
         elif status == 'failed':
