@@ -448,23 +448,19 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
 
         # send submitted mail, status update
         sending_ok = email_sending_job_submitted and interval_ok and status_ok
-        if sending_ok:
-            email_sending_check_result_msg = 'the email can be sent'
-        else:
-            email_sending_check_result_msg = 'the email cannot be sent'
-        if 'check_result_message' not in log_additional_info_obj:
-            log_additional_info_obj['check_result_message'] = email_sending_check_result_msg
-        else:
-            log_additional_info_obj['check_result_message'] += email_sending_check_result_msg
+        if not sending_ok:
+            if 'check_result_message' not in log_additional_info_obj:
+                log_additional_info_obj['check_result_message'] = 'the email cannot be sent'
+            else:
+                log_additional_info_obj['check_result_message'] += 'the email cannot be sent'
 
-        # log email-send attempt info
-    log_email_sending_info(logger=logger,
-                           status=status,
-                           time_request=time_check,
-                           scratch_dir=scratch_dir,
-                           job_id=job_id,
-                           additional_info_obj=log_additional_info_obj
-                           )
+            log_email_sending_info(logger=logger,
+                                   status=status,
+                                   time_request=time_check,
+                                   scratch_dir=scratch_dir,
+                                   job_id=job_id,
+                                   additional_info_obj=log_additional_info_obj
+                                   )
 
     return sending_ok
 
