@@ -22,6 +22,7 @@ from bs4 import BeautifulSoup
 
 
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
+from ..analysis.hash import make_hash
 
 from datetime import datetime
 
@@ -362,7 +363,8 @@ def log_email_sending_info(logger, status, time_request, scratch_dir, job_id, ad
                             job_id=job_id)
     if additional_info_obj is not None:
         history_info_obj['additional_information'] = additional_info_obj
-    email_history_log_fn = os.path.join(path_email_history_folder, f'email_history_log_{time_request}.log')
+    history_info_obj_hash = make_hash(history_info_obj)
+    email_history_log_fn = os.path.join(path_email_history_folder, f'email_history_log_{status}_{time_request}_{history_info_obj_hash}.log')
     with open(email_history_log_fn, 'w') as outfile:
         outfile.write(json.dumps(history_info_obj, indent=4))
 
