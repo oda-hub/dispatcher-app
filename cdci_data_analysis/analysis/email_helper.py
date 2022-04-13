@@ -470,14 +470,7 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
                 duration_query = time_check - float(time_original_request)
                 log_additional_info_obj['query_duration'] = duration_query
             else:
-                log_additional_info_obj['check_result_message'] = 'original request time not available'
-                log_email_sending_info(logger=logger,
-                                       status=status,
-                                       time_request=time_check,
-                                       scratch_dir=scratch_dir,
-                                       job_id=job_id,
-                                       additional_info_obj=log_additional_info_obj
-                                       )
+                logger.info(f'time_original_request not available')
                 raise MissingRequestParameter('original request time not available')
 
             timeout_threshold_email = tokenHelper.get_token_user_timeout_threshold_email(decoded_token)
@@ -506,15 +499,7 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
             done_email_files = glob.glob(f'scratch_*_jid_{job_id}*/email_history/*_done_*')
             log_additional_info_obj['done_email_files'] = done_email_files
             if len(done_email_files) >= 1:
-                logger.info("number of done emails sent: %s", len(done_email_files))
-                log_additional_info_obj['check_result_message'] = 'multiple completion email detected'
-                log_email_sending_info(logger=logger,
-                                       status=status,
-                                       time_request=time_check,
-                                       scratch_dir=scratch_dir,
-                                       job_id=job_id,
-                                       additional_info_obj=log_additional_info_obj
-                                       )
+                logger.info("the email cannot be sent because the number of done emails sent is too high: %s", len(done_email_files))
                 raise MultipleDoneEmail("multiple completion email detected")
 
             sending_ok = tokenHelper.get_token_user_done_email(decoded_token) and email_sending_timeout and \
@@ -526,11 +511,12 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
             log_additional_info_obj['email_sending_failed'] = email_sending_failed
             sending_ok = email_sending_failed
 
+        # not valid status
         else:
             logger.info(f'status {status} not a valid one for sending an email after a callback')
 
-    if not sending_ok:
-        log_additional_info_obj['check_result_message'] = 'the email cannot be sent'
+    if sending_ok:
+        log_additional_info_obj['check_result_message'] = 'the email can be sent'
         log_email_sending_info(logger=logger,
                                status=status,
                                time_request=time_check,
@@ -538,4 +524,5 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
                                job_id=job_id,
                                additional_info_obj=log_additional_info_obj
                                )
+
     return sending_ok
