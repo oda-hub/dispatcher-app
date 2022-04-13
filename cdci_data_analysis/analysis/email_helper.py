@@ -450,6 +450,8 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
                                    job_id=job_id,
                                    additional_info_obj=log_additional_info_obj
                                    )
+    else:
+        logger.info(f'an email cannot be sent because a token was not provided')
 
     return sending_ok
 
@@ -513,6 +515,8 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
         # not valid status
         else:
             logger.info(f'status {status} not a valid one for sending an email after a callback')
+    else:
+        logger.info(f'an email cannot be sent because a token was not provided')
 
     if sending_ok:
         log_additional_info_obj['check_result_message'] = 'the email can be sent'
