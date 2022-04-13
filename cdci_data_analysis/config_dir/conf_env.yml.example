@@ -53,6 +53,8 @@ dispatcher:
         # amount of time (in seconds) elapsed from the sending of the last email
         # for when a request has been submitted
         email_sending_job_submitted_default_interval: 5
+        # enable the sending of a sentry message in case a not valid condition for the sending an email is met
+        sentry_for_email_sending_check: False
 
     # product gallery related set of options
     # in case no integration with the product gallery is provided, these options will be ignored

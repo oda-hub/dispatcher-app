@@ -375,6 +375,7 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
     log_additional_info_obj = {}
     sending_ok = False
     time_check = time_.time()
+    sentry_for_email_sending_check = config.sentry_for_email_sending_check
     # get total request duration
     if decoded_token:
         # in case the job is just submitted and was not submitted before, at least since some time
@@ -436,7 +437,7 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
         if status != 'submitted':
             status_ok = False
             logger.info(f'status {status} not a valid one for sending an email after a run_query')
-            if sentry_client is not None:
+            if sentry_client is not None and sentry_for_email_sending_check:
                 sentry_client.capture('raven.events.Message',
                                       message=f'an email sending attempt has been detected at the completion '
                                               f'of the run_query method with the status: {status}')
@@ -458,10 +459,11 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
     return sending_ok
 
 
-def is_email_to_send_callback(logger, status, time_original_request, scratch_dir, config, job_id, decoded_token=None):
+def is_email_to_send_callback(logger, status, time_original_request, scratch_dir, config, job_id, decoded_token=None, sentry_client=None):
     log_additional_info_obj = {}
     sending_ok = False
     time_check = time_.time()
+    sentry_for_email_sending_check = config.sentry_for_email_sending_check
     if decoded_token:
         # in case the request was long and 'done'
         logger.info("considering email sending, status: %s, time_original_request: %s", status, time_original_request)
@@ -517,6 +519,10 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
         # not valid status
         else:
             logger.info(f'status {status} not a valid one for sending an email after a callback')
+            if sentry_client is not None and sentry_for_email_sending_check:
+                sentry_client.capture('raven.events.Message',
+                                      message=f'an email sending attempt has been detected at the completion '
+                                              f'of the run_query method with the status: {status}')
     else:
         logger.info(f'an email will not be sent because a token was not provided')
 
