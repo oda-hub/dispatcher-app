@@ -439,7 +439,6 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
 
         status_ok = True
         if status != 'submitted':
-            log_additional_info_obj['check_result_message'] = f'status {status} is not valid for sending an email at the completion of a run_query operation'
             status_ok = False
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
@@ -449,10 +448,7 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
         # send submitted mail, status update
         sending_ok = email_sending_job_submitted and interval_ok and status_ok
         if not sending_ok:
-            if 'check_result_message' not in log_additional_info_obj:
-                log_additional_info_obj['check_result_message'] = 'the email cannot be sent'
-            else:
-                log_additional_info_obj['check_result_message'] += 'the email cannot be sent'
+            log_additional_info_obj['check_result_message'] = 'the email cannot be sent'
 
             log_email_sending_info(logger=logger,
                                    status=status,
@@ -528,31 +524,21 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
                 raise MultipleDoneEmail("multiple completion email detected")
 
             sending_ok = tokenHelper.get_token_user_done_email(decoded_token) and email_sending_timeout and \
-                   duration_query > timeout_threshold_email
-            if sending_ok:
-                email_sending_check_result_msg = 'the email can be sent'
-            else:
-                email_sending_check_result_msg = 'the email cannot be sent'
-            if 'check_result_message' not in log_additional_info_obj:
-                log_additional_info_obj['check_result_message'] = email_sending_check_result_msg
-            else:
-                log_additional_info_obj['check_result_message'] += email_sending_check_result_msg
+                         duration_query > timeout_threshold_email
 
         # or if failed
         elif status == 'failed':
             email_sending_failed = tokenHelper.get_token_user_fail_email(decoded_token)
             log_additional_info_obj['email_sending_failed'] = email_sending_failed
-            if email_sending_failed:
-                log_additional_info_obj['check_result_message'] = 'the email can be sent'
-            else:
-                log_additional_info_obj['check_result_message'] = 'the email cannot be sent'
             sending_ok = email_sending_failed
 
-    log_email_sending_info(logger=logger,
-                           status=status,
-                           time_request=time_check,
-                           scratch_dir=scratch_dir,
-                           job_id=job_id,
-                           additional_info_obj=log_additional_info_obj
-                           )
+    if not sending_ok:
+        log_additional_info_obj['check_result_message'] = 'the email cannot be sent'
+        log_email_sending_info(logger=logger,
+                               status=status,
+                               time_request=time_check,
+                               scratch_dir=scratch_dir,
+                               job_id=job_id,
+                               additional_info_obj=log_additional_info_obj
+                               )
     return sending_ok
