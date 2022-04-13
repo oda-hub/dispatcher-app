@@ -440,6 +440,7 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
         status_ok = True
         if status != 'submitted':
             status_ok = False
+            logger.info(f'status {status} not a valid one for sending an email after a run_query')
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
                                       message=f'an email sending attempt has been detected at the completion '
@@ -531,6 +532,9 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
             email_sending_failed = tokenHelper.get_token_user_fail_email(decoded_token)
             log_additional_info_obj['email_sending_failed'] = email_sending_failed
             sending_ok = email_sending_failed
+
+        else:
+            logger.info(f'status {status} not a valid one for sending an email after a callback')
 
     if not sending_ok:
         log_additional_info_obj['check_result_message'] = 'the email cannot be sent'
