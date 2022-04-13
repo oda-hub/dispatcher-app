@@ -1187,7 +1187,7 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
         assert history_log_content['status'] == 'submitted'
         assert isinstance(history_log_content['additional_information']['submitted_email_files'], list)
         assert len(history_log_content['additional_information']['submitted_email_files']) == 0
-        assert history_log_content['additional_information']['check_result_message'] == 'the email can be sent'
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
     
     time_request = jdata['time_request']
     
@@ -1219,7 +1219,7 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
         assert history_log_content['status'] == 'done'
         assert isinstance(history_log_content['additional_information']['done_email_files'], list)
         assert len(history_log_content['additional_information']['done_email_files']) == 0
-        assert history_log_content['additional_information']['check_result_message'] == 'the email can be sent'
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
 
     # a number of done call_backs, but none should trigger the email sending since this already happened
     for i in range(3):
@@ -1256,7 +1256,7 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
         assert history_log_content['status'] == 'done'
         assert isinstance(history_log_content['additional_information']['done_email_files'], list)
         assert len(history_log_content['additional_information']['done_email_files']) == 0
-        assert history_log_content['additional_information']['check_result_message'] == 'the email can be sent'
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
 
 
 def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
@@ -1317,7 +1317,7 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
         logger.info("content email history logging: %s", history_log_content)
         assert history_log_content['job_id'] == dispatcher_job_state.job_id
         assert history_log_content['status'] == 'failed'
-        assert history_log_content['additional_information']['check_result_message'] == 'the email can be sent'
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
 
 
 @pytest.mark.not_safe_parallel
