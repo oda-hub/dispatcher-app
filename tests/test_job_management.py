@@ -1177,16 +1177,17 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
 
     # check the email in the email folders, and that the first one was produced
-    email_history_log_file_fn = os.path.join(dispatcher_job_state.scratch_dir, 'email_history', 'email_history_log.log')
-    assert os.path.exists(email_history_log_file_fn)
-    with open(email_history_log_file_fn) as email_history_log_content_fn:
+    email_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
         history_log_content = json.loads(email_history_log_content_fn.read())
         logger.info("content email history logging: %s", history_log_content)
-        assert history_log_content[-1]['job_id'] == dispatcher_job_state.job_id
-        assert history_log_content[-1]['status'] == 'submitted'
-        assert isinstance(history_log_content[-1]['additional_information']['submitted_email_files'], list)
-        assert len(history_log_content[-1]['additional_information']['submitted_email_files']) == 0
-        assert history_log_content[-1]['additional_information']['check_result_message'] == 'the email can be sent'
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'submitted'
+        assert isinstance(history_log_content['additional_information']['submitted_email_files'], list)
+        assert len(history_log_content['additional_information']['submitted_email_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the email can be sent'
     
     time_request = jdata['time_request']
     
@@ -1208,16 +1209,17 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     assert jdata['email_status'] == 'email sent'
 
     # check the email in the email folders, and that the first one was produced
-    email_history_log_file_fn = os.path.join(dispatcher_job_state.scratch_dir, 'email_history', 'email_history_log.log')
-    assert os.path.exists(email_history_log_file_fn)
-    with open(email_history_log_file_fn) as email_history_log_content_fn:
+    email_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
         history_log_content = json.loads(email_history_log_content_fn.read())
         logger.info("content email history logging: %s", history_log_content)
-        assert history_log_content[-1]['job_id'] == dispatcher_job_state.job_id
-        assert history_log_content[-1]['status'] == 'done'
-        assert isinstance(history_log_content[-1]['additional_information']['done_email_files'], list)
-        assert len(history_log_content[-1]['additional_information']['done_email_files']) == 0
-        assert history_log_content[-1]['additional_information']['check_result_message'] == 'the email can be sent'
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'done'
+        assert isinstance(history_log_content['additional_information']['done_email_files'], list)
+        assert len(history_log_content['additional_information']['done_email_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the email can be sent'
 
     # a number of done call_backs, but none should trigger the email sending since this already happened
     for i in range(3):
@@ -1244,14 +1246,17 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     dispatcher_job_state.assert_email("submitted")
     dispatcher_job_state.assert_email("done")
 
-    with open(email_history_log_file_fn) as email_history_log_content_fn:
+    email_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
         history_log_content = json.loads(email_history_log_content_fn.read())
         logger.info("content email history logging: %s", history_log_content)
-        assert history_log_content[-1]['job_id'] == dispatcher_job_state.job_id
-        assert history_log_content[-1]['status'] == 'done'
-        assert isinstance(history_log_content[-1]['additional_information']['done_email_files'], list)
-        assert len(history_log_content[-1]['additional_information']['done_email_files']) == 1
-        assert history_log_content[-1]['additional_information']['check_result_message'] == 'multiple completion email detected'
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'done'
+        assert isinstance(history_log_content['additional_information']['done_email_files'], list)
+        assert len(history_log_content['additional_information']['done_email_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the email can be sent'
 
 
 def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
@@ -1304,13 +1309,15 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
     jdata = json.load(open(job_monitor_call_back_failed_json_fn))
     
     assert jdata['email_status'] == 'sending email failed'
-    email_history_log_file_fn = os.path.join(dispatcher_job_state.scratch_dir, 'email_history', 'email_history_log.log')
-    with open(email_history_log_file_fn) as email_history_log_content_fn:
+
+    email_history_log_files = glob.glob(os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
         history_log_content = json.loads(email_history_log_content_fn.read())
         logger.info("content email history logging: %s", history_log_content)
-        assert history_log_content[-1]['job_id'] == dispatcher_job_state.job_id
-        assert history_log_content[-1]['status'] == 'failed'
-        assert history_log_content[-1]['additional_information']['check_result_message'] == 'the email can be sent'
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'failed'
+        assert history_log_content['additional_information']['check_result_message'] == 'the email can be sent'
 
 
 @pytest.mark.not_safe_parallel
