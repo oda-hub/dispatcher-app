@@ -917,6 +917,7 @@ class InstrumentQueryBackEnd:
             if email_helper.is_email_to_send_callback(self.logger,
                                                       status,
                                                       time_original_request,
+                                                      self.scratch_dir,
                                                       self.app.config['conf'],
                                                       self.job_id,
                                                       decoded_token=self.decoded_token):

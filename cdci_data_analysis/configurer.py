@@ -235,6 +235,7 @@ class ConfigEnv(object):
                                      disp_dict['email_options']['email_sending_timeout_default_threshold'],
                                      disp_dict['email_options']['email_sending_job_submitted'],
                                      disp_dict['email_options']['email_sending_job_submitted_default_interval'],
+                                     disp_dict['email_options'].get('sentry_for_email_sending_check', False),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_url', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_secret_key', None),
                                      disp_dict.get('product_gallery_options', {}).get('name_resolver_url', 'https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}'),
@@ -291,6 +292,7 @@ class ConfigEnv(object):
                             email_sending_timeout_default_threshold,
                             email_sending_job_submitted,
                             email_sending_job_submitted_default_interval,
+                            sentry_for_email_sending_check,
                             product_gallery_url,
                             product_gallery_secret_key,
                             name_resolver_url,
@@ -320,6 +322,7 @@ class ConfigEnv(object):
         self.email_sending_timeout_default_threshold = email_sending_timeout_default_threshold
         self.email_sending_job_submitted = email_sending_job_submitted
         self.email_sending_job_submitted_default_interval = email_sending_job_submitted_default_interval
+        self.sentry_for_email_sending_check = sentry_for_email_sending_check
         self.product_gallery_url = product_gallery_url
         self.product_gallery_secret_key = product_gallery_secret_key
         self.name_resolver_url = name_resolver_url

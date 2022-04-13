@@ -359,6 +359,7 @@ dispatcher:
         email_sending_timeout_default_threshold: 1800
         email_sending_job_submitted: True
         email_sending_job_submitted_default_interval: 60
+        sentry_for_email_sending_check: False
     """)
 
     yield fn
@@ -953,4 +954,4 @@ class DispatcherJobState:
         return json.load(open(f'{self.scratch_dir}/job_monitor_{state}_{message}_.json'))
 
     def load_emails(self):
-        return [ open(fn).read() for fn in glob.glob(f"{self.email_history_folder}/*") ]
+        return [ open(fn).read() for fn in glob.glob(f"{self.email_history_folder}/*.email")]

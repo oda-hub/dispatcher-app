@@ -1175,6 +1175,19 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     jdata = c.json()
 
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+
+    # check the email in the email folders, and that the first one was produced
+    email_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
+        history_log_content = json.loads(email_history_log_content_fn.read())
+        logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'submitted'
+        assert isinstance(history_log_content['additional_information']['submitted_email_files'], list)
+        assert len(history_log_content['additional_information']['submitted_email_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
     
     time_request = jdata['time_request']
     
@@ -1194,6 +1207,19 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
     assert 'email_status' in jdata
     assert jdata['email_status'] == 'email sent'
+
+    # check the email in the email folders, and that the first one was produced
+    email_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
+        history_log_content = json.loads(email_history_log_content_fn.read())
+        logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'done'
+        assert isinstance(history_log_content['additional_information']['done_email_files'], list)
+        assert len(history_log_content['additional_information']['done_email_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
 
     # a number of done call_backs, but none should trigger the email sending since this already happened
     for i in range(3):
@@ -1219,7 +1245,19 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
 
     dispatcher_job_state.assert_email("submitted")
     dispatcher_job_state.assert_email("done")
-        
+
+    email_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
+        history_log_content = json.loads(email_history_log_content_fn.read())
+        logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'done'
+        assert isinstance(history_log_content['additional_information']['done_email_files'], list)
+        assert len(history_log_content['additional_information']['done_email_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
+
 
 def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
@@ -1271,7 +1309,15 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
     jdata = json.load(open(job_monitor_call_back_failed_json_fn))
     
     assert jdata['email_status'] == 'sending email failed'
-    assert not os.path.exists(dispatcher_job_state.email_history_folder)
+
+    email_history_log_files = glob.glob(os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
+        history_log_content = json.loads(email_history_log_content_fn.read())
+        logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'failed'
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
 
 
 @pytest.mark.not_safe_parallel
@@ -1660,7 +1706,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
             params['scw_list'] = scw_list_spaced_string
 
     # this sets global variable
-    requests.get(server + '/api/par-names')
+    requests.get(os.path.join(server, 'api', 'par-names'))
 
     def ask_here():
         return ask(server,
