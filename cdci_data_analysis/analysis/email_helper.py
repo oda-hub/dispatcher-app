@@ -362,16 +362,9 @@ def log_email_sending_info(logger, status, time_request, scratch_dir, job_id, ad
                             job_id=job_id)
     if additional_info_obj is not None:
         history_info_obj['additional_information'] = additional_info_obj
-    email_history_log_fn = os.path.join(path_email_history_folder, 'email_history_log.log')
-    email_history_log_obj_list = []
-    # Opening JSON list file
-    if os.path.exists(email_history_log_fn):
-        with open(email_history_log_fn, 'r') as openfile:
-            email_history_log_obj_list = json.load(openfile)
-    # append new log object
-    email_history_log_obj_list.append(history_info_obj)
+    email_history_log_fn = os.path.join(path_email_history_folder, f'email_history_log_{time_request}.log')
     with open(email_history_log_fn, 'w') as outfile:
-        outfile.write(json.dumps(email_history_log_obj_list, indent=4))
+        outfile.write(json.dumps(history_info_obj, indent=4))
 
     logger.info(f"logging email sending attempt into {email_history_log_fn} file")
 
