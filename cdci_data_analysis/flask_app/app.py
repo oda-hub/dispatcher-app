@@ -250,7 +250,9 @@ def push_renku_branch():
         lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
         message = (
             f"Unfortunately, your privileges are not sufficient to push your code in a renku branch.\n"
-            f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
+            f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}.\n"
+            f"If you are interested in exploring this functionality you can contact us clicking the button \"Contact us\" "
+            f"at the top of the page and request to have this role assigned."
         )
         return make_response(message), 403
 
