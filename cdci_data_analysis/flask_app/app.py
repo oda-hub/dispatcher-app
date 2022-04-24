@@ -251,7 +251,7 @@ def push_renku_branch():
         message = (
             f"Unfortunately, your privileges are not sufficient to perform this operation, "
             f"the following roles are missing: {lacking_roles}.\n"
-            f"If you are interested in exploring this functionality you can contact us clicking the button \"Contact us\" "
+            f"If you are interested in exploring this functionality you can contact us by clicking the button \"Contact us\" "
             f"at the top of the page and request to have this role assigned."
         )
         return make_response(message), 403
