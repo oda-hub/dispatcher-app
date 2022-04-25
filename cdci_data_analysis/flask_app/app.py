@@ -247,10 +247,12 @@ def push_renku_branch():
     # TODO could not think of better name
     required_roles = ['renku contributor']
     if not all(item in roles for item in required_roles):
-        lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+        lacking_roles = "\n".join(['- ' + r for r in sorted(list(set(required_roles) - set(roles)))])
         message = (
-            f"Unfortunately, your privileges are not sufficient to push your code in a renku branch.\n"
-            f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
+            f"Unfortunately, your privileges are not sufficient to perform this operation, "
+            f"the following roles are missing:\n\n{lacking_roles}\n\n"
+            f"If you are interested in exploring this functionality you can contact us by clicking the button \"Contact us\" "
+            f"at the top of the page and request to have this role assigned."
         )
         return make_response(message), 403
 
