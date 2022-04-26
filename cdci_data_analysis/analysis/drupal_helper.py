@@ -382,8 +382,6 @@ def post_content_to_gallery(decoded_token,
                         fits_file_fid_list = []
                     fits_file_fid_list.append(output_fits_file_post['fid'][0]['value'])
 
-        session_id = par_dic.pop('session_id', None)
-        job_id = par_dic.pop('job_id', None)
         product_title = par_dic.pop('product_title', None)
         observation_id = par_dic.pop('observation_id', None)
         user_id_product_creator = par_dic.pop('user_id_product_creator')
@@ -391,8 +389,6 @@ def post_content_to_gallery(decoded_token,
         insert_new_source = par_dic.pop('insert_new_source', 'False') == 'True'
 
         output_data_product_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
-                                                                session_id=session_id,
-                                                                job_id=job_id,
                                                                 gallery_jwt_token=gallery_jwt_token,
                                                                 product_title=product_title,
                                                                 img_fid=img_fid,
@@ -580,8 +576,6 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
 
 
 def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
-                                 session_id=None,
-                                 job_id=None,
                                  product_title=None,
                                  img_fid=None,
                                  fits_file_fid_list=None,
@@ -599,6 +593,10 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     # set the initial body content
     body_value = ''
     t1 = t2 = instrument = product_type = None
+
+    job_id = kwargs.get('job_id', None)
+    session_id = kwargs.pop('session_id', None)
+
     if session_id is not None and job_id is not None:
 
         # in case job_id and session_id are passed then it automatically extracts the product information
