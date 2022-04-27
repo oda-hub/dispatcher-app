@@ -1,20 +1,19 @@
 import os
 import json
 import time
-
 import jwt
-from typing import Optional, Tuple, Dict
-
 import requests
 import base64
 import copy
 import uuid
+import glob
 
-from cdci_data_analysis.analysis import tokenHelper
+from typing import Optional, Tuple, Dict
 from dateutil import parser
 from datetime import datetime
 from enum import Enum, auto
 
+from cdci_data_analysis.analysis import tokenHelper
 from ..analysis.exceptions import RequestNotUnderstood, InternalError, RequestNotAuthorized
 from ..flask_app.templates import body_article_product_gallery
 from ..app_logging import app_logging
@@ -595,23 +594,19 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     t1 = t2 = instrument = product_type = None
 
     job_id = kwargs.get('job_id', None)
-    session_id = kwargs.pop('session_id', None)
 
-    if session_id is not None and job_id is not None:
+    if job_id is not None:
 
         # in case job_id and session_id are passed then it automatically extracts the product information
         # related to the specific job, otherwise what will be posted will hav to entirely provided by the user
 
-        scratch_dir = f'scratch_sid_{session_id}_jid_{job_id}'
+        job_id_scratch_dir_list = glob.glob(f'scratch_sid_*_jid_{job_id}')
         # the aliased version might have been created
-        scratch_dir_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased'
+        # scratch_dir_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased'
         analysis_parameters_json_content_original = None
         #
-        if os.path.exists(scratch_dir):
-            analysis_parameters_json_content_original = json.load(open(scratch_dir + '/analysis_parameters.json'))
-        elif os.path.exists(scratch_dir_json_fn_aliased):
-            analysis_parameters_json_content_original = json.load(
-                open(scratch_dir_json_fn_aliased + '/analysis_parameters.json'))
+        if len(job_id_scratch_dir_list) >= 1:
+            analysis_parameters_json_content_original = json.load(open(os.path.join(job_id_scratch_dir_list[0] + '/analysis_parameters.json')))
 
         if analysis_parameters_json_content_original is not None:
             analysis_parameters_json_content_original.pop('token', None)

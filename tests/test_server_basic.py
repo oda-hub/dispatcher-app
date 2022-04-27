@@ -1586,14 +1586,13 @@ def test_converttime_revnum(dispatcher_live_fixture_with_gallery, time_to_conver
 
 @pytest.mark.test_drupal
 @pytest.mark.parametrize("provide_job_id", [True, False])
-@pytest.mark.parametrize("provide_session_id", [True, False])
 @pytest.mark.parametrize("provide_instrument", [True, False])
 @pytest.mark.parametrize("provide_product_type", [True, False])
 @pytest.mark.parametrize("timerange_parameters", ["time_range", "observation_id", None])
 @pytest.mark.parametrize("type_source", ["known", "new", None])
 @pytest.mark.parametrize("insert_new_source", [True, False])
 @pytest.mark.parametrize("provide_product_title", [True, False])
-def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_session_id, provide_instrument, provide_product_type, timerange_parameters, type_source, insert_new_source, provide_product_title):
+def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_instrument, provide_product_type, timerange_parameters, type_source, insert_new_source, provide_product_title):
     dispatcher_fetch_dummy_products('default')
 
     server = dispatcher_live_fixture_with_gallery
@@ -1647,8 +1646,6 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
 
     if not provide_job_id:
         job_id = None
-    if not provide_session_id:
-        session_id = None
     if not provide_instrument:
         instrument = None
     else:
@@ -1661,7 +1658,6 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
 
     params = {
         'job_id': job_id,
-        'session_id': session_id,
         'instrument': instrument,
         'src_name': source_name,
         'product_type': product_type_product_gallery,
@@ -1702,7 +1698,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
         elif not provide_product_type and type_source is not None:
             product_title = source_name
         elif not provide_product_type and type_source is None:
-            if provide_job_id and provide_session_id:
+            if provide_job_id:
                 product_title = product_type_analysis
             else:
                 product_title = None
@@ -1725,12 +1721,12 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
     assert 'field_ra' in drupal_res_obj
     assert drupal_res_obj['field_ra'][0]['value'] == ra
 
-    if provide_instrument or (provide_job_id and provide_session_id):
+    if provide_instrument or (provide_job_id):
         link_field_instrumentused = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
                                                  'rest/relation/node/data_product/field_instrumentused')
         assert link_field_instrumentused in drupal_res_obj['_links']
 
-    if provide_product_type or (provide_job_id and provide_session_id):
+    if provide_product_type or (provide_job_id):
         link_field_data_product_type = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
                                                  'rest/relation/node/data_product/field_data_product_type')
         assert link_field_data_product_type in drupal_res_obj['_links']
@@ -1738,7 +1734,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
     link_field_derived_from_observation = os.path.join(
         dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
         'rest/relation/node/data_product/field_derived_from_observation')
-    if timerange_parameters is not None or (provide_job_id and provide_session_id):
+    if timerange_parameters is not None or (provide_job_id):
         assert link_field_derived_from_observation in drupal_res_obj['_links']
     else:
         assert link_field_derived_from_observation not in drupal_res_obj['_links']
