@@ -190,6 +190,18 @@ def execute_drupal_request(url,
                                     files=files,
                                     headers=headers
                                     )
+            elif method == 'patch':
+                if data is None:
+                    data = {}
+                if params is None:
+                    params = {}
+                params['_format'] = request_format
+                res = requests.patch(url,
+                                     params={**params},
+                                     data=data,
+                                     files=files,
+                                     headers=headers
+                                     )
             else:
                 raise NotImplementedError
             if res.status_code == 403:
@@ -361,17 +373,15 @@ def post_content_to_gallery(decoded_token,
         # TODO perhaps there's a smarter way to do this
         update_data_product = par_dic.pop('update_data_product', 'False') == 'True'
         job_id = par_dic.get('job_id', None)
-        if job_id is not None and update_data_product:
+        if update_data_product and job_id is not None:
             job_id_data_product_list = get_data_product_list_by_job_id(product_gallery_url=product_gallery_url,
                                                                        gallery_jwt_token=gallery_jwt_token,
                                                                        job_id=job_id,
                                                                        sentry_client=sentry_client)
             # TODO updates only the first, update them all?
 
-        # update data_product
 
         else:
-        # post new content
             # process files sent
             if files is not None:
                 for f in files:
