@@ -596,15 +596,12 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     job_id = kwargs.get('job_id', None)
 
     if job_id is not None:
-
-        # in case job_id and session_id are passed then it automatically extracts the product information
-        # related to the specific job, otherwise what will be posted will hav to entirely provided by the user
+        # in case job_id is passed then it automatically extracts time, instrument and product_type information
+        # related to the specific job, and uses them unless provided by the user
 
         job_id_scratch_dir_list = glob.glob(f'scratch_sid_*_jid_{job_id}')
-        # the aliased version might have been created
-        # scratch_dir_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased'
         analysis_parameters_json_content_original = None
-        #
+
         if len(job_id_scratch_dir_list) >= 1:
             analysis_parameters_json_content_original = json.load(open(os.path.join(job_id_scratch_dir_list[0] + '/analysis_parameters.json')))
 
@@ -615,15 +612,6 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             # time data for the observation
             t1 = analysis_parameters_json_content_original.pop('T1')
             t2 = analysis_parameters_json_content_original.pop('T2')
-
-            # TODO no need to set all the parameters by default
-            # for k, v in analysis_parameters_json_content_original.items():
-            #     # assuming the name of the field in drupal starts always with field_
-            #     field_name = str.lower('field_' + k)
-            #     body_gallery_article_node[field_name] = [{
-            #         "value": v
-            #     }]
-            body_value = ''
         else:
             raise RequestNotUnderstood(message="Request data not found",
                                        payload={'error_message': 'error while posting data product: '
