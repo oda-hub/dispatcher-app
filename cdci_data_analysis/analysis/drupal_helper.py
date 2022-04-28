@@ -352,50 +352,65 @@ def post_content_to_gallery(decoded_token,
     gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
 
     par_dic['user_id_product_creator'] = user_id_product_creator
+
     # extract type of content to post
     content_type = ContentType[str.upper(par_dic.pop('content_type', 'article'))]
     fits_file_fid_list = None
     img_fid = None
     if content_type == content_type.DATA_PRODUCT:
-        # process files sent
-        if files is not None:
-            for f in files:
-                if f == 'img':
-                    img_file_obj = files[f]
-                    # upload file to drupal
-                    output_img_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
-                                                           file_type="image",
-                                                           file=img_file_obj,
-                                                           gallery_jwt_token=gallery_jwt_token,
-                                                           sentry_client=sentry_client)
-                    img_fid = output_img_post['fid'][0]['value']
-                elif f.startswith('fits_file'):
-                    fits_file_obj = files[f]
-                    # upload file to drupal
-                    output_fits_file_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
-                                                                 file_type="document",
-                                                                 file=fits_file_obj,
-                                                                 gallery_jwt_token=gallery_jwt_token,
-                                                                 sentry_client=sentry_client)
-                    if fits_file_fid_list is None:
-                        fits_file_fid_list = []
-                    fits_file_fid_list.append(output_fits_file_post['fid'][0]['value'])
-
-        product_title = par_dic.pop('product_title', None)
-        observation_id = par_dic.pop('observation_id', None)
-        user_id_product_creator = par_dic.pop('user_id_product_creator')
         # TODO perhaps there's a smarter way to do this
-        insert_new_source = par_dic.pop('insert_new_source', 'False') == 'True'
+        update_data_product = par_dic.pop('update_data_product', 'False') == 'True'
+        job_id = par_dic.get('job_id', None)
+        if job_id is not None and update_data_product:
+            job_id_data_product_list = get_data_product_list_by_job_id(product_gallery_url=product_gallery_url,
+                                                                       gallery_jwt_token=gallery_jwt_token,
+                                                                       job_id=job_id,
+                                                                       sentry_client=sentry_client)
+            # TODO updates only the first, update them all?
 
-        output_data_product_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
-                                                                gallery_jwt_token=gallery_jwt_token,
-                                                                product_title=product_title,
-                                                                img_fid=img_fid,
-                                                                fits_file_fid_list=fits_file_fid_list,
-                                                                observation_id=observation_id,
-                                                                user_id_product_creator=user_id_product_creator,
-                                                                insert_new_source=insert_new_source,
-                                                                **par_dic)
+        # update data_product
+
+        else:
+        # post new content
+            # process files sent
+            if files is not None:
+                for f in files:
+                    if f == 'img':
+                        img_file_obj = files[f]
+                        # upload file to drupal
+                        output_img_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
+                                                               file_type="image",
+                                                               file=img_file_obj,
+                                                               gallery_jwt_token=gallery_jwt_token,
+                                                               sentry_client=sentry_client)
+                        img_fid = output_img_post['fid'][0]['value']
+                    elif f.startswith('fits_file'):
+                        fits_file_obj = files[f]
+                        # upload file to drupal
+                        output_fits_file_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
+                                                                     file_type="document",
+                                                                     file=fits_file_obj,
+                                                                     gallery_jwt_token=gallery_jwt_token,
+                                                                     sentry_client=sentry_client)
+                        if fits_file_fid_list is None:
+                            fits_file_fid_list = []
+                        fits_file_fid_list.append(output_fits_file_post['fid'][0]['value'])
+
+            product_title = par_dic.pop('product_title', None)
+            observation_id = par_dic.pop('observation_id', None)
+            user_id_product_creator = par_dic.pop('user_id_product_creator')
+            # TODO perhaps there's a smarter way to do this
+            insert_new_source = par_dic.pop('insert_new_source', 'False') == 'True'
+
+            output_data_product_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
+                                                                    gallery_jwt_token=gallery_jwt_token,
+                                                                    product_title=product_title,
+                                                                    img_fid=img_fid,
+                                                                    fits_file_fid_list=fits_file_fid_list,
+                                                                    observation_id=observation_id,
+                                                                    user_id_product_creator=user_id_product_creator,
+                                                                    insert_new_source=insert_new_source,
+                                                                    **par_dic)
 
         return output_data_product_post
 
@@ -533,6 +548,21 @@ def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, galle
     return entities_id
 
 
+def get_data_product_list_by_job_id(product_gallery_url, gallery_jwt_token, job_id=None, sentry_client=None) -> list:
+    data_product_list = []
+    # get from the drupal the relative id
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/data_products/{job_id}",
+                                     headers=headers,
+                                     sentry_client=sentry_client)
+    output_get = analyze_drupal_output(log_res, operation_performed="retrieving the list of data product for a given job_id")
+    if isinstance(output_get, list):
+        data_product_list = output_get
+
+    return data_product_list
+
+
 def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
                               t1=None, t2=None,
                               observation_id=None,
@@ -606,7 +636,6 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             analysis_parameters_json_content_original = json.load(open(os.path.join(job_id_scratch_dir_list[0] + '/analysis_parameters.json')))
 
         if analysis_parameters_json_content_original is not None:
-            analysis_parameters_json_content_original.pop('token', None)
             instrument = analysis_parameters_json_content_original.pop('instrument')
             product_type = analysis_parameters_json_content_original.pop('product_type')
             # time data for the observation
