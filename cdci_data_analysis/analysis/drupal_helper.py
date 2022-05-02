@@ -595,6 +595,8 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
     observation_information_message = None
     if observation_id is not None:
         # get from the drupal the relative id
+        logger.info(f"searching over the gallery for a period of observation with the following id: "
+                    f"{observation_id}")
         headers = get_drupal_request_headers(gallery_jwt_token)
 
         log_res = execute_drupal_request(f"{product_gallery_url}/observations/{observation_id}",
