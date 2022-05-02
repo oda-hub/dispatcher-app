@@ -430,7 +430,6 @@ def post_content_to_gallery(decoded_token,
 
 def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None, sentry_client=None):
     observations = []
-    # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
     # format the time fields, drupal does not provide (yet) the option to filter by date using also the time,
     # so the dates, properly formatted in ISO8601, without the time will be used
@@ -609,15 +608,20 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
     else:
 
         if t1 is not None and t2 is not None:
+            logger.info(f"searching over the gallery for a period of observation with the following time range: "
+                        f"{t1} - {t2}")
             observations_range = get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2, sentry_client=sentry_client)
             for observation in observations_range:
-                times = observation['field_timerange'].split(' - ')
+                # parse times returned from drupal
+                times = observation['field_timerange'].split('--')
+                t_start = parser.parse(times[0])
+                t_end = parser.parse(times[1])
+                # if needed apply the timezone to the timerange provided by the user
                 parsed_t1_no_timezone = parser.parse(t1)
                 parsed_t1 = parsed_t1_no_timezone.replace(tzinfo=parsed_t1_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
                 parsed_t2_no_timezone = parser.parse(t2)
                 parsed_t2 = parsed_t2_no_timezone.replace(tzinfo=parsed_t2_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
-                t_start = parser.parse(times[0])
-                t_end = parser.parse(times[1])
+                logger.info(f"comparing time range extracted from Drupal: {t_start} - {t_end}")
                 if t_start == parsed_t1 and t_end == parsed_t2:
                     observation_drupal_id = observation['nid']
                     observation_information_message = 'observation assigned from the provided time range'
