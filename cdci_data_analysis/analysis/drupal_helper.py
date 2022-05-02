@@ -440,13 +440,15 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
     t1_parsed = parser.parse(t1)
     if t1_parsed.tzinfo is None:
         t1_parsed = t1_parsed + timedelta(hours=1)
-    t1_parsed = t1_parsed.astimezone(tz.gettz("Europe/Zurich"))
+    else:
+        t1_parsed = t1_parsed.astimezone(tz.gettz("Europe/Zurich"))
     t1_formatted = t1_parsed.strftime('%Y-%m-%d')
 
     t2_parsed = parser.parse(t2)
-    if t1_parsed.tzinfo is None:
+    if t2_parsed.tzinfo is None:
         t2_parsed = t2_parsed + timedelta(hours=1)
-    t2_parsed = t2_parsed.astimezone(tz.gettz("Europe/Zurich"))
+    else:
+        t2_parsed = t2_parsed.astimezone(tz.gettz("Europe/Zurich"))
     t2_formatted = t2_parsed.strftime('%Y-%m-%d')
 
     log_res = execute_drupal_request(f"{product_gallery_url}/observations/range_t1_t2/{t1_formatted}/{t2_formatted}/",
