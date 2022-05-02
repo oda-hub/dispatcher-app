@@ -370,6 +370,7 @@ def post_content_to_gallery(decoded_token,
     fits_file_fid_list = None
     img_fid = None
     data_product_id = None
+    product_title = None
     if content_type == content_type.DATA_PRODUCT:
         # TODO perhaps there's a smarter way to do this
         update_data_product = par_dic.pop('update_data_product', 'False') == 'True'
@@ -381,6 +382,7 @@ def post_content_to_gallery(decoded_token,
                                                                        sentry_client=sentry_client)
             # TODO updates only the first, update them all?
             data_product_id = job_id_data_product_list[0]['nid']
+            product_title = job_id_data_product_list[0]['title']
 
         # process files sent
         if files is not None:
@@ -406,7 +408,7 @@ def post_content_to_gallery(decoded_token,
                         fits_file_fid_list = []
                     fits_file_fid_list.append(output_fits_file_post['fid'][0]['value'])
 
-        product_title = par_dic.pop('product_title', None)
+        product_title = par_dic.pop('product_title', product_title)
         observation_id = par_dic.pop('observation_id', None)
         user_id_product_creator = par_dic.pop('user_id_product_creator')
         # TODO perhaps there's a smarter way to do this
@@ -717,7 +719,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             }]
 
     # set the product title
-    # TODO agree on a better logic to assign the product title
+    # TODO agree on a better logic to assign the product title, have it mandatory?
     if product_title is None:
         if product_type is None and src_name is None:
             product_title = "_".join(["data_product", str(uuid.uuid4())])
