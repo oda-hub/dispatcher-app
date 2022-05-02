@@ -1839,8 +1839,13 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
     params['T1'] = '2003-03-15T23:27:40.0'
     params['T2'] = '2003-03-16T00:03:12.0'
 
+    # send test img and test fits file
+    file_obj = {'img': open('data/dummy_prods/ds9.jpeg', 'rb'),
+                'fits_file_0': open('data/dummy_prods/isgri_query_lc.fits', 'rb')}
+
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
-                      params={**params}
+                      params={**params},
+                      files=file_obj
                       )
     assert c.status_code == 200
 
@@ -1853,6 +1858,7 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
     assert drupal_res_obj['field_e2_kev'][0]['value'] == params['e2_kev']
 
     assert drupal_res_obj['nid'][0]['value'] == id_posted_data_product
+
 
 @pytest.mark.test_renku
 @pytest.mark.parametrize("existing_branch", [True, False])

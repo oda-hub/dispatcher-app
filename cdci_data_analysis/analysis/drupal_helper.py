@@ -69,7 +69,9 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
                                    status_code=drupal_output.status_code,
                                    payload={'error_message': f'error while performing: {operation_performed}'})
     else:
-        return drupal_output.json()
+        if drupal_output.headers.get('content-type') == 'application/hal+json':
+            return drupal_output.json()
+        return drupal_output.text
 
 
 def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_client=None):
@@ -202,6 +204,17 @@ def execute_drupal_request(url,
                                      files=files,
                                      headers=headers
                                      )
+            elif method == 'delete':
+                if data is None:
+                    data = {}
+                if params is None:
+                    params = {}
+                params['_format'] = request_format
+                res = requests.delete(url,
+                                      params={**params},
+                                      data=data,
+                                      headers=headers
+                                      )
             else:
                 raise NotImplementedError
             if res.status_code == 403:
@@ -215,7 +228,7 @@ def execute_drupal_request(url,
                     error_msg = res.text
                 raise RequestNotAuthorized(error_msg)
 
-            elif res.status_code not in [200, 201]:
+            elif res.status_code not in [200, 201, 204]:
                 logger.warning(f"there seems to be some problem in completing a request to the product gallery:\n"
                                f"the requested url {url} lead to the error {res.text}, "
                                "this might be due to an error in the url or the page requested no longer exists, "
@@ -307,6 +320,21 @@ def get_user_id(product_gallery_url, user_email, sentry_client=None) -> Optional
     return user_id
 
 
+def delete_file_gallery(product_gallery_url, file_to_delete_id, gallery_jwt_token, sentry_client=None):
+    logger.info(f"deleting file with id {file_to_delete_id} from the product gallery")
+
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/file/{file_to_delete_id}",
+                                     method='delete',
+                                     headers=headers,
+                                     sentry_client=sentry_client)
+
+    logger.info(f"file with {file_to_delete_id} successfully deleted from the product gallery")
+    output_post = analyze_drupal_output(log_res, operation_performed="deleting a file from the product gallery")
+    return output_post
+
+
 def post_file_to_gallery(product_gallery_url, file, gallery_jwt_token, file_type="image", sentry_client=None):
     logger.info(f"uploading file {file} to the product gallery")
 
@@ -328,12 +356,12 @@ def post_file_to_gallery(product_gallery_url, file, gallery_jwt_token, file_type
 
     headers = get_drupal_request_headers(gallery_jwt_token)
 
-    # post the image
     log_res = execute_drupal_request(f"{product_gallery_url}/entity/file",
                                      method='post',
                                      data=json.dumps(body_post_file),
                                      headers=headers,
                                      sentry_client=sentry_client)
+
     logger.info(f"file {file} successfully uploaded to the product gallery")
     output_post = analyze_drupal_output(log_res, operation_performed="posting a picture to the product gallery")
     return output_post
@@ -383,6 +411,24 @@ def post_content_to_gallery(decoded_token,
             # TODO updates only the first, update them all?
             data_product_id = job_id_data_product_list[0]['nid']
             product_title = job_id_data_product_list[0]['title']
+            # delete them if new ones are uploaded
+            if 'field_fits_file' in job_id_data_product_list[0]:
+                # check in the new files there are new fits files to upload
+                fits_file_fid_list = job_id_data_product_list[0]['field_fits_file'].split(',')
+                # delete the current one(s), and then the new one(s) will be uploaded
+                for fits_file_id in fits_file_fid_list:
+                    # delete the current one, and then the new one will be uploaded
+                    delete_file_gallery(product_gallery_url=product_gallery_url,
+                                        file_to_delete_id=fits_file_id,
+                                        gallery_jwt_token=gallery_jwt_token,
+                                        sentry_client=sentry_client)
+            if 'field_image_png' in job_id_data_product_list[0] and 'img' in files:
+                img_fid = job_id_data_product_list[0]['field_image_png']
+                # delete the current one, and then the new one will be uploaded
+                delete_file_gallery(product_gallery_url=product_gallery_url,
+                                    file_to_delete_id=img_fid,
+                                    gallery_jwt_token=gallery_jwt_token,
+                                    sentry_client=sentry_client)
 
         # process files sent
         if files is not None:
