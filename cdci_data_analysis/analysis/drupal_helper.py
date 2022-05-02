@@ -434,15 +434,19 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
     headers = get_drupal_request_headers(gallery_jwt_token)
     # format the time fields, drupal does not provide (yet) the option to filter by date using also the time,
     # so the dates, properly formatted in ISO8601, without the time will be used
-    # a timezone correction is applied, based on the drupal gallery timezone settings and thr way datetime(s) are
+    # a timezone correction is applied, based on the drupal gallery timezone settings and the way datetime(s) are
     # stored and queried
-    timezone_adjustment = timedelta(hours=1)
+    # TODO to have the timezone settings configurable
+    t1_parsed = parser.parse(t1)
+    if t1_parsed.tzinfo is None:
+        t1_parsed = t1_parsed + timedelta(hours=1)
 
-    t1_parsed = parser.parse(t1) + timezone_adjustment
     # t1_parsed = t1_parsed.replace(tzinfo=t1_parsed.tzinfo or tz.gettz("Europe/Zurich"))
     t1_formatted = t1_parsed.strftime('%Y-%m-%d')
 
-    t2_parsed = parser.parse(t2) + timezone_adjustment
+    t2_parsed = parser.parse(t2)
+    if t1_parsed.tzinfo is None:
+        t2_parsed = t2_parsed + timedelta(hours=1)
     # t2_parsed = t2_parsed.replace(tzinfo=t2_parsed.tzinfo or tz.gettz("Europe/Zurich"))
     t2_formatted = t2_parsed.strftime('%Y-%m-%d')
 
