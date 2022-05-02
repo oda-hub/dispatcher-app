@@ -9,8 +9,8 @@ import uuid
 import glob
 
 from typing import Optional, Tuple, Dict
-from dateutil import parser
-from datetime import datetime
+from dateutil import parser, tz
+from datetime import datetime, timedelta
 from enum import Enum, auto
 
 from cdci_data_analysis.analysis import tokenHelper
@@ -430,15 +430,21 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
     observations = []
     # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
-    if t1 is None or t2 is None:
-        formatted_range = 'all'
-    else:
-        # format the time fields, drupal does not provide (yet) the option to filter by date using also the time,
-        # so the dates, properly formatted in ISO, without the time will be used
-        t1_formatted = parser.parse(t1).strftime('%Y-%m-%d')
-        t2formatted = parser.parse(t2).strftime('%Y-%m-%d')
+    # format the time fields, drupal does not provide (yet) the option to filter by date using also the time,
+    # so the dates, properly formatted in ISO8601, without the time will be used
+    # a timezone correction is applied, based on the drupal gallery timezone settings and thr way datetime(s) are
+    # stored and queried
+    timezone_adjustment = timedelta(hours=1)
 
-    log_res = execute_drupal_request(f"{product_gallery_url}/observations/range_t1_t2/{t1_formatted}/{t2formatted}/",
+    t1_parsed = parser.parse(t1) + timezone_adjustment
+    # t1_parsed = t1_parsed.replace(tzinfo=t1_parsed.tzinfo or tz.gettz("Europe/Zurich"))
+    t1_formatted = t1_parsed.strftime('%Y-%m-%d')
+
+    t2_parsed = parser.parse(t2) + timezone_adjustment
+    # t2_parsed = t2_parsed.replace(tzinfo=t2_parsed.tzinfo or tz.gettz("Europe/Zurich"))
+    t2_formatted = t2_parsed.strftime('%Y-%m-%d')
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/observations/range_t1_t2/{t1_formatted}/{t2_formatted}/",
                                      headers=headers,
                                      sentry_client=sentry_client)
     output_get = analyze_drupal_output(log_res, operation_performed="getting the observation range")
@@ -599,8 +605,10 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
             observations_range = get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2, sentry_client=sentry_client)
             for observation in observations_range:
                 times = observation['field_timerange'].split(' - ')
-                parsed_t1 = parser.parse(t1)
-                parsed_t2 = parser.parse(t2)
+                parsed_t1_no_timezone = parser.parse(t1)
+                parsed_t1 = parsed_t1_no_timezone.replace(tzinfo=parsed_t1_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
+                parsed_t2_no_timezone = parser.parse(t2)
+                parsed_t2 = parsed_t2_no_timezone.replace(tzinfo=parsed_t2_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
                 t_start = parser.parse(times[0])
                 t_end = parser.parse(times[1])
                 if t_start == parsed_t1 and t_end == parsed_t2:
