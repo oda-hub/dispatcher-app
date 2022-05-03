@@ -478,27 +478,17 @@ def post_content_to_gallery(decoded_token,
 
 def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None, sentry_client=None):
     observations = []
+    # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
-    # format the time fields, drupal does not provide (yet) the option to filter by date using also the time,
-    # so the dates, properly formatted in ISO8601, without the time will be used
-    # but a timezone correction is applied if none is provided,
-    # based on the drupal gallery timezone settings and the way datetime(s) are stored and queried
-    # TODO to have the timezone settings configurable
-    t1_parsed = parser.parse(t1)
-    if t1_parsed.tzinfo is None:
-        t1_parsed = t1_parsed + timedelta(hours=1)
+    if t1 is None or t2 is None:
+        formatted_range = 'all'
     else:
-        t1_parsed = t1_parsed.astimezone(tz.gettz("Europe/Zurich"))
-    t1_formatted = t1_parsed.strftime('%Y-%m-%d')
+        # format the time fields, drupal does not provide (yet) the option to filter by date using also the time,
+        # so the dates, properly formatted in ISO, without the time will be used
+        t1_formatted = parser.parse(t1).strftime('%Y-%m-%d')
+        t2formatted = parser.parse(t2).strftime('%Y-%m-%d')
 
-    t2_parsed = parser.parse(t2)
-    if t2_parsed.tzinfo is None:
-        t2_parsed = t2_parsed + timedelta(hours=1)
-    else:
-        t2_parsed = t2_parsed.astimezone(tz.gettz("Europe/Zurich"))
-    t2_formatted = t2_parsed.strftime('%Y-%m-%d')
-
-    log_res = execute_drupal_request(f"{product_gallery_url}/observations/range_t1_t2/{t1_formatted}/{t2_formatted}/",
+    log_res = execute_drupal_request(f"{product_gallery_url}/observations/range_t1_t2/{t1_formatted}/{t2formatted}/",
                                      headers=headers,
                                      sentry_client=sentry_client)
     output_get = analyze_drupal_output(log_res, operation_performed="getting the observation range")
@@ -643,8 +633,6 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
     observation_information_message = None
     if observation_id is not None:
         # get from the drupal the relative id
-        logger.info(f"searching over the gallery for a period of observation with the following id: "
-                    f"{observation_id}")
         headers = get_drupal_request_headers(gallery_jwt_token)
 
         log_res = execute_drupal_request(f"{product_gallery_url}/observations/{observation_id}",
@@ -658,20 +646,13 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
     else:
 
         if t1 is not None and t2 is not None:
-            logger.info(f"searching over the gallery for a period of observation with the following time range: "
-                        f"{t1} - {t2}")
             observations_range = get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2, sentry_client=sentry_client)
             for observation in observations_range:
-                # parse times returned from drupal
-                times = observation['field_timerange'].split('--')
+                times = observation['field_timerange'].split(' - ')
+                parsed_t1 = parser.parse(t1)
+                parsed_t2 = parser.parse(t2)
                 t_start = parser.parse(times[0])
                 t_end = parser.parse(times[1])
-                # if needed apply the timezone to the timerange provided by the user
-                parsed_t1_no_timezone = parser.parse(t1)
-                parsed_t1 = parsed_t1_no_timezone.replace(tzinfo=parsed_t1_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
-                parsed_t2_no_timezone = parser.parse(t2)
-                parsed_t2 = parsed_t2_no_timezone.replace(tzinfo=parsed_t2_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
-                logger.info(f"comparing time range extracted from Drupal: {t_start} - {t_end}")
                 if t_start == parsed_t1 and t_end == parsed_t2:
                     observation_drupal_id = observation['nid']
                     observation_information_message = 'observation assigned from the provided time range'
