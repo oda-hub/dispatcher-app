@@ -9,8 +9,10 @@ import logging
 import jwt
 import glob
 import pytest
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil import parser, tz
 from functools import reduce
+from urllib import parse
 import nbformat as nbf
 import yaml
 import gzip
@@ -21,6 +23,7 @@ from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url
+from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers
 
 
 # logger
@@ -1582,6 +1585,76 @@ def test_converttime_revnum(dispatcher_live_fixture_with_gallery, time_to_conver
         assert 'revnum' in revnum_obj
         if time_to_convert == '2022-03-29T15:51:01':
             assert revnum_obj['revnum'] == 2485
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "time_range_with_timezone", "observation_id"])
+def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, timerange_parameters):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'content_type': 'data_product',
+        'product_title': 'Test observation range',
+        'token': encoded_token,
+    }
+
+    if timerange_parameters == 'time_range_no_timezone':
+        params['T1'] = '2003-03-15T23:27:40.0'
+        params['T2'] = '2003-03-16T00:03:12.0'
+    elif timerange_parameters == 'time_range_with_timezone':
+        params['T1'] = '2003-03-15T23:27:40.0+0100'
+        params['T2'] = '2003-03-16T00:03:12.0+0100'
+    elif timerange_parameters == 'observation_id':
+        params['observation_id'] = 'test observation'
+
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                      params={**params}
+                      )
+
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    link_field_derived_from_observation = os.path.join(
+        dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+        'rest/relation/node/data_product/field_derived_from_observation')
+    assert link_field_derived_from_observation in drupal_res_obj['_links']
+    parsed_link_field_derived_from_observation = parse.urlparse(drupal_res_obj['_links'][link_field_derived_from_observation][0]['href']).path.split('/')[-1]
+
+    link_obs = os.path.join(
+        dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+        f'node/{parsed_link_field_derived_from_observation}?_format=hal_json')
+
+    header_request = get_drupal_request_headers(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_secret_key'])
+    response_obs_info = execute_drupal_request(link_obs, headers=header_request)
+
+    drupal_res_obs_info_obj = response_obs_info.json()
+
+    assert 'field_timerange' in drupal_res_obs_info_obj
+    obs_per_field_timerange = drupal_res_obs_info_obj['field_timerange']
+    obs_per_title = drupal_res_obs_info_obj['title'][0]['value']
+
+    obs_per_field_timerange_start = parser.parse(obs_per_field_timerange[0]['value'])
+    obs_per_field_timerange_end = parser.parse(obs_per_field_timerange[0]['end_value'])
+
+    if timerange_parameters == 'time_range_no_timezone' or timerange_parameters == 'time_range_with_timezone':
+        parsed_t1_no_timezone = parser.parse(params['T1'])
+        parsed_t1 = parsed_t1_no_timezone.replace(tzinfo=parsed_t1_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
+        parsed_t2_no_timezone = parser.parse(params['T2'])
+        parsed_t2 = parsed_t2_no_timezone.replace(tzinfo=parsed_t2_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
+        assert obs_per_field_timerange_start == parsed_t1
+        assert obs_per_field_timerange_end == parsed_t2
+    else:
+        assert obs_per_title == 'test observation'
 
 
 @pytest.mark.test_drupal
