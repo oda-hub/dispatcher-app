@@ -335,6 +335,7 @@ def post_content_to_gallery(decoded_token,
 
     gallery_secret_key = disp_conf.product_gallery_secret_key
     product_gallery_url = disp_conf.product_gallery_url
+    config_timezone = disp_conf.product_gallery_timezone
 
     sentry_url = getattr(disp_conf, 'sentry_url', None)
     sentry_client = None
@@ -400,6 +401,7 @@ def post_content_to_gallery(decoded_token,
                                                                 observation_id=observation_id,
                                                                 user_id_product_creator=user_id_product_creator,
                                                                 insert_new_source=insert_new_source,
+                                                                timezone=config_timezone
                                                                 **par_dic)
 
         return output_data_product_post
@@ -611,6 +613,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
                                  user_id_product_creator=None,
                                  insert_new_source=False,
                                  sentry_client=None,
+                                 timezone=None,
                                  **kwargs):
     body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_node)
 
@@ -672,7 +675,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
         t2 = kwargs.pop('T2')
 
     observation_drupal_id, observation_information_message = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
-                                                      t1=t1, t2=t2, observation_id=observation_id)
+                                                      timezone=timezone, t1=t1, t2=t2, observation_id=observation_id)
     if observation_drupal_id is not None:
         body_gallery_article_node["field_derived_from_observation"] = [{
             "target_id": observation_drupal_id
