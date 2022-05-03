@@ -412,7 +412,7 @@ def post_content_to_gallery(decoded_token,
             if len(job_id_data_product_list) > 0:
                 if len(job_id_data_product_list) > 1:
                     logger.info(f"more than one data-product with job_id {job_id} has been found, the first one will be updated")
-                # TODO updates only the first, update them all?
+                # TODO updates only the first (which is also the most recently updated), update them all?
                 data_product_id = job_id_data_product_list[0]['nid']
                 product_title = job_id_data_product_list[0]['title']
                 logger.info(f"the data-product \"{product_title}\", id: {data_product_id} will be updated")
