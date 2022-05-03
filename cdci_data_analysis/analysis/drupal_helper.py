@@ -413,20 +413,22 @@ def post_content_to_gallery(decoded_token,
             product_title = job_id_data_product_list[0]['title']
             # delete them if new ones are uploaded
             if 'field_fits_file' in job_id_data_product_list[0]:
-                # check in the new files there are new fits files to upload
-                fits_file_fid_list = job_id_data_product_list[0]['field_fits_file'].split(',')
-                # delete the current one(s), and then the new one(s) will be uploaded
-                for fits_file_id in fits_file_fid_list:
-                    # delete the current one, and then the new one will be uploaded
-                    delete_file_gallery(product_gallery_url=product_gallery_url,
-                                        file_to_delete_id=fits_file_id,
-                                        gallery_jwt_token=gallery_jwt_token,
-                                        sentry_client=sentry_client)
+                fits_files_to_upload = list(filter(lambda item: 'fits_file_' in item[0], files.items()))
+                if len(fits_files_to_upload) > 0:
+                    # check in the new files there are new fits files to upload
+                    fits_file_fid_list_to_delete = job_id_data_product_list[0]['field_fits_file'].split(',')
+                    # delete the current one(s), and then the new one(s) will be uploaded
+                    for fits_file_id in fits_file_fid_list_to_delete:
+                        # delete the current one, and then the new one will be uploaded
+                        delete_file_gallery(product_gallery_url=product_gallery_url,
+                                            file_to_delete_id=fits_file_id,
+                                            gallery_jwt_token=gallery_jwt_token,
+                                            sentry_client=sentry_client)
             if 'field_image_png' in job_id_data_product_list[0] and 'img' in files:
-                img_fid = job_id_data_product_list[0]['field_image_png']
+                img_fid_to_delete = job_id_data_product_list[0]['field_image_png']
                 # delete the current one, and then the new one will be uploaded
                 delete_file_gallery(product_gallery_url=product_gallery_url,
-                                    file_to_delete_id=img_fid,
+                                    file_to_delete_id=img_fid_to_delete,
                                     gallery_jwt_token=gallery_jwt_token,
                                     sentry_client=sentry_client)
 
