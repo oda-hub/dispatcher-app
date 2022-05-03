@@ -401,7 +401,7 @@ def post_content_to_gallery(decoded_token,
                                                                 observation_id=observation_id,
                                                                 user_id_product_creator=user_id_product_creator,
                                                                 insert_new_source=insert_new_source,
-                                                                timezone=config_timezone
+                                                                timezone=config_timezone,
                                                                 **par_dic)
 
         return output_data_product_post
