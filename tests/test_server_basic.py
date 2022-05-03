@@ -1825,6 +1825,17 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
     assert 'field_e2_kev' in drupal_res_obj
     assert drupal_res_obj['field_e2_kev'][0]['value'] == e2_kev
 
+    link_img_id = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                               'rest/relation/node/data_product/field_image_png')
+
+    assert link_img_id in drupal_res_obj['_links']
+    assert len(drupal_res_obj['_links'][link_img_id]) == 1
+
+    link_fits_file_id = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                                     'rest/relation/node/data_product/field_fits_file')
+    assert link_fits_file_id in drupal_res_obj['_links']
+    assert len(drupal_res_obj['_links'][link_fits_file_id]) == 2
+
     id_posted_data_product = drupal_res_obj['nid'][0]['value']
 
     params = {
@@ -1858,6 +1869,12 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
     assert drupal_res_obj['field_e2_kev'][0]['value'] == params['e2_kev']
 
     assert drupal_res_obj['nid'][0]['value'] == id_posted_data_product
+
+    assert link_img_id in drupal_res_obj['_links']
+    assert len(drupal_res_obj['_links'][link_img_id]) == 1
+
+    assert link_fits_file_id in drupal_res_obj['_links']
+    assert len(drupal_res_obj['_links'][link_fits_file_id]) == 1
 
 
 @pytest.mark.test_renku
