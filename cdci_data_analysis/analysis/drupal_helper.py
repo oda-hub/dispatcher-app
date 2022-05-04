@@ -1,20 +1,19 @@
 import os
 import json
 import time
-
 import jwt
-from typing import Optional, Tuple, Dict
-
 import requests
 import base64
 import copy
 import uuid
+import glob
 
-from cdci_data_analysis.analysis import tokenHelper
+from typing import Optional, Tuple, Dict
 from dateutil import parser, tz
 from datetime import datetime, timedelta
 from enum import Enum, auto
 
+from cdci_data_analysis.analysis import tokenHelper
 from ..analysis.exceptions import RequestNotUnderstood, InternalError, RequestNotAuthorized
 from ..flask_app.templates import body_article_product_gallery
 from ..app_logging import app_logging
@@ -70,7 +69,9 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
                                    status_code=drupal_output.status_code,
                                    payload={'error_message': f'error while performing: {operation_performed}'})
     else:
-        return drupal_output.json()
+        if drupal_output.headers.get('content-type') == 'application/hal+json':
+            return drupal_output.json()
+        return drupal_output.text
 
 
 def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_client=None):
@@ -191,6 +192,29 @@ def execute_drupal_request(url,
                                     files=files,
                                     headers=headers
                                     )
+            elif method == 'patch':
+                if data is None:
+                    data = {}
+                if params is None:
+                    params = {}
+                params['_format'] = request_format
+                res = requests.patch(url,
+                                     params={**params},
+                                     data=data,
+                                     files=files,
+                                     headers=headers
+                                     )
+            elif method == 'delete':
+                if data is None:
+                    data = {}
+                if params is None:
+                    params = {}
+                params['_format'] = request_format
+                res = requests.delete(url,
+                                      params={**params},
+                                      data=data,
+                                      headers=headers
+                                      )
             else:
                 raise NotImplementedError
             if res.status_code == 403:
@@ -204,7 +228,7 @@ def execute_drupal_request(url,
                     error_msg = res.text
                 raise RequestNotAuthorized(error_msg)
 
-            elif res.status_code not in [200, 201]:
+            elif res.status_code not in [200, 201, 204]:
                 logger.warning(f"there seems to be some problem in completing a request to the product gallery:\n"
                                f"the requested url {url} lead to the error {res.text}, "
                                "this might be due to an error in the url or the page requested no longer exists, "
@@ -296,6 +320,21 @@ def get_user_id(product_gallery_url, user_email, sentry_client=None) -> Optional
     return user_id
 
 
+def delete_file_gallery(product_gallery_url, file_to_delete_id, gallery_jwt_token, sentry_client=None):
+    logger.info(f"deleting file with id {file_to_delete_id} from the product gallery")
+
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/file/{file_to_delete_id}",
+                                     method='delete',
+                                     headers=headers,
+                                     sentry_client=sentry_client)
+
+    logger.info(f"file with {file_to_delete_id} successfully deleted from the product gallery")
+    output_post = analyze_drupal_output(log_res, operation_performed="deleting a file from the product gallery")
+    return output_post
+
+
 def post_file_to_gallery(product_gallery_url, file, gallery_jwt_token, file_type="image", sentry_client=None):
     logger.info(f"uploading file {file} to the product gallery")
 
@@ -317,12 +356,12 @@ def post_file_to_gallery(product_gallery_url, file, gallery_jwt_token, file_type
 
     headers = get_drupal_request_headers(gallery_jwt_token)
 
-    # post the image
     log_res = execute_drupal_request(f"{product_gallery_url}/entity/file",
                                      method='post',
                                      data=json.dumps(body_post_file),
                                      headers=headers,
                                      sentry_client=sentry_client)
+
     logger.info(f"file {file} successfully uploaded to the product gallery")
     output_post = analyze_drupal_output(log_res, operation_performed="posting a picture to the product gallery")
     return output_post
@@ -354,11 +393,51 @@ def post_content_to_gallery(decoded_token,
     gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
 
     par_dic['user_id_product_creator'] = user_id_product_creator
+
     # extract type of content to post
     content_type = ContentType[str.upper(par_dic.pop('content_type', 'article'))]
     fits_file_fid_list = None
     img_fid = None
+    data_product_id = None
+    product_title = None
     if content_type == content_type.DATA_PRODUCT:
+        # TODO perhaps there's a smarter way to do this
+        update_data_product = par_dic.pop('update_data_product', 'False') == 'True'
+        job_id = par_dic.get('job_id', None)
+        if update_data_product and job_id is not None:
+            logger.info(f"retrieving data-products with the provided job_id: {job_id}")
+            job_id_data_product_list = get_data_product_list_by_job_id(product_gallery_url=product_gallery_url,
+                                                                       gallery_jwt_token=gallery_jwt_token,
+                                                                       job_id=job_id,
+                                                                       sentry_client=sentry_client)
+            if len(job_id_data_product_list) > 0:
+                if len(job_id_data_product_list) > 1:
+                    logger.info(f"more than one data-product with job_id {job_id} has been found, the first one will be updated")
+                # TODO updates only the first (which is also the most recently updated), update them all?
+                data_product_id = job_id_data_product_list[0]['nid']
+                product_title = job_id_data_product_list[0]['title']
+                logger.info(f"the data-product \"{product_title}\", id: {data_product_id} will be updated")
+                # delete them if new ones are uploaded
+                if 'field_fits_file' in job_id_data_product_list[0]:
+                    fits_files_to_upload = list(filter(lambda item: 'fits_file_' in item[0], files.items()))
+                    if len(fits_files_to_upload) > 0:
+                        # check in the new files there are new fits files to upload
+                        fits_file_fid_list_to_delete = job_id_data_product_list[0]['field_fits_file'].split(',')
+                        # delete the current one(s), and then the new one(s) will be uploaded
+                        for fits_file_id in fits_file_fid_list_to_delete:
+                            # delete the current one, and then the new one will be uploaded
+                            delete_file_gallery(product_gallery_url=product_gallery_url,
+                                                file_to_delete_id=fits_file_id,
+                                                gallery_jwt_token=gallery_jwt_token,
+                                                sentry_client=sentry_client)
+                if 'field_image_png' in job_id_data_product_list[0] and 'img' in files:
+                    img_fid_to_delete = job_id_data_product_list[0]['field_image_png']
+                    # delete the current one, and then the new one will be uploaded
+                    delete_file_gallery(product_gallery_url=product_gallery_url,
+                                        file_to_delete_id=img_fid_to_delete,
+                                        gallery_jwt_token=gallery_jwt_token,
+                                        sentry_client=sentry_client)
+
         # process files sent
         if files is not None:
             for f in files:
@@ -383,18 +462,15 @@ def post_content_to_gallery(decoded_token,
                         fits_file_fid_list = []
                     fits_file_fid_list.append(output_fits_file_post['fid'][0]['value'])
 
-        session_id = par_dic.pop('session_id', None)
-        job_id = par_dic.pop('job_id', None)
-        product_title = par_dic.pop('product_title', None)
+        product_title = par_dic.pop('product_title', product_title)
         observation_id = par_dic.pop('observation_id', None)
         user_id_product_creator = par_dic.pop('user_id_product_creator')
         # TODO perhaps there's a smarter way to do this
         insert_new_source = par_dic.pop('insert_new_source', 'False') == 'True'
 
         output_data_product_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
-                                                                session_id=session_id,
-                                                                job_id=job_id,
                                                                 gallery_jwt_token=gallery_jwt_token,
+                                                                data_product_id=data_product_id,
                                                                 product_title=product_title,
                                                                 img_fid=img_fid,
                                                                 fits_file_fid_list=fits_file_fid_list,
@@ -552,6 +628,21 @@ def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, galle
     return entities_id
 
 
+def get_data_product_list_by_job_id(product_gallery_url, gallery_jwt_token, job_id=None, sentry_client=None) -> list:
+    data_product_list = []
+    # get from the drupal the relative id
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/data_products/{job_id}",
+                                     headers=headers,
+                                     sentry_client=sentry_client)
+    output_get = analyze_drupal_output(log_res, operation_performed="retrieving the list of data product for a given job_id")
+    if isinstance(output_get, list):
+        data_product_list = output_get
+
+    return data_product_list
+
+
 def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
                               t1=None, t2=None,
                               timezone=None,
@@ -604,8 +695,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
 
 
 def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
-                                 session_id=None,
-                                 job_id=None,
+                                 data_product_id=None,
                                  product_title=None,
                                  img_fid=None,
                                  fits_file_fid_list=None,
@@ -624,38 +714,25 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     # set the initial body content
     body_value = ''
     t1 = t2 = instrument = product_type = None
-    if session_id is not None and job_id is not None:
 
-        # in case job_id and session_id are passed then it automatically extracts the product information
-        # related to the specific job, otherwise what will be posted will hav to entirely provided by the user
+    job_id = kwargs.get('job_id', None)
 
-        scratch_dir = f'scratch_sid_{session_id}_jid_{job_id}'
-        # the aliased version might have been created
-        scratch_dir_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased'
+    if job_id is not None:
+        # in case job_id is passed then it automatically extracts time, instrument and product_type information
+        # related to the specific job, and uses them unless provided by the user
+
+        job_id_scratch_dir_list = glob.glob(f'scratch_sid_*_jid_{job_id}')
         analysis_parameters_json_content_original = None
-        #
-        if os.path.exists(scratch_dir):
-            analysis_parameters_json_content_original = json.load(open(scratch_dir + '/analysis_parameters.json'))
-        elif os.path.exists(scratch_dir_json_fn_aliased):
-            analysis_parameters_json_content_original = json.load(
-                open(scratch_dir_json_fn_aliased + '/analysis_parameters.json'))
+
+        if len(job_id_scratch_dir_list) >= 1:
+            analysis_parameters_json_content_original = json.load(open(os.path.join(job_id_scratch_dir_list[0] + '/analysis_parameters.json')))
 
         if analysis_parameters_json_content_original is not None:
-            analysis_parameters_json_content_original.pop('token', None)
             instrument = analysis_parameters_json_content_original.pop('instrument')
             product_type = analysis_parameters_json_content_original.pop('product_type')
             # time data for the observation
             t1 = analysis_parameters_json_content_original.pop('T1')
             t2 = analysis_parameters_json_content_original.pop('T2')
-
-            # TODO no need to set all the parameters by default
-            # for k, v in analysis_parameters_json_content_original.items():
-            #     # assuming the name of the field in drupal starts always with field_
-            #     field_name = str.lower('field_' + k)
-            #     body_gallery_article_node[field_name] = [{
-            #         "value": v
-            #     }]
-            body_value = ''
         else:
             raise RequestNotUnderstood(message="Request data not found",
                                        payload={'error_message': 'error while posting data product: '
@@ -712,7 +789,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             }]
 
     # set the product title
-    # TODO agree on a better logic to assign the product title
+    # TODO agree on a better logic to assign the product title, have it mandatory?
     if product_title is None:
         if product_type is None and src_name is None:
             product_title = "_".join(["data_product", str(uuid.uuid4())])
@@ -764,11 +841,19 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             })
     # finally, post the data product to the gallery
     headers = get_drupal_request_headers(gallery_jwt_token)
-    log_res = execute_drupal_request(f"{product_gallery_url}/node",
-                                     method='post',
-                                     data=json.dumps(body_gallery_article_node),
-                                     headers=headers,
-                                     sentry_client=sentry_client)
+
+    if data_product_id is not None:
+        log_res = execute_drupal_request(f"{product_gallery_url}/node/{data_product_id}",
+                                         method='patch',
+                                         data=json.dumps(body_gallery_article_node),
+                                         headers=headers,
+                                         sentry_client=sentry_client)
+    else:
+        log_res = execute_drupal_request(f"{product_gallery_url}/node",
+                                         method='post',
+                                         data=json.dumps(body_gallery_article_node),
+                                         headers=headers,
+                                        sentry_client=sentry_client)
 
     output_post = analyze_drupal_output(log_res, operation_performed="posting data product to the gallery")
 
