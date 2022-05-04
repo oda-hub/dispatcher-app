@@ -389,6 +389,7 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
         f.write('\n    product_gallery_options:'
                 '\n        product_gallery_url: "http://cdciweb02.internal.odahub.io/mmoda/gallery"'
                 f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"'
+                '\n        product_gallery_timezone: "Europe/Zurich"'
                 '\n        name_resolver_url: "https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}"'
                 '\n        entities_portal_url: "http://cdsportal.u-strasbg.fr/?target={}"'
                 '\n        converttime_revnum_service_url: "https://www.astro.unige.ch/mmoda/dispatch-data/gw/timesystem/api/v1.0/converttime/UTC/{}/REVNUM"')
@@ -406,7 +407,8 @@ def dispatcher_test_conf_with_gallery_no_resolver_fn(dispatcher_test_conf_fn):
 
         f.write('\n    product_gallery_options:'
                 '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/gallery"'
-                f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"')
+                f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"'
+                '\n        product_gallery_timezone: "Europe/Zurich"')
 
     yield fn
 
