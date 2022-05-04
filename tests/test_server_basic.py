@@ -1586,14 +1586,13 @@ def test_converttime_revnum(dispatcher_live_fixture_with_gallery, time_to_conver
 
 @pytest.mark.test_drupal
 @pytest.mark.parametrize("provide_job_id", [True, False])
-@pytest.mark.parametrize("provide_session_id", [True, False])
 @pytest.mark.parametrize("provide_instrument", [True, False])
 @pytest.mark.parametrize("provide_product_type", [True, False])
 @pytest.mark.parametrize("timerange_parameters", ["time_range", "observation_id", None])
 @pytest.mark.parametrize("type_source", ["known", "new", None])
 @pytest.mark.parametrize("insert_new_source", [True, False])
 @pytest.mark.parametrize("provide_product_title", [True, False])
-def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_session_id, provide_instrument, provide_product_type, timerange_parameters, type_source, insert_new_source, provide_product_title):
+def test_product_gallery_post(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_instrument, provide_product_type, timerange_parameters, type_source, insert_new_source, provide_product_title):
     dispatcher_fetch_dummy_products('default')
 
     server = dispatcher_live_fixture_with_gallery
@@ -1627,7 +1626,6 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
                 )
 
     job_id = jdata['products']['job_id']
-    session_id = jdata['session_id']
 
     e1_kev = 45
     e2_kev = 95
@@ -1647,8 +1645,6 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
 
     if not provide_job_id:
         job_id = None
-    if not provide_session_id:
-        session_id = None
     if not provide_instrument:
         instrument = None
     else:
@@ -1661,7 +1657,6 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
 
     params = {
         'job_id': job_id,
-        'session_id': session_id,
         'instrument': instrument,
         'src_name': source_name,
         'product_type': product_type_product_gallery,
@@ -1702,7 +1697,7 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
         elif not provide_product_type and type_source is not None:
             product_title = source_name
         elif not provide_product_type and type_source is None:
-            if provide_job_id and provide_session_id:
+            if provide_job_id:
                 product_title = product_type_analysis
             else:
                 product_title = None
@@ -1725,12 +1720,12 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
     assert 'field_ra' in drupal_res_obj
     assert drupal_res_obj['field_ra'][0]['value'] == ra
 
-    if provide_instrument or (provide_job_id and provide_session_id):
+    if provide_instrument or (provide_job_id):
         link_field_instrumentused = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
                                                  'rest/relation/node/data_product/field_instrumentused')
         assert link_field_instrumentused in drupal_res_obj['_links']
 
-    if provide_product_type or (provide_job_id and provide_session_id):
+    if provide_product_type or (provide_job_id):
         link_field_data_product_type = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
                                                  'rest/relation/node/data_product/field_data_product_type')
         assert link_field_data_product_type in drupal_res_obj['_links']
@@ -1738,10 +1733,148 @@ def test_product_gallery_post_article(dispatcher_live_fixture_with_gallery, disp
     link_field_derived_from_observation = os.path.join(
         dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
         'rest/relation/node/data_product/field_derived_from_observation')
-    if timerange_parameters is not None or (provide_job_id and provide_session_id):
+    if timerange_parameters is not None or (provide_job_id):
         assert link_field_derived_from_observation in drupal_res_obj['_links']
     else:
         assert link_field_derived_from_observation not in drupal_res_obj['_links']
+
+
+@pytest.mark.test_drupal
+def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    dispatcher_fetch_dummy_products('default')
+
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    instrument = 'empty'
+    product_type_analysis = 'numerical'
+
+    params = {
+        **default_params,
+        'src_name': 'Mrk 421',
+        'product_type': product_type_analysis,
+        'query_type': "Dummy",
+        'instrument': instrument,
+        'p': 5,
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    job_id = jdata['products']['job_id']
+
+    e1_kev = 45
+    e2_kev = 95
+
+    dec = 19
+    ra = 458
+
+    source_name = "Crab"
+    instrument = 'isgri'
+    product_type_product_gallery = 'isgri_lc'
+
+    params = {
+        'job_id': job_id,
+        'instrument': instrument,
+        'src_name': source_name,
+        'product_type': product_type_product_gallery,
+        'content_type': 'data_product',
+        'E1_keV': e1_kev,
+        'E2_kev': e2_kev,
+        'DEC': dec,
+        'RA': ra,
+        'token': encoded_token
+    }
+
+    params['product_title'] = "_".join([params['instrument'], params['product_type'],
+                              datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")])
+
+    # TODO default timezone on the gallery is set to Europe/Zurich
+    params['T1'] = '2003-03-15T23:27:40.0'
+    params['T2'] = '2003-03-16T00:03:12.0'
+
+    # send test img and test fits file
+    file_obj = {'img': open('data/dummy_prods/ds9.jpeg', 'rb'),
+                'fits_file_0': open('data/dummy_prods/isgri_query_lc.fits', 'rb'),
+                'fits_file_1': open('data/dummy_prods/query_catalog.fits', 'rb')}
+
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                      params={**params},
+                      files=file_obj
+                      )
+
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    assert 'field_e1_kev' in drupal_res_obj
+    assert drupal_res_obj['field_e1_kev'][0]['value'] == e1_kev
+
+    assert 'field_e2_kev' in drupal_res_obj
+    assert drupal_res_obj['field_e2_kev'][0]['value'] == e2_kev
+
+    link_img_id = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                               'rest/relation/node/data_product/field_image_png')
+
+    assert link_img_id in drupal_res_obj['_links']
+    assert len(drupal_res_obj['_links'][link_img_id]) == 1
+
+    link_fits_file_id = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                                     'rest/relation/node/data_product/field_fits_file')
+    assert link_fits_file_id in drupal_res_obj['_links']
+    assert len(drupal_res_obj['_links'][link_fits_file_id]) == 2
+
+    id_posted_data_product = drupal_res_obj['nid'][0]['value']
+
+    params = {
+        'e1_kev': 145,
+        'e2_kev': 195,
+        'job_id': job_id,
+        'update_data_product': True,
+        'content_type': 'data_product',
+        'token': encoded_token
+    }
+
+    params['T1'] = '2003-03-15T23:27:40.0'
+    params['T2'] = '2003-03-16T00:03:12.0'
+
+    # send test img and test fits file
+    file_obj = {'img': open('data/dummy_prods/ds9.jpeg', 'rb'),
+                'fits_file_0': open('data/dummy_prods/isgri_query_lc.fits', 'rb')}
+
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                      params={**params},
+                      files=file_obj
+                      )
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    assert 'field_e1_kev' in drupal_res_obj
+    assert drupal_res_obj['field_e1_kev'][0]['value'] == params['e1_kev']
+
+    assert 'field_e2_kev' in drupal_res_obj
+    assert drupal_res_obj['field_e2_kev'][0]['value'] == params['e2_kev']
+
+    assert drupal_res_obj['nid'][0]['value'] == id_posted_data_product
+
+    assert link_img_id in drupal_res_obj['_links']
+    assert len(drupal_res_obj['_links'][link_img_id]) == 1
+
+    assert link_fits_file_id in drupal_res_obj['_links']
+    assert len(drupal_res_obj['_links'][link_fits_file_id]) == 1
 
 
 @pytest.mark.test_renku
