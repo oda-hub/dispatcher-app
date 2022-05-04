@@ -492,7 +492,6 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, time
     # so the dates, properly formatted in ISO8601, without the time will be used
     # but a timezone correction is applied if none is provided,
     # based on the drupal gallery timezone settings and the way datetime(s) are stored and queried
-    # TODO to have the timezone settings configurable
     t1_parsed = parser.parse(t1)
     if t1_parsed.tzinfo is None:
         t1_parsed = t1_parsed + timedelta(hours=1)
