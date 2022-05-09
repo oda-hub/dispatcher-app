@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>[ODA][Report] Incident at {{ request.time_request | timestamp2isot }} job_id: {{request.job_id[:8]}}</title>
+</head>
+
+<body>
+
+The following incident has been reported:
+
+{{content}}
+
+</body>
+</html>
+

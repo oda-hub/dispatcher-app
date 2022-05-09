@@ -170,11 +170,57 @@ def check_scw_list_length(
         return False
 
 
-# def send_incident_report_email(
-#     config,
-#     logger,
-#     decoded_token,
-# ):
+def send_incident_report_email(
+        config,
+        job_id,
+        logger,
+        decoded_token,
+        incident_report_content=None,
+        time_request=None,
+        scratch_dir=None):
+    sending_time = time_.time()
+
+    env = Environment(loader=FileSystemLoader('%s/../flask_app/templates/' % os.path.dirname(__file__)))
+    env.filters['timestamp2isot'] = timestamp2isot
+    env.filters['humanize_age'] = humanize_age
+    env.filters['humanize_future'] = humanize_future
+
+    email_data = {
+        'request': {
+            'job_id': job_id,
+            'time_request': time_request,
+            'decoded_token': decoded_token,
+        },
+        'content': incident_report_content
+    }
+
+    template = env.get_template('email.html')
+    email_body_html = template.render(**email_data)
+
+    email_subject = re.search("<title>(.*?)</title>", email_body_html).group(1)
+    email_text = textify_email(email_body_html)
+
+    if invalid_email_line_length(email_text) or invalid_email_line_length(email_body_html):
+        open("debug_email_lines_too_long.html", "w").write(email_body_html)
+        open("debug_email_lines_too_long.text", "w").write(email_text)
+        raise EMailNotSent(f"email not sent, lines too long!")
+
+    message = send_email(config.smtp_server,
+                         config.smtp_port,
+                         config.sender_email_address,
+                         config.cc_receivers_email_addresses,
+                         config.bcc_receivers_email_addresses,
+                         tokenHelper.get_token_user_email_address(decoded_token),
+                         email_data['oda_site']['contact'],
+                         email_subject,
+                         email_text,
+                         email_body_html,
+                         config.smtp_server_password,
+                         logger=logger)
+
+    store_incident_report_email_info(message, scratch_dir, sending_time=sending_time)
+
+    return message
 
 
 def send_job_email(
@@ -362,6 +408,17 @@ def store_status_email_info(message, status, scratch_dir, sending_time=None):
         sending_time = time_.time()
     # record the email just sent in a dedicated file
     with open(path_email_history_folder + '/email_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
+        outfile.write(message.as_string())
+
+
+def store_incident_report_email_info(message, scratch_dir, sending_time=None):
+    path_email_history_folder = scratch_dir + '/email_history'
+    if not os.path.exists(path_email_history_folder):
+        os.makedirs(path_email_history_folder)
+    if sending_time is None:
+        sending_time = time_.time()
+    # record the email just sent in a dedicated file
+    with open(path_email_history_folder + '/indident_report_email_' + str(sending_time) +'.email', 'w+') as outfile:
         outfile.write(message.as_string())
 
 
