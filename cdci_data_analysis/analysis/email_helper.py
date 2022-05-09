@@ -175,7 +175,7 @@ def send_incident_report_email(
         job_id,
         logger,
         decoded_token,
-        incident_report_content=None,
+        incident_content=None,
         time_request=None,
         scratch_dir=None):
     sending_time = time_.time()
@@ -191,7 +191,7 @@ def send_incident_report_email(
             'time_request': time_request,
             'decoded_token': decoded_token,
         },
-        'content': incident_report_content
+        'content': incident_content
     }
 
     template = env.get_template('email.html')
@@ -396,6 +396,8 @@ def send_email(smtp_server,
     finally:
         if server:
             server.quit()
+
+    logger.info("email successfully sent")
 
     return message
 

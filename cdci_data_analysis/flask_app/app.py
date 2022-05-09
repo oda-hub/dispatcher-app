@@ -23,7 +23,7 @@ from flask_restx import Api, Resource, reqparse
 import time as _time
 from urllib.parse import urlencode
 
-from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper
+from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper, email_helper
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError
@@ -634,11 +634,23 @@ def report_incident():
 
     par_dic = request.values.to_dict()
     par_dic.pop('token')
+    job_id = par_dic.get('job_id')
+    scratch_dir = par_dic.get('scratch_dir')
+    incident_content = par_dic.get('incident_content')
+    time_request = par_dic.get('time_request', None)
 
+    email_helper.send_incident_report_email(
+        config=app_config,
+        job_id=job_id,
+        logger=logger,
+        decoded_token=decoded_token,
+        incident_content=incident_content,
+        time_request=time_request,
+        scratch_dir=scratch_dir
+    )
 
-
-
-    return output_post
+    # TODO an appropriate output to be returned
+    return True
 
 
 @ns_conf.route('/js9/<path:path>', methods=['GET', 'POST'])
