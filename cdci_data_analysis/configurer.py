@@ -236,6 +236,8 @@ class ConfigEnv(object):
                                      disp_dict['email_options']['email_sending_job_submitted'],
                                      disp_dict['email_options']['email_sending_job_submitted_default_interval'],
                                      disp_dict['email_options'].get('sentry_for_email_sending_check', False),
+                                     disp_dict['email_options']['incident_report_email_options']['incident_report_sender_email_address'],
+                                     disp_dict['email_options']['incident_report_email_options']['incident_report_receivers_email_addresses'],
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_url', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_secret_key', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_timezone', "Europe/Zurich"),
@@ -294,6 +296,8 @@ class ConfigEnv(object):
                             email_sending_job_submitted,
                             email_sending_job_submitted_default_interval,
                             sentry_for_email_sending_check,
+                            incident_report_sender_email_address,
+                            incident_report_receivers_email_addresses,
                             product_gallery_url,
                             product_gallery_secret_key,
                             product_gallery_timezone,
@@ -325,6 +329,8 @@ class ConfigEnv(object):
         self.email_sending_job_submitted = email_sending_job_submitted
         self.email_sending_job_submitted_default_interval = email_sending_job_submitted_default_interval
         self.sentry_for_email_sending_check = sentry_for_email_sending_check
+        self.incident_report_sender_email_address = incident_report_sender_email_address
+        self.incident_report_receivers_email_addresses = incident_report_receivers_email_addresses
         self.product_gallery_url = product_gallery_url
         self.product_gallery_secret_key = product_gallery_secret_key
         self.product_gallery_timezone = product_gallery_timezone

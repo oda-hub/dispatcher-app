@@ -601,6 +601,46 @@ def post_product_to_gallery():
     return output_post
 
 
+@app.route('/report_incident', methods=['POST'])
+def report_incident():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    if token is None:
+        return make_response('A token must be provided.'), 403
+    try:
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
+        decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+        logger.info("==> token %s", decoded_token)
+    except jwt.exceptions.ExpiredSignatureError:
+        # raise RequestNotAuthorized("The token provided is expired.")
+        return make_response('The token provided is expired.'), 403
+    except jwt.exceptions.InvalidTokenError:
+        # raise RequestNotAuthorized("The token provided is not valid.")
+        return make_response('The token provided is not valid.'), 403
+
+    roles = tokenHelper.get_token_roles(decoded_token)
+    # TODO is a role actually necessary? perhaps a specific role is actually not necessary for this purpose
+    required_roles = ['incident reporter']
+    if not all(item in roles for item in required_roles):
+        lacking_roles = "\n".join(['- ' + r for r in sorted(list(set(required_roles) - set(roles)))])
+        message = (
+            f"Unfortunately, your privileges are not sufficient to perform this operation, "
+            f"the following roles are missing:\n\n{lacking_roles}\n\n"
+        )
+        return make_response(message), 403
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+
+
+
+    return output_post
+
+
 @ns_conf.route('/js9/<path:path>', methods=['GET', 'POST'])
 # @app.route('/js9/<path:path>',methods=['GET','POST'])
 class JS9(Resource):

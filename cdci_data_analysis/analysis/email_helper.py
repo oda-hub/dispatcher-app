@@ -170,7 +170,14 @@ def check_scw_list_length(
         return False
 
 
-def send_email(
+# def send_incident_report_email(
+#     config,
+#     logger,
+#     decoded_token,
+# ):
+
+
+def send_job_email(
         config,
         logger,
         decoded_token,
@@ -263,21 +270,44 @@ def send_email(
         open("debug_email_lines_too_long.text", "w").write(email_text)
         raise EMailNotSent(f"email not sent, lines too long!")
 
+    message = send_email(config.smtp_server,
+                         config.smtp_port,
+                         config.sender_email_address,
+                         config.cc_receivers_email_addresses,
+                         config.bcc_receivers_email_addresses,
+                         config.receiver_email_address,
+                         email_data['oda_site']['contact'],
+                         email_subject,
+                         email_text,
+                         email_body_html,
+                         config.smtp_server_password,
+                         attachment=api_code_email_attachment)
+
+    store_status_email_info(message, status, scratch_dir, sending_time=sending_time)
+
+    return message
+
+
+def send_email(smtp_server,
+               smtp_port,
+               sender_email_address,
+               cc_receivers_email_addresses,
+               bcc_receivers_email_addresses,
+               receiver_email_address,
+               reply_to_email_address,
+               email_subject,
+               email_text,
+               email_body_html,
+               smtp_server_password,
+               attachment=None
+               ):
+
     server = None
     logger.info("Sending email")
     # Create the plain-text and HTML version of your message,
     # since emails with HTML content might be, sometimes, not supported
 
     try:
-        # send the mail with the status update to the mail provided with the token
-        # eg done/failed/submitted
-        # test with the local server
-        smtp_server = config.smtp_server
-        port = config.smtp_port
-        sender_email_address = config.sender_email_address
-        cc_receivers_email_addresses = config.cc_receivers_email_addresses
-        bcc_receivers_email_addresses = config.bcc_receivers_email_addresses
-        receiver_email_address = tokenHelper.get_token_user_email_address(decoded_token)
         # include bcc receivers, which will be hidden in the message header
         receivers_email_addresses = [receiver_email_address] + cc_receivers_email_addresses + bcc_receivers_email_addresses
         # creation of the message
@@ -286,23 +316,22 @@ def send_email(
         message["From"] = sender_email_address
         message["To"] = receiver_email_address
         message["CC"] = ", ".join(cc_receivers_email_addresses)
-        message['Reply-To'] = email_data['oda_site']['contact']
+        message['Reply-To'] = reply_to_email_address
 
-        if api_code_email_attachment is not None:
+        if attachment is not None:
             # create the attachment
-            message.attach(api_code_email_attachment)
+            message.attach(attachment)
 
         part1 = MIMEText(email_text, "plain")
         part2 = MIMEText(email_body_html, "html")
         message.attach(part1)
         message.attach(part2)
 
-        smtp_server_password = config.smtp_server_password
         # Create a secure SSL context
         context = ssl.create_default_context()
         #
         # Try to log in to server and send email
-        server = smtplib.SMTP(smtp_server, port)
+        server = smtplib.SMTP(smtp_server, smtp_port)
         # just for testing purposes, not ssl is established
         if smtp_server != "localhost":
             try:
@@ -320,12 +349,10 @@ def send_email(
         if server:
             server.quit()
 
-    store_email_info(message, status, scratch_dir, sending_time=sending_time)
-
     return message
 
 
-def store_email_info(message, status, scratch_dir, sending_time=None):
+def store_status_email_info(message, status, scratch_dir, sending_time=None):
     path_email_history_folder = scratch_dir + '/email_history'
     if not os.path.exists(path_email_history_folder):
         os.makedirs(path_email_history_folder)
