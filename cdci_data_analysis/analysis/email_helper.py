@@ -281,6 +281,7 @@ def send_job_email(
                          email_text,
                          email_body_html,
                          config.smtp_server_password,
+                         logger=logger,
                          attachment=api_code_email_attachment)
 
     store_status_email_info(message, status, scratch_dir, sending_time=sending_time)
@@ -299,6 +300,7 @@ def send_email(smtp_server,
                email_text,
                email_body_html,
                smtp_server_password,
+               logger,
                attachment=None
                ):
 
