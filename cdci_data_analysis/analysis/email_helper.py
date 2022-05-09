@@ -275,7 +275,7 @@ def send_job_email(
                          config.sender_email_address,
                          config.cc_receivers_email_addresses,
                          config.bcc_receivers_email_addresses,
-                         config.receiver_email_address,
+                         tokenHelper.get_token_user_email_address(decoded_token),
                          email_data['oda_site']['contact'],
                          email_subject,
                          email_text,
