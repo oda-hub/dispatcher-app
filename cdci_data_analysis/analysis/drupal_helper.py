@@ -68,7 +68,7 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
         logger.warning(f'the drupal instance returned the following error: {drupal_output.text}')
         raise RequestNotUnderstood(drupal_output.text,
                                    status_code=drupal_output.status_code,
-                                   payload={'error_message': f'error while performing: {operation_performed}'})
+                                   payload={'drupal_helper_error_message': f'error while performing: {operation_performed}'})
     else:
         if drupal_output.headers.get('content-type') == 'application/hal+json':
             return drupal_output.json()
@@ -285,7 +285,7 @@ def execute_drupal_request(url,
                     logger.warning("sentry not used")
                 raise InternalError('issue when performing a request to the product gallery',
                                     status_code=500,
-                                    payload={'error_message': str(e)})
+                                    payload={'drupal_helper_error_message': str(e)})
 
 
 def get_drupal_request_headers(gallery_jwt_token=None):
@@ -741,7 +741,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             t2 = analysis_parameters_json_content_original.pop('T2')
         else:
             raise RequestNotUnderstood(message="Request data not found",
-                                       payload={'error_message': 'error while posting data product: '
+                                       payload={'drupal_helper_error_message': 'error while posting data product: '
                                                                  'results of the ODA product request could not be found, '
                                                                  'perhaps wrong job_id was passed?'})
 
@@ -893,7 +893,7 @@ def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: 
                            "please check your request and try to issue it again")
             raise InternalError('issue when performing a request to the local resolver',
                                 status_code=500,
-                                payload={'error_message': res.text})
+                                payload={'drupal_helper_error_message': res.text})
     return resolved_obj
 
 
@@ -922,5 +922,5 @@ def get_revnum(service_url: str, time_to_convert: str = None):
                        "please check your request and try to issue it again")
         raise InternalError('issue when performing a request to the timesystem service',
                             status_code=500,
-                            payload={'error_message': res.text})
+                            payload={'drupal_helper_error_message': res.text})
     return resolved_obj
