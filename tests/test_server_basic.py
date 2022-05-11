@@ -1950,6 +1950,46 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
     assert len(drupal_res_obj['_links'][link_fits_file_id]) == 1
 
 
+@pytest.mark.test_drupal
+def test_product_gallery_error_message(dispatcher_live_fixture_with_gallery):
+    dispatcher_fetch_dummy_products('default')
+
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    e1_kev = 45
+    e2_kev = 95
+
+    params = {
+        'content_type': 'data_product',
+        'E1_keV': e1_kev,
+        'E2_kev': e2_kev,
+        'E3_kev': 123,
+        'token': encoded_token
+    }
+
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                      params={**params},
+                      )
+
+    assert c.status_code == 500
+
+    drupal_res_obj = c.json()
+
+    assert 'drupal_helper_error_message' in drupal_res_obj
+    assert 'InvalidArgumentException: Field field_e3_kev is unknown.' \
+           in drupal_res_obj['drupal_helper_error_message']
+
+
 @pytest.mark.test_renku
 @pytest.mark.parametrize("existing_branch", [True, False])
 @pytest.mark.parametrize("scw_list_passage", ['file', 'params'])
