@@ -7,9 +7,26 @@
 
 <body>
 
-The following incident has been reported:
 
-{{content}}
+<div style=3D"font-weight:300;display:none;font-size:0;max-height:0;line-height:0;padding:0">
+    New incident reported to the dispatcher
+</div>
+
+<div style=3D"font-weight:300;margin-bottom:30px">
+    <div style=3D"font-weight:300;color:#889092;float:right">
+        job_id: {{request.job_id[:8]}}
+    </div>
+    <div style=3D"font-weight:300;color:#889092">
+        {{ request.time_request | timestamp2isot }}
+    </div>
+</div>
+
+
+<div style=3D"font-weight:300;margin-bottom:30px">
+    <h3 style=3D"font-weight:700;font-size:18px;margin-bottom:15px" >Content of the incident</h3>
+
+    {{content}}
+</div>
 
 </body>
 </html>
