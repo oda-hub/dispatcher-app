@@ -7,6 +7,7 @@ import base64
 import copy
 import uuid
 import glob
+import re
 
 from typing import Optional, Tuple, Dict
 from dateutil import parser, tz
@@ -233,9 +234,15 @@ def execute_drupal_request(url,
                                f"the requested url {url} lead to the error {res.text}, "
                                "this might be due to an error in the url or the page requested no longer exists, "
                                "please check it and try to issue again the request")
+                drupal_helper_error_message = res.text
+                # handling specific case of a not recognized/invalid argument
+                m = re.search('<em (.*)>InvalidArgumentException</em>:(.*)</em>\)', res.text)
+                if m is not None:
+                    drupal_helper_error_message = re.sub('<[^<]+?>', '', m.group())
+
                 raise InternalError('issue when performing a request to the product gallery',
                                     status_code=500,
-                                    payload={'drupal_helper_error_message': res.text})
+                                    payload={'drupal_helper_error_message': drupal_helper_error_message})
             else:
                 total_n_successful_post_requests += 1
 

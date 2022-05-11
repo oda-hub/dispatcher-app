@@ -1986,7 +1986,8 @@ def test_product_gallery_error_message(dispatcher_live_fixture_with_gallery):
     drupal_res_obj = c.json()
 
     assert 'drupal_helper_error_message' in drupal_res_obj
-    assert 'Field field_e3_kev is unknown.' in drupal_res_obj['drupal_helper_error_message']
+    assert 'InvalidArgumentException: Field field_e3_kev is unknown.' \
+           in drupal_res_obj['drupal_helper_error_message']
 
 
 @pytest.mark.test_renku
