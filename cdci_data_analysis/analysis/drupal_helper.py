@@ -235,7 +235,7 @@ def execute_drupal_request(url,
                                "please check it and try to issue again the request")
                 raise InternalError('issue when performing a request to the product gallery',
                                     status_code=500,
-                                    payload={'error_message': res.text})
+                                    payload={'drupal_helper_error_message': res.text})
             else:
                 total_n_successful_post_requests += 1
 
