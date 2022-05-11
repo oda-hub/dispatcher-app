@@ -236,7 +236,7 @@ def execute_drupal_request(url,
                                "please check it and try to issue again the request")
                 drupal_helper_error_message = res.text
                 # handling specific case of a not recognized/invalid argument
-                m = re.search('<em (.*)>InvalidArgumentException</em>:(.*)</em>\)', res.text)
+                m = re.search(r'<em(.*)>InvalidArgumentException</em>:(.*)</em>\)', res.text)
                 if m is not None:
                     drupal_helper_error_message = re.sub('<[^<]+?>', '', m.group())
 
