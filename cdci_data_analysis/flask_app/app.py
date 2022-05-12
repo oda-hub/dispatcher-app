@@ -632,7 +632,6 @@ def report_incident():
         )
         return make_response(message), 403
 
-
     par_dic = request.values.to_dict()
     par_dic.pop('token')
     job_id = par_dic.get('job_id')
