@@ -731,7 +731,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
         analysis_parameters_json_content_original = None
 
         if len(job_id_scratch_dir_list) >= 1:
-            analysis_parameters_json_content_original = json.load(open(os.path.join(job_id_scratch_dir_list[0] + '/analysis_parameters.json')))
+            analysis_parameters_json_content_original = json.load(open(os.path.join(job_id_scratch_dir_list[0], 'analysis_parameters.json')))
 
         if analysis_parameters_json_content_original is not None:
             instrument = analysis_parameters_json_content_original.pop('instrument')
