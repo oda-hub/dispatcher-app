@@ -34,7 +34,7 @@ from ..analysis.queries import *
 from ..analysis.io_helper import FitsFile
 from ..analysis.plot_tools import Image
 from .dispatcher_query import InstrumentQueryBackEnd
-from ..analysis.exceptions import APIerror
+from ..analysis.exceptions import APIerror, MissingRequestParameter
 from ..app_logging import app_logging
 
 from ..analysis.json import CustomJSONEncoder
@@ -632,22 +632,34 @@ def report_incident():
         )
         return make_response(message), 403
 
+
     par_dic = request.values.to_dict()
     par_dic.pop('token')
     job_id = par_dic.get('job_id')
     scratch_dir = par_dic.get('scratch_dir')
     incident_content = par_dic.get('incident_content')
     time_request = par_dic.get('time_request', None)
-
-    email_helper.send_incident_report_email(
-        config=app_config,
-        job_id=job_id,
-        logger=logger,
-        decoded_token=decoded_token,
-        incident_content=incident_content,
-        time_request=time_request,
-        scratch_dir=scratch_dir
-    )
+    try:
+        email_helper.send_incident_report_email(
+            config=app_config,
+            job_id=job_id,
+            logger=logger,
+            decoded_token=decoded_token,
+            incident_content=incident_content,
+            time_request=time_request,
+            scratch_dir=scratch_dir
+        )
+    except email_helper.EMailNotSent as e:
+        logging.warning(f'email sending failed: {e}')
+        sentry_url = getattr(app.config.get('conf'), 'sentry_url', None)
+        if sentry_url is not None:
+            sentry_client = Sentry(app, dsn=sentry_url)
+            sentry_client.capture('raven.events.Message',
+                                  message=f'sending email failed {e}')
+        else:
+            logger.warning("sentry not used")
+    except MissingRequestParameter as e:
+        logging.warning(f'parameter missing during call back: {e}')
 
     # TODO an appropriate output to be returned
     return True
