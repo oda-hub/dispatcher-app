@@ -727,7 +727,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
         # in case job_id is passed then it automatically extracts time, instrument and product_type information
         # related to the specific job, and uses them unless provided by the user
 
-        job_id_scratch_dir_list = glob.glob(f'scratch_sid_*_jid_{job_id}')
+        job_id_scratch_dir_list = glob.glob(f'scratch_sid_*_jid_{job_id}*')
         analysis_parameters_json_content_original = None
 
         if len(job_id_scratch_dir_list) >= 1:
