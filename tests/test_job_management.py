@@ -2288,7 +2288,8 @@ def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server):
     job_id = jdata['products']['job_id']
     session_id = jdata['session_id']
 
-    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    scratch_dir_fn_list = glob.glob(f'scratch_sid_{session_id}_jid_{job_id}*')
+    scratch_dir_fn = max(scratch_dir_fn_list, key=os.path.getctime)
 
     incident_content = 'test incident'
 
