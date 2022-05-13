@@ -49,6 +49,10 @@ dispatcher:
         # that will trigger the email when the request is complete, if this time is exceeded
         email_sending_timeout_default_threshold: 1800
         # sending of an email when a request has been submitted
+        #options related to the of emails for reporting incidents
+        incident_report_email_options:
+            incident_report_sender_email_address: 'team@odahub.io'
+            incident_report_receivers_email_addresses: ['team@odahub.io']
         email_sending_job_submitted: True
         # amount of time (in seconds) elapsed from the sending of the last email
         # for when a request has been submitted
