@@ -637,7 +637,7 @@ def report_incident():
     job_id = par_dic.get('job_id')
     scratch_dir = par_dic.get('scratch_dir')
     incident_content = par_dic.get('incident_content')
-    time_request = par_dic.get('time_request', None)
+    incident_time = par_dic.get('incident_time', _time.time())
     try:
         email_helper.send_incident_report_email(
             config=app_config,
@@ -645,10 +645,12 @@ def report_incident():
             logger=logger,
             decoded_token=decoded_token,
             incident_content=incident_content,
-            time_request=time_request,
+            incident_time=incident_time,
             scratch_dir=scratch_dir
         )
+        report_incident_status = 'incident report email successfully sent'
     except email_helper.EMailNotSent as e:
+        report_incident_status = 'sending email failed'
         logging.warning(f'email sending failed: {e}')
         sentry_url = getattr(app.config.get('conf'), 'sentry_url', None)
         if sentry_url is not None:
@@ -658,10 +660,12 @@ def report_incident():
         else:
             logger.warning("sentry not used")
     except MissingRequestParameter as e:
+        report_incident_status = 'sending email failed'
         logging.warning(f'parameter missing during call back: {e}')
 
-    # TODO an appropriate output to be returned
-    return True
+    response = jsonify({'report_incident_status': report_incident_status})
+
+    return response
 
 
 @ns_conf.route('/js9/<path:path>', methods=['GET', 'POST'])

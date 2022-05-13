@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <title>[ODA][Report] Incident at {{ request.time_request | timestamp2isot }} job_id: {{request.job_id[:8]}}</title>
+    <title>[ODA][Report] Incident at {{ request.incident_time | timestamp2isot }} job_id: {{request.job_id[:8]}}</title>
 </head>
 
 <body>
@@ -17,7 +17,7 @@
         job_id: {{request.job_id[:8]}}
     </div>
     <div style=3D"font-weight:300;color:#889092">
-        {{ request.time_request | timestamp2isot }}
+        {{ request.incident_time | timestamp2isot }}
     </div>
 </div>
 

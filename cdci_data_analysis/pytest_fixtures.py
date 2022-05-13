@@ -361,7 +361,7 @@ dispatcher:
         email_sending_job_submitted_default_interval: 60
         sentry_for_email_sending_check: False
         incident_report_email_options:
-            incident_report_sender_email_address: 'team@odahub.io'
+            incident_report_sender_email_address: 'postmaster@in.odahub.io'
             incident_report_receivers_email_addresses: ['team@odahub.io']
     """)
 

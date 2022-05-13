@@ -2258,3 +2258,45 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
 
         assert jdata['records'][0]['ctime'] == scratch_dir_ctime
         assert jdata['records'][0]['mtime'] == scratch_dir_mtime
+
+
+def test_incident_report(dispatcher_live_fixture, ):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    # expired token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, incident reporter"
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
+
+    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+
+    # for the email we only use the first 8 characters
+    c = requests.post(os.path.join(server, "report_incident"),
+                      params=dict(
+                          job_id=job_id,
+                          token=encoded_token,
+                          scratch_dir=scratch_dir_fn
+                      ))
+    jdata_incident_report = c.json()
+
+    assert 'report_incident_status' in jdata_incident_report
