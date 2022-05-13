@@ -176,7 +176,7 @@ def send_incident_report_email(
         logger,
         decoded_token,
         incident_content=None,
-        time_request=None,
+        incident_time=None,
         scratch_dir=None):
     sending_time = time_.time()
 
@@ -188,13 +188,13 @@ def send_incident_report_email(
     email_data = {
         'request': {
             'job_id': job_id,
-            'time_request': time_request,
+            'incident_time': incident_time,
             'decoded_token': decoded_token,
         },
         'content': incident_content
     }
 
-    template = env.get_template('email.html')
+    template = env.get_template('incident_report_email.html')
     email_body_html = template.render(**email_data)
 
     email_subject = re.search("<title>(.*?)</title>", email_body_html).group(1)
@@ -205,17 +205,17 @@ def send_incident_report_email(
         open("debug_email_lines_too_long.text", "w").write(email_text)
         raise EMailNotSent(f"email not sent, lines too long!")
 
-    message = send_email(config.smtp_server,
-                         config.smtp_port,
-                         config.sender_email_address,
-                         config.cc_receivers_email_addresses,
-                         config.bcc_receivers_email_addresses,
-                         tokenHelper.get_token_user_email_address(decoded_token),
-                         email_data['oda_site']['contact'],
-                         email_subject,
-                         email_text,
-                         email_body_html,
-                         config.smtp_server_password,
+    message = send_email(smtp_server=config.smtp_server,
+                         smtp_port=config.smtp_port,
+                         sender_email_address=config.incident_report_sender_email_address,
+                         cc_receivers_email_addresses=None,
+                         bcc_receivers_email_addresses=None,
+                         receiver_email_addresses=config.incident_report_receivers_email_addresses,
+                         reply_to_email_address=None,
+                         email_subject=email_subject,
+                         email_text=email_text,
+                         email_body_html=email_body_html,
+                         smtp_server_password=config.smtp_server_password,
                          logger=logger)
 
     store_incident_report_email_info(message, scratch_dir, sending_time=sending_time)
@@ -340,7 +340,7 @@ def send_email(smtp_server,
                sender_email_address,
                cc_receivers_email_addresses,
                bcc_receivers_email_addresses,
-               receiver_email_address,
+               receiver_email_addresses,
                reply_to_email_address,
                email_subject,
                email_text,
@@ -356,13 +356,15 @@ def send_email(smtp_server,
     # since emails with HTML content might be, sometimes, not supported
 
     try:
+        if not isinstance(receiver_email_addresses, list):
+            receiver_email_addresses = [receiver_email_addresses]
         # include bcc receivers, which will be hidden in the message header
-        receivers_email_addresses = [receiver_email_address] + cc_receivers_email_addresses + bcc_receivers_email_addresses
+        receivers_email_addresses = receiver_email_addresses + cc_receivers_email_addresses + bcc_receivers_email_addresses
         # creation of the message
         message = MIMEMultipart("alternative")
         message["Subject"] = email_subject
         message["From"] = sender_email_address
-        message["To"] = receiver_email_address
+        message["To"] = ", ".join(receiver_email_addresses)
         message["CC"] = ", ".join(cc_receivers_email_addresses)
         message['Reply-To'] = reply_to_email_address
 
