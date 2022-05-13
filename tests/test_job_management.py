@@ -2260,7 +2260,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
         assert jdata['records'][0]['mtime'] == scratch_dir_mtime
 
 
-def test_incident_report(dispatcher_live_fixture, ):
+def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
