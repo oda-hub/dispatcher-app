@@ -358,6 +358,10 @@ def send_email(smtp_server,
     try:
         if not isinstance(receiver_email_addresses, list):
             receiver_email_addresses = [receiver_email_addresses]
+        if cc_receivers_email_addresses is None:
+            cc_receivers_email_addresses = []
+        if bcc_receivers_email_addresses is None:
+            bcc_receivers_email_addresses = []
         # include bcc receivers, which will be hidden in the message header
         receivers_email_addresses = receiver_email_addresses + cc_receivers_email_addresses + bcc_receivers_email_addresses
         # creation of the message
