@@ -635,6 +635,7 @@ def report_incident():
     par_dic = request.values.to_dict()
     par_dic.pop('token')
     job_id = par_dic.get('job_id')
+    session_id = par_dic.get('session_id')
     scratch_dir = par_dic.get('scratch_dir')
     incident_content = par_dic.get('incident_content')
     incident_time = par_dic.get('incident_time', _time.time())
@@ -642,6 +643,7 @@ def report_incident():
         email_helper.send_incident_report_email(
             config=app_config,
             job_id=job_id,
+            session_id=session_id,
             logger=logger,
             decoded_token=decoded_token,
             incident_content=incident_content,

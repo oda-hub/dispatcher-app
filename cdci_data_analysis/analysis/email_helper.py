@@ -173,6 +173,7 @@ def check_scw_list_length(
 def send_incident_report_email(
         config,
         job_id,
+        session_id,
         logger,
         decoded_token,
         incident_content=None,
@@ -188,6 +189,7 @@ def send_incident_report_email(
     email_data = {
         'request': {
             'job_id': job_id,
+            'session_id': session_id,
             'incident_time': incident_time,
             'decoded_token': decoded_token,
         },

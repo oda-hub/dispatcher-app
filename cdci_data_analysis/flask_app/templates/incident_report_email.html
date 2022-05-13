@@ -8,24 +8,26 @@
 <body>
 
 
-<div style=3D"font-weight:300;display:none;font-size:0;max-height:0;line-height:0;padding:0">
+<div style=3D"font-weight:300;display:none;font-size:0;max-height:0;line-height:0;padding:0;margin:30px">
     New incident reported to the dispatcher
 </div>
 
-<div style=3D"font-weight:300;margin-bottom:30px">
-    <div style=3D"font-weight:300;color:#889092;float:right">
-        job_id: {{request.job_id[:8]}}
+<div style="font-weight:300;margin-bottom:30px">
+    <div style="font-weight:300;color:#889092">
+        job_id: {{ request.job_id[:8] }}
     </div>
-    <div style=3D"font-weight:300;color:#889092">
-        {{ request.incident_time | timestamp2isot }}
+    <div style="font-weight:300;color:#889092">
+        session_id: {{ request.session_id }}
     </div>
 </div>
 
 
-<div style=3D"font-weight:300;margin-bottom:30px">
-    <h3 style=3D"font-weight:700;font-size:18px;margin-bottom:15px" >Content of the incident</h3>
+<div style="font-weight:300;margin-bottom:30px">
+    <div style="font-weight:300;font-size:18px;margin-bottom:15px">
+        An incident has been reported at {{ request.incident_time | timestamp2isot }}. More details can be found below:
+    </div>
 
-    {{content}}
+    <div style="background-color: lightgray; display: inline-block; padding: 5px;">{{content}}</div>
 </div>
 
 </body>

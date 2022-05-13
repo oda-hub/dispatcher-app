@@ -2290,11 +2290,15 @@ def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server):
 
     scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
 
+    incident_content = 'test incident'
+
     # for the email we only use the first 8 characters
     c = requests.post(os.path.join(server, "report_incident"),
                       params=dict(
                           job_id=job_id,
+                          session_id=session_id,
                           token=encoded_token,
+                          incident_content=incident_content,
                           scratch_dir=scratch_dir_fn
                       ))
     jdata_incident_report = c.json()
