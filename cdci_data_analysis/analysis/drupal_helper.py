@@ -732,6 +732,13 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
 
         if len(job_id_scratch_dir_list) >= 1:
             analysis_parameters_json_content_original = json.load(open(os.path.join(job_id_scratch_dir_list[0], 'analysis_parameters.json')))
+        else:
+            logger.warning(f'no results folder could be found with the provided job_id ({job_id}),'
+                           f' perhaps wrong job_id was passed?')
+            raise RequestNotUnderstood(message="Request data not found",
+                                       payload={'drupal_helper_error_message': 'error while posting data product: '
+                                                                               'no results folder could be found with the provided job_id, '
+                                                                               'perhaps wrong job_id was passed?'})
 
         if analysis_parameters_json_content_original is not None:
             instrument = analysis_parameters_json_content_original.pop('instrument')
@@ -740,10 +747,12 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             t1 = analysis_parameters_json_content_original.pop('T1')
             t2 = analysis_parameters_json_content_original.pop('T2')
         else:
+            logger.warning(f'no analysis_parameters.json file was found inside the scratch folder {job_id_scratch_dir_list[0]},'
+                           f' this can be related to an internal error')
             raise RequestNotUnderstood(message="Request data not found",
                                        payload={'drupal_helper_error_message': 'error while posting data product: '
-                                                                 'results of the ODA product request could not be found, '
-                                                                 'perhaps wrong job_id was passed?'})
+                                                                               'request deta for the provided job_id could not be found, '
+                                                                               'this can be related to an internal error'})
 
     # extract user-provided instrument and product_type
     if 'instrument' in kwargs:
