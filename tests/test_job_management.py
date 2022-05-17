@@ -451,6 +451,46 @@ def validate_email_content(
                 assert products_url in content_text
 
 
+def validate_incident_email_content(
+        message_record,
+        dispatcher_test_conf,
+        dispatcher_job_state: DispatcherJobState,
+        time_request_str: str = None,
+        attachment=False,
+):
+
+    assert message_record['mail_from'] == dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_sender_email_address']
+
+    msg = email.message_from_string(message_record['data'])
+
+    assert msg['Subject'] == f"[ODA][Report] Incident at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+    assert msg['From'] == dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_sender_email_address']
+    assert msg['To'] == ", ".join(dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_receivers_email_addresses'])
+    assert msg.is_multipart()
+
+    for part in msg.walk():
+        content_text = None
+        # content_disposition = str(part.get("Content-Disposition"))
+        content_type = part.get_content_type()
+
+        # TODO to update this check when attachments will be used
+        # if "attachment" in content_disposition:
+            # extract the payload
+            # if attachment:
+
+        if content_type == 'text/plain':
+            content_text_plain = part.get_payload().replace('\r', '').strip()
+            content_text = content_text_plain
+        elif content_type == 'text/html':
+            content_text_html = part.get_payload().replace('\r', '').strip()
+            content_text = content_text_html
+
+        if content_text is not None:
+            assert re.search('A new incident has been reported to the dispatcher. More information can ben found below.', content_text, re.IGNORECASE)
+            assert re.search('Execution details', content_text, re.IGNORECASE)
+            assert re.search('Incident details', content_text, re.IGNORECASE)
+
+
 def get_expected_products_url(dict_param,
                               session_id,
                               token,
@@ -2260,7 +2300,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
         assert jdata['records'][0]['mtime'] == scratch_dir_mtime
 
 
-def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server):
+def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, dispatcher_test_conf):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
@@ -2285,10 +2325,11 @@ def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server):
                 max_time_s=150,
                 )
 
-    job_id = jdata['products']['job_id']
-    session_id = jdata['session_id']
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
 
-    scratch_dir_fn_list = glob.glob(f'scratch_sid_{session_id}_jid_{job_id}*')
+    scratch_dir_fn_list = glob.glob(f'scratch_sid_{dispatcher_job_state.session_id}_jid_{dispatcher_job_state.job_id}*')
     scratch_dir_fn = max(scratch_dir_fn_list, key=os.path.getctime)
 
     incident_content = 'test incident'
@@ -2296,12 +2337,21 @@ def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server):
     # for the email we only use the first 8 characters
     c = requests.post(os.path.join(server, "report_incident"),
                       params=dict(
-                          job_id=job_id,
-                          session_id=session_id,
+                          job_id=dispatcher_job_state.job_id,
+                          session_id=dispatcher_job_state.session_id,
                           token=encoded_token,
                           incident_content=incident_content,
+                          incident_time=time_request,
                           scratch_dir=scratch_dir_fn
                       ))
     jdata_incident_report = c.json()
 
+
     assert 'report_incident_status' in jdata_incident_report
+
+    validate_incident_email_content(
+        dispatcher_local_mail_server.get_email_record(),
+        dispatcher_test_conf,
+        dispatcher_job_state,
+        time_request_str=time_request_str
+    )
