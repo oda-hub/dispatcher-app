@@ -117,6 +117,23 @@ generalized_email_patterns = {
     ],
     'job_id': [
         '(job_id: )(.*?)(<)'
+    ],
+}
+
+generalized_incident_email_patterns = {
+    'job_id': [
+        '(job_id</span>: )(.*?)(<)',
+        '(job_id: )(.*?)(</title>)'
+    ],
+    'session_id': [
+        '(session_id</span>: )(.*?)(<)'
+    ],
+    'incident_time': [
+        '(Incident time</span>: )(.*?)(<)',
+        '( Incident at )(.*)( job_id)'
+    ],
+    'incident_report': [
+        '(Incident details</h3>\n\n    <div style="background-color: lightgray; display: inline-block; padding: 5px;">)(.*?)(</div>)',
     ]
 }
 
@@ -160,6 +177,16 @@ def get_reference_email(**email_args):
             return None
 
 
+def get_incident_report_reference_email(**email_args):
+    fn = os.path.join('reference_emails', 'incident_report.html')
+
+    try:
+        html_content = open(fn).read()
+        return adapt_html(html_content, patterns=generalized_incident_email_patterns, **email_args)
+    except FileNotFoundError:
+        return None
+
+
 def get_reference_attachment(**email_attachment_args):
     fn = os.path.abspath(email_attachment_args_to_filename(**{**email_attachment_args, 'email_collection': 'reference'}))
     try:
@@ -170,8 +197,10 @@ def get_reference_attachment(**email_attachment_args):
 
 
 # substitute several patterns for comparison
-def adapt_html(html_content, **email_args):
-    for arg, patterns in generalized_email_patterns.items():
+def adapt_html(html_content, patterns=None, **email_args,):
+    if patterns is None:
+        patterns = generalized_email_patterns
+    for arg, patterns in patterns.items():
         if arg in email_args and email_args[arg] is not None:
             for pattern in patterns:
                 html_content = re.sub(pattern, r"\g<1>" + email_args[arg] + r"\g<3>", html_content)
@@ -455,7 +484,7 @@ def validate_incident_email_content(
         message_record,
         dispatcher_test_conf,
         dispatcher_job_state: DispatcherJobState,
-        time_request_str: str = None,
+        incident_time_str: str = None,
         incident_report_str: str = None,
         attachment=False,
 ):
@@ -464,10 +493,16 @@ def validate_incident_email_content(
 
     msg = email.message_from_string(message_record['data'])
 
-    assert msg['Subject'] == f"[ODA][Report] Incident at {time_request_str} job_id: {dispatcher_job_state.job_id}"
+    assert msg['Subject'] == f"[ODA][Report] Incident at {incident_time_str} job_id: {dispatcher_job_state.job_id}"
     assert msg['From'] == dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_sender_email_address']
     assert msg['To'] == ", ".join(dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_receivers_email_addresses'])
     assert msg.is_multipart()
+
+    reference_email = get_incident_report_reference_email(incident_time=incident_time_str,
+                                                          job_id=dispatcher_job_state.job_id,
+                                                          session_id=dispatcher_job_state.session_id,
+                                                          incident_report=incident_report_str
+                                                          )
 
     for part in msg.walk():
         content_text = None
@@ -495,8 +530,8 @@ def validate_incident_email_content(
             content_text = content_text_html
 
             if reference_email is not None:
-                open("adapted_reference.html", "w").write(ignore_html_patterns(reference_email))
-                assert ignore_html_patterns(reference_email) == ignore_html_patterns(content_text_html), f"please inspect {fn} and possibly copy it to {fn.replace('to_review', 'reference')}"
+                open("adapted_incident_reference.html", "w").write(ignore_html_patterns(reference_email))
+                assert ignore_html_patterns(reference_email) == ignore_html_patterns(content_text_html)
 
 
 
@@ -2362,6 +2397,6 @@ def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, 
         dispatcher_local_mail_server.get_email_record(),
         dispatcher_test_conf,
         dispatcher_job_state,
-        time_request_str=time_request_str,
+        incident_time_str=time_request_str,
         incident_report_str=incident_content
     )
