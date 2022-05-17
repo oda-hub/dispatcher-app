@@ -464,7 +464,7 @@ def validate_incident_email_content(
 
     msg = email.message_from_string(message_record['data'])
 
-    assert msg['Subject'] == f"[ODA][Report] Incident at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+    assert msg['Subject'] == f"[ODA][Report] Incident at {time_request_str} job_id: {dispatcher_job_state.job_id}"
     assert msg['From'] == dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_sender_email_address']
     assert msg['To'] == ", ".join(dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_receivers_email_addresses'])
     assert msg.is_multipart()
@@ -482,16 +482,23 @@ def validate_incident_email_content(
         if content_type == 'text/plain':
             content_text_plain = part.get_payload().replace('\r', '').strip()
             content_text = content_text_plain
+            if content_text is not None:
+                assert re.search('A new incident has been reported to the dispatcher. More information can ben found below.', content_text, re.IGNORECASE)
+                assert re.search('Execution details', content_text, re.IGNORECASE)
+                assert re.search('Incident details', content_text, re.IGNORECASE)
+                assert re.search(f'job_id: {dispatcher_job_state.job_id}', content_text, re.IGNORECASE)
+                assert re.search(f'session_id: {dispatcher_job_state.session_id}', content_text, re.IGNORECASE)
+                if incident_report_str is not None:
+                    assert re.search(incident_report_str, content_text, re.IGNORECASE)
         elif content_type == 'text/html':
             content_text_html = part.get_payload().replace('\r', '').strip()
             content_text = content_text_html
 
-        if content_text is not None:
-            assert re.search('A new incident has been reported to the dispatcher. More information can ben found below.', content_text, re.IGNORECASE)
-            assert re.search('Execution details', content_text, re.IGNORECASE)
-            assert re.search('Incident details', content_text, re.IGNORECASE)
-            if incident_report_str is not None:
-                assert re.search(incident_report_str, content_text, re.IGNORECASE)
+            if reference_email is not None:
+                open("adapted_reference.html", "w").write(ignore_html_patterns(reference_email))
+                assert ignore_html_patterns(reference_email) == ignore_html_patterns(content_text_html), f"please inspect {fn} and possibly copy it to {fn.replace('to_review', 'reference')}"
+
+
 
 
 def get_expected_products_url(dict_param,
