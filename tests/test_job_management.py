@@ -456,6 +456,7 @@ def validate_incident_email_content(
         dispatcher_test_conf,
         dispatcher_job_state: DispatcherJobState,
         time_request_str: str = None,
+        incident_report_str: str = None,
         attachment=False,
 ):
 
@@ -489,6 +490,8 @@ def validate_incident_email_content(
             assert re.search('A new incident has been reported to the dispatcher. More information can ben found below.', content_text, re.IGNORECASE)
             assert re.search('Execution details', content_text, re.IGNORECASE)
             assert re.search('Incident details', content_text, re.IGNORECASE)
+            if incident_report_str is not None:
+                assert re.search(incident_report_str, content_text, re.IGNORECASE)
 
 
 def get_expected_products_url(dict_param,
@@ -2346,12 +2349,12 @@ def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, 
                       ))
     jdata_incident_report = c.json()
 
-
     assert 'report_incident_status' in jdata_incident_report
 
     validate_incident_email_content(
         dispatcher_local_mail_server.get_email_record(),
         dispatcher_test_conf,
         dispatcher_job_state,
-        time_request_str=time_request_str
+        time_request_str=time_request_str,
+        incident_report_str=incident_content
     )
