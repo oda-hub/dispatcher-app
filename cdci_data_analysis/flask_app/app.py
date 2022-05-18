@@ -608,20 +608,20 @@ def report_incident():
     app_config = app.config.get('conf')
 
     token = request.args.get('token', None)
+    decoded_token = None
     if token is None:
         logger.info("a token has not been provided")
     else:
         try:
             secret_key = app_config.secret_key
             decoded_token = tokenHelper.get_decoded_token(token, secret_key)
-            logger.info("==> token %s", decoded_token)
+            logger.info(f"token {decoded_token}")
         except jwt.exceptions.ExpiredSignatureError:
             logger.info("the provided token is expired")
         except jwt.exceptions.InvalidTokenError:
             logger.info("the provided token is not valid")
 
     par_dic = request.values.to_dict()
-    token = par_dic.get('token', None)
     job_id = par_dic.get('job_id')
     session_id = par_dic.get('session_id')
     scratch_dir = par_dic.get('scratch_dir')
