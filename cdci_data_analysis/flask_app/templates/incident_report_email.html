@@ -18,6 +18,9 @@
         <li><div style="font-weight:300;"><span style="font-weight: bold;">Incident time</span>: {{ request.incident_time | timestamp2isot }}</div></li>
         <li><div style="font-weight:300;"><span style="font-weight: bold;">job_id</span>: {{ request.job_id }}</div></li>
         <li><div style="font-weight:300;"><span style="font-weight: bold;">session_id</span>: {{ request.session_id }}</div></li>
+{% if request.decoded_token != null %}
+        <li><div style="font-weight:300;"><span style="font-weight: bold;">user email address</span>: {{ request.decoded_token.sub }}</div></li>
+{% endif %}
     </ul>
 </div>
 

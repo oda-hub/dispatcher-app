@@ -134,6 +134,9 @@ generalized_incident_email_patterns = {
     ],
     'incident_report': [
         '(Incident details</h3>\n\n    <div style="background-color: lightgray; display: inline-block; padding: 5px;">)(.*?)(</div>)',
+    ],
+    'user_email_address': [
+        '(user email address</span>: )(.*?)(<)'
     ]
 }
 
@@ -486,7 +489,8 @@ def validate_incident_email_content(
         dispatcher_job_state: DispatcherJobState,
         incident_time_str: str = None,
         incident_report_str: str = None,
-        attachment=False,
+        decoded_token = None,
+        attachment=False
 ):
 
     assert message_record['mail_from'] == dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_sender_email_address']
@@ -501,7 +505,8 @@ def validate_incident_email_content(
     reference_email = get_incident_report_reference_email(incident_time=incident_time_str,
                                                           job_id=dispatcher_job_state.job_id,
                                                           session_id=dispatcher_job_state.session_id,
-                                                          incident_report=incident_report_str
+                                                          incident_report=incident_report_str,
+                                                          user_email_address=decoded_token.get('sub', None)
                                                           )
 
     for part in msg.walk():
@@ -523,6 +528,8 @@ def validate_incident_email_content(
                 assert re.search('Incident details', content_text, re.IGNORECASE)
                 assert re.search(f'job_id: {dispatcher_job_state.job_id}', content_text, re.IGNORECASE)
                 assert re.search(f'session_id: {dispatcher_job_state.session_id}', content_text, re.IGNORECASE)
+                if decoded_token is not None:
+                    assert re.search(f'user email address: {decoded_token["sub"]}', content_text, re.IGNORECASE)
                 if incident_report_str is not None:
                     assert re.search(incident_report_str, content_text, re.IGNORECASE)
         elif content_type == 'text/html':
@@ -2349,12 +2356,7 @@ def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, 
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
-    # expired token
-    token_payload = {
-        **default_token_payload,
-        "roles": "unige-hpc-full, incident reporter"
-    }
-    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
 
     params = {
         'query_status': 'new',
@@ -2398,5 +2400,6 @@ def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, 
         dispatcher_test_conf,
         dispatcher_job_state,
         incident_time_str=time_request_str,
-        incident_report_str=incident_content
+        incident_report_str=incident_content,
+        decoded_token=default_token_payload
     )
