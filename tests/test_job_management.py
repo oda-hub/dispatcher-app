@@ -502,11 +502,14 @@ def validate_incident_email_content(
     assert msg['To'] == ", ".join(dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_receivers_email_addresses'])
     assert msg.is_multipart()
 
+    user_email_address = ""
+    if decoded_token is not None:
+        user_email_address = decoded_token.get('sub', None)
     reference_email = get_incident_report_reference_email(incident_time=incident_time_str,
                                                           job_id=dispatcher_job_state.job_id,
                                                           session_id=dispatcher_job_state.session_id,
                                                           incident_report=incident_report_str,
-                                                          user_email_address=decoded_token.get('sub', None)
+                                                          user_email_address=user_email_address
                                                           )
 
     for part in msg.walk():
@@ -539,8 +542,6 @@ def validate_incident_email_content(
             if reference_email is not None:
                 open("adapted_incident_reference.html", "w").write(ignore_html_patterns(reference_email))
                 assert ignore_html_patterns(reference_email) == ignore_html_patterns(content_text_html)
-
-
 
 
 def get_expected_products_url(dict_param,
@@ -2352,19 +2353,24 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
         assert jdata['records'][0]['mtime'] == scratch_dir_mtime
 
 
-def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, dispatcher_test_conf):
+@pytest.mark.parametrize("provide_token", [True, False])
+def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, dispatcher_test_conf, provide_token):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
-    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
 
     params = {
         'query_status': 'new',
         'product_type': 'dummy',
         'query_type': "Dummy",
         'instrument': 'empty',
-        'token': encoded_token
     }
+    encoded_token = None
+    decoded_token = None
+    if provide_token:
+        decoded_token = default_token_payload
+        encoded_token = jwt.encode(decoded_token, secret_key, algorithm='HS256')
+        params['token'] = encoded_token
 
     jdata = ask(server,
                 params,
@@ -2401,5 +2407,5 @@ def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, 
         dispatcher_job_state,
         incident_time_str=time_request_str,
         incident_report_str=incident_content,
-        decoded_token=default_token_payload
+        decoded_token=decoded_token
     )
