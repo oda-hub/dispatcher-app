@@ -117,6 +117,26 @@ generalized_email_patterns = {
     ],
     'job_id': [
         '(job_id: )(.*?)(<)'
+    ],
+}
+
+generalized_incident_email_patterns = {
+    'job_id': [
+        '(job_id</span>: )(.*?)(<)',
+        '(job_id: )(.*?)(</title>)'
+    ],
+    'session_id': [
+        '(session_id</span>: )(.*?)(<)'
+    ],
+    'incident_time': [
+        '(Incident time</span>: )(.*?)(<)',
+        '( Incident at )(.*)( job_id)'
+    ],
+    'incident_report': [
+        '(Incident details</h3>\n\n    <div style="background-color: lightgray; display: inline-block; padding: 5px;">)(.*?)(</div>)',
+    ],
+    'user_email_address': [
+        '(user email address</span>: )(.*?)(<)'
     ]
 }
 
@@ -160,6 +180,16 @@ def get_reference_email(**email_args):
             return None
 
 
+def get_incident_report_reference_email(**email_args):
+    fn = os.path.join('reference_emails', 'incident_report.html')
+
+    try:
+        html_content = open(fn).read()
+        return adapt_html(html_content, patterns=generalized_incident_email_patterns, **email_args)
+    except FileNotFoundError:
+        return None
+
+
 def get_reference_attachment(**email_attachment_args):
     fn = os.path.abspath(email_attachment_args_to_filename(**{**email_attachment_args, 'email_collection': 'reference'}))
     try:
@@ -170,8 +200,10 @@ def get_reference_attachment(**email_attachment_args):
 
 
 # substitute several patterns for comparison
-def adapt_html(html_content, **email_args):
-    for arg, patterns in generalized_email_patterns.items():
+def adapt_html(html_content, patterns=None, **email_args,):
+    if patterns is None:
+        patterns = generalized_email_patterns
+    for arg, patterns in patterns.items():
         if arg in email_args and email_args[arg] is not None:
             for pattern in patterns:
                 html_content = re.sub(pattern, r"\g<1>" + email_args[arg] + r"\g<3>", html_content)
@@ -449,6 +481,67 @@ def validate_email_content(
 
             if products_url is not None and products_url != "":
                 assert products_url in content_text
+
+
+def validate_incident_email_content(
+        message_record,
+        dispatcher_test_conf,
+        dispatcher_job_state: DispatcherJobState,
+        incident_time_str: str = None,
+        incident_report_str: str = None,
+        decoded_token = None,
+        attachment=False
+):
+
+    assert message_record['mail_from'] == dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_sender_email_address']
+
+    msg = email.message_from_string(message_record['data'])
+
+    assert msg['Subject'] == f"[ODA][Report] Incident at {incident_time_str} job_id: {dispatcher_job_state.job_id}"
+    assert msg['From'] == dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_sender_email_address']
+    assert msg['To'] == ", ".join(dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_receivers_email_addresses'])
+    assert msg.is_multipart()
+
+    user_email_address = ""
+    if decoded_token is not None:
+        user_email_address = decoded_token.get('sub', None)
+    reference_email = get_incident_report_reference_email(incident_time=incident_time_str,
+                                                          job_id=dispatcher_job_state.job_id,
+                                                          session_id=dispatcher_job_state.session_id,
+                                                          incident_report=incident_report_str,
+                                                          user_email_address=user_email_address
+                                                          )
+
+    for part in msg.walk():
+        content_text = None
+        # content_disposition = str(part.get("Content-Disposition"))
+        content_type = part.get_content_type()
+
+        # TODO to update this check when attachments will be used
+        # if "attachment" in content_disposition:
+            # extract the payload
+            # if attachment:
+
+        if content_type == 'text/plain':
+            content_text_plain = part.get_payload().replace('\r', '').strip()
+            content_text = content_text_plain
+            if content_text is not None:
+                assert re.search('A new incident has been reported to the dispatcher. More information can ben found below.', content_text, re.IGNORECASE)
+                assert re.search('Execution details', content_text, re.IGNORECASE)
+                assert re.search('Incident details', content_text, re.IGNORECASE)
+                assert re.search(f'job_id: {dispatcher_job_state.job_id}', content_text, re.IGNORECASE)
+                assert re.search(f'session_id: {dispatcher_job_state.session_id}', content_text, re.IGNORECASE)
+                if decoded_token is not None:
+                    assert re.search(f'user email address: {decoded_token["sub"]}', content_text, re.IGNORECASE)
+                if incident_report_str is not None:
+                    assert re.search(incident_report_str, content_text, re.IGNORECASE)
+        elif content_type == 'text/html':
+            content_text_html = part.get_payload().replace('\r', '').strip()
+            content_text = content_text_html
+
+            if reference_email is not None:
+                open("adapted_incident_reference.html", "w").write(ignore_html_patterns(reference_email))
+                assert ignore_html_patterns(reference_email) == ignore_html_patterns(content_text_html)
 
 
 def get_expected_products_url(dict_param,
@@ -2258,3 +2351,75 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
 
         assert jdata['records'][0]['ctime'] == scratch_dir_ctime
         assert jdata['records'][0]['mtime'] == scratch_dir_mtime
+
+
+@pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
+def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, dispatcher_test_conf, request_cred):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+    }
+    encoded_token = None
+    decoded_token = None
+    error_message = None
+
+    if request_cred == 'invalid_token':
+        # an invalid (encoded) token, just a string
+        encoded_token = 'invalid_token'
+        error_message = 'The token provided is not valid.'
+    elif request_cred == 'public':
+        error_message = 'A token must be provided.'
+    elif request_cred == 'valid_token':
+        decoded_token = default_token_payload
+        encoded_token = jwt.encode(decoded_token, secret_key, algorithm='HS256')
+        params['token'] = encoded_token
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    scratch_dir_fn_list = glob.glob(f'scratch_sid_{dispatcher_job_state.session_id}_jid_{dispatcher_job_state.job_id}*')
+    scratch_dir_fn = max(scratch_dir_fn_list, key=os.path.getctime)
+
+    incident_content = 'test incident'
+
+    # for the email we only use the first 8 characters
+    c = requests.post(os.path.join(server, "report_incident"),
+                      params=dict(
+                          job_id=dispatcher_job_state.job_id,
+                          session_id=dispatcher_job_state.session_id,
+                          token=encoded_token,
+                          incident_content=incident_content,
+                          incident_time=time_request,
+                          scratch_dir=scratch_dir_fn
+                      ))
+
+    if request_cred != 'valid_token':
+        # email not supposed to be sent for public request
+        assert c.status_code == 403
+        assert c.text == error_message
+    else:
+        jdata_incident_report = c.json()
+
+        assert 'report_incident_status' in jdata_incident_report
+
+        validate_incident_email_content(
+            dispatcher_local_mail_server.get_email_record(),
+            dispatcher_test_conf,
+            dispatcher_job_state,
+            incident_time_str=time_request_str,
+            incident_report_str=incident_content,
+            decoded_token=decoded_token
+        )

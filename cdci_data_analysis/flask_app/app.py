@@ -23,7 +23,7 @@ from flask_restx import Api, Resource, reqparse
 import time as _time
 from urllib.parse import urlencode
 
-from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper
+from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper, email_helper
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError
@@ -34,7 +34,7 @@ from ..analysis.queries import *
 from ..analysis.io_helper import FitsFile
 from ..analysis.plot_tools import Image
 from .dispatcher_query import InstrumentQueryBackEnd
-from ..analysis.exceptions import APIerror
+from ..analysis.exceptions import APIerror, MissingRequestParameter
 from ..app_logging import app_logging
 
 from ..analysis.json import CustomJSONEncoder
@@ -485,7 +485,8 @@ def resolve_name():
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
-    output, output_code = drupal_helper.validate_token_gallery_request(token=token, secret_key=secret_key)
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'])
 
     if output_code is not None:
         return make_response(output, output_code)
@@ -509,7 +510,8 @@ def get_revnum():
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
-    output, output_code = drupal_helper.validate_token_gallery_request(token=token, secret_key=secret_key)
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'])
 
     if output_code is not None:
         return make_response(output, output_code)
@@ -530,7 +532,8 @@ def get_list_terms():
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
-    output, output_code = drupal_helper.validate_token_gallery_request(token=token, secret_key=secret_key)
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'])
 
     if output_code is not None:
         return make_response(output, output_code)
@@ -556,7 +559,8 @@ def get_parents_term():
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
-    output, output_code = drupal_helper.validate_token_gallery_request(token=token, secret_key=secret_key)
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'])
 
     if output_code is not None:
         return make_response(output, output_code)
@@ -584,7 +588,8 @@ def post_product_to_gallery():
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
-    output, output_code = drupal_helper.validate_token_gallery_request(token=token, secret_key=secret_key)
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'])
 
     if output_code is not None:
         return make_response(output, output_code)
@@ -599,6 +604,58 @@ def post_product_to_gallery():
                                                         **par_dic)
 
     return output_post
+
+
+@app.route('/report_incident', methods=['POST'])
+def report_incident():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key)
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    job_id = par_dic.get('job_id')
+    session_id = par_dic.get('session_id')
+    scratch_dir = par_dic.get('scratch_dir')
+    incident_content = par_dic.get('incident_content')
+    incident_time = par_dic.get('incident_time', _time.time())
+    try:
+        email_helper.send_incident_report_email(
+            config=app_config,
+            job_id=job_id,
+            session_id=session_id,
+            logger=logger,
+            decoded_token=decoded_token,
+            incident_content=incident_content,
+            incident_time=incident_time,
+            scratch_dir=scratch_dir
+        )
+        report_incident_status = 'incident report email successfully sent'
+    except email_helper.EMailNotSent as e:
+        report_incident_status = 'sending email failed'
+        logging.warning(f'email sending failed: {e}')
+        sentry_url = getattr(app.config.get('conf'), 'sentry_url', None)
+        if sentry_url is not None:
+            sentry_client = Sentry(app, dsn=sentry_url)
+            sentry_client.capture('raven.events.Message',
+                                  message=f'sending email failed {e}')
+        else:
+            logger.warning("sentry not used")
+    except MissingRequestParameter as e:
+        report_incident_status = 'sending email failed'
+        logging.warning(f'parameter missing during call back: {e}')
+
+    response = jsonify({'report_incident_status': report_incident_status})
+
+    return response
 
 
 @ns_conf.route('/js9/<path:path>', methods=['GET', 'POST'])
