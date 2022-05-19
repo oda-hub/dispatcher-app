@@ -933,6 +933,12 @@ class InstrumentQueryBackEnd:
                 email_api_code = DispatcherAPI.set_api_code(original_request_par_dic,
                                                             url=self.app.config['conf'].products_url + "/dispatch-data"
                                                             )
+                time_request_first_submitted = email_helper.get_first_submitted_email_time(self.job_id)
+                if time_request_first_submitted is None:
+                    time_request = time_request_first_submitted
+                else:
+                    time_request = time_original_request
+
                 email_helper.send_email(
                     config=self.app.config['conf'],
                     logger=self.logger,
@@ -943,7 +949,7 @@ class InstrumentQueryBackEnd:
                     status=status,
                     instrument=instrument_name,
                     product_type=product_type,
-                    time_request=time_original_request,
+                    time_request=time_request,
                     request_url=products_url,
                     # products_url is frontend URL, clickable by users.
                     # dispatch-data is how frontend is referring to the dispatcher, it's fixed in frontend-astrooda code
