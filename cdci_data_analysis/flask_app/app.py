@@ -226,35 +226,19 @@ def push_renku_branch():
     logger.info("request.args: %s ", request.args)
 
     token = request.args.get('token', None)
-    if token is None:
-        return make_response('A token must be provided.'), 403
-    try:
-        app_config = app.config.get('conf')
-        secret_key = app_config.secret_key
-        decoded_token = tokenHelper.get_decoded_token(token, secret_key)
-        logger.info("==> token %s", decoded_token)
-    except jwt.exceptions.ExpiredSignatureError:
-        # raise RequestNotAuthorized("The token provided is expired.")
-        return make_response('The token provided is expired.'), 403
-    except jwt.exceptions.InvalidTokenError:
-        # raise RequestNotAuthorized("The token provided is not valid.")
-        return make_response('The token provided is not valid.'), 403
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
 
-    roles = tokenHelper.get_token_roles(decoded_token)
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['renku contributor'],
+                                                                  action="perform this operation")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
     user_name = tokenHelper.get_token_user(decoded_token)
     user_email = tokenHelper.get_token_user_email_address(decoded_token)
-
-    # TODO could not think of better name
-    required_roles = ['renku contributor']
-    if not all(item in roles for item in required_roles):
-        lacking_roles = "\n".join(['- ' + r for r in sorted(list(set(required_roles) - set(roles)))])
-        message = (
-            f"Unfortunately, your privileges are not sufficient to perform this operation, "
-            f"the following roles are missing:\n\n{lacking_roles}\n\n"
-            f"If you are interested in exploring this functionality you can contact us by clicking the button \"Contact us\" "
-            f"at the top of the page and request to have this role assigned."
-        )
-        return make_response(message), 403
 
     par_dic = request.values.to_dict()
     par_dic.pop('token')
@@ -486,7 +470,8 @@ def resolve_name():
     secret_key = app_config.secret_key
 
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                  required_roles=['gallery contributor'])
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
 
     if output_code is not None:
         return make_response(output, output_code)
@@ -511,7 +496,8 @@ def get_revnum():
     secret_key = app_config.secret_key
 
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                  required_roles=['gallery contributor'])
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
 
     if output_code is not None:
         return make_response(output, output_code)
@@ -533,7 +519,8 @@ def get_list_terms():
     secret_key = app_config.secret_key
 
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                  required_roles=['gallery contributor'])
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
 
     if output_code is not None:
         return make_response(output, output_code)
@@ -560,7 +547,8 @@ def get_parents_term():
     secret_key = app_config.secret_key
 
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                  required_roles=['gallery contributor'])
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
 
     if output_code is not None:
         return make_response(output, output_code)
@@ -589,7 +577,8 @@ def post_product_to_gallery():
     secret_key = app_config.secret_key
 
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                  required_roles=['gallery contributor'])
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
 
     if output_code is not None:
         return make_response(output, output_code)

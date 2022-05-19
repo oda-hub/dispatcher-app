@@ -93,7 +93,7 @@ def update_token_email_options(token, secret_key, new_options):
     return updated_token
 
 
-def validate_token_from_request(token, secret_key, required_roles=None):
+def validate_token_from_request(token, secret_key, required_roles=None, action=""):
     if token is None:
         return 'A token must be provided.', 403
     try:
@@ -112,7 +112,7 @@ def validate_token_from_request(token, secret_key, required_roles=None):
     if not all(item in roles for item in required_roles):
         lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
         message = (
-            f"Unfortunately, your privileges are not sufficient to post in the product gallery.\n"
+            f"Unfortunately, your privileges are not sufficient to {action}.\n"
             f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
         )
         return message, 403
