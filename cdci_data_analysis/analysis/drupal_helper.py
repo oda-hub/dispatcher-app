@@ -37,31 +37,6 @@ class ContentType(Enum):
     ASTROPHYSICAL_ENTITY = auto()
 
 
-def validate_token_gallery_request(token, secret_key):
-    if token is None:
-        return 'A token must be provided.', 403
-    try:
-        decoded_token = tokenHelper.get_decoded_token(token, secret_key)
-        logger.info("==> token %s", decoded_token)
-    except jwt.exceptions.ExpiredSignatureError:
-        return 'The token provided is expired.', 403
-    except jwt.exceptions.InvalidTokenError:
-        return 'The token provided is not valid.', 403
-
-    roles = tokenHelper.get_token_roles(decoded_token)
-
-    required_roles = ['gallery contributor']
-    if not all(item in roles for item in required_roles):
-        lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
-        message = (
-            f"Unfortunately, your privileges are not sufficient to post in the product gallery.\n"
-            f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
-        )
-        return message, 403
-
-    return decoded_token, None
-
-
 def analyze_drupal_output(drupal_output, operation_performed=None):
     if drupal_output.status_code < 200 or drupal_output.status_code >= 300:
         logger.warning(f'error while performing the following operation on the product gallery: {operation_performed}')

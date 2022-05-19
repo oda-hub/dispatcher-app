@@ -933,7 +933,7 @@ class InstrumentQueryBackEnd:
                 email_api_code = DispatcherAPI.set_api_code(original_request_par_dic,
                                                             url=self.app.config['conf'].products_url + "/dispatch-data"
                                                             )
-                email_helper.send_email(
+                email_helper.send_job_email(
                     config=self.app.config['conf'],
                     logger=self.logger,
                     decoded_token=self.decoded_token,
@@ -1697,7 +1697,7 @@ class InstrumentQueryBackEnd:
                             email_api_code = DispatcherAPI.set_api_code(self.par_dic,
                                                                         url=self.app.config['conf'].products_url + "/dispatch-data"
                                                                         )
-                            email_helper.send_email(
+                            email_helper.send_job_email(
                                 config=self.app.config['conf'],
                                 logger=self.logger,
                                 decoded_token=self.decoded_token,
