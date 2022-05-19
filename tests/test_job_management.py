@@ -2353,8 +2353,8 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
         assert jdata['records'][0]['mtime'] == scratch_dir_mtime
 
 
-@pytest.mark.parametrize("provide_token", [True, False])
-def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, dispatcher_test_conf, provide_token):
+@pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
+def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, dispatcher_test_conf, request_cred):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
@@ -2367,7 +2367,15 @@ def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, 
     }
     encoded_token = None
     decoded_token = None
-    if provide_token:
+    error_message = None
+
+    if request_cred == 'invalid_token':
+        # an invalid (encoded) token, just a string
+        encoded_token = 'invalid_token'
+        error_message = 'The token provided is not valid.'
+    elif request_cred == 'public':
+        error_message = 'A token must be provided.'
+    elif request_cred == 'valid_token':
         decoded_token = default_token_payload
         encoded_token = jwt.encode(decoded_token, secret_key, algorithm='HS256')
         params['token'] = encoded_token
@@ -2397,15 +2405,21 @@ def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, 
                           incident_time=time_request,
                           scratch_dir=scratch_dir_fn
                       ))
-    jdata_incident_report = c.json()
 
-    assert 'report_incident_status' in jdata_incident_report
+    if request_cred != 'valid_token':
+        # email not supposed to be sent for public request
+        assert c.status_code == 403
+        assert c.text == error_message
+    else:
+        jdata_incident_report = c.json()
 
-    validate_incident_email_content(
-        dispatcher_local_mail_server.get_email_record(),
-        dispatcher_test_conf,
-        dispatcher_job_state,
-        incident_time_str=time_request_str,
-        incident_report_str=incident_content,
-        decoded_token=decoded_token
-    )
+        assert 'report_incident_status' in jdata_incident_report
+
+        validate_incident_email_content(
+            dispatcher_local_mail_server.get_email_record(),
+            dispatcher_test_conf,
+            dispatcher_job_state,
+            incident_time_str=time_request_str,
+            incident_report_str=incident_content,
+            decoded_token=decoded_token
+        )
