@@ -605,21 +605,20 @@ def post_product_to_gallery():
 def report_incident():
     logger.info("request.args: %s ", request.args)
     logger.info("request.files: %s ", request.files)
-    app_config = app.config.get('conf')
 
     token = request.args.get('token', None)
-    decoded_token = None
+    app_config = app.config.get('conf')
+
     if token is None:
-        logger.info("a token has not been provided")
-    else:
-        try:
-            secret_key = app_config.secret_key
-            decoded_token = tokenHelper.get_decoded_token(token, secret_key)
-            logger.info(f"token {decoded_token}")
-        except jwt.exceptions.ExpiredSignatureError:
-            logger.info("the provided token is expired")
-        except jwt.exceptions.InvalidTokenError:
-            logger.info("the provided token is not valid")
+        return make_response('A token must be provided.'), 403
+    try:
+        secret_key = app_config.secret_key
+        decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+        logger.info("==> token %s", decoded_token)
+    except jwt.exceptions.ExpiredSignatureError:
+        return make_response('The token provided is expired.'), 403
+    except jwt.exceptions.InvalidTokenError:
+        return make_response('The token provided is not valid.'), 403
 
     par_dic = request.values.to_dict()
     job_id = par_dic.get('job_id')
