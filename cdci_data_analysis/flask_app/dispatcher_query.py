@@ -1697,6 +1697,10 @@ class InstrumentQueryBackEnd:
                             email_api_code = DispatcherAPI.set_api_code(self.par_dic,
                                                                         url=self.app.config['conf'].products_url + "/dispatch-data"
                                                                         )
+                            time_request = email_helper.get_first_submitted_email_time(self.job_id)
+                            if time_request is None:
+                                time_request = self.time_request
+
                             email_helper.send_email(
                                 config=self.app.config['conf'],
                                 logger=self.logger,
@@ -1707,7 +1711,7 @@ class InstrumentQueryBackEnd:
                                 status=query_new_status,
                                 instrument=self.instrument.name,
                                 product_type=product_type,
-                                time_request=self.time_request,
+                                time_request=time_request,
                                 request_url=products_url,
                                 api_code=email_api_code,
                                 scratch_dir=self.scratch_dir)

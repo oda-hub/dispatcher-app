@@ -170,6 +170,23 @@ def check_scw_list_length(
         return False
 
 
+def get_first_submitted_email_time(job_id):
+    first_submitted_email_time = None
+    email_history_dirs_same_job_id = f"scratch_*_{job_id}*/email_history"
+    # find all
+    submitted_email_pattern = os.path.join(
+        email_history_dirs_same_job_id,
+        'email_submitted_*.email'
+    )
+    submitted_email_files = sorted(glob.glob(submitted_email_pattern), key=os.path.getmtime)
+
+    if len(submitted_email_files) >= 1:
+        f_name, f_ext = os.path.splitext(os.path.basename(submitted_email_files[0]))
+        first_submitted_email_time = float(f_name.split('_')[2])
+
+    return first_submitted_email_time
+
+
 def send_email(
         config,
         logger,
