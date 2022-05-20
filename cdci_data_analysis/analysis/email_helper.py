@@ -176,6 +176,7 @@ def get_first_submitted_email_time(job_id, scratch_dir):
     # find all
     submitted_email_pattern = os.path.join(
         scratch_dir,
+        'email_history',
         'email_submitted_*.email'
     )
     submitted_email_files = sorted(glob.glob(submitted_email_pattern), key=os.path.getmtime)
