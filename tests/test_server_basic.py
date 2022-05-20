@@ -2063,7 +2063,6 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     repo_path = get_repo_path(repo_url)
     renku_project_url = f'{renku_base_project_url}/{repo_path}'
 
-    assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}"
 
     # validate content pushed
     repo = clone_renku_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
@@ -2072,6 +2071,8 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
 
     repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}')
     repo.git.pull("--set-upstream", repo.remote().name, str(repo.head.ref))
+    assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}&commit={repo.head.commit.hexsha}"
+
     api_code_file_path = os.path.join(repo.working_dir,  "_".join(["api_code", job_id]) + '.ipynb')
 
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)

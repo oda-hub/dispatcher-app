@@ -52,13 +52,14 @@ def push_api_code(api_code,
         logger.info(step)
 
         step = f'committing and pushing the api code to the renku repository'
-        commit_and_push_file(repo, new_file_path, user_name=user_name, user_email=user_email, products_url=products_url, request_dict=request_dict)
+        commit_info = commit_and_push_file(repo, new_file_path, user_name=user_name, user_email=user_email, products_url=products_url, request_dict=request_dict)
         logger.info(step)
 
         step = f'generating a valid url to start a new session on the new branch'
         renku_session_url = generate_renku_session_url(repo,
                                                        renku_base_project_url=renku_base_project_url,
-                                                       branch_name=branch_name)
+                                                       branch_name=branch_name,
+                                                       commit=commit_info.hexsha)
         logger.info(step)
 
     except Exception as e:
@@ -78,11 +79,11 @@ def push_api_code(api_code,
     return renku_session_url
 
 
-def generate_renku_session_url(repo, renku_base_project_url, branch_name):
+def generate_renku_session_url(repo, renku_base_project_url, branch_name, commit):
     original_url = repo.remotes.origin.url
     repo_path = get_repo_path(original_url)
     renku_project_url = f'{renku_base_project_url}/{repo_path}'
-    return f"{renku_project_url}/sessions/new?autostart=1&branch={branch_name}"
+    return f"{renku_project_url}/sessions/new?autostart=1&branch={branch_name}&commit={commit}"
     
 
 def get_repo_path(repository_url):
@@ -216,6 +217,8 @@ def commit_and_push_file(repo, file_path, user_name=None, user_email=None, produ
     # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
     push_info = repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref), "--force")
     logger.info("push operation complete")
+
+    return commit_info
 
 
 def remove_repository(repo, renku_repository_url):
