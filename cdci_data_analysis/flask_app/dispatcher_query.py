@@ -933,7 +933,7 @@ class InstrumentQueryBackEnd:
                 email_api_code = DispatcherAPI.set_api_code(original_request_par_dic,
                                                             url=self.app.config['conf'].products_url + "/dispatch-data"
                                                             )
-                time_request_first_submitted = email_helper.get_first_submitted_email_time(self.job_id)
+                time_request_first_submitted = email_helper.get_first_submitted_email_time(self.job_id, self.scratch_dir)
                 if time_request_first_submitted is not None:
                     time_request = time_request_first_submitted
                 else:
@@ -1703,7 +1703,7 @@ class InstrumentQueryBackEnd:
                             email_api_code = DispatcherAPI.set_api_code(self.par_dic,
                                                                         url=self.app.config['conf'].products_url + "/dispatch-data"
                                                                         )
-                            time_request_first_submitted = email_helper.get_first_submitted_email_time(self.job_id)
+                            time_request_first_submitted = email_helper.get_first_submitted_email_time(self.job_id, self.scratch_dir)
                             if time_request_first_submitted is None:
                                 time_request = self.time_request
 

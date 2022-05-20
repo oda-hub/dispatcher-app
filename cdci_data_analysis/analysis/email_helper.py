@@ -170,12 +170,12 @@ def check_scw_list_length(
         return False
 
 
-def get_first_submitted_email_time(job_id):
+def get_first_submitted_email_time(job_id, scratch_dir):
     first_submitted_email_time = None
     email_history_dirs_same_job_id = f"scratch_*_{job_id}*/email_history"
     # find all
     submitted_email_pattern = os.path.join(
-        email_history_dirs_same_job_id,
+        scratch_dir,
         'email_submitted_*.email'
     )
     submitted_email_files = sorted(glob.glob(submitted_email_pattern), key=os.path.getmtime)
