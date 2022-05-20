@@ -380,46 +380,8 @@ def post_content_to_gallery(decoded_token,
     content_type = ContentType[str.upper(par_dic.pop('content_type', 'article'))]
     fits_file_fid_list = None
     img_fid = None
-    data_product_id = None
     product_title = None
     if content_type == content_type.DATA_PRODUCT:
-        # TODO perhaps there's a smarter way to do this
-        update_data_product = par_dic.pop('update_data_product', 'False') == 'True'
-        job_id = par_dic.get('job_id', None)
-        if update_data_product and job_id is not None:
-            logger.info(f"retrieving data-products with the provided job_id: {job_id}")
-            job_id_data_product_list = get_data_product_list_by_job_id(product_gallery_url=product_gallery_url,
-                                                                       gallery_jwt_token=gallery_jwt_token,
-                                                                       job_id=job_id,
-                                                                       sentry_client=sentry_client)
-            if len(job_id_data_product_list) > 0:
-                if len(job_id_data_product_list) > 1:
-                    logger.info(f"more than one data-product with job_id {job_id} has been found, the first one will be updated")
-                # TODO updates only the first (which is also the most recently updated), update them all?
-                data_product_id = job_id_data_product_list[0]['nid']
-                product_title = job_id_data_product_list[0]['title']
-                logger.info(f"the data-product \"{product_title}\", id: {data_product_id} will be updated")
-                # delete them if new ones are uploaded
-                if 'field_fits_file' in job_id_data_product_list[0]:
-                    fits_files_to_upload = list(filter(lambda item: 'fits_file_' in item[0], files.items()))
-                    if len(fits_files_to_upload) > 0:
-                        # check in the new files there are new fits files to upload
-                        fits_file_fid_list_to_delete = job_id_data_product_list[0]['field_fits_file'].split(',')
-                        # delete the current one(s), and then the new one(s) will be uploaded
-                        for fits_file_id in fits_file_fid_list_to_delete:
-                            # delete the current one, and then the new one will be uploaded
-                            delete_file_gallery(product_gallery_url=product_gallery_url,
-                                                file_to_delete_id=fits_file_id,
-                                                gallery_jwt_token=gallery_jwt_token,
-                                                sentry_client=sentry_client)
-                if 'field_image_png' in job_id_data_product_list[0] and 'img' in files:
-                    img_fid_to_delete = job_id_data_product_list[0]['field_image_png']
-                    # delete the current one, and then the new one will be uploaded
-                    delete_file_gallery(product_gallery_url=product_gallery_url,
-                                        file_to_delete_id=img_fid_to_delete,
-                                        gallery_jwt_token=gallery_jwt_token,
-                                        sentry_client=sentry_client)
-
         # process files sent
         if files is not None:
             for f in files:
@@ -444,6 +406,7 @@ def post_content_to_gallery(decoded_token,
                         fits_file_fid_list = []
                     fits_file_fid_list.append(output_fits_file_post['fid'][0]['value'])
 
+        data_product_id = par_dic.get('nid', None)
         product_title = par_dic.pop('product_title', product_title)
         observation_id = par_dic.pop('observation_id', None)
         user_id_product_creator = par_dic.pop('user_id_product_creator')
