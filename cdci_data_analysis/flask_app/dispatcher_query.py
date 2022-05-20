@@ -939,7 +939,7 @@ class InstrumentQueryBackEnd:
                 else:
                     time_request = time_original_request
 
-                email_helper.send_email(
+                email_helper.send_job_email(
                     config=self.app.config['conf'],
                     logger=self.logger,
                     decoded_token=self.decoded_token,
