@@ -4,9 +4,10 @@ from marshmallow import ValidationError
 
 from cdci_data_analysis.analysis.exceptions import BadRequest
 from cdci_data_analysis.flask_app.schemas import EmailOptionsTokenSchema
-
+from cdci_data_analysis.app_logging import app_logging
 
 default_algorithm = 'HS256'
+logger = app_logging.getLogger('tokenHelper')
 
 
 def get_token_roles(decoded_token):
@@ -32,10 +33,6 @@ def get_token_user_email_address(decoded_token):
     if 'email' in decoded_token:
         return decoded_token['email']
     return ''
-
-
-def get_token_expiration_time(decoded_token):
-    return decoded_token['exp']
 
 
 def get_token_user_timeout_threshold_email(decoded_token):
@@ -96,4 +93,28 @@ def update_token_email_options(token, secret_key, new_options):
     return updated_token
 
 
+def validate_token_from_request(token, secret_key, required_roles=None, action=""):
+    if token is None:
+        return 'A token must be provided.', 403
+    try:
+        decoded_token = get_decoded_token(token, secret_key)
+        logger.info("==> token %s", decoded_token)
+    except jwt.exceptions.ExpiredSignatureError:
+        return 'The token provided is expired.', 403
+    except jwt.exceptions.InvalidTokenError:
+        return 'The token provided is not valid.', 403
 
+    roles = get_token_roles(decoded_token)
+
+    if required_roles is None:
+        required_roles = []
+
+    if not all(item in roles for item in required_roles):
+        lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+        message = (
+            f"Unfortunately, your privileges are not sufficient to {action}.\n"
+            f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
+        )
+        return message, 403
+
+    return decoded_token, None

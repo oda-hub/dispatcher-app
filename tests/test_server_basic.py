@@ -1,3 +1,6 @@
+import re
+import shutil
+
 import requests
 import time
 import json
@@ -6,19 +9,28 @@ import logging
 import jwt
 import glob
 import pytest
+from datetime import datetime, timedelta
+from dateutil import parser, tz
 from functools import reduce
+from urllib import parse
+import nbformat as nbf
 import yaml
 import gzip
+import random
+import string
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
+from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url
+from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers
 
 
 # logger
 logger = logging.getLogger(__name__)
 # symmetric shared secret for the decoding of the token
 secret_key = 'secretkey_test'
+
 """
 this will reproduce the entire flow of frontend-dispatcher, apart from receiving callback
 """
@@ -52,6 +64,7 @@ default_token_payload = dict(
 )
 
 
+@pytest.mark.fast
 def test_empty_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
@@ -121,6 +134,7 @@ def test_no_debug_mode_empty_request(dispatcher_live_fixture_no_debug_mode):
     logger.info(jdata['config'])
 
 
+@pytest.mark.fast
 def test_same_request_different_users(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -260,7 +274,7 @@ def test_consistency_parameters_json_dump_file(dispatcher_live_fixture, request_
 
     assert analysis_parameters_json_content == analysis_parameters_json_content_original
 
-
+@pytest.mark.fast
 def test_valid_token(dispatcher_live_fixture):
     server = dispatcher_live_fixture
 
@@ -292,10 +306,10 @@ def test_valid_token(dispatcher_live_fixture):
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
 
-
+@pytest.mark.fast
 @pytest.mark.parametrize("instrument", ["", "None", None, "undefined"])
-def test_download_products_public(dispatcher_live_fixture, empty_products_files_fixture, instrument):    
-    server = dispatcher_live_fixture
+def test_download_products_public(dispatcher_long_living_fixture, empty_products_files_fixture, instrument):    
+    server = dispatcher_long_living_fixture
 
     logger.info("constructed server: %s", server)
 
@@ -327,6 +341,7 @@ def test_download_products_public(dispatcher_live_fixture, empty_products_files_
     assert data_downloaded == empty_products_files_fixture['content']
 
 
+@pytest.mark.fast
 def test_download_products_authorized_user(dispatcher_live_fixture, empty_products_user_files_fixture):
     server = dispatcher_live_fixture
 
@@ -371,6 +386,7 @@ def test_download_products_authorized_user(dispatcher_live_fixture, empty_produc
     assert data_downloaded == empty_products_user_files_fixture['content']
 
 
+@pytest.mark.fast
 def test_download_products_unauthorized_user(dispatcher_live_fixture, empty_products_user_files_fixture, default_params_dict):
     server = dispatcher_live_fixture
 
@@ -472,6 +488,7 @@ def test_modify_token(dispatcher_live_fixture, tem_value, tem_key_name):
             assert token_payload == payload_returned_token
 
 
+@pytest.mark.fast
 @pytest.mark.not_safe_parallel
 def test_invalid_token(dispatcher_live_fixture):
     server = dispatcher_live_fixture
@@ -519,6 +536,7 @@ def test_invalid_token(dispatcher_live_fixture):
     assert number_scartch_dirs == len(dir_list)
 
 
+@pytest.mark.fast
 def test_call_back_invalid_token(dispatcher_live_fixture):
     server = dispatcher_live_fixture
 
@@ -539,7 +557,7 @@ def test_call_back_invalid_token(dispatcher_live_fixture):
     )
 
     # this should return status submitted, so email sent
-    c = requests.get(server + "/run_analysis",
+    c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
                      )
     assert c.status_code == 200
@@ -556,7 +574,7 @@ def test_call_back_invalid_token(dispatcher_live_fixture):
     # let make sure the token used for the previous request expires
     time.sleep(12)
 
-    c = requests.get(server + "/call_back",
+    c = requests.get(os.path.join(server, "call_back"),
                      params=dict(
                          job_id=dispatcher_job_state.job_id,
                          session_id=dispatcher_job_state.session_id,
@@ -1202,10 +1220,31 @@ def test_example_config(dispatcher_test_conf):
     )
 
     example_config = yaml.load(open(example_config_fn), Loader=yaml.SafeLoader)['dispatcher']
+    example_config.pop('product_gallery_options', None)
 
     mapper = lambda x, y: ".".join(map(str, x))
     example_config_keys = flatten_nested_structure(example_config, mapper)
     test_config_keys = flatten_nested_structure(dispatcher_test_conf, mapper)
+
+    print("\n\n\nexample_config_keys", example_config_keys)
+    print("\n\n\ntest_config_keys", test_config_keys)
+
+    assert set(example_config_keys) == set(test_config_keys)
+
+
+def test_example_config_with_gallery(dispatcher_test_conf_with_gallery):
+    import cdci_data_analysis.config_dir
+
+    example_config_fn = os.path.join(
+        os.path.dirname(cdci_data_analysis.__file__),
+        "config_dir/conf_env.yml.example"
+    )
+
+    example_config = yaml.load(open(example_config_fn), Loader=yaml.SafeLoader)['dispatcher']
+
+    mapper = lambda x, y: ".".join(map(str, x))
+    example_config_keys = flatten_nested_structure(example_config, mapper)
+    test_config_keys = flatten_nested_structure(dispatcher_test_conf_with_gallery, mapper)
 
     print("\n\n\nexample_config_keys", example_config_keys)
     print("\n\n\ntest_config_keys", test_config_keys)
@@ -1393,3 +1432,703 @@ def test_get_query_products_exception(dispatcher_live_fixture):
     print("jdata : ", jdata)
 
     assert jdata['exit_status']['message'] == 'InternalError()\nfailing query\n'
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'fake object', None])
+def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_to_resolve):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {'name': source_to_resolve,
+              'token': encoded_token}
+
+    c = requests.get(os.path.join(server, "resolve_name"),
+                     params={**params}
+                     )
+
+    assert c.status_code == 200
+    resolved_obj = c.json()
+    print('Resolved object returned: ', resolved_obj)
+
+    if source_to_resolve is None:
+        assert resolved_obj == {}
+    elif source_to_resolve == 'fake object':
+        assert 'name' in resolved_obj
+        assert 'message' in resolved_obj
+
+        # the name resolver replaces automatically underscores with spaces in the returned name
+        assert resolved_obj['name'] == source_to_resolve
+        assert resolved_obj['message'] == f'{source_to_resolve} could not be resolved'
+    else:
+        assert 'name' in resolved_obj
+        assert 'DEC' in resolved_obj
+        assert 'RA' in resolved_obj
+        assert 'entity_portal_link' in resolved_obj
+
+        assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
+        assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery["product_gallery_options"]["entities_portal_url"]\
+            .format(source_to_resolve)
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("type_group", ['instruments', 'Instruments', 'products', 'sources', 'aaaaaa', '', None])
+@pytest.mark.parametrize("parent", ['isgri', 'production', 'all', 'aaaaaa', '', None])
+def test_list_terms(dispatcher_live_fixture_with_gallery, type_group, parent):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {'group': type_group,
+              'parent': parent,
+              'token': encoded_token}
+
+    c = requests.get(os.path.join(server, "get_list_terms"),
+                     params={**params}
+                     )
+
+    assert c.status_code == 200
+    list_terms = c.json()
+    print('List of terms returned: ', list_terms)
+    assert isinstance(list_terms, list)
+    if type_group is None or type_group == '' or type_group == 'aaaaaa' or \
+            (type_group == 'products' and (parent == 'production' or parent == 'aaaaaa')):
+        assert len(list_terms) == 0
+    else:
+        assert len(list_terms) > 0
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("group", ['instruments', 'Instruments', 'products', '', 'aaaaaa', None])
+@pytest.mark.parametrize("term", ['isgri', 'isgri_image', 'jemx_lc', 'aaaaaa', None])
+def test_parents_term(dispatcher_live_fixture_with_gallery, term, group):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    params = {'term': term,
+              'group': group,
+              'token': encoded_token}
+
+    c = requests.get(os.path.join(server, "get_parents_term"),
+                     params={**params}
+                     )
+
+    assert c.status_code == 200
+    list_terms = c.json()
+    print('List of terms returned: ', list_terms)
+    assert isinstance(list_terms, list)
+    if term is None or term == 'aaaaaa' or \
+            (term is not None and group == 'aaaaaa') or \
+            ((term == 'jemx_lc' or term == 'isgri_image') and group is not None and str.lower(group) == 'instruments'):
+        assert len(list_terms) == 0
+    else:
+        assert len(list_terms) > 0
+        if term == 'jemx_lc':
+            assert 'lightcurve' in list_terms
+        elif term == 'isgri_image':
+            assert 'image' in list_terms
+        elif term == 'isgri':
+            if group == 'products':
+                assert 'instruments' in list_terms
+            elif group == 'instruments':
+                assert 'production' in list_terms
+  
+ 
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("time_to_convert", ['2022-03-29T15:51:01', '', 'aaaaaa', None])
+def test_converttime_revnum(dispatcher_live_fixture_with_gallery, time_to_convert):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {'time_to_convert': time_to_convert,
+              'token': encoded_token}
+
+    c = requests.get(os.path.join(server, "get_revnum"),
+                     params={**params}
+                     )
+    assert c.status_code == 200
+    revnum_obj = c.json()
+    print('Rev number returned: ', revnum_obj)
+    if time_to_convert == 'aaaaaa':
+        assert revnum_obj == {}
+    else:
+        assert 'revnum' in revnum_obj
+        if time_to_convert == '2022-03-29T15:51:01':
+            assert revnum_obj['revnum'] == 2485
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "time_range_with_timezone", "observation_id"])
+def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, timerange_parameters):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'content_type': 'data_product',
+        'product_title': 'Test observation range',
+        'token': encoded_token,
+    }
+
+    if timerange_parameters == 'time_range_no_timezone':
+        params['T1'] = '2003-03-15T23:27:40.0'
+        params['T2'] = '2003-03-16T00:03:12.0'
+    elif timerange_parameters == 'time_range_with_timezone':
+        params['T1'] = '2003-03-15T23:27:40.0+0100'
+        params['T2'] = '2003-03-16T00:03:12.0+0100'
+    elif timerange_parameters == 'observation_id':
+        params['observation_id'] = 'test observation'
+
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                      params={**params}
+                      )
+
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    link_field_derived_from_observation = os.path.join(
+        dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+        'rest/relation/node/data_product/field_derived_from_observation')
+    assert link_field_derived_from_observation in drupal_res_obj['_links']
+    parsed_link_field_derived_from_observation = parse.urlparse(drupal_res_obj['_links'][link_field_derived_from_observation][0]['href']).path.split('/')[-1]
+
+    link_obs = os.path.join(
+        dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+        f'node/{parsed_link_field_derived_from_observation}?_format=hal_json')
+
+    header_request = get_drupal_request_headers(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_secret_key'])
+    response_obs_info = execute_drupal_request(link_obs, headers=header_request)
+
+    drupal_res_obs_info_obj = response_obs_info.json()
+
+    assert 'field_timerange' in drupal_res_obs_info_obj
+    obs_per_field_timerange = drupal_res_obs_info_obj['field_timerange']
+    obs_per_title = drupal_res_obs_info_obj['title'][0]['value']
+
+    obs_per_field_timerange_start = parser.parse(obs_per_field_timerange[0]['value'])
+    obs_per_field_timerange_end = parser.parse(obs_per_field_timerange[0]['end_value'])
+
+    if timerange_parameters == 'time_range_no_timezone' or timerange_parameters == 'time_range_with_timezone':
+        parsed_t1_no_timezone = parser.parse(params['T1'])
+        parsed_t1 = parsed_t1_no_timezone.replace(tzinfo=parsed_t1_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
+        parsed_t2_no_timezone = parser.parse(params['T2'])
+        parsed_t2 = parsed_t2_no_timezone.replace(tzinfo=parsed_t2_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
+        assert obs_per_field_timerange_start == parsed_t1
+        assert obs_per_field_timerange_end == parsed_t2
+    else:
+        assert obs_per_title == 'test observation'
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("provide_job_id", [True, False])
+@pytest.mark.parametrize("provide_instrument", [True, False])
+@pytest.mark.parametrize("provide_product_type", [True, False])
+@pytest.mark.parametrize("timerange_parameters", ["time_range", "observation_id", None])
+@pytest.mark.parametrize("type_source", ["known", "new", None])
+@pytest.mark.parametrize("insert_new_source", [True, False])
+@pytest.mark.parametrize("provide_product_title", [True, False])
+def test_product_gallery_post(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, provide_job_id, provide_instrument, provide_product_type, timerange_parameters, type_source, insert_new_source, provide_product_title):
+    dispatcher_fetch_dummy_products('default')
+
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    instrument = 'empty'
+    product_type_analysis = 'numerical'
+
+    params = {
+        **default_params,
+        'src_name': 'Mrk 421',
+        'product_type': product_type_analysis,
+        'query_type': "Dummy",
+        'instrument': instrument,
+        'p': 5,
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    job_id = jdata['products']['job_id']
+
+    e1_kev = 45
+    e2_kev = 95
+
+    dec = 19
+    ra = 458
+
+    source_name = None
+    if type_source == "known":
+        source_name = "Crab"
+    elif type_source == "new":
+        source_name = "new_source_" + ''.join(random.choices(string.digits + string.ascii_lowercase, k=5))
+
+    product_title = None
+    if provide_product_title:
+        product_title = "_".join([params['instrument'], params['query_type'], datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")])
+
+    if not provide_job_id:
+        job_id = None
+    if not provide_instrument:
+        instrument = None
+    else:
+        # a difference value
+        instrument = 'isgri'
+    if not provide_product_type:
+        product_type_product_gallery = None
+    else:
+        product_type_product_gallery = 'isgri_lc'
+
+    params = {
+        'job_id': job_id,
+        'instrument': instrument,
+        'src_name': source_name,
+        'product_type': product_type_product_gallery,
+        'content_type': 'data_product',
+        'product_title': product_title,
+        'E1_keV': e1_kev,
+        'E2_kev': e2_kev,
+        'DEC': dec,
+        'RA': ra,
+        'token': encoded_token,
+        'insert_new_source': insert_new_source
+    }
+    if timerange_parameters == 'time_range':
+        params['T1'] = '2003-03-15T23:27:40.0'
+        params['T2'] = '2003-03-16T00:03:12.0'
+    elif timerange_parameters == 'observation_id':
+        params['observation_id'] = 'test observation'
+
+    # send test img and test fits file
+    file_obj = {'img': open('data/dummy_prods/ds9.jpeg', 'rb'),
+                'fits_file_0': open('data/dummy_prods/isgri_query_lc.fits', 'rb'),
+                'fits_file_1': open('data/dummy_prods/query_catalog.fits', 'rb')}
+
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                      params={**params},
+                      files=file_obj
+                      )
+
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    if not provide_product_title:
+        if provide_product_type and type_source is not None:
+            product_title = "_".join([source_name, product_type_product_gallery])
+        elif provide_product_type and type_source is None:
+            product_title = product_type_product_gallery
+        elif not provide_product_type and type_source is not None:
+            product_title = source_name
+        elif not provide_product_type and type_source is None:
+            if provide_job_id:
+                product_title = product_type_analysis
+            else:
+                product_title = None
+
+    assert 'title' in drupal_res_obj
+    if product_title is not None:
+        assert drupal_res_obj['title'][0]['value'] == product_title
+    else:
+        assert drupal_res_obj['title'][0]['value'].startswith('data_product_')
+
+    assert 'field_e1_kev' in drupal_res_obj
+    assert drupal_res_obj['field_e1_kev'][0]['value'] == e1_kev
+
+    assert 'field_e2_kev' in drupal_res_obj
+    assert drupal_res_obj['field_e2_kev'][0]['value'] == e2_kev
+
+    assert 'field_dec' in drupal_res_obj
+    assert drupal_res_obj['field_dec'][0]['value'] == dec
+
+    assert 'field_ra' in drupal_res_obj
+    assert drupal_res_obj['field_ra'][0]['value'] == ra
+
+    if provide_instrument or (provide_job_id):
+        link_field_instrumentused = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                                                 'rest/relation/node/data_product/field_instrumentused')
+        assert link_field_instrumentused in drupal_res_obj['_links']
+
+    if provide_product_type or (provide_job_id):
+        link_field_data_product_type = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                                                 'rest/relation/node/data_product/field_data_product_type')
+        assert link_field_data_product_type in drupal_res_obj['_links']
+
+    link_field_derived_from_observation = os.path.join(
+        dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+        'rest/relation/node/data_product/field_derived_from_observation')
+    if timerange_parameters is not None or (provide_job_id):
+        assert link_field_derived_from_observation in drupal_res_obj['_links']
+    else:
+        assert link_field_derived_from_observation not in drupal_res_obj['_links']
+
+
+@pytest.mark.test_drupal
+def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    dispatcher_fetch_dummy_products('default')
+
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    instrument = 'empty'
+    product_type_analysis = 'numerical'
+
+    params = {
+        **default_params,
+        'src_name': 'Mrk 421',
+        'product_type': product_type_analysis,
+        'query_type': "Dummy",
+        'instrument': instrument,
+        'p': 5,
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    job_id = jdata['products']['job_id']
+
+    e1_kev = 45
+    e2_kev = 95
+
+    dec = 19
+    ra = 458
+
+    source_name = "Crab"
+    instrument = 'isgri'
+    product_type_product_gallery = 'isgri_lc'
+
+    params = {
+        'job_id': job_id,
+        'instrument': instrument,
+        'src_name': source_name,
+        'product_type': product_type_product_gallery,
+        'content_type': 'data_product',
+        'E1_keV': e1_kev,
+        'E2_kev': e2_kev,
+        'DEC': dec,
+        'RA': ra,
+        'token': encoded_token
+    }
+
+    params['product_title'] = "_".join([params['instrument'], params['product_type'],
+                              datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")])
+
+    # TODO default timezone on the gallery is set to Europe/Zurich
+    params['T1'] = '2003-03-15T23:27:40.0'
+    params['T2'] = '2003-03-16T00:03:12.0'
+
+    # send test img and test fits file
+    file_obj = {'img': open('data/dummy_prods/ds9.jpeg', 'rb'),
+                'fits_file_0': open('data/dummy_prods/isgri_query_lc.fits', 'rb'),
+                'fits_file_1': open('data/dummy_prods/query_catalog.fits', 'rb')}
+
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                      params={**params},
+                      files=file_obj
+                      )
+
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    assert 'field_e1_kev' in drupal_res_obj
+    assert drupal_res_obj['field_e1_kev'][0]['value'] == e1_kev
+
+    assert 'field_e2_kev' in drupal_res_obj
+    assert drupal_res_obj['field_e2_kev'][0]['value'] == e2_kev
+
+    link_img_id = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                               'rest/relation/node/data_product/field_image_png')
+
+    assert link_img_id in drupal_res_obj['_links']
+    assert len(drupal_res_obj['_links'][link_img_id]) == 1
+
+    link_fits_file_id = os.path.join(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                                     'rest/relation/node/data_product/field_fits_file')
+    assert link_fits_file_id in drupal_res_obj['_links']
+    assert len(drupal_res_obj['_links'][link_fits_file_id]) == 2
+
+    id_posted_data_product = drupal_res_obj['nid'][0]['value']
+
+    params = {
+        'e1_kev': 145,
+        'e2_kev': 195,
+        'job_id': job_id,
+        'update_data_product': True,
+        'content_type': 'data_product',
+        'token': encoded_token
+    }
+
+    params['T1'] = '2003-03-15T23:27:40.0'
+    params['T2'] = '2003-03-16T00:03:12.0'
+
+    # send test img and test fits file
+    file_obj = {'img': open('data/dummy_prods/ds9.jpeg', 'rb'),
+                'fits_file_0': open('data/dummy_prods/isgri_query_lc.fits', 'rb')}
+
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                      params={**params},
+                      files=file_obj
+                      )
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    assert 'field_e1_kev' in drupal_res_obj
+    assert drupal_res_obj['field_e1_kev'][0]['value'] == params['e1_kev']
+
+    assert 'field_e2_kev' in drupal_res_obj
+    assert drupal_res_obj['field_e2_kev'][0]['value'] == params['e2_kev']
+
+    assert drupal_res_obj['nid'][0]['value'] == id_posted_data_product
+
+    assert link_img_id in drupal_res_obj['_links']
+    assert len(drupal_res_obj['_links'][link_img_id]) == 1
+
+    assert link_fits_file_id in drupal_res_obj['_links']
+    assert len(drupal_res_obj['_links'][link_fits_file_id]) == 1
+
+
+@pytest.mark.test_drupal
+def test_product_gallery_error_message(dispatcher_live_fixture_with_gallery):
+    dispatcher_fetch_dummy_products('default')
+
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    e1_kev = 45
+    e2_kev = 95
+
+    params = {
+        'content_type': 'data_product',
+        'E1_keV': e1_kev,
+        'E2_kev': e2_kev,
+        'E3_kev': 123,
+        'token': encoded_token
+    }
+
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                      params={**params},
+                      )
+
+    assert c.status_code == 500
+
+    drupal_res_obj = c.json()
+
+    assert 'drupal_helper_error_message' in drupal_res_obj
+    assert 'InvalidArgumentException: Field field_e3_kev is unknown.' \
+           in drupal_res_obj['drupal_helper_error_message']
+
+
+@pytest.mark.test_renku
+@pytest.mark.parametrize("existing_branch", [True, False])
+@pytest.mark.parametrize("scw_list_passage", ['file', 'params'])
+def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_test_conf_with_renku_options, existing_branch, scw_list_passage):
+    server = dispatcher_live_fixture_with_renku_options
+    print("constructed server:", server)
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, renku contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    p = 7
+
+    if not existing_branch:
+        p += random.random()
+    params = {
+        **default_params,
+        'src_name': 'Mrk 421',
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': p,
+        'token': encoded_token
+    }
+
+    if scw_list_passage == 'file':
+        params['use_scws'] = 'user_file'
+        file_path = DispatcherJobState.create_p_value_file(p_value=5)
+        list_file = open(file_path)
+
+        jdata = ask(server,
+                    params,
+                    expected_query_status=["done"],
+                    max_time_s=150,
+                    method='post',
+                    files={'user_scw_list_file': list_file.read()}
+                    )
+
+        list_file.close()
+    elif scw_list_passage == 'params':
+        params['scw_list'] = [f"0665{i:04d}0010.001" for i in range(50)]
+        params['use_scws'] = 'form_list'
+        jdata = ask(server,
+                    params,
+                    expected_query_status=["done"],
+                    max_time_s=150
+                    )
+
+    job_id = jdata['products']['job_id']
+    session_id = jdata['products']['session_id']
+    request_dict = jdata['products']['analysis_parameters']
+    params = {
+        'job_id': job_id,
+        'token': encoded_token
+    }
+    c = requests.post(os.path.join(server, "push-renku-branch"),
+                      params={**params}
+                      )
+
+    assert c.status_code == 200
+
+    # parse the repo url and build the renku one
+    products_url = dispatcher_test_conf_with_renku_options['products_url']
+    repo_url = dispatcher_test_conf_with_renku_options['renku_options']['renku_gitlab_repository_url']
+    renku_base_project_url = dispatcher_test_conf_with_renku_options['renku_options']['renku_base_project_url']
+    renku_gitlab_ssh_key_path = dispatcher_test_conf_with_renku_options['renku_options']['ssh_key_path']
+    repo_path = get_repo_path(repo_url)
+    renku_project_url = f'{renku_base_project_url}/{repo_path}'
+
+
+    # validate content pushed
+    repo = clone_renku_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
+
+    assert check_job_id_branch_is_present(repo, job_id)
+
+    repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}')
+    repo.git.pull("--set-upstream", repo.remote().name, str(repo.head.ref))
+    assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}&commit={repo.head.commit.hexsha}"
+
+    api_code_file_path = os.path.join(repo.working_dir,  "_".join(["api_code", job_id]) + '.ipynb')
+
+    extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
+    token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
+    extracted_api_code = re.sub(token_pattern, '# "token": getpass.getpass(),', extracted_api_code, flags=re.DOTALL)
+
+    extracted_api_code = 'import getpass\n\n' + extracted_api_code
+
+    assert os.path.exists(api_code_file_path)
+    parsed_notebook = nbf.read(api_code_file_path, 4)
+    assert len(parsed_notebook.cells) == 2
+    assert parsed_notebook.cells[0].source == "# Notebook automatically generated from MMODA"
+    assert parsed_notebook.cells[1].source == extracted_api_code
+
+    assert repo.head.reference.commit.message is not None
+    request_url = generate_commit_request_url(products_url, request_dict)
+    commit_message = (f"Stored API code of MMODA request by {token_payload['name']} for a {request_dict['product_type']}"
+                      f" from the instrument {request_dict['instrument']}"
+                      f"\nthe original request was generated via {request_url}\n"
+                      "to retrieve the result please follow the link")
+    assert repo.head.reference.commit.message == commit_message
+
+    shutil.rmtree(repo.working_dir)
+
+
+@pytest.mark.fast
+def test_param_value(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    c = requests.get(server + "/run_analysis",
+                   params={'instrument': 'empty',
+                           'product_type': 'echo',
+                           'query_status': 'new',
+                           'query_type': 'Real',
+                           'ang': 2.0,
+                           'ang_deg': 2.0,
+                           'energ': 2.0,
+                           'T1': 57818.560277777775,
+                           'T2': 57819.560277777775,
+                           'T_format': 'mjd'},
+                  )
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+    # TODO notice the difference, is this acceptable?
+    assert jdata['products']['analysis_parameters']['ang'] == 2
+    assert jdata['products']['echo']['ang'] == 2
+    # converted in the default units, which for the ang_deg parameter is arcsec
+    assert jdata['products']['analysis_parameters']['ang_deg'] == 7200
+    # in the products it instead remains in deg
+    assert jdata['products']['echo']['ang_deg'] == 2
+
+    assert jdata['products']['analysis_parameters']['energ'] == 2
+    assert jdata['products']['echo']['energ'] == 2
+
+    assert jdata['products']['analysis_parameters']['T1'] == '2017-03-06T13:26:48.000'
+    assert jdata['products']['echo']['T1'] == 57818.560277777775

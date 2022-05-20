@@ -18,18 +18,20 @@ import tempfile
 import pytest
 import subprocess
 import os
+import signal
+import psutil
 import copy
 import time
 import hashlib
 import glob
 
+from git import Repo
 from threading import Thread
 
 __this_dir__ = os.path.join(os.path.abspath(os.path.dirname(__file__)))
 
 logger = logging.getLogger()
 
-import signal, psutil
 def kill_child_processes(parent_pid, sig=signal.SIGINT):
     try:
         parent = psutil.Process(parent_pid)
@@ -99,12 +101,12 @@ def run_analysis(server, params, method='get', files=None):
         if files is not None:
             logger.error("files cannot be attached to a get request")
             raise BadRequest("Invalid parameters for GET request")
-        return requests.get(server + "/run_analysis",
+        return requests.get(os.path.join(server, "run_analysis"),
                     params={**params},
                     )
 
     elif method == 'post':
-        return requests.post(server + "/run_analysis",
+        return requests.post(os.path.join(server, "run_analysis"),
                     data={**params},
                     files=files
                     )
@@ -123,11 +125,11 @@ def ask(server, params, expected_query_status, expected_job_status=None, max_tim
     if max_time_s is not None:
         assert t_spent < max_time_s
 
-    logger.info("content: %s", c.text[:1000])
-    if len(c.text) > 1000:
+    logger.info("content: %s", c.text[:2000])
+    if len(c.text) > 2000:
         print(".... (truncated)")
 
-    jdata=c.json()
+    jdata = c.json()
 
     if expected_status_code is not None:
         assert c.status_code == expected_status_code
@@ -338,14 +340,14 @@ def dispatcher_test_conf_fn(tmpdir):
 dispatcher:
     dummy_cache: dummy-cache
     products_url: PRODUCTS_URL
-    dispatcher_callback_url_base: http://localhost:8001
+    dispatcher_callback_url_base: http://localhost:8011
     sentry_url: "https://2ba7e5918358439485632251fa73658c@sentry.io/1467382"
     logstash_host: 
     logstash_port: 
     secret_key: 'secretkey_test'
     bind_options:
         bind_host: 0.0.0.0
-        bind_port: 8001
+        bind_port: 8011
     email_options:
         smtp_server: 'localhost'
         sender_email_address: 'team@odahub.io'
@@ -357,9 +359,14 @@ dispatcher:
         email_sending_timeout_default_threshold: 1800
         email_sending_job_submitted: True
         email_sending_job_submitted_default_interval: 60
+        sentry_for_email_sending_check: False
+        incident_report_email_options:
+            incident_report_sender_email_address: 'postmaster@in.odahub.io'
+            incident_report_receivers_email_addresses: ['team@odahub.io']
     """)
 
     yield fn
+    
 
 @pytest.fixture
 def dispatcher_test_conf_empty_sentry_fn(dispatcher_test_conf_fn):
@@ -372,6 +379,73 @@ def dispatcher_test_conf_empty_sentry_fn(dispatcher_test_conf_fn):
         f.truncate()
 
     yield fn
+
+
+@pytest.fixture
+def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
+    fn = "test-dispatcher-conf-with-gallery.yaml"
+
+    with open(fn, "w") as f:
+        with open(dispatcher_test_conf_fn) as f_default:
+            f.write(f_default.read())
+
+        f.write('\n    product_gallery_options:'
+                '\n        product_gallery_url: "http://cdciweb02.internal.odahub.io/mmoda/gallery"'
+                f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"'
+                '\n        product_gallery_timezone: "Europe/Zurich"'
+                '\n        name_resolver_url: "https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}"'
+                '\n        entities_portal_url: "http://cdsportal.u-strasbg.fr/?target={}"'
+                '\n        converttime_revnum_service_url: "https://www.astro.unige.ch/mmoda/dispatch-data/gw/timesystem/api/v1.0/converttime/UTC/{}/REVNUM"')
+
+    yield fn
+
+
+@pytest.fixture
+def dispatcher_test_conf_with_gallery_no_resolver_fn(dispatcher_test_conf_fn):
+    fn = "test-dispatcher-conf-with-gallery.yaml"
+
+    with open(fn, "w") as f:
+        with open(dispatcher_test_conf_fn) as f_default:
+            f.write(f_default.read())
+
+        f.write('\n    product_gallery_options:'
+                '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/gallery"'
+                f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"'
+                '\n        product_gallery_timezone: "Europe/Zurich"')
+
+    yield fn
+
+
+@pytest.fixture
+def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
+    fn = "test-dispatcher-conf-with-renku-options.yaml"
+    filesys_repo = 'file:///renkulab.io/gitlab/gabriele.barni/test-dispatcher-endpoint'
+    with open(fn, "w") as f:
+        with open(dispatcher_test_conf_fn) as f_default:
+            f.write(f_default.read())
+
+        f.write('\n    renku_options:'
+                '\n        renku_gitlab_repository_url: "git@renkulab.io:gabriele.barni/test-dispatcher-endpoint.git"'
+                '\n        renku_base_project_url: "http://renkulab.io/projects"'
+               f'\n        ssh_key_path: "{os.getenv("SSH_KEY_FILE", "ssh_key_file")}"')
+
+    yield fn
+
+
+@pytest.fixture
+def dispatcher_test_conf_with_gallery(dispatcher_test_conf_with_gallery_fn):
+    yield yaml.load(open(dispatcher_test_conf_with_gallery_fn), Loader=yaml.SafeLoader)['dispatcher']
+
+
+@pytest.fixture
+def dispatcher_test_conf_with_gallery_no_resolver(dispatcher_test_conf_with_gallery_no_resolver_fn):
+    yield yaml.load(open(dispatcher_test_conf_with_gallery_no_resolver_fn), Loader=yaml.SafeLoader)['dispatcher']
+
+
+@pytest.fixture
+def dispatcher_test_conf_with_renku_options(dispatcher_test_conf_with_renku_options_fn):
+    yield yaml.load(open(dispatcher_test_conf_with_renku_options_fn), Loader=yaml.SafeLoader)['dispatcher']
+
 
 @pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
@@ -432,7 +506,7 @@ def start_dispatcher(rootdir, test_conf_fn):
             print(f"{C}following server: {line.rstrip()}{NC}" )
             m = re.search(r"Running on (.*?) \(Press CTRL\+C to quit\)", line)
             if m:
-                url_store[0] = m.group(1)[:-1]  # alaternatively get from configenv
+                url_store[0] = m.group(1).strip()  # alternatively get from configenv
                 print(f"{C}following server: found url:{url_store[0]}")
 
             if re.search("\* Debugger PIN:.*?", line):
@@ -449,12 +523,12 @@ def start_dispatcher(rootdir, test_conf_fn):
         time.sleep(0.2)
     time.sleep(0.5)
 
-    service=url_store[0]
+    service = url_store[0]
 
     return dict(
-        url=service, 
+        url=service,
         pid=p.pid
-        )        
+    )        
 
 
 @pytest.fixture
@@ -556,18 +630,20 @@ def empty_products_user_files_fixture(default_params_dict, default_token_payload
 
 
 @pytest.fixture
-def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
-    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug, request):
+    if os.getenv('TEST_ONLY_FAST') == 'true':
+        # in this case, run all dispatchers long-living, since it's faster but less safe
+        yield request.getfixturevalue('dispatcher_long_living_fixture')
+    else:
+        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
 
-    service = dispatcher_state['url']
-    pid = dispatcher_state['pid']
+        service = dispatcher_state['url']
+        pid = dispatcher_state['pid']
 
-    yield service
-        
-    print(("child:", pid))
-    import os,signal
-    kill_child_processes(pid,signal.SIGINT)
-    os.kill(pid, signal.SIGINT)
+        yield service
+                
+        kill_child_processes(pid, signal.SIGINT)
+        os.kill(pid, signal.SIGINT)
     
 @pytest.fixture
 def dispatcher_live_fixture_empty_sentry(pytestconfig, dispatcher_test_conf_empty_sentry_fn, dispatcher_debug):
@@ -577,10 +653,48 @@ def dispatcher_live_fixture_empty_sentry(pytestconfig, dispatcher_test_conf_empt
     pid = dispatcher_state['pid']
 
     yield service
-        
+
     print(("child:", pid))
-    import os,signal
-    kill_child_processes(pid,signal.SIGINT)
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_with_gallery(pytestconfig, dispatcher_test_conf_with_gallery_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_gallery_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_with_gallery_no_resolver(pytestconfig, dispatcher_test_conf_with_gallery_no_resolver_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_gallery_no_resolver_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_with_renku_options(pytestconfig, dispatcher_test_conf_with_renku_options_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_renku_options_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
     os.kill(pid, signal.SIGINT)
 
 
@@ -594,7 +708,7 @@ def dispatcher_live_fixture_no_debug_mode(pytestconfig, dispatcher_test_conf_fn,
     yield service
 
     print(("child:", pid))
-    import os, signal
+
     kill_child_processes(pid, signal.SIGINT)
     os.kill(pid, signal.SIGINT)
 
@@ -663,6 +777,25 @@ class DispatcherJobState:
     """
     manages state stored in scratch_* directories
     """
+
+    @staticmethod
+    def extract_api_code(session_id, job_id):
+        # check query output are generated
+        query_output_json_fn = f'scratch_sid_{session_id}_jid_{job_id}/query_output.json'
+        # the aliased version might have been created
+        query_output_json_fn_aliased = f'scratch_sid_{session_id}_jid_{job_id}_aliased/query_output.json'
+        # get the query output
+        if os.path.exists(query_output_json_fn):
+            f = open(query_output_json_fn)
+        else:
+            f = open(query_output_json_fn_aliased)
+
+        query_output_data = json.load(f)
+        extracted_api_code = None
+        if 'prod_dictionary' in query_output_data and 'api_code' in query_output_data['prod_dictionary']:
+            extracted_api_code = query_output_data['prod_dictionary']['api_code']
+
+        return extracted_api_code
 
     @staticmethod
     def generate_session_id():
@@ -826,4 +959,4 @@ class DispatcherJobState:
         return json.load(open(f'{self.scratch_dir}/job_monitor_{state}_{message}_.json'))
 
     def load_emails(self):
-        return [ open(fn).read() for fn in glob.glob(f"{self.email_history_folder}/*") ]
+        return [ open(fn).read() for fn in glob.glob(f"{self.email_history_folder}/*.email")]

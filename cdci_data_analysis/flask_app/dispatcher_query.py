@@ -23,7 +23,6 @@ import random
 
 from flask import jsonify, send_from_directory, make_response
 from flask import request, g
-from urllib.parse import urlencode
 import time as time_
 
 import tempfile
@@ -344,8 +343,9 @@ class InstrumentQueryBackEnd:
 
         roles = tokenHelper.get_token_roles(decoded_token)
 
-        required_roles = ['administrator', 'job manager']
-        if not all(item in roles for item in required_roles):
+        required_roles = ['job manager']
+        # no need to have both, one of those two is sufficient
+        if not any(item in roles for item in required_roles):
             lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
             message = (
                 f"Unfortunately, your privileges are not sufficient for this type of request.\n"
@@ -353,8 +353,6 @@ class InstrumentQueryBackEnd:
             )
             # raise RequestNotAuthorized(message=message)
             return make_response(message), 403
-
-        # TODO! what is missing ?
 
         records = []
 
@@ -726,7 +724,7 @@ class InstrumentQueryBackEnd:
 
         self.validate_job_id(request_parameters_from_scratch_dir=True)
 
-        return self.generate_products_url_from_par_dict(
+        return self.generate_products_url(
             self.app.config['conf'].products_url,
             self.par_dic
             )
@@ -807,7 +805,7 @@ class InstrumentQueryBackEnd:
 
             tmp_dir, target_file = self.prepare_download(
                 file_list, file_name, self.scratch_dir)
-            return send_from_directory(directory=tmp_dir, filename=target_file, attachment_filename=target_file,
+            return send_from_directory(directory=tmp_dir, path=target_file, attachment_filename=target_file,
                                        as_attachment=True)
         except RequestNotAuthorized as e:
             return self.build_response_failed('oda_api permissions failed',
@@ -919,6 +917,7 @@ class InstrumentQueryBackEnd:
             if email_helper.is_email_to_send_callback(self.logger,
                                                       status,
                                                       time_original_request,
+                                                      self.scratch_dir,
                                                       self.app.config['conf'],
                                                       self.job_id,
                                                       decoded_token=self.decoded_token):
@@ -928,13 +927,13 @@ class InstrumentQueryBackEnd:
                 except KeyError as e:
                     raise MissingRequestParameter(repr(e))
                 # build the products URL and get also the original requested product
-                products_url = self.generate_products_url_from_file(self.config.products_url,
+                products_url = self.generate_products_url(self.config.products_url,
                                                                     request_par_dict=original_request_par_dic)
 
                 email_api_code = DispatcherAPI.set_api_code(original_request_par_dic,
                                                             url=self.app.config['conf'].products_url + "/dispatch-data"
                                                             )
-                email_helper.send_email(
+                email_helper.send_job_email(
                     config=self.app.config['conf'],
                     logger=self.logger,
                     decoded_token=self.decoded_token,
@@ -1011,10 +1010,8 @@ class InstrumentQueryBackEnd:
         else:
             return json.load(open(scratch_dir_parameters[0]))
 
-    # TODO make sure that the list of parameters to ignore in the frontend is synchronized
-    def generate_products_url_from_par_dict(self, products_url, par_dict) -> str:
+    def set_use_scws(self, par_dict):
         par_dict = par_dict.copy()
-
         # this is a "default" value for use_scws
         par_dict['use_scws'] = 'no'
         if 'scw_list' in par_dict and self.use_scws is not None:
@@ -1026,26 +1023,11 @@ class InstrumentQueryBackEnd:
             # for the frontend
             par_dict['use_scws'] = self.use_scws
 
-        if 'scw_list' in par_dict and type(par_dict['scw_list']) == list:
-            # setting proper scw_list formatting
-            # as comma-separated string for being properly read by the frontend
-            par_dict['scw_list'] = ",".join(par_dict['scw_list'])
+        return par_dict
 
-        _skip_list_ = ['token', 'session_id', 'job_id']
-
-        for key, value in dict(par_dict).items():
-            if key in _skip_list_ or value is None:
-                par_dict.pop(key)
-
-        par_dict = OrderedDict({
-            k: par_dict[k] for k in sorted(par_dict.keys())
-        })
-
-        request_url = '%s?%s' % (products_url, urlencode(par_dict))
-        return request_url
-
-    def generate_products_url_from_file(self, products_url, request_par_dict) -> str:
-        return self.generate_products_url_from_par_dict(products_url, request_par_dict)
+    def generate_products_url(self, products_url, request_par_dict) -> str:
+        par_dict = self.set_use_scws(request_par_dict)
+        return email_helper.generate_products_url_from_par_dict(products_url, par_dict)
 
     def run_query_mock(self, off_line=False):
 
@@ -1710,12 +1692,12 @@ class InstrumentQueryBackEnd:
                                                                self.app.config['conf'],
                                                                decoded_token=self.decoded_token):
                         try:
-                            products_url = self.generate_products_url_from_par_dict(self.app.config.get('conf').products_url,
+                            products_url = self.generate_products_url(self.app.config.get('conf').products_url,
                                                                                     self.par_dic)
                             email_api_code = DispatcherAPI.set_api_code(self.par_dic,
                                                                         url=self.app.config['conf'].products_url + "/dispatch-data"
                                                                         )
-                            email_helper.send_email(
+                            email_helper.send_job_email(
                                 config=self.app.config['conf'],
                                 logger=self.logger,
                                 decoded_token=self.decoded_token,

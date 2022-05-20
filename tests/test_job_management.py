@@ -117,6 +117,26 @@ generalized_email_patterns = {
     ],
     'job_id': [
         '(job_id: )(.*?)(<)'
+    ],
+}
+
+generalized_incident_email_patterns = {
+    'job_id': [
+        '(job_id</span>: )(.*?)(<)',
+        '(job_id: )(.*?)(</title>)'
+    ],
+    'session_id': [
+        '(session_id</span>: )(.*?)(<)'
+    ],
+    'incident_time': [
+        '(Incident time</span>: )(.*?)(<)',
+        '( Incident at )(.*)( job_id)'
+    ],
+    'incident_report': [
+        '(Incident details</h3>\n\n    <div style="background-color: lightgray; display: inline-block; padding: 5px;">)(.*?)(</div>)',
+    ],
+    'user_email_address': [
+        '(user email address</span>: )(.*?)(<)'
     ]
 }
 
@@ -160,6 +180,16 @@ def get_reference_email(**email_args):
             return None
 
 
+def get_incident_report_reference_email(**email_args):
+    fn = os.path.join('reference_emails', 'incident_report.html')
+
+    try:
+        html_content = open(fn).read()
+        return adapt_html(html_content, patterns=generalized_incident_email_patterns, **email_args)
+    except FileNotFoundError:
+        return None
+
+
 def get_reference_attachment(**email_attachment_args):
     fn = os.path.abspath(email_attachment_args_to_filename(**{**email_attachment_args, 'email_collection': 'reference'}))
     try:
@@ -170,8 +200,10 @@ def get_reference_attachment(**email_attachment_args):
 
 
 # substitute several patterns for comparison
-def adapt_html(html_content, **email_args):
-    for arg, patterns in generalized_email_patterns.items():
+def adapt_html(html_content, patterns=None, **email_args,):
+    if patterns is None:
+        patterns = generalized_email_patterns
+    for arg, patterns in patterns.items():
         if arg in email_args and email_args[arg] is not None:
             for pattern in patterns:
                 html_content = re.sub(pattern, r"\g<1>" + email_args[arg] + r"\g<3>", html_content)
@@ -451,6 +483,67 @@ def validate_email_content(
                 assert products_url in content_text
 
 
+def validate_incident_email_content(
+        message_record,
+        dispatcher_test_conf,
+        dispatcher_job_state: DispatcherJobState,
+        incident_time_str: str = None,
+        incident_report_str: str = None,
+        decoded_token = None,
+        attachment=False
+):
+
+    assert message_record['mail_from'] == dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_sender_email_address']
+
+    msg = email.message_from_string(message_record['data'])
+
+    assert msg['Subject'] == f"[ODA][Report] Incident at {incident_time_str} job_id: {dispatcher_job_state.job_id}"
+    assert msg['From'] == dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_sender_email_address']
+    assert msg['To'] == ", ".join(dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_receivers_email_addresses'])
+    assert msg.is_multipart()
+
+    user_email_address = ""
+    if decoded_token is not None:
+        user_email_address = decoded_token.get('sub', None)
+    reference_email = get_incident_report_reference_email(incident_time=incident_time_str,
+                                                          job_id=dispatcher_job_state.job_id,
+                                                          session_id=dispatcher_job_state.session_id,
+                                                          incident_report=incident_report_str,
+                                                          user_email_address=user_email_address
+                                                          )
+
+    for part in msg.walk():
+        content_text = None
+        # content_disposition = str(part.get("Content-Disposition"))
+        content_type = part.get_content_type()
+
+        # TODO to update this check when attachments will be used
+        # if "attachment" in content_disposition:
+            # extract the payload
+            # if attachment:
+
+        if content_type == 'text/plain':
+            content_text_plain = part.get_payload().replace('\r', '').strip()
+            content_text = content_text_plain
+            if content_text is not None:
+                assert re.search('A new incident has been reported to the dispatcher. More information can ben found below.', content_text, re.IGNORECASE)
+                assert re.search('Execution details', content_text, re.IGNORECASE)
+                assert re.search('Incident details', content_text, re.IGNORECASE)
+                assert re.search(f'job_id: {dispatcher_job_state.job_id}', content_text, re.IGNORECASE)
+                assert re.search(f'session_id: {dispatcher_job_state.session_id}', content_text, re.IGNORECASE)
+                if decoded_token is not None:
+                    assert re.search(f'user email address: {decoded_token["sub"]}', content_text, re.IGNORECASE)
+                if incident_report_str is not None:
+                    assert re.search(incident_report_str, content_text, re.IGNORECASE)
+        elif content_type == 'text/html':
+            content_text_html = part.get_payload().replace('\r', '').strip()
+            content_text = content_text_html
+
+            if reference_email is not None:
+                open("adapted_incident_reference.html", "w").write(ignore_html_patterns(reference_email))
+                assert ignore_html_patterns(reference_email) == ignore_html_patterns(content_text_html)
+
+
 def get_expected_products_url(dict_param,
                               session_id,
                               token,
@@ -612,7 +705,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     )
 
     # this should return status submitted, so email sent
-    c = requests.get(server + "/run_analysis",
+    c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
                      )                     
     assert c.status_code == 200
@@ -671,7 +764,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     for i in range(5):
         # imitating what a backend would do
         current_action = 'progress' if i > 2 else 'main_done'
-        c = requests.get(server + "/call_back",
+        c = requests.get(os.path.join(server, "call_back"),
                          params=dict(
                              job_id=dispatcher_job_state.job_id,
                              session_id=dispatcher_job_state.session_id,
@@ -684,7 +777,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                          ))
         assert dispatcher_job_state.load_job_state_record(f'node_{i}', "progressing")['full_report_dict']['action'] == current_action
 
-        c = requests.get(server + "/run_analysis",
+        c = requests.get(os.path.join(server, "run_analysis"),
                     params=dict(
                         query_status="submitted",  # whether query is new or not, this should work
                         query_type="Real",
@@ -698,7 +791,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
         assert c.json()['query_status'] == 'progress' # always progress!
 
     # we should now find progress records
-    c = requests.get(server + "/run_analysis",
+    c = requests.get(os.path.join(server, "run_analysis"),
                      {**dict_param, 
                       "query_status": "submitted",
                       "job_id": job_id,
@@ -713,7 +806,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     assert [c['action'] for c in jdata['job_monitor']['full_report_dict_list']] == [
         'main_done', 'main_done', 'main_done', 'progress', 'progress', 'progress']
 
-    c = requests.get(server + "/call_back",
+    c = requests.get(os.path.join(server, "call_back"),
                     params=dict(
                         job_id=dispatcher_job_state.job_id,
                         session_id=dispatcher_job_state.session_id,
@@ -726,7 +819,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                     ))
     assert c.status_code == 200
 
-    c = requests.get(server + "/run_analysis",
+    c = requests.get(os.path.join(server, "run_analysis"),
                      {
                         **dict_param,
                         "query_status": "submitted",
@@ -738,7 +831,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     assert c.json()['query_status'] == 'progress'
 
     # this does nothing special
-    c = requests.get(server + "/call_back",
+    c = requests.get(os.path.join(server, "call_back"),
                      params=dict(
                          job_id=dispatcher_job_state.job_id,
                          session_id=dispatcher_job_state.session_id,
@@ -753,7 +846,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
     DataServerQuery.set_status('done')
 
     # this triggers email
-    c = requests.get(server + "/call_back",
+    c = requests.get(os.path.join(server, "call_back"),
                      params=dict(
                          job_id=dispatcher_job_state.job_id,
                          session_id=dispatcher_job_state.session_id,
@@ -795,7 +888,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
         )
         
     # this also triggers email (simulate a failed request)
-    c = requests.get(server + "/call_back",
+    c = requests.get(os.path.join(server, "call_back"),
                      params={
                          'job_id': dispatcher_job_state.job_id,
                          'session_id': dispatcher_job_state.session_id,
@@ -835,7 +928,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
 
     # TODO this will rewrite the value of the time_request in the query output, but it shouldn't be a problem?
     # This is not complete since DataServerQuery never returns done
-    c = requests.get(server + "/run_analysis",
+    c = requests.get(os.path.join(server, "run_analysis"),
                      params=dict(
                          query_status="ready",  # whether query is new or not, this should work
                          query_type="Real",
@@ -855,17 +948,17 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
 
     DataServerQuery.set_status('submitted') # sets the expected default for other tests
 
-    r = requests.get(dispatcher_long_living_fixture + "/inspect-state", params=dict(token=encoded_token))
+    r = requests.get(os.path.join(dispatcher_long_living_fixture, "inspect-state"), params=dict(token=encoded_token))
     assert r.status_code == 403
     if encoded_token is None:
         assert r.text == 'A token must be provided.'
     else:
         assert r.text == ("Unfortunately, your privileges are not sufficient for this type of request.\n"
                           "Your privilege roles include ['general'], but the following roles are"
-                          " missing: administrator, job manager.")
+                          " missing: job manager.")
 
     admin_token = jwt.encode({**token_payload, 'roles': 'private, user manager, admin, job manager, administrator'}, secret_key, algorithm='HS256')
-    r = requests.get(dispatcher_long_living_fixture + "/inspect-state", params=dict(token=admin_token))
+    r = requests.get(os.path.join(dispatcher_long_living_fixture, "inspect-state"), params=dict(token=admin_token))
     dispatcher_state_report = r.json()
     logger.info('dispatcher_state_report: %s', dispatcher_state_report)
 
@@ -1175,6 +1268,19 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     jdata = c.json()
 
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+
+    # check the email in the email folders, and that the first one was produced
+    email_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
+        history_log_content = json.loads(email_history_log_content_fn.read())
+        logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'submitted'
+        assert isinstance(history_log_content['additional_information']['submitted_email_files'], list)
+        assert len(history_log_content['additional_information']['submitted_email_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
     
     time_request = jdata['time_request']
     
@@ -1194,6 +1300,19 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
     assert 'email_status' in jdata
     assert jdata['email_status'] == 'email sent'
+
+    # check the email in the email folders, and that the first one was produced
+    email_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
+        history_log_content = json.loads(email_history_log_content_fn.read())
+        logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'done'
+        assert isinstance(history_log_content['additional_information']['done_email_files'], list)
+        assert len(history_log_content['additional_information']['done_email_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
 
     # a number of done call_backs, but none should trigger the email sending since this already happened
     for i in range(3):
@@ -1219,7 +1338,19 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
 
     dispatcher_job_state.assert_email("submitted")
     dispatcher_job_state.assert_email("done")
-        
+
+    email_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
+        history_log_content = json.loads(email_history_log_content_fn.read())
+        logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'done'
+        assert isinstance(history_log_content['additional_information']['done_email_files'], list)
+        assert len(history_log_content['additional_information']['done_email_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
+
 
 def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
@@ -1271,7 +1402,15 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
     jdata = json.load(open(job_monitor_call_back_failed_json_fn))
     
     assert jdata['email_status'] == 'sending email failed'
-    assert not os.path.exists(dispatcher_job_state.email_history_folder)
+
+    email_history_log_files = glob.glob(os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
+        history_log_content = json.loads(email_history_log_content_fn.read())
+        logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'failed'
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
 
 
 @pytest.mark.not_safe_parallel
@@ -1660,7 +1799,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
             params['scw_list'] = scw_list_spaced_string
 
     # this sets global variable
-    requests.get(server + '/api/par-names')
+    requests.get(os.path.join(server, 'api', 'par-names'))
 
     def ask_here():
         return ask(server,
@@ -1795,7 +1934,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         time_request = jdata['time_request']
 
         # this triggers email
-        c = requests.get(server + "/call_back",
+        c = requests.get(os.path.join(server, "call_back"),
                          params=dict(
                              job_id=dispatcher_job_state.job_id,
                              session_id=dispatcher_job_state.session_id,
@@ -2127,9 +2266,9 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
-@pytest.mark.parametrize("roles", ["general, job manager, administrator", ""])
+@pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
 def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
-    required_roles = ['administrator', 'job manager']
+    required_roles = ['job manager']
     DispatcherJobState.remove_scratch_folders()
 
     server = dispatcher_live_fixture
@@ -2182,7 +2321,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
     elif request_cred == 'public':
         error_message = 'A token must be provided.'
     elif request_cred == 'private':
-        if 'job manager' not in roles and 'administrator' not in roles:
+        if 'job manager' not in roles:
             lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
             error_message = (
                 f'Unfortunately, your privileges are not sufficient for this type of request.\n'
@@ -2198,7 +2337,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
 
     scratch_dir_mtime = os.stat(scratch_dir_fn).st_mtime
 
-    if request_cred != 'private' or ('job manager' not in roles and 'administrator' not in roles):
+    if request_cred != 'private' or ('job manager' not in roles):
         # email not supposed to be sent for public request
         assert c.status_code == status_code
         assert c.text == error_message
@@ -2212,3 +2351,75 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
 
         assert jdata['records'][0]['ctime'] == scratch_dir_ctime
         assert jdata['records'][0]['mtime'] == scratch_dir_mtime
+
+
+@pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
+def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, dispatcher_test_conf, request_cred):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+    }
+    encoded_token = None
+    decoded_token = None
+    error_message = None
+
+    if request_cred == 'invalid_token':
+        # an invalid (encoded) token, just a string
+        encoded_token = 'invalid_token'
+        error_message = 'The token provided is not valid.'
+    elif request_cred == 'public':
+        error_message = 'A token must be provided.'
+    elif request_cred == 'valid_token':
+        decoded_token = default_token_payload
+        encoded_token = jwt.encode(decoded_token, secret_key, algorithm='HS256')
+        params['token'] = encoded_token
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    scratch_dir_fn_list = glob.glob(f'scratch_sid_{dispatcher_job_state.session_id}_jid_{dispatcher_job_state.job_id}*')
+    scratch_dir_fn = max(scratch_dir_fn_list, key=os.path.getctime)
+
+    incident_content = 'test incident'
+
+    # for the email we only use the first 8 characters
+    c = requests.post(os.path.join(server, "report_incident"),
+                      params=dict(
+                          job_id=dispatcher_job_state.job_id,
+                          session_id=dispatcher_job_state.session_id,
+                          token=encoded_token,
+                          incident_content=incident_content,
+                          incident_time=time_request,
+                          scratch_dir=scratch_dir_fn
+                      ))
+
+    if request_cred != 'valid_token':
+        # email not supposed to be sent for public request
+        assert c.status_code == 403
+        assert c.text == error_message
+    else:
+        jdata_incident_report = c.json()
+
+        assert 'report_incident_status' in jdata_incident_report
+
+        validate_incident_email_content(
+            dispatcher_local_mail_server.get_email_record(),
+            dispatcher_test_conf,
+            dispatcher_job_state,
+            incident_time_str=time_request_str,
+            incident_report_str=incident_content,
+            decoded_token=decoded_token
+        )

@@ -49,10 +49,31 @@ dispatcher:
         # that will trigger the email when the request is complete, if this time is exceeded
         email_sending_timeout_default_threshold: 1800
         # sending of an email when a request has been submitted
+        #options related to the of emails for reporting incidents
+        incident_report_email_options:
+            incident_report_sender_email_address: 'team@odahub.io'
+            incident_report_receivers_email_addresses: ['team@odahub.io']
         email_sending_job_submitted: True
         # amount of time (in seconds) elapsed from the sending of the last email
         # for when a request has been submitted
         email_sending_job_submitted_default_interval: 5
+        # enable the sending of a sentry message in case a not valid condition for the sending an email is met
+        sentry_for_email_sending_check: False
 
+    # product gallery related set of options
+    # in case no integration with the product gallery is provided, these options will be ignored
+    product_gallery_options:
+        # url of the product gallery home
+        product_gallery_url: PRODUCT_GALLERY_URL
+        # location of the secret key used for generating tokens
+        product_gallery_secret_key: PRODUCT_GALLERY_SECRET_KEY
+        # timezone to be applied to the date time objects used for the gallery
+        product_gallery_timezone: PRODUCT_GALLERY_SECRET_KEY
+        # url of the name resolver
+        name_resolver_url: NAME_RESOLVER_URL
+        # url of the online catalog for astrophysical entities
+        entities_portal_url: ENTITIES_PORTAL_URL
+        # url for the conversion of a given time, in UTC format, to the correspondent REVNUM
+        converttime_revnum_service_url: COVERTTIME_REVNUM_SERVICE_URL
 
 

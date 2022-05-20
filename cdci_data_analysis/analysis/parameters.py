@@ -160,17 +160,43 @@ class ParameterTuple(object):
 
 
 class Parameter(object):
+    """
+    # General notes
+
+    format:
+    * Every `Parameter` has a *format*. *Format* defines representation of the parameter value in parameter URL, analysis_parameters dictionary, oda_api, and embedded in fits files.       
+    * Parameter dictionary may include format specifiers for each parameter.  If non-default format is used the parameter, parameter format specifier is required. If not specified, the default is used.
+    * *default format* of defines **unique** representation of the parameter. Any parameter value can be converted to default *format*. By using default parameter representations, it is possible to construct unique and deterministic request parameter dictionaries, URLs, oda_api codes.
+    
+    unit:
+    * physical quantities are represented as floats (and should inherit from `Float`) and are scaled with *units*. The same value may be represented as different floats if units are correspondingly different.
+    * units are treated similarly to formats: there are unit specifiers and default units. 
+    
+    type:
+    * each parameter is constructed with a value of some types. Types is verified at construction, and converted to default type. Further representations are defined by units and formats
+    
+    TODO see through that this is implemented https://github.com/oda-hub/dispatcher-app/issues/339
+    """
     def __init__(self,
                  value=None,
                  units=None,
                  name: Union[str, None] = None,
+                 # TODO should we remove units/type/format knowledge from the Parameter class?
                  allowed_units=None,
                  default_units=None,
+                 units_name=None,
+
+                 par_format=None,
+                 par_default_format=None,
+                 par_format_name=None,
+
                  default_type=None,
                  allowed_types=None,
+
                  check_value=None,
                  allowed_values=None,
-                 units_name=None):
+
+                 ):
 
         if (units is None or units == '') and \
                 default_units is not None and default_units != '':
@@ -178,6 +204,10 @@ class Parameter(object):
             #  but they are as such because they're used also in plugins
             #
             units = default_units
+
+        if (par_format is None or par_format == '') and \
+                par_default_format is not None and par_default_format != '':
+            par_format = par_default_format
 
         self.check_value = check_value
 
@@ -201,9 +231,12 @@ class Parameter(object):
         self.name = name
         self.units = units
         self.default_units = default_units
-        self.default_type = default_type
-        self.value = value
         self.units_name = units_name
+        self.default_type = default_type
+        self.par_format=par_format
+        self.par_default_format=par_default_format
+        self.par_format_name=par_format_name
+        self.value = value
 
     @property
     def name(self):
@@ -223,7 +256,7 @@ class Parameter(object):
     def value(self, v):
         if v is not None:
             if self.check_value is not None:
-                self.check_value(v, units=self.units, name=self.name)
+                self.check_value(v, units=self.units, name=self.name, par_format=self.par_format)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
                     raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
@@ -270,13 +303,18 @@ class Parameter(object):
     def set_value_from_form(self, form, verbose=False):
         par_name = self.name
         units_name = self.units_name
+        par_format_name = self.par_format_name
         v = None
         u = None
+        f = None
         in_dictionary = False
-
+        # there is either a units or a format
         if units_name is not None:
             if units_name in form.keys():
                 u = form[units_name]
+        if par_format_name is not None:
+            if par_format_name in form.keys():
+                f = form[par_format_name]
 
         try:
             if par_name in form.keys():
@@ -292,20 +330,32 @@ class Parameter(object):
             raise
 
         if in_dictionary is True:
-            return self.set_par(value=v, units=u)
+            return self.set_par(value=v, units=u, par_format=f)
         else:
             if verbose is True:
                 logger.debug('setting par: %s in the dictionary to its default value' % par_name)
             # set the default value
             return self.value
 
-    def set_par(self, value, units=None):
+    def set_par(self, value, units=None, par_format=None):
         if units is not None:
             self.units = units
+
+        if par_format is not None:
+            self.par_format = par_format
+
         self.value = value
-        return self.get_value_in_default_format()
+        return self.get_default_value()
+
+    def get_default_value(self):
+        return self.value
 
     def get_value_in_default_format(self):
+        return self.get_value_in_format(self.par_default_format)
+
+    def get_value_in_format(self, units):
+        logger.warning(f'no explict conversion implemented for the parameter {self.name}, '
+                       f'the non converted value is returned')
         return self.value
 
     def get_form(self, wtform_cls, key, validators, defaults):
@@ -326,7 +376,7 @@ class Parameter(object):
             raise RuntimeError(f'wrong type for par: {name}, found: {par_type}, allowed: {allowed}')
 
     @staticmethod
-    def check_value(val, units, name):
+    def check_value(val, units=None, name=None, par_format=None):
         pass
 
     def reprJSON(self):
@@ -343,7 +393,7 @@ class Name(Parameter):
                          allowed_units=_allowed_units)
 
     @staticmethod
-    def check_name_value(value, units=None, name=None):
+    def check_name_value(value, units=None, name=None, par_format=None):
         pass
 
 
@@ -359,6 +409,8 @@ class Float(Parameter):
                          default_units=default_units,
                          name=name,
                          default_type=float,
+                         # TODO added for consistency with Integer
+                         allowed_types=[float],
                          allowed_units=allowed_units)
 
     @property
@@ -373,9 +425,17 @@ class Float(Parameter):
         else:
             self._v = None
 
-    def get_value_in_default_format(self):
+    def get_value_in_units(self, units):
+        logger.warning(f'no explict conversion implemented for the parameter {self.name}, '
+                       f'the non converted value is returned')
+        return self.value
+
+    def get_value_in_default_units(self):
         self.check_value(self.value, name=self.name, units=self.units)
         return float(self.value) if self.value is not None else None
+
+    def get_default_value(self):
+        return self.get_value_in_default_units()
 
     @staticmethod
     def check_float_value(value, units=None, name=None):
@@ -417,7 +477,7 @@ class Integer(Parameter):
         else:
             self._v = None
 
-    def get_value_in_default_format(self):
+    def get_value_in_default_units(self):
         self.check_value(self.value, name=self.name, units=self.units)
         return int(self.value) if self.value is not None else None
 
@@ -439,16 +499,32 @@ class Integer(Parameter):
 
 
 class Time(Parameter):
-    def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None):
+    def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None, par_default_format='isot'):
 
         super().__init__(value=value,
-                         units=T_format,
-                         units_name=Time_format_name,
-                         default_units='isot',
+                         par_format=T_format,
+                         par_format_name=Time_format_name,
+                         par_default_format=par_default_format,
                          name=name)
 
-    def get_value_in_default_format(self) -> Union[str, float, None]:
-        return getattr(self._astropy_time, self.default_units)
+    def get_default_value(self):
+        return self.get_value_in_default_format()
+
+    def get_value_in_format(self, par_format):
+        return getattr(self._astropy_time, par_format)
+
+    @property
+    def units(self):
+        # for backward compatibility
+        return self.par_format
+
+    @units.setter
+    def units(self, units):
+        # for backward compatibility
+        if units is not None and self._allowed_units is not None:
+            self.check_units(units, self._allowed_units, self.name)
+
+        self.par_format = units
 
     @property
     def value(self):
@@ -456,25 +532,25 @@ class Time(Parameter):
 
     @value.setter
     def value(self, v):
-        units = self.units
-        self._set_time(v, format=units)
+        par_format = self.par_format
+        self._set_time(v, par_format=par_format)
 
-    def _set_time(self, value, format):
-        self._astropy_time = astropyTime(value, format=format)
+    def _set_time(self, value, par_format):
+        self._astropy_time = astropyTime(value, format=par_format)
         self._value = value
 
 
-class TimeDelta(Parameter):
-    def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None):
+class TimeDelta(Time):
+    def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None, par_default_format='sec'):
 
         super().__init__(value=value,
-                         units=delta_T_format,
-                         units_name=delta_T_format_name,
-                         default_units='sec',
+                         T_format=delta_T_format,
+                         Time_format_name=delta_T_format_name,
+                         par_default_format=par_default_format,
                          name=name)
 
-    def get_value_in_default_format(self) -> Union[str, float, None]:
-        return getattr(self._astropy_time_delta, self.default_units)
+    def get_value_in_format(self, units):
+        return getattr(self._astropy_time_delta, units)
 
     @property
     def value(self):
@@ -491,7 +567,7 @@ class TimeDelta(Parameter):
 
 
 class InputProdList(Parameter):
-    # TODO removal of the leading underscore would probably make sense
+    # TODO removal of the leading underscore cannot be done for compatibility with the plugins
     def __init__(self, value=None, _format='names_list', name: str = None):
         _allowed_units = ['names_list']
 
@@ -499,7 +575,7 @@ class InputProdList(Parameter):
             value = []
 
         super().__init__(value=value,
-                         units=_format,
+                         par_format=_format,
                          check_value=self.check_list_value,
                          name=name,
                          allowed_units=_allowed_units)
@@ -530,7 +606,7 @@ class InputProdList(Parameter):
     def value(self, v):
         if v is not None:
             if self.check_value is not None:
-                self.check_value(v, units=self.units, name=self.name)
+                self.check_value(v, par_format=self.par_format, name=self.name)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
                     raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
@@ -544,27 +620,30 @@ class InputProdList(Parameter):
         # print ('set to ',self._value)
 
     @staticmethod
-    def check_list_value(value, units, name='par'):
-        if units == 'names_list':
+    def check_list_value(value, units=None, name=None, par_format=None):
+        if par_format == 'names_list':
             # TODO the condition 'isinstance(str(value), str))' was quite unclear to me, and probably useless since could lead to unexpected behavior
             if not isinstance(value, (list, str, float, int)):
                 raise RuntimeError(f'value of the parameter {name} is not a valid product list format, but {type(value).__name__} has been found')
         else:
-            raise RuntimeError(f'{name} units not valid {units}')
+            raise RuntimeError(f'{name} units not valid {par_format}')
 
 
-class Angle(Parameter):
-    def __init__(self, value=None, units=None, name=None):
+class Angle(Float):
+    def __init__(self, value=None, units=None, default_units='deg', name=None):
 
         super().__init__(value=value,
                          units=units,
                          # TODO can we safely make this assumption?
-                         default_units='deg',
+                         default_units=default_units,
                          name=name,
                          allowed_units=None)
 
-    def get_value_in_default_format(self) -> Union[str, float, None]:
-        return getattr(self._astropy_angle, self.default_units)
+    def get_value_in_default_units(self):
+        return self.get_value_in_units(self.default_units)
+
+    def get_value_in_units(self, units) -> Union[str, float, None]:
+        return getattr(self._astropy_angle, units)
 
     @property
     def value(self):
@@ -602,7 +681,7 @@ class Energy(Float):
     # TODO re-introduced for retro-compatibility
     @staticmethod
     def check_energy_value(value, units=None, name=None):
-        Float.check_float_value(value, units, name)
+        Float.check_float_value(value, units=units, name=name)
 
 
 class SpectralBoundary(Energy):
@@ -615,7 +694,8 @@ class DetectionThreshold(Float):
 
         super().__init__(value=value,
                          units=units,
-                         check_value=self.check_value,
+                         # TODO to check if it's correct
+                         check_value=self.check_float_value,
                          name=name,
                          allowed_units=_allowed_units)
 
@@ -624,11 +704,11 @@ class UserCatalog(Parameter):
     def __init__(self, value=None, name_format='str', name=None):
         _allowed_units = ['str']
         super().__init__(value=value,
-                         units=name_format,
+                         par_format=name_format,
                          check_value=self.check_name_value,
                          name=name,
                          allowed_units=_allowed_units)
 
     @staticmethod
-    def check_name_value(value, units=None, name=None):
+    def check_name_value(value, units=None, name=None, par_format=None):
         pass

@@ -31,11 +31,11 @@ install_req = [
     "python-logstash",
     "raven",
     "blinker",
-    "bokeh==0.12.16",
+    "bokeh==2.4.2",
     "json_tricks",
     "flask-restx",
     "six",
-    "werkzeug<=0.16.1",
+    "werkzeug",
     "python-shell-colors",
     "logging_tree",
     "celery",
@@ -43,7 +43,10 @@ install_req = [
     "pyjwt",
     "marshmallow",
     "black",
-    "bs4"
+    "bs4",
+    "GitPython",
+    "nbformat",
+    "giturlparse"
 ]
 
 test_req = [

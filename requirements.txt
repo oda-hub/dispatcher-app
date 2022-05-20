@@ -2,7 +2,7 @@ future
 numpy
 pyyaml
 simplejson
-flask
+flask>=2.0.3
 astropy>=2.0.3
 pylogstash_context>=0.1.19
 gunicorn
@@ -10,21 +10,27 @@ decorator
 python-logstash
 raven
 blinker
-bokeh==0.12.16
+bokeh==2.4.2
 json_tricks
 flask-restx
 six
-werkzeug<=0.16.1
+werkzeug
 python-shell-colors
 logging_tree
 celery
 redis
 psutil
 pyjwt
+giturlparse
 aiosmtpd
 marshmallow
+requests
+GitPython
+nbformat
 -e git+https://github.com/oda-hub/oda_api.git#egg=oda_api
 
+MarkupSafe==2.0.1
 
 # TODO: needed by some plugins: migrate
 simple_logger
+matplotlib

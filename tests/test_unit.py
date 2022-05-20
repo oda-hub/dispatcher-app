@@ -17,12 +17,14 @@ from cdci_data_analysis.analysis.queries import (
     ParameterRange,
     ParameterTuple,
     Angle,
-    InputProdList
+    InputProdList,
+    DetectionThreshold
 )
 
 import numpy as np
 
 
+@pytest.mark.fast
 @pytest.mark.parametrize("add_duplicate", [True, False])
 def test_repeating_parameters(add_duplicate):
     src_query = SourceQuery("src_query")
@@ -68,7 +70,7 @@ def test_repeating_parameters(add_duplicate):
     else:
         assert instrument.get_par_by_name("duplicate-name") == p1
 
-
+@pytest.mark.fast
 def test_input_prod_list():
     for parameter_type, input_value, format_args, outcome in [
         (InputProdList, [1, 2, 3], {'_format': 'names_list'}, [1, 2, 3]),
@@ -94,7 +96,7 @@ def test_input_prod_list():
             # check stuff on the inputProdList
             assert parameter.value == outcome
 
-
+@pytest.mark.fast
 def test_energy_defaults():
     for parameter_type, input_value, outcome, e_units, expected_type in [
         (Energy, 10., 10., 'keV', float),
@@ -115,14 +117,20 @@ def test_energy_defaults():
         else:
             p_spectral_boundary = constructor()
 
-            assert p_spectral_boundary.get_value_in_default_format() == p_spectral_boundary.value
-            assert p_spectral_boundary.get_value_in_default_format() == outcome
+            assert p_spectral_boundary.get_value_in_default_units() == p_spectral_boundary.value
+            assert p_spectral_boundary.get_value_in_default_units() == outcome
             assert type(p_spectral_boundary.value) == expected_type
 
-
+@pytest.mark.fast
 def test_angle_parameter():
-    for parameter_type, input_value, format_args, outcome, outcome_default_format in [
+    for parameter_type, input_value, format_args, outcome, outcome_default_units in [
         (Angle, -29.74516667, {'units': 'deg'}, -29.74516667, -29.74516667),
+        (Angle, -29.74516667, {'units': 'deg', 'default_units': 'deg'}, -29.74516667, -29.74516667),
+        (Angle, 3, {'units': 'arcmin', 'default_units': 'deg'}, 3, 0.05),
+        (Angle, 3, {'units': 'arcmin', 'default_units': 'arcmin'}, 3, 3),
+        (Angle, 0.05, {'units': 'deg', 'default_units': 'arcmin'}, 0.05, 3),
+        (Angle, 3, {'units': 'arcmin'}, 3, 0.05),
+        (Angle, 1, {'units': 'arcsec'}, 1, 0.0002777777777777778),
         (Angle, -29.74516667, {}, -29.74516667, -29.74516667),
         (Angle, '-29.74516667', {}, -29.74516667, -29.74516667),
         (Angle, 'aaaaa', {}, ValueError, None),
@@ -142,13 +150,16 @@ def test_angle_parameter():
             parameter = constructor()
 
             assert parameter.value == outcome
-            assert parameter.get_value_in_default_format() == outcome_default_format
-
+            assert parameter.get_value_in_default_units() == outcome_default_units
+            # # backward compatibility
+            # assert parameter.get_value_in_default_format() == outcome_default_units
             # setting value during request
-            assert parameter.set_par(input_value) == outcome_default_format
+            assert parameter.set_par(input_value) == outcome_default_units
             assert parameter.value == outcome
+            if 'units' in format_args:
+                assert parameter.get_value_in_units(format_args['units']) == outcome
 
-
+@pytest.mark.fast
 def test_time_parameter():
     for parameter_type, input_value, format_args, outcome, outcome_default_format in [
         (Time, '2017-03-06T13:26:48.000', {'T_format': 'isot'}, '2017-03-06T13:26:48.000', '2017-03-06T13:26:48.000'),
@@ -174,13 +185,18 @@ def test_time_parameter():
             parameter = constructor()
 
             assert parameter.value == outcome
+            # assert parameter.get_value_in_default_units() == outcome_default_format
+            # backward compatibility
             assert parameter.get_value_in_default_format() == outcome_default_format
-
             # setting value during request
             assert parameter.set_par(input_value) == outcome_default_format
             assert parameter.value == outcome
+            if 'T_format' in format_args:
+                assert parameter.get_value_in_format(format_args['T_format']) == outcome
+            if 'delta_T_format' in format_args:
+                assert parameter.get_value_in_format(format_args['delta_T_format']) == outcome
 
-
+@pytest.mark.fast
 def test_param_range():
     for parameter_type_p1, value_p1, parameter_type_p2, value_p2, outcome, outcome_message in [
         (Time, '2017-03-06T13:26:48.000', Time, '2017-03-06T13:26:49.000', None, None),
@@ -200,7 +216,7 @@ def test_param_range():
             p_range = constructor(p1, p2)
             assert p_range.to_list() == [p1, p2]
 
-
+@pytest.mark.fast
 def test_param_tuple():
     pf1 = Float('2017')
     pf2 = Float('2017')
@@ -227,7 +243,7 @@ def test_param_tuple():
             p_range = constructor()
             assert all(map(lambda x, y: x == y, p_range.to_list(), parameter_list))
 
-
+@pytest.mark.fast
 def test_parameter_normalization_no_units():
     for parameter_type, input_value, outcome in [
             (Float, 25, 25.0),
@@ -249,7 +265,7 @@ def test_parameter_normalization_no_units():
             (Integer, "25.", RuntimeError),
             (Integer, "25.64547871216879451687311", RuntimeError),
             (Integer, "aaaa", RuntimeError)
-        ]:
+    ]:
 
         def constructor():
             return parameter_type(value=input_value, name="my-parameter-name")
@@ -262,13 +278,45 @@ def test_parameter_normalization_no_units():
             parameter = constructor()
 
             # this is redundant
+            assert parameter.get_value_in_default_units() == parameter.value
+            # backward compatibility
             assert parameter.get_value_in_default_format() == parameter.value
-
             assert parameter.value == outcome
             assert type(parameter.value) == type(outcome)
 
             # setting value during request
             
+            assert parameter.set_par(input_value) == outcome
+            assert parameter.value == outcome
+            assert type(parameter.value) == type(outcome)
+
+
+@pytest.mark.fast
+def test_parameter_normalization_with_units():
+    for parameter_type, input_value, outcome, args in [
+        (DetectionThreshold, 25, 25.0, {'units': 'sigma'},),
+        (DetectionThreshold, 25, RuntimeError, {'units': 'fake'},),
+    ]:
+
+        def constructor():
+            return parameter_type(value=input_value, name="my-parameter-name", **args)
+
+        if isinstance(outcome, type) and issubclass(outcome, Exception):
+            with pytest.raises(outcome):
+                constructor()
+        else:
+            # this also sets the default value
+            parameter = constructor()
+
+            # this is redundant
+            assert parameter.get_value_in_default_units() == parameter.value
+            # backward compatibility
+            assert parameter.get_value_in_default_format() == parameter.value
+            assert parameter.value == outcome
+            assert type(parameter.value) == type(outcome)
+
+            # setting value during request
+
             assert parameter.set_par(input_value) == outcome
             assert parameter.value == outcome
             assert type(parameter.value) == type(outcome)

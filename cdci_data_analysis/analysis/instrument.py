@@ -154,6 +154,12 @@ class Instrument:
                     else:
                         raise InternalError("Error when setting the parameter %s: "
                                             "default unit not specified" % par.name)
+                if par.par_format_name is not None:
+                    if par.par_default_format is not None:
+                        updated_par_dic[par.par_format_name] = par.par_default_format
+                    else:
+                        raise InternalError("Error when setting the parameter %s: "
+                                            "default format not specified" % par.name)
                 else:
                     self.logger.warning("units_name for the parameter %s not specified", par.name)
 
@@ -270,8 +276,10 @@ class Instrument:
         #  this was removed by 2f5b5dfb7e but turns out it is used by some plugins, see test_server_plugin_integral_all_sky
         self._current_par_dic=par_dic
 
-        # set pars values from the input parameters
-        query_out = self.set_pars_from_form(par_dic, verbose=verbose, sentry_client=sentry_client)
+        # # set pars values from the input parameters
+        # query_out = self.set_pars_from_form(par_dic, verbose=verbose, sentry_client=sentry_client)
+        query_out = QueryOutput()
+        query_out.set_done()
         if verbose:
             self.show_parameters_list()
 

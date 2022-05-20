@@ -5,10 +5,13 @@ Created on Wed May 10 10:55:20 2017
 
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
-
+import glob
+import json
+import re
 import string
 import random
 import hashlib
+import jwt
 
 from raven.contrib.flask import Sentry
 
@@ -20,6 +23,7 @@ from flask_restx import Api, Resource, reqparse
 import time as _time
 from urllib.parse import urlencode
 
+from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper, email_helper
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError
@@ -30,7 +34,7 @@ from ..analysis.queries import *
 from ..analysis.io_helper import FitsFile
 from ..analysis.plot_tools import Image
 from .dispatcher_query import InstrumentQueryBackEnd
-from ..analysis.exceptions import APIerror
+from ..analysis.exceptions import APIerror, MissingRequestParameter
 from ..app_logging import app_logging
 
 from ..analysis.json import CustomJSONEncoder
@@ -183,7 +187,8 @@ def common_exception_payload():
 
     payload['config'] = {
         'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),
-                                                ['sentry_url', 'logstash_host', 'logstash_port', 'secret_key',
+                                                ['sentry_url', 'logstash_host', 'logstash_port','secret_key',
+                                                 'product_gallery_secret_key',
                                                  'smtp_server_password'])
     }
 
@@ -214,6 +219,71 @@ def inspect_state():
 
     state_data_obj = InstrumentQueryBackEnd.inspect_state(app)
     return state_data_obj
+
+
+@app.route('/push-renku-branch', methods=['POST'])
+def push_renku_branch():
+    logger.info("request.args: %s ", request.args)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['renku contributor'],
+                                                                  action="perform this operation")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    user_name = tokenHelper.get_token_user(decoded_token)
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+    # TODO check job_id is provided with the request
+    job_id = par_dic.pop('job_id')
+    api_code = None
+    request_dict = None
+    # Get the API code to push to the new renku branch
+    scratch_dir_pattern = f'scratch_sid_*_jid_{job_id}*'
+    list_scratch_folders = glob.glob(scratch_dir_pattern)
+    if len(list_scratch_folders) >= 1:
+        query_output_json_content_original = json.load(open(list_scratch_folders[0] + '/query_output.json'))
+        prod_dict = query_output_json_content_original['prod_dictionary']
+        # remove parameters that should not be shared (eg token)
+        api_code = prod_dict.pop('api_code', None)
+        request_dict = prod_dict.pop('analysis_parameters', None)
+
+    renku_gitlab_repository_url = app_config.renku_gitlab_repository_url
+    renku_gitlab_ssh_key_path = app_config.renku_gitlab_ssh_key_path
+    renku_base_project_url = app_config.renku_base_project_url
+    products_url = app_config.products_url
+
+    renku_logger = logger.getChild('push_renku_branch')
+    renku_logger.info('renku_gitlab_repository_url: %s', renku_gitlab_repository_url)
+    renku_logger.info('renku_base_project_url: %s', renku_base_project_url)
+    renku_logger.info('renku_gitlab_ssh_key_path: %s', renku_gitlab_ssh_key_path)
+    renku_logger.info('user_name: %s', user_name)
+    renku_logger.info('user_email: %s', user_email)
+
+    if api_code is not None:
+        api_code_url = renku_helper.push_api_code(api_code=api_code,
+                                                  job_id=job_id,
+                                                  renku_gitlab_repository_url=renku_gitlab_repository_url,
+                                                  renku_base_project_url=renku_base_project_url,
+                                                  renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path,
+                                                  user_name=user_name, user_email=user_email,
+                                                  products_url=products_url, request_dict=request_dict)
+
+        return api_code_url
+
+    else:
+        raise RequestNotUnderstood(message="Request data not found",
+                                   payload={'error_message': 'error while posting data in the renku branch: '
+                                                             'api_code was not found, '
+                                                             'perhaps wrong job_id was passed?'})
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
@@ -392,6 +462,191 @@ class Product(Resource):
                            e, status_code=410)
 
 
+@app.route('/resolve_name', methods=['GET'])
+def resolve_name():
+    logger.info("request.args: %s ", request.args)
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+
+    name = request.args.get('name', None)
+
+    name_resolver_url = app_config.name_resolver_url
+    entities_portal_url = app_config.entities_portal_url
+
+    resolve_object = drupal_helper.resolve_name(name_resolver_url=name_resolver_url,
+                                                entities_portal_url=entities_portal_url,
+                                                name=name)
+
+    return resolve_object
+
+
+@app.route('/get_revnum', methods=['GET'])
+def get_revnum():
+    logger.info("request.args: %s ", request.args)
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+
+    time_to_convert = request.args.get('time_to_convert', None)
+
+    converttime_revnum_service_url = app_config.converttime_revnum_service_url
+
+    resolve_object = drupal_helper.get_revnum(service_url=converttime_revnum_service_url, time_to_convert=time_to_convert)
+
+    return resolve_object
+
+
+@app.route('/get_list_terms', methods=['GET'])
+def get_list_terms():
+    logger.info("request.args: %s ", request.args)
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    group = request.args.get('group', None)
+    parent = request.args.get('parent', None)
+
+    list_terms = drupal_helper.get_list_terms(disp_conf=app_config,
+                                              group=group,
+                                              parent=parent,
+                                              decoded_token=decoded_token)
+
+    output_request = json.dumps(list_terms)
+
+    return output_request
+
+
+@app.route('/get_parents_term', methods=['GET'])
+def get_parents_term():
+    logger.info("request.args: %s ", request.args)
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    group = request.args.get('group', None)
+    term = request.args.get('term', None)
+
+    list_parents = drupal_helper.get_parents_term(disp_conf=app_config,
+                                                  term=term,
+                                                  group=group,
+                                                  decoded_token=decoded_token)
+
+    output_request = json.dumps(list_parents)
+
+    return output_request
+
+
+@app.route('/post_product_to_gallery', methods=['POST'])
+def post_product_to_gallery():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
+                                                        disp_conf=app_config,
+                                                        files=request.files,
+                                                        **par_dic)
+
+    return output_post
+
+
+@app.route('/report_incident', methods=['POST'])
+def report_incident():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key)
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    job_id = par_dic.get('job_id')
+    session_id = par_dic.get('session_id')
+    scratch_dir = par_dic.get('scratch_dir')
+    incident_content = par_dic.get('incident_content')
+    incident_time = par_dic.get('incident_time', _time.time())
+    try:
+        email_helper.send_incident_report_email(
+            config=app_config,
+            job_id=job_id,
+            session_id=session_id,
+            logger=logger,
+            decoded_token=decoded_token,
+            incident_content=incident_content,
+            incident_time=incident_time,
+            scratch_dir=scratch_dir
+        )
+        report_incident_status = 'incident report email successfully sent'
+    except email_helper.EMailNotSent as e:
+        report_incident_status = 'sending email failed'
+        logging.warning(f'email sending failed: {e}')
+        sentry_url = getattr(app.config.get('conf'), 'sentry_url', None)
+        if sentry_url is not None:
+            sentry_client = Sentry(app, dsn=sentry_url)
+            sentry_client.capture('raven.events.Message',
+                                  message=f'sending email failed {e}')
+        else:
+            logger.warning("sentry not used")
+    except MissingRequestParameter as e:
+        report_incident_status = 'sending email failed'
+        logging.warning(f'parameter missing during call back: {e}')
+
+    response = jsonify({'report_incident_status': report_incident_status})
+
+    return response
+
+
 @ns_conf.route('/js9/<path:path>', methods=['GET', 'POST'])
 # @app.route('/js9/<path:path>',methods=['GET','POST'])
 class JS9(Resource):
@@ -506,7 +761,7 @@ def conf_app(conf):
                                         set_by=f'command line {__file__}:{__name__}')
 
     app.config['conf'] = conf
-    if conf.sentry_url is not None:
+    if getattr(conf, 'sentry_url', None) is not None:
         sentry = Sentry(app, dsn=conf.sentry_url)
         logger.warning("sentry not used")
     return app
@@ -521,6 +776,15 @@ def log_run_query_request():
     request_summary = {}
 
     try:
+        
+        try:
+            request_json = request.json
+        except:
+            request_json = {}
+
+        if request_json is None:
+            request_json = {}
+
         logger.debug("output json request")
         logger.debug("request.args: %s", request.args)
         logger.debug("request.host: %s", request.host)
@@ -531,7 +795,7 @@ def log_run_query_request():
                         'host_url': request.host_url,
                         'host': request.host,
                         'args': dict(request.args),
-                        'json-data': dict(request.json or {}),
+                        'json-data': dict(request_json),
                         'form-data': dict(request.form or {}),
                         'raw-data': dict(request.data or ""),
                     }}
@@ -546,7 +810,7 @@ def log_run_query_request():
         logger.info("request_summary: %s", request_summary_json)
         logstash_message(app, request_summary_json)
     except Exception as e:
-        logger.error("failed to logstash request in log_run_query_request %s", e)
+        logger.error("failed to logstash request in log_run_query_request: %s\n%s", repr(e), traceback.format_exception())
         raise
 
     return request_summary
@@ -575,7 +839,6 @@ def log_run_query_result(request_summary, result):
         raise
 
     return result
-
 
 
 if __name__ == "__main__":

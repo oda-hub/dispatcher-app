@@ -234,7 +234,19 @@ class ConfigEnv(object):
                                      disp_dict['email_options']['email_sending_timeout'],
                                      disp_dict['email_options']['email_sending_timeout_default_threshold'],
                                      disp_dict['email_options']['email_sending_job_submitted'],
-                                     disp_dict['email_options']['email_sending_job_submitted_default_interval']
+                                     disp_dict['email_options']['email_sending_job_submitted_default_interval'],
+                                     disp_dict['email_options'].get('sentry_for_email_sending_check', False),
+                                     disp_dict['email_options'].get('incident_report_email_options', {}).get('incident_report_sender_email_address', None),
+                                     disp_dict['email_options'].get('incident_report_email_options', {}).get('incident_report_receivers_email_addresses', None),
+                                     disp_dict.get('product_gallery_options', {}).get('product_gallery_url', None),
+                                     disp_dict.get('product_gallery_options', {}).get('product_gallery_secret_key', None),
+                                     disp_dict.get('product_gallery_options', {}).get('product_gallery_timezone', "Europe/Zurich"),
+                                     disp_dict.get('product_gallery_options', {}).get('name_resolver_url', 'https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}'),
+                                     disp_dict.get('product_gallery_options', {}).get('entities_portal_url', 'http://cdsportal.u-strasbg.fr/?target={}'),
+                                     disp_dict.get('product_gallery_options', {}).get('converttime_revnum_service_url', 'https://www.astro.unige.ch/mmoda/dispatch-data/gw/timesystem/api/v1.0/converttime/UTC/{}/REVNUM'),
+                                     disp_dict.get('renku_options', {}).get('renku_gitlab_repository_url', None),
+                                     disp_dict.get('renku_options', {}).get('renku_base_project_url', None),
+                                     disp_dict.get('renku_options', {}).get('ssh_key_path', None)
                                      )
 
         # not used?
@@ -282,7 +294,19 @@ class ConfigEnv(object):
                             email_sending_timeout,
                             email_sending_timeout_default_threshold,
                             email_sending_job_submitted,
-                            email_sending_job_submitted_default_interval
+                            email_sending_job_submitted_default_interval,
+                            sentry_for_email_sending_check,
+                            incident_report_sender_email_address,
+                            incident_report_receivers_email_addresses,
+                            product_gallery_url,
+                            product_gallery_secret_key,
+                            product_gallery_timezone,
+                            name_resolver_url,
+                            entities_portal_url,
+                            converttime_revnum_service_url,
+                            renku_gitlab_repository_url,
+                            renku_base_project_url,
+                            renku_gitlab_ssh_key_path
                             ):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
@@ -304,6 +328,18 @@ class ConfigEnv(object):
         self.email_sending_timeout_default_threshold = email_sending_timeout_default_threshold
         self.email_sending_job_submitted = email_sending_job_submitted
         self.email_sending_job_submitted_default_interval = email_sending_job_submitted_default_interval
+        self.sentry_for_email_sending_check = sentry_for_email_sending_check
+        self.incident_report_sender_email_address = incident_report_sender_email_address
+        self.incident_report_receivers_email_addresses = incident_report_receivers_email_addresses
+        self.product_gallery_url = product_gallery_url
+        self.product_gallery_secret_key = product_gallery_secret_key
+        self.product_gallery_timezone = product_gallery_timezone
+        self.name_resolver_url = name_resolver_url
+        self.entities_portal_url = entities_portal_url
+        self.converttime_revnum_service_url = converttime_revnum_service_url
+        self.renku_gitlab_repository_url = renku_gitlab_repository_url
+        self.renku_gitlab_ssh_key_path = renku_gitlab_ssh_key_path
+        self.renku_base_project_url = renku_base_project_url
 
     def get_data_serve_conf(self, instr_name):
         if instr_name in self.data_server_conf_dict.keys():
