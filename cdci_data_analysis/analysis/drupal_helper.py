@@ -796,19 +796,21 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     headers = get_drupal_request_headers(gallery_jwt_token)
 
     if data_product_id is not None:
-        log_res = execute_drupal_request(f"{product_gallery_url}/node/{data_product_id}",
+        logger.info(f"updating the data-product with id {data_product_id}")
+        log_res = execute_drupal_request(os.path.join(product_gallery_url, 'node', data_product_id),
                                          method='patch',
                                          data=json.dumps(body_gallery_article_node),
                                          headers=headers,
                                          sentry_client=sentry_client)
+        output_post = analyze_drupal_output(log_res, operation_performed="updating an existing data product in the gallery")
     else:
-        log_res = execute_drupal_request(f"{product_gallery_url}/node",
+        logger.info("posting a new data-product")
+        log_res = execute_drupal_request(os.path.join(product_gallery_url, 'node', ),
                                          method='post',
                                          data=json.dumps(body_gallery_article_node),
                                          headers=headers,
-                                        sentry_client=sentry_client)
-
-    output_post = analyze_drupal_output(log_res, operation_performed="posting data product to the gallery")
+                                         sentry_client=sentry_client)
+        output_post = analyze_drupal_output(log_res, operation_performed="posting a new data product to the gallery")
 
     return output_post
 
