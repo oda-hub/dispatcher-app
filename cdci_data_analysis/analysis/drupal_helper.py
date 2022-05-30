@@ -381,6 +381,7 @@ def post_content_to_gallery(decoded_token,
     fits_file_fid_list = None
     img_fid = None
     product_title = None
+    data_product_id = None
     if content_type == content_type.DATA_PRODUCT:
 
         product_id = par_dic.get('product_id', None)
@@ -421,7 +422,6 @@ def post_content_to_gallery(decoded_token,
                         fits_file_fid_list = []
                     fits_file_fid_list.append(output_fits_file_post['fid'][0]['value'])
 
-        data_product_id = par_dic.get('nid', None)
         product_title = par_dic.pop('product_title', product_title)
         observation_id = par_dic.pop('observation_id', None)
         user_id_product_creator = par_dic.pop('user_id_product_creator')
