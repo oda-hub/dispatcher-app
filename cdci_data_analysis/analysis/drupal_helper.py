@@ -387,13 +387,12 @@ def post_content_to_gallery(decoded_token,
         if product_id is not None:
             logger.info(f"retrieving data-products with the provided product_id: {product_id}")
             product_id_data_product_list = get_data_product_list_by_product_id(product_gallery_url=product_gallery_url,
-                                                                       gallery_jwt_token=gallery_jwt_token,
-                                                                       product_id=product_id,
-                                                                       sentry_client=sentry_client)
+                                                                               gallery_jwt_token=gallery_jwt_token,
+                                                                               product_id=product_id,
+                                                                               sentry_client=sentry_client)
             if len(product_id_data_product_list) > 0:
                 if len(product_id_data_product_list) > 1:
                     logger.info(f"more than one data-product with job_id {product_id} has been found, the first one will be updated")
-                # TODO updates only the first (which is also the most recently updated), update them all?
                 data_product_id = product_id_data_product_list[0]['nid']
                 product_title = product_id_data_product_list[0]['title']
                 logger.info(f"the data-product \"{product_title}\", id: {data_product_id} will be updated")
