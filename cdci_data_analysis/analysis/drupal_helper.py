@@ -382,6 +382,43 @@ def post_content_to_gallery(decoded_token,
     img_fid = None
     product_title = None
     if content_type == content_type.DATA_PRODUCT:
+
+        product_id = par_dic.get('product_id', None)
+        if product_id is not None:
+            logger.info(f"retrieving data-products with the provided product_id: {product_id}")
+            job_id_data_product_list = get_data_product_list_by_job_id(product_gallery_url=product_gallery_url,
+                                                                       gallery_jwt_token=gallery_jwt_token,
+                                                                       job_id=job_id,
+                                                                       sentry_client=sentry_client)
+            if len(job_id_data_product_list) > 0:
+                if len(job_id_data_product_list) > 1:
+                    logger.info(f"more than one data-product with job_id {job_id} has been found, the first one will be updated")
+                # TODO updates only the first (which is also the most recently updated), update them all?
+                data_product_id = job_id_data_product_list[0]['nid']
+                product_title = job_id_data_product_list[0]['title']
+                logger.info(f"the data-product \"{product_title}\", id: {data_product_id} will be updated")
+                # delete them if new ones are uploaded
+                if 'field_fits_file' in job_id_data_product_list[0]:
+                    fits_files_to_upload = list(filter(lambda item: 'fits_file_' in item[0], files.items()))
+                    if len(fits_files_to_upload) > 0:
+                        # check in the new files there are new fits files to upload
+                        fits_file_fid_list_to_delete = job_id_data_product_list[0]['field_fits_file'].split(',')
+                        # delete the current one(s), and then the new one(s) will be uploaded
+                        for fits_file_id in fits_file_fid_list_to_delete:
+                            # delete the current one, and then the new one will be uploaded
+                            delete_file_gallery(product_gallery_url=product_gallery_url,
+                                                file_to_delete_id=fits_file_id,
+                                                gallery_jwt_token=gallery_jwt_token,
+                                                sentry_client=sentry_client)
+                if 'field_image_png' in job_id_data_product_list[0] and 'img' in files:
+                    img_fid_to_delete = job_id_data_product_list[0]['field_image_png']
+                    # delete the current one, and then the new one will be uploaded
+                    delete_file_gallery(product_gallery_url=product_gallery_url,
+                                        file_to_delete_id=img_fid_to_delete,
+                                        gallery_jwt_token=gallery_jwt_token,
+                                        sentry_client=sentry_client)
+
+
         # process files sent
         if files is not None:
             for f in files:
@@ -577,10 +614,25 @@ def get_data_product_list_by_job_id(product_gallery_url, gallery_jwt_token, job_
     # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
 
-    log_res = execute_drupal_request(f"{product_gallery_url}/data_products/{job_id}",
+    log_res = execute_drupal_request(f"{product_gallery_url}/data_products/job_id/{job_id}",
                                      headers=headers,
                                      sentry_client=sentry_client)
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the list of data product for a given job_id")
+    if isinstance(output_get, list):
+        data_product_list = output_get
+
+    return data_product_list
+
+
+def get_data_product_list_by_product_id(product_gallery_url, gallery_jwt_token, product_id=None, sentry_client=None) -> list:
+    data_product_list = []
+    # get from the drupal the relative id
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/data_products/product_id/{product_id}",
+                                     headers=headers,
+                                     sentry_client=sentry_client)
+    output_get = analyze_drupal_output(log_res, operation_performed="retrieving the list of data product for a given product_id")
     if isinstance(output_get, list):
         data_product_list = output_get
 
