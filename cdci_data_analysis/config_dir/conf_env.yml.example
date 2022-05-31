@@ -68,7 +68,7 @@ dispatcher:
         # location of the secret key used for generating tokens
         product_gallery_secret_key: PRODUCT_GALLERY_SECRET_KEY
         # timezone to be applied to the date time objects used for the gallery
-        product_gallery_timezone: PRODUCT_GALLERY_SECRET_KEY
+        product_gallery_timezone: PRODUCT_GALLERY_TIMEZONE
         # url of the name resolver
         name_resolver_url: NAME_RESOLVER_URL
         # url of the online catalog for astrophysical entities
