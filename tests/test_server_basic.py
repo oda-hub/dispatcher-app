@@ -1859,7 +1859,7 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
     product_type_product_gallery = 'isgri_lc'
 
     params = {
-        'job_id': job_id,
+        'product_id': job_id,
         'instrument': instrument,
         'src_name': source_name,
         'product_type': product_type_product_gallery,
@@ -1892,6 +1892,9 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
 
     drupal_res_obj = c.json()
 
+    assert 'nid' in drupal_res_obj
+    nid_creation = drupal_res_obj['nid'][0]['value']
+
     assert 'field_e1_kev' in drupal_res_obj
     assert drupal_res_obj['field_e1_kev'][0]['value'] == e1_kev
 
@@ -1914,8 +1917,7 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
     params = {
         'e1_kev': 145,
         'e2_kev': 195,
-        'job_id': job_id,
-        'update_data_product': True,
+        'product_id': job_id,
         'content_type': 'data_product',
         'token': encoded_token
     }
@@ -1934,6 +1936,10 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
     assert c.status_code == 200
 
     drupal_res_obj = c.json()
+
+    assert 'nid' in drupal_res_obj
+    nid_update = drupal_res_obj['nid'][0]['value']
+    assert nid_update == nid_creation
 
     assert 'field_e1_kev' in drupal_res_obj
     assert drupal_res_obj['field_e1_kev'][0]['value'] == params['e1_kev']
