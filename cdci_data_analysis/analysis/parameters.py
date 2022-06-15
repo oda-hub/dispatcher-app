@@ -384,6 +384,7 @@ class Parameter(object):
 
 
 class Name(Parameter):
+    uri="http://odahub.io/ontology@AstrophysicalObject"
     def __init__(self, value=None, name_format='str', name=None):
         _allowed_units = ['str']
         super().__init__(value=value,
