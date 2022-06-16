@@ -759,22 +759,27 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
         }]
 
     # set the source astrophysical entity if available
+    src_name_concat = None
     src_name_arg = kwargs.pop('src_name', None)
     if src_name_arg is not None:
         src_name_list = src_name_arg.split(',')
         src_portal_link_arg = kwargs.pop('entity_portal_link', None)
         src_portal_link_list = src_portal_link_arg.split(',')
+        src_name_concat = "_".join(src_name_list)
 
         for src_name in src_name_list:
             source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
                                                                                  source_name=src_name,
                                                                                  sentry_client=sentry_client)
             src_name_idx = src_name_list.index(src_name)
+            src_portal_link = None
+            if src_portal_link_list[src_name_idx] != '':
+                src_portal_link = src_portal_link_list[src_name_idx]
             # create a new source ? yes if the user wants it
             if source_entity_id is None and insert_new_source:
                 source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
                                                      astro_entity_name=src_name,
-                                                     astro_entity_portal_link=src_portal_link_list[src_name_idx],
+                                                     astro_entity_portal_link=src_portal_link,
                                                      sentry_client=sentry_client)
 
                 if source_entity_id is not None:
@@ -787,14 +792,14 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     # set the product title
     # TODO agree on a better logic to assign the product title, have it mandatory?
     if product_title is None:
-        if product_type is None and src_name is None:
+        if product_type is None and src_name_concat is None:
             product_title = "_".join(["data_product", str(uuid.uuid4())])
-        elif product_type is None and src_name is not None:
-            product_title = src_name
-        elif product_type is not None and src_name is None:
+        elif product_type is None and src_name_concat is not None:
+            product_title = src_name_concat
+        elif product_type is not None and src_name_concat is None:
             product_title = product_type
         else:
-            product_title = "_".join([src_name, product_type])
+            product_title = "_".join([src_name_concat, product_type])
 
     body_gallery_article_node["title"]["value"] = product_title
 
