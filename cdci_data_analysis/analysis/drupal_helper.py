@@ -1,6 +1,8 @@
 import os
 import json
 import time
+import urllib.parse
+
 import jwt
 import requests
 import base64
@@ -576,6 +578,10 @@ def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, galle
     entities_id = None
     # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
+
+    # the URL-reserved characters should be quoted eg GX 1+4 -> GX%201%2B4
+    # TODO to verify if this approach also for the other requestes
+    source_name = urllib.parse.quote(source_name)
 
     log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/source/{source_name}",
                                      headers=headers,
