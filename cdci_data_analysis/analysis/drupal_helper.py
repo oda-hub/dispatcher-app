@@ -764,30 +764,32 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     if src_name_arg is not None:
         src_name_list = src_name_arg.split(',')
         src_portal_link_arg = kwargs.pop('entity_portal_link', None)
-        src_portal_link_list = src_portal_link_arg.split(',')
+        src_portal_link_list = None
+        if src_portal_link_arg is not None:
+            src_portal_link_list = src_portal_link_arg.split(',')
         src_name_concat = "_".join(src_name_list)
 
         for src_name in src_name_list:
             source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
                                                                                  source_name=src_name,
                                                                                  sentry_client=sentry_client)
-            src_name_idx = src_name_list.index(src_name)
-            src_portal_link = None
-            if src_portal_link_list[src_name_idx] != '':
-                src_portal_link = src_portal_link_list[src_name_idx]
             # create a new source ? yes if the user wants it
             if source_entity_id is None and insert_new_source:
+                src_name_idx = src_name_list.index(src_name)
+                src_portal_link = None
+                if src_portal_link_list is not None and src_portal_link_list[src_name_idx] != '':
+                    src_portal_link = src_portal_link_list[src_name_idx]
                 source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
                                                      astro_entity_name=src_name,
                                                      astro_entity_portal_link=src_portal_link,
                                                      sentry_client=sentry_client)
 
-                if source_entity_id is not None:
-                    if 'field_describes_astro_entity' not in body_gallery_article_node:
-                        body_gallery_article_node['field_describes_astro_entity'] = []
-                    body_gallery_article_node['field_describes_astro_entity'].append({
-                        "target_id": int(source_entity_id)
-                    })
+            if source_entity_id is not None:
+                if 'field_describes_astro_entity' not in body_gallery_article_node:
+                    body_gallery_article_node['field_describes_astro_entity'] = []
+                body_gallery_article_node['field_describes_astro_entity'].append({
+                    "target_id": int(source_entity_id)
+                })
 
     # set the product title
     # TODO agree on a better logic to assign the product title, have it mandatory?
