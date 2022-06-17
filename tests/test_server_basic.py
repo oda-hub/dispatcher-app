@@ -1829,14 +1829,18 @@ def test_post_data_product_with_multiple_sources(dispatcher_live_fixture_with_ga
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
     source_name = None
+    entity_portal_link = None
     if type_source == "single":
         source_name = "GX 1+4"
+        entity_portal_link = "http://cdsportal.u-strasbg.fr/?target=GX%201%204"
     elif type_source == "list":
-        source_name = 'GX 1+4, Crab, unknown_src'
+        source_name = 'GX 1+4, Crab, unknown_src, unknown_src_no_link'
+        entity_portal_link = "http://cdsportal.u-strasbg.fr/?target=GX%201%204, http://cdsportal.u-strasbg.fr/?target=Crab, , link"
 
     params = {
         'instrument': 'isgri',
         'src_name': source_name,
+        'entity_portal_link': entity_portal_link,
         'product_type': 'isgri_lc',
         'content_type': 'data_product',
         'product_title': "product with multiple sources",
