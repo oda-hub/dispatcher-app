@@ -481,6 +481,7 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, time
 def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name, astro_entity_portal_link=None,  sentry_client=None):
     # post new observation with or without a specific time range
     body_gallery_astro_entity_node = copy.deepcopy(body_article_product_gallery.body_node)
+    astro_entity_name = astro_entity_name.strip()
     # set the type of content to post
     body_gallery_astro_entity_node["_links"]["type"]["href"] = os.path.join(product_gallery_url,
                                                                             body_gallery_astro_entity_node["_links"]["type"]["href"],
@@ -778,9 +779,9 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
                 src_name_idx = src_name_list.index(src_name)
                 src_portal_link = None
                 if src_portal_link_list is not None and src_portal_link_list[src_name_idx] != '':
-                    src_portal_link = src_portal_link_list[src_name_idx]
+                    src_portal_link = src_portal_link_list[src_name_idx].strip()
                 source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
-                                                     astro_entity_name=src_name,
+                                                     astro_entity_name=src_name.strip(),
                                                      astro_entity_portal_link=src_portal_link,
                                                      sentry_client=sentry_client)
 
