@@ -764,7 +764,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     src_name_arg = kwargs.pop('src_names', None)
     if src_name_arg is not None:
         src_name_list = src_name_arg.split(',')
-        src_portal_link_arg = kwargs.pop('entity_portal_link', None)
+        src_portal_link_arg = kwargs.pop('entities_portal_link', None)
         src_portal_link_list = None
         if src_portal_link_arg is not None:
             src_portal_link_list = src_portal_link_arg.split(',')
