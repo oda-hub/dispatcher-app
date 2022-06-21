@@ -428,7 +428,7 @@ def post_content_to_gallery(decoded_token,
         observation_id = par_dic.pop('observation_id', None)
         user_id_product_creator = par_dic.pop('user_id_product_creator')
         # TODO perhaps there's a smarter way to do this
-        insert_new_sources = par_dic.pop('insert_new_sources', 'False') == 'True'
+        insert_new_source = par_dic.pop('insert_new_source', 'False') == 'True'
 
         output_data_product_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
                                                                 gallery_jwt_token=gallery_jwt_token,
@@ -438,7 +438,7 @@ def post_content_to_gallery(decoded_token,
                                                                 fits_file_fid_list=fits_file_fid_list,
                                                                 observation_id=observation_id,
                                                                 user_id_product_creator=user_id_product_creator,
-                                                                insert_new_sources=insert_new_sources,
+                                                                insert_new_source=insert_new_source,
                                                                 timezone=config_timezone,
                                                                 **par_dic)
 
@@ -682,7 +682,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
                                  fits_file_fid_list=None,
                                  observation_id=None,
                                  user_id_product_creator=None,
-                                 insert_new_sources=False,
+                                 insert_new_source=False,
                                  sentry_client=None,
                                  timezone=None,
                                  **kwargs):
@@ -761,10 +761,10 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
 
     # set the source astrophysical entity if available
     src_name_concat = None
-    src_name_arg = kwargs.pop('src_names', None)
+    src_name_arg = kwargs.pop('src_name', None)
     if src_name_arg is not None:
         src_name_list = src_name_arg.split(',')
-        src_portal_link_arg = kwargs.pop('entities_portal_link', None)
+        src_portal_link_arg = kwargs.pop('entity_portal_link', None)
         src_portal_link_list = None
         if src_portal_link_arg is not None:
             src_portal_link_list = src_portal_link_arg.split(',')
@@ -775,7 +775,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
                                                                                  source_name=src_name,
                                                                                  sentry_client=sentry_client)
             # create a new source ? yes if the user wants it
-            if source_entity_id is None and insert_new_sources:
+            if source_entity_id is None and insert_new_source:
                 src_name_idx = src_name_list.index(src_name)
                 src_portal_link = None
                 if src_portal_link_list is not None and src_portal_link_list[src_name_idx] != '':
