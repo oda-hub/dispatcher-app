@@ -1,6 +1,8 @@
 import os
 import json
 import time
+import urllib.parse
+
 import jwt
 import requests
 import base64
@@ -479,6 +481,7 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, time
 def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name, astro_entity_portal_link=None,  sentry_client=None):
     # post new observation with or without a specific time range
     body_gallery_astro_entity_node = copy.deepcopy(body_article_product_gallery.body_node)
+    astro_entity_name = astro_entity_name.strip()
     # set the type of content to post
     body_gallery_astro_entity_node["_links"]["type"]["href"] = os.path.join(product_gallery_url,
                                                                             body_gallery_astro_entity_node["_links"]["type"]["href"],
@@ -576,6 +579,10 @@ def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, galle
     entities_id = None
     # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
+
+    # the URL-reserved characters should be quoted eg GX 1+4 -> GX%201%2B4
+    # TODO to verify if this approach also for the other requestes
+    source_name = urllib.parse.quote(source_name.strip())
 
     log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/source/{source_name}",
                                      headers=headers,
@@ -752,36 +759,50 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             "target_id": user_id_product_creator
         }]
 
-    src_name = kwargs.pop('src_name', None)
-    src_portal_link = kwargs.pop('entity_portal_link', None)
     # set the source astrophysical entity if available
-    if src_name is not None:
-        source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
-                                                                             source_name=src_name,
-                                                                             sentry_client=sentry_client)
-        # create a new source ? yes if the user wants it
-        if source_entity_id is None and insert_new_source:
-            source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
-                                                 astro_entity_name=src_name,
-                                                 astro_entity_portal_link=src_portal_link,
-                                                 sentry_client=sentry_client)
+    src_name_concat = None
+    src_name_arg = kwargs.pop('src_name', None)
+    if src_name_arg is not None:
+        src_name_list = src_name_arg.split(',')
+        src_portal_link_arg = kwargs.pop('entity_portal_link', None)
+        src_portal_link_list = None
+        if src_portal_link_arg is not None:
+            src_portal_link_list = src_portal_link_arg.split(',')
+        src_name_concat = "_".join(src_name_list)
 
-        if source_entity_id is not None:
-            body_gallery_article_node['field_describes_astro_entity'] = [{
-                "target_id": int(source_entity_id)
-            }]
+        for src_name in src_name_list:
+            source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
+                                                                                 source_name=src_name,
+                                                                                 sentry_client=sentry_client)
+            # create a new source ? yes if the user wants it
+            if source_entity_id is None and insert_new_source:
+                src_name_idx = src_name_list.index(src_name)
+                src_portal_link = None
+                if src_portal_link_list is not None and src_portal_link_list[src_name_idx] != '':
+                    src_portal_link = src_portal_link_list[src_name_idx].strip()
+                source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
+                                                     astro_entity_name=src_name.strip(),
+                                                     astro_entity_portal_link=src_portal_link,
+                                                     sentry_client=sentry_client)
+
+            if source_entity_id is not None:
+                if 'field_describes_astro_entity' not in body_gallery_article_node:
+                    body_gallery_article_node['field_describes_astro_entity'] = []
+                body_gallery_article_node['field_describes_astro_entity'].append({
+                    "target_id": int(source_entity_id)
+                })
 
     # set the product title
     # TODO agree on a better logic to assign the product title, have it mandatory?
     if product_title is None:
-        if product_type is None and src_name is None:
+        if product_type is None and src_name_concat is None:
             product_title = "_".join(["data_product", str(uuid.uuid4())])
-        elif product_type is None and src_name is not None:
-            product_title = src_name
-        elif product_type is not None and src_name is None:
+        elif product_type is None and src_name_concat is not None:
+            product_title = src_name_concat
+        elif product_type is not None and src_name_concat is None:
             product_title = product_type
         else:
-            product_title = "_".join([src_name, product_type])
+            product_title = "_".join([src_name_concat, product_type])
 
     body_gallery_article_node["title"]["value"] = product_title
 

@@ -1813,6 +1813,63 @@ def test_product_gallery_post(dispatcher_live_fixture_with_gallery, dispatcher_t
 
 
 @pytest.mark.test_drupal
+@pytest.mark.parametrize("type_source", ["single", "list", None])
+@pytest.mark.parametrize("insert_new_source", [True])
+def test_post_data_product_with_multiple_sources(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, type_source, insert_new_source):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    source_name = None
+    entity_portal_link = None
+    if type_source == "single":
+        source_name = "GX 1+4"
+        entity_portal_link = "http://cdsportal.u-strasbg.fr/?target=GX%201%204"
+    elif type_source == "list":
+        source_name = 'GX 1+4, Crab, unknown_src, unknown_src_no_link'
+        entity_portal_link = "http://cdsportal.u-strasbg.fr/?target=GX%201%204, http://cdsportal.u-strasbg.fr/?target=Crab, , link"
+
+    params = {
+        'instrument': 'isgri',
+        'src_name': source_name,
+        'entity_portal_link': entity_portal_link,
+        'product_type': 'isgri_lc',
+        'content_type': 'data_product',
+        'product_title': "product with multiple sources",
+        'token': encoded_token,
+        'insert_new_source': insert_new_source
+    }
+
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                      params={**params}
+                      )
+
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    link_field_describes_astro_entity = os.path.join(
+        dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+        'rest/relation/node/data_product/field_describes_astro_entity')
+    if type_source is not None:
+        assert link_field_describes_astro_entity in drupal_res_obj['_links']
+        if type_source == "single":
+            assert len(drupal_res_obj['_links'][link_field_describes_astro_entity]) == 1
+        elif type_source == "list":
+            assert len(drupal_res_obj['_links'][link_field_describes_astro_entity]) == len(source_name.split(','))
+    else:
+        assert link_field_describes_astro_entity not in drupal_res_obj['_links']
+
+
+@pytest.mark.test_drupal
 def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
     dispatcher_fetch_dummy_products('default')
 
