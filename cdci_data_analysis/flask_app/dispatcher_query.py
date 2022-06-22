@@ -886,11 +886,13 @@ class InstrumentQueryBackEnd:
         if self.config.sentry_url is not None:
             self.set_sentry_client(self.config.sentry_url)
 
-        instrument_name = self.par_dic.get('instrument_name', '')
+        self.instrument_name = self.par_dic.get('instrument_name', '')
+        # set instrument
+        self.set_instrument(self.instrument_name)
         # the time the request was sent should be used
         # the time_request contains the time the call_back as issued
         time_original_request = self.par_dic.get('time_original_request', None)
-        job = job_factory(instrument_name,
+        job = job_factory(self.instrument_name,
                           self.scratch_dir,
                           self.dispatcher_host,
                           self.dispatcher_port,
@@ -908,6 +910,11 @@ class InstrumentQueryBackEnd:
             status = self.par_dic[job.status_kw_name]
         else:
             status = 'unknown'
+
+        # get more info regarding the status of the request
+        status_details=None
+        if status == 'done':
+            status_details = self.instrument.get_status_details()
 
         logger.warn('-----> set status to %s', status)
 
@@ -941,7 +948,8 @@ class InstrumentQueryBackEnd:
                     job_id=self.job_id,
                     session_id=self.par_dic['session_id'],
                     status=status,
-                    instrument=instrument_name,
+                    status_details=status_details,
+                    instrument=self.instrument_name,
                     product_type=product_type,
                     time_request=time_original_request,
                     request_url=products_url,

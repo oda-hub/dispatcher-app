@@ -253,6 +253,15 @@ class Instrument:
 
             raise RequestNotUnderstood(error_message)
 
+    def get_status_details(self, product_type):
+
+        query_name = self.get_product_query_name(product_type)
+        query_obj = self.get_query_by_name(query_name)
+
+        products = query_obj.get_products()
+
+        # analyze products
+
     def run_query(self, product_type,
                   par_dic,
                   request,
