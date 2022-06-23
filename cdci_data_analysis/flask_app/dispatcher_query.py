@@ -942,7 +942,7 @@ class InstrumentQueryBackEnd:
                                                             url=self.app.config['conf'].products_url + "/dispatch-data"
                                                             )
                 email_helper.send_job_email(
-                    config=self.app.config['conf'],
+                    config=self.config,
                     logger=self.logger,
                     decoded_token=self.decoded_token,
                     token=self.token,
