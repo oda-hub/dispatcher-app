@@ -41,6 +41,8 @@ from .queries import ProductQuery, SourceQuery, InstrumentQuery
 from .io_helper import upload_file
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
 
+from oda_api.api import DispatcherAPI
+
 __author__ = "Andrea Tramacere"
 
 # Standard library
@@ -253,14 +255,22 @@ class Instrument:
 
             raise RequestNotUnderstood(error_message)
 
-    def get_status_details(self, product_type):
+    def get_status_details(self, product_type,
+                           par_dic,
+                           config=None,
+                           logger=None):
+        if logger is None:
+            logger = self.get_logger()
 
-        query_name = self.get_product_query_name(product_type)
-        query_obj = self.get_query_by_name(query_name)
+        status_details = None
 
-        products = query_obj.get_products()
+        logger.info(f"getting products for a more in-depth analysis for the results within run_call_back with args {par_dic}")
+        disp = DispatcherAPI(url=config.dispatcher_callback_url_base, instrument='mock')
+        data_collection = disp.get_product(**par_dic)
 
         # analyze products
+
+        return status_details
 
     def run_query(self, product_type,
                   par_dic,
