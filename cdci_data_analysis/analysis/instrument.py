@@ -264,6 +264,13 @@ class Instrument:
 
         status_details = None
 
+        # TODO put this in a dedicated function, perhaps within the oda_api
+        # adaptation for oda_api, like it happens in oda_api set_api_code function
+        par_dic['product'] = par_dic['product_type']
+        par_dic.pop('product_type')
+        par_dic['product_type'] = par_dic['query_type']
+        par_dic.pop('query_type')
+
         logger.info(f"getting products for a more in-depth analysis for the results within run_call_back with args {par_dic}")
         disp = DispatcherAPI(url=config.dispatcher_callback_url_base, instrument='mock')
         data_collection = disp.get_product(**par_dic)
