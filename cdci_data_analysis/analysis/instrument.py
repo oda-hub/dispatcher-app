@@ -255,7 +255,7 @@ class Instrument:
 
             raise RequestNotUnderstood(error_message)
 
-    def get_status_details(self, product_type,
+    def get_status_details(self,
                            par_dic,
                            config=None,
                            logger=None):
