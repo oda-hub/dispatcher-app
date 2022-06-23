@@ -869,7 +869,8 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
 def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: str = None):
     resolved_obj = {}
     if name is not None:
-        res = requests.get(name_resolver_url.format(name))
+        quoted_name = urllib.parse.quote(name.strip())
+        res = requests.get(name_resolver_url.format(quoted_name))
         if res.status_code == 200:
             returned_resolved_obj = res.json()
             if 'success' in returned_resolved_obj:
@@ -880,7 +881,7 @@ def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: 
                         resolved_obj['RA'] = float(returned_resolved_obj['ra'])
                     if 'dec' in returned_resolved_obj:
                         resolved_obj['DEC'] = float(returned_resolved_obj['dec'])
-                    resolved_obj['entity_portal_link'] = entities_portal_url.format(name)
+                    resolved_obj['entity_portal_link'] = entities_portal_url.format(quoted_name)
                     resolved_obj['message'] = f'{name} successfully resolved'
                 elif not returned_resolved_obj['success']:
                     logger.info(f"resolution of the object {name} unsuccessful")
