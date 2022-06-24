@@ -65,6 +65,14 @@ default_token_payload = dict(
 
 
 @pytest.mark.fast
+def test_js9(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+    r = requests.get(f'{dispatcher_live_fixture}/api/v1.0/oda/get_js9_plot')
+    assert r.status_code == 200
+
+
+@pytest.mark.fast
 def test_empty_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
