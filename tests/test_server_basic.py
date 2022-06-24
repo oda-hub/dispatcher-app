@@ -1,5 +1,6 @@
 import re
 import shutil
+import urllib
 
 import requests
 import time
@@ -1435,7 +1436,7 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 
 @pytest.mark.test_drupal
-@pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'fake object', None])
+@pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'GX 1+4', 'fake object', None])
 def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_to_resolve):
     server = dispatcher_live_fixture_with_gallery
 
@@ -1476,7 +1477,7 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
 
         assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
         assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery["product_gallery_options"]["entities_portal_url"]\
-            .format(source_to_resolve)
+            .format(urllib.parse.quote(source_to_resolve.strip()))
 
 
 @pytest.mark.test_drupal
