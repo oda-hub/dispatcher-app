@@ -340,7 +340,7 @@ def dispatcher_test_conf_fn(tmpdir):
 dispatcher:
     dummy_cache: dummy-cache
     products_url: PRODUCTS_URL
-    dispatcher_callback_url_base: http://localhost:8011
+    dispatcher_callback_url_base: http://localhost:8015
     sentry_url: "https://2ba7e5918358439485632251fa73658c@sentry.io/1467382"
     logstash_host: 
     logstash_port: 
@@ -365,6 +365,18 @@ dispatcher:
             incident_report_receivers_email_addresses: ['team@odahub.io']
     """)
 
+    yield fn
+
+
+@pytest.fixture
+def second_dispatcher_test_conf_fn(dispatcher_test_conf_fn):
+    fn = dispatcher_test_conf_fn
+    with open(fn, "r+") as f:
+        data = f.read()
+        data = re.sub('(\s+bind_port:).*\n', r'\1 8015\n', data)
+        f.seek(0)
+        f.write(data)
+        f.truncate()
     yield fn
     
 
@@ -644,6 +656,24 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_de
                 
         kill_child_processes(pid, signal.SIGINT)
         os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def second_dispatcher_live_fixture(pytestconfig, second_dispatcher_test_conf_fn, dispatcher_debug, request):
+    if os.getenv('TEST_ONLY_FAST') == 'true':
+        # in this case, run all dispatchers long-living, since it's faster but less safe
+        yield request.getfixturevalue('dispatcher_long_living_fixture')
+    else:
+        dispatcher_state = start_dispatcher(pytestconfig.rootdir, second_dispatcher_test_conf_fn)
+
+        service = dispatcher_state['url']
+        pid = dispatcher_state['pid']
+
+        yield service
+
+        kill_child_processes(pid, signal.SIGINT)
+        os.kill(pid, signal.SIGINT)
+
     
 @pytest.fixture
 def dispatcher_live_fixture_empty_sentry(pytestconfig, dispatcher_test_conf_empty_sentry_fn, dispatcher_debug):
