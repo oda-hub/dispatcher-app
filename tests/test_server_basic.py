@@ -67,8 +67,12 @@ default_token_payload = dict(
 @pytest.mark.fast
 def test_js9(dispatcher_live_fixture):
     server = dispatcher_live_fixture
+    dispatcher_fetch_dummy_products('default')
+
+    shutil.copy('data/dummy_prods/isgri_query_mosaic.fits', 'js9.fits')
+
     print("constructed server:", server)
-    r = requests.get(f'{dispatcher_live_fixture}/api/v1.0/oda/get_js9_plot')
+    r = requests.get(f'{dispatcher_live_fixture}api/v1.0/oda/get_js9_plot', params={'file_path': 'js9.fits'})
     assert r.status_code == 200
 
 

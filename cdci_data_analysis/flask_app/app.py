@@ -687,7 +687,7 @@ class GetJS9Plot(Resource):
         # api_args = api_parser.parse_args()
 
         file_path = request.args.get('file_path')
-        ext_id = int(request.args.get('ext_id'))
+        ext_id = int(request.args.get('ext_id', 4))
 
         try:
             tmp_file = FitsFile(file_path)
