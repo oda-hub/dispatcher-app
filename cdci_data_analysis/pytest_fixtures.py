@@ -340,7 +340,7 @@ def dispatcher_test_conf_fn(tmpdir):
 dispatcher:
     dummy_cache: dummy-cache
     products_url: PRODUCTS_URL
-    dispatcher_callback_url_base: http://localhost:8015
+    dispatcher_callback_url_base: http://0.0.0.0:8011
     sentry_url: "https://2ba7e5918358439485632251fa73658c@sentry.io/1467382"
     logstash_host: 
     logstash_port: 

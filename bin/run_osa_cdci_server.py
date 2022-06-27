@@ -106,7 +106,7 @@ def main(argv=None):
         else:
             StandaloneApplication(conf_micro_service(conf), options).run()
     else:
-        run_app(conf, debug=debug, threaded=False)
+        run_app(conf, debug=debug, threaded=True)
 
 
 if __name__ == "__main__":

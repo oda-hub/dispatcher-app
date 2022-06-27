@@ -1236,7 +1236,7 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
 
 
 @pytest.mark.not_safe_parallel
-def test_email_done(dispatcher_live_fixture, second_dispatcher_live_fixture, dispatcher_local_mail_server):
+def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
     DispatcherJobState.remove_scratch_folders()
     
     server = dispatcher_live_fixture
