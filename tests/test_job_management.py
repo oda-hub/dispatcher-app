@@ -1171,6 +1171,8 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
         token=encoded_token
     )
 
+    DataServerQuery.set_status('submitted')
+
     # this should return status submitted, so email sent
     c = requests.get(server + "/run_analysis",
                      dict_param
@@ -1213,7 +1215,6 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
 
     # jobs will be aliased
     dispatcher_job_state.assert_email('submitted')
-    
 
     # let the interval time pass, so that a new email is sent
     time.sleep(5)
@@ -1281,7 +1282,9 @@ def test_email_done(multithread_dispatcher_live_fixture, dispatcher_local_mail_s
         assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
     
     time_request = jdata['time_request']
-    
+
+    DataServerQuery.set_status('done')
+
     c = requests.get(server + "/call_back",
                      params=dict(
                          job_id=dispatcher_job_state.job_id,

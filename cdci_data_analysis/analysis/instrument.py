@@ -268,7 +268,6 @@ class Instrument:
         # adaptation for oda_api, like it happens in oda_api set_api_code function
         updated_par_dic = par_dic.copy()
         updated_par_dic['product'] = updated_par_dic['product_type']
-        updated_par_dic.pop('product_type')
         updated_par_dic['product_type'] = updated_par_dic['query_type']
         updated_par_dic.pop('query_type')
 
