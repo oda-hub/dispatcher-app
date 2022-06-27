@@ -464,7 +464,7 @@ def dispatcher_test_conf(dispatcher_test_conf_fn):
     yield yaml.load(open(dispatcher_test_conf_fn), Loader=yaml.SafeLoader)['dispatcher']
 
 
-def start_dispatcher(rootdir, test_conf_fn):
+def start_dispatcher(rootdir, test_conf_fn, multithread=False):
     clean_test_dispatchers()
 
     env = copy.deepcopy(dict(os.environ))
@@ -492,6 +492,9 @@ def start_dispatcher(rootdir, test_conf_fn):
             "-debug",
             #"-use_gunicorn" should not be used, as current implementation of follow_output is specific to flask development server
           ] 
+
+    if multithread:
+        cmd += ['-multithread']
 
     print(f"\033[33mcommand: {cmd}\033[0m")
 
@@ -654,6 +657,23 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_de
 
         yield service
                 
+        kill_child_processes(pid, signal.SIGINT)
+        os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def multithread_dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug, request):
+    if os.getenv('TEST_ONLY_FAST') == 'true':
+        # in this case, run all dispatchers long-living, since it's faster but less safe
+        yield request.getfixturevalue('dispatcher_long_living_fixture')
+    else:
+        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, multithread=True)
+
+        service = dispatcher_state['url']
+        pid = dispatcher_state['pid']
+
+        yield service
+
         kill_child_processes(pid, signal.SIGINT)
         os.kill(pid, signal.SIGINT)
 

@@ -275,7 +275,7 @@ class Instrument:
         disp = DispatcherAPI(url=config.dispatcher_callback_url_base, instrument='mock')
         data_collection = disp.get_product(**par_dic)
 
-        # analyze products
+
 
         return status_details
 

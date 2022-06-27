@@ -59,6 +59,7 @@ def main(argv=None):
     parser.add_argument('-conf_file', type=str, default=None)
     parser.add_argument('-use_gunicorn', action='store_true')
     parser.add_argument('-debug', action='store_true', help='sets global logger debug')
+    parser.add_argument('-multithread', action='store_true', help='start the dispatcher in threaded mode')
     parser.add_argument('--log-config', type=str, default=":info", help="log levels by logger, e.g. \"osa:debug,flask:info,:warning\"")
 
     args = parser.parse_args()
@@ -85,6 +86,7 @@ def main(argv=None):
                                     set_by=f'command line {__file__}:{__name__}')
     use_gunicorn = args.use_gunicorn
     debug = args.debug
+    multithread = args.multithread
 
     if use_gunicorn is True:
         # let's use the bind options configuration
@@ -106,7 +108,7 @@ def main(argv=None):
         else:
             StandaloneApplication(conf_micro_service(conf), options).run()
     else:
-        run_app(conf, debug=debug, threaded=True)
+        run_app(conf, debug=debug, threaded=multithread)
 
 
 if __name__ == "__main__":
