@@ -41,7 +41,7 @@ from .queries import ProductQuery, SourceQuery, InstrumentQuery
 from .io_helper import upload_file
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
 
-from oda_api.api import DispatcherAPI
+from oda_api.api import DispatcherAPI, RemoteException
 
 __author__ = "Andrea Tramacere"
 
@@ -266,16 +266,19 @@ class Instrument:
 
         # TODO put this in a dedicated function, perhaps within the oda_api
         # adaptation for oda_api, like it happens in oda_api set_api_code function
-        par_dic['product'] = par_dic['product_type']
-        par_dic.pop('product_type')
-        par_dic['product_type'] = par_dic['query_type']
-        par_dic.pop('query_type')
+        updated_par_dic = par_dic.copy()
+        updated_par_dic['product'] = updated_par_dic['product_type']
+        updated_par_dic.pop('product_type')
+        updated_par_dic['product_type'] = updated_par_dic['query_type']
+        updated_par_dic.pop('query_type')
 
-        logger.info(f"getting products for a more in-depth analysis for the results within run_call_back with args {par_dic}")
+        logger.info(f"getting products for a more in-depth analysis for the results within run_call_back with args {updated_par_dic}")
         disp = DispatcherAPI(url=config.dispatcher_callback_url_base, instrument='mock')
-        data_collection = disp.get_product(**par_dic)
-
-
+        try:
+            disp.get_product(**updated_par_dic)
+        except RemoteException as re:
+            logger.info('RemoteException detected when retrieving additional information from a completed job')
+            status_details = re.message + '\n' + re.debug_message
 
         return status_details
 

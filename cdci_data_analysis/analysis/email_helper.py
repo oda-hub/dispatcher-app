@@ -233,6 +233,7 @@ def send_job_email(
         job_id,
         session_id,
         status="done",
+        status_details=None,
         instrument="",
         product_type="",
         time_request=None,

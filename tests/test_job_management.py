@@ -1270,15 +1270,15 @@ def test_email_done(multithread_dispatcher_live_fixture, dispatcher_local_mail_s
     # check the email in the email folders, and that the first one was produced
     email_history_log_files = glob.glob(
         os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
-    # latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
-    # with open(latest_file_email_history_log_file) as email_history_log_content_fn:
-    #     history_log_content = json.loads(email_history_log_content_fn.read())
-    #     logger.info("content email history logging: %s", history_log_content)
-    #     assert history_log_content['job_id'] == dispatcher_job_state.job_id
-    #     assert history_log_content['status'] == 'submitted'
-    #     assert isinstance(history_log_content['additional_information']['submitted_email_files'], list)
-    #     assert len(history_log_content['additional_information']['submitted_email_files']) == 0
-    #     assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
+        history_log_content = json.loads(email_history_log_content_fn.read())
+        logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'submitted'
+        assert isinstance(history_log_content['additional_information']['submitted_email_files'], list)
+        assert len(history_log_content['additional_information']['submitted_email_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
     
     time_request = jdata['time_request']
     
