@@ -296,6 +296,7 @@ def send_job_email(
         'request': {
             'job_id': job_id,
             'status': status,
+            'status_details': status_details,
             'instrument': instrument,
             'product_type': product_type,
             'time_request': time_request,
