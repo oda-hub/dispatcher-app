@@ -1353,6 +1353,62 @@ def test_email_done(multithread_dispatcher_live_fixture, dispatcher_local_mail_s
         assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
 
 
+@pytest.mark.not_safe_parallel
+def test_status_details_email_done(multithread_dispatcher_live_fixture, dispatcher_local_mail_server):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = multithread_dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    token_payload = {
+        **default_token_payload,
+        "tem": 0
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'failing',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status='failed'
+                )
+
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+
+    time_request = jdata['time_request']
+
+    DataServerQuery.set_status('done')
+
+    c = requests.get(server + "/call_back",
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action='done',
+                         node_id='node_final',
+                         message='done',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+    assert c.status_code == 200
+
+    jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
+    assert 'email_status' in jdata
+    assert jdata['email_status'] == 'email sent'
+
+    # check the additional status details within the email
+    assert 'email_status_details' in jdata
+    assert jdata['email_status_details'] == 'failing query\nInstrument: empty, product: failing failed!\n'
+
+
 def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
 
