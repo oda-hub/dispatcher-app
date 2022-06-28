@@ -24,7 +24,7 @@ from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_has
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url
 from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers
-
+from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
 
 # logger
 logger = logging.getLogger(__name__)
@@ -568,6 +568,7 @@ def test_call_back_invalid_token(dispatcher_live_fixture):
         token=encoded_token
     )
 
+    DataServerQuery.set_status('submitted')
     # this should return status submitted, so email sent
     c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
