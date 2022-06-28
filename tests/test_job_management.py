@@ -2036,6 +2036,8 @@ def test_email_scws_list(multithread_dispatcher_long_living_fixture,
 
         logger.info(f"running call_back")
         DataServerQuery.set_status('done')
+        status = DataServerQuery.get_status()
+        logger.info(f"status before call_Back is {status}")
         # this triggers email
         c = requests.get(os.path.join(server, "call_back"),
                          params=dict(
