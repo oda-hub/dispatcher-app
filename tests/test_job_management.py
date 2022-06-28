@@ -659,11 +659,11 @@ def test_validation_job_id(dispatcher_live_fixture):
 # why is it None sometimes, and should we really send an email in this case?..
 # @pytest.mark.parametrize("time_original_request_none", [True, False])
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'private-no-email'])
-def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_local_mail_server, default_values, request_cred, time_original_request_none):
+def test_email_run_analysis_callback(multithread_dispatcher_long_living_fixture, dispatcher_local_mail_server, default_values, request_cred, time_original_request_none):
     from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
     DataServerQuery.set_status('submitted')
 
-    server = dispatcher_long_living_fixture
+    server = multithread_dispatcher_long_living_fixture
 
     DispatcherJobState.remove_scratch_folders()
 
@@ -946,7 +946,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
 
     DataServerQuery.set_status('submitted') # sets the expected default for other tests
 
-    r = requests.get(os.path.join(dispatcher_long_living_fixture, "inspect-state"), params=dict(token=encoded_token))
+    r = requests.get(os.path.join(multithread_dispatcher_long_living_fixture, "inspect-state"), params=dict(token=encoded_token))
     assert r.status_code == 403
     if encoded_token is None:
         assert r.text == 'A token must be provided.'
@@ -956,7 +956,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                           " missing: job manager.")
 
     admin_token = jwt.encode({**token_payload, 'roles': 'private, user manager, admin, job manager, administrator'}, secret_key, algorithm='HS256')
-    r = requests.get(os.path.join(dispatcher_long_living_fixture, "inspect-state"), params=dict(token=admin_token))
+    r = requests.get(os.path.join(multithread_dispatcher_long_living_fixture, "inspect-state"), params=dict(token=admin_token))
     dispatcher_state_report = r.json()
     logger.info('dispatcher_state_report: %s', dispatcher_state_report)
 
