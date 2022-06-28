@@ -54,6 +54,11 @@ def dispatcher_debug(monkeypatch):
 
 
 @pytest.fixture
+def multithread_dispatcher(monkeypatch):
+    monkeypatch.setenv('MULTITHREAD_DISPATCHER', 'yes')
+
+
+@pytest.fixture
 def default_params_dict():
     params = dict(
         query_status="new",
@@ -547,6 +552,11 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False):
 
 
 @pytest.fixture
+def multithread_dispatcher_long_living_fixture(multithread_dispatcher, dispatcher_long_living_fixture):
+    yield dispatcher_long_living_fixture
+
+
+@pytest.fixture
 def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
     dispatcher_state_fn = "/tmp/dispatcher-test-fixture-state-{}.json".format(
         hashlib.md5(open(dispatcher_test_conf_fn, "rb").read()).hexdigest()[:8]
@@ -573,7 +583,11 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
     else:
         logger.info("\033[31mdoes not exist!\033[0m")
 
-    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+    multithread = False
+    if os.environ.get('MULTITHREAD_DISPATCHER', 'no') == 'yes':
+        multithread = True
+
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, multithread=multithread)
     json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
     return dispatcher_state['url']
 
@@ -650,7 +664,11 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_de
         # in this case, run all dispatchers long-living, since it's faster but less safe
         yield request.getfixturevalue('dispatcher_long_living_fixture')
     else:
-        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+        multithread = False
+        if os.environ.get('MULTITHREAD_DISPATCHER', 'no') == 'yes':
+            multithread = True
+
+        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, multithread=multithread)
 
         service = dispatcher_state['url']
         pid = dispatcher_state['pid']
@@ -662,37 +680,8 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_de
 
 
 @pytest.fixture
-def multithread_dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug, request):
-    if os.getenv('TEST_ONLY_FAST') == 'true':
-        # in this case, run all dispatchers long-living, since it's faster but less safe
-        yield request.getfixturevalue('dispatcher_long_living_fixture')
-    else:
-        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, multithread=True)
-
-        service = dispatcher_state['url']
-        pid = dispatcher_state['pid']
-
-        yield service
-
-        kill_child_processes(pid, signal.SIGINT)
-        os.kill(pid, signal.SIGINT)
-
-
-@pytest.fixture
-def second_dispatcher_live_fixture(pytestconfig, second_dispatcher_test_conf_fn, dispatcher_debug, request):
-    if os.getenv('TEST_ONLY_FAST') == 'true':
-        # in this case, run all dispatchers long-living, since it's faster but less safe
-        yield request.getfixturevalue('dispatcher_long_living_fixture')
-    else:
-        dispatcher_state = start_dispatcher(pytestconfig.rootdir, second_dispatcher_test_conf_fn)
-
-        service = dispatcher_state['url']
-        pid = dispatcher_state['pid']
-
-        yield service
-
-        kill_child_processes(pid, signal.SIGINT)
-        os.kill(pid, signal.SIGINT)
+def multithread_dispatcher_live_fixture(multithread_dispatcher, dispatcher_live_fixture):
+    yield dispatcher_live_fixture
 
     
 @pytest.fixture
