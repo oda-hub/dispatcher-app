@@ -1559,6 +1559,7 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
     server = dispatcher_long_living_fixture
 
     DispatcherJobState.remove_scratch_folders()
+    DataServerQuery.set_status('submitted')
 
     # let's generate a valid token with high threshold
     token_payload = {
@@ -1742,7 +1743,7 @@ def test_email_catalog(dispatcher_long_living_fixture,
 @pytest.mark.parametrize("call_back_action", ['done', 'failed'])
 @pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
 @pytest.mark.parametrize("scw_list_size", [1, 5, 40])
-def test_email_scws_list(dispatcher_long_living_fixture,
+def test_email_scws_list(multithread_dispatcher_long_living_fixture,
                          dispatcher_local_mail_server,
                          use_scws_value,
                          scw_list_format,
@@ -1752,7 +1753,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
                          ):
     DispatcherJobState.remove_scratch_folders()
 
-    server = dispatcher_long_living_fixture
+    server = multithread_dispatcher_long_living_fixture
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
@@ -1934,6 +1935,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
         time_request = jdata['time_request']
 
+        DataServerQuery.set_status('done')
         # this triggers email
         c = requests.get(os.path.join(server, "call_back"),
                          params=dict(
@@ -1986,7 +1988,7 @@ def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispa
     time_request = time.time()
 
     name_parameter_value = "< bla bla: this is not a tag > <"
-
+    DataServerQuery.set_status('submitted')
     c = requests.get(server + "/run_analysis",
                      params=dict(
                          query_status="new",
@@ -2187,6 +2189,7 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
         "tem": 0
             }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    DataServerQuery.set_status('submitted')
 
     dict_param = dict(
         query_status="new",
