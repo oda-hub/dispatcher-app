@@ -1907,11 +1907,15 @@ def test_email_scws_list(multithread_dispatcher_long_living_fixture,
                    files=scw_list_file_obj
                    )
 
+    logger.info("setting status to submitted")
     DataServerQuery.set_status('submitted')
     jdata = ask_here()
 
+    logger.info("setting status to done")
     DataServerQuery.set_status('done')
     jdata_done = ask_here()
+
+    logger.info("setting status to submitted again")
     DataServerQuery.set_status('submitted')
     
     try:
@@ -2000,6 +2004,7 @@ def test_email_scws_list(multithread_dispatcher_long_living_fixture,
         assert 'use_scws' not in jdata['products']['api_code']
         # validate email content
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+        logger.info(f"dispatcher_job_state {dispatcher_job_state}")
         completed_dict_param = {**params,
                                 'src_name': '1E 1740.7-2942',
                                 'RA': 265.97845833,
@@ -2029,6 +2034,7 @@ def test_email_scws_list(multithread_dispatcher_long_living_fixture,
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
         time_request = jdata['time_request']
 
+        logger.info(f"running call_back")
         DataServerQuery.set_status('done')
         # this triggers email
         c = requests.get(os.path.join(server, "call_back"),
