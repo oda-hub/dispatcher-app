@@ -963,7 +963,8 @@ class InstrumentQueryBackEnd:
 
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
-                                            email_status='email sent')
+                                            email_status='email sent',
+                                            email_status_details=status_details)
             else:
                 job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
         except email_helper.MultipleDoneEmail as e:
