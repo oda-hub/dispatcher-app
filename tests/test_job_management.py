@@ -1358,7 +1358,7 @@ def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
 
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
-
+    DataServerQuery.set_status('submitted')
     # let's generate a valid token with high threshold
     token_payload = {
         **default_token_payload,
