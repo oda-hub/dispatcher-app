@@ -16,6 +16,10 @@ available at the URL {{ oda_site.frontend_url }}.<br>
 Once products will be ready, you will receive a new email.<br>
 {% elif request.status == "done" %}
 Your request is now <b>ready</b>.<br>
+{% if request.status_details %}
+The following additional information have been returned regarding your request:<br>
+{{ request.status_details }}<br>
+{% endif %}
 {% elif request.status == "failed" %}
 Your request has <b>failed<b>. Sorry for that! You will be further contacted by our team.<br>
 {% endif %}
