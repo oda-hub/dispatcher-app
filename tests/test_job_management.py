@@ -4,7 +4,6 @@ from urllib import parse
 import pytest
 import requests
 import json
-import html
 import os
 import re
 import time
@@ -21,6 +20,7 @@ from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, as
 from cdci_data_analysis.analysis.email_helper import textify_email
 from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
 
+from oda_api.api import RemoteException
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -258,20 +258,22 @@ def extract_products_url(text):
         # raise RuntimeError("no products url in the email!")
 
 
-def validate_api_code(api_code, dispatcher_live_fixture):
+def validate_api_code(api_code, dispatcher_live_fixture, product_type='dummy'):
     if dispatcher_live_fixture is not None:
         api_code = api_code.replace("<br>", "")
         api_code = api_code.replace("PRODUCTS_URL/dispatch-data", dispatcher_live_fixture)
 
         my_globals = {}
-        exec(api_code, my_globals)
+        if product_type == 'failing':
+            with pytest.raises(RemoteException):
+                exec(api_code, my_globals)
+        else:
+            exec(api_code, my_globals)
+            assert my_globals['data_collection']
+            my_globals['data_collection'].show()
 
-        assert my_globals['data_collection']
-        
-        my_globals['data_collection'].show()
 
-
-def validate_products_url(url, dispatcher_live_fixture):
+def validate_products_url(url, dispatcher_live_fixture, product_type='dummy'):
     if dispatcher_live_fixture is not None:
         # this is URL to frontend; it's not really true that it is passed the same way to dispatcher in all cases
         # in particular, catalog seems to be passed differently!
@@ -283,8 +285,12 @@ def validate_products_url(url, dispatcher_live_fixture):
 
         jdata = r.json()
 
-        assert jdata['exit_status']['status'] == 0
-        assert jdata['exit_status']['job_status'] == 'done'
+        if product_type == 'failing':
+            assert jdata['exit_status']['status'] == 1
+            assert jdata['exit_status']['job_status'] == 'unknown'
+        else:
+            assert jdata['exit_status']['status'] == 0
+            assert jdata['exit_status']['job_status'] == 'done'
 
 
 def validate_resolve_url(url, server):
@@ -457,7 +463,8 @@ def validate_email_content(
             if expect_api_code:
                 validate_api_code(
                     extract_api_code(content_text_html),
-                    dispatcher_live_fixture
+                    dispatcher_live_fixture,
+                    product_type=product
                 )
             else:
                 open("content.txt", "w").write(content_text)
@@ -467,7 +474,8 @@ def validate_email_content(
             if products_url != "":
                 validate_products_url(
                     extract_products_url(content_text_html),
-                    dispatcher_live_fixture
+                    dispatcher_live_fixture,
+                    product_type=product
                 )
 
         if content_text is not None:
@@ -1380,17 +1388,19 @@ def test_status_details_email_done(multithread_dispatcher_live_fixture, dispatch
                 expected_query_status='failed'
                 )
 
-
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
 
     time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
 
     DataServerQuery.set_status('done')
 
-    c = requests.get(server + "/call_back",
+    c = requests.get(os.path.join(server, "call_back"),
                      params=dict(
                          job_id=dispatcher_job_state.job_id,
                          session_id=dispatcher_job_state.session_id,
+                         # necessary to use the empty-async instrument otherwise a OsaJob would not be instantiated and
+                         # TODO is the list of instruments for creating OsaJob objects within the job_factory complete?
                          instrument_name="empty-async",
                          action='done',
                          node_id='node_final',
@@ -1407,6 +1417,34 @@ def test_status_details_email_done(multithread_dispatcher_live_fixture, dispatch
     # check the additional status details within the email
     assert 'email_status_details' in jdata
     assert jdata['email_status_details'] == 'failing query\nInstrument: empty, product: failing failed!\n'
+
+    completed_dict_param = {**params,
+                            'p_list': '[]',
+                            'use_scws': 'no',
+                            'src_name': '1E 1740.7-2942',
+                            'RA': 265.97845833,
+                            'DEC': -29.74516667,
+                            'T1': '2017-03-06T13:26:48.000',
+                            'T2': '2017-03-06T15:32:27.000',
+                            'T_format': 'isot'
+                            }
+
+    products_url = get_expected_products_url(completed_dict_param,
+                                             session_id=dispatcher_job_state.session_id,
+                                             job_id=dispatcher_job_state.job_id,
+                                             token=encoded_token)
+
+    # check the email in the log files
+    validate_email_content(
+        dispatcher_local_mail_server.get_email_record(),
+        'done',
+        dispatcher_job_state,
+        variation_suffixes=["failing"],
+        time_request_str=time_request_str,
+        products_url=products_url,
+        request_params=params,
+        dispatcher_live_fixture=server,
+    )
 
 
 def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
