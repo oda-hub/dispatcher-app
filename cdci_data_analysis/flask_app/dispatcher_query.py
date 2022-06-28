@@ -887,8 +887,7 @@ class InstrumentQueryBackEnd:
             self.set_sentry_client(self.config.sentry_url)
 
         self.instrument_name = self.par_dic.get('instrument_name', '')
-        # set instrument
-        self.set_instrument(self.instrument_name)
+
         # the time the request was sent should be used
         # the time_request contains the time the call_back as issued
         time_original_request = self.par_dic.get('time_original_request', None)
@@ -931,6 +930,8 @@ class InstrumentQueryBackEnd:
                 # get more info regarding the status of the request
                 status_details = None
                 if status == 'done':
+                    # set instrument
+                    self.set_instrument(self.instrument_name)
                     status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
                                                                         config=self.config,
                                                                         logger=self.logger)
