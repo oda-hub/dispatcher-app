@@ -771,7 +771,7 @@ def conf_app(conf):
 def run_app(conf, debug=False, threaded=False):
     conf_app(conf)
 
-    logger.info(f"starting flask web server: host:{conf.bind_host}, port: {conf.bind_port}, debug: {debug}, "
+    logger.debug(f"starting flask web server: host:{conf.bind_host}, port: {conf.bind_port}, debug: {debug}, "
                 f"threaded: {threaded}")
 
     app.run(host=conf.bind_host, port=conf.bind_port,
