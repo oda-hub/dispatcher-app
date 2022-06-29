@@ -1362,10 +1362,10 @@ def test_email_done(multithread_dispatcher_live_fixture, dispatcher_local_mail_s
 
 
 @pytest.mark.not_safe_parallel
-def test_status_details_email_done(multithread_dispatcher_live_fixture, dispatcher_local_mail_server):
+def test_status_details_email_done(gunicorn_dispatcher_live_fixture, dispatcher_local_mail_server):
     DispatcherJobState.remove_scratch_folders()
 
-    server = multithread_dispatcher_live_fixture
+    server = gunicorn_dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
     token_payload = {

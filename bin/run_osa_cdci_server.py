@@ -17,6 +17,7 @@ import multiprocessing
 
 import logging
 import logging_tree
+import subprocess
 
 import gunicorn.app.base
 
@@ -44,9 +45,9 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
         config = dict([(key, value) for key, value in self.options.items()
                        if key in self.cfg.settings and value is not None])
 
-        for key, value in config.items():
-            print ('conf',key.lower(), value)
-            self.cfg.set(key.lower(), value)
+        for key in list(config):
+            print ('conf',key.lower(), config[key])
+            self.cfg.set(key.lower(), config[key])
 
     def load(self):
         return self.application
@@ -94,19 +95,24 @@ def main(argv=None):
         dispatcher_bind_port = conf.bind_port
         # dispatcher_url = conf.dispatcher_url
         # port = conf.dispatcher_port
-
-        options = {
-            'bind': '%s:%s' % (dispatcher_bind_host, dispatcher_bind_port),
-            'workers': 2,
-            'threads': 4,
-        }
-        if debug:
-            options['loglevel'] = 'debug'
-
-        if True:
-            StandaloneApplication(conf_app(conf), options).run()
-        else:
-            StandaloneApplication(conf_micro_service(conf), options).run()
+        # TODO I suspect there is a bug in the gunicorn library
+        # options = {
+        #     'bind': '%s:%s' % (dispatcher_bind_host, dispatcher_bind_port),
+        #     'workers': 4,
+        #     'timeout': 900,
+        #     'limit-request-line': 0
+        # }
+        # if debug:
+        #     options['log-level'] = 'debug'
+        #
+        # # if True:
+        # StandaloneApplication(conf_app(conf), options).run()
+        # else:
+        #     StandaloneApplication(conf_micro_service(conf), options).run()
+        try:
+            subprocess.run((f"gunicorn 'cdci_data_analysis.flask_app.app:conf_app(\"{conf_file}\")' --bind {dispatcher_bind_host}:{dispatcher_bind_port} --workers 4 --preload --timeout 900 --limit-request-line 0 --log-level debug").split(' '))
+        except Exception as e:
+            print(e)
     else:
         run_app(conf, debug=debug, threaded=multithread)
 

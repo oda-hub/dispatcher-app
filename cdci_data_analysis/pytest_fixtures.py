@@ -469,7 +469,7 @@ def dispatcher_test_conf(dispatcher_test_conf_fn):
     yield yaml.load(open(dispatcher_test_conf_fn), Loader=yaml.SafeLoader)['dispatcher']
 
 
-def start_dispatcher(rootdir, test_conf_fn, multithread=False):
+def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
     clean_test_dispatchers()
 
     env = copy.deepcopy(dict(os.environ))
@@ -500,6 +500,9 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False):
 
     if multithread:
         cmd += ['-multithread']
+
+    if gunicorn:
+        cmd += ['-use_gunicorn']
 
     print(f"\033[33mcommand: {cmd}\033[0m")
 
@@ -683,7 +686,19 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_de
 def multithread_dispatcher_live_fixture(multithread_dispatcher, dispatcher_live_fixture):
     yield dispatcher_live_fixture
 
-    
+
+@pytest.fixture
+def gunicorn_dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug, request):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=True)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
 @pytest.fixture
 def dispatcher_live_fixture_empty_sentry(pytestconfig, dispatcher_test_conf_empty_sentry_fn, dispatcher_debug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_empty_sentry_fn)
