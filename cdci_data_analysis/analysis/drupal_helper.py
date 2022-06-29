@@ -381,6 +381,7 @@ def post_content_to_gallery(decoded_token,
     # extract type of content to post
     content_type = ContentType[str.upper(par_dic.pop('content_type', 'article'))]
     fits_file_fid_list = None
+    html_file_fid_list = None
     img_fid = None
     product_title = None
     data_product_id = None
@@ -423,6 +424,17 @@ def post_content_to_gallery(decoded_token,
                     if fits_file_fid_list is None:
                         fits_file_fid_list = []
                     fits_file_fid_list.append(output_fits_file_post['fid'][0]['value'])
+                elif f.startswith('html_file'):
+                    html_file_obj = files[f]
+                    # upload file to drupal
+                    output_fits_file_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
+                                                                 file_type="document",
+                                                                 file=html_file_obj,
+                                                                 gallery_jwt_token=gallery_jwt_token,
+                                                                 sentry_client=sentry_client)
+                    if html_file_fid_list is None:
+                        html_file_fid_list = []
+                    html_file_fid_list.append(output_fits_file_post['fid'][0]['value'])
 
         product_title = par_dic.pop('product_title', product_title)
         observation_id = par_dic.pop('observation_id', None)
@@ -680,6 +692,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
                                  product_title=None,
                                  img_fid=None,
                                  fits_file_fid_list=None,
+                                 html_file_fid_list=None,
                                  observation_id=None,
                                  user_id_product_creator=None,
                                  insert_new_source=False,
@@ -843,6 +856,15 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             body_gallery_article_node['field_fits_file'].append({
                 "target_id": int(fid)
             })
+    # setting html file fid if available
+    if html_file_fid_list is not None:
+        for fid in html_file_fid_list:
+            if 'field_html_file' not in body_gallery_article_node:
+                body_gallery_article_node['field_html_file'] = []
+            body_gallery_article_node['field_html_file'].append({
+                "target_id": int(fid)
+            })
+
     # finally, post the data product to the gallery
     headers = get_drupal_request_headers(gallery_jwt_token)
 
