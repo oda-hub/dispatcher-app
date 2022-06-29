@@ -62,9 +62,9 @@ class Image(object):
             r = self.data.shape[0]
             y_range=(0, r)
         if dw is None:
-            dw = c
+            dw = x_range[1]
         if dh is None:
-            dh = r
+            dh = y_range[1]
 
         fig = figure(plot_width = w, 
                      plot_height = h, 
