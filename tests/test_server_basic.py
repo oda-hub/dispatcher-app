@@ -1,5 +1,6 @@
 import re
 import shutil
+import urllib
 
 import requests
 import time
@@ -1447,7 +1448,7 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 
 @pytest.mark.test_drupal
-@pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'fake object', None])
+@pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'GX 1+4', 'fake object', None])
 def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_to_resolve):
     server = dispatcher_live_fixture_with_gallery
 
@@ -1488,7 +1489,7 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
 
         assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
         assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery["product_gallery_options"]["entities_portal_url"]\
-            .format(source_to_resolve)
+            .format(urllib.parse.quote(source_to_resolve.strip()))
 
 
 @pytest.mark.test_drupal
@@ -1780,7 +1781,10 @@ def test_product_gallery_post(dispatcher_live_fixture_with_gallery, dispatcher_t
         elif provide_product_type and type_source is None:
             product_title = product_type_product_gallery
         elif not provide_product_type and type_source is not None:
-            product_title = source_name
+            if provide_job_id:
+                product_title = "_".join([source_name, product_type_analysis])
+            else:
+                product_title = source_name
         elif not provide_product_type and type_source is None:
             if provide_job_id:
                 product_title = product_type_analysis
