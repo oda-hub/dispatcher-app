@@ -1837,7 +1837,7 @@ def test_email_catalog(dispatcher_long_living_fixture,
 @pytest.mark.parametrize("call_back_action", ['done', 'failed'])
 @pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
 @pytest.mark.parametrize("scw_list_size", [1, 5, 40])
-def test_email_scws_list(multithread_dispatcher_live_fixtureer,
+def test_email_scws_list(multithread_dispatcher_live_fixture,
                          dispatcher_local_mail_server,
                          use_scws_value,
                          scw_list_format,
@@ -1847,7 +1847,7 @@ def test_email_scws_list(multithread_dispatcher_live_fixtureer,
                          ):
     DispatcherJobState.remove_scratch_folders()
 
-    server = multithread_dispatcher_live_fixtureer
+    server = multithread_dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
