@@ -427,14 +427,14 @@ def post_content_to_gallery(decoded_token,
                 elif f.startswith('html_file'):
                     html_file_obj = files[f]
                     # upload file to drupal
-                    output_fits_file_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
+                    output_html_file_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
                                                                  file_type="document",
                                                                  file=html_file_obj,
                                                                  gallery_jwt_token=gallery_jwt_token,
                                                                  sentry_client=sentry_client)
                     if html_file_fid_list is None:
                         html_file_fid_list = []
-                    html_file_fid_list.append(output_fits_file_post['fid'][0]['value'])
+                    html_file_fid_list.append(output_html_file_post['fid'][0]['value'])
 
         product_title = par_dic.pop('product_title', product_title)
         observation_id = par_dic.pop('observation_id', None)
