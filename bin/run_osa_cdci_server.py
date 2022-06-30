@@ -82,13 +82,14 @@ def main(argv=None):
     debug = args.debug
     multithread = args.multithread
 
+    # TODO suspected bug in the gunicorn library, therefore this piece of code is not used,
+    #  but an approach based on opening a dedicated process has been implemented
     if use_gunicorn is True:
         # let's use the bind options configuration
         dispatcher_bind_host = conf.bind_host
         dispatcher_bind_port = conf.bind_port
         dispatcher_url = conf.dispatcher_url
         port = conf.dispatcher_port
-        # TODO I suspect there is a bug in the gunicorn library
         options = {
             'bind': '%s:%s' % (dispatcher_bind_host, dispatcher_bind_port),
             'workers': 4,
