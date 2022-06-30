@@ -380,18 +380,6 @@ dispatcher:
 
 
 @pytest.fixture
-def second_dispatcher_test_conf_fn(dispatcher_test_conf_fn):
-    fn = dispatcher_test_conf_fn
-    with open(fn, "r+") as f:
-        data = f.read()
-        data = re.sub('(\s+bind_port:).*\n', r'\1 8015\n', data)
-        f.seek(0)
-        f.write(data)
-        f.truncate()
-    yield fn
-    
-
-@pytest.fixture
 def dispatcher_test_conf_empty_sentry_fn(dispatcher_test_conf_fn):
     fn = dispatcher_test_conf_fn
     with open(fn, "r+") as f:

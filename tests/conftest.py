@@ -18,7 +18,6 @@ from cdci_data_analysis.pytest_fixtures import (
             dispatcher_test_conf_with_gallery_fn,
             dispatcher_test_conf_with_gallery_no_resolver_fn,
             dispatcher_test_conf_fn,
-            second_dispatcher_test_conf_fn,
             dispatcher_debug,
             dispatcher_nodebug,
             gunicorn_dispatcher,
