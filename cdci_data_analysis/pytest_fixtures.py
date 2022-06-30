@@ -589,8 +589,35 @@ def multithread_dispatcher_long_living_fixture(multithread_dispatcher, dispatche
 
 
 @pytest.fixture
-def gunicorn_dispatcher_long_living_fixture(gunicorn_dispatcher, dispatcher_long_living_fixture):
-    yield dispatcher_long_living_fixture
+def gunicorn_dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
+    dispatcher_state_fn = "/tmp/dispatcher-test-fixture-state-gunicorn-{}.json".format(
+        hashlib.md5(open(dispatcher_test_conf_fn, "rb").read()).hexdigest()[:8]
+    )
+
+    if os.path.exists(dispatcher_state_fn):
+        dispatcher_state = json.load(open(dispatcher_state_fn))
+        logger.info("\033[31mfound dispatcher state: %s\033[0m", dispatcher_state)
+
+        status_code = None
+
+        try:
+            r = requests.get(dispatcher_state['url'] + "/run_analysis")
+            logger.info("dispatcher returns: %s, %s", r.status_code, r.text)
+            logger.info("dispatcher response: %s %s", r.status_code, r.text)
+            if r.status_code in [200, 400]:
+                logger.info("dispatcher is live and responsive")
+                return dispatcher_state['url']
+            status_code = r.status_code
+        except requests.exceptions.ConnectionError as e:
+            logger.warning("\033[31mdispatcher connection failed %s\033[0m", e)
+
+        logger.warning("\033[31mdispatcher is dead or unresponsive: %s\033[0m", status_code)
+    else:
+        logger.info("\033[31mdoes not exist!\033[0m")
+
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=True)
+    json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
+    return dispatcher_state['url']
 
 
 @pytest.fixture
@@ -728,8 +755,21 @@ def multithread_dispatcher_live_fixture(multithread_dispatcher, dispatcher_live_
 
 
 @pytest.fixture
-def gunicorn_dispatcher_live_fixture(gunicorn_dispatcher, dispatcher_live_fixture):
-    yield dispatcher_live_fixture
+def gunicorn_dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug, request):
+    if os.getenv('TEST_ONLY_FAST') == 'true':
+        # in this case, run all dispatchers long-living, since it's faster but less safe
+        yield request.getfixturevalue('dispatcher_long_living_fixture')
+    else:
+
+        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=True)
+
+        service = dispatcher_state['url']
+        pid = dispatcher_state['pid']
+
+        yield service
+
+        kill_child_processes(pid, signal.SIGINT)
+        os.kill(pid, signal.SIGINT)
 
 @pytest.fixture
 def dispatcher_live_fixture_empty_sentry(pytestconfig, dispatcher_test_conf_empty_sentry_fn, dispatcher_debug):
