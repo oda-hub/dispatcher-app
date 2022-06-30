@@ -109,10 +109,7 @@ def main(argv=None):
         # StandaloneApplication(conf_app(conf), options).run()
         # else:
         #     StandaloneApplication(conf_micro_service(conf), options).run()
-        try:
-            subprocess.run((f"gunicorn 'cdci_data_analysis.flask_app.app:conf_app(\"{conf_file}\")' --bind {dispatcher_bind_host}:{dispatcher_bind_port} --workers 4 --preload --timeout 900 --limit-request-line 0 --log-level debug").split(' '))
-        except Exception as e:
-            print(e)
+
     else:
         run_app(conf, debug=debug, threaded=multithread)
 

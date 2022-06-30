@@ -6,6 +6,7 @@ import cdci_data_analysis.flask_app.app
 from cdci_data_analysis.analysis.exceptions import BadRequest
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.hash import make_hash
+from cdci_data_analysis.configurer import ConfigEnv
 
 import re
 import json
@@ -480,29 +481,45 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
                         env.get('PYTHONPATH', "")
     print(("pythonpath", env['PYTHONPATH']))
 
-    fn = os.path.join(__this_dir__, "../bin/run_osa_cdci_server.py")
-    if os.path.exists(fn):
-        cmd = [
-                 "python", 
-                 fn
-              ]
-    else:
-        cmd = [
-                 "run_osa_cdci_server.py"
-              ]
-        
-    cmd += [ 
-            "-d",
-            "-conf_file", test_conf_fn,
-            "-debug",
-            #"-use_gunicorn" should not be used, as current implementation of follow_output is specific to flask development server
-          ] 
-
-    if multithread:
-        cmd += ['-multithread']
-
     if gunicorn:
-        cmd += ['-use_gunicorn']
+
+        conf = ConfigEnv.from_conf_file(test_conf_fn,
+                                        set_by=f'command line {__file__}:{__name__}')
+
+        dispatcher_bind_host = conf.bind_host
+        dispatcher_bind_port = conf.bind_port
+        cmd = [
+            "gunicorn",
+            f"cdci_data_analysis.flask_app.app:conf_app(\"{test_conf_fn}\")",
+            "--bind", f"{dispatcher_bind_host}:{dispatcher_bind_port}",
+            "--workers", "4",
+            "--preload",
+            "--timeout", "900",
+            "--limit-request-line", "0",
+            "--log-level", "debug"
+        ]
+
+    else:
+        fn = os.path.join(__this_dir__, "../bin/run_osa_cdci_server.py")
+        if os.path.exists(fn):
+            cmd = [
+                     "python",
+                     fn
+                  ]
+        else:
+            cmd = [
+                     "run_osa_cdci_server.py"
+                  ]
+
+        cmd += [
+                "-d",
+                "-conf_file", test_conf_fn,
+                "-debug",
+                #"-use_gunicorn" should not be used, as current implementation of follow_output is specific to flask development server
+              ]
+
+        if multithread:
+            cmd += ['-multithread']
 
     print(f"\033[33mcommand: {cmd}\033[0m")
 
@@ -527,14 +544,20 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
                 C = '\033[34m'
 
             print(f"{C}following server: {line.rstrip()}{NC}" )
-            m = re.search(r"Running on (.*?) \(Press CTRL\+C to quit\)", line)
-            if m:
-                url_store[0] = m.group(1).strip()  # alternatively get from configenv
-                print(f"{C}following server: found url:{url_store[0]}")
+            if gunicorn:
+                m = re.search(r"Listening at: (.*?) (.*?)\n", line)
+                if m:
+                    url_store[0] = m.group(1).strip()  # alternatively get from configenv
+                    print(f"{C}following server: found url:{url_store[0]}")
+            else:
+                m = re.search(r"Running on (.*?) \(Press CTRL\+C to quit\)", line)
+                if m:
+                    url_store[0] = m.group(1).strip()  # alternatively get from configenv
+                    print(f"{C}following server: found url:{url_store[0]}")
 
-            if re.search("\* Debugger PIN:.*?", line):
-                url_store[0] = url_store[0].replace("0.0.0.0", "127.0.0.1")
-                print(f"{C}following server: server ready, url {url_store[0]}")
+                if re.search("\* Debugger PIN:.*?", line):
+                    url_store[0] = url_store[0].replace("0.0.0.0", "127.0.0.1")
+                    print(f"{C}following server: server ready, url {url_store[0]}")
 
 
     thread = Thread(target=follow_output, args=())
