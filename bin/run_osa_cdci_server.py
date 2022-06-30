@@ -14,14 +14,7 @@ from builtins import (bytes, open, str, super, range,
 import os
 import argparse
 import multiprocessing
-
-import logging
-import logging_tree
-import subprocess
-
 import gunicorn.app.base
-
-#from gunicorn.six import iteritems
 
 from cdci_data_analysis.app_logging import app_logging 
 from cdci_data_analysis.flask_app.app import run_app, conf_app
@@ -93,22 +86,22 @@ def main(argv=None):
         # let's use the bind options configuration
         dispatcher_bind_host = conf.bind_host
         dispatcher_bind_port = conf.bind_port
-        # dispatcher_url = conf.dispatcher_url
-        # port = conf.dispatcher_port
+        dispatcher_url = conf.dispatcher_url
+        port = conf.dispatcher_port
         # TODO I suspect there is a bug in the gunicorn library
-        # options = {
-        #     'bind': '%s:%s' % (dispatcher_bind_host, dispatcher_bind_port),
-        #     'workers': 4,
-        #     'timeout': 900,
-        #     'limit-request-line': 0
-        # }
-        # if debug:
-        #     options['log-level'] = 'debug'
-        #
-        # # if True:
-        # StandaloneApplication(conf_app(conf), options).run()
-        # else:
-        #     StandaloneApplication(conf_micro_service(conf), options).run()
+        options = {
+            'bind': '%s:%s' % (dispatcher_bind_host, dispatcher_bind_port),
+            'workers': 4,
+            'timeout': 900,
+            'limit-request-line': 0
+        }
+        if debug:
+            options['log-level'] = 'debug'
+
+        if True:
+            StandaloneApplication(conf_app(conf), options).run()
+        else:
+            StandaloneApplication(conf_micro_service(conf), options).run()
 
     else:
         run_app(conf, debug=debug, threaded=multithread)
