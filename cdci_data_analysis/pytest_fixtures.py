@@ -497,7 +497,7 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
             "gunicorn",
             f"cdci_data_analysis.flask_app.app:conf_app(\"{test_conf_fn}\")",
             "--bind", f"{dispatcher_bind_host}:{dispatcher_bind_port}",
-            "--workers", "4",
+            "--workers", "8",
             "--preload",
             "--timeout", "900",
             "--limit-request-line", "0",
