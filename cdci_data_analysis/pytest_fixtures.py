@@ -619,6 +619,38 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
 
 
 @pytest.fixture
+def gunicorn_dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
+    dispatcher_state_fn = "/tmp/dispatcher-test-fixture-state-{}.json".format(
+        hashlib.md5(open(dispatcher_test_conf_fn, "rb").read()).hexdigest()[:8]
+    )
+
+    if os.path.exists(dispatcher_state_fn):
+        dispatcher_state = json.load(open(dispatcher_state_fn))
+        logger.info("\033[31mfound dispatcher state: %s\033[0m", dispatcher_state)
+
+        status_code = None
+
+        try:
+            r = requests.get(dispatcher_state['url'] + "/run_analysis")
+            logger.info("dispatcher returns: %s, %s", r.status_code, r.text)
+            logger.info("dispatcher response: %s %s", r.status_code, r.text)
+            if r.status_code in [200, 400]:
+                logger.info("dispatcher is live and responsive")
+                return dispatcher_state['url']
+            status_code = r.status_code
+        except requests.exceptions.ConnectionError as e:
+            logger.warning("\033[31mdispatcher connection failed %s\033[0m", e)
+
+        logger.warning("\033[31mdispatcher is dead or unresponsive: %s\033[0m", status_code)
+    else:
+        logger.info("\033[31mdoes not exist!\033[0m")
+
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=True)
+    json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
+    return dispatcher_state['url']
+
+
+@pytest.fixture
 def empty_products_files_fixture(default_params_dict):
     #TODO: avoid copypaste in empty_products_user_files_fixture
     # generate job_id

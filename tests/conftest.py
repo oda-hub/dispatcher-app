@@ -11,6 +11,7 @@ from cdci_data_analysis.pytest_fixtures import (
             dispatcher_live_fixture_with_gallery,
             dispatcher_live_fixture_with_gallery_no_resolver,
             dispatcher_long_living_fixture,
+            gunicorn_dispatcher_long_living_fixture,
             multithread_dispatcher_long_living_fixture,
             dispatcher_test_conf,
             dispatcher_test_conf_with_gallery,
