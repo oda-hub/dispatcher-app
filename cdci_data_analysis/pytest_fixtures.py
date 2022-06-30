@@ -55,13 +55,13 @@ def dispatcher_debug(monkeypatch):
 
 
 @pytest.fixture
-def multithread_dispatcher(monkeypatch):
-    monkeypatch.setenv('MULTITHREAD_DISPATCHER', 'yes')
+def gunicorn_dispatcher(monkeypatch):
+    monkeypatch.setenv('GUNICORN_DISPATCHER', 'yes')
 
 
 @pytest.fixture
-def gunicorn_dispatcher(monkeypatch):
-    monkeypatch.setenv('GUNICORN_DISPATCHER', 'yes')
+def gunicorn_tmp_path(monkeypatch):
+    monkeypatch.setenv('GUNICORN_TMP_PATH', '/tmp/dispatcher-test-fixture-state-gunicorn-{}.json')
 
 
 @pytest.fixture
@@ -580,49 +580,20 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
     return dict(
         url=service,
         pid=p.pid
-    )        
+    )
 
 
 @pytest.fixture
-def multithread_dispatcher_long_living_fixture(multithread_dispatcher, dispatcher_long_living_fixture):
+def gunicorn_dispatcher_long_living_fixture(gunicorn_tmp_path, gunicorn_dispatcher, dispatcher_long_living_fixture):
     yield dispatcher_long_living_fixture
 
 
 @pytest.fixture
-def gunicorn_dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
-    dispatcher_state_fn = "/tmp/dispatcher-test-fixture-state-gunicorn-{}.json".format(
-        hashlib.md5(open(dispatcher_test_conf_fn, "rb").read()).hexdigest()[:8]
-    )
-
-    if os.path.exists(dispatcher_state_fn):
-        dispatcher_state = json.load(open(dispatcher_state_fn))
-        logger.info("\033[31mfound dispatcher state: %s\033[0m", dispatcher_state)
-
-        status_code = None
-
-        try:
-            r = requests.get(dispatcher_state['url'] + "/run_analysis")
-            logger.info("dispatcher returns: %s, %s", r.status_code, r.text)
-            logger.info("dispatcher response: %s %s", r.status_code, r.text)
-            if r.status_code in [200, 400]:
-                logger.info("dispatcher is live and responsive")
-                return dispatcher_state['url']
-            status_code = r.status_code
-        except requests.exceptions.ConnectionError as e:
-            logger.warning("\033[31mdispatcher connection failed %s\033[0m", e)
-
-        logger.warning("\033[31mdispatcher is dead or unresponsive: %s\033[0m", status_code)
-    else:
-        logger.info("\033[31mdoes not exist!\033[0m")
-
-    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=True)
-    json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
-    return dispatcher_state['url']
-
-
-@pytest.fixture
 def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
-    dispatcher_state_fn = "/tmp/dispatcher-test-fixture-state-{}.json".format(
+    tmp_path = "/tmp/dispatcher-test-fixture-state-{}.json"
+    if os.environ.get('GUNICORN_TMP_PATH', None) is not None:
+        tmp_path = os.environ.get('GUNICORN_TMP_PATH')
+    dispatcher_state_fn = tmp_path.format(
         hashlib.md5(open(dispatcher_test_conf_fn, "rb").read()).hexdigest()[:8]
         )
 
@@ -646,10 +617,6 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
         logger.warning("\033[31mdispatcher is dead or unresponsive: %s\033[0m", status_code)
     else:
         logger.info("\033[31mdoes not exist!\033[0m")
-
-    multithread = False
-    if os.environ.get('MULTITHREAD_DISPATCHER', 'no') == 'yes':
-        multithread = True
 
     gunicorn = False
     if os.environ.get('GUNICORN_DISPATCHER', 'no') == 'yes':
@@ -747,11 +714,6 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_de
                 
         kill_child_processes(pid, signal.SIGINT)
         os.kill(pid, signal.SIGINT)
-
-
-@pytest.fixture
-def multithread_dispatcher_live_fixture(multithread_dispatcher, dispatcher_live_fixture):
-    yield dispatcher_live_fixture
 
 
 @pytest.fixture
