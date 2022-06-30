@@ -24,6 +24,7 @@ from cdci_data_analysis.pytest_fixtures import (
             dispatcher_debug,
             dispatcher_nodebug,
             multithread_dispatcher,
+            gunicorn_dispatcher,
             cleanup,
             empty_products_files_fixture,
             empty_products_user_files_fixture,
