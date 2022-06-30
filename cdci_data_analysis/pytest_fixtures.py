@@ -593,6 +593,7 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
     tmp_path = "/tmp/dispatcher-test-fixture-state-{}.json"
     if os.environ.get('GUNICORN_TMP_PATH', None) is not None:
         tmp_path = os.environ.get('GUNICORN_TMP_PATH')
+
     dispatcher_state_fn = tmp_path.format(
         hashlib.md5(open(dispatcher_test_conf_fn, "rb").read()).hexdigest()[:8]
         )
@@ -622,7 +623,7 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
     if os.environ.get('GUNICORN_DISPATCHER', 'no') == 'yes':
         gunicorn = True
 
-    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, multithread=multithread, gunicorn=gunicorn)
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=gunicorn)
     json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
     return dispatcher_state['url']
 
@@ -697,15 +698,11 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_de
         # in this case, run all dispatchers long-living, since it's faster but less safe
         yield request.getfixturevalue('dispatcher_long_living_fixture')
     else:
-        multithread = False
-        if os.environ.get('MULTITHREAD_DISPATCHER', 'no') == 'yes':
-            multithread = True
-
         gunicorn = False
         if os.environ.get('GUNICORN_DISPATCHER', 'no') == 'yes':
             gunicorn = True
 
-        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, multithread=multithread, gunicorn=gunicorn)
+        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=gunicorn)
 
         service = dispatcher_state['url']
         pid = dispatcher_state['pid']
@@ -717,21 +714,8 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_de
 
 
 @pytest.fixture
-def gunicorn_dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug, request):
-    if os.getenv('TEST_ONLY_FAST') == 'true':
-        # in this case, run all dispatchers long-living, since it's faster but less safe
-        yield request.getfixturevalue('dispatcher_long_living_fixture')
-    else:
-
-        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=True)
-
-        service = dispatcher_state['url']
-        pid = dispatcher_state['pid']
-
-        yield service
-
-        kill_child_processes(pid, signal.SIGINT)
-        os.kill(pid, signal.SIGINT)
+def gunicorn_dispatcher_live_fixture(gunicorn_dispatcher, dispatcher_live_fixture):
+    yield dispatcher_live_fixture
 
 @pytest.fixture
 def dispatcher_live_fixture_empty_sentry(pytestconfig, dispatcher_test_conf_empty_sentry_fn, dispatcher_debug):
