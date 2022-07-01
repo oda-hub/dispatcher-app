@@ -280,28 +280,39 @@ class Instrument:
                 DispatcherNotAvailable,
                 UnexpectedDispatcherStatusCode,
                 RequestNotUnderstoodOdaApi) as de:
-            logger.info('A dispatcher-related exception has been returned from the oda_api when retrieving information '
-                        'from a completed job, this is probably related to an empty product')
+            logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
+                        'A exception regarding the dispatcher has been returned by the oda_api when retrieving '
+                        'information from a completed job')
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
                                       message=(f'Dispatcher-related exception detected when retrieving additional '
                                                f'information from a completed job '
                                                f'{de}'))
         except ConnectionError as ce:
-            logger.info(f'A connection error exception has been detected when retrieving additional information from a completed job: {ce}')
+            logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
+                        'A connection error has been detected when retrieving additional information '
+                        f'from a completed job: {ce}')
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
                                       message=(f'ConnectionError detected when retrieving additional '
                                                f'information from a completed job '
                                                f'{ce}'))
         except RemoteException as re:
-            logger.info(f'A connection error exception has been detected when retrieving additional information from a completed job: {re}')
-            status_details = re.message + '\n' + re.debug_message
+            if 'unable to complete API call' in re.message:
+                logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
+                            'A connection error has been detected and therefore this research could not be completed successfully.')
+            elif 'remote/connection error, server response is not valid' in re.message:
+                logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
+                            'This research has detected that an empty result has been produced.\n'
+                            'Please look carefully on your request.')
+            else:
+                logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
+                            'This most likely contains an empty product.')
+                status_details = re.message + '\n' + re.debug_message
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
-                                      message=(f'ConnectionError detected when retrieving additional '
-                                               f'information from a completed job '
-                                               f'{re}'))
+                                      message=(f'RemoteException detected when retrieving additional '
+                                               f'information from a completed job {re}'))
 
         return status_details
 
