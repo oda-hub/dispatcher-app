@@ -41,7 +41,7 @@ from .queries import ProductQuery, SourceQuery, InstrumentQuery
 from .io_helper import upload_file
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
 
-from oda_api.api import DispatcherAPI, RemoteException
+from oda_api.api import DispatcherAPI, RemoteException, DispatcherException, DispatcherNotAvailable, UnexpectedDispatcherStatusCode, RequestNotUnderstood as RequestNotUnderstoodOdaApi
 
 __author__ = "Andrea Tramacere"
 
@@ -258,7 +258,8 @@ class Instrument:
     def get_status_details(self,
                            par_dic,
                            config=None,
-                           logger=None):
+                           logger=None,
+                           sentry_client=None):
         if logger is None:
             logger = self.get_logger()
 
@@ -275,9 +276,32 @@ class Instrument:
         disp = DispatcherAPI(url=config.dispatcher_callback_url_base, instrument='mock')
         try:
             disp.get_product(**updated_par_dic)
+        except (DispatcherException,
+                DispatcherNotAvailable,
+                UnexpectedDispatcherStatusCode,
+                RequestNotUnderstoodOdaApi) as de:
+            logger.info('A dispatcher-related exception has been returned from the oda_api when retrieving information '
+                        'from a completed job, this is probably related to an empty product')
+            if sentry_client is not None:
+                sentry_client.capture('raven.events.Message',
+                                      message=(f'Dispatcher-related exception detected when retrieving additional '
+                                               f'information from a completed job '
+                                               f'{de}'))
+        except ConnectionError as ce:
+            logger.info(f'A connection error exception has been detected when retrieving additional information from a completed job: {ce}')
+            if sentry_client is not None:
+                sentry_client.capture('raven.events.Message',
+                                      message=(f'ConnectionError detected when retrieving additional '
+                                               f'information from a completed job '
+                                               f'{ce}'))
         except RemoteException as re:
-            logger.info('RemoteException detected when retrieving additional information from a completed job')
+            logger.info(f'A connection error exception has been detected when retrieving additional information from a completed job: {re}')
             status_details = re.message + '\n' + re.debug_message
+            if sentry_client is not None:
+                sentry_client.capture('raven.events.Message',
+                                      message=(f'ConnectionError detected when retrieving additional '
+                                               f'information from a completed job '
+                                               f'{re}'))
 
         return status_details
 

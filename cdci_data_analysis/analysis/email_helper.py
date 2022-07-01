@@ -269,6 +269,10 @@ def send_job_email(
                                              'attachment',
                                              filename="api_code.py")
 
+    status_details_generated = False
+    if status_details is not None:
+        status_details_generated = True
+
     # TODO: enable this sometimes
     # compressed_request_url = compress_request_url_params(request_url)
 
@@ -296,7 +300,7 @@ def send_job_email(
         'request': {
             'job_id': job_id,
             'status': status,
-            'status_details': status_details,
+            'status_details_generated': status_details_generated,
             'instrument': instrument,
             'product_type': product_type,
             'time_request': time_request,

@@ -70,10 +70,9 @@ def my_instr_factory():
                                   catalog=None,
                                   catalog_name='user_catalog')
 
-    # my_instr_image_query -> name given to this query
     empty_query = EmptyProductQuery('empty_parameters_dummy_query',)
-    # my_instr_image_query -> name given to this query
     failing_query = FailingProductQuery('failing_parameters_dummy_query', )
+    # empty_product_query = ('empty_product_dummy_query')
     # let's build a simple parameter to its list
     p = BoundaryFloat(value=10., name='p', units='W',)
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
@@ -102,6 +101,7 @@ def my_instr_factory():
     query_dictionary['failing'] = 'failing_parameters_dummy_query'
     query_dictionary['parametrical'] = 'parametrical_parameters_dummy_query'
     query_dictionary['echo'] = 'echo_parameters_dummy_query'
+    # query_dictionary['empty_product'] = 'empty_product_dummy_query'
 
     return Instrument('empty',
                       src_query=src_query,

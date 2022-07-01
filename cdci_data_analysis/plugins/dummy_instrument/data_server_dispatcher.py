@@ -229,6 +229,14 @@ class EmptyProductQuery(ProductQuery):
         return results
 
 
+# class EmptyProductProductQuery(EmptyProductQuery):
+#     def __init__(self, name='unset-name', config=None, instrument=None):
+#         super().__init__(name)
+#
+#     def get_dummy_products(self, instrument, config=None, **kwargs):
+#         raise ("empty product query")
+
+
 class FailingProductQuery(EmptyProductQuery):
 
     def __init__(self, name='unset-name', config=None, instrument=None):

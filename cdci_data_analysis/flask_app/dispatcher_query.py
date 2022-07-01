@@ -934,7 +934,8 @@ class InstrumentQueryBackEnd:
                     self.set_instrument(self.instrument_name)
                     status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
                                                                         config=self.config,
-                                                                        logger=self.logger)
+                                                                        logger=self.logger,
+                                                                        sentry_client=self.sentry_client)
                 # build the products URL and get also the original requested product
                 products_url = self.generate_products_url(self.config.products_url,
                                                                     request_par_dict=original_request_par_dic)
