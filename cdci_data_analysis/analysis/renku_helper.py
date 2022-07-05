@@ -48,7 +48,7 @@ def push_api_code(api_code,
         logger.info(step)
 
         step = f'creating new notebook with the api code'
-        new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
+        new_file_path, new_file_name = create_new_notebook_with_code(repo, api_code, job_id)
         logger.info(step)
 
         step = f'committing and pushing the api code to the renku repository'
@@ -59,7 +59,8 @@ def push_api_code(api_code,
         renku_session_url = generate_renku_session_url(repo,
                                                        renku_base_project_url=renku_base_project_url,
                                                        branch_name=branch_name,
-                                                       commit=commit_info.hexsha)
+                                                       commit=commit_info.hexsha,
+                                                       notebook_name=new_file_name)
         logger.info(step)
 
     except Exception as e:
@@ -183,7 +184,7 @@ def create_new_notebook_with_code(repo, api_code, job_id, file_name=None):
 
     nbf.write(nb, file_path)
 
-    return file_path
+    return file_path, file_name
 
 
 def generate_commit_request_url(products_url, params_dic, use_scws=None):
