@@ -79,11 +79,16 @@ def push_api_code(api_code,
     return renku_session_url
 
 
-def generate_renku_session_url(repo, renku_base_project_url, branch_name, commit):
+def generate_renku_session_url(repo, renku_base_project_url, branch_name, commit=None, notebook_name=None):
     original_url = repo.remotes.origin.url
     repo_path = get_repo_path(original_url)
     renku_project_url = f'{renku_base_project_url}/{repo_path}'
-    return f"{renku_project_url}/sessions/new?autostart=1&branch={branch_name}&commit={commit}"
+    output_url = f'{renku_project_url}/sessions/new?autostart=1&branch={branch_name}'
+    if commit is not None:
+        output_url += f'&commit={commit}'
+    if notebook_name is not None:
+        output_url += f'&notebook={notebook_name}'
+    return output_url
     
 
 def get_repo_path(repository_url):
