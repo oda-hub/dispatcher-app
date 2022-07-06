@@ -184,6 +184,12 @@ def create_new_notebook_with_code(repo, api_code, file_name):
     nb['cells'] = [nbf.v4.new_markdown_cell(text),
                    nbf.v4.new_code_cell(api_code)]
 
+    nb['metadata']['kernelspec'] = {
+        "display_name": "Python 3",
+        "language": "python",
+        "name": "python3"
+    }
+
     nbf.write(nb, file_path)
 
     return file_path, file_name
