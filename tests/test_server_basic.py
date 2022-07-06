@@ -23,7 +23,7 @@ import string
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
-from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url
+from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, generate_notebook_filename
 from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers
 
 
@@ -2150,7 +2150,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
 
     repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}')
     repo.git.pull("--set-upstream", repo.remote().name, str(repo.head.ref))
-    api_code_file_name = "_".join(["api_code", job_id]) + '.ipynb'
+    api_code_file_name = generate_notebook_filename(job_id=job_id)
 
     assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}&commit={repo.head.commit.hexsha}&notebook={api_code_file_name}"
 

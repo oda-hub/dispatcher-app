@@ -5,6 +5,8 @@ import traceback
 import nbformat as nbf
 import shutil
 import giturlparse
+import random
+import string
 
 from git import Repo, Actor
 
@@ -48,7 +50,8 @@ def push_api_code(api_code,
         logger.info(step)
 
         step = f'creating new notebook with the api code'
-        new_file_path, new_file_name = create_new_notebook_with_code(repo, api_code, job_id)
+        file_name = generate_notebook_filename(job_id=job_id)
+        new_file_path, new_file_name = create_new_notebook_with_code(repo, api_code, file_name)
         logger.info(step)
 
         step = f'committing and pushing the api code to the renku repository'
@@ -167,11 +170,12 @@ def checkout_branch_renku_repo(repo, branch_name):
     return repo
 
 
-def create_new_notebook_with_code(repo, api_code, job_id, file_name=None):
-    repo_dir = repo.working_dir
+def generate_notebook_filename(job_id):
+    return "_".join(["api_code", job_id]) + '.ipynb'
 
-    if file_name is None:
-        file_name = "_".join(["api_code", job_id]) + '.ipynb'
+
+def create_new_notebook_with_code(repo, api_code, file_name):
+    repo_dir = repo.working_dir
 
     file_path = os.path.join(repo_dir, file_name)
 
