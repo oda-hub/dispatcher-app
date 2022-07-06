@@ -5,8 +5,6 @@ import traceback
 import nbformat as nbf
 import shutil
 import giturlparse
-import random
-import string
 
 from git import Repo, Actor
 
