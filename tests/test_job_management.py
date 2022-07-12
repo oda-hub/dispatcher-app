@@ -1416,7 +1416,10 @@ def test_status_details_email_done(gunicorn_dispatcher_live_fixture, dispatcher_
 
     # check the additional status details within the email
     assert 'email_status_details' in jdata
-    assert jdata['email_status_details'] == 'failing query\nInstrument: empty, product: failing failed!\n'
+    assert jdata['email_status_details'] == {
+        'exception_message': 'failing query\nInstrument: empty, product: failing failed!\n',
+        'status': 'empty_product'
+    }
 
     completed_dict_param = {**params,
                             'p_list': '[]',

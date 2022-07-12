@@ -17,7 +17,7 @@ Once products will be ready, you will receive a new email.<br>
 {% elif request.status == "done" %}
 The platform have <b>finished</b> processing your request.<br>
 {% if request.status_details_message %}
-{{ status_details_message }}
+{{ request.status_details_message }}
 {% endif %}
 
 {% elif request.status == "failed" %}

@@ -309,21 +309,20 @@ class Instrument:
                             'A connection error has been detected and therefore this research could not be completed successfully.')
 
                 status_details_output_obj['status'] = 'exception'
-                status_details_output_obj['exception_message'] = re
+                status_details_output_obj['exception_message'] = re.message + '\n' + re.debug_message
             elif 'remote/connection error, server response is not valid' in re.message:
                 logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
                             'This research has detected that an empty result has been produced.\n'
                             'Please look carefully on your request.')
 
                 status_details_output_obj['status'] = 'empty_result'
-                status_details_output_obj['exception_message'] = re
+                status_details_output_obj['exception_message'] = re.message + '\n' + re.debug_message
             else:
                 logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
                             'This most likely contains an empty product.')
 
                 status_details_output_obj['status'] = 'empty_product'
-                status_details_output_obj['exception_message'] = re
-                status_details = re.message + '\n' + re.debug_message
+                status_details_output_obj['exception_message'] = re.message + '\n' + re.debug_message
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
                                       message=(f'RemoteException detected when retrieving additional '
