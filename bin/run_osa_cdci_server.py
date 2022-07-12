@@ -17,7 +17,7 @@ import multiprocessing
 import gunicorn.app.base
 
 from cdci_data_analysis.app_logging import app_logging 
-from cdci_data_analysis.flask_app.app import run_app, conf_app
+from cdci_data_analysis.flask_app.app import run_app
 from cdci_data_analysis.configurer import ConfigEnv
 
 
