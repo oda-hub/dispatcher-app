@@ -16,10 +16,8 @@ available at the URL {{ oda_site.frontend_url }}.<br>
 Once products will be ready, you will receive a new email.<br>
 {% elif request.status == "done" %}
 The platform have <b>finished</b> processing your request.<br>
-{% if request.status_details_generated %}
-Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty, product</b>.
-To the best of our knowledge, no unexpected errors occurred during processing,
-and if this is not what you expected, you probably need to modify the request parameters. We are sorry.<br>
+{% if request.status_details_message %}
+{{ status_details_message }}
 {% endif %}
 
 {% elif request.status == "failed" %}

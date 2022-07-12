@@ -269,9 +269,16 @@ def send_job_email(
                                              'attachment',
                                              filename="api_code.py")
 
-    status_details_generated = False
+    status_details_message = None
     if status_details is not None:
-        status_details_generated = True
+        if status_details['status'] == 'empty_product':
+            status_details_message = '''Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty, product</b>.
+                To the best of our knowledge, no unexpected errors occurred during processing,
+                and if this is not what you expected, you probably need to modify the request parameters. We are sorry.<br>'''
+        elif status_details['status'] == 'empty_result':
+            status_details_message = '''Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty, result</b>.
+                To the best of our knowledge, no unexpected errors occurred during processing,
+                and if this is not what you expected, you probably need to modify the request parameters. We are sorry.<br>'''
 
     # TODO: enable this sometimes
     # compressed_request_url = compress_request_url_params(request_url)
@@ -300,7 +307,7 @@ def send_job_email(
         'request': {
             'job_id': job_id,
             'status': status,
-            'status_details_generated': status_details_generated,
+            'status_details_message': status_details_message,
             'instrument': instrument,
             'product_type': product_type,
             'time_request': time_request,
