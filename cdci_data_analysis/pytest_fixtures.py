@@ -509,7 +509,6 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
                 "-d",
                 "-conf_file", test_conf_fn,
                 "-debug",
-                #"-use_gunicorn" should not be used, as current implementation of follow_output is specific to flask development server
               ]
 
         if multithread:

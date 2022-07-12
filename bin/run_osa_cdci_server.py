@@ -78,34 +78,10 @@ def main(argv=None):
 
     conf = ConfigEnv.from_conf_file(conf_file, 
                                     set_by=f'command line {__file__}:{__name__}')
-    use_gunicorn = args.use_gunicorn
     debug = args.debug
     multithread = args.multithread
 
-    # TODO suspected bug in the gunicorn library, therefore this piece of code is not used,
-    #  but an approach based on opening a dedicated process has been implemented
-    if use_gunicorn is True:
-        # let's use the bind options configuration
-        dispatcher_bind_host = conf.bind_host
-        dispatcher_bind_port = conf.bind_port
-        dispatcher_url = conf.dispatcher_url
-        port = conf.dispatcher_port
-        options = {
-            'bind': '%s:%s' % (dispatcher_bind_host, dispatcher_bind_port),
-            'workers': 4,
-            'timeout': 900,
-            'limit-request-line': 0
-        }
-        if debug:
-            options['log-level'] = 'debug'
-
-        if True:
-            StandaloneApplication(conf_app(conf), options).run()
-        else:
-            StandaloneApplication(conf_micro_service(conf), options).run()
-
-    else:
-        run_app(conf, debug=debug, threaded=multithread)
+    run_app(conf, debug=debug, threaded=multithread)
 
 
 if __name__ == "__main__":
