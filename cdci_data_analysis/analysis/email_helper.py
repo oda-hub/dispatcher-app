@@ -239,7 +239,8 @@ def send_job_email(
         time_request=None,
         request_url="",
         api_code="",
-        scratch_dir=None):
+        scratch_dir=None,
+        sentry_client=None):
     sending_time = time_.time()
 
     # let's get the needed email template;
@@ -279,10 +280,15 @@ and if this is not what you expected, you probably need to modify the request pa
             status_details_message = '''Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty, result</b>.
 To the best of our knowledge, no unexpected errors occurred during processing,
 and if this is not what you expected, you probably need to modify the request parameters. We are sorry.<br>'''
-        elif status_details['status'] == 'exception' or status_details['status'] == 'connection_error' or status_details['status'] == 'dispatcher_exception':
+        elif status_details['status'] in ['exception', 'connection_error', 'dispatcher_exception']:
             status_details_message = '''Unfortunately, after a quick automated assessment of the request, a problem has been found.
 To the best of our knowledge, no unexpected errors occurred during processing,
 and if this is not what you expected, you probably need to modify the request parameters. We are sorry.<br>'''
+        else:
+            if sentry_client is not None:
+                sentry_client.capture('raven.events.Message',
+                                      message=f'unexpected status_details content before sending email: {status_details}')
+            raise NotImplementedError
 
     # TODO: enable this sometimes
     # compressed_request_url = compress_request_url_params(request_url)
