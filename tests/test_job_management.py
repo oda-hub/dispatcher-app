@@ -388,6 +388,7 @@ def validate_email_content(
                    expect_api_code_attachment=False,
                    variation_suffixes=None,
                    require_reference_email=False,
+                   state_title=None
                    ):
 
     if variation_suffixes is None:
@@ -417,7 +418,10 @@ def validate_email_content(
 
     msg = email.message_from_string(message_record['data'])
 
-    assert msg['Subject'] == f"[ODA][{state}] {product} first requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+    if state_title is None:
+        state_title = state
+
+    assert msg['Subject'] == f"[ODA][{state_title}] {product} first requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
     assert msg['From'] == 'team@odahub.io'
     assert msg['To'] == 'mtm@mtmco.net'
     assert msg['CC'] == ", ".join(['team@odahub.io'])
@@ -1442,6 +1446,7 @@ def test_status_details_email_done(gunicorn_dispatcher_live_fixture, dispatcher_
         dispatcher_local_mail_server.get_email_record(),
         'done',
         dispatcher_job_state,
+        state_title='finished: with empty product',
         variation_suffixes=["failing"],
         time_request_str=time_request_str,
         products_url=products_url,
