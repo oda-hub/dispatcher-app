@@ -272,7 +272,7 @@ def send_job_email(
 
     status_details_message = None
     status_details_title = status
-    if status_details is not None:
+    if status_details is not None and status_details['status'] != 'successful':
         if status_details['status'] == 'empty_product':
             status_details_message = '''Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty, product</b>.
 To the best of our knowledge, no unexpected errors occurred during processing,
