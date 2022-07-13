@@ -279,7 +279,7 @@ and if this is not what you expected, you probably need to modify the request pa
             status_details_message = '''Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty, result</b>.
 To the best of our knowledge, no unexpected errors occurred during processing,
 and if this is not what you expected, you probably need to modify the request parameters. We are sorry.<br>'''
-        elif status_details['status'] == 'exception':
+        elif status_details['status'] == 'exception' or status_details['status'] == 'connection_error' or status_details['status'] == 'dispatcher_exception':
             status_details_message = '''Unfortunately, after a quick automated assessment of the request, a problem has been found.
 To the best of our knowledge, no unexpected errors occurred during processing,
 and if this is not what you expected, you probably need to modify the request parameters. We are sorry.<br>'''

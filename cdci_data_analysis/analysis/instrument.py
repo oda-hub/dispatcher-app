@@ -285,7 +285,7 @@ class Instrument:
             logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
                         'A exception regarding the dispatcher has been returned by the oda_api when retrieving '
                         'information from a completed job')
-            status_details_output_obj['status'] = 'exception'
+            status_details_output_obj['status'] = 'dispatcher_exception'
             status_details_output_obj['exception_message'] = de
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
@@ -296,7 +296,7 @@ class Instrument:
             logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
                         'A connection error has been detected when retrieving additional information '
                         f'from a completed job: {ce}')
-            status_details_output_obj['status'] = 'exception'
+            status_details_output_obj['status'] = 'connection_error'
             status_details_output_obj['exception_message'] = ce
             if sentry_client is not None:
                 sentry_client.capture('raven.events.Message',
@@ -308,7 +308,7 @@ class Instrument:
                 logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
                             'A connection error has been detected and therefore this research could not be completed successfully.')
 
-                status_details_output_obj['status'] = 'exception'
+                status_details_output_obj['status'] = 'connection_error'
                 status_details_output_obj['exception_message'] = re.message + '\n' + re.debug_message
             elif 'remote/connection error, server response is not valid' in re.message:
                 logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
