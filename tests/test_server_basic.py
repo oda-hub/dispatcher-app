@@ -1601,7 +1601,7 @@ def test_converttime_revnum(dispatcher_live_fixture_with_gallery, time_to_conver
 
 
 @pytest.mark.test_drupal
-@pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "time_range_with_timezone", "observation_id"])
+@pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "time_range_with_timezone", "new_time_range", "observation_id"])
 def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, timerange_parameters):
     server = dispatcher_live_fixture_with_gallery
 
@@ -1619,6 +1619,7 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
         'product_title': 'Test observation range',
         'token': encoded_token,
     }
+    now = datetime.now()
 
     if timerange_parameters == 'time_range_no_timezone':
         params['T1'] = '2003-03-15T23:27:40.0'
@@ -1628,6 +1629,9 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
         params['T2'] = '2003-03-16T00:03:12.0+0100'
     elif timerange_parameters == 'observation_id':
         params['observation_id'] = 'test observation'
+    elif timerange_parameters == 'new_time_range':
+        params['T1'] = (now - timedelta(days=10)).strftime('%Y-%m-%dT%H:%M:%S')
+        params['T2'] = now.strftime('%Y-%m-%dT%H:%M:%S')
 
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
                       params={**params}
@@ -1659,7 +1663,7 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
     obs_per_field_timerange_start = parser.parse(obs_per_field_timerange[0]['value'])
     obs_per_field_timerange_end = parser.parse(obs_per_field_timerange[0]['end_value'])
 
-    if timerange_parameters == 'time_range_no_timezone' or timerange_parameters == 'time_range_with_timezone':
+    if timerange_parameters == 'time_range_no_timezone' or timerange_parameters == 'time_range_with_timezone' or timerange_parameters == 'new_time_range':
         parsed_t1_no_timezone = parser.parse(params['T1'])
         parsed_t1 = parsed_t1_no_timezone.replace(tzinfo=parsed_t1_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
         parsed_t2_no_timezone = parser.parse(params['T2'])
