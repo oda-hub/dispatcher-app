@@ -358,6 +358,7 @@ def post_content_to_gallery(decoded_token,
 
     gallery_secret_key = disp_conf.product_gallery_secret_key
     product_gallery_url = disp_conf.product_gallery_url
+    converttime_revnum_service_url = disp_conf.converttime_revnum_service_url
     config_timezone = disp_conf.product_gallery_timezone
 
     sentry_url = getattr(disp_conf, 'sentry_url', None)
@@ -444,6 +445,7 @@ def post_content_to_gallery(decoded_token,
 
         output_data_product_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
                                                                 gallery_jwt_token=gallery_jwt_token,
+                                                                converttime_revnum_service_url=converttime_revnum_service_url,
                                                                 data_product_id=data_product_id,
                                                                 product_title=product_title,
                                                                 img_fid=img_fid,
@@ -524,7 +526,7 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
     return astro_entity_drupal_id
 
 
-def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None, sentry_client=None):
+def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url, t1=None, t2=None, sentry_client=None):
     # post new observation with or without a specific time range
     body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_node)
     # set the type of content to post
@@ -534,11 +536,23 @@ def post_observation(product_gallery_url, gallery_jwt_token, t1=None, t2=None, s
         # format the time fields, from the format request
         t1_formatted = parser.parse(t1).strftime('%Y-%m-%dT%H:%M:%S')
         t2_formatted = parser.parse(t2).strftime('%Y-%m-%dT%H:%M:%S')
+        # get the relative rev_num
+        revnum_1 = get_revnum(service_url=converttime_revnum_service_url, time_to_convert=t1_formatted)
+        revnum_2 = get_revnum(service_url=converttime_revnum_service_url, time_to_convert=t2_formatted)
         # set the daterange
         body_gallery_observation_node["field_timerange"] = [{
             "value": t1_formatted,
             "end_value": t2_formatted
         }]
+        # set the revnum(s)
+        if revnum_1 is not None and 'revnum' in revnum_1:
+            body_gallery_observation_node["field_rev1"] = [{
+                "value": revnum_1['revnum']
+            }]
+        if revnum_2 is not None and 'revnum' in revnum_2:
+            body_gallery_observation_node["field_rev2"] = [{
+                "value": revnum_2['revnum']
+            }]
 
         body_gallery_observation_node["title"]["value"] = "_".join(["observation", t1_formatted, t2_formatted])
     else:
@@ -637,7 +651,7 @@ def get_data_product_list_by_product_id(product_gallery_url, gallery_jwt_token, 
     return data_product_list
 
 
-def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
+def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
                               t1=None, t2=None,
                               timezone=None,
                               observation_id=None,
@@ -682,13 +696,13 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
                     break
 
         if observation_drupal_id is None and (t1 is not None and t2 is not None):
-            observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, t1, t2, sentry_client=sentry_client)
+            observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url, t1, t2, sentry_client=sentry_client)
             observation_information_message = 'a new observation has been posted'
 
     return observation_drupal_id, observation_information_message
 
 
-def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
+def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
                                  data_product_id=None,
                                  product_title=None,
                                  img_fid=None,
@@ -755,7 +769,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
     if 'T2' in kwargs:
         t2 = kwargs.pop('T2')
 
-    observation_drupal_id, observation_information_message = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
+    observation_drupal_id, observation_information_message = get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
                                                       timezone=timezone, t1=t1, t2=t2, observation_id=observation_id)
     if observation_drupal_id is not None:
         body_gallery_article_node["field_derived_from_observation"] = [{
