@@ -274,12 +274,12 @@ def send_job_email(
     status_details_title = status
     if status_details is not None and status_details['status'] != 'successful':
         if status_details['status'] == 'empty_product':
-            status_details_message = '''Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty, product</b>.
+            status_details_message = '''Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty product</b>.
 To the best of our knowledge, no unexpected errors occurred during processing,
 and if this is not what you expected, you probably need to modify the request parameters. We are sorry.<br>'''
             status_details_title = 'finished: with empty product'
         elif status_details['status'] == 'empty_result':
-            status_details_message = '''Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty, result</b>.
+            status_details_message = '''Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty result</b>.
 To the best of our knowledge, no unexpected errors occurred during processing,
 and if this is not what you expected, you probably need to modify the request parameters. We are sorry.<br>'''
             status_details_title = 'finished: with empty result'
