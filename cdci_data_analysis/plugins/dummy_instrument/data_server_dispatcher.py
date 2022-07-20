@@ -82,6 +82,13 @@ class DataServerQuery:
     def set_status(cls, status):
         open(cls.status_fn, "w").write(status)
 
+    @classmethod
+    def get_status(cls):
+        if os.path.exists(cls.status_fn):
+            return open(cls.status_fn).read()
+        else:
+            return None
+
     def decide_status(self):
         # callback will be sent separately, so we can detect a marker here
         if os.path.exists(self.status_fn):

@@ -6,6 +6,7 @@ import cdci_data_analysis.flask_app.app
 from cdci_data_analysis.analysis.exceptions import BadRequest
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.hash import make_hash
+from cdci_data_analysis.configurer import ConfigEnv
 
 import re
 import json
@@ -51,6 +52,16 @@ def app():
 @pytest.fixture
 def dispatcher_debug(monkeypatch):
     monkeypatch.setenv('DISPATCHER_DEBUG_MODE', 'yes')
+
+
+@pytest.fixture
+def gunicorn_dispatcher(monkeypatch):
+    monkeypatch.setenv('GUNICORN_DISPATCHER', 'yes')
+
+
+@pytest.fixture
+def gunicorn_tmp_path(monkeypatch):
+    monkeypatch.setenv('GUNICORN_TMP_PATH', '/tmp/dispatcher-test-fixture-state-gunicorn-{}.json')
 
 
 @pytest.fixture
@@ -340,7 +351,7 @@ def dispatcher_test_conf_fn(tmpdir):
 dispatcher:
     dummy_cache: dummy-cache
     products_url: PRODUCTS_URL
-    dispatcher_callback_url_base: http://localhost:8011
+    dispatcher_callback_url_base: http://0.0.0.0:8011
     sentry_url: "https://2ba7e5918358439485632251fa73658c@sentry.io/1467382"
     logstash_host: 
     logstash_port: 
@@ -366,7 +377,7 @@ dispatcher:
     """)
 
     yield fn
-    
+
 
 @pytest.fixture
 def dispatcher_test_conf_empty_sentry_fn(dispatcher_test_conf_fn):
@@ -452,7 +463,7 @@ def dispatcher_test_conf(dispatcher_test_conf_fn):
     yield yaml.load(open(dispatcher_test_conf_fn), Loader=yaml.SafeLoader)['dispatcher']
 
 
-def start_dispatcher(rootdir, test_conf_fn):
+def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
     clean_test_dispatchers()
 
     env = copy.deepcopy(dict(os.environ))
@@ -463,23 +474,45 @@ def start_dispatcher(rootdir, test_conf_fn):
                         env.get('PYTHONPATH', "")
     print(("pythonpath", env['PYTHONPATH']))
 
-    fn = os.path.join(__this_dir__, "../bin/run_osa_cdci_server.py")
-    if os.path.exists(fn):
+    if gunicorn:
+
+        conf = ConfigEnv.from_conf_file(test_conf_fn,
+                                        set_by=f'command line {__file__}:{__name__}')
+
+        dispatcher_bind_host = conf.bind_host
+        dispatcher_bind_port = conf.bind_port
         cmd = [
-                 "python", 
-                 fn
-              ]
+            "gunicorn",
+            f"cdci_data_analysis.flask_app.app:conf_app(\"{test_conf_fn}\")",
+            "--bind", f"{dispatcher_bind_host}:{dispatcher_bind_port}",
+            "--workers", "8",
+            "--threads", "2",
+            "--preload",
+            "--timeout", "900",
+            "--limit-request-line", "0",
+            "--log-level", "debug"
+        ]
+
     else:
-        cmd = [
-                 "run_osa_cdci_server.py"
+        fn = os.path.join(__this_dir__, "../bin/run_osa_cdci_server.py")
+        if os.path.exists(fn):
+            cmd = [
+                     "python",
+                     fn
+                  ]
+        else:
+            cmd = [
+                     "run_osa_cdci_server.py"
+                  ]
+
+        cmd += [
+                "-d",
+                "-conf_file", test_conf_fn,
+                "-debug",
               ]
-        
-    cmd += [ 
-            "-d",
-            "-conf_file", test_conf_fn,
-            "-debug",
-            #"-use_gunicorn" should not be used, as current implementation of follow_output is specific to flask development server
-          ] 
+
+        if multithread:
+            cmd += ['-multithread']
 
     print(f"\033[33mcommand: {cmd}\033[0m")
 
@@ -504,14 +537,20 @@ def start_dispatcher(rootdir, test_conf_fn):
                 C = '\033[34m'
 
             print(f"{C}following server: {line.rstrip()}{NC}" )
-            m = re.search(r"Running on (.*?) \(Press CTRL\+C to quit\)", line)
-            if m:
-                url_store[0] = m.group(1).strip()  # alternatively get from configenv
-                print(f"{C}following server: found url:{url_store[0]}")
+            if gunicorn:
+                m = re.search(r"Listening at: (.*?) (.*?)\n", line)
+                if m:
+                    url_store[0] = m.group(1).strip()  # alternatively get from configenv
+                    print(f"{C}following server: found url:{url_store[0]}")
+            else:
+                m = re.search(r"Running on (.*?) \(Press CTRL\+C to quit\)", line)
+                if m:
+                    url_store[0] = m.group(1).strip()  # alternatively get from configenv
+                    print(f"{C}following server: found url:{url_store[0]}")
 
-            if re.search("\* Debugger PIN:.*?", line):
-                url_store[0] = url_store[0].replace("0.0.0.0", "127.0.0.1")
-                print(f"{C}following server: server ready, url {url_store[0]}")
+                if re.search("\* Debugger PIN:.*?", line):
+                    url_store[0] = url_store[0].replace("0.0.0.0", "127.0.0.1")
+                    print(f"{C}following server: server ready, url {url_store[0]}")
 
 
     thread = Thread(target=follow_output, args=())
@@ -528,12 +567,21 @@ def start_dispatcher(rootdir, test_conf_fn):
     return dict(
         url=service,
         pid=p.pid
-    )        
+    )
+
+
+@pytest.fixture
+def gunicorn_dispatcher_long_living_fixture(gunicorn_tmp_path, gunicorn_dispatcher, dispatcher_long_living_fixture):
+    yield dispatcher_long_living_fixture
 
 
 @pytest.fixture
 def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
-    dispatcher_state_fn = "/tmp/dispatcher-test-fixture-state-{}.json".format(
+    tmp_path = "/tmp/dispatcher-test-fixture-state-{}.json"
+    if os.environ.get('GUNICORN_TMP_PATH', None) is not None:
+        tmp_path = os.environ.get('GUNICORN_TMP_PATH')
+
+    dispatcher_state_fn = tmp_path.format(
         hashlib.md5(open(dispatcher_test_conf_fn, "rb").read()).hexdigest()[:8]
         )
 
@@ -558,7 +606,11 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
     else:
         logger.info("\033[31mdoes not exist!\033[0m")
 
-    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+    gunicorn = False
+    if os.environ.get('GUNICORN_DISPATCHER', 'no') == 'yes':
+        gunicorn = True
+
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=gunicorn)
     json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
     return dispatcher_state['url']
 
@@ -589,8 +641,6 @@ def empty_products_files_fixture(default_params_dict):
         outfile.write(u'%s' % my_json_str)
 
     yield scratch_params
-
-
 
 
 @pytest.fixture
@@ -635,7 +685,11 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_de
         # in this case, run all dispatchers long-living, since it's faster but less safe
         yield request.getfixturevalue('dispatcher_long_living_fixture')
     else:
-        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
+        gunicorn = False
+        if os.environ.get('GUNICORN_DISPATCHER', 'no') == 'yes':
+            gunicorn = True
+
+        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=gunicorn)
 
         service = dispatcher_state['url']
         pid = dispatcher_state['pid']
@@ -644,7 +698,12 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_de
                 
         kill_child_processes(pid, signal.SIGINT)
         os.kill(pid, signal.SIGINT)
-    
+
+
+@pytest.fixture
+def gunicorn_dispatcher_live_fixture(gunicorn_dispatcher, dispatcher_live_fixture):
+    yield dispatcher_live_fixture
+
 @pytest.fixture
 def dispatcher_live_fixture_empty_sentry(pytestconfig, dispatcher_test_conf_empty_sentry_fn, dispatcher_debug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_empty_sentry_fn)
@@ -924,6 +983,8 @@ class DispatcherJobState:
             outlist_file.write(catalog_str)
 
         return f'catalog_simple_files/{file_name}'
+
+
 
     @classmethod
     def from_run_analysis_response(cls, r):

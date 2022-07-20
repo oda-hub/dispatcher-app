@@ -70,9 +70,7 @@ def my_instr_factory():
                                   catalog=None,
                                   catalog_name='user_catalog')
 
-    # my_instr_image_query -> name given to this query
     empty_query = EmptyProductQuery('empty_parameters_dummy_query',)
-    # my_instr_image_query -> name given to this query
     failing_query = FailingProductQuery('failing_parameters_dummy_query', )
     # let's build a simple parameter to its list
     p = BoundaryFloat(value=10., name='p', units='W',)

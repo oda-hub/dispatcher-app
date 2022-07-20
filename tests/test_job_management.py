@@ -4,7 +4,6 @@ from urllib import parse
 import pytest
 import requests
 import json
-import html
 import os
 import re
 import time
@@ -20,9 +19,8 @@ from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, ask
 from cdci_data_analysis.analysis.email_helper import textify_email
 from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
-from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 
-from flask import Markup
+from oda_api.api import RemoteException
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -260,20 +258,22 @@ def extract_products_url(text):
         # raise RuntimeError("no products url in the email!")
 
 
-def validate_api_code(api_code, dispatcher_live_fixture):
+def validate_api_code(api_code, dispatcher_live_fixture, product_type='dummy'):
     if dispatcher_live_fixture is not None:
         api_code = api_code.replace("<br>", "")
         api_code = api_code.replace("PRODUCTS_URL/dispatch-data", dispatcher_live_fixture)
 
         my_globals = {}
-        exec(api_code, my_globals)
+        if product_type == 'failing':
+            with pytest.raises(RemoteException):
+                exec(api_code, my_globals)
+        else:
+            exec(api_code, my_globals)
+            assert my_globals['data_collection']
+            my_globals['data_collection'].show()
 
-        assert my_globals['data_collection']
-        
-        my_globals['data_collection'].show()
 
-
-def validate_products_url(url, dispatcher_live_fixture):
+def validate_products_url(url, dispatcher_live_fixture, product_type='dummy'):
     if dispatcher_live_fixture is not None:
         # this is URL to frontend; it's not really true that it is passed the same way to dispatcher in all cases
         # in particular, catalog seems to be passed differently!
@@ -285,8 +285,12 @@ def validate_products_url(url, dispatcher_live_fixture):
 
         jdata = r.json()
 
-        assert jdata['exit_status']['status'] == 0
-        assert jdata['exit_status']['job_status'] == 'done'
+        if product_type == 'failing':
+            assert jdata['exit_status']['status'] == 1
+            assert jdata['exit_status']['job_status'] == 'unknown'
+        else:
+            assert jdata['exit_status']['status'] == 0
+            assert jdata['exit_status']['job_status'] == 'done'
 
 
 def validate_resolve_url(url, server):
@@ -384,6 +388,7 @@ def validate_email_content(
                    expect_api_code_attachment=False,
                    variation_suffixes=None,
                    require_reference_email=False,
+                   state_title=None
                    ):
 
     if variation_suffixes is None:
@@ -413,7 +418,10 @@ def validate_email_content(
 
     msg = email.message_from_string(message_record['data'])
 
-    assert msg['Subject'] == f"[ODA][{state}] {product} first requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+    if state_title is None:
+        state_title = state
+
+    assert msg['Subject'] == f"[ODA][{state_title}] {product} first requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
     assert msg['From'] == 'team@odahub.io'
     assert msg['To'] == 'mtm@mtmco.net'
     assert msg['CC'] == ", ".join(['team@odahub.io'])
@@ -459,7 +467,8 @@ def validate_email_content(
             if expect_api_code:
                 validate_api_code(
                     extract_api_code(content_text_html),
-                    dispatcher_live_fixture
+                    dispatcher_live_fixture,
+                    product_type=product
                 )
             else:
                 open("content.txt", "w").write(content_text)
@@ -469,7 +478,8 @@ def validate_email_content(
             if products_url != "":
                 validate_products_url(
                     extract_products_url(content_text_html),
-                    dispatcher_live_fixture
+                    dispatcher_live_fixture,
+                    product_type=product
                 )
 
         if content_text is not None:
@@ -661,11 +671,11 @@ def test_validation_job_id(dispatcher_live_fixture):
 # why is it None sometimes, and should we really send an email in this case?..
 # @pytest.mark.parametrize("time_original_request_none", [True, False])
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'private-no-email'])
-def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_local_mail_server, default_values, request_cred, time_original_request_none):
+def test_email_run_analysis_callback(gunicorn_dispatcher_long_living_fixture, dispatcher_local_mail_server, default_values, request_cred, time_original_request_none):
     from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
     DataServerQuery.set_status('submitted')
 
-    server = dispatcher_long_living_fixture
+    server = gunicorn_dispatcher_long_living_fixture
 
     DispatcherJobState.remove_scratch_folders()
 
@@ -948,7 +958,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
 
     DataServerQuery.set_status('submitted') # sets the expected default for other tests
 
-    r = requests.get(os.path.join(dispatcher_long_living_fixture, "inspect-state"), params=dict(token=encoded_token))
+    r = requests.get(os.path.join(gunicorn_dispatcher_long_living_fixture, "inspect-state"), params=dict(token=encoded_token))
     assert r.status_code == 403
     if encoded_token is None:
         assert r.text == 'A token must be provided.'
@@ -958,7 +968,7 @@ def test_email_run_analysis_callback(dispatcher_long_living_fixture, dispatcher_
                           " missing: job manager.")
 
     admin_token = jwt.encode({**token_payload, 'roles': 'private, user manager, admin, job manager, administrator'}, secret_key, algorithm='HS256')
-    r = requests.get(os.path.join(dispatcher_long_living_fixture, "inspect-state"), params=dict(token=admin_token))
+    r = requests.get(os.path.join(gunicorn_dispatcher_long_living_fixture, "inspect-state"), params=dict(token=admin_token))
     dispatcher_state_report = r.json()
     logger.info('dispatcher_state_report: %s', dispatcher_state_report)
 
@@ -1173,6 +1183,8 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
         token=encoded_token
     )
 
+    DataServerQuery.set_status('submitted')
+
     # this should return status submitted, so email sent
     c = requests.get(server + "/run_analysis",
                      dict_param
@@ -1215,7 +1227,6 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
 
     # jobs will be aliased
     dispatcher_job_state.assert_email('submitted')
-    
 
     # let the interval time pass, so that a new email is sent
     time.sleep(5)
@@ -1238,10 +1249,10 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
 
 
 @pytest.mark.not_safe_parallel
-def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
+def test_email_done(gunicorn_dispatcher_live_fixture, dispatcher_local_mail_server):
     DispatcherJobState.remove_scratch_folders()
     
-    server = dispatcher_live_fixture
+    server = gunicorn_dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
     token_payload = {
@@ -1283,7 +1294,9 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
         assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
     
     time_request = jdata['time_request']
-    
+
+    DataServerQuery.set_status('done')
+
     c = requests.get(server + "/call_back",
                      params=dict(
                          job_id=dispatcher_job_state.job_id,
@@ -1352,12 +1365,102 @@ def test_email_done(dispatcher_live_fixture, dispatcher_local_mail_server):
         assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
 
 
+@pytest.mark.not_safe_parallel
+def test_status_details_email_done(gunicorn_dispatcher_live_fixture, dispatcher_local_mail_server):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = gunicorn_dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    token_payload = {
+        **default_token_payload,
+        "tem": 0
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'failing',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status='failed'
+                )
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    DataServerQuery.set_status('done')
+
+    c = requests.get(os.path.join(server, "call_back"),
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         # necessary to use the empty-async instrument otherwise a OsaJob would not be instantiated and
+                         # TODO is the list of instruments for creating OsaJob objects within the job_factory complete?
+                         instrument_name="empty-async",
+                         action='done',
+                         node_id='node_final',
+                         message='done',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+    assert c.status_code == 200
+
+    jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
+    assert 'email_status' in jdata
+    assert jdata['email_status'] == 'email sent'
+
+    # check the additional status details within the email
+    assert 'email_status_details' in jdata
+    assert jdata['email_status_details'] == {
+        'exception_message': 'failing query\nInstrument: empty, product: failing failed!\n',
+        'status': 'empty_product'
+    }
+
+    completed_dict_param = {**params,
+                            'p_list': '[]',
+                            'use_scws': 'no',
+                            'src_name': '1E 1740.7-2942',
+                            'RA': 265.97845833,
+                            'DEC': -29.74516667,
+                            'T1': '2017-03-06T13:26:48.000',
+                            'T2': '2017-03-06T15:32:27.000',
+                            'T_format': 'isot'
+                            }
+
+    products_url = get_expected_products_url(completed_dict_param,
+                                             session_id=dispatcher_job_state.session_id,
+                                             job_id=dispatcher_job_state.job_id,
+                                             token=encoded_token)
+
+    # check the email in the log files
+    validate_email_content(
+        dispatcher_local_mail_server.get_email_record(),
+        'done',
+        dispatcher_job_state,
+        state_title='finished: with empty product',
+        variation_suffixes=["failing"],
+        time_request_str=time_request_str,
+        products_url=products_url,
+        request_params=params,
+        dispatcher_live_fixture=server,
+    )
+
+
 def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
 
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
-
+    DataServerQuery.set_status('submitted')
     # let's generate a valid token with high threshold
     token_payload = {
         **default_token_payload,
@@ -1558,6 +1661,7 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
     server = dispatcher_long_living_fixture
 
     DispatcherJobState.remove_scratch_folders()
+    DataServerQuery.set_status('submitted')
 
     # let's generate a valid token with high threshold
     token_payload = {
@@ -1741,7 +1845,7 @@ def test_email_catalog(dispatcher_long_living_fixture,
 @pytest.mark.parametrize("call_back_action", ['done', 'failed'])
 @pytest.mark.parametrize("scw_list_passage", ['file', 'params', 'both', 'not_passed'])
 @pytest.mark.parametrize("scw_list_size", [1, 5, 40])
-def test_email_scws_list(dispatcher_long_living_fixture,
+def test_email_scws_list(gunicorn_dispatcher_long_living_fixture,
                          dispatcher_local_mail_server,
                          use_scws_value,
                          scw_list_format,
@@ -1751,7 +1855,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
                          ):
     DispatcherJobState.remove_scratch_folders()
 
-    server = dispatcher_long_living_fixture
+    server = gunicorn_dispatcher_long_living_fixture
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
@@ -1811,11 +1915,15 @@ def test_email_scws_list(dispatcher_long_living_fixture,
                    files=scw_list_file_obj
                    )
 
+    logger.info("setting status to submitted")
     DataServerQuery.set_status('submitted')
     jdata = ask_here()
 
+    logger.info("setting status to done")
     DataServerQuery.set_status('done')
     jdata_done = ask_here()
+
+    logger.info("setting status to submitted again")
     DataServerQuery.set_status('submitted')
     
     try:
@@ -1904,6 +2012,7 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         assert 'use_scws' not in jdata['products']['api_code']
         # validate email content
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+        logger.info(f"dispatcher_job_state {dispatcher_job_state}")
         completed_dict_param = {**params,
                                 'src_name': '1E 1740.7-2942',
                                 'RA': 265.97845833,
@@ -1933,6 +2042,10 @@ def test_email_scws_list(dispatcher_long_living_fixture,
         dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
         time_request = jdata['time_request']
 
+        logger.info(f"running call_back")
+        DataServerQuery.set_status('done')
+        status = DataServerQuery.get_status()
+        logger.info(f"status before call_Back is {status}")
         # this triggers email
         c = requests.get(os.path.join(server, "call_back"),
                          params=dict(
@@ -1985,7 +2098,7 @@ def test_email_parameters_html_conflicting(dispatcher_long_living_fixture, dispa
     time_request = time.time()
 
     name_parameter_value = "< bla bla: this is not a tag > <"
-
+    DataServerQuery.set_status('submitted')
     c = requests.get(server + "/run_analysis",
                      params=dict(
                          query_status="new",
@@ -2186,6 +2299,7 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
         "tem": 0
             }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    DataServerQuery.set_status('submitted')
 
     dict_param = dict(
         query_status="new",

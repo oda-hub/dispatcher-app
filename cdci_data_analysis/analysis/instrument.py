@@ -41,6 +41,8 @@ from .queries import ProductQuery, SourceQuery, InstrumentQuery
 from .io_helper import upload_file
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
 
+from oda_api.api import DispatcherAPI, RemoteException, DispatcherException, DispatcherNotAvailable, UnexpectedDispatcherStatusCode, RequestNotUnderstood as RequestNotUnderstoodOdaApi
+
 __author__ = "Andrea Tramacere"
 
 # Standard library
@@ -252,6 +254,81 @@ class Instrument:
                             'use_scws was indicating this was not provided, please check the inputs'
 
             raise RequestNotUnderstood(error_message)
+
+    def get_status_details(self,
+                           par_dic,
+                           config=None,
+                           logger=None,
+                           sentry_client=None):
+        if logger is None:
+            logger = self.get_logger()
+
+        status_details_output_obj = {
+            'status': 'successful'
+        }
+
+        # TODO put this in a dedicated function, perhaps within the oda_api
+        # adaptation for oda_api, like it happens in oda_api set_api_code function
+        updated_par_dic = par_dic.copy()
+        updated_par_dic['product'] = updated_par_dic['product_type']
+        updated_par_dic['product_type'] = updated_par_dic['query_type']
+        updated_par_dic.pop('query_type')
+
+        logger.info(f"getting products for a more in-depth analysis for the results within run_call_back with args {updated_par_dic}")
+        disp = DispatcherAPI(url=config.dispatcher_callback_url_base, instrument='mock')
+        try:
+            disp.get_product(**updated_par_dic)
+        except (DispatcherException,
+                DispatcherNotAvailable,
+                UnexpectedDispatcherStatusCode,
+                RequestNotUnderstoodOdaApi) as de:
+            logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
+                        'A exception regarding the dispatcher has been returned by the oda_api when retrieving '
+                        'information from a completed job')
+            status_details_output_obj['status'] = 'dispatcher_exception'
+            status_details_output_obj['exception_message'] = de
+            if sentry_client is not None:
+                sentry_client.capture('raven.events.Message',
+                                      message=(f'Dispatcher-related exception detected when retrieving additional '
+                                               f'information from a completed job '
+                                               f'{de}'))
+        except ConnectionError as ce:
+            logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
+                        'A connection error has been detected when retrieving additional information '
+                        f'from a completed job: {ce}')
+            status_details_output_obj['status'] = 'connection_error'
+            status_details_output_obj['exception_message'] = ce
+            if sentry_client is not None:
+                sentry_client.capture('raven.events.Message',
+                                      message=(f'ConnectionError detected when retrieving additional '
+                                               f'information from a completed job '
+                                               f'{ce}'))
+        except RemoteException as re:
+            if 'unable to complete API call' in re.message:
+                logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
+                            'A connection error has been detected and therefore this research could not be completed successfully.')
+
+                status_details_output_obj['status'] = 'connection_error'
+                status_details_output_obj['exception_message'] = re.message + '\n' + re.debug_message
+            elif 'remote/connection error, server response is not valid' in re.message:
+                logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
+                            'This research has detected that an empty result has been produced.\n'
+                            'Please look carefully on your request.')
+
+                status_details_output_obj['status'] = 'empty_result'
+                status_details_output_obj['exception_message'] = re.message + '\n' + re.debug_message
+            else:
+                logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
+                            'This most likely contains an empty product.')
+
+                status_details_output_obj['status'] = 'empty_product'
+                status_details_output_obj['exception_message'] = re.message + '\n' + re.debug_message
+            if sentry_client is not None:
+                sentry_client.capture('raven.events.Message',
+                                      message=(f'RemoteException detected when retrieving additional '
+                                               f'information from a completed job {re}'))
+
+        return status_details_output_obj
 
     def run_query(self, product_type,
                   par_dic,
