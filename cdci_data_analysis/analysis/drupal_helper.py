@@ -1,6 +1,8 @@
 import os
 import json
 import time
+import urllib.parse
+
 import jwt
 import requests
 import base64
@@ -379,6 +381,7 @@ def post_content_to_gallery(decoded_token,
     # extract type of content to post
     content_type = ContentType[str.upper(par_dic.pop('content_type', 'article'))]
     fits_file_fid_list = None
+    html_file_fid_list = None
     img_fid = None
     product_title = None
     data_product_id = None
@@ -421,6 +424,17 @@ def post_content_to_gallery(decoded_token,
                     if fits_file_fid_list is None:
                         fits_file_fid_list = []
                     fits_file_fid_list.append(output_fits_file_post['fid'][0]['value'])
+                elif f.startswith('html_file'):
+                    html_file_obj = files[f]
+                    # upload file to drupal
+                    output_html_file_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
+                                                                 file_type="document",
+                                                                 file=html_file_obj,
+                                                                 gallery_jwt_token=gallery_jwt_token,
+                                                                 sentry_client=sentry_client)
+                    if html_file_fid_list is None:
+                        html_file_fid_list = []
+                    html_file_fid_list.append(output_html_file_post['fid'][0]['value'])
 
         product_title = par_dic.pop('product_title', product_title)
         observation_id = par_dic.pop('observation_id', None)
@@ -434,6 +448,7 @@ def post_content_to_gallery(decoded_token,
                                                                 product_title=product_title,
                                                                 img_fid=img_fid,
                                                                 fits_file_fid_list=fits_file_fid_list,
+                                                                html_file_fid_list=html_file_fid_list,
                                                                 observation_id=observation_id,
                                                                 user_id_product_creator=user_id_product_creator,
                                                                 insert_new_source=insert_new_source,
@@ -479,6 +494,7 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, time
 def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name, astro_entity_portal_link=None,  sentry_client=None):
     # post new observation with or without a specific time range
     body_gallery_astro_entity_node = copy.deepcopy(body_article_product_gallery.body_node)
+    astro_entity_name = astro_entity_name.strip()
     # set the type of content to post
     body_gallery_astro_entity_node["_links"]["type"]["href"] = os.path.join(product_gallery_url,
                                                                             body_gallery_astro_entity_node["_links"]["type"]["href"],
@@ -577,6 +593,10 @@ def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, galle
     # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
 
+    # the URL-reserved characters should be quoted eg GX 1+4 -> GX%201%2B4
+    # TODO to verify if this approach also for the other requestes
+    source_name = urllib.parse.quote(source_name.strip())
+
     log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/source/{source_name}",
                                      headers=headers,
                                      sentry_client=sentry_client)
@@ -673,6 +693,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
                                  product_title=None,
                                  img_fid=None,
                                  fits_file_fid_list=None,
+                                 html_file_fid_list=None,
                                  observation_id=None,
                                  user_id_product_creator=None,
                                  insert_new_source=False,
@@ -752,36 +773,50 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             "target_id": user_id_product_creator
         }]
 
-    src_name = kwargs.pop('src_name', None)
-    src_portal_link = kwargs.pop('entity_portal_link', None)
     # set the source astrophysical entity if available
-    if src_name is not None:
-        source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
-                                                                             source_name=src_name,
-                                                                             sentry_client=sentry_client)
-        # create a new source ? yes if the user wants it
-        if source_entity_id is None and insert_new_source:
-            source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
-                                                 astro_entity_name=src_name,
-                                                 astro_entity_portal_link=src_portal_link,
-                                                 sentry_client=sentry_client)
+    src_name_concat = None
+    src_name_arg = kwargs.pop('src_name', None)
+    if src_name_arg is not None:
+        src_name_list = src_name_arg.split(',')
+        src_portal_link_arg = kwargs.pop('entity_portal_link', None)
+        src_portal_link_list = None
+        if src_portal_link_arg is not None:
+            src_portal_link_list = src_portal_link_arg.split(',')
+        src_name_concat = "_".join(src_name_list)
 
-        if source_entity_id is not None:
-            body_gallery_article_node['field_describes_astro_entity'] = [{
-                "target_id": int(source_entity_id)
-            }]
+        for src_name in src_name_list:
+            source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
+                                                                                 source_name=src_name,
+                                                                                 sentry_client=sentry_client)
+            # create a new source ? yes if the user wants it
+            if source_entity_id is None and insert_new_source:
+                src_name_idx = src_name_list.index(src_name)
+                src_portal_link = None
+                if src_portal_link_list is not None and src_portal_link_list[src_name_idx] != '':
+                    src_portal_link = src_portal_link_list[src_name_idx].strip()
+                source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
+                                                     astro_entity_name=src_name.strip(),
+                                                     astro_entity_portal_link=src_portal_link,
+                                                     sentry_client=sentry_client)
+
+            if source_entity_id is not None:
+                if 'field_describes_astro_entity' not in body_gallery_article_node:
+                    body_gallery_article_node['field_describes_astro_entity'] = []
+                body_gallery_article_node['field_describes_astro_entity'].append({
+                    "target_id": int(source_entity_id)
+                })
 
     # set the product title
     # TODO agree on a better logic to assign the product title, have it mandatory?
     if product_title is None:
-        if product_type is None and src_name is None:
+        if product_type is None and src_name_concat is None:
             product_title = "_".join(["data_product", str(uuid.uuid4())])
-        elif product_type is None and src_name is not None:
-            product_title = src_name
-        elif product_type is not None and src_name is None:
+        elif product_type is None and src_name_concat is not None:
+            product_title = src_name_concat
+        elif product_type is not None and src_name_concat is None:
             product_title = product_type
         else:
-            product_title = "_".join([src_name, product_type])
+            product_title = "_".join([src_name_concat, product_type])
 
     body_gallery_article_node["title"]["value"] = product_title
 
@@ -822,6 +857,15 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
             body_gallery_article_node['field_fits_file'].append({
                 "target_id": int(fid)
             })
+    # setting html file fid if available
+    if html_file_fid_list is not None:
+        for fid in html_file_fid_list:
+            if 'field_html_file' not in body_gallery_article_node:
+                body_gallery_article_node['field_html_file'] = []
+            body_gallery_article_node['field_html_file'].append({
+                "target_id": int(fid)
+            })
+
     # finally, post the data product to the gallery
     headers = get_drupal_request_headers(gallery_jwt_token)
 
@@ -848,7 +892,8 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token,
 def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: str = None):
     resolved_obj = {}
     if name is not None:
-        res = requests.get(name_resolver_url.format(name))
+        quoted_name = urllib.parse.quote(name.strip())
+        res = requests.get(name_resolver_url.format(quoted_name))
         if res.status_code == 200:
             returned_resolved_obj = res.json()
             if 'success' in returned_resolved_obj:
@@ -859,7 +904,7 @@ def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: 
                         resolved_obj['RA'] = float(returned_resolved_obj['ra'])
                     if 'dec' in returned_resolved_obj:
                         resolved_obj['DEC'] = float(returned_resolved_obj['dec'])
-                    resolved_obj['entity_portal_link'] = entities_portal_url.format(name)
+                    resolved_obj['entity_portal_link'] = entities_portal_url.format(quoted_name)
                     resolved_obj['message'] = f'{name} successfully resolved'
                 elif not returned_resolved_obj['success']:
                     logger.info(f"resolution of the object {name} unsuccessful")

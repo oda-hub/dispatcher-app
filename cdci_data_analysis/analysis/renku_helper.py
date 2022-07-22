@@ -48,7 +48,8 @@ def push_api_code(api_code,
         logger.info(step)
 
         step = f'creating new notebook with the api code'
-        new_file_path = create_new_notebook_with_code(repo, api_code, job_id)
+        file_name = generate_notebook_filename(job_id=job_id)
+        new_file_path, new_file_name = create_new_notebook_with_code(repo, api_code, file_name)
         logger.info(step)
 
         step = f'committing and pushing the api code to the renku repository'
@@ -59,7 +60,8 @@ def push_api_code(api_code,
         renku_session_url = generate_renku_session_url(repo,
                                                        renku_base_project_url=renku_base_project_url,
                                                        branch_name=branch_name,
-                                                       commit=commit_info.hexsha)
+                                                       commit=commit_info.hexsha,
+                                                       notebook_name=new_file_name)
         logger.info(step)
 
     except Exception as e:
@@ -79,11 +81,16 @@ def push_api_code(api_code,
     return renku_session_url
 
 
-def generate_renku_session_url(repo, renku_base_project_url, branch_name, commit):
+def generate_renku_session_url(repo, renku_base_project_url, branch_name, commit=None, notebook_name=None):
     original_url = repo.remotes.origin.url
     repo_path = get_repo_path(original_url)
     renku_project_url = f'{renku_base_project_url}/{repo_path}'
-    return f"{renku_project_url}/sessions/new?autostart=1&branch={branch_name}&commit={commit}"
+    output_url = f'{renku_project_url}/sessions/new?autostart=1&branch={branch_name}'
+    if commit is not None:
+        output_url += f'&commit={commit}'
+    if notebook_name is not None:
+        output_url += f'&notebook={notebook_name}'
+    return output_url
     
 
 def get_repo_path(repository_url):
@@ -161,11 +168,12 @@ def checkout_branch_renku_repo(repo, branch_name):
     return repo
 
 
-def create_new_notebook_with_code(repo, api_code, job_id, file_name=None):
-    repo_dir = repo.working_dir
+def generate_notebook_filename(job_id):
+    return "_".join(["api_code", job_id]) + '.ipynb'
 
-    if file_name is None:
-        file_name = "_".join(["api_code", job_id]) + '.ipynb'
+
+def create_new_notebook_with_code(repo, api_code, file_name):
+    repo_dir = repo.working_dir
 
     file_path = os.path.join(repo_dir, file_name)
 
@@ -176,9 +184,15 @@ def create_new_notebook_with_code(repo, api_code, job_id, file_name=None):
     nb['cells'] = [nbf.v4.new_markdown_cell(text),
                    nbf.v4.new_code_cell(api_code)]
 
+    nb['metadata']['kernelspec'] = {
+        "display_name": "Python 3",
+        "language": "python",
+        "name": "python3"
+    }
+
     nbf.write(nb, file_path)
 
-    return file_path
+    return file_path, file_name
 
 
 def generate_commit_request_url(products_url, params_dic, use_scws=None):

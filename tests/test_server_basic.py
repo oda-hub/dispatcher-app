@@ -1,5 +1,6 @@
 import re
 import shutil
+import urllib
 
 import requests
 import time
@@ -22,9 +23,9 @@ import string
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
-from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url
+from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, generate_notebook_filename
 from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers
-
+from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
 
 # logger
 logger = logging.getLogger(__name__)
@@ -62,6 +63,18 @@ default_token_payload = dict(
     exp=default_exp_time,
     tem=0,
 )
+
+
+@pytest.mark.fast
+def test_js9(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    dispatcher_fetch_dummy_products('default')
+
+    shutil.copy('data/dummy_prods/isgri_query_mosaic.fits', 'js9.fits')
+
+    print("constructed server:", server)
+    r = requests.get(f'{dispatcher_live_fixture.rstrip("/")}/api/v1.0/oda/get_js9_plot', params={'file_path': 'js9.fits'})
+    assert r.status_code == 200
 
 
 @pytest.mark.fast
@@ -556,6 +569,7 @@ def test_call_back_invalid_token(dispatcher_live_fixture):
         token=encoded_token
     )
 
+    DataServerQuery.set_status('submitted')
     # this should return status submitted, so email sent
     c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
@@ -1435,7 +1449,7 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 
 @pytest.mark.test_drupal
-@pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'fake object', None])
+@pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'GX 1+4', 'fake object', None])
 def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_to_resolve):
     server = dispatcher_live_fixture_with_gallery
 
@@ -1476,7 +1490,7 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
 
         assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
         assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery["product_gallery_options"]["entities_portal_url"]\
-            .format(source_to_resolve)
+            .format(urllib.parse.quote(source_to_resolve.strip()))
 
 
 @pytest.mark.test_drupal
@@ -1768,7 +1782,10 @@ def test_product_gallery_post(dispatcher_live_fixture_with_gallery, dispatcher_t
         elif provide_product_type and type_source is None:
             product_title = product_type_product_gallery
         elif not provide_product_type and type_source is not None:
-            product_title = source_name
+            if provide_job_id:
+                product_title = "_".join([source_name, product_type_analysis])
+            else:
+                product_title = source_name
         elif not provide_product_type and type_source is None:
             if provide_job_id:
                 product_title = product_type_analysis
@@ -1810,6 +1827,63 @@ def test_product_gallery_post(dispatcher_live_fixture_with_gallery, dispatcher_t
         assert link_field_derived_from_observation in drupal_res_obj['_links']
     else:
         assert link_field_derived_from_observation not in drupal_res_obj['_links']
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("type_source", ["single", "list", None])
+@pytest.mark.parametrize("insert_new_source", [True])
+def test_post_data_product_with_multiple_sources(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, type_source, insert_new_source):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    source_name = None
+    entity_portal_link = None
+    if type_source == "single":
+        source_name = "GX 1+4"
+        entity_portal_link = "http://cdsportal.u-strasbg.fr/?target=GX%201%204"
+    elif type_source == "list":
+        source_name = 'GX 1+4, Crab, unknown_src, unknown_src_no_link'
+        entity_portal_link = "http://cdsportal.u-strasbg.fr/?target=GX%201%204, http://cdsportal.u-strasbg.fr/?target=Crab, , link"
+
+    params = {
+        'instrument': 'isgri',
+        'src_name': source_name,
+        'entity_portal_link': entity_portal_link,
+        'product_type': 'isgri_lc',
+        'content_type': 'data_product',
+        'product_title': "product with multiple sources",
+        'token': encoded_token,
+        'insert_new_source': insert_new_source
+    }
+
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                      params={**params}
+                      )
+
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    link_field_describes_astro_entity = os.path.join(
+        dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+        'rest/relation/node/data_product/field_describes_astro_entity')
+    if type_source is not None:
+        assert link_field_describes_astro_entity in drupal_res_obj['_links']
+        if type_source == "single":
+            assert len(drupal_res_obj['_links'][link_field_describes_astro_entity]) == 1
+        elif type_source == "list":
+            assert len(drupal_res_obj['_links'][link_field_describes_astro_entity]) == len(source_name.split(','))
+    else:
+        assert link_field_describes_astro_entity not in drupal_res_obj['_links']
 
 
 @pytest.mark.test_drupal
@@ -2077,9 +2151,11 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
 
     repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}')
     repo.git.pull("--set-upstream", repo.remote().name, str(repo.head.ref))
-    assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}&commit={repo.head.commit.hexsha}"
+    api_code_file_name = generate_notebook_filename(job_id=job_id)
 
-    api_code_file_path = os.path.join(repo.working_dir,  "_".join(["api_code", job_id]) + '.ipynb')
+    assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}&commit={repo.head.commit.hexsha}&notebook={api_code_file_name}"
+
+    api_code_file_path = os.path.join(repo.working_dir, api_code_file_name)
 
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
     token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"

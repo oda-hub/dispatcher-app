@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <title>[ODA][{{request.status}}] {{request.product_type}} first requested at {{ request.time_request | timestamp2isot }} job_id: {{request.job_id[:8]}}</title>
+    <title>[ODA][{{request.status_details_title}}] {{request.product_type}} first requested at {{ request.time_request | timestamp2isot }} job_id: {{request.job_id[:8]}}</title>
 </head>
 
 <body>
@@ -15,7 +15,11 @@ available at the URL {{ oda_site.frontend_url }}.<br>
 {% if request.status == "submitted" %}
 Once products will be ready, you will receive a new email.<br>
 {% elif request.status == "done" %}
-Your request is now <b>ready</b>.<br>
+The platform have <b>finished</b> processing your request.<br>
+{% if request.status_details_message %}
+{{ request.status_details_message }}
+{% endif %}
+
 {% elif request.status == "failed" %}
 Your request has <b>failed<b>. Sorry for that! You will be further contacted by our team.<br>
 {% endif %}

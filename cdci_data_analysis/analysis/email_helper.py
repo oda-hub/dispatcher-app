@@ -233,12 +233,14 @@ def send_job_email(
         job_id,
         session_id,
         status="done",
+        status_details=None,
         instrument="",
         product_type="",
         time_request=None,
         request_url="",
         api_code="",
-        scratch_dir=None):
+        scratch_dir=None,
+        sentry_client=None):
     sending_time = time_.time()
 
     # let's get the needed email template;
@@ -268,6 +270,21 @@ def send_job_email(
                                              'attachment',
                                              filename="api_code.py")
 
+    status_details_message = None
+    status_details_title = status
+    if status_details is not None and status_details['status'] != 'successful':
+        if status_details['status'] == 'empty_product' or status_details['status'] == 'empty_result':
+            status_details_message = '''Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty product</b>.
+To the best of our knowledge, no unexpected errors occurred during processing,
+and if this is not what you expected, you probably need to modify the request parameters. We are sorry.<br>'''
+            status_details_title = 'finished: with empty product'
+        # TODO observe the other possible error detected exceptions,and extend the status detail message for the email
+        else:
+            if sentry_client is not None:
+                sentry_client.capture('raven.events.Message',
+                                      message=f'unexpected status_details content before sending email: {status_details}')
+            raise NotImplementedError
+
     # TODO: enable this sometimes
     # compressed_request_url = compress_request_url_params(request_url)
 
@@ -295,6 +312,8 @@ def send_job_email(
         'request': {
             'job_id': job_id,
             'status': status,
+            'status_details_title': status_details_title,
+            'status_details_message': status_details_message,
             'instrument': instrument,
             'product_type': product_type,
             'time_request': time_request,
