@@ -536,23 +536,26 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
         # format the time fields, from the format request
         t1_formatted = parser.parse(t1).strftime('%Y-%m-%dT%H:%M:%S')
         t2_formatted = parser.parse(t2).strftime('%Y-%m-%dT%H:%M:%S')
-        # get the relative rev_num
-        revnum_1 = get_revnum(service_url=converttime_revnum_service_url, time_to_convert=t1_formatted)
-        revnum_2 = get_revnum(service_url=converttime_revnum_service_url, time_to_convert=t2_formatted)
         # set the daterange
         body_gallery_observation_node["field_timerange"] = [{
             "value": t1_formatted,
             "end_value": t2_formatted
         }]
-        # set the revnum(s)
+        # get the relative rev_num(s) and set them in the body
+        revnum_1 = get_revnum(service_url=converttime_revnum_service_url, time_to_convert=t1_formatted)
         if revnum_1 is not None and 'revnum' in revnum_1:
             body_gallery_observation_node["field_rev1"] = [{
                 "value": revnum_1['revnum']
             }]
+        else:
+            logger.warning(f'error while retrieving the revolution number from corresponding to the time {t1}')
+        revnum_2 = get_revnum(service_url=converttime_revnum_service_url, time_to_convert=t2_formatted)
         if revnum_2 is not None and 'revnum' in revnum_2:
             body_gallery_observation_node["field_rev2"] = [{
                 "value": revnum_2['revnum']
             }]
+        else:
+            logger.warning(f'error while retrieving the revolution number from corresponding to the time {t2}')
 
         body_gallery_observation_node["title"]["value"] = "_".join(["observation", t1_formatted, t2_formatted])
     else:
