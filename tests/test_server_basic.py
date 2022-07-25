@@ -24,7 +24,7 @@ from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, generate_notebook_filename
-from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers
+from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum
 from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
 
 # logger
@@ -1664,13 +1664,22 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
     obs_per_field_timerange_start = parser.parse(obs_per_field_timerange[0]['value'])
     obs_per_field_timerange_end = parser.parse(obs_per_field_timerange[0]['end_value'])
 
-    if timerange_parameters == 'time_range_no_timezone' or timerange_parameters == 'time_range_with_timezone' or timerange_parameters == 'new_time_range':
+    if timerange_parameters in ['time_range_no_timezone', 'time_range_with_timezone', 'new_time_range']:
         parsed_t1_no_timezone = parser.parse(params['T1'])
         parsed_t1 = parsed_t1_no_timezone.replace(tzinfo=parsed_t1_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
         parsed_t2_no_timezone = parser.parse(params['T2'])
         parsed_t2 = parsed_t2_no_timezone.replace(tzinfo=parsed_t2_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
         assert obs_per_field_timerange_start == parsed_t1
         assert obs_per_field_timerange_end == parsed_t2
+        if timerange_parameters == 'new_time_range':
+            assert 'field_rev1' in drupal_res_obs_info_obj
+            assert 'field_rev2' in drupal_res_obs_info_obj
+            revnum1_input = get_revnum(service_url=dispatcher_test_conf_with_gallery['product_gallery_options']['converttime_revnum_service_url'],
+                                       time_to_convert=params['T1'])
+            assert drupal_res_obs_info_obj['field_rev1'][0]['value'] == revnum1_input['revnum']
+            revnum2_input = get_revnum(service_url=dispatcher_test_conf_with_gallery['product_gallery_options']['converttime_revnum_service_url'],
+                                       time_to_convert=params['T2'])
+            assert drupal_res_obs_info_obj['field_rev2'][0]['value'] == revnum2_input['revnum']
     else:
         assert obs_per_title == 'test observation'
 
