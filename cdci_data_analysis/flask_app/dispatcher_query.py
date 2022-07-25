@@ -886,11 +886,12 @@ class InstrumentQueryBackEnd:
         if self.config.sentry_url is not None:
             self.set_sentry_client(self.config.sentry_url)
 
-        instrument_name = self.par_dic.get('instrument_name', '')
+        self.instrument_name = self.par_dic.get('instrument_name', '')
+
         # the time the request was sent should be used
         # the time_request contains the time the call_back as issued
         time_original_request = self.par_dic.get('time_original_request', None)
-        job = job_factory(instrument_name,
+        job = job_factory(self.instrument_name,
                           self.scratch_dir,
                           self.dispatcher_host,
                           self.dispatcher_port,
@@ -926,6 +927,15 @@ class InstrumentQueryBackEnd:
                     product_type = original_request_par_dic['product_type']
                 except KeyError as e:
                     raise MissingRequestParameter(repr(e))
+                # get more info regarding the status of the request
+                status_details = None
+                if status == 'done':
+                    # set instrument
+                    self.set_instrument(self.instrument_name)
+                    status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
+                                                                        config=self.config,
+                                                                        logger=self.logger,
+                                                                        sentry_client=self.sentry_client)
                 # build the products URL and get also the original requested product
                 products_url = self.generate_products_url(self.config.products_url,
                                                                     request_par_dict=original_request_par_dic)
@@ -934,14 +944,15 @@ class InstrumentQueryBackEnd:
                                                             url=self.app.config['conf'].products_url + "/dispatch-data"
                                                             )
                 email_helper.send_job_email(
-                    config=self.app.config['conf'],
+                    config=self.config,
                     logger=self.logger,
                     decoded_token=self.decoded_token,
                     token=self.token,
                     job_id=self.job_id,
                     session_id=self.par_dic['session_id'],
                     status=status,
-                    instrument=instrument_name,
+                    status_details=status_details,
+                    instrument=self.instrument_name,
                     product_type=product_type,
                     time_request=time_original_request,
                     request_url=products_url,
@@ -953,7 +964,8 @@ class InstrumentQueryBackEnd:
 
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
-                                            email_status='email sent')
+                                            email_status='email sent',
+                                            email_status_details=status_details)
             else:
                 job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
         except email_helper.MultipleDoneEmail as e:

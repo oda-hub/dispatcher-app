@@ -14,16 +14,10 @@ from builtins import (bytes, open, str, super, range,
 import os
 import argparse
 import multiprocessing
-
-import logging
-import logging_tree
-
 import gunicorn.app.base
 
-#from gunicorn.six import iteritems
-
 from cdci_data_analysis.app_logging import app_logging 
-from cdci_data_analysis.flask_app.app import run_app, conf_app
+from cdci_data_analysis.flask_app.app import run_app
 from cdci_data_analysis.configurer import ConfigEnv
 
 
@@ -44,9 +38,9 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
         config = dict([(key, value) for key, value in self.options.items()
                        if key in self.cfg.settings and value is not None])
 
-        for key, value in config.items():
-            print ('conf',key.lower(), value)
-            self.cfg.set(key.lower(), value)
+        for key in list(config):
+            print ('conf',key.lower(), config[key])
+            self.cfg.set(key.lower(), config[key])
 
     def load(self):
         return self.application
@@ -59,6 +53,7 @@ def main(argv=None):
     parser.add_argument('-conf_file', type=str, default=None)
     parser.add_argument('-use_gunicorn', action='store_true')
     parser.add_argument('-debug', action='store_true', help='sets global logger debug')
+    parser.add_argument('-multithread', action='store_true', help='start the dispatcher in threaded mode')
     parser.add_argument('--log-config', type=str, default=":info", help="log levels by logger, e.g. \"osa:debug,flask:info,:warning\"")
 
     args = parser.parse_args()
@@ -83,30 +78,10 @@ def main(argv=None):
 
     conf = ConfigEnv.from_conf_file(conf_file, 
                                     set_by=f'command line {__file__}:{__name__}')
-    use_gunicorn = args.use_gunicorn
     debug = args.debug
+    multithread = args.multithread
 
-    if use_gunicorn is True:
-        # let's use the bind options configuration
-        dispatcher_bind_host = conf.bind_host
-        dispatcher_bind_port = conf.bind_port
-        # dispatcher_url = conf.dispatcher_url
-        # port = conf.dispatcher_port
-
-        options = {
-            'bind': '%s:%s' % (dispatcher_bind_host, dispatcher_bind_port),
-            'workers': 2,
-            'threads': 4,
-        }
-        if debug:
-            options['loglevel'] = 'debug'
-
-        if True:
-            StandaloneApplication(conf_app(conf), options).run()
-        else:
-            StandaloneApplication(conf_micro_service(conf), options).run()
-    else:
-        run_app(conf, debug=debug, threaded=False)
+    run_app(conf, debug=debug, threaded=multithread)
 
 
 if __name__ == "__main__":

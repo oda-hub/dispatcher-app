@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>[ODA][finished: with empty product] failing first requested at 2021-08-19 17:25:52 job_id: f178fec5</title>
+</head>
+
+<body>
+Dear User,<br>
+<br>
+you receive this message because at 2021-08-19 17:25:52 ( 0.0 seconds ago ) you submitted a request <br>
+for a failing from the service provided by University of Geneva<br>
+available at the URL PRODUCTS_URL.<br>
+<br>
+
+The platform have <b>finished</b> processing your request.<br>
+
+Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty product</b>.
+To the best of our knowledge, no unexpected errors occurred during processing,
+and if this is not what you expected, you probably need to modify the request parameters. We are sorry.<br>
+
+
+
+<br>
+
+You can inspect the status of your job using the following <a href="PRODUCTS_URL/dispatch-data/resolve-job-url?job_id=1e2abe96307234f4&session_id=0T8G2BEDS3EBAHPX&token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdG1AbXRtY28ubmV0IiwibmFtZSI6Im1tZWhhcmdhIiwicm9sZXMiOiJnZW5lcmFsIiwiZXhwIjoxNjM3ODQyNzk4LCJ0ZW0iOjAsIm1zdG91dCI6dHJ1ZSwibXNzdWIiOnRydWUsImludHN1YiI6NX0.7v6uQFDHQ9vvYnPmBKMSTx5CTMQqa4lo4Gz7CuFJXQQ">url</a>.<br>
+
+Note that this url is permanent, and can be used to refer to the results as long as the service exists.<br>
+
+Such link is intended for the recipient of this email, please do <b>NOT</b> share it, since this might contain sensitive information.<br>
+<br>
+You can also retrieve the result by repeating the request (either with frontend or with the python API query at the end of this message.).<br>
+<br>
+In case you have questions or issues you can contact us at <a href="mailto:contact@odahub.io">this email</a> or reply to the current message.<br>
+<br>
+Kind regards,<br>
+<br>
+The ODA team.<br>
+<br>
+
+
+<br>
+Python API code:<br>
+<br>
+<div style="background-color: lightgray; display: inline-block; padding: 5px;">
+from oda_api.api import DispatcherAPI<br>
+<br>
+disp = DispatcherAPI(url=&#34;PRODUCTS_URL/dispatch-data&#34;, instrument=&#34;mock&#34;)<br>
+<br>
+par_dict = {<br>
+    &#34;DEC&#34;: -29.74516667,<br>
+    &#34;RA&#34;: 265.97845833,<br>
+    &#34;T1&#34;: &#34;2017-03-06T13:26:48.000&#34;,<br>
+    &#34;T2&#34;: &#34;2017-03-06T15:32:27.000&#34;,<br>
+    &#34;T_format&#34;: &#34;isot&#34;,<br>
+    &#34;instrument&#34;: &#34;empty&#34;,<br>
+    &#34;p_list&#34;: [],<br>
+    &#34;product&#34;: &#34;failing&#34;,<br>
+    &#34;product_type&#34;: &#34;Dummy&#34;,<br>
+    &#34;src_name&#34;: &#34;1E 1740.7-2942&#34;,<br>
+    &#34;token&#34;: (<br>
+        &#34;eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdG1AbXRtY28ubmV0IiwibmFtZSI6Im1tZWhhcmdh&#34;<br>
+        &#34;Iiwicm9sZXMiOiJnZW5lcmFsIiwiZXhwIjoxNjI5MzkxNjY1LCJ0ZW0iOjAsIm1zdG91dCI6dHJ1ZSwibXNzdWIiO&#34;<br>
+        &#34;nRydWUsImludHN1YiI6NX0.GS7hvnJCPa3i1e1g9JwLsZ-ol-4frLhfvJC0WRBxqH4&#34;<br>
+    ),<br>
+}<br>
+<br>
+data_collection = disp.get_product(**par_dict)<br>
+
+</div>
+<br>
+<br>
+Note that this code contains your private token. Be careful how you share it!<br>
+This token is short-lived, and will expire in 81.9 minutes.<br>
+To learn how to get a new token, please refer to <a href="possibly-non-site-specific-link">these instructions</a>.<br>
+<br>
+
+
+
+</body>
+</html>
