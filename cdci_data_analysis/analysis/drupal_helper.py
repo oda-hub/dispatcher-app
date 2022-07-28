@@ -685,13 +685,13 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
                 times = observation['field_timerange'].split('--')
                 t_start = parser.parse(times[0])
                 t_end = parser.parse(times[1])
-                # if needed apply the timezone to the timerange provided by the user
+                # if needed apply the timezone to the timerange provided by the user (that are in UTC)
                 parsed_t1_no_timezone = parser.parse(t1)
                 # if None the localtime is assigned
                 tz_to_apply = tz.gettz(timezone)
-                parsed_t1 = parsed_t1_no_timezone.replace(tzinfo=parsed_t1_no_timezone.tzinfo or tz_to_apply)
+                parsed_t1 = parsed_t1_no_timezone.replace(tzinfo=tz.gettz("UTC")).astimezone(parsed_t1_no_timezone.tzinfo or tz_to_apply)
                 parsed_t2_no_timezone = parser.parse(t2)
-                parsed_t2 = parsed_t2_no_timezone.replace(tzinfo=parsed_t2_no_timezone.tzinfo or tz_to_apply)
+                parsed_t2 = parsed_t2_no_timezone.replace(tzinfo=tz.gettz("UTC")).astimezone(parsed_t1_no_timezone.tzinfo or tz_to_apply)
                 logger.info(f"comparing time range extracted from Drupal: {t_start} - {t_end}")
                 if t_start == parsed_t1 and t_end == parsed_t2:
                     observation_drupal_id = observation['nid']
