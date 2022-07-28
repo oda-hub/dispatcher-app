@@ -469,18 +469,10 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, time
     # so the dates, properly formatted in ISO8601, without the time will be used
     # and no timezone correction is applied
     # however, drupal provides timezone settings and those are reflected in the dispatcher settings
-    t1_parsed = parser.parse(t1)
-    # if t1_parsed.tzinfo is None:
-    t1_parsed = t1_parsed + timedelta(hours=1)
-    # else:
-    #     t1_parsed = t1_parsed.astimezone(tz_to_apply)
+    t1_parsed = parser.parse(t1) + timedelta(hours=1)
     t1_formatted = t1_parsed.strftime('%Y-%m-%d')
 
-    t2_parsed = parser.parse(t2)
-    # if t2_parsed.tzinfo is None:
-    t2_parsed = t2_parsed + timedelta(hours=1)
-    # else:
-    #     t2_parsed = t2_parsed.astimezone(tz_to_apply)
+    t2_parsed = parser.parse(t2) + timedelta(hours=1)
     t2_formatted = t2_parsed.strftime('%Y-%m-%d')
 
     log_res = execute_drupal_request(f"{product_gallery_url}/observations/range_t1_t2/{t1_formatted}/{t2_formatted}/",
@@ -540,12 +532,6 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
         body_gallery_observation_node["field_timerange"] = [{
             "value": t1_formatted,
             "end_value": t2_formatted
-        }]
-        body_gallery_observation_node["field_t1"] = [{
-            "value": t1_formatted
-        }]
-        body_gallery_observation_node["field_t2"] = [{
-            "value": t2_formatted
         }]
         # get the relative rev_num(s) and set them in the body
         revnum_1 = get_revnum(service_url=converttime_revnum_service_url, time_to_convert=t1_formatted)
