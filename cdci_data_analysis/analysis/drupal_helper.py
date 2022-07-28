@@ -470,17 +470,17 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, time
     # but a timezone correction is applied if none is provided,
     # based on the drupal gallery timezone settings and the way datetime(s) are stored and queried
     t1_parsed = parser.parse(t1)
-    if t1_parsed.tzinfo is None:
-        t1_parsed = t1_parsed + timedelta(hours=1)
-    else:
-        t1_parsed = t1_parsed.astimezone(tz_to_apply)
+    # if t1_parsed.tzinfo is None:
+    t1_parsed = t1_parsed + timedelta(hours=1)
+    # else:
+    #     t1_parsed = t1_parsed.astimezone(tz_to_apply)
     t1_formatted = t1_parsed.strftime('%Y-%m-%d')
 
     t2_parsed = parser.parse(t2)
-    if t2_parsed.tzinfo is None:
-        t2_parsed = t2_parsed + timedelta(hours=1)
-    else:
-        t2_parsed = t2_parsed.astimezone(tz_to_apply)
+    # if t2_parsed.tzinfo is None:
+    t2_parsed = t2_parsed + timedelta(hours=1)
+    # else:
+    #     t2_parsed = t2_parsed.astimezone(tz_to_apply)
     t2_formatted = t2_parsed.strftime('%Y-%m-%d')
 
     log_res = execute_drupal_request(f"{product_gallery_url}/observations/range_t1_t2/{t1_formatted}/{t2_formatted}/",
@@ -540,6 +540,12 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
         body_gallery_observation_node["field_timerange"] = [{
             "value": t1_formatted,
             "end_value": t2_formatted
+        }]
+        body_gallery_observation_node["field_t1"] = [{
+            "value": t1_formatted
+        }]
+        body_gallery_observation_node["field_t2"] = [{
+            "value": t2_formatted
         }]
         # get the relative rev_num(s) and set them in the body
         revnum_1 = get_revnum(service_url=converttime_revnum_service_url, time_to_convert=t1_formatted)
@@ -683,17 +689,15 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
             for observation in observations_range:
                 # parse times returned from drupal
                 times = observation['field_timerange'].split('--')
-                t_start = parser.parse(times[0])
-                t_end = parser.parse(times[1])
-                # if needed apply the timezone to the timerange provided by the user (that are in UTC)
-                parsed_t1_no_timezone = parser.parse(t1)
+                t_start_no_timezone = parser.parse(times[0]).strftime('%Y-%m-%dT%H:%M:%S')
+                t_end_no_timezone = parser.parse(times[1]).strftime('%Y-%m-%dT%H:%M:%S')
+                # if needed, apply the timezone to the timerange provided by the user (that are in UTC)
+                parsed_t1_no_timezone = parser.parse(t1).strftime('%Y-%m-%dT%H:%M:%S')
                 # if None the localtime is assigned
                 tz_to_apply = tz.gettz(timezone)
-                parsed_t1 = parsed_t1_no_timezone.replace(tzinfo=tz.gettz("UTC")).astimezone(parsed_t1_no_timezone.tzinfo or tz_to_apply)
-                parsed_t2_no_timezone = parser.parse(t2)
-                parsed_t2 = parsed_t2_no_timezone.replace(tzinfo=tz.gettz("UTC")).astimezone(parsed_t1_no_timezone.tzinfo or tz_to_apply)
-                logger.info(f"comparing time range extracted from Drupal: {t_start} - {t_end}")
-                if t_start == parsed_t1 and t_end == parsed_t2:
+                parsed_t2_no_timezone = parser.parse(t2).strftime('%Y-%m-%dT%H:%M:%S')
+                logger.info(f"comparing time range extracted from Drupal: {t_start_no_timezone} - {t_end_no_timezone}")
+                if t_start_no_timezone == parsed_t1_no_timezone and t_end_no_timezone == parsed_t2_no_timezone:
                     observation_drupal_id = observation['nid']
                     observation_information_message = 'observation assigned from the provided time range'
                     break
