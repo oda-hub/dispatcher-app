@@ -1623,8 +1623,8 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
     now = datetime.now()
 
     if timerange_parameters == 'time_range_no_timezone':
-        params['T1'] = '2003-03-15T23:27:40.0'
-        params['T2'] = '2003-03-16T00:03:12.0'
+        params['T1'] = '2022-07-21T00:29:47'
+        params['T2'] = '2022-07-23T05:29:11'
     elif timerange_parameters == 'time_range_with_timezone':
         params['T1'] = '2003-03-15T23:27:40.0+0100'
         params['T2'] = '2003-03-16T00:03:12.0+0100'
@@ -1665,10 +1665,12 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
     obs_per_field_timerange_end = parser.parse(obs_per_field_timerange[0]['end_value'])
 
     if timerange_parameters in ['time_range_no_timezone', 'time_range_with_timezone', 'new_time_range']:
+        timezone = dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_timezone']
+        tz_to_apply = tz.gettz(timezone)
         parsed_t1_no_timezone = parser.parse(params['T1'])
-        parsed_t1 = parsed_t1_no_timezone.replace(tzinfo=parsed_t1_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
+        parsed_t1 = parsed_t1_no_timezone.replace(tzinfo=tz.gettz("UTC")).astimezone(parsed_t1_no_timezone.tzinfo or tz_to_apply)
         parsed_t2_no_timezone = parser.parse(params['T2'])
-        parsed_t2 = parsed_t2_no_timezone.replace(tzinfo=parsed_t2_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
+        parsed_t2 = parsed_t2_no_timezone.replace(tzinfo=tz.gettz("UTC")).astimezone(parsed_t1_no_timezone.tzinfo or tz_to_apply)
         assert obs_per_field_timerange_start == parsed_t1
         assert obs_per_field_timerange_end == parsed_t2
         if timerange_parameters == 'new_time_range':
