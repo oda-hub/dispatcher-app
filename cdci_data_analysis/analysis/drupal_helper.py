@@ -12,7 +12,7 @@ import glob
 import re
 
 from typing import Optional, Tuple, Dict
-from dateutil import parser, tz
+from dateutil import parser
 from datetime import datetime, timedelta
 from enum import Enum, auto
 
