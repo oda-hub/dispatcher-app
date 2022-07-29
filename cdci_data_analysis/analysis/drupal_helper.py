@@ -654,6 +654,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
         -> Tuple[Optional[str], Optional[str]]:
     observation_drupal_id = None
     observation_information_message = None
+    observation_information_message_timezone_warning = ""
     if observation_id is not None:
         # get from the drupal the relative id
         headers = get_drupal_request_headers(gallery_jwt_token)
@@ -669,6 +670,13 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
     else:
 
         if t1 is not None and t2 is not None:
+            parsed_t1 = parser.parse(t1)
+            parsed_t2 = parser.parse(t2)
+            parsed_t1_no_timezone = parsed_t1.strftime('%Y-%m-%dT%H:%M:%S')
+            parsed_t2_no_timezone = parsed_t2.strftime('%Y-%m-%dT%H:%M:%S')
+            if parsed_t1.tzinfo is not None or parsed_t2.tzinfo is not None:
+                observation_information_message_timezone_warning = ', it has been noticed that the time provided contaitn timezone information, ' \
+                                                   'we will ignore those when processing those data'
             logger.info(f"searching over the gallery for a period of observation with the following time range: "
                         f"{t1} - {t2}")
             observations_range = get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2, timezone=timezone, sentry_client=sentry_client)
@@ -677,20 +685,17 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
                 times = observation['field_timerange'].split('--')
                 t_start_no_timezone = parser.parse(times[0]).strftime('%Y-%m-%dT%H:%M:%S')
                 t_end_no_timezone = parser.parse(times[1]).strftime('%Y-%m-%dT%H:%M:%S')
-                # if needed, apply the timezone to the timerange provided by the user (that are in UTC)
-                parsed_t1_no_timezone = parser.parse(t1).strftime('%Y-%m-%dT%H:%M:%S')
-                # if None the localtime is assigned
-                tz_to_apply = tz.gettz(timezone)
-                parsed_t2_no_timezone = parser.parse(t2).strftime('%Y-%m-%dT%H:%M:%S')
                 logger.info(f"comparing time range extracted from Drupal: {t_start_no_timezone} - {t_end_no_timezone}")
                 if t_start_no_timezone == parsed_t1_no_timezone and t_end_no_timezone == parsed_t2_no_timezone:
                     observation_drupal_id = observation['nid']
-                    observation_information_message = 'observation assigned from the provided time range'
+                    observation_information_message = 'observation assigned from the provided time range' + \
+                                                      observation_information_message_timezone_warning
                     break
 
         if observation_drupal_id is None and (t1 is not None and t2 is not None):
             observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url, t1, t2, sentry_client=sentry_client)
-            observation_information_message = 'a new observation has been posted'
+            observation_information_message = 'a new observation has been posted' + \
+                                              observation_information_message_timezone_warning
 
     return observation_drupal_id, observation_information_message
 
