@@ -1623,11 +1623,11 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
     now = datetime.now()
 
     if timerange_parameters == 'time_range_no_timezone':
-        params['T1'] = '2003-03-15T23:27:40.0'
-        params['T2'] = '2003-03-16T00:03:12.0'
-    elif timerange_parameters == 'time_range_with_timezone':
-        params['T1'] = '2003-03-15T23:27:40.0+0100'
-        params['T2'] = '2003-03-16T00:03:12.0+0100'
+        params['T1'] = '2022-07-21T00:29:47'
+        params['T2'] = '2022-07-23T05:29:11'
+    if timerange_parameters == 'time_range_with_timezone':
+        params['T1'] = '2022-07-21T00:29:47+0100'
+        params['T2'] = '2022-07-23T05:29:11+0100'
     elif timerange_parameters == 'observation_id':
         params['observation_id'] = 'test observation'
     elif timerange_parameters == 'new_time_range':
@@ -1661,16 +1661,15 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
     obs_per_field_timerange = drupal_res_obs_info_obj['field_timerange']
     obs_per_title = drupal_res_obs_info_obj['title'][0]['value']
 
-    obs_per_field_timerange_start = parser.parse(obs_per_field_timerange[0]['value'])
-    obs_per_field_timerange_end = parser.parse(obs_per_field_timerange[0]['end_value'])
+    obs_per_field_timerange_start_no_timezone = parser.parse(obs_per_field_timerange[0]['value']).strftime('%Y-%m-%dT%H:%M:%S')
+    obs_per_field_timerange_end_no_timezone = parser.parse(obs_per_field_timerange[0]['end_value']).strftime(
+        '%Y-%m-%dT%H:%M:%S')
 
     if timerange_parameters in ['time_range_no_timezone', 'time_range_with_timezone', 'new_time_range']:
-        parsed_t1_no_timezone = parser.parse(params['T1'])
-        parsed_t1 = parsed_t1_no_timezone.replace(tzinfo=parsed_t1_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
-        parsed_t2_no_timezone = parser.parse(params['T2'])
-        parsed_t2 = parsed_t2_no_timezone.replace(tzinfo=parsed_t2_no_timezone.tzinfo or tz.gettz("Europe/Zurich"))
-        assert obs_per_field_timerange_start == parsed_t1
-        assert obs_per_field_timerange_end == parsed_t2
+        parsed_t1_no_timezone = parser.parse(params['T1']).strftime('%Y-%m-%dT%H:%M:%S')
+        parsed_t2_no_timezone = parser.parse(params['T2']).strftime('%Y-%m-%dT%H:%M:%S')
+        assert obs_per_field_timerange_start_no_timezone == parsed_t1_no_timezone
+        assert obs_per_field_timerange_end_no_timezone == parsed_t2_no_timezone
         if timerange_parameters == 'new_time_range':
             assert 'field_rev1' in drupal_res_obs_info_obj
             assert 'field_rev2' in drupal_res_obs_info_obj
@@ -1961,7 +1960,6 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
     params['product_title'] = "_".join([params['instrument'], params['product_type'],
                               datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")])
 
-    # TODO default timezone on the gallery is set to Europe/Zurich
     params['T1'] = '2003-03-15T23:27:40.0'
     params['T2'] = '2003-03-16T00:03:12.0'
 
