@@ -1602,7 +1602,7 @@ def test_converttime_revnum(dispatcher_live_fixture_with_gallery, time_to_conver
 
 
 @pytest.mark.test_drupal
-@pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "new_time_range", "observation_id"])
+@pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "time_range_with_timezone", "new_time_range", "observation_id"])
 def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, timerange_parameters):
     server = dispatcher_live_fixture_with_gallery
 
@@ -1625,6 +1625,9 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
     if timerange_parameters == 'time_range_no_timezone':
         params['T1'] = '2022-07-21T00:29:47'
         params['T2'] = '2022-07-23T05:29:11'
+    if timerange_parameters == 'time_range_with_timezone':
+        params['T1'] = '2022-07-21T00:29:47+0100'
+        params['T2'] = '2022-07-23T05:29:11+0100'
     elif timerange_parameters == 'observation_id':
         params['observation_id'] = 'test observation'
     elif timerange_parameters == 'new_time_range':
@@ -1662,8 +1665,7 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
     obs_per_field_timerange_end_no_timezone = parser.parse(obs_per_field_timerange[0]['end_value']).strftime(
         '%Y-%m-%dT%H:%M:%S')
 
-    if timerange_parameters in ['time_range_no_timezone', 'new_time_range']:
-        timezone = dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_timezone']
+    if timerange_parameters in ['time_range_no_timezone', 'time_range_with_timezone', 'new_time_range']:
         parsed_t1_no_timezone = parser.parse(params['T1']).strftime('%Y-%m-%dT%H:%M:%S')
         parsed_t2_no_timezone = parser.parse(params['T2']).strftime('%Y-%m-%dT%H:%M:%S')
         assert obs_per_field_timerange_start_no_timezone == parsed_t1_no_timezone
