@@ -359,7 +359,6 @@ def post_content_to_gallery(decoded_token,
     gallery_secret_key = disp_conf.product_gallery_secret_key
     product_gallery_url = disp_conf.product_gallery_url
     converttime_revnum_service_url = disp_conf.converttime_revnum_service_url
-    config_timezone = disp_conf.product_gallery_timezone
 
     sentry_url = getattr(disp_conf, 'sentry_url', None)
     sentry_client = None
@@ -454,15 +453,13 @@ def post_content_to_gallery(decoded_token,
                                                                 observation_id=observation_id,
                                                                 user_id_product_creator=user_id_product_creator,
                                                                 insert_new_source=insert_new_source,
-                                                                timezone=config_timezone,
                                                                 **par_dic)
 
         return output_data_product_post
 
 
-def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, timezone=None, t1=None, t2=None, sentry_client=None):
+def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None, sentry_client=None):
     # if None the localtime is assigned
-    tz_to_apply = tz.gettz(timezone)
     observations = []
     headers = get_drupal_request_headers(gallery_jwt_token)
     # format the time fields, drupal does not provide (yet) the option to filter by date using also the time,
@@ -648,7 +645,6 @@ def get_data_product_list_by_product_id(product_gallery_url, gallery_jwt_token, 
 
 def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
                               t1=None, t2=None,
-                              timezone=None,
                               observation_id=None,
                               sentry_client=None) \
         -> Tuple[Optional[str], Optional[str]]:
@@ -679,7 +675,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
                                                    'we will ignore those when processing those data'
             logger.info(f"searching over the gallery for a period of observation with the following time range: "
                         f"{t1} - {t2}")
-            observations_range = get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2, timezone=timezone, sentry_client=sentry_client)
+            observations_range = get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2, sentry_client=sentry_client)
             for observation in observations_range:
                 # parse times returned from drupal
                 times = observation['field_timerange'].split('--')
@@ -710,7 +706,6 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                                  user_id_product_creator=None,
                                  insert_new_source=False,
                                  sentry_client=None,
-                                 timezone=None,
                                  **kwargs):
     body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_node)
 
@@ -767,8 +762,9 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
     if 'T2' in kwargs:
         t2 = kwargs.pop('T2')
 
-    observation_drupal_id, observation_information_message = get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
-                                                      timezone=timezone, t1=t1, t2=t2, observation_id=observation_id)
+    observation_drupal_id, observation_information_message = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
+                                                                                       converttime_revnum_service_url,
+                                                                                       t1=t1, t2=t2, observation_id=observation_id)
     if observation_drupal_id is not None:
         body_gallery_article_node["field_derived_from_observation"] = [{
             "target_id": observation_drupal_id

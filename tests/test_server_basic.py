@@ -1960,7 +1960,6 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
     params['product_title'] = "_".join([params['instrument'], params['product_type'],
                               datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")])
 
-    # TODO default timezone on the gallery is set to Europe/Zurich
     params['T1'] = '2003-03-15T23:27:40.0'
     params['T2'] = '2003-03-16T00:03:12.0'
 
