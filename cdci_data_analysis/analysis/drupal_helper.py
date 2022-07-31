@@ -12,7 +12,7 @@ import glob
 import re
 
 from typing import Optional, Tuple, Dict
-from dateutil import parser, tz
+from dateutil import parser
 from datetime import datetime, timedelta
 from enum import Enum, auto
 
@@ -359,7 +359,6 @@ def post_content_to_gallery(decoded_token,
     gallery_secret_key = disp_conf.product_gallery_secret_key
     product_gallery_url = disp_conf.product_gallery_url
     converttime_revnum_service_url = disp_conf.converttime_revnum_service_url
-    config_timezone = disp_conf.product_gallery_timezone
 
     sentry_url = getattr(disp_conf, 'sentry_url', None)
     sentry_client = None
@@ -454,33 +453,23 @@ def post_content_to_gallery(decoded_token,
                                                                 observation_id=observation_id,
                                                                 user_id_product_creator=user_id_product_creator,
                                                                 insert_new_source=insert_new_source,
-                                                                timezone=config_timezone,
                                                                 **par_dic)
 
         return output_data_product_post
 
 
-def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, timezone=None, t1=None, t2=None, sentry_client=None):
+def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None, sentry_client=None):
     # if None the localtime is assigned
-    tz_to_apply = tz.gettz(timezone)
     observations = []
     headers = get_drupal_request_headers(gallery_jwt_token)
     # format the time fields, drupal does not provide (yet) the option to filter by date using also the time,
     # so the dates, properly formatted in ISO8601, without the time will be used
-    # but a timezone correction is applied if none is provided,
-    # based on the drupal gallery timezone settings and the way datetime(s) are stored and queried
-    t1_parsed = parser.parse(t1)
-    if t1_parsed.tzinfo is None:
-        t1_parsed = t1_parsed + timedelta(hours=1)
-    else:
-        t1_parsed = t1_parsed.astimezone(tz_to_apply)
+    # and no timezone correction is applied
+    # however, drupal provides timezone settings and those are reflected in the dispatcher settings
+    t1_parsed = parser.parse(t1) + timedelta(hours=1)
     t1_formatted = t1_parsed.strftime('%Y-%m-%d')
 
-    t2_parsed = parser.parse(t2)
-    if t2_parsed.tzinfo is None:
-        t2_parsed = t2_parsed + timedelta(hours=1)
-    else:
-        t2_parsed = t2_parsed.astimezone(tz_to_apply)
+    t2_parsed = parser.parse(t2) + timedelta(hours=1)
     t2_formatted = t2_parsed.strftime('%Y-%m-%d')
 
     log_res = execute_drupal_request(f"{product_gallery_url}/observations/range_t1_t2/{t1_formatted}/{t2_formatted}/",
@@ -656,12 +645,12 @@ def get_data_product_list_by_product_id(product_gallery_url, gallery_jwt_token, 
 
 def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
                               t1=None, t2=None,
-                              timezone=None,
                               observation_id=None,
                               sentry_client=None) \
         -> Tuple[Optional[str], Optional[str]]:
     observation_drupal_id = None
     observation_information_message = None
+    observation_information_message_timezone_warning = ""
     if observation_id is not None:
         # get from the drupal the relative id
         headers = get_drupal_request_headers(gallery_jwt_token)
@@ -677,30 +666,32 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
     else:
 
         if t1 is not None and t2 is not None:
+            parsed_t1 = parser.parse(t1)
+            parsed_t2 = parser.parse(t2)
+            parsed_t1_no_timezone = parsed_t1.strftime('%Y-%m-%dT%H:%M:%S')
+            parsed_t2_no_timezone = parsed_t2.strftime('%Y-%m-%dT%H:%M:%S')
+            if parsed_t1.tzinfo is not None or parsed_t2.tzinfo is not None:
+                observation_information_message_timezone_warning = ', it has been noticed that the time provided contaitn timezone information, ' \
+                                                   'we will ignore those when processing those data'
             logger.info(f"searching over the gallery for a period of observation with the following time range: "
                         f"{t1} - {t2}")
-            observations_range = get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2, timezone=timezone, sentry_client=sentry_client)
+            observations_range = get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2, sentry_client=sentry_client)
             for observation in observations_range:
                 # parse times returned from drupal
                 times = observation['field_timerange'].split('--')
-                t_start = parser.parse(times[0])
-                t_end = parser.parse(times[1])
-                # if needed apply the timezone to the timerange provided by the user
-                parsed_t1_no_timezone = parser.parse(t1)
-                # if None the localtime is assigned
-                tz_to_apply = tz.gettz(timezone)
-                parsed_t1 = parsed_t1_no_timezone.replace(tzinfo=parsed_t1_no_timezone.tzinfo or tz_to_apply)
-                parsed_t2_no_timezone = parser.parse(t2)
-                parsed_t2 = parsed_t2_no_timezone.replace(tzinfo=parsed_t2_no_timezone.tzinfo or tz_to_apply)
-                logger.info(f"comparing time range extracted from Drupal: {t_start} - {t_end}")
-                if t_start == parsed_t1 and t_end == parsed_t2:
+                t_start_no_timezone = parser.parse(times[0]).strftime('%Y-%m-%dT%H:%M:%S')
+                t_end_no_timezone = parser.parse(times[1]).strftime('%Y-%m-%dT%H:%M:%S')
+                logger.info(f"comparing time range extracted from Drupal: {t_start_no_timezone} - {t_end_no_timezone}")
+                if t_start_no_timezone == parsed_t1_no_timezone and t_end_no_timezone == parsed_t2_no_timezone:
                     observation_drupal_id = observation['nid']
-                    observation_information_message = 'observation assigned from the provided time range'
+                    observation_information_message = 'observation assigned from the provided time range' + \
+                                                      observation_information_message_timezone_warning
                     break
 
         if observation_drupal_id is None and (t1 is not None and t2 is not None):
             observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url, t1, t2, sentry_client=sentry_client)
-            observation_information_message = 'a new observation has been posted'
+            observation_information_message = 'a new observation has been posted' + \
+                                              observation_information_message_timezone_warning
 
     return observation_drupal_id, observation_information_message
 
@@ -715,7 +706,6 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                                  user_id_product_creator=None,
                                  insert_new_source=False,
                                  sentry_client=None,
-                                 timezone=None,
                                  **kwargs):
     body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_node)
 
@@ -772,8 +762,9 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
     if 'T2' in kwargs:
         t2 = kwargs.pop('T2')
 
-    observation_drupal_id, observation_information_message = get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
-                                                      timezone=timezone, t1=t1, t2=t2, observation_id=observation_id)
+    observation_drupal_id, observation_information_message = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
+                                                                                       converttime_revnum_service_url,
+                                                                                       t1=t1, t2=t2, observation_id=observation_id)
     if observation_drupal_id is not None:
         body_gallery_article_node["field_derived_from_observation"] = [{
             "target_id": observation_drupal_id
