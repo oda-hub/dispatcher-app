@@ -24,7 +24,7 @@ from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, generate_notebook_filename
-from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range
+from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id
 from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
 
 # logger
@@ -1655,7 +1655,12 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
         dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
         f'node/{parsed_link_field_derived_from_observation}?_format=hal_json')
 
-    header_request = get_drupal_request_headers(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_secret_key'])
+    user_id_product_creator = get_user_id(product_gallery_url=dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                                          user_email=token_payload['sub'])
+    gallery_jwt_token = generate_gallery_jwt_token(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_secret_key'],
+                                                   user_id=user_id_product_creator)
+
+    header_request = get_drupal_request_headers(gallery_jwt_token)
     response_obs_info = execute_drupal_request(link_obs, headers=header_request)
 
     drupal_res_obs_info_obj = response_obs_info.json()
@@ -1684,7 +1689,7 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
             assert drupal_res_obs_info_obj['field_rev2'][0]['value'] == revnum2_input['revnum']
             # additional check for the time range REST call
             observations_range = get_observations_for_time_range(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
-                                                                 dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_secret_key'],
+                                                                 gallery_jwt_token,
                                                                  t1=params['T1'], t2=params['T2'])
             assert len(observations_range) == 1
             times = observations_range[0]['field_timerange'].split('--')
