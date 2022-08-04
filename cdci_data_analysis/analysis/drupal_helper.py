@@ -466,10 +466,10 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
     # so the dates, properly formatted in ISO8601, without the time will be used
     # and no timezone correction is applied
     # however, drupal provides timezone settings and those are reflected in the dispatcher settings
-    t1_parsed = parser.parse(t1) + timedelta(hours=1)
+    t1_parsed = parser.parse(t1)
     t1_formatted = t1_parsed.strftime('%Y-%m-%d')
 
-    t2_parsed = parser.parse(t2) + timedelta(hours=1)
+    t2_parsed = parser.parse(t2)
     t2_formatted = t2_parsed.strftime('%Y-%m-%d')
 
     log_res = execute_drupal_request(f"{product_gallery_url}/observations/range_t1_t2/{t1_formatted}/{t2_formatted}/",
@@ -671,7 +671,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
             parsed_t1_no_timezone = parsed_t1.strftime('%Y-%m-%dT%H:%M:%S')
             parsed_t2_no_timezone = parsed_t2.strftime('%Y-%m-%dT%H:%M:%S')
             if parsed_t1.tzinfo is not None or parsed_t2.tzinfo is not None:
-                observation_information_message_timezone_warning = ', it has been noticed that the time provided contaitn timezone information, ' \
+                observation_information_message_timezone_warning = ', it has been noticed that the time provided contains timezone information, ' \
                                                    'we will ignore those when processing those data'
             logger.info(f"searching over the gallery for a period of observation with the following time range: "
                         f"{t1} - {t2}")
