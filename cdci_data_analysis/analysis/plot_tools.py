@@ -167,11 +167,15 @@ class Image(object):
         html_dict['div'] = div
         return html_dict
 
-    def get_js9_html(self, file_path,region_file=None,js9_id='myJS9'):
-        region=''
-        file='''JS9.Preload("product/%s", {scale: 'linear', colormap: 'plasma'}, {display: "%s"});'''%(file_path,js9_id)
+    def get_js9_html(self, file_path, region_file=None, js9_id='myJS9'):
+
+        file = '''JS9.Preload("product/%s", {scale: 'log', colormap: 'plasma' ''' % file_path
+        # Region file needs to be loaded using an onload function
         if region_file is not None:
-            region='''JS9.LoadRegions("product/%s", {display: "%s"});\n'''%(region_file,js9_id)
+            file += ''', onload: function(im){ JS9.LoadRegions("product/%s");}}, {display: "%s"});\n''' % \
+                    (region_file, js9_id)
+        else:
+            file += '''}, {display: "%s"});''' % js9_id
         t = '''                                                                                                                                                                             
     <html>                                                                                                                                                                                     
                 <head>                                                                                                                                                                         
@@ -211,7 +215,6 @@ class Image(object):
                 <script type="text/javascript">                                                                                                                                                
                   function init(){                                                                                                                                                             
                      var idx, obj;                                                                                                                                                             
-                     %s
                      %s                                                                                                                      
                   }                                                                                                                                                                            
                   $(document).ready(function(){                                                                                                                                                
@@ -222,7 +225,7 @@ class Image(object):
             </body>                                                                                                                                                                            
     </html>                                                                                                                                                                                    
 
-    ''' % (js9_id,js9_id,js9_id,file,region)
+    ''' % (js9_id, js9_id, js9_id, file)
 
         return t
 
