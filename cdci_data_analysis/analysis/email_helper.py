@@ -28,6 +28,10 @@ from datetime import datetime
 
 logger = logging.getLogger()
 
+n_max_tries = 10
+retry_sleep_s = .5
+
+
 class MultipleDoneEmail(BadRequest):
     pass
 
@@ -372,9 +376,11 @@ def send_email(smtp_server,
                ):
 
     server = None
-    logger.info("Sending email")
+    logger.info(f"Sending email from the smtp server: {smtp_server}:{smtp_port}")
     # Create the plain-text and HTML version of your message,
     # since emails with HTML content might be, sometimes, not supported
+
+    n_tries_left = n_max_tries
 
     try:
         if not isinstance(receiver_email_addresses, list):
