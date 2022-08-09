@@ -338,8 +338,7 @@ def run_analysis():
         sentry_url = getattr(app.config.get('conf'), 'sentry_url', None)
         if sentry_url is not None:
             sentry_client = Sentry(app, dsn=sentry_url)
-            sentry_client.capture('raven.events.Message',
-                                  message=f'exception in run_analysis: {str(e)}')
+            sentry_client.captureMessage(f'exception in run_analysis: {str(e)}')
         else:
             logger.warning("sentry not used")
 
@@ -634,8 +633,7 @@ def report_incident():
         sentry_url = getattr(app.config.get('conf'), 'sentry_url', None)
         if sentry_url is not None:
             sentry_client = Sentry(app, dsn=sentry_url)
-            sentry_client.capture('raven.events.Message',
-                                  message=f'sending email failed {e}')
+            sentry_client.captureMessage(f'sending email failed {e}')
         else:
             logger.warning("sentry not used")
     except MissingRequestParameter as e:
