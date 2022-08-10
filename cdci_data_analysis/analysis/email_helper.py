@@ -437,16 +437,17 @@ def send_email(smtp_server,
             n_tries_left -= 1
 
             if n_tries_left > 0:
-                logger.warning(f"there seems to be some problem in sending an email, another attempt will be made")
+                logger.warning(f"there seems to be some problem in sending the email with title {email_subject}, "
+                               f"another attempt will be made")
 
-                logger.debug(f"{e} exception while attempting to send an email\n"
+                logger.debug(f"{e} exception while attempting to send the email with title {email_subject}\n"
                              f"{n_tries_left} tries left, sleeping {retry_sleep_s} seconds until retry\n")
                 time.sleep(retry_sleep_s)
             else:
-                logger.warning(f"an issue occurred when sending an email, we are investigating and "
-                               f"try to solve the issue as soon as possible")
+                logger.warning(f"an issue occurred when sending the email with title {email_subject}, "
+                               f"we are investigating and try to solve the issue as soon as possible")
+
                 store_not_sent_email(email_body_html, scratch_dir, sending_time=sending_time)
-                open("debug_email_not_sent.html", "w").write(email_body_html)
                 raise EMailNotSent(f"email not sent: {e}")
 
         finally:
