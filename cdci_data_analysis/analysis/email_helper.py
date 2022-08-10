@@ -388,33 +388,34 @@ def send_email(smtp_server,
     # since emails with HTML content might be, sometimes, not supported
 
     n_tries_left = n_max_tries
+
+    if not isinstance(receiver_email_addresses, list):
+        receiver_email_addresses = [receiver_email_addresses]
+    if cc_receivers_email_addresses is None:
+        cc_receivers_email_addresses = []
+    if bcc_receivers_email_addresses is None:
+        bcc_receivers_email_addresses = []
+    # include bcc receivers, which will be hidden in the message header
+    receivers_email_addresses = receiver_email_addresses + cc_receivers_email_addresses + bcc_receivers_email_addresses
+    # creation of the message
+    message = MIMEMultipart("alternative")
+    message["Subject"] = email_subject
+    message["From"] = sender_email_address
+    message["To"] = ", ".join(receiver_email_addresses)
+    message["CC"] = ", ".join(cc_receivers_email_addresses)
+    message['Reply-To'] = reply_to_email_address
+
+    if attachment is not None:
+        # create the attachment
+        message.attach(attachment)
+
+    part1 = MIMEText(email_text, "plain")
+    part2 = MIMEText(email_body_html, "html")
+    message.attach(part1)
+    message.attach(part2)
+
     while True:
         try:
-            if not isinstance(receiver_email_addresses, list):
-                receiver_email_addresses = [receiver_email_addresses]
-            if cc_receivers_email_addresses is None:
-                cc_receivers_email_addresses = []
-            if bcc_receivers_email_addresses is None:
-                bcc_receivers_email_addresses = []
-            # include bcc receivers, which will be hidden in the message header
-            receivers_email_addresses = receiver_email_addresses + cc_receivers_email_addresses + bcc_receivers_email_addresses
-            # creation of the message
-            message = MIMEMultipart("alternative")
-            message["Subject"] = email_subject
-            message["From"] = sender_email_address
-            message["To"] = ", ".join(receiver_email_addresses)
-            message["CC"] = ", ".join(cc_receivers_email_addresses)
-            message['Reply-To'] = reply_to_email_address
-
-            if attachment is not None:
-                # create the attachment
-                message.attach(attachment)
-
-            part1 = MIMEText(email_text, "plain")
-            part2 = MIMEText(email_body_html, "html")
-            message.attach(part1)
-            message.attach(part2)
-
             # Create a secure SSL context
             context = ssl.create_default_context()
             #
