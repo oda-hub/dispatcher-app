@@ -8,12 +8,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Bump version and push tag
-        uses: jaumann/github-bumpversion-action@v0.0.7
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          tags: true
+      
+      - name:  'Automated Version Bump'
+        run: |
+          git config --global user.email "oda-bump-bot@odahub.io"
+          git config --global user.name "ODA Bot: version bump"
+          python -m pip install --upgrade pip
+          pip install bump2version
+          bump2version --verbose --tag patch 
+
+#       - name: Push changes
+#         uses: ad-m/github-push-action@master
+#         with:
+#           github_token: ${{ secrets.GITHUB_TOKEN }}
+#           tags: true
