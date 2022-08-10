@@ -222,7 +222,9 @@ def send_incident_report_email(
                          email_subject=email_subject,
                          email_text=email_text,
                          email_body_html=email_body_html,
+                         scratch_dir=scratch_dir,
                          smtp_server_password=config.smtp_server_password,
+                         sending_time=sending_time,
                          logger=logger)
 
     store_incident_report_email_info(message, scratch_dir, sending_time=sending_time)
@@ -353,6 +355,8 @@ and if this is not what you expected, you probably need to modify the request pa
                          email_text,
                          email_body_html,
                          config.smtp_server_password,
+                         sending_time=sending_time,
+                         scratch_dir=scratch_dir,
                          logger=logger,
                          attachment=api_code_email_attachment)
 
@@ -373,6 +377,8 @@ def send_email(smtp_server,
                email_body_html,
                smtp_server_password,
                logger,
+               sending_time=None,
+               scratch_dir=None,
                attachment=None
                ):
 
@@ -438,6 +444,7 @@ def send_email(smtp_server,
             else:
                 logger.warning(f"an issue occurred when sending an email, we are investigating and "
                                f"try to solve the issue as soon as possible")
+                store_not_sent_email(email_body_html, scratch_dir, sending_time=sending_time)
                 open("debug_email_not_sent.html", "w").write(email_body_html)
                 raise EMailNotSent(f"email not sent: {e}")
 
@@ -455,6 +462,17 @@ def store_status_email_info(message, status, scratch_dir, sending_time=None):
     # record the email just sent in a dedicated file
     with open(path_email_history_folder + '/email_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
         outfile.write(message.as_string())
+
+
+def store_not_sent_email(email_body, scratch_dir, sending_time=None):
+    path_email_history_folder = os.path.join(scratch_dir, 'email_history')
+    if not os.path.exists(path_email_history_folder):
+        os.makedirs(path_email_history_folder)
+    if sending_time is None:
+        sending_time = time_.time()
+    # record the email just sent in a dedicated file
+    with open(path_email_history_folder + '/not_sent_email_' + str(sending_time) + '.email', 'w+') as outfile:
+        outfile.write(email_body)
 
 
 def store_incident_report_email_info(message, scratch_dir, sending_time=None):
