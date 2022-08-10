@@ -10,6 +10,7 @@ import smtplib
 import ssl
 import os
 import re
+import time
 import glob
 import black
 import base64
@@ -28,7 +29,7 @@ from datetime import datetime
 
 logger = logging.getLogger()
 
-n_max_tries = 10
+n_max_tries = 5
 retry_sleep_s = .5
 
 
@@ -381,58 +382,68 @@ def send_email(smtp_server,
     # since emails with HTML content might be, sometimes, not supported
 
     n_tries_left = n_max_tries
+    while True:
+        try:
+            if not isinstance(receiver_email_addresses, list):
+                receiver_email_addresses = [receiver_email_addresses]
+            if cc_receivers_email_addresses is None:
+                cc_receivers_email_addresses = []
+            if bcc_receivers_email_addresses is None:
+                bcc_receivers_email_addresses = []
+            # include bcc receivers, which will be hidden in the message header
+            receivers_email_addresses = receiver_email_addresses + cc_receivers_email_addresses + bcc_receivers_email_addresses
+            # creation of the message
+            message = MIMEMultipart("alternative")
+            message["Subject"] = email_subject
+            message["From"] = sender_email_address
+            message["To"] = ", ".join(receiver_email_addresses)
+            message["CC"] = ", ".join(cc_receivers_email_addresses)
+            message['Reply-To'] = reply_to_email_address
 
-    try:
-        if not isinstance(receiver_email_addresses, list):
-            receiver_email_addresses = [receiver_email_addresses]
-        if cc_receivers_email_addresses is None:
-            cc_receivers_email_addresses = []
-        if bcc_receivers_email_addresses is None:
-            bcc_receivers_email_addresses = []
-        # include bcc receivers, which will be hidden in the message header
-        receivers_email_addresses = receiver_email_addresses + cc_receivers_email_addresses + bcc_receivers_email_addresses
-        # creation of the message
-        message = MIMEMultipart("alternative")
-        message["Subject"] = email_subject
-        message["From"] = sender_email_address
-        message["To"] = ", ".join(receiver_email_addresses)
-        message["CC"] = ", ".join(cc_receivers_email_addresses)
-        message['Reply-To'] = reply_to_email_address
+            if attachment is not None:
+                # create the attachment
+                message.attach(attachment)
 
-        if attachment is not None:
-            # create the attachment
-            message.attach(attachment)
+            part1 = MIMEText(email_text, "plain")
+            part2 = MIMEText(email_body_html, "html")
+            message.attach(part1)
+            message.attach(part2)
 
-        part1 = MIMEText(email_text, "plain")
-        part2 = MIMEText(email_body_html, "html")
-        message.attach(part1)
-        message.attach(part2)
+            # Create a secure SSL context
+            context = ssl.create_default_context()
+            #
+            # Try to log in to server and send email
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            # just for testing purposes, not ssl is established
+            if smtp_server != "localhost":
+                try:
+                    server.starttls(context=context)
+                except Exception as e:
+                    logger.warning(f'unable to start TLS: {e}')
+            if smtp_server_password is not None and smtp_server_password != '':
+                server.login(sender_email_address, smtp_server_password)
+            server.sendmail(sender_email_address, receivers_email_addresses, message.as_string())
+            logger.info("email successfully sent")
 
-        # Create a secure SSL context
-        context = ssl.create_default_context()
-        #
-        # Try to log in to server and send email
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        # just for testing purposes, not ssl is established
-        if smtp_server != "localhost":
-            try:
-                server.starttls(context=context)
-            except Exception as e:
-                logger.warning(f'unable to start TLS: {e}')
-        if smtp_server_password is not None and smtp_server_password != '':
-            server.login(sender_email_address, smtp_server_password)
-        server.sendmail(sender_email_address, receivers_email_addresses, message.as_string())
-    except Exception as e:
-        logger.error(f'Exception while sending email: {e}')
-        open("debug_email_not_sent.html", "w").write(email_body_html)
-        raise EMailNotSent(f"email not sent: {e}")
-    finally:
-        if server:
-            server.quit()
+            return message
+        except Exception as e:
+            n_tries_left -= 1
 
-    logger.info("email successfully sent")
+            if n_tries_left > 0:
+                logger.warning(f"there seems to be some problem in sending an email, another attempt will be made")
 
-    return message
+                logger.debug(f"{e} exception while attempting to send an email\n"
+                             f"{n_tries_left} tries left, sleeping {retry_sleep_s} seconds until retry\n")
+                time.sleep(retry_sleep_s)
+            else:
+                logger.warning(f"an issue occurred when sending an email, we are investigating and "
+                               f"try to solve the issue as soon as possible")
+                open("debug_email_not_sent.html", "w").write(email_body_html)
+                raise EMailNotSent(f"email not sent: {e}")
+
+        finally:
+            if server:
+                server.quit()
 
 
 def store_status_email_info(message, status, scratch_dir, sending_time=None):
