@@ -286,7 +286,7 @@ def send_job_email(
         if status_details['status'] == 'empty_product' or status_details['status'] == 'empty_result':
             status_details_message = '''Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty product</b>.
 To the best of our knowledge, no unexpected errors occurred during processing,
-and if this is not what you expected, you probably need to modify the request parameters. We are sorry.<br>'''
+and if this is not what you expected, you probably need to modify the request parameters.<br>'''
             status_details_title = 'finished: with empty product'
         # TODO observe the other possible error detected exceptions,and extend the status detail message for the email
         else:
