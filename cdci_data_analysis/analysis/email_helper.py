@@ -183,7 +183,9 @@ def send_incident_report_email(
         decoded_token,
         incident_content=None,
         incident_time=None,
-        scratch_dir=None):
+        scratch_dir=None,
+        sentry_client=None):
+
     sending_time = time_.time()
 
     env = Environment(loader=FileSystemLoader('%s/../flask_app/templates/' % os.path.dirname(__file__)))
@@ -225,7 +227,8 @@ def send_incident_report_email(
                          scratch_dir=scratch_dir,
                          smtp_server_password=config.smtp_server_password,
                          sending_time=sending_time,
-                         logger=logger)
+                         logger=logger,
+                         sentry_client=sentry_client)
 
     store_incident_report_email_info(message, scratch_dir, sending_time=sending_time)
 
@@ -358,7 +361,8 @@ and if this is not what you expected, you probably need to modify the request pa
                          sending_time=sending_time,
                          scratch_dir=scratch_dir,
                          logger=logger,
-                         attachment=api_code_email_attachment)
+                         attachment=api_code_email_attachment,
+                         sentry_client=sentry_client)
 
     store_status_email_info(message, status, scratch_dir, sending_time=sending_time)
 
@@ -379,11 +383,12 @@ def send_email(smtp_server,
                logger,
                sending_time=None,
                scratch_dir=None,
-               attachment=None
+               attachment=None,
+               sentry_client=None
                ):
 
     server = None
-    logger.info(f"Sending email from the smtp server: {smtp_server}:{smtp_port}")
+    logger.info(f"Sending email through the smtp server: {smtp_server}:{smtp_port}")
     # Create the plain-text and HTML version of your message,
     # since emails with HTML content might be, sometimes, not supported
 
@@ -440,14 +445,22 @@ def send_email(smtp_server,
                 logger.warning(f"there seems to be some problem in sending the email with title {email_subject}, "
                                f"another attempt will be made")
 
-                logger.debug(f"{e} exception while attempting to send the email with title {email_subject}\n"
+                logger.error(f"{e} exception while attempting to send the email with title {email_subject}\n"
                              f"{n_tries_left} tries left, sleeping {email_sending_retry_sleep_s} seconds until retry\n")
                 time.sleep(email_sending_retry_sleep_s)
             else:
                 logger.warning(f"an issue occurred when sending the email with title {email_subject}, "
-                               f"we are investigating and try to solve the issue as soon as possible")
+                               f"multiple attempts have been executed, the following error has been generated:\n"
+                               f"{e}")
 
                 store_not_sent_email(email_body_html, scratch_dir, sending_time=sending_time)
+
+                if sentry_client is not None:
+                    sentry_client.capture('raven.events.Message',
+                                          message=f'multiple attempts to send an email with title {email_subject} '
+                                                  f'have been detected, the following error has been generated:\n"'
+                                                  f'{e}')
+
                 raise EMailNotSent(f"email not sent: {e}")
 
         finally:
