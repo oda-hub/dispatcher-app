@@ -616,7 +616,7 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
             logger.info("email_sending_timeout and duration_query > timeout_threshold_email %s",
                         email_sending_timeout and duration_query > timeout_threshold_email)
 
-            done_email_files = glob.glob(f'scratch_*_jid_{job_id}*/email_history/*_done_*')
+            done_email_files = glob.glob(f'scratch_*_jid_{job_id}*/email_history/email_done_*')
             log_additional_info_obj['done_email_files'] = done_email_files
             if len(done_email_files) >= 1:
                 logger.info("the email cannot be sent because the number of done emails sent is too high: %s", len(done_email_files))
