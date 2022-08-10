@@ -171,7 +171,9 @@ def common_exception_payload():
     payload = {}
 
     payload['cdci_data_analysis_version'] = __version__
+    payload['cdci_data_analysis_version_details'] = os.getenv('DISPATCHER_VERSION_DETAILS', 'unknown')
     payload['oda_api_version'] = oda_api.__version__
+     
     _l = []
 
     for instrument_factory in importer.instrument_factory_list:

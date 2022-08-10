@@ -10,6 +10,7 @@ import smtplib
 import ssl
 import os
 import re
+import time
 import glob
 import black
 import base64
@@ -27,6 +28,10 @@ from ..analysis.hash import make_hash
 from datetime import datetime
 
 logger = logging.getLogger()
+
+num_email_sending_max_tries = 5
+email_sending_retry_sleep_s = .5
+
 
 class MultipleDoneEmail(BadRequest):
     pass
@@ -178,7 +183,9 @@ def send_incident_report_email(
         decoded_token,
         incident_content=None,
         incident_time=None,
-        scratch_dir=None):
+        scratch_dir=None,
+        sentry_client=None):
+
     sending_time = time_.time()
 
     env = Environment(loader=FileSystemLoader('%s/../flask_app/templates/' % os.path.dirname(__file__)))
@@ -217,8 +224,11 @@ def send_incident_report_email(
                          email_subject=email_subject,
                          email_text=email_text,
                          email_body_html=email_body_html,
+                         scratch_dir=scratch_dir,
                          smtp_server_password=config.smtp_server_password,
-                         logger=logger)
+                         sending_time=sending_time,
+                         logger=logger,
+                         sentry_client=sentry_client)
 
     store_incident_report_email_info(message, scratch_dir, sending_time=sending_time)
 
@@ -276,7 +286,7 @@ def send_job_email(
         if status_details['status'] == 'empty_product' or status_details['status'] == 'empty_result':
             status_details_message = '''Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty product</b>.
 To the best of our knowledge, no unexpected errors occurred during processing,
-and if this is not what you expected, you probably need to modify the request parameters. We are sorry.<br>'''
+and if this is not what you expected, you probably need to modify the request parameters.<br>'''
             status_details_title = 'finished: with empty product'
         # TODO observe the other possible error detected exceptions,and extend the status detail message for the email
         else:
@@ -348,8 +358,11 @@ and if this is not what you expected, you probably need to modify the request pa
                          email_text,
                          email_body_html,
                          config.smtp_server_password,
+                         sending_time=sending_time,
+                         scratch_dir=scratch_dir,
                          logger=logger,
-                         attachment=api_code_email_attachment)
+                         attachment=api_code_email_attachment,
+                         sentry_client=sentry_client)
 
     store_status_email_info(message, status, scratch_dir, sending_time=sending_time)
 
@@ -368,65 +381,94 @@ def send_email(smtp_server,
                email_body_html,
                smtp_server_password,
                logger,
-               attachment=None
+               sending_time=None,
+               scratch_dir=None,
+               attachment=None,
+               sentry_client=None
                ):
 
     server = None
-    logger.info("Sending email")
+    logger.info(f"Sending email through the smtp server: {smtp_server}:{smtp_port}")
     # Create the plain-text and HTML version of your message,
     # since emails with HTML content might be, sometimes, not supported
 
-    try:
-        if not isinstance(receiver_email_addresses, list):
-            receiver_email_addresses = [receiver_email_addresses]
-        if cc_receivers_email_addresses is None:
-            cc_receivers_email_addresses = []
-        if bcc_receivers_email_addresses is None:
-            bcc_receivers_email_addresses = []
-        # include bcc receivers, which will be hidden in the message header
-        receivers_email_addresses = receiver_email_addresses + cc_receivers_email_addresses + bcc_receivers_email_addresses
-        # creation of the message
-        message = MIMEMultipart("alternative")
-        message["Subject"] = email_subject
-        message["From"] = sender_email_address
-        message["To"] = ", ".join(receiver_email_addresses)
-        message["CC"] = ", ".join(cc_receivers_email_addresses)
-        message['Reply-To'] = reply_to_email_address
+    n_tries_left = num_email_sending_max_tries
 
-        if attachment is not None:
-            # create the attachment
-            message.attach(attachment)
+    if not isinstance(receiver_email_addresses, list):
+        receiver_email_addresses = [receiver_email_addresses]
+    if cc_receivers_email_addresses is None:
+        cc_receivers_email_addresses = []
+    if bcc_receivers_email_addresses is None:
+        bcc_receivers_email_addresses = []
+    # include bcc receivers, which will be hidden in the message header
+    receivers_email_addresses = receiver_email_addresses + cc_receivers_email_addresses + bcc_receivers_email_addresses
+    # creation of the message
+    message = MIMEMultipart("alternative")
+    message["Subject"] = email_subject
+    message["From"] = sender_email_address
+    message["To"] = ", ".join(receiver_email_addresses)
+    message["CC"] = ", ".join(cc_receivers_email_addresses)
+    message['Reply-To'] = reply_to_email_address
 
-        part1 = MIMEText(email_text, "plain")
-        part2 = MIMEText(email_body_html, "html")
-        message.attach(part1)
-        message.attach(part2)
+    if attachment is not None:
+        # create the attachment
+        message.attach(attachment)
 
-        # Create a secure SSL context
-        context = ssl.create_default_context()
-        #
-        # Try to log in to server and send email
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        # just for testing purposes, not ssl is established
-        if smtp_server != "localhost":
-            try:
-                server.starttls(context=context)
-            except Exception as e:
-                logger.warning(f'unable to start TLS: {e}')
-        if smtp_server_password is not None and smtp_server_password != '':
-            server.login(sender_email_address, smtp_server_password)
-        server.sendmail(sender_email_address, receivers_email_addresses, message.as_string())
-    except Exception as e:
-        logger.error(f'Exception while sending email: {e}')
-        open("debug_email_not_sent.html", "w").write(email_body_html)
-        raise EMailNotSent(f"email not sent: {e}")
-    finally:
-        if server:
-            server.quit()
+    part1 = MIMEText(email_text, "plain")
+    part2 = MIMEText(email_body_html, "html")
+    message.attach(part1)
+    message.attach(part2)
 
-    logger.info("email successfully sent")
+    while True:
+        try:
+            # Create a secure SSL context
+            context = ssl.create_default_context()
+            #
+            # Try to log in to server and send email
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            # just for testing purposes, not ssl is established
+            if smtp_server != "localhost":
+                try:
+                    server.starttls(context=context)
+                except Exception as e:
+                    logger.warning(f'unable to start TLS: {e}')
+            if smtp_server_password is not None and smtp_server_password != '':
+                server.login(sender_email_address, smtp_server_password)
+            server.sendmail(sender_email_address, receivers_email_addresses, message.as_string())
+            logger.info("email successfully sent")
 
-    return message
+            return message
+        except Exception as e:
+            n_tries_left -= 1
+
+            if n_tries_left > 0:
+                logger.warning(f"there seems to be some problem in sending the email with title {email_subject}, "
+                               f"another attempt will be made")
+
+                logger.error(f"{e} exception while attempting to send the email with title {email_subject}\n"
+                             f"{n_tries_left} tries left, sleeping {email_sending_retry_sleep_s} seconds until retry\n")
+                time.sleep(email_sending_retry_sleep_s)
+            else:
+                logger.warning(f"an issue occurred when sending the email with title {email_subject}, "
+                               f"multiple attempts have been executed, but those did not succeed")
+
+                logger.error(f"an issue occurred when sending the email with title {email_subject}, "
+                             f"multiple attempts have been executed, the following error has been generated:\n"
+                             f"{e}")
+
+                store_not_sent_email(email_body_html, scratch_dir, sending_time=sending_time)
+
+                if sentry_client is not None:
+                    sentry_client.capture('raven.events.Message',
+                                          message=f'multiple attempts to send an email with title {email_subject} '
+                                                  f'have been detected, the following error has been generated:\n"'
+                                                  f'{e}')
+
+                raise EMailNotSent(f"email not sent: {e}")
+
+        finally:
+            if server:
+                server.quit()
 
 
 def store_status_email_info(message, status, scratch_dir, sending_time=None):
@@ -438,6 +480,17 @@ def store_status_email_info(message, status, scratch_dir, sending_time=None):
     # record the email just sent in a dedicated file
     with open(path_email_history_folder + '/email_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
         outfile.write(message.as_string())
+
+
+def store_not_sent_email(email_body, scratch_dir, sending_time=None):
+    path_email_history_folder = os.path.join(scratch_dir, 'email_history')
+    if not os.path.exists(path_email_history_folder):
+        os.makedirs(path_email_history_folder)
+    if sending_time is None:
+        sending_time = time_.time()
+    # record the email just sent in a dedicated file
+    with open(path_email_history_folder + '/not_sent_email_' + str(sending_time) + '.email', 'w+') as outfile:
+        outfile.write(email_body)
 
 
 def store_incident_report_email_info(message, scratch_dir, sending_time=None):
