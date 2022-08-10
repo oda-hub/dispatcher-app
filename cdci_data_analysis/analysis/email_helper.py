@@ -450,8 +450,11 @@ def send_email(smtp_server,
                 time.sleep(email_sending_retry_sleep_s)
             else:
                 logger.warning(f"an issue occurred when sending the email with title {email_subject}, "
-                               f"multiple attempts have been executed, the following error has been generated:\n"
-                               f"{e}")
+                               f"multiple attempts have been executed, but those did not succeed")
+
+                logger.error(f"an issue occurred when sending the email with title {email_subject}, "
+                             f"multiple attempts have been executed, the following error has been generated:\n"
+                             f"{e}")
 
                 store_not_sent_email(email_body_html, scratch_dir, sending_time=sending_time)
 
