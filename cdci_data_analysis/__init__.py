@@ -24,6 +24,6 @@ _dir=os.path.dirname(__file__)
 with open('%s/pkg_info.json'%_dir) as fp:
     _info = json.load(fp)
 
-__version__ = _info['version']
+__version__ = _info['version'] + os.getenv('DISPATCHER_EXTRA_VERSION', '')
 
 conf_dir = os.path.dirname(__file__)+'/config_dir'
