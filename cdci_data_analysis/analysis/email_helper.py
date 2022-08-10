@@ -29,8 +29,8 @@ from datetime import datetime
 
 logger = logging.getLogger()
 
-n_max_tries = 5
-retry_sleep_s = .5
+num_email_sending_max_tries = 5
+email_sending_retry_sleep_s = .5
 
 
 class MultipleDoneEmail(BadRequest):
@@ -387,7 +387,7 @@ def send_email(smtp_server,
     # Create the plain-text and HTML version of your message,
     # since emails with HTML content might be, sometimes, not supported
 
-    n_tries_left = n_max_tries
+    n_tries_left = num_email_sending_max_tries
 
     if not isinstance(receiver_email_addresses, list):
         receiver_email_addresses = [receiver_email_addresses]
@@ -441,8 +441,8 @@ def send_email(smtp_server,
                                f"another attempt will be made")
 
                 logger.debug(f"{e} exception while attempting to send the email with title {email_subject}\n"
-                             f"{n_tries_left} tries left, sleeping {retry_sleep_s} seconds until retry\n")
-                time.sleep(retry_sleep_s)
+                             f"{n_tries_left} tries left, sleeping {email_sending_retry_sleep_s} seconds until retry\n")
+                time.sleep(email_sending_retry_sleep_s)
             else:
                 logger.warning(f"an issue occurred when sending the email with title {email_subject}, "
                                f"we are investigating and try to solve the issue as soon as possible")
