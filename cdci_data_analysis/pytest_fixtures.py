@@ -1,5 +1,7 @@
 # this could be a separate package or/and a pytest plugin
 from json import JSONDecodeError
+
+import sentry_sdk
 import yaml
 
 import cdci_data_analysis.flask_app.app
@@ -47,6 +49,19 @@ def kill_child_processes(parent_pid, sig=signal.SIGINT):
 def app():
     app = cdci_data_analysis.flask_app.app.app
     return app
+
+
+@pytest.fixture
+def sentry_sdk_fixture(monkeypatch, dispatcher_test_conf):
+    sentry_sdk.init(
+        dsn=dispatcher_test_conf['sentry_url'],
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        # We recommend adjusting this value in production.
+        traces_sample_rate=1.0,
+        debug=True,
+        max_breadcrumbs=50,
+    )
 
 
 @pytest.fixture
@@ -403,7 +418,6 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
         f.write('\n    product_gallery_options:'
                 '\n        product_gallery_url: "http://cdciweb02.internal.odahub.io/mmoda/gallery"'
                 f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"'
-                '\n        product_gallery_timezone: "Europe/Zurich"'
                 '\n        name_resolver_url: "https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}"'
                 '\n        entities_portal_url: "http://cdsportal.u-strasbg.fr/?target={}"'
                 '\n        converttime_revnum_service_url: "https://www.astro.unige.ch/mmoda/dispatch-data/gw/timesystem/api/v1.0/converttime/UTC/{}/REVNUM"')
@@ -421,8 +435,7 @@ def dispatcher_test_conf_with_gallery_no_resolver_fn(dispatcher_test_conf_fn):
 
         f.write('\n    product_gallery_options:'
                 '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/gallery"'
-                f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"'
-                '\n        product_gallery_timezone: "Europe/Zurich"')
+                f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"')
 
     yield fn
 

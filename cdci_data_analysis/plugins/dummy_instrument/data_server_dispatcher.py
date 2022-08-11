@@ -66,7 +66,7 @@ class DataServerQuery:
                            query_type='Real',
                            logger=None,
                            config=None,
-                           sentry_client=None) -> QueryOutput:
+                           sentry_dsn=None) -> QueryOutput:
         query_out = QueryOutput()
         query_out.set_done(message="mock ok message!", debug_message="mock ok debug_message")
         return query_out
@@ -201,7 +201,7 @@ class EmptyProductQuery(ProductQuery):
                            query_type='Real',
                            logger=None,
                            config=None,
-                           sentry_client=None) -> QueryOutput:
+                           sentry_dsn=None) -> QueryOutput:
         query_out = QueryOutput()
         query_out.set_done(message="mock ok message!", debug_message="mock ok debug_message")
         return query_out
@@ -370,12 +370,12 @@ class EchoProductQuery(ProductQuery):
         query_out.prod_dictionary['echo'] = prod_list.prod_list[0]
         return query_out
     
-    def test_communication(self, instrument, query_type='Real', logger=None, config=None, sentry_client=None):
+    def test_communication(self, instrument, query_type='Real', logger=None, config=None, sentry_dsn=None):
         query_out = QueryOutput()
         query_out.set_done()
         return query_out
     
-    def test_has_products(self, instrument, query_type='Real', logger=None, config=None, scratch_dir=None, sentry_client=None):
+    def test_has_products(self, instrument, query_type='Real', logger=None, config=None, scratch_dir=None, sentry_dsn=None):
         query_out = QueryOutput()
         query_out.prod_dictionary['input_prod_list'] = []
         query_out.set_done()

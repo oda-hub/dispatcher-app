@@ -5,6 +5,7 @@ import traceback
 import nbformat as nbf
 import shutil
 import giturlparse
+import sentry_sdk
 
 from git import Repo, Actor
 
@@ -20,7 +21,7 @@ def push_api_code(api_code,
                   renku_gitlab_repository_url,
                   renku_gitlab_ssh_key_path,
                   renku_base_project_url,
-                  sentry_client=None,
+                  sentry_dsn=None,
                   user_name=None,
                   user_email=None,
                   products_url=None,
@@ -70,9 +71,8 @@ def push_api_code(api_code,
 
         traceback.print_exc()
 
-        if sentry_client is not None:
-            sentry_client.capture('raven.events.Message',
-                                  message=f'{error_message}\n{e}')
+        if sentry_dsn is not None:
+            sentry_sdk.capture_message(f'{error_message}\n{e}')
         raise RequestNotUnderstood(error_message)
     finally:
         logger.info("==> removing repository folder, since it is no longer necessary")
