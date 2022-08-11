@@ -34,6 +34,7 @@ import shutil
 import typing
 import jwt
 import re
+import sentry_sdk
 
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
@@ -124,7 +125,7 @@ class InstrumentQueryBackEnd:
 
         self.app = app
 
-        self.set_sentry_client(getattr(self.app.config.get('conf'), 'sentry_url', None))
+        self.set_sentry_sdk(getattr(self.app.config.get('conf'), 'sentry_url', None))
 
         try:
             if par_dic is None:
@@ -143,9 +144,8 @@ class InstrumentQueryBackEnd:
                 if 'job_id' in self.par_dic:
                     self.job_id = self.par_dic['job_id']
                 else:
-                    if getattr(self, 'sentry_client', None) is not None:
-                        self.sentry_client.capture('raven.events.Message',
-                                                   message="job_id not present during a call_back")
+                    if getattr(self, 'sentry_dsn', None) is not None:
+                        sentry_sdk.capture_message("job_id not present during a call_back")
                     raise RequestNotUnderstood("job_id must be present during a call_back")
             if data_server_call_back:
                 # this can be set since it's a call_back and job_id and session_id are available
@@ -190,8 +190,8 @@ class InstrumentQueryBackEnd:
                                "and resubmit you request.")
                     if data_server_call_back:
                         message = "The token provided is expired, please resubmit you request with a valid token."
-                        if getattr(self, 'sentry_client', None) is not None:
-                            self.sentry_client.capture('raven.events.Message', message=message)
+                        if getattr(self, 'sentry_dsn', None) is not None:
+                            sentry_sdk.capture_message(message)
 
                     raise RequestNotAuthorized(message)
                 except jwt.exceptions.InvalidSignatureError as e:
@@ -201,8 +201,8 @@ class InstrumentQueryBackEnd:
                                "and resubmit you request.")
                     if data_server_call_back:
                         message = "The token provided is expired, please resubmit you request with a valid token."
-                        if getattr(self, 'sentry_client', None) is not None:
-                            self.sentry_client.capture('raven.events.Message', message=message)
+                        if getattr(self, 'sentry_dsn', None) is not None:
+                            sentry_sdk.capture_message(message)
 
                     raise RequestNotAuthorized(message)
 
@@ -244,8 +244,8 @@ class InstrumentQueryBackEnd:
                     try:
                         self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
                     except Exception as e:
-                        if getattr(self, 'sentry_client', None) is not None:
-                            self.sentry_client.capture('raven.events.Message', message=f"problem creating temp directory: {e}")
+                        if getattr(self, 'sentry_dsn', None) is not None:
+                            sentry_sdk.capture_message(f"problem creating temp directory: {e}")
 
                         raise InternalError("we have encountered an internal error! "
                                             "Our team is notified and is working on it. We are sorry! "
@@ -257,7 +257,7 @@ class InstrumentQueryBackEnd:
                             temp_dir=self.temp_dir,
                             verbose=verbose,
                             use_scws=self.use_scws,
-                            sentry_client=self.sentry_client
+                            sentry_dsn=self.sentry_dsn
                         )
                         self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
                 # TODO: if not callback!
@@ -544,16 +544,20 @@ class InstrumentQueryBackEnd:
 
         return _logger
 
-    def set_sentry_client(self, sentry_url=None):
+    def set_sentry_sdk(self, sentry_dsn=None):
 
-        if sentry_url is not None:
-            from raven import Client
+        if sentry_dsn is not None:
+            sentry_sdk.init(
+                dsn=sentry_dsn,
+                # Set traces_sample_rate to 1.0 to capture 100%
+                # of transactions for performance monitoring.
+                # We recommend adjusting this value in production.
+                traces_sample_rate=1.0,
+                debug=True,
+                max_breadcrumbs=50,
+            )
 
-            client = Client(sentry_url)
-        else:
-            client = None
-
-        self.sentry_client = client
+        self.sentry_dsn = sentry_dsn
 
     def get_current_ip(self):
         return socket.gethostbyname(socket.gethostname())
@@ -884,7 +888,7 @@ class InstrumentQueryBackEnd:
         self.config, self.config_data_server = self.set_config()
 
         if self.config.sentry_url is not None:
-            self.set_sentry_client(self.config.sentry_url)
+            self.set_sentry_sdk(self.config.sentry_url)
 
         self.instrument_name = self.par_dic.get('instrument_name', '')
 
@@ -935,7 +939,7 @@ class InstrumentQueryBackEnd:
                     status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
                                                                         config=self.config,
                                                                         logger=self.logger,
-                                                                        sentry_client=self.sentry_client)
+                                                                        sentry_dsn=self.sentry_dsn)
                 # build the products URL and get also the original requested product
                 products_url = self.generate_products_url(self.config.products_url,
                                                                     request_par_dict=original_request_par_dic)
@@ -968,22 +972,23 @@ class InstrumentQueryBackEnd:
                                             email_status_details=status_details)
             else:
                 job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+
         except email_helper.MultipleDoneEmail as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
                                         email_status='multiple completion email detected')
             logging.warning(f'repeated sending of completion email detected: {e}')
-            if self.sentry_client is not None:
-                self.sentry_client.capture('raven.events.Message',
-                                       message=f'sending email failed {e}')
+            if self.sentry_dsn is not None:
+                sentry_sdk.capture_message(f'sending email failed {e}')
+
         except email_helper.EMailNotSent as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
                                         email_status='sending email failed')
             logging.warning(f'email sending failed: {e}')
-            if self.sentry_client is not None:
-                self.sentry_client.capture('raven.events.Message',
-                                       message=f'sending email failed {e}')
+            if self.sentry_dsn is not None:
+                sentry_sdk.capture_message(f'sending email failed {e}')
+
         except MissingRequestParameter as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
@@ -1445,7 +1450,7 @@ class InstrumentQueryBackEnd:
             config, self.config_data_server = None, None
         else:
             if config.sentry_url is not None:
-                self.set_sentry_client(config.sentry_url)
+                self.set_sentry_sdk(config.sentry_url)
 
             self.config = config
 
@@ -1673,7 +1678,7 @@ class InstrumentQueryBackEnd:
                                                           config=self.config_data_server,
                                                           query_type=query_type,
                                                           logger=self.logger,
-                                                          sentry_client=self.sentry_client,
+                                                          sentry_dsn=self.sentry_dsn,
                                                           verbose=verbose,
                                                           dry_run=dry_run,
                                                           api=api,
@@ -1729,9 +1734,8 @@ class InstrumentQueryBackEnd:
                         except email_helper.EMailNotSent as e:
                             query_out.set_status_field('email_status', 'sending email failed')
                             logging.warning(f'email sending failed: {e}')
-                            if self.sentry_client is not None:
-                                self.sentry_client.capture('raven.events.Message',
-                                                           message=f'sending email failed: {e.message}')
+                            if self.sentry_dsn is not None:
+                                sentry_sdk.capture_message(f'sending email failed {e.message}')
                 else:
                     query_new_status = 'failed'
                     job.set_failed()

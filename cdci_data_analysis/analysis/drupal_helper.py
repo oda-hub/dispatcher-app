@@ -12,6 +12,8 @@ import glob
 import re
 
 from typing import Optional, Tuple, Dict
+
+import sentry_sdk
 from dateutil import parser
 from datetime import datetime, timedelta
 from enum import Enum, auto
@@ -52,14 +54,14 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
         return drupal_output.text
 
 
-def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_client=None):
+def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_dsn=None):
     gallery_secret_key = disp_conf.product_gallery_secret_key
     product_gallery_url = disp_conf.product_gallery_url
     # extract email address and then the relative user_id
     user_email = tokenHelper.get_token_user_email_address(decoded_token)
     user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
                                           user_email=user_email,
-                                          sentry_client=sentry_client)
+                                          sentry_dsn=sentry_dsn)
     # update the token
     gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
 
@@ -101,14 +103,14 @@ def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_cli
     return output_list
 
 
-def get_parents_term(decoded_token, term, group=None, disp_conf=None, sentry_client=None):
+def get_parents_term(decoded_token, term, group=None, disp_conf=None, sentry_dsn=None):
     gallery_secret_key = disp_conf.product_gallery_secret_key
     product_gallery_url = disp_conf.product_gallery_url
     # extract email address and then the relative user_id from the mmoda token
     user_email = tokenHelper.get_token_user_email_address(decoded_token)
     user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
                                           user_email=user_email,
-                                          sentry_client=sentry_client)
+                                          sentry_dsn=sentry_dsn)
     # update the token
     gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
 
@@ -145,7 +147,7 @@ def execute_drupal_request(url,
                            headers=None,
                            files=None,
                            request_format='hal_json',
-                           sentry_client=None):
+                           sentry_dsn=None):
     n_tries_left = n_max_tries
     global total_n_successful_post_requests, total_n_post_request_retries
     while True:
@@ -255,9 +257,8 @@ def execute_drupal_request(url,
                                f"this prevented us to complete the request to the url: {url} \n"
                                f"this is likely to be a connection related problem, we are investigating and "
                                f"try to solve it as soon as possible")
-                if sentry_client is not None:
-                    sentry_client.capture('raven.events.Message',
-                                          message=f'exception when performing a request to the product gallery: {repr(e)}')
+                if sentry_dsn is not None:
+                    sentry_sdk.capture_message(f'exception when performing a request to the product gallery: {repr(e)}')
                 else:
                     logger.warning("sentry not used")
                 raise InternalError('issue when performing a request to the product gallery',
@@ -289,14 +290,14 @@ def generate_gallery_jwt_token(gallery_jwt_token_secret_key, user_id=None):
     return out_token
 
 
-def get_user_id(product_gallery_url, user_email, sentry_client=None) -> Optional[str]:
+def get_user_id(product_gallery_url, user_email, sentry_dsn=None) -> Optional[str]:
     user_id = None
     headers = get_drupal_request_headers()
 
     # get the user id
     log_res = execute_drupal_request(f"{product_gallery_url}/users/{user_email}",
                                      headers=headers,
-                                     sentry_client=sentry_client)
+                                     sentry_dsn=sentry_dsn)
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the user id")
     if isinstance(output_get, list) and len(output_get) == 1:
         user_id = output_get[0]['uid']
@@ -304,7 +305,7 @@ def get_user_id(product_gallery_url, user_email, sentry_client=None) -> Optional
     return user_id
 
 
-def delete_file_gallery(product_gallery_url, file_to_delete_id, gallery_jwt_token, sentry_client=None):
+def delete_file_gallery(product_gallery_url, file_to_delete_id, gallery_jwt_token, sentry_dsn=None):
     logger.info(f"deleting file with id {file_to_delete_id} from the product gallery")
 
     headers = get_drupal_request_headers(gallery_jwt_token)
@@ -312,14 +313,14 @@ def delete_file_gallery(product_gallery_url, file_to_delete_id, gallery_jwt_toke
     log_res = execute_drupal_request(f"{product_gallery_url}/file/{file_to_delete_id}",
                                      method='delete',
                                      headers=headers,
-                                     sentry_client=sentry_client)
+                                     sentry_dsn=sentry_dsn)
 
     logger.info(f"file with {file_to_delete_id} successfully deleted from the product gallery")
     output_post = analyze_drupal_output(log_res, operation_performed="deleting a file from the product gallery")
     return output_post
 
 
-def post_file_to_gallery(product_gallery_url, file, gallery_jwt_token, file_type="image", sentry_client=None):
+def post_file_to_gallery(product_gallery_url, file, gallery_jwt_token, file_type="image", sentry_dsn=None):
     logger.info(f"uploading file {file} to the product gallery")
 
     body_post_file = copy.deepcopy(body_article_product_gallery.body_file)
@@ -344,7 +345,7 @@ def post_file_to_gallery(product_gallery_url, file, gallery_jwt_token, file_type
                                      method='post',
                                      data=json.dumps(body_post_file),
                                      headers=headers,
-                                     sentry_client=sentry_client)
+                                     sentry_dsn=sentry_dsn)
 
     logger.info(f"file {file} successfully uploaded to the product gallery")
     output_post = analyze_drupal_output(log_res, operation_performed="posting a picture to the product gallery")
@@ -360,19 +361,24 @@ def post_content_to_gallery(decoded_token,
     product_gallery_url = disp_conf.product_gallery_url
     converttime_revnum_service_url = disp_conf.converttime_revnum_service_url
 
-    sentry_url = getattr(disp_conf, 'sentry_url', None)
-    sentry_client = None
-    if sentry_url is not None:
-        from raven import Client
-
-        sentry_client = Client(sentry_url)
+    sentry_dsn = getattr(disp_conf, 'sentry_url', None)
+    if sentry_dsn is not None:
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            # Set traces_sample_rate to 1.0 to capture 100%
+            # of transactions for performance monitoring.
+            # We recommend adjusting this value in production.
+            traces_sample_rate=1.0,
+            debug=True,
+            max_breadcrumbs=50,
+        )
 
     par_dic = copy.deepcopy(kwargs)
     # extract email address and then the relative user_id
     user_email = tokenHelper.get_token_user_email_address(decoded_token)
     user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
                                           user_email=user_email,
-                                          sentry_client=sentry_client)
+                                          sentry_dsn=sentry_dsn)
     # update the token
     gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
 
@@ -393,7 +399,7 @@ def post_content_to_gallery(decoded_token,
             product_id_data_product_list = get_data_product_list_by_product_id(product_gallery_url=product_gallery_url,
                                                                                gallery_jwt_token=gallery_jwt_token,
                                                                                product_id=product_id,
-                                                                               sentry_client=sentry_client)
+                                                                               sentry_dsn=sentry_dsn)
             if len(product_id_data_product_list) > 0:
                 if len(product_id_data_product_list) > 1:
                     logger.info(f"more than one data-product with product_id {product_id} has been found, the most recently posted or updated will be used")
@@ -411,7 +417,7 @@ def post_content_to_gallery(decoded_token,
                                                            file_type="image",
                                                            file=img_file_obj,
                                                            gallery_jwt_token=gallery_jwt_token,
-                                                           sentry_client=sentry_client)
+                                                           sentry_dsn=sentry_dsn)
                     img_fid = output_img_post['fid'][0]['value']
                 elif f.startswith('fits_file'):
                     fits_file_obj = files[f]
@@ -420,7 +426,7 @@ def post_content_to_gallery(decoded_token,
                                                                  file_type="document",
                                                                  file=fits_file_obj,
                                                                  gallery_jwt_token=gallery_jwt_token,
-                                                                 sentry_client=sentry_client)
+                                                                 sentry_dsn=sentry_dsn)
                     if fits_file_fid_list is None:
                         fits_file_fid_list = []
                     fits_file_fid_list.append(output_fits_file_post['fid'][0]['value'])
@@ -431,7 +437,7 @@ def post_content_to_gallery(decoded_token,
                                                                  file_type="document",
                                                                  file=html_file_obj,
                                                                  gallery_jwt_token=gallery_jwt_token,
-                                                                 sentry_client=sentry_client)
+                                                                 sentry_dsn=sentry_dsn)
                     if html_file_fid_list is None:
                         html_file_fid_list = []
                     html_file_fid_list.append(output_html_file_post['fid'][0]['value'])
@@ -458,7 +464,7 @@ def post_content_to_gallery(decoded_token,
         return output_data_product_post
 
 
-def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None, sentry_client=None):
+def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None, sentry_dsn=None):
     # if None the localtime is assigned
     observations = []
     headers = get_drupal_request_headers(gallery_jwt_token)
@@ -474,7 +480,7 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
 
     log_res = execute_drupal_request(f"{product_gallery_url}/observations/range_t1_t2/{t1_formatted}/{t2_formatted}/",
                                      headers=headers,
-                                     sentry_client=sentry_client)
+                                     sentry_dsn=sentry_dsn)
     output_get = analyze_drupal_output(log_res, operation_performed="getting the observation range")
     if isinstance(output_get, list):
         observations = output_get
@@ -482,7 +488,7 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
     return observations
 
 
-def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name, astro_entity_portal_link=None,  sentry_client=None):
+def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name, astro_entity_portal_link=None,  sentry_dsn=None):
     # post new observation with or without a specific time range
     body_gallery_astro_entity_node = copy.deepcopy(body_article_product_gallery.body_node)
     astro_entity_name = astro_entity_name.strip()
@@ -505,7 +511,7 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
                                      method='post',
                                      data=json.dumps(body_gallery_astro_entity_node),
                                      headers=headers,
-                                     sentry_client=sentry_client)
+                                     sentry_dsn=sentry_dsn)
 
     output_post = analyze_drupal_output(log_res, operation_performed="posting a new astrophysical entity")
 
@@ -515,7 +521,7 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
     return astro_entity_drupal_id
 
 
-def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url, t1=None, t2=None, sentry_client=None):
+def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url, t1=None, t2=None, sentry_dsn=None):
     # post new observation with or without a specific time range
     body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_node)
     # set the type of content to post
@@ -557,7 +563,7 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
                                      method='post',
                                      data=json.dumps(body_gallery_observation_node),
                                      headers=headers,
-                                     sentry_client=sentry_client)
+                                     sentry_dsn=sentry_dsn)
 
     output_post = analyze_drupal_output(log_res, operation_performed="posting a new observation")
 
@@ -568,7 +574,7 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
 
 
 # TODO to further optimize in two separate calls
-def get_instrument_product_type_id(product_gallery_url, gallery_jwt_token, product_type=None, instrument=None, sentry_client=None) \
+def get_instrument_product_type_id(product_gallery_url, gallery_jwt_token, product_type=None, instrument=None, sentry_dsn=None) \
         -> Dict:
     output_dict = {}
 
@@ -578,7 +584,7 @@ def get_instrument_product_type_id(product_gallery_url, gallery_jwt_token, produ
         # get all the taxonomy terms
         log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_name/all?_format=hal_json",
                                          headers=headers,
-                                         sentry_client=sentry_client)
+                                         sentry_dsn=sentry_dsn)
         output_post = analyze_drupal_output(log_res,
                                             operation_performed="retrieving the taxonomy terms from the product gallery")
         if type(output_post) == list and len(output_post) > 0:
@@ -593,7 +599,7 @@ def get_instrument_product_type_id(product_gallery_url, gallery_jwt_token, produ
     return output_dict
 
 
-def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token, source_name=None, sentry_client=None) \
+def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token, source_name=None, sentry_dsn=None) \
         -> Optional[str]:
     entities_id = None
     # get from the drupal the relative id
@@ -605,7 +611,7 @@ def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, galle
 
     log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/source/{source_name}",
                                      headers=headers,
-                                     sentry_client=sentry_client)
+                                     sentry_dsn=sentry_dsn)
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the astrophysical entity information")
     if isinstance(output_get, list) and len(output_get) == 1:
         entities_id = output_get[0]['nid']
@@ -613,14 +619,14 @@ def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, galle
     return entities_id
 
 
-def get_data_product_list_by_job_id(product_gallery_url, gallery_jwt_token, job_id=None, sentry_client=None) -> list:
+def get_data_product_list_by_job_id(product_gallery_url, gallery_jwt_token, job_id=None, sentry_dsn=None) -> list:
     data_product_list = []
     # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
 
     log_res = execute_drupal_request(f"{product_gallery_url}/data_products/job_id/{job_id}",
                                      headers=headers,
-                                     sentry_client=sentry_client)
+                                     sentry_dsn=sentry_dsn)
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the list of data product for a given job_id")
     if isinstance(output_get, list):
         data_product_list = output_get
@@ -628,14 +634,14 @@ def get_data_product_list_by_job_id(product_gallery_url, gallery_jwt_token, job_
     return data_product_list
 
 
-def get_data_product_list_by_product_id(product_gallery_url, gallery_jwt_token, product_id=None, sentry_client=None) -> list:
+def get_data_product_list_by_product_id(product_gallery_url, gallery_jwt_token, product_id=None, sentry_dsn=None) -> list:
     data_product_list = []
     # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
 
     log_res = execute_drupal_request(f"{product_gallery_url}/data_products/product_id/{product_id}",
                                      headers=headers,
-                                     sentry_client=sentry_client)
+                                     sentry_dsn=sentry_dsn)
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the list of data product for a given product_id")
     if isinstance(output_get, list):
         data_product_list = output_get
@@ -646,7 +652,7 @@ def get_data_product_list_by_product_id(product_gallery_url, gallery_jwt_token, 
 def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
                               t1=None, t2=None,
                               observation_id=None,
-                              sentry_client=None) \
+                              sentry_dsn=None) \
         -> Tuple[Optional[str], Optional[str]]:
     observation_drupal_id = None
     observation_information_message = None
@@ -657,7 +663,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
 
         log_res = execute_drupal_request(f"{product_gallery_url}/observations/{observation_id}",
                                          headers=headers,
-                                         sentry_client=sentry_client)
+                                         sentry_dsn=sentry_dsn)
         output_get = analyze_drupal_output(log_res, operation_performed="retrieving the observation information")
 
         if isinstance(output_get, list) and len(output_get) == 1:
@@ -675,7 +681,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
                                                    'we will ignore those when processing those data'
             logger.info(f"searching over the gallery for a period of observation with the following time range: "
                         f"{t1} - {t2}")
-            observations_range = get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2, sentry_client=sentry_client)
+            observations_range = get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=t1, t2=t2, sentry_dsn=sentry_dsn)
             for observation in observations_range:
                 # parse times returned from drupal
                 times = observation['field_timerange'].split('--')
@@ -689,7 +695,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
                     break
 
         if observation_drupal_id is None and (t1 is not None and t2 is not None):
-            observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url, t1, t2, sentry_client=sentry_client)
+            observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url, t1, t2, sentry_dsn=sentry_dsn)
             observation_information_message = 'a new observation has been posted' + \
                                               observation_information_message_timezone_warning
 
@@ -705,7 +711,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                                  observation_id=None,
                                  user_id_product_creator=None,
                                  insert_new_source=False,
-                                 sentry_client=None,
+                                 sentry_dsn=None,
                                  **kwargs):
     body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_node)
 
@@ -795,7 +801,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
         for src_name in src_name_list:
             source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
                                                                                  source_name=src_name,
-                                                                                 sentry_client=sentry_client)
+                                                                                 sentry_dsn=sentry_dsn)
             # create a new source ? yes if the user wants it
             if source_entity_id is None and insert_new_source:
                 src_name_idx = src_name_list.index(src_name)
@@ -805,7 +811,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                 source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
                                                      astro_entity_name=src_name.strip(),
                                                      astro_entity_portal_link=src_portal_link,
-                                                     sentry_client=sentry_client)
+                                                     sentry_dsn=sentry_dsn)
 
             if source_entity_id is not None:
                 if 'field_describes_astro_entity' not in body_gallery_article_node:
@@ -883,7 +889,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                                          method='patch',
                                          data=json.dumps(body_gallery_article_node),
                                          headers=headers,
-                                         sentry_client=sentry_client)
+                                         sentry_dsn=sentry_dsn)
         output_post = analyze_drupal_output(log_res, operation_performed=f"updating the data-product with id {data_product_id}")
     else:
         logger.info("posting a new data-product")
@@ -891,7 +897,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                                          method='post',
                                          data=json.dumps(body_gallery_article_node),
                                          headers=headers,
-                                         sentry_client=sentry_client)
+                                         sentry_dsn=sentry_dsn)
         output_post = analyze_drupal_output(log_res, operation_performed="posting a new data product to the gallery")
 
     return output_post

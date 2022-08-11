@@ -12,10 +12,12 @@ import string
 import random
 import hashlib
 import jwt
+import sentry_sdk
 
 from raven.contrib.flask import Sentry
-
+from sentry_sdk.integrations.flask import FlaskIntegration
 from flask import jsonify, send_from_directory, redirect, Response, Flask, request, make_response, g
+
 
 # restx not really used
 from flask_restx import Api, Resource, reqparse
@@ -339,8 +341,16 @@ def run_analysis():
               repr(e), traceback.format_exc())
         sentry_url = getattr(app.config.get('conf'), 'sentry_url', None)
         if sentry_url is not None:
-            sentry_client = Sentry(app, dsn=sentry_url)
-            sentry_client.captureMessage(f'exception in run_analysis: {str(e)}')
+            sentry_sdk.init(
+                dsn=sentry_url,
+                # Set traces_sample_rate to 1.0 to capture 100%
+                # of transactions for performance monitoring.
+                # We recommend adjusting this value in production.
+                traces_sample_rate=1.0,
+                debug=True,
+                max_breadcrumbs=50,
+            )
+            sentry_sdk.capture_message(f'exception in run_analysis: {str(e)}')
         else:
             logger.warning("sentry not used")
 
@@ -605,6 +615,18 @@ def report_incident():
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
+    sentry_dsn = getattr(app_config, 'sentry_url', None)
+    if sentry_dsn is not None:
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            # Set traces_sample_rate to 1.0 to capture 100%
+            # of transactions for performance monitoring.
+            # We recommend adjusting this value in production.
+            traces_sample_rate=1.0,
+            debug=True,
+            max_breadcrumbs=50,
+        )
+
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key)
 
     if output_code is not None:
@@ -626,7 +648,8 @@ def report_incident():
             decoded_token=decoded_token,
             incident_content=incident_content,
             incident_time=incident_time,
-            scratch_dir=scratch_dir
+            scratch_dir=scratch_dir,
+            sentry_dsn=sentry_dsn
         )
         report_incident_status = 'incident report email successfully sent'
     except email_helper.EMailNotSent as e:
@@ -634,8 +657,16 @@ def report_incident():
         logging.warning(f'email sending failed: {e}')
         sentry_url = getattr(app.config.get('conf'), 'sentry_url', None)
         if sentry_url is not None:
-            sentry_client = Sentry(app, dsn=sentry_url)
-            sentry_client.captureMessage(f'sending email failed {e}')
+            sentry_sdk.init(
+                dsn=sentry_url,
+                # Set traces_sample_rate to 1.0 to capture 100%
+                # of transactions for performance monitoring.
+                # We recommend adjusting this value in production.
+                traces_sample_rate=1.0,
+                debug=True,
+                max_breadcrumbs=50,
+            )
+            sentry_sdk.capture_message(f'sending email failed {e}')
         else:
             logger.warning("sentry not used")
     except MissingRequestParameter as e:

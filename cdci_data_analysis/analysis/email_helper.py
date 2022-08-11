@@ -5,6 +5,9 @@ from email.mime.application import MIMEApplication
 from collections import OrderedDict
 from urllib.parse import urlencode
 import typing
+
+import sentry_sdk
+
 from ..analysis import tokenHelper
 import smtplib
 import ssl
@@ -184,7 +187,7 @@ def send_incident_report_email(
         incident_content=None,
         incident_time=None,
         scratch_dir=None,
-        sentry_client=None):
+        sentry_dsn=None):
 
     sending_time = time_.time()
 
@@ -228,7 +231,7 @@ def send_incident_report_email(
                          smtp_server_password=config.smtp_server_password,
                          sending_time=sending_time,
                          logger=logger,
-                         sentry_client=sentry_client)
+                         sentry_dsn=sentry_dsn)
 
     store_incident_report_email_info(message, scratch_dir, sending_time=sending_time)
 
@@ -250,7 +253,7 @@ def send_job_email(
         request_url="",
         api_code="",
         scratch_dir=None,
-        sentry_client=None):
+        sentry_dsn=None):
     sending_time = time_.time()
 
     # let's get the needed email template;
@@ -290,9 +293,8 @@ and if this is not what you expected, you probably need to modify the request pa
             status_details_title = 'finished: with empty product'
         # TODO observe the other possible error detected exceptions,and extend the status detail message for the email
         else:
-            if sentry_client is not None:
-                sentry_client.capture('raven.events.Message',
-                                      message=f'unexpected status_details content before sending email: {status_details}')
+            if sentry_dsn is not None:
+                sentry_sdk.capture_message(f'unexpected status_details content before sending email: {status_details}')
             raise NotImplementedError
 
     # TODO: enable this sometimes
@@ -362,7 +364,7 @@ and if this is not what you expected, you probably need to modify the request pa
                          scratch_dir=scratch_dir,
                          logger=logger,
                          attachment=api_code_email_attachment,
-                         sentry_client=sentry_client)
+                         sentry_dsn=sentry_dsn)
 
     store_status_email_info(message, status, scratch_dir, sending_time=sending_time)
 
@@ -384,7 +386,7 @@ def send_email(smtp_server,
                sending_time=None,
                scratch_dir=None,
                attachment=None,
-               sentry_client=None
+               sentry_dsn=None
                ):
 
     server = None
@@ -458,11 +460,10 @@ def send_email(smtp_server,
 
                 store_not_sent_email(email_body_html, scratch_dir, sending_time=sending_time)
 
-                if sentry_client is not None:
-                    sentry_client.capture('raven.events.Message',
-                                          message=f'multiple attempts to send an email with title {email_subject} '
-                                                  f'have been detected, the following error has been generated:\n"'
-                                                  f'{e}')
+                if sentry_dsn is not None:
+                    sentry_sdk.capture_message((f'multiple attempts to send an email with title {email_subject} '
+                                                f'have been detected, the following error has been generated:\n"'
+                                                f'{e}'))
 
                 raise EMailNotSent(f"email not sent: {e}")
 
@@ -539,7 +540,7 @@ def log_email_sending_info(logger, status, time_request, scratch_dir, job_id, ad
     logger.info(f"logging email sending attempt into {email_history_log_fn} file")
 
 
-def is_email_to_send_run_query(logger, status, time_original_request, scratch_dir, job_id, config, decoded_token=None, sentry_client=None):
+def is_email_to_send_run_query(logger, status, time_original_request, scratch_dir, job_id, config, decoded_token=None, sentry_dsn=None):
     log_additional_info_obj = {}
     sending_ok = False
     time_check = time_.time()
@@ -605,10 +606,9 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
         if status != 'submitted':
             status_ok = False
             logger.info(f'status {status} not a valid one for sending an email after a run_query')
-            if sentry_client is not None and sentry_for_email_sending_check:
-                sentry_client.capture('raven.events.Message',
-                                      message=f'an email sending attempt has been detected at the completion '
-                                              f'of the run_query method with the status: {status}')
+            if sentry_dsn is not None and sentry_for_email_sending_check:
+                sentry_sdk.capture_message((f'an email sending attempt has been detected at the completion '
+                                            f'of the run_query method with the status: {status}'))
 
         # send submitted mail, status update
         sending_ok = email_sending_job_submitted and interval_ok and status_ok
@@ -627,7 +627,7 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
     return sending_ok
 
 
-def is_email_to_send_callback(logger, status, time_original_request, scratch_dir, config, job_id, decoded_token=None, sentry_client=None):
+def is_email_to_send_callback(logger, status, time_original_request, scratch_dir, config, job_id, decoded_token=None, sentry_dsn=None):
     log_additional_info_obj = {}
     sending_ok = False
     time_check = time_.time()
@@ -687,10 +687,9 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
         # not valid status
         else:
             logger.info(f'status {status} not a valid one for sending an email after a callback')
-            if sentry_client is not None and sentry_for_email_sending_check:
-                sentry_client.capture('raven.events.Message',
-                                      message=f'an email sending attempt has been detected at the completion '
-                                              f'of the run_query method with the status: {status}')
+            if sentry_dsn is not None and sentry_for_email_sending_check:
+                sentry_sdk.capture_message((f'an email sending attempt has been detected at the completion '
+                                            f'of the run_query method with the status: {status}'))
     else:
         logger.info(f'an email will not be sent because a token was not provided')
 
