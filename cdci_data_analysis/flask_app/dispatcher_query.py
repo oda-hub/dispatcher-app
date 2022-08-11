@@ -257,7 +257,7 @@ class InstrumentQueryBackEnd:
                             temp_dir=self.temp_dir,
                             verbose=verbose,
                             use_scws=self.use_scws,
-                            sentry_client=self.sentry_client
+                            sentry_dsn=self.sentry_dsn
                         )
                         self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
                 # TODO: if not callback!
@@ -888,7 +888,7 @@ class InstrumentQueryBackEnd:
         self.config, self.config_data_server = self.set_config()
 
         if self.config.sentry_url is not None:
-            self.set_sentry_client(self.config.sentry_url)
+            self.set_sentry_sdk(self.config.sentry_url)
 
         self.instrument_name = self.par_dic.get('instrument_name', '')
 
@@ -939,7 +939,7 @@ class InstrumentQueryBackEnd:
                     status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
                                                                         config=self.config,
                                                                         logger=self.logger,
-                                                                        sentry_client=self.sentry_client)
+                                                                        sentry_dsn=self.sentry_dsn)
                 # build the products URL and get also the original requested product
                 products_url = self.generate_products_url(self.config.products_url,
                                                                     request_par_dict=original_request_par_dic)
@@ -1450,7 +1450,7 @@ class InstrumentQueryBackEnd:
             config, self.config_data_server = None, None
         else:
             if config.sentry_url is not None:
-                self.set_sentry_client(config.sentry_url)
+                self.set_sentry_sdk(config.sentry_url)
 
             self.config = config
 
@@ -1678,7 +1678,7 @@ class InstrumentQueryBackEnd:
                                                           config=self.config_data_server,
                                                           query_type=query_type,
                                                           logger=self.logger,
-                                                          sentry_client=self.sentry_client,
+                                                          sentry_dsn=self.sentry_dsn,
                                                           verbose=verbose,
                                                           dry_run=dry_run,
                                                           api=api,
