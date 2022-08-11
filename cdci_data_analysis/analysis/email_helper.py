@@ -364,7 +364,7 @@ and if this is not what you expected, you probably need to modify the request pa
                          scratch_dir=scratch_dir,
                          logger=logger,
                          attachment=api_code_email_attachment,
-                         sentry_client=sentry_client)
+                         sentry_dsn=sentry_dsn)
 
     store_status_email_info(message, status, scratch_dir, sending_time=sending_time)
 
@@ -386,7 +386,7 @@ def send_email(smtp_server,
                sending_time=None,
                scratch_dir=None,
                attachment=None,
-               sentry_client=None
+               sentry_dsn=None
                ):
 
     server = None
@@ -460,11 +460,10 @@ def send_email(smtp_server,
 
                 store_not_sent_email(email_body_html, scratch_dir, sending_time=sending_time)
 
-                if sentry_client is not None:
-                    sentry_client.capture('raven.events.Message',
-                                          message=f'multiple attempts to send an email with title {email_subject} '
-                                                  f'have been detected, the following error has been generated:\n"'
-                                                  f'{e}')
+                if sentry_dsn is not None:
+                    sentry_sdk.capture_message((f'multiple attempts to send an email with title {email_subject} '
+                                                f'have been detected, the following error has been generated:\n"'
+                                                f'{e}'))
 
                 raise EMailNotSent(f"email not sent: {e}")
 
