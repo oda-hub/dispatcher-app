@@ -28,6 +28,8 @@ from builtins import (bytes, str, open, super, range,
 import string
 import json
 import logging
+
+import sentry_sdk
 import yaml
 
 import numpy as np
@@ -208,7 +210,7 @@ class Instrument:
                            temp_dir,
                            verbose,
                            use_scws,
-                           sentry_client=None):
+                           sentry_dsn=None):
         error_message = 'Error while {step} {temp_dir_content_msg}{additional}'
         # TODO probably exception handling can be further improved and/or optmized
         try:
@@ -239,9 +241,9 @@ class Instrument:
                                                  f', content of the temporary directory is {os.listdir(temp_dir)}',
                                                  additional='')
 
-            if sentry_client is not None:
-                sentry_client.capture('raven.events.Message',
-                                      message=f'{error_message}\n{e}')
+            if sentry_dsn is not None:
+                sentry_sdk.capture_message(f'{error_message}\n{e}')
+
             raise RequestNotUnderstood(error_message)
 
         if input_file_path is None and use_scws == 'user_file':
@@ -259,7 +261,7 @@ class Instrument:
                            par_dic,
                            config=None,
                            logger=None,
-                           sentry_client=None):
+                           sentry_dsn=None):
         if logger is None:
             logger = self.get_logger()
 
@@ -287,22 +289,20 @@ class Instrument:
                         'information from a completed job')
             status_details_output_obj['status'] = 'dispatcher_exception'
             status_details_output_obj['exception_message'] = de
-            if sentry_client is not None:
-                sentry_client.capture('raven.events.Message',
-                                      message=(f'Dispatcher-related exception detected when retrieving additional '
-                                               f'information from a completed job '
-                                               f'{de}'))
+            if sentry_dsn is not None:
+                sentry_sdk.capture_message((f'Dispatcher-related exception detected when retrieving additional '
+                                            f'information from a completed job '
+                                            f'{de}'))
         except ConnectionError as ce:
             logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
                         'A connection error has been detected when retrieving additional information '
                         f'from a completed job: {ce}')
             status_details_output_obj['status'] = 'connection_error'
             status_details_output_obj['exception_message'] = ce
-            if sentry_client is not None:
-                sentry_client.capture('raven.events.Message',
-                                      message=(f'ConnectionError detected when retrieving additional '
-                                               f'information from a completed job '
-                                               f'{ce}'))
+            if sentry_dsn is not None:
+                sentry_sdk.capture_message((f'ConnectionError detected when retrieving additional '
+                                            f'information from a completed job '
+                                            f'{ce}'))
         except RemoteException as re:
             if 'unable to complete API call' in re.message:
                 logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
@@ -323,10 +323,9 @@ class Instrument:
 
                 status_details_output_obj['status'] = 'empty_product'
                 status_details_output_obj['exception_message'] = re.message + '\n' + re.debug_message
-            if sentry_client is not None:
-                sentry_client.capture('raven.events.Message',
-                                      message=(f'RemoteException detected when retrieving additional '
-                                               f'information from a completed job {re}'))
+            if sentry_dsn is not None:
+                sentry_sdk.capture_message((f'RemoteException detected when retrieving additional '
+                                            f'information from a completed job {re}'))
 
         return status_details_output_obj
 
@@ -341,7 +340,7 @@ class Instrument:
                   query_type='Real',
                   verbose=False,
                   logger=None,
-                  sentry_client=None,
+                  sentry_dsn=None,
                   dry_run=False,
                   api=False,
                   decoded_token=None,
@@ -354,7 +353,7 @@ class Instrument:
         self._current_par_dic=par_dic
 
         # # set pars values from the input parameters
-        # query_out = self.set_pars_from_form(par_dic, verbose=verbose, sentry_client=sentry_client)
+        # query_out = self.set_pars_from_form(par_dic, verbose=verbose, sentry_dsn=sentry_dsn)
         query_out = QueryOutput()
         query_out.set_done()
         if verbose:
@@ -387,7 +386,7 @@ class Instrument:
                                                     query_type=query_type,
                                                     config=config,
                                                     logger=logger,
-                                                    sentry_client=sentry_client,
+                                                    sentry_dsn=sentry_dsn,
                                                     api=api)
                     if query_out.status_dictionary['status'] == 0:
                         if 'comment' in query_out.status_dictionary.keys():
@@ -430,13 +429,13 @@ class Instrument:
                                          message=message,
                                          e_message=e_message,
                                          logger=logger,
-                                         sentry_client=sentry_client,
+                                         sentry_dsn=sentry_dsn,
                                          excep=e)
 
                 except Exception as e: # we shall not do that
                     logger.error("run_query failed: %s", e)
                     # logger.error("run_query failed: %s", traceback.format_exc())
-                    query_out.set_failed(product_type, logger=logger, sentry_client=sentry_client, excep=e)
+                    query_out.set_failed(product_type, logger=logger, sentry_dsn=sentry_dsn, excep=e)
 
         # adding query parameters to final products
         # TODO: this can be misleading since it's the parameters actually used
@@ -561,7 +560,7 @@ class Instrument:
 
         return l
 
-    def set_pars_from_form(self,par_dic,logger=None,verbose=False,sentry_client=None):
+    def set_pars_from_form(self,par_dic,logger=None,verbose=False,sentry_dsn=None):
         #print('---------------------------------------------')
         #print('setting form paramters')
         q=QueryOutput()
@@ -578,7 +577,7 @@ class Instrument:
         except RequestNotUnderstood as e:
            q.set_failed(f"please adjust request parameters: {e.message}",
                         logger=logger,
-                        sentry_client=None,
+                        sentry_dsn=sentry_dsn,
                         excep=e)
 
         except Exception as e:
@@ -588,7 +587,7 @@ class Instrument:
 
             q.set_failed(m,
                          logger=logger,
-                         sentry_client=sentry_client,
+                         sentry_dsn=sentry_dsn,
                          excep=e)
             #status=1
             #error_message= 'error in form parameter'

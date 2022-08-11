@@ -23,6 +23,7 @@ import json
 from collections import OrderedDict
 
 import matplotlib
+import sentry_sdk
 
 matplotlib.use('Agg')  #, warn=False - deprecated
 
@@ -109,7 +110,7 @@ class QueryOutput(object):
                    logger=None,
                    excep=None,
                    status=1,
-                   sentry_client=None,
+                   sentry_dsn=None,
                    job_status=None,
                    e_message=None,
                    debug_message=''):
@@ -122,7 +123,7 @@ class QueryOutput(object):
                                  logger_prepend_str=logger_prepend_str,
                                  logger=logger,
                                  status=status,
-                                 sentry_client=sentry_client,
+                                 sentry_dsn=sentry_dsn,
                                  job_status=job_status,
                                  e_message=e_message,
                                  debug_message=debug_message)
@@ -171,7 +172,7 @@ class QueryOutput(object):
                             logger_prepend_str='==>',
                             logger=None,
                             status=1,
-                            sentry_client=None,
+                            sentry_dsn=None,
                             job_status=None,
                             e_message=None,
                             debug_message=''):
@@ -194,8 +195,8 @@ class QueryOutput(object):
         else:
             print('e_message', e_message)
 
-        if sentry_client is not None:
-            sentry_client.capture('raven.events.Message', message=e_message)
+        if sentry_dsn is not None:
+            sentry_sdk.capture_message(e_message)
 
         logger.error('!!! >>>Exception<<< %s', e_message)
         logger.error('!!! >>>debug message<<< %s', debug_message)
