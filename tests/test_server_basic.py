@@ -65,6 +65,10 @@ default_token_payload = dict(
 )
 
 
+def test_custom_dsn(sentry_sdk_fixture):
+    assert random.random() > 0.5
+
+
 @pytest.mark.fast
 def test_js9(dispatcher_live_fixture):
     server = dispatcher_live_fixture
