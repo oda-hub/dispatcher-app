@@ -1455,7 +1455,7 @@ def test_status_details_email_done(gunicorn_dispatcher_live_fixture, dispatcher_
     )
 
 
-def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture):
+def test_email_failure_callback_after_run_analysis(dispatcher_live_fixture, sentry_sdk_fixture):
     # TODO: for now, this is not very different from no-prior-run_analysis. This will improve
 
     server = dispatcher_live_fixture
