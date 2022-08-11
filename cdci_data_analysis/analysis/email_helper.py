@@ -187,7 +187,7 @@ def send_incident_report_email(
         incident_content=None,
         incident_time=None,
         scratch_dir=None,
-        sentry_client=None):
+        sentry_dsn=None):
 
     sending_time = time_.time()
 
@@ -231,7 +231,7 @@ def send_incident_report_email(
                          smtp_server_password=config.smtp_server_password,
                          sending_time=sending_time,
                          logger=logger,
-                         sentry_client=sentry_client)
+                         sentry_dsn=sentry_dsn)
 
     store_incident_report_email_info(message, scratch_dir, sending_time=sending_time)
 

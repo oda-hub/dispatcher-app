@@ -615,6 +615,18 @@ def report_incident():
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
+    sentry_dsn = getattr(app_config, 'sentry_url', None)
+    if sentry_dsn is not None:
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            # Set traces_sample_rate to 1.0 to capture 100%
+            # of transactions for performance monitoring.
+            # We recommend adjusting this value in production.
+            traces_sample_rate=1.0,
+            debug=True,
+            max_breadcrumbs=50,
+        )
+
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key)
 
     if output_code is not None:
@@ -636,7 +648,8 @@ def report_incident():
             decoded_token=decoded_token,
             incident_content=incident_content,
             incident_time=incident_time,
-            scratch_dir=scratch_dir
+            scratch_dir=scratch_dir,
+            sentry_dsn=sentry_dsn
         )
         report_incident_status = 'incident report email successfully sent'
     except email_helper.EMailNotSent as e:
