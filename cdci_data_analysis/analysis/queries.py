@@ -350,7 +350,7 @@ class ProductQuery(BaseQuery):
     def get_prod_by_name(self,name):
         return self.query_prod_list.get_prod_by_name(name)
 
-    def test_communication(self, instrument, query_type='Real', logger=None, config=None, sentry_client=None):
+    def test_communication(self, instrument, query_type='Real', logger=None, config=None, sentry_dsn=None):
         if logger is None:
             logger = self.get_logger()
 
@@ -387,7 +387,7 @@ class ProductQuery(BaseQuery):
 
             query_out.set_failed('dataserver communication test',
                                  logger=logger,
-                                 sentry_client=sentry_client,
+                                 sentry_dsn=sentry_dsn,
                                  excep=e,
                                  e_message=e_message,
                                  debug_message=debug_message)
@@ -403,7 +403,7 @@ class ProductQuery(BaseQuery):
 
         return query_out
 
-    def test_has_products(self,instrument,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None):
+    def test_has_products(self,instrument,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None):
         if logger is None:
             logger = self.get_logger()
 
@@ -439,7 +439,7 @@ class ProductQuery(BaseQuery):
             else:
                 #FAILED
                 query_out.set_failed('test has input products ', extra_message='no input products found', logger=logger,
-                                     sentry_client=sentry_client)
+                                     sentry_dsn=sentry_dsn)
 
         except Exception as e:
             # TODO same approach used above, can be used also here
@@ -455,7 +455,7 @@ class ProductQuery(BaseQuery):
             query_out.set_failed( 'test has input products ',
                                   extra_message='no input products found',
                                   logger=logger,
-                                  sentry_client=sentry_client,
+                                  sentry_dsn=sentry_dsn,
                                   excep=e,
                                   e_message=e_message,
                                   debug_message=debug_message)
@@ -466,7 +466,7 @@ class ProductQuery(BaseQuery):
 
         return query_out
 
-    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None,api=False):
+    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None,api=False):
         if logger is None:
             logger = self.get_logger()
 
@@ -539,7 +539,7 @@ class ProductQuery(BaseQuery):
 
             query_out.set_failed('get_dataserver_products found job failed',
                                  logger=logger,
-                                 sentry_client=sentry_client,
+                                 sentry_dsn=sentry_dsn,
                                  excep=e,
                                  e_message=e_message,
                                  debug_message=debug_message)
@@ -563,7 +563,7 @@ class ProductQuery(BaseQuery):
                               query_type='Real',
                               logger=None,
                               config=None,
-                              sentry_client=None,
+                              sentry_dsn=None,
                               api=False,
                               backend_warning='',
                               backend_comment='',
@@ -599,7 +599,7 @@ class ProductQuery(BaseQuery):
             process_products_query_out.set_failed('product processing',
                                                   extra_message='product processing failed',
                                                   logger=logger,
-                                                  sentry_client=sentry_client,
+                                                  sentry_dsn=sentry_dsn,
                                                   excep=e)
 
         logger.info('==>prod_process_status %d' % process_products_query_out.get_status())
@@ -615,7 +615,7 @@ class ProductQuery(BaseQuery):
                   query_type='Real', 
                   config=None, 
                   logger=None,
-                  sentry_client=None,
+                  sentry_dsn=None,
                   api=False):
 
         # print ('--> running query for ',instrument.name,'with config',config)
@@ -627,19 +627,19 @@ class ProductQuery(BaseQuery):
         self._t_query_steps = OrderedDict()
         self._t_query_steps['start'] = _time.time()
 
-        query_out = self.test_communication(instrument,query_type=query_type,logger=logger,config=config,sentry_client=sentry_client)
+        query_out = self.test_communication(instrument,query_type=query_type,logger=logger,config=config,sentry_dsn=sentry_dsn)
         self._t_query_steps['after_test_communication'] = _time.time()
 
         input_prod_list=None
         if query_out.status_dictionary['status'] == 0:
-            query_out=self.test_has_products(instrument,query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client)
+            query_out=self.test_has_products(instrument,query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_dsn=sentry_dsn)
             input_prod_list=query_out.prod_dictionary['input_prod_list']
             self._t_query_steps['after_test_has_products'] = _time.time()
 
 
 
         if query_out.status_dictionary['status'] == 0:
-            query_out = self.get_query_products(instrument,job,run_asynch, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client,api=api)
+            query_out = self.get_query_products(instrument,job,run_asynch, query_type=query_type, logger=logger, config=config,scratch_dir=scratch_dir,sentry_dsn=sentry_dsn,api=api)
             self._t_query_steps['after_get_query_products'] = _time.time()
 
         if query_out.status_dictionary['status'] == 0:
@@ -666,7 +666,8 @@ class ProductQuery(BaseQuery):
                                                            job,
                                                            logger=logger,
                                                            config=config,
-                                                           sentry_client=sentry_client,api=api,
+                                                           sentry_dsn=sentry_dsn,
+                                                           api=api,
                                                            backend_comment=backend_comment,
                                                            backend_warning=backend_warning)
                     self._t_query_steps['after_process_query_products'] = _time.time()
@@ -719,7 +720,7 @@ class PostProcessProductQuery(ProductQuery):
     def process_product(self,instrument,job, config=None,out_dir=None,**kwargs):
         raise RuntimeError('this method has to be implemented in the derived class')
 
-    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_client=None,api=False,**kwargs):
+    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None,api=False,**kwargs):
         if logger is None:
             logger = self.get_logger()
 
@@ -744,7 +745,7 @@ class PostProcessProductQuery(ProductQuery):
             process_product_query_out.set_failed('product post processing',
                                  extra_message='product post processing failed',
                                  logger=logger,
-                                 sentry_client=sentry_client,
+                                 sentry_dsn=sentry_dsn,
                                  excep=e)
 
 
@@ -755,12 +756,12 @@ class PostProcessProductQuery(ProductQuery):
 
         return process_product_query_out
 
-    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_client=None,api=False):
+    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_dsn=None,api=False):
 
         if logger is None:
             logger = self.get_logger()
 
-        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir,sentry_client=sentry_client,api=api)
+        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir,sentry_dsn=sentry_dsn,api=api)
         if query_out.status_dictionary['status'] == 0:
             job.set_done()
         else:
