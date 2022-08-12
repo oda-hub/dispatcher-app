@@ -52,6 +52,12 @@ def check_par_list(func, par_list, *args, **kwargs):
 
         return func(par_list, *args, **kwargs)
 
+def subclasses_recursive(cls):
+    direct = cls.__subclasses__()
+    indirect = []
+    for subclass in direct:
+        indirect.extend(subclasses_recursive(subclass))
+    return direct + indirect
 
 # TODO this class seems not to be in use anywhere, not even the plugins
 class ParameterGroup(object):
@@ -381,9 +387,67 @@ class Parameter(object):
 
     def reprJSON(self):
         return dict(name=self.name, units=self.units, value=self.value)
+    
+    @classmethod
+    def from_owl_uri(cls, 
+                     owl_uri, 
+                     value=None,
+                     units=None,
+                     name = None,
+                     allowed_units=None,
+                     default_units=None,
+                     units_name=None,
+ 
+                     par_format=None,
+                     par_default_format=None,
+                     par_format_name=None,
+ 
+                     default_type=None,
+                     allowed_types=None,
+ 
+                     check_value=None,
+                     allowed_values=None):
+        # TODO: what about units?
+        
+        for x in subclasses_recursive(cls):
+            for uri in getattr(x, "owl_uris", []):
+                if uri == owl_uri:
+                    return x(value=value,
+                             units=units,
+                             name = name,
+                             allowed_units=allowed_units,
+                             default_units=default_units,
+                             units_name=units_name,
+         
+                             par_format=par_format,
+                             par_default_format=par_default_format,
+                             par_format_name=par_format_name,
+         
+                             default_type=default_type,
+                             allowed_types=allowed_types,
+         
+                             check_value=check_value,
+                             allowed_values=allowed_values)
+                    
+        logger.warning(f'Unknown owl type uri {owl_uri}. Creating basic Parameter object.') 
+        return cls(value=value,
+                   units=units,
+                   name = name,
+                   allowed_units=allowed_units,
+                   default_units=default_units,
+                   units_name=units_name,   
+                   par_format=par_format,
+                   par_default_format=par_default_format,
+                   par_format_name=par_format_name,   
+                   default_type=default_type,
+                   allowed_types=allowed_types,   
+                   check_value=check_value,
+                   allowed_values=allowed_values)
+                  
 
 
-class Name(Parameter):
+class String(Parameter):
+    owl_uris = ["http://www.w3.org/2001/XMLSchema#str"]
     def __init__(self, value=None, name_format='str', name=None):
         _allowed_units = ['str']
         super().__init__(value=value,
@@ -396,8 +460,11 @@ class Name(Parameter):
     def check_name_value(value, units=None, name=None, par_format=None):
         pass
 
+class Name(String):
+    owl_uris = ["http://odahub.io/ontology@AstrophysicalObject"]
 
 class Float(Parameter):
+    owl_uris = ["http://www.w3.org/2001/XMLSchema#float"]
     def __init__(self, value=None, units=None, name=None, allowed_units=None, default_units=None, check_value=None):
 
         if check_value is None:
@@ -450,6 +517,8 @@ class Float(Parameter):
 
 
 class Integer(Parameter):
+    owl_uris = "http://www.w3.org/2001/XMLSchema#int"
+
     def __init__(self, value=None, units=None, name=None, check_value=None):
 
         _allowed_units = None
@@ -499,6 +568,7 @@ class Integer(Parameter):
 
 
 class Time(Parameter):
+    owl_uris = ["http://odahub.io/ontology#StartTime", "http://odahub.io/ontology#EndTime"]
     def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None, par_default_format='isot'):
 
         super().__init__(value=value,
@@ -630,6 +700,8 @@ class InputProdList(Parameter):
 
 
 class Angle(Float):
+    owl_uris = ["http://odahub.io/ontology#PointOfInterestRA", "http://odahub.io/ontology#PointOfInterestDEC"]
+    
     def __init__(self, value=None, units=None, default_units='deg', name=None):
 
         super().__init__(value=value,
