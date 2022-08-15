@@ -1463,7 +1463,7 @@ class InstrumentQueryBackEnd:
 
         self.off_line = off_line
 
-        self.logger.info(
+<        self.logger.info(
             '\033[31;42m==============================> run query <==============================\033[0m')
         if 'api' in self.par_dic.keys():
             api = True

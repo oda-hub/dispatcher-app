@@ -22,6 +22,7 @@ from __future__ import absolute_import, division, print_function
 
 from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
+import typing
 
 __author__ = "Andrea Tramacere"
 
@@ -146,7 +147,7 @@ class ParameterRange(object):
         return [self.p1, self.p2]
 
 
-class ParameterTuple(object):
+class ParameterTuple:
 
     def __init__(self, p_list, name):
         self._check_pars(p_list)
@@ -165,7 +166,7 @@ class ParameterTuple(object):
         return self.p_list
 
 
-class Parameter(object):
+class Parameter:
     """
     # General notes
 
@@ -388,6 +389,11 @@ class Parameter(object):
     def reprJSON(self):
         return dict(name=self.name, units=self.units, value=self.value)
     
+
+    @classmethod
+    def matches_owl_uri(cls, owl_uri: str) -> bool:
+        return owl_uri in getattr(cls, "owl_uris", [])
+
     @classmethod
     def from_owl_uri(cls, 
                      owl_uri, 
@@ -408,47 +414,62 @@ class Parameter(object):
                      check_value=None,
                      allowed_values=None):
         # TODO: what about units?
+
+        parameter = None
         
         for x in subclasses_recursive(cls):
-            for uri in getattr(x, "owl_uris", []):
-                if uri == owl_uri:
-                    return x(value=value,
-                             units=units,
-                             name = name,
-                             allowed_units=allowed_units,
-                             default_units=default_units,
-                             units_name=units_name,
-         
-                             par_format=par_format,
-                             par_default_format=par_default_format,
-                             par_format_name=par_format_name,
-         
-                             default_type=default_type,
-                             allowed_types=allowed_types,
-         
-                             check_value=check_value,
-                             allowed_values=allowed_values)
-                    
-        logger.warning(f'Unknown owl type uri {owl_uri}. Creating basic Parameter object.') 
-        return cls(value=value,
-                   units=units,
-                   name = name,
-                   allowed_units=allowed_units,
-                   default_units=default_units,
-                   units_name=units_name,   
-                   par_format=par_format,
-                   par_default_format=par_default_format,
-                   par_format_name=par_format_name,   
-                   default_type=default_type,
-                   allowed_types=allowed_types,   
-                   check_value=check_value,
-                   allowed_values=allowed_values)
+            logger.debug("searching for class with owl_uri=%s, found %s", owl_uri, x)
+            if x.matches_owl_uri(owl_uri):
+                logger.info("will construct %s by url %s", x, owl_uri)
+                try:
+                    parameter = x(value=value,
+                            units=units,
+                            name=name,
+                            allowed_units=allowed_units,
+                            default_units=default_units,
+                            units_name=units_name,
+        
+                            par_format=par_format,
+                            par_default_format=par_default_format,
+                            par_format_name=par_format_name,
+        
+                            default_type=default_type,
+                            allowed_types=allowed_types,
+        
+                            check_value=check_value,
+                            allowed_values=allowed_values)
+                    break
+                except Exception as e:
+                    logger.exception("failed to construct %s by url %s", x, owl_uri)
+                    # raise
+
+        if parameter is None:
+            logger.warning(f'Unknown owl type uri {owl_uri}. Creating basic Parameter object.') 
+            parameter = cls(value=value,
+                    units=units,
+                    name = name,
+                    allowed_units=allowed_units,
+                    default_units=default_units,
+                    units_name=units_name,   
+                    par_format=par_format,
+                    par_default_format=par_default_format,
+                    par_format_name=par_format_name,   
+                    default_type=default_type,
+                    allowed_types=allowed_types,   
+                    check_value=check_value,
+                    allowed_values=allowed_values)
+
+        return parameter
                   
 
 
 class String(Parameter):
     owl_uris = ["http://www.w3.org/2001/XMLSchema#str"]
-    def __init__(self, value=None, name_format='str', name=None):
+    def __init__(self, value=None, name_format='str', name=None, **kwargs):
+        if len(kwargs) > 0:            
+            logger.error("possibily programming error: class %s initialized with extra arguments %s",
+                         self, kwargs)
+
         _allowed_units = ['str']
         super().__init__(value=value,
                          units=name_format,
