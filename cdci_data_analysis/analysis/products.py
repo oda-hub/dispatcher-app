@@ -189,25 +189,16 @@ class QueryOutput(object):
                     e_message = ''
                 else:
                     try:
-                        e_message = excep.__repr__()
-                    except:
+                        e_message = repr(excep)
+                    except Exception as e:
+                        logger.error('unable to represent %s due to %s, setting blank', excep, e)
                         e_message = ''
-        else:
-            print('e_message', e_message)
-
+        
         if sentry_dsn is not None:
             sentry_sdk.capture_message(e_message)
 
-        logger.error('!!! >>>Exception<<< %s', e_message)
-        logger.error('!!! >>>debug message<<< %s', debug_message)
-        logger.error('!!! failed operation: %s', failed_operation)
-
-        logger.error(traceback.format_exc())
-
-        if logger is not None:
-            logger.exception(e_message)
-            logger.exception(debug_message)
-
+        logger.error('set_query_exception with %s (%s) during %s', e_message, debug_message, failed_operation)
+                        
         if message is None:
             message = '%s' % message_prepend_str
             message += ' failed: %s' % (failed_operation)
