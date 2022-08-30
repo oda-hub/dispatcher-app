@@ -225,6 +225,7 @@ class ConfigEnv(object):
                                      products_url,
                                      disp_dict['dispatcher_callback_url_base'],
                                      disp_dict['secret_key'],
+                                     disp_dict.get('token_max_refresh_interval', 604800),
                                      disp_dict['email_options']['smtp_server'],
                                      disp_dict['email_options']['sender_email_address'],
                                      disp_dict['email_options']['cc_receivers_email_addresses'],
@@ -284,6 +285,7 @@ class ConfigEnv(object):
                             products_url,
                             dispatcher_callback_url_base,
                             secret_key,
+                            token_max_refresh_interval,
                             smtp_server,
                             sender_email_address,
                             cc_receivers_email_addresses,
@@ -316,6 +318,7 @@ class ConfigEnv(object):
         self.products_url = products_url
         self.dispatcher_callback_url_base = dispatcher_callback_url_base
         self.secret_key = secret_key
+        self.token_max_refresh_interval = token_max_refresh_interval
         self.smtp_server = smtp_server
         self.sender_email_address = sender_email_address
         self.cc_receivers_email_addresses = cc_receivers_email_addresses
