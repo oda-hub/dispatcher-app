@@ -1,4 +1,5 @@
 import jwt
+import time
 import oda_api.token
 from marshmallow import ValidationError
 
@@ -71,6 +72,27 @@ def get_decoded_token(token, secret_key, validate_token=True):
                               options=dict(
                                 verify_signature=False
                             ))
+
+
+def refresh_token(token, secret_key, refresh_interval=10000):
+    refreshed_options_dict = {
+        "intsub": int(time.time()) + refresh_interval
+    }
+    try:
+        validation_dict = EmailOptionsTokenSchema().load(refreshed_options_dict)
+    except ValidationError as e:
+        raise BadRequest(f'An error occurred while validating the following fields: {e.messages}. '
+                         f'Please check it and re-try to issue the request')
+
+    def refresh_token_exp_time(token_payload):
+        new_payload = token_payload.copy()
+        new_payload.update(validation_dict)
+
+        return new_payload
+
+    # use the oda_api function
+    updated_token = oda_api.token.update_token(token, secret_key=secret_key, payload_mutation=refresh_token_exp_time)
+    return updated_token
 
 
 def update_token_email_options(token, secret_key, new_options):

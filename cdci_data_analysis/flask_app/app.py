@@ -217,6 +217,17 @@ def update_token_email_options():
     return query.token
 
 
+@app.route('/refresh_token', methods=['POST', 'GET'])
+def update_token_email_options():
+    logger.info("request.args: %s ", request.args)
+
+    query = InstrumentQueryBackEnd(app, update_token=True)
+
+    query.update_token(refresh_token=True)
+    # TODO adaption to the QueryOutJSON schema is needed
+    return query.token
+
+
 @app.route('/inspect-state', methods=['POST', 'GET'])
 def inspect_state():
     logger.info("request.args: %s ", request.args)
