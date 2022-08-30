@@ -93,8 +93,8 @@ class DataServerConf:
             required_keys.remove('data_server_url')
         except KeyError as e:
             logger.error(
-                f"problem constructing {self}: data_server_url configuration key is required")
-            raise e
+                f"problem constructing {self}: data_server_url configuration key is required, got %s", e)
+            raise
 
         self.process_integral_keys(conf, required_keys)
 

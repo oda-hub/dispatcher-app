@@ -460,13 +460,12 @@ class Parameter:
                     allowed_values=allowed_values)
 
         return parameter
-                  
-
 
 class String(Parameter):
     owl_uris = ["http://www.w3.org/2001/XMLSchema#str"]
+    
     def __init__(self, value=None, name_format='str', name=None, **kwargs):
-        if len(kwargs) > 0:            
+        if len(kwargs) > 0:
             logger.error("possibily programming error: class %s initialized with extra arguments %s",
                          self, kwargs)
 
