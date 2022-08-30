@@ -508,6 +508,7 @@ def test_refresh_token(dispatcher_live_fixture):
     # expired token
     token_payload = {
         **default_token_payload,
+        "roles": "refresh-tokens"
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
