@@ -789,13 +789,14 @@ class InstrumentQueryBackEnd:
                 #raise InvalidJobIDProvided(f"no record exists for job_id = {self.job_id}")
 
     # potentially this can be extended to support more modification of the token payload (e.g. roles)
-    def update_token(self, update_email_options=False, refresh_token=False, refresh_interval=10000):
+    def update_token(self, update_email_options=False, refresh_token=False):
 
         if update_email_options:
             self.token = tokenHelper.update_token_email_options(self.token, self.app.config.get('conf').secret_key,
                                                                 self.restricted_par_dic(self.par_dic))
 
         if refresh_token:
+            refresh_interval = int(self.restricted_par_dic(self.par_dic).get('refresh_interval', None))
             self.token = tokenHelper.refresh_token(self.token, self.app.config.get('conf').secret_key,
                                                    refresh_interval=refresh_interval)
 

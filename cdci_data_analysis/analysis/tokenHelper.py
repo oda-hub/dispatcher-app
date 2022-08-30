@@ -4,7 +4,7 @@ import oda_api.token
 from marshmallow import ValidationError
 
 from cdci_data_analysis.analysis.exceptions import BadRequest
-from cdci_data_analysis.flask_app.schemas import EmailOptionsTokenSchema
+from cdci_data_analysis.flask_app.schemas import EmailOptionsTokenSchema, TokenBasePayloadSchema
 from cdci_data_analysis.app_logging import app_logging
 
 default_algorithm = 'HS256'
@@ -75,18 +75,14 @@ def get_decoded_token(token, secret_key, validate_token=True):
 
 
 def refresh_token(token, secret_key, refresh_interval=10000):
-    refreshed_options_dict = {
-        "intsub": int(time.time()) + refresh_interval
-    }
-    try:
-        validation_dict = EmailOptionsTokenSchema().load(refreshed_options_dict)
-    except ValidationError as e:
-        raise BadRequest(f'An error occurred while validating the following fields: {e.messages}. '
-                         f'Please check it and re-try to issue the request')
-
     def refresh_token_exp_time(token_payload):
+
+        refreshed_token_payload = {
+            'exp': token_payload['exp'] + refresh_interval
+        }
+
         new_payload = token_payload.copy()
-        new_payload.update(validation_dict)
+        new_payload.update(refreshed_token_payload)
 
         return new_payload
 

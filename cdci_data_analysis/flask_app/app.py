@@ -218,7 +218,7 @@ def update_token_email_options():
 
 
 @app.route('/refresh_token', methods=['POST', 'GET'])
-def update_token_email_options():
+def refresh_token():
     logger.info("request.args: %s ", request.args)
 
     query = InstrumentQueryBackEnd(app, update_token=True)

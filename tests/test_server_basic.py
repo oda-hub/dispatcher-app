@@ -501,6 +501,37 @@ def test_modify_token(dispatcher_live_fixture, tem_value, tem_key_name):
             assert token_payload == payload_returned_token
 
 
+def test_refresh_token(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    # expired token
+    token_payload = {
+        **default_token_payload,
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'token': encoded_token,
+        'query_status': 'new',
+        'refresh_interval': 500000
+    }
+
+    c = requests.post(server + "/refresh_token", params=params)
+
+    token_update = {
+        "exp": default_token_payload["exp"] + 500000
+    }
+
+    token_payload.update(token_update)
+
+    payload_returned_token = jwt.decode(c.text, secret_key, algorithms='HS256')
+    assert token_payload == payload_returned_token
+
+    updated_encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    assert c.text == updated_encoded_token
+
+
 @pytest.mark.fast
 @pytest.mark.not_safe_parallel
 def test_invalid_token(dispatcher_live_fixture):
