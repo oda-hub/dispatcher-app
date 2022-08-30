@@ -796,7 +796,15 @@ class InstrumentQueryBackEnd:
                                                                 self.restricted_par_dic(self.par_dic))
 
         if refresh_token:
-            refresh_interval = int(self.restricted_par_dic(self.par_dic).get('refresh_interval', None))
+            max_refresh_interval = self.app.config.get('conf').token_max_refresh_interval
+            refresh_interval = int(self.restricted_par_dic(self.par_dic).get('refresh_interval', max_refresh_interval))
+
+            if refresh_interval > max_refresh_interval:
+                debug_message = (f"The refresh interval requested exceeds the maximum allowed, please provide a value "
+                                 f"which is lower than {max_refresh_interval} seconds")
+                logger.error(debug_message)
+                raise RequestNotAuthorized("Request not authorized", debug_message=debug_message)
+
             self.token = tokenHelper.refresh_token(self.token, self.app.config.get('conf').secret_key,
                                                    refresh_interval=refresh_interval)
 

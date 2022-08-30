@@ -221,6 +221,17 @@ def update_token_email_options():
 def refresh_token():
     logger.info("request.args: %s ", request.args)
 
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['refresh-tokens'],
+                                                                  action="refresh your token")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+
     query = InstrumentQueryBackEnd(app, update_token=True)
 
     query.update_token(refresh_token=True)

@@ -1,10 +1,9 @@
 import jwt
-import time
 import oda_api.token
 from marshmallow import ValidationError
 
 from cdci_data_analysis.analysis.exceptions import BadRequest
-from cdci_data_analysis.flask_app.schemas import EmailOptionsTokenSchema, TokenBasePayloadSchema
+from cdci_data_analysis.flask_app.schemas import EmailOptionsTokenSchema
 from cdci_data_analysis.app_logging import app_logging
 
 default_algorithm = 'HS256'
