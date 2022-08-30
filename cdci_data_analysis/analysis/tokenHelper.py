@@ -73,7 +73,7 @@ def get_decoded_token(token, secret_key, validate_token=True):
                             ))
 
 
-def refresh_token(token, secret_key, refresh_interval=10000):
+def refresh_token(token, secret_key, refresh_interval):
     def refresh_token_exp_time(token_payload):
 
         refreshed_token_payload = {
