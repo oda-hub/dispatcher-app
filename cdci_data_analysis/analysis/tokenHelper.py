@@ -73,6 +73,23 @@ def get_decoded_token(token, secret_key, validate_token=True):
                             ))
 
 
+def refresh_token(token, secret_key, refresh_interval):
+    def refresh_token_exp_time(token_payload):
+
+        refreshed_token_payload = {
+            'exp': token_payload['exp'] + refresh_interval
+        }
+
+        new_payload = token_payload.copy()
+        new_payload.update(refreshed_token_payload)
+
+        return new_payload
+
+    # use the oda_api function
+    updated_token = oda_api.token.update_token(token, secret_key=secret_key, payload_mutation=refresh_token_exp_time)
+    return updated_token
+
+
 def update_token_email_options(token, secret_key, new_options):
 
     validation_dict = {}
