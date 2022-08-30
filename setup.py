@@ -35,7 +35,7 @@ install_req = [
     "json_tricks",
     "flask-restx",
     "six",
-    "werkzeug",
+    "werkzeug==2.1.2",
     "python-shell-colors",
     "logging_tree",
     "celery",
