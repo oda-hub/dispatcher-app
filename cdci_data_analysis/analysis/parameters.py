@@ -485,7 +485,7 @@ class Name(String):
 
 class Float(Parameter):
     owl_uris = ["http://www.w3.org/2001/XMLSchema#float"]
-    def __init__(self, value=None, units=None, name=None, allowed_units=None, default_units=None, check_value=None):
+    def __init__(self, value=None, units=None, name=None, allowed_units=None, default_units=None, check_value=None, **kwargs):
 
         if check_value is None:
             check_value = self.check_float_value
@@ -539,7 +539,7 @@ class Float(Parameter):
 class Integer(Parameter):
     owl_uris = "http://www.w3.org/2001/XMLSchema#int"
 
-    def __init__(self, value=None, units=None, name=None, check_value=None):
+    def __init__(self, value=None, units=None, name=None, check_value=None, **kwargs):
 
         _allowed_units = None
 
@@ -589,7 +589,7 @@ class Integer(Parameter):
 
 class Time(Parameter):
     owl_uris = ["http://odahub.io/ontology#StartTime", "http://odahub.io/ontology#EndTime"]
-    def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None, par_default_format='isot'):
+    def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None, par_default_format='isot', **kwargs):
 
         super().__init__(value=value,
                          par_format=T_format,
@@ -631,7 +631,7 @@ class Time(Parameter):
 
 
 class TimeDelta(Time):
-    def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None, par_default_format='sec'):
+    def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None, par_default_format='sec', **kwargs):
 
         super().__init__(value=value,
                          T_format=delta_T_format,
@@ -658,7 +658,7 @@ class TimeDelta(Time):
 
 class InputProdList(Parameter):
     # TODO removal of the leading underscore cannot be done for compatibility with the plugins
-    def __init__(self, value=None, _format='names_list', name: str = None):
+    def __init__(self, value=None, _format='names_list', name: str = None, **kwargs):
         _allowed_units = ['names_list']
 
         if value is None:
@@ -722,7 +722,7 @@ class InputProdList(Parameter):
 class Angle(Float):
     owl_uris = ["http://odahub.io/ontology#PointOfInterestRA", "http://odahub.io/ontology#PointOfInterestDEC"]
     
-    def __init__(self, value=None, units=None, default_units='deg', name=None):
+    def __init__(self, value=None, units=None, default_units='deg', name=None, **kwargs):
 
         super().__init__(value=value,
                          units=units,
@@ -757,7 +757,7 @@ class Angle(Float):
 
 
 class Energy(Float):
-    def __init__(self, value=None, E_units='keV', name=None, check_value=None):
+    def __init__(self, value=None, E_units='keV', name=None, check_value=None, **kwargs):
         if check_value is None:
             check_value = self.check_energy_value
 
@@ -781,7 +781,7 @@ class SpectralBoundary(Energy):
 
 
 class DetectionThreshold(Float):
-    def __init__(self, value=None, units='sigma', name=None):
+    def __init__(self, value=None, units='sigma', name=None, **kwargs):
         _allowed_units = ['sigma']
 
         super().__init__(value=value,
@@ -793,7 +793,7 @@ class DetectionThreshold(Float):
 
 
 class UserCatalog(Parameter):
-    def __init__(self, value=None, name_format='str', name=None):
+    def __init__(self, value=None, name_format='str', name=None, **kwargs):
         _allowed_units = ['str']
         super().__init__(value=value,
                          par_format=name_format,
