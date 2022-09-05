@@ -360,6 +360,7 @@ def post_content_to_gallery(decoded_token,
     gallery_secret_key = disp_conf.product_gallery_secret_key
     product_gallery_url = disp_conf.product_gallery_url
     converttime_revnum_service_url = disp_conf.converttime_revnum_service_url
+    timezone = disp_conf.product_gallery_timezone
 
     sentry_dsn = getattr(disp_conf, 'sentry_url', None)
     if sentry_dsn is not None:
@@ -459,6 +460,7 @@ def post_content_to_gallery(decoded_token,
                                                                 observation_id=observation_id,
                                                                 user_id_product_creator=user_id_product_creator,
                                                                 insert_new_source=insert_new_source,
+                                                                timezone=timezone,
                                                                 **par_dic)
 
         return output_data_product_post
@@ -657,6 +659,7 @@ def get_data_product_list_by_product_id(product_gallery_url, gallery_jwt_token, 
 
 def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
                               t1=None, t2=None,
+                              timezone=None,
                               observation_id=None,
                               sentry_dsn=None) \
         -> Tuple[Optional[str], Optional[str]]:
@@ -701,7 +704,9 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
                     break
 
         if observation_drupal_id is None and (t1 is not None and t2 is not None):
-            observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url, t1, t2, sentry_dsn=sentry_dsn)
+            observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
+                                                     t1, t2, timezone=timezone,
+                                                     sentry_dsn=sentry_dsn)
             observation_information_message = 'a new observation has been posted' + \
                                               observation_information_message_timezone_warning
 
@@ -718,6 +723,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                                  user_id_product_creator=None,
                                  insert_new_source=False,
                                  sentry_dsn=None,
+                                 timezone=None,
                                  **kwargs):
     body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_node)
 
@@ -776,7 +782,8 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
 
     observation_drupal_id, observation_information_message = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
                                                                                        converttime_revnum_service_url,
-                                                                                       t1=t1, t2=t2, observation_id=observation_id)
+                                                                                       t1=t1, t2=t2, timezone=timezone,
+                                                                                       observation_id=observation_id)
     if observation_drupal_id is not None:
         body_gallery_article_node["field_derived_from_observation"] = [{
             "target_id": observation_drupal_id
