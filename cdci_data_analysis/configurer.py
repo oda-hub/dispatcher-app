@@ -241,7 +241,7 @@ class ConfigEnv(object):
                                      disp_dict['email_options'].get('incident_report_email_options', {}).get('incident_report_receivers_email_addresses', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_url', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_secret_key', None),
-                                     disp_dict.get('product_gallery_options', {}).get('product_gallery_gallery_timezone',
+                                     disp_dict.get('product_gallery_options', {}).get('product_gallery_timezone',
                                                                                       "Europe/Zurich"),
                                      disp_dict.get('product_gallery_options', {}).get('name_resolver_url', 'https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}'),
                                      disp_dict.get('product_gallery_options', {}).get('entities_portal_url', 'http://cdsportal.u-strasbg.fr/?target={}'),
@@ -303,7 +303,7 @@ class ConfigEnv(object):
                             incident_report_receivers_email_addresses,
                             product_gallery_url,
                             product_gallery_secret_key,
-                            product_gallery_gallery_timezone,
+                            product_gallery_timezone,
                             name_resolver_url,
                             entities_portal_url,
                             converttime_revnum_service_url,
@@ -337,7 +337,7 @@ class ConfigEnv(object):
         self.incident_report_receivers_email_addresses = incident_report_receivers_email_addresses
         self.product_gallery_url = product_gallery_url
         self.product_gallery_secret_key = product_gallery_secret_key
-        self.product_gallery_gallery_timezone = product_gallery_gallery_timezone
+        self.product_gallery_timezone = product_gallery_timezone
         self.name_resolver_url = name_resolver_url
         self.entities_portal_url = entities_portal_url
         self.converttime_revnum_service_url = converttime_revnum_service_url
