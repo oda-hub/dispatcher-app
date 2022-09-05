@@ -14,7 +14,7 @@ import re
 from typing import Optional, Tuple, Dict
 
 import sentry_sdk
-from dateutil import parser
+from dateutil import parser, tz
 from datetime import datetime, timedelta
 from enum import Enum, auto
 
@@ -521,16 +521,22 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
     return astro_entity_drupal_id
 
 
-def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url, t1=None, t2=None, sentry_dsn=None):
+def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url, t1=None, t2=None, timezone=None, sentry_dsn=None):
     # post new observation with or without a specific time range
     body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_node)
     # set the type of content to post
     body_gallery_observation_node["_links"]["type"]["href"] = os.path.join(product_gallery_url, body_gallery_observation_node["_links"]["type"][
                                                                   "href"], 'observation')
+
+    tz_to_apply = tz.gettz(timezone)
+
     if t1 is not None and t2 is not None:
         # format the time fields, from the format request
-        t1_formatted = parser.parse(t1).strftime('%Y-%m-%dT%H:%M:%S')
-        t2_formatted = parser.parse(t2).strftime('%Y-%m-%dT%H:%M:%S')
+        t1_parsed = parser.parse(t1).strftime('%Y-%m-%dT%H:%M:%S')
+        t1_formatted = t1_parsed.astimezone(tz_to_apply)
+
+        t2_parsed = parser.parse(t2)
+        t2_formatted = t2_parsed.astimezone(tz_to_apply)
         # set the daterange
         body_gallery_observation_node["field_timerange"] = [{
             "value": t1_formatted,
