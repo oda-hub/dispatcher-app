@@ -371,6 +371,7 @@ dispatcher:
     logstash_host: 
     logstash_port: 
     secret_key: 'secretkey_test'
+    token_max_refresh_interval: 604800
     bind_options:
         bind_host: 0.0.0.0
         bind_port: 8011

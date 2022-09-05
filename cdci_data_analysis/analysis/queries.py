@@ -23,6 +23,8 @@ import time as _time
 import json
 from collections import OrderedDict
 
+import sentry_sdk
+
 from .parameters import *
 from .products import SpectralFitProduct, QueryOutput, QueryProductList, ImageProduct
 from .io_helper import FilePath
@@ -393,7 +395,8 @@ class ProductQuery(BaseQuery):
                                  debug_message=debug_message)
 
         except Exception as e:
-            raise InternalError(None)
+            sentry_sdk.capture_exception(e)
+            raise InternalError(f"unexpected error while testing communication with {instrument}, {e!r}")
 
         status = query_out.get_status()
         msg_str = '--> data server communication status: %d' %status

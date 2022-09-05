@@ -501,6 +501,44 @@ def test_modify_token(dispatcher_live_fixture, tem_value, tem_key_name):
             assert token_payload == payload_returned_token
 
 
+@pytest.mark.parametrize("refresh_interval", [500000, 604800, 1000000])
+def test_refresh_token(dispatcher_live_fixture, dispatcher_test_conf, refresh_interval):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+    # expired token
+    token_payload = {
+        **default_token_payload,
+        "roles": "refresh-tokens"
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'token': encoded_token,
+        'query_status': 'new',
+        'refresh_interval': refresh_interval
+    }
+
+    c = requests.post(server + "/refresh_token", params=params)
+
+    if refresh_interval > dispatcher_test_conf['token_max_refresh_interval']:
+        jdata = c.json()
+        assert jdata['error_message'] == 'Request not authorized'
+        assert jdata['debug_message'] == 'The refresh interval requested exceeds the maximum allowed, please provide a value which is lower than 604800 seconds'
+    else:
+        token_update = {
+            "exp": default_token_payload["exp"] + refresh_interval
+        }
+
+        token_payload.update(token_update)
+
+        payload_returned_token = jwt.decode(c.text, secret_key, algorithms='HS256')
+        assert token_payload == payload_returned_token
+
+        updated_encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+        assert c.text == updated_encoded_token
+
+
 @pytest.mark.fast
 @pytest.mark.not_safe_parallel
 def test_invalid_token(dispatcher_live_fixture):
