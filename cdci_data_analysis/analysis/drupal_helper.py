@@ -532,11 +532,11 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
 
     if t1 is not None and t2 is not None:
         # format the time fields, from the format request
-        t1_parsed = parser.parse(t1).strftime('%Y-%m-%dT%H:%M:%S')
-        t1_formatted = t1_parsed.astimezone(tz_to_apply)
+        t1_parsed = parser.parse(t1)
+        t1_formatted = t1_parsed.astimezone(tz_to_apply).strftime('%Y-%m-%dT%H:%M:%S%z')
 
         t2_parsed = parser.parse(t2)
-        t2_formatted = t2_parsed.astimezone(tz_to_apply)
+        t2_formatted = t2_parsed.astimezone(tz_to_apply).strftime('%Y-%m-%dT%H:%M:%S%z')
         # set the daterange
         body_gallery_observation_node["field_timerange"] = [{
             "value": t1_formatted,
