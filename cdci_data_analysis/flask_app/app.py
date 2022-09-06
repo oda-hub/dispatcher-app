@@ -206,9 +206,12 @@ def common_exception_payload():
     plugins = {}
     payload['config']['plugins'] = plugins
     for plugin_name, plugin_module in importer.cdci_plugins_dict.items():
-        plugins[plugin_name] = {
-            'config_file': plugin_module.conf_file
-        }
+        if plugin_name == 'dummy_plugin':
+            plugins[plugin_name] = {}
+        else:
+            plugins[plugin_name] = {
+                'config_file': plugin_module.conf_file
+            }
 
     return payload
 
