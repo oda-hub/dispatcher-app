@@ -78,6 +78,37 @@ def test_js9(dispatcher_live_fixture):
 
 
 @pytest.mark.fast
+def test_reload_plugin(monkeypatch, dispatcher_live_fixture_no_debug_mode):
+    server = dispatcher_live_fixture_no_debug_mode
+    print("constructed server:", server)
+    c = requests.get(server + "/api/instr-list",
+                     params={'instrument': 'mock'})
+    logger.info("content: %s", c.text)
+    jdata = c.json()
+    logger.info(json.dumps(jdata, indent=4, sort_keys=True))
+    logger.info(jdata)
+    assert c.status_code == 200
+    assert 'empty' not in jdata
+    assert 'empty-async' not in jdata
+    assert 'empty-semi-async' not in jdata
+
+    c = requests.get(server + "/reload-plugin/dummy_plugin")
+    assert c.status_code == 200
+
+    c = requests.get(server + "/api/instr-list",
+                     params={'instrument': 'mock'})
+    logger.info("content: %s", c.text)
+    jdata = c.json()
+    logger.info(json.dumps(jdata, indent=4, sort_keys=True))
+    logger.info(jdata)
+    assert c.status_code == 200
+    # parameterize this
+    assert 'empty' in jdata
+    assert 'empty-async' in jdata
+    assert 'empty-semi-async' in jdata
+
+
+@pytest.mark.fast
 def test_empty_request(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)

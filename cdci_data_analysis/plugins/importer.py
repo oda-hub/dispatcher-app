@@ -52,6 +52,13 @@ cdci_plugins_dict = {
     if (name.startswith('cdci') and name.endswith('plugin')) or \
        (name.startswith('dispatcher_plugin_'))
 }
+cdci_plugins_dict['dummy_plugin'] = {}
+
+
+def get_dummy_instruments_factories():
+    return [empty_instrument.my_instr_factory,
+            empty_async_instrument.my_instr_factory,
+            empty_semi_async_instrument.my_instr_factory]
 
 def build_instrument_factory_list():
     instr_factory_list = []
@@ -59,17 +66,16 @@ def build_instrument_factory_list():
 
     # if not in debug mode, these instruments are not needed
     if os.environ.get('DISPATCHER_DEBUG_MODE', 'no') == 'yes':
-        instr_factory_list.append(empty_instrument.my_instr_factory)
-        instr_factory_list.append(empty_async_instrument.my_instr_factory)
-        instr_factory_list.append(empty_semi_async_instrument.my_instr_factory)
+        instr_factory_list.extend(get_dummy_instruments_factories())
 
     for plugin_name in cdci_plugins_dict:
         logger.info("found plugin: %s", plugin_name)
 
         try:
-            e = importlib.import_module(plugin_name+'.exposer')
-            instr_factory_list.extend(e.instr_factory_list)
-            logger.info(render('{GREEN}imported plugin: %s{/}'), plugin_name)
+            if plugin_name != 'dummy_plugin':
+                e = importlib.import_module(plugin_name+'.exposer')
+                instr_factory_list.extend(e.instr_factory_list)
+                logger.info(render('{GREEN}imported plugin: %s{/}'), plugin_name)
 
         except Exception as e:
             logger.error('failed to import %s: %s', plugin_name,e )
@@ -82,6 +88,9 @@ def reload_plugin(plugin_name):
     global instrument_factory_list
     if plugin_name not in cdci_plugins_dict.keys():
         raise ModuleNotFoundError(plugin_name)
-    reload(cdci_plugins_dict[plugin_name])
-    reload(sys.modules[plugin_name+'.exposer'])
-    instrument_factory_list = build_instrument_factory_list()
+    if plugin_name == 'dummy_plugin':
+        instrument_factory_list.extend(get_dummy_instruments_factories())
+    else:
+        reload(cdci_plugins_dict[plugin_name])
+        reload(sys.modules[plugin_name+'.exposer'])
+        instrument_factory_list = build_instrument_factory_list()
