@@ -25,7 +25,7 @@ from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_has
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, generate_notebook_filename
 from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id
-from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
+from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
 
 # logger
 logger = logging.getLogger(__name__)
@@ -76,6 +76,47 @@ def test_js9(dispatcher_live_fixture):
     r = requests.get(f'{dispatcher_live_fixture.rstrip("/")}/api/v1.0/oda/get_js9_plot', params={'file_path': 'js9.fits'})
     assert r.status_code == 200
 
+@pytest.fixture
+def safe_dummy_plugin_conf():
+    from cdci_data_analysis.plugins.dummy_plugin import conf_file
+    with open(conf_file, 'r') as fd:
+        config = fd.read()
+    yield conf_file
+    with open(conf_file, 'w') as fd:
+        fd.write(config)
+
+@pytest.mark.fast
+def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+    c = requests.get(server + "/api/instr-list",
+                     params={'instrument': 'mock'})
+    logger.info("content: %s", c.text)
+    jdata = c.json()
+    logger.info(json.dumps(jdata, indent=4, sort_keys=True))
+    logger.info(jdata)
+    assert c.status_code == 200
+    assert 'empty' in jdata
+    assert 'empty-async' in jdata
+    assert 'empty-semi-async' in jdata
+    
+    with open(safe_dummy_plugin_conf, 'w') as fd:
+        fd.write('instruments: []\n')
+    
+    c = requests.get(server + "/reload-plugin/dummy_plugin")
+    assert c.status_code == 200
+
+    c = requests.get(server + "/api/instr-list",
+                     params={'instrument': 'mock'})
+    logger.info("content: %s", c.text)
+    jdata = c.json()
+    logger.info(json.dumps(jdata, indent=4, sort_keys=True))
+    logger.info(jdata)
+    assert c.status_code == 200
+    # parameterize this
+    assert 'empty' not in jdata
+    assert 'empty-async' not in jdata
+    assert 'empty-semi-async' not in jdata
 
 @pytest.mark.fast
 def test_empty_request(dispatcher_live_fixture):
