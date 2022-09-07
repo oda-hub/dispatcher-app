@@ -18,7 +18,7 @@ from collections import OrderedDict
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, ask
 from cdci_data_analysis.analysis.email_helper import textify_email
-from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
+from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
 
 from oda_api.api import RemoteException
 from datetime import datetime
@@ -672,7 +672,7 @@ def test_validation_job_id(dispatcher_live_fixture):
 # @pytest.mark.parametrize("time_original_request_none", [True, False])
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'private-no-email'])
 def test_email_run_analysis_callback(gunicorn_dispatcher_long_living_fixture, dispatcher_local_mail_server, default_values, request_cred, time_original_request_none):
-    from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
+    from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
     DataServerQuery.set_status('submitted')
 
     server = gunicorn_dispatcher_long_living_fixture
@@ -2287,7 +2287,7 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
                      dispatcher_local_mail_server,
                      time_combinations,
                      time_format):
-    from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
+    from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
     DataServerQuery.set_status('submitted')
 
     server = dispatcher_long_living_fixture
