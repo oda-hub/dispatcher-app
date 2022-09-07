@@ -481,7 +481,7 @@ class String(Parameter):
         pass
 
 class Name(String):
-    owl_uris = ["http://odahub.io/ontology@AstrophysicalObject"]
+    owl_uris = ["http://odahub.io/ontology#AstrophysicalObject"]
 
 class Float(Parameter):
     owl_uris = ["http://www.w3.org/2001/XMLSchema#float"]

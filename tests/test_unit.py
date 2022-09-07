@@ -1,5 +1,3 @@
-import ast
-
 import pytest
 
 from cdci_data_analysis.analysis.instrument import Instrument
@@ -7,6 +5,9 @@ from cdci_data_analysis.analysis.queries import (
     ProductQuery,
     SourceQuery,
     InstrumentQuery,
+)
+from cdci_data_analysis.analysis.parameters import (
+    Parameter,
     Float,
     Integer,
     Energy,
@@ -320,3 +321,14 @@ def test_parameter_normalization_with_units():
             assert parameter.set_par(input_value) == outcome
             assert parameter.value == outcome
             assert type(parameter.value) == type(outcome)
+            
+@pytest.mark.fast
+@pytest.mark.parametrize('uri, value, param_type', 
+                         [('http://odahub.io/ontology#PointOfInterestRA', 0.0, Angle), 
+                          ('http://odahub.io/ontology#PointOfInterestDec', 0.0, Angle), 
+                          ('http://odahub.io/ontology#StartTime', '2017-03-06T13:26:48.0', Time), 
+                          ('http://odahub.io/ontology#EndTime', '2017-03-06T13:26:48.0', Time), 
+                          ('http://odahub.io/ontology#AstrophysicalObject', 'Mrk421', Name)])
+def test_parameter_from_owl_uri(uri, value, param_type):
+    param = Parameter.from_owl_uri(uri, value=value, name='example')
+    assert isinstance(param, param_type)
