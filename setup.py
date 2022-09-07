@@ -46,7 +46,8 @@ install_req = [
     "bs4",
     "GitPython",
     "nbformat",
-    "giturlparse"
+    "giturlparse",
+    "sentry-sdk"
 ]
 
 test_req = [
