@@ -14,7 +14,7 @@ import re
 from typing import Optional, Tuple, Dict
 
 import sentry_sdk
-from dateutil import parser
+from dateutil import parser, tz
 from datetime import datetime, timedelta
 from enum import Enum, auto
 
@@ -360,6 +360,7 @@ def post_content_to_gallery(decoded_token,
     gallery_secret_key = disp_conf.product_gallery_secret_key
     product_gallery_url = disp_conf.product_gallery_url
     converttime_revnum_service_url = disp_conf.converttime_revnum_service_url
+    timezone = disp_conf.product_gallery_timezone
 
     sentry_dsn = getattr(disp_conf, 'sentry_url', None)
     if sentry_dsn is not None:
@@ -459,6 +460,7 @@ def post_content_to_gallery(decoded_token,
                                                                 observation_id=observation_id,
                                                                 user_id_product_creator=user_id_product_creator,
                                                                 insert_new_source=insert_new_source,
+                                                                timezone=timezone,
                                                                 **par_dic)
 
         return output_data_product_post
@@ -521,16 +523,22 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
     return astro_entity_drupal_id
 
 
-def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url, t1=None, t2=None, sentry_dsn=None):
+def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url, t1=None, t2=None, timezone=None, sentry_dsn=None):
     # post new observation with or without a specific time range
     body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_node)
     # set the type of content to post
     body_gallery_observation_node["_links"]["type"]["href"] = os.path.join(product_gallery_url, body_gallery_observation_node["_links"]["type"][
                                                                   "href"], 'observation')
+
+    tz_to_apply = tz.gettz(timezone)
+
     if t1 is not None and t2 is not None:
         # format the time fields, from the format request
-        t1_formatted = parser.parse(t1).strftime('%Y-%m-%dT%H:%M:%S')
-        t2_formatted = parser.parse(t2).strftime('%Y-%m-%dT%H:%M:%S')
+        t1_parsed = parser.parse(t1)
+        t1_formatted = t1_parsed.astimezone(tz_to_apply).strftime('%Y-%m-%dT%H:%M:%S%z')
+
+        t2_parsed = parser.parse(t2)
+        t2_formatted = t2_parsed.astimezone(tz_to_apply).strftime('%Y-%m-%dT%H:%M:%S%z')
         # set the daterange
         body_gallery_observation_node["field_timerange"] = [{
             "value": t1_formatted,
@@ -651,6 +659,7 @@ def get_data_product_list_by_product_id(product_gallery_url, gallery_jwt_token, 
 
 def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
                               t1=None, t2=None,
+                              timezone=None,
                               observation_id=None,
                               sentry_dsn=None) \
         -> Tuple[Optional[str], Optional[str]]:
@@ -695,7 +704,9 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
                     break
 
         if observation_drupal_id is None and (t1 is not None and t2 is not None):
-            observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url, t1, t2, sentry_dsn=sentry_dsn)
+            observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
+                                                     t1, t2, timezone=timezone,
+                                                     sentry_dsn=sentry_dsn)
             observation_information_message = 'a new observation has been posted' + \
                                               observation_information_message_timezone_warning
 
@@ -712,6 +723,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                                  user_id_product_creator=None,
                                  insert_new_source=False,
                                  sentry_dsn=None,
+                                 timezone=None,
                                  **kwargs):
     body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_node)
 
@@ -770,7 +782,8 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
 
     observation_drupal_id, observation_information_message = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
                                                                                        converttime_revnum_service_url,
-                                                                                       t1=t1, t2=t2, observation_id=observation_id)
+                                                                                       t1=t1, t2=t2, timezone=timezone,
+                                                                                       observation_id=observation_id)
     if observation_drupal_id is not None:
         body_gallery_article_node["field_derived_from_observation"] = [{
             "target_id": observation_drupal_id
