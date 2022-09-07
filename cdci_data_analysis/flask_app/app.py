@@ -18,7 +18,6 @@ from raven.contrib.flask import Sentry
 from sentry_sdk.integrations.flask import FlaskIntegration
 from flask import jsonify, send_from_directory, redirect, Response, Flask, request, make_response, g
 
-
 # restx not really used
 from flask_restx import Api, Resource, reqparse
 
@@ -67,7 +66,15 @@ ns_conf = api.namespace('api/v1.0/oda', description='api')
 def before_request():
     g.request_start_time = _time.time()
 
+@app.route('/reload-plugin/<name>')
+def reload_plugin(name):
+    try:
+        importer.reload_plugin(name)
+        return f'Plugin {name} reloaded\n'
+    except ModuleNotFoundError as e:
+        return f'Plugin {name} not found\n', 400
 
+    
 @app.route("/api/meta-data")
 def run_api_meta_data():
     query = InstrumentQueryBackEnd(app, get_meta_data=True)
