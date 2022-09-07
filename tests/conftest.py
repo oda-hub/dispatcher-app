@@ -1,4 +1,5 @@
 import pytest
+import pytest_sentry
 
 from cdci_data_analysis.pytest_fixtures import (
             app, 
@@ -19,6 +20,7 @@ from cdci_data_analysis.pytest_fixtures import (
             dispatcher_test_conf_with_gallery_no_resolver_fn,
             dispatcher_test_conf_fn,
             dispatcher_debug,
+            sentry_sdk_fixture,
             dispatcher_nodebug,
             gunicorn_dispatcher,
             gunicorn_tmp_path,

@@ -16,6 +16,8 @@ class APIerror(Exception):
     def to_dict(self):
         rv = dict(self.payload or ())
         rv['error_message'] = self.message
+        if hasattr(self, 'debug_message'):
+            rv['debug_message'] = self.debug_message
         return rv
 
     def __str__(self):

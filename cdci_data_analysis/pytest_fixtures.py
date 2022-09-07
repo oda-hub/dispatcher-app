@@ -1,5 +1,7 @@
 # this could be a separate package or/and a pytest plugin
 from json import JSONDecodeError
+
+import sentry_sdk
 import yaml
 
 import cdci_data_analysis.flask_app.app
@@ -47,6 +49,19 @@ def kill_child_processes(parent_pid, sig=signal.SIGINT):
 def app():
     app = cdci_data_analysis.flask_app.app.app
     return app
+
+
+@pytest.fixture
+def sentry_sdk_fixture(monkeypatch, dispatcher_test_conf):
+    sentry_sdk.init(
+        dsn=dispatcher_test_conf['sentry_url'],
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        # We recommend adjusting this value in production.
+        traces_sample_rate=1.0,
+        debug=True,
+        max_breadcrumbs=50,
+    )
 
 
 @pytest.fixture
@@ -356,6 +371,7 @@ dispatcher:
     logstash_host: 
     logstash_port: 
     secret_key: 'secretkey_test'
+    token_max_refresh_interval: 604800
     bind_options:
         bind_host: 0.0.0.0
         bind_port: 8011

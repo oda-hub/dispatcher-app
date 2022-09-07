@@ -19,7 +19,7 @@ import json
 # install_req = [x for x in install_req if not x.startswith('-e git+h')]
 
 install_req = [
-    'oda_api',
+    'oda_api>=1.1.31',
     'pylogstash_context>=0.1.19',
     "numpy",
     "pyyaml",
@@ -35,7 +35,7 @@ install_req = [
     "json_tricks",
     "flask-restx",
     "six",
-    "werkzeug",
+    "werkzeug==2.0.3",
     "python-shell-colors",
     "logging_tree",
     "celery",
@@ -46,7 +46,8 @@ install_req = [
     "bs4",
     "GitPython",
     "nbformat",
-    "giturlparse"
+    "giturlparse",
+    "sentry-sdk"
 ]
 
 test_req = [
