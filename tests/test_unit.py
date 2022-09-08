@@ -332,3 +332,11 @@ def test_parameter_normalization_with_units():
 def test_parameter_from_owl_uri(uri, value, param_type):
     param = Parameter.from_owl_uri(uri, value=value, name='example')
     assert isinstance(param, param_type)
+    
+def test_parameter_from_owl_uri_extra_param(caplog):
+    param = Parameter.from_owl_uri('http://odahub.io/ontology#StartTime', 
+                                   value='59830', 
+                                   T_format = 'mjd',
+                                   units='d', # wrong parameter  
+                                   name='example')
+    assert "parameter units with value d not used to construct <class 'cdci_data_analysis.analysis.parameters.Time'>" in caplog.text
