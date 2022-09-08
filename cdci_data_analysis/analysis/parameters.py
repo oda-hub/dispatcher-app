@@ -39,6 +39,7 @@ from astropy.coordinates import Angle as astropyAngle
 import numpy as np
 
 from typing import Union
+from inspect import signature
 
 logger = logging.getLogger(__name__)
 
@@ -202,9 +203,12 @@ class Parameter:
 
                  check_value=None,
                  allowed_values=None,
-
+                 **kwargs
                  ):
-
+        if len(kwargs) > 0:
+            logger.error("possibily programming error: class %s initialized with extra arguments %s",
+                         self, kwargs)
+        
         if (units is None or units == '') and \
                 default_units is not None and default_units != '':
             # TODO ideally those should be renamed as singular (unit and default_unit)
@@ -397,77 +401,38 @@ class Parameter:
     @classmethod
     def from_owl_uri(cls, 
                      owl_uri, 
-                     value=None,
-                     units=None,
-                     name = None,
-                     allowed_units=None,
-                     default_units=None,
-                     units_name=None,
- 
-                     par_format=None,
-                     par_default_format=None,
-                     par_format_name=None,
- 
-                     default_type=None,
-                     allowed_types=None,
- 
-                     check_value=None,
-                     allowed_values=None):
+                     **kwargs):
         # TODO: what about units?
 
         parameter = None
-        
+
         for x in subclasses_recursive(cls):
             logger.debug("searching for class with owl_uri=%s, found %s", owl_uri, x)
             if x.matches_owl_uri(owl_uri):
                 logger.info("will construct %s by url %s", x, owl_uri)
+                call_kwargs = kwargs.copy()
+                call_signature = signature(x)
+                for par_name in kwargs.keys():
+                    if par_name not in call_signature.parameters:
+                        logger.warning("parameter %s with value %s not used to construct %s", par_name, kwargs[par_name], x)
+                        call_kwargs.pop(par_name, None)                                                            
                 try:
-                    parameter = x(value=value,
-                            units=units,
-                            name=name,
-                            allowed_units=allowed_units,
-                            default_units=default_units,
-                            units_name=units_name,
-        
-                            par_format=par_format,
-                            par_default_format=par_default_format,
-                            par_format_name=par_format_name,
-        
-                            default_type=default_type,
-                            allowed_types=allowed_types,
-        
-                            check_value=check_value,
-                            allowed_values=allowed_values)
+                    parameter = x(**call_kwargs)
                     break
                 except Exception as e:
                     logger.exception("failed to construct %s by url %s", x, owl_uri)
                     # raise
 
         if parameter is None:
-            logger.warning(f'Unknown owl type uri {owl_uri}. Creating basic Parameter object.') 
-            parameter = cls(value=value,
-                    units=units,
-                    name = name,
-                    allowed_units=allowed_units,
-                    default_units=default_units,
-                    units_name=units_name,   
-                    par_format=par_format,
-                    par_default_format=par_default_format,
-                    par_format_name=par_format_name,   
-                    default_type=default_type,
-                    allowed_types=allowed_types,   
-                    check_value=check_value,
-                    allowed_values=allowed_values)
+            logger.warning(f'Unknown owl type uri {owl_uri} or failed to construct. Creating basic Parameter object.') 
+            parameter = cls(**kwargs)
 
         return parameter
 
 class String(Parameter):
     owl_uris = ["http://www.w3.org/2001/XMLSchema#str"]
     
-    def __init__(self, value=None, name_format='str', name=None, **kwargs):
-        if len(kwargs) > 0:
-            logger.error("possibily programming error: class %s initialized with extra arguments %s",
-                         self, kwargs)
+    def __init__(self, value=None, name_format='str', name=None):
 
         _allowed_units = ['str']
         super().__init__(value=value,

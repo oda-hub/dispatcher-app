@@ -325,7 +325,7 @@ def test_parameter_normalization_with_units():
 @pytest.mark.fast
 @pytest.mark.parametrize('uri, value, param_type', 
                          [('http://odahub.io/ontology#PointOfInterestRA', 0.0, Angle), 
-                          ('http://odahub.io/ontology#PointOfInterestDec', 0.0, Angle), 
+                          ('http://odahub.io/ontology#PointOfInterestDEC', 0.0, Angle), 
                           ('http://odahub.io/ontology#StartTime', '2017-03-06T13:26:48.0', Time), 
                           ('http://odahub.io/ontology#EndTime', '2017-03-06T13:26:48.0', Time), 
                           ('http://odahub.io/ontology#AstrophysicalObject', 'Mrk421', Name)])
