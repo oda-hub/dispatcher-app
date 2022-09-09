@@ -39,6 +39,7 @@ from astropy.coordinates import Angle as astropyAngle
 import numpy as np
 
 from typing import Union
+from inspect import signature
 
 logger = logging.getLogger(__name__)
 
@@ -202,9 +203,12 @@ class Parameter:
 
                  check_value=None,
                  allowed_values=None,
-
+                 **kwargs
                  ):
-
+        if len(kwargs) > 0:
+            logger.error("possibily programming error: class %s initialized with extra arguments %s",
+                         self, kwargs)
+        
         if (units is None or units == '') and \
                 default_units is not None and default_units != '':
             # TODO ideally those should be renamed as singular (unit and default_unit)
@@ -395,79 +399,53 @@ class Parameter:
         return owl_uri in getattr(cls, "owl_uris", [])
 
     @classmethod
-    def from_owl_uri(cls, 
-                     owl_uri, 
-                     value=None,
-                     units=None,
-                     name = None,
-                     allowed_units=None,
-                     default_units=None,
-                     units_name=None,
- 
-                     par_format=None,
-                     par_default_format=None,
-                     par_format_name=None,
- 
-                     default_type=None,
-                     allowed_types=None,
- 
-                     check_value=None,
-                     allowed_values=None):
+    def from_owl_uri(cls,
+                     owl_uri,
+                     **kwargs):
         # TODO: what about units?
 
-        parameter = None
-        
+        possible_parameter_interpretations = []
+
         for x in subclasses_recursive(cls):
             logger.debug("searching for class with owl_uri=%s, found %s", owl_uri, x)
             if x.matches_owl_uri(owl_uri):
                 logger.info("will construct %s by url %s", x, owl_uri)
+                call_kwargs = {}
+                call_signature = signature(x)
+                for par_name, par_value in kwargs.items():
+                    if par_name in call_signature.parameters:
+                        call_kwargs[par_name] = par_value
+                    else:
+                        logger.error("parameter %s with value %s not used to construct %s and will be discarded for the instantiation, available parameters %s",
+                                     par_name, par_value, x, call_signature)
                 try:
-                    parameter = x(value=value,
-                            units=units,
-                            name=name,
-                            allowed_units=allowed_units,
-                            default_units=default_units,
-                            units_name=units_name,
-        
-                            par_format=par_format,
-                            par_default_format=par_default_format,
-                            par_format_name=par_format_name,
-        
-                            default_type=default_type,
-                            allowed_types=allowed_types,
-        
-                            check_value=check_value,
-                            allowed_values=allowed_values)
-                    break
+                    possible_parameter_interpretations.append(x(**call_kwargs))
                 except Exception as e:
-                    logger.exception("failed to construct %s by url %s", x, owl_uri)
-                    # raise
+                    logger.exception(("owl_uri %s matches Parameter %s, but the Parameter constructor failed! "
+                                      "Possibly a programming error, or/and unspecified subclass"), owl_uri, x)
 
-        if parameter is None:
-            logger.warning(f'Unknown owl type uri {owl_uri}. Creating basic Parameter object.') 
-            parameter = cls(value=value,
-                    units=units,
-                    name = name,
-                    allowed_units=allowed_units,
-                    default_units=default_units,
-                    units_name=units_name,   
-                    par_format=par_format,
-                    par_default_format=par_default_format,
-                    par_format_name=par_format_name,   
-                    default_type=default_type,
-                    allowed_types=allowed_types,   
-                    check_value=check_value,
-                    allowed_values=allowed_values)
+        n_interpretations = len(possible_parameter_interpretations)
+        
+        logger.info('found %s interpretations for type %s: %s',
+                    n_interpretations,
+                    owl_uri,
+                    possible_parameter_interpretations)
 
-        return parameter
+        if n_interpretations == 0:
+            logger.warning(('Unknown owl type uri %s or failed to construct any parameter. '
+                            'Creating basic Parameter object.'), owl_uri)
+            possible_parameter_interpretations.append(cls(**kwargs))
+        elif n_interpretations > 1:
+            # this is likely to happen with subclasses and it can be ok
+            logger.info("picking the first one (the most general one) out of are multiple interpretations of type uri %s: %s",
+                        owl_uri, possible_parameter_interpretations)
+
+        return possible_parameter_interpretations[0]
 
 class String(Parameter):
     owl_uris = ["http://www.w3.org/2001/XMLSchema#str"]
     
-    def __init__(self, value=None, name_format='str', name=None, **kwargs):
-        if len(kwargs) > 0:
-            logger.error("possibily programming error: class %s initialized with extra arguments %s",
-                         self, kwargs)
+    def __init__(self, value=None, name_format='str', name=None):
 
         _allowed_units = ['str']
         super().__init__(value=value,
@@ -481,7 +459,7 @@ class String(Parameter):
         pass
 
 class Name(String):
-    owl_uris = ["http://odahub.io/ontology@AstrophysicalObject"]
+    owl_uris = ["http://odahub.io/ontology#AstrophysicalObject"]
 
 class Float(Parameter):
     owl_uris = ["http://www.w3.org/2001/XMLSchema#float"]
@@ -588,7 +566,16 @@ class Integer(Parameter):
 
 
 class Time(Parameter):
-    owl_uris = ["http://odahub.io/ontology#StartTime", "http://odahub.io/ontology#EndTime"]
+    # TODO:
+    # here, we should only keep TimeInstant, and use https://odahub.io/ontology/ontology.ttl
+    # to derive relations between sub-classes specified by the user but not relevant for construction
+    # of this class.
+    # reading the rdf should be done with thread-safe caching to avoid frequent requests
+
+    owl_uris = ["http://odahub.io/ontology#TimeInstant",
+                "http://odahub.io/ontology#StartTime",
+                "http://odahub.io/ontology#EndTime"]
+
     def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None, par_default_format='isot'):
 
         super().__init__(value=value,
@@ -630,6 +617,9 @@ class Time(Parameter):
         self._value = value
 
 
+# TODO: redefine time-timedelta relation
+# it is confusing that TimeDelta derives from Time.  
+# https://github.com/astropy/astropy/blob/main/astropy/time/core.py#L379
 class TimeDelta(Time):
     def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None, par_default_format='sec'):
 
