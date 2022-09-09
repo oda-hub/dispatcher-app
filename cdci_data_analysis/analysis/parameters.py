@@ -414,7 +414,7 @@ class Parameter:
                 call_signature = signature(x)
                 for par_name in kwargs.keys():
                     if par_name not in call_signature.parameters:
-                        logger.warning("parameter %s with value %s not used to construct %s", par_name, kwargs[par_name], x)
+                        logger.warning("parameter %s, with value %s, is not used to construct a %s object, therefore this will be discarded for the instantiation", par_name, kwargs[par_name], x)
                         call_kwargs.pop(par_name, None)                                                            
                 try:
                     parameter = x(**call_kwargs)
@@ -424,7 +424,7 @@ class Parameter:
                     # raise
 
         if parameter is None:
-            logger.warning(f'Unknown owl type uri {owl_uri} or failed to construct. Creating basic Parameter object.') 
+            logger.warning('Unknown owl type uri %s or failed to construct associated object. Creating basic Parameter object.', owl_uri) 
             parameter = cls(**kwargs)
 
         return parameter
