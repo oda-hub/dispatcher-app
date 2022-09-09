@@ -324,19 +324,21 @@ def test_parameter_normalization_with_units():
             
 @pytest.mark.fast
 @pytest.mark.parametrize('uri, value, param_type', 
-                         [('http://odahub.io/ontology#PointOfInterestRA', 0.0, Angle), 
-                          ('http://odahub.io/ontology#PointOfInterestDEC', 0.0, Angle), 
-                          ('http://odahub.io/ontology#StartTime', '2017-03-06T13:26:48.0', Time), 
-                          ('http://odahub.io/ontology#EndTime', '2017-03-06T13:26:48.0', Time), 
+                         [('http://odahub.io/ontology#PointOfInterestRA', 0.0, Angle),
+                          ('http://odahub.io/ontology#PointOfInterestDEC', 0.0, Angle),
+                          ('http://odahub.io/ontology#StartTime', '2017-03-06T13:26:48.0', Time),
+                          ('http://odahub.io/ontology#EndTime', '2017-03-06T13:26:48.0', Time),
+                          ('http://odahub.io/ontology#TimeInstant', '2017-03-06T13:26:48.0', Time),
                           ('http://odahub.io/ontology#AstrophysicalObject', 'Mrk421', Name)])
 def test_parameter_from_owl_uri(uri, value, param_type):
     param = Parameter.from_owl_uri(uri, value=value, name='example')
     assert isinstance(param, param_type)
-    
+
+
 def test_parameter_from_owl_uri_extra_param(caplog):
-    param = Parameter.from_owl_uri('http://odahub.io/ontology#StartTime', 
-                                   value='59830', 
-                                   T_format = 'mjd',
-                                   units='d', # wrong parameter  
-                                   name='example')
+    Parameter.from_owl_uri('http://odahub.io/ontology#StartTime',
+                           value='59830',
+                           T_format='mjd',
+                           units='d', # wrong parameter
+                           name='example')
     assert "parameter units with value d not used to construct <class 'cdci_data_analysis.analysis.parameters.Time'>" in caplog.text
