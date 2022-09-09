@@ -399,35 +399,48 @@ class Parameter:
         return owl_uri in getattr(cls, "owl_uris", [])
 
     @classmethod
-    def from_owl_uri(cls, 
-                     owl_uri, 
+    def from_owl_uri(cls,
+                     owl_uri,
                      **kwargs):
         # TODO: what about units?
 
-        parameter = None
+        possible_parameter_interpretations = []
 
         for x in subclasses_recursive(cls):
             logger.debug("searching for class with owl_uri=%s, found %s", owl_uri, x)
             if x.matches_owl_uri(owl_uri):
                 logger.info("will construct %s by url %s", x, owl_uri)
-                call_kwargs = kwargs.copy()
+                call_kwargs = {}
                 call_signature = signature(x)
-                for par_name in kwargs.keys():
-                    if par_name not in call_signature.parameters:
-                        logger.warning("parameter %s, with value %s, is not used to construct a %s object, therefore this will be discarded for the instantiation", par_name, kwargs[par_name], x)
-                        call_kwargs.pop(par_name, None)                                                            
+                for par_name, par_value in kwargs.items():
+                    if par_name in call_signature.parameters:
+                        call_kwargs[par_name] = par_value
+                    else:
+                        logger.error("parameter %s with value %s not used to construct %s and will be discarded for the instantiation, available parameters %s",
+                                     par_name, par_value, x, call_signature)
                 try:
-                    parameter = x(**call_kwargs)
-                    break
+                    possible_parameter_interpretations.append(x(**call_kwargs))
                 except Exception as e:
-                    logger.exception("failed to construct %s by url %s", x, owl_uri)
-                    # raise
+                    logger.exception(("owl_uri %s matches Parameter %s, but the Parameter constructor failed! "
+                                      "Possibly a programming error, or/and unspecified subclass"), owl_uri, x)
 
-        if parameter is None:
-            logger.warning('Unknown owl type uri %s or failed to construct associated object. Creating basic Parameter object.', owl_uri) 
-            parameter = cls(**kwargs)
+        n_interpretations = len(possible_parameter_interpretations)
+        
+        logger.info('found %s interpretations for type %s: %s',
+                    n_interpretations,
+                    owl_uri,
+                    possible_parameter_interpretations)
 
-        return parameter
+        if n_interpretations == 0:
+            logger.warning(('Unknown owl type uri %s or failed to construct any parameter. '
+                            'Creating basic Parameter object.'), owl_uri)
+            possible_parameter_interpretations.append(cls(**kwargs))
+        elif n_interpretations > 1:
+            # this is likely to happen with subclasses and it can be ok
+            logger.info("picking the first one (the most general one) out of are multiple interpretations of type uri %s: %s",
+                        owl_uri, possible_parameter_interpretations)
+
+        return possible_parameter_interpretations[0]
 
 class String(Parameter):
     owl_uris = ["http://www.w3.org/2001/XMLSchema#str"]
@@ -553,7 +566,16 @@ class Integer(Parameter):
 
 
 class Time(Parameter):
-    owl_uris = ["http://odahub.io/ontology#StartTime", "http://odahub.io/ontology#EndTime"]
+    # TODO:
+    # here, we should only keep TimeInstant, and use https://odahub.io/ontology/ontology.ttl
+    # to derive relations between sub-classes specified by the user but not relevant for construction
+    # of this class.
+    # reading the rdf should be done with thread-safe caching to avoid frequent requests
+
+    owl_uris = ["http://odahub.io/ontology#TimeInstant",
+                "http://odahub.io/ontology#StartTime",
+                "http://odahub.io/ontology#EndTime"]
+
     def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None, par_default_format='isot'):
 
         super().__init__(value=value,
@@ -595,6 +617,9 @@ class Time(Parameter):
         self._value = value
 
 
+# TODO: redefine time-timedelta relation
+# it is confusing that TimeDelta derives from Time.  
+# https://github.com/astropy/astropy/blob/main/astropy/time/core.py#L379
 class TimeDelta(Time):
     def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None, par_default_format='sec'):
 
