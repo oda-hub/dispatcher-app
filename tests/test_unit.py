@@ -339,4 +339,4 @@ def test_parameter_from_owl_uri_extra_param(caplog):
                                    T_format = 'mjd',
                                    units='d', # wrong parameter  
                                    name='example')
-    assert "parameter units with value d not used to construct <class 'cdci_data_analysis.analysis.parameters.Time'>" in caplog.text
+    assert "parameter units, with value d, is not used to construct a <class 'cdci_data_analysis.analysis.parameters.Time'> object, therefore this will be discarded for the instantiation" in caplog.text
