@@ -269,7 +269,8 @@ class InstrumentQueryBackEnd:
                                                  'token',
                                                  'api',
                                                  'oda_api_version',
-                                                 'off_line'] + self.instrument.get_parameters_name_list()
+                                                 'off_line',
+                                                 'job_id'] + self.instrument.get_parameters_name_list()
                         self.unknown_parameters_name_list = []
                         for k in list(self.par_dic.keys()):
                             if k not in known_parameter_names:
