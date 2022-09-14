@@ -2322,3 +2322,24 @@ def test_param_value(dispatcher_live_fixture):
 
     assert jdata['products']['analysis_parameters']['T1'] == '2017-03-06T13:26:48.000'
     assert jdata['products']['echo']['T1'] == 57818.560277777775
+
+@pytest.mark.fast
+def test_unknown_parameter(dispatcher_live_fixture):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+
+    c = requests.get(server + "/run_analysis",
+                   params={'instrument': 'empty',
+                           'product_type': 'dummy',
+                           'query_status': 'new',
+                           'query_type': 'Real',
+                           'unknown': 2.0},
+                  )
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+    
+    assert re.match(r'Please note that parameters?.*unknown.*not used', jdata['exit_status']['comment'])
+    assert 'unknown' not in jdata['products']['analysis_parameters'].keys()
+    assert 'unknown' not in jdata['products']['api_code']
