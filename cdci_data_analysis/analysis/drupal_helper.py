@@ -389,6 +389,7 @@ def post_content_to_gallery(decoded_token,
     content_type = ContentType[str.upper(par_dic.pop('content_type', 'article'))]
     fits_file_fid_list = None
     html_file_fid_list = None
+    yaml_file_fid_list = None
     img_fid = None
     product_title = None
     data_product_id = None
@@ -420,28 +421,24 @@ def post_content_to_gallery(decoded_token,
                                                            gallery_jwt_token=gallery_jwt_token,
                                                            sentry_dsn=sentry_dsn)
                     img_fid = output_img_post['fid'][0]['value']
-                elif f.startswith('fits_file'):
-                    fits_file_obj = files[f]
-                    # upload file to drupal
-                    output_fits_file_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
-                                                                 file_type="document",
-                                                                 file=fits_file_obj,
-                                                                 gallery_jwt_token=gallery_jwt_token,
-                                                                 sentry_dsn=sentry_dsn)
-                    if fits_file_fid_list is None:
-                        fits_file_fid_list = []
-                    fits_file_fid_list.append(output_fits_file_post['fid'][0]['value'])
-                elif f.startswith('html_file'):
-                    html_file_obj = files[f]
-                    # upload file to drupal
-                    output_html_file_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
-                                                                 file_type="document",
-                                                                 file=html_file_obj,
-                                                                 gallery_jwt_token=gallery_jwt_token,
-                                                                 sentry_dsn=sentry_dsn)
-                    if html_file_fid_list is None:
-                        html_file_fid_list = []
-                    html_file_fid_list.append(output_html_file_post['fid'][0]['value'])
+                else:
+                    output_file_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
+                                                            file_type="document",
+                                                            file=files[f],
+                                                            gallery_jwt_token=gallery_jwt_token,
+                                                            sentry_dsn=sentry_dsn)
+                    if f.startswith('fits_file'):
+                        if fits_file_fid_list is None:
+                            fits_file_fid_list = []
+                        fits_file_fid_list.append(output_file_post['fid'][0]['value'])
+                    elif f.startswith('html_file'):
+                        if html_file_fid_list is None:
+                            html_file_fid_list = []
+                        html_file_fid_list.append(output_file_post['fid'][0]['value'])
+                    elif f.startswith('yaml_file'):
+                        if yaml_file_fid_list is None:
+                            yaml_file_fid_list = []
+                        yaml_file_fid_list.append(output_file_post['fid'][0]['value'])
 
         product_title = par_dic.pop('product_title', product_title)
         observation_id = par_dic.pop('observation_id', None)
@@ -457,6 +454,7 @@ def post_content_to_gallery(decoded_token,
                                                                 img_fid=img_fid,
                                                                 fits_file_fid_list=fits_file_fid_list,
                                                                 html_file_fid_list=html_file_fid_list,
+                                                                observation_attachment_file_fid_list=yaml_file_fid_list,
                                                                 observation_id=observation_id,
                                                                 user_id_product_creator=user_id_product_creator,
                                                                 insert_new_source=insert_new_source,
@@ -523,7 +521,11 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
     return astro_entity_drupal_id
 
 
-def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url, t1=None, t2=None, timezone=None, sentry_dsn=None):
+def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
+                     t1=None, t2=None, timezone=None,
+                     obsid=None,
+                     observation_attachment_file_fid_list=None,
+                     sentry_dsn=None):
     # post new observation with or without a specific time range
     body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_node)
     # set the type of content to post
@@ -531,6 +533,20 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
                                                                   "href"], 'observation')
 
     tz_to_apply = tz.gettz(timezone)
+
+    if obsid is not None:
+        body_gallery_observation_node["field_obsid"] = [{
+            "value": obsid
+        }]
+
+    # setting attachments file fid(s) (yaml) if available
+    if observation_attachment_file_fid_list is not None:
+        for fid in observation_attachment_file_fid_list:
+            if 'field_attachments' not in body_gallery_observation_node:
+                body_gallery_observation_node['field_attachments'] = []
+            body_gallery_observation_node['field_attachments'].append({
+                "target_id": int(fid)
+            })
 
     if t1 is not None and t2 is not None:
         # format the time fields, from the format request
@@ -658,8 +674,9 @@ def get_data_product_list_by_product_id(product_gallery_url, gallery_jwt_token, 
 
 
 def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
-                              t1=None, t2=None,
-                              timezone=None,
+                              t1=None, t2=None, timezone=None,
+                              obsid=None,
+                              observation_attachment_file_fid_list=None,
                               observation_id=None,
                               sentry_dsn=None) \
         -> Tuple[Optional[str], Optional[str]]:
@@ -678,6 +695,38 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
         if isinstance(output_get, list) and len(output_get) == 1:
             observation_drupal_id = output_get[0]['nid']
             observation_information_message = 'observation assigned by the user'
+
+            if obsid is not None or observation_attachment_file_fid_list is not None:
+                # post new observation with or without a specific time range
+                body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_node)
+                body_gallery_observation_node["title"]["value"] = observation_id
+                # set the type of content to post
+                body_gallery_observation_node["_links"]["type"]["href"] = os.path.join(product_gallery_url, body_gallery_observation_node["_links"]["type"]["href"], 'observation')
+
+                if obsid is not None:
+                    body_gallery_observation_node["field_obsid"] = [{
+                        "value": obsid
+                    }]
+
+                # setting attachments file fid(s) (yaml) if available
+                if observation_attachment_file_fid_list is not None:
+                    for fid in observation_attachment_file_fid_list:
+                        if 'field_attachments' not in body_gallery_observation_node:
+                            body_gallery_observation_node['field_attachments'] = []
+                        body_gallery_observation_node['field_attachments'].append({
+                            "target_id": int(fid)
+                        })
+                # finally, post the data product to the gallery
+                headers = get_drupal_request_headers(gallery_jwt_token)
+                logger.info(f"updating the period of observation with id {observation_drupal_id}")
+                log_res = execute_drupal_request(os.path.join(product_gallery_url, 'node', observation_drupal_id),
+                                                 method='patch',
+                                                 data=json.dumps(body_gallery_observation_node),
+                                                 headers=headers,
+                                                 sentry_dsn=sentry_dsn)
+                output_post = analyze_drupal_output(log_res,
+                                                    operation_performed=f"updating the period of observation with id {observation_drupal_id}")
+
     else:
 
         if t1 is not None and t2 is not None:
@@ -701,11 +750,42 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
                     observation_drupal_id = observation['nid']
                     observation_information_message = 'observation assigned from the provided time range' + \
                                                       observation_information_message_timezone_warning
+                    if obsid is not None or observation_attachment_file_fid_list is not None:
+                        # post new observation with or without a specific time range
+                        body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_node)
+                        # set the type of content to post
+                        body_gallery_observation_node["_links"]["type"]["href"] = os.path.join(product_gallery_url, body_gallery_observation_node["_links"]["type"]["href"], 'observation')
+                        body_gallery_observation_node["title"]["value"] = observation["title"]
+                        if obsid is not None:
+                            body_gallery_observation_node["field_obsid"] = [{
+                                "value": obsid
+                            }]
+
+                        # setting attachments file fid(s) (yaml) if available
+                        if observation_attachment_file_fid_list is not None:
+                            for fid in observation_attachment_file_fid_list:
+                                if 'field_attachments' not in body_gallery_observation_node:
+                                    body_gallery_observation_node['field_attachments'] = []
+                                body_gallery_observation_node['field_attachments'].append({
+                                    "target_id": int(fid)
+                                })
+                        # finally, post the data product to the gallery
+                        headers = get_drupal_request_headers(gallery_jwt_token)
+                        logger.info(f"updating the period of observation with id {observation_drupal_id}")
+                        log_res = execute_drupal_request(os.path.join(product_gallery_url, 'node', observation_drupal_id),
+                                                         method='patch',
+                                                         data=json.dumps(body_gallery_observation_node),
+                                                         headers=headers,
+                                                         sentry_dsn=sentry_dsn)
+                        output_post = analyze_drupal_output(log_res, operation_performed=f"updating the period of observation with id {observation_drupal_id}")
+
                     break
 
         if observation_drupal_id is None and (t1 is not None and t2 is not None):
             observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
                                                      t1, t2, timezone=timezone,
+                                                     obsid=obsid,
+                                                     observation_attachment_file_fid_list=observation_attachment_file_fid_list,
                                                      sentry_dsn=sentry_dsn)
             observation_information_message = 'a new observation has been posted' + \
                                               observation_information_message_timezone_warning
@@ -719,6 +799,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                                  img_fid=None,
                                  fits_file_fid_list=None,
                                  html_file_fid_list=None,
+                                 observation_attachment_file_fid_list=None,
                                  observation_id=None,
                                  user_id_product_creator=None,
                                  insert_new_source=False,
@@ -733,7 +814,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
 
     # set the initial body content
     body_value = ''
-    t1 = t2 = instrument = product_type = None
+    t1 = t2 = instrument = product_type = obsid = None
 
     job_id = kwargs.get('job_id', None)
 
@@ -779,10 +860,14 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
         t1 = kwargs.pop('T1')
     if 'T2' in kwargs:
         t2 = kwargs.pop('T2')
+    if 'obsid' in kwargs:
+        obsid = kwargs.pop('obsid')
 
     observation_drupal_id, observation_information_message = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
                                                                                        converttime_revnum_service_url,
                                                                                        t1=t1, t2=t2, timezone=timezone,
+                                                                                       obsid=obsid,
+                                                                                       observation_attachment_file_fid_list=observation_attachment_file_fid_list,
                                                                                        observation_id=observation_id)
     if observation_drupal_id is not None:
         body_gallery_article_node["field_derived_from_observation"] = [{
