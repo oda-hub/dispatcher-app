@@ -1681,8 +1681,9 @@ def test_converttime_revnum(dispatcher_live_fixture_with_gallery, time_to_conver
 
 
 @pytest.mark.test_drupal
+@pytest.mark.parametrize("obsid", [1960001, ["1960001", "1960002", "1960003"]])
 @pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "time_range_no_timezone_limits", "time_range_with_timezone", "new_time_range", "observation_id"])
-def test_product_gallery_period_of_observation(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, timerange_parameters):
+def test_product_gallery_period_of_observation(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, timerange_parameters, obsid):
     server = dispatcher_live_fixture_with_gallery
 
     logger.info("constructed server: %s", server)
@@ -1697,9 +1698,11 @@ def test_product_gallery_period_of_observation(dispatcher_live_fixture_with_gall
     params = {
         'content_type': 'data_product',
         'product_title': 'Test observation range',
-        'obsid': 1960001,
         'token': encoded_token,
+        'obsid': obsid
     }
+    if isinstance(obsid, list):
+        params['obsid'] = ','.join(obsid)
 
     file_obj = {'yaml_file_0': open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'rb')}
 
@@ -1754,7 +1757,11 @@ def test_product_gallery_period_of_observation(dispatcher_live_fixture_with_gall
     obs_per_title = drupal_res_obs_info_obj['title'][0]['value']
 
     assert 'field_obsid' in drupal_res_obs_info_obj
-    assert drupal_res_obs_info_obj['field_obsid'][0]['value'] == str(params['obsid'])
+    if isinstance(obsid, list):
+        for single_obsid in obsid:
+            assert drupal_res_obs_info_obj['field_obsid'][obsid.index(single_obsid)]['value'] == single_obsid
+    else:
+        assert drupal_res_obs_info_obj['field_obsid'][0]['value'] == str(obsid)
 
     link_field_field_attachments = os.path.join(
         dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
