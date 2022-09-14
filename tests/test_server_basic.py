@@ -1682,7 +1682,7 @@ def test_converttime_revnum(dispatcher_live_fixture_with_gallery, time_to_conver
 
 @pytest.mark.test_drupal
 @pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "time_range_no_timezone_limits", "time_range_with_timezone", "new_time_range", "observation_id"])
-def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, timerange_parameters):
+def test_product_gallery_period_of_observation(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, timerange_parameters):
     server = dispatcher_live_fixture_with_gallery
 
     logger.info("constructed server: %s", server)
@@ -1697,8 +1697,12 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
     params = {
         'content_type': 'data_product',
         'product_title': 'Test observation range',
+        'obsid': 1960001,
         'token': encoded_token,
     }
+
+    file_obj = {'yaml_file_0': open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'rb')}
+
     now = datetime.now()
 
     if timerange_parameters == 'time_range_no_timezone':
@@ -1717,7 +1721,8 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
         params['T2'] = now.strftime('%Y-%m-%dT%H:%M:%S')
 
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
-                      params={**params}
+                      params={**params},
+                      files=file_obj
                       )
 
     assert c.status_code == 200
@@ -1747,6 +1752,14 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
     assert 'field_timerange' in drupal_res_obs_info_obj
     obs_per_field_timerange = drupal_res_obs_info_obj['field_timerange']
     obs_per_title = drupal_res_obs_info_obj['title'][0]['value']
+
+    assert 'field_obsid' in drupal_res_obs_info_obj
+    assert drupal_res_obs_info_obj['field_obsid'][0]['value'] == str(params['obsid'])
+
+    link_field_field_attachments = os.path.join(
+        dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+        'rest/relation/node/observation/field_attachments')
+    assert link_field_field_attachments in drupal_res_obs_info_obj['_links']
 
     obs_per_field_timerange_start_no_timezone = parser.parse(obs_per_field_timerange[0]['value']).strftime('%Y-%m-%dT%H:%M:%S')
     obs_per_field_timerange_end_no_timezone = parser.parse(obs_per_field_timerange[0]['end_value']).strftime(
