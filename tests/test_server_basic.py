@@ -1720,7 +1720,7 @@ def test_product_gallery_period_of_observation(dispatcher_live_fixture_with_gall
     elif timerange_parameters == 'observation_id':
         params['observation_id'] = 'test observation'
     elif timerange_parameters == 'new_time_range':
-        params['T1'] = (now - timedelta(days=10)).strftime('%Y-%m-%dT%H:%M:%S')
+        params['T1'] = (now - timedelta(days=random.randint(3, 9))).strftime('%Y-%m-%dT%H:%M:%S')
         params['T2'] = now.strftime('%Y-%m-%dT%H:%M:%S')
 
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
