@@ -607,6 +607,35 @@ def get_parents_term():
     return output_request
 
 
+@app.route('/post_observation_to_gallery', methods=['POST'])
+def post_observation_to_gallery():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
+                                                        content_type=drupal_helper.ContentType.OBSERVATION,
+                                                        disp_conf=app_config,
+                                                        files=request.files,
+                                                        **par_dic)
+
+    return output_post
+
+
 @app.route('/post_product_to_gallery', methods=['POST'])
 def post_product_to_gallery():
     logger.info("request.args: %s ", request.args)

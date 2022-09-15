@@ -15,7 +15,7 @@ from typing import Optional, Tuple, Dict
 
 import sentry_sdk
 from dateutil import parser, tz
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum, auto
 
 from cdci_data_analysis.analysis import tokenHelper
@@ -446,22 +446,38 @@ def post_content_to_gallery(decoded_token,
         # TODO perhaps there's a smarter way to do this
         insert_new_source = par_dic.pop('insert_new_source', 'False') == 'True'
 
-        output_data_product_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
-                                                                gallery_jwt_token=gallery_jwt_token,
-                                                                converttime_revnum_service_url=converttime_revnum_service_url,
-                                                                data_product_id=data_product_id,
-                                                                product_title=product_title,
-                                                                img_fid=img_fid,
-                                                                fits_file_fid_list=fits_file_fid_list,
-                                                                html_file_fid_list=html_file_fid_list,
-                                                                observation_attachment_file_fid_list=yaml_file_fid_list,
-                                                                observation_id=observation_id,
-                                                                user_id_product_creator=user_id_product_creator,
-                                                                insert_new_source=insert_new_source,
-                                                                timezone=timezone,
-                                                                **par_dic)
-
-        return output_data_product_post
+        output_content_post = post_data_product_to_gallery(product_gallery_url=product_gallery_url,
+                                                           gallery_jwt_token=gallery_jwt_token,
+                                                           converttime_revnum_service_url=converttime_revnum_service_url,
+                                                           data_product_id=data_product_id,
+                                                           product_title=product_title,
+                                                           img_fid=img_fid,
+                                                           fits_file_fid_list=fits_file_fid_list,
+                                                           html_file_fid_list=html_file_fid_list,
+                                                           observation_attachment_file_fid_list=yaml_file_fid_list,
+                                                           observation_id=observation_id,
+                                                           user_id_product_creator=user_id_product_creator,
+                                                           insert_new_source=insert_new_source,
+                                                           timezone=timezone,
+                                                           sentry_dsn=sentry_dsn,
+                                                           **par_dic)
+    elif content_type == content_type.OBSERVATION:
+        t1 = kwargs.pop('T1', None)
+        t2 = kwargs.pop('T2', None)
+        revnum_1 = kwargs.pop('revnum_1', None)
+        revnum_2 = kwargs.pop('revnum_2', None)
+        obsid = kwargs.pop('obsid', None)
+        output_content_post = post_observation(product_gallery_url=product_gallery_url,
+                                               gallery_jwt_token=gallery_jwt_token,
+                                               converttime_revnum_service_url=converttime_revnum_service_url,
+                                               t1=t1, t2=t2, timezone=timezone,
+                                               revnum_1=revnum_1, revnum_2=revnum_2,
+                                               obsids=obsid,
+                                               observation_attachment_file_fid_list=yaml_file_fid_list,
+                                               sentry_dsn=sentry_dsn)
+    else:
+        output_content_post = None
+    return output_content_post
 
 
 def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=None, t2=None, sentry_dsn=None):
@@ -529,6 +545,7 @@ def build_gallery_observation_node(product_gallery_url,
                                    observation_attachment_file_fid_list=None,
                                    ):
     body_gallery_observation_node = copy.deepcopy(body_article_product_gallery.body_node)
+    body_gallery_observation_node["title"]["value"] = title
     # set the type of content to post
     body_gallery_observation_node["_links"]["type"]["href"] = os.path.join(product_gallery_url,
                                                                            body_gallery_observation_node["_links"][
@@ -569,11 +586,12 @@ def build_gallery_observation_node(product_gallery_url,
 
 def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
                      t1=None, t2=None, timezone=None,
+                     revnum_1=None, revnum_2=None,
                      obsids=None,
                      observation_attachment_file_fid_list=None,
                      sentry_dsn=None):
 
-    t1_formatted = t2_formatted = revnum_1 = revnum_2 = None
+    t1_formatted = t2_formatted = t1_revnum_1 = t2_revnum_2 = None
 
     tz_to_apply = tz.gettz(timezone)
 
@@ -585,15 +603,14 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
         t2_parsed = parser.parse(t2)
         t2_formatted = t2_parsed.astimezone(tz_to_apply).strftime('%Y-%m-%dT%H:%M:%S%z')
 
-        # get the relative rev_num(s) and set them in the body
-        revnum_1 = get_revnum(service_url=converttime_revnum_service_url, time_to_convert=t1_formatted)
-        if revnum_1 is not None and 'revnum' in revnum_1:
-            revnum_1 = None
+        t1_revnum_1 = get_revnum(service_url=converttime_revnum_service_url, time_to_convert=t1_formatted)
+        if t1_revnum_1 is not None and 'revnum' in t1_revnum_1:
+            t1_revnum_1 = t1_revnum_1['revnum']
         else:
             logger.warning(f'error while retrieving the revolution number from corresponding to the time {t1}')
-        revnum_2 = get_revnum(service_url=converttime_revnum_service_url, time_to_convert=t2_formatted)
-        if revnum_2 is not None and 'revnum' in revnum_2:
-            revnum_2 = None
+        t2_revnum_2 = get_revnum(service_url=converttime_revnum_service_url, time_to_convert=t2_formatted)
+        if t2_revnum_2 is not None and 'revnum' in t2_revnum_2:
+            t2_revnum_2 = t2_revnum_2['revnum']
         else:
             logger.warning(f'error while retrieving the revolution number from corresponding to the time {t2}')
 
@@ -602,10 +619,15 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
         # assign a randomly generate id in case to time range is provided
         title = "_".join(["observation", str(uuid.uuid4())])
 
+    if revnum_1 is not None:
+        t1_revnum_1 = revnum_1
+    if revnum_2 is not None:
+        t2_revnum_2 = revnum_2
+
     body_gallery_observation_node = build_gallery_observation_node(product_gallery_url,
                                                                    title=title,
                                                                    t1=t1_formatted, t2=t2_formatted,
-                                                                   revnum_1=revnum_1, revnum_2=revnum_2,
+                                                                   revnum_1=t1_revnum_1, revnum_2=t2_revnum_2,
                                                                    obsids=obsids,
                                                                    observation_attachment_file_fid_list=observation_attachment_file_fid_list)
 
