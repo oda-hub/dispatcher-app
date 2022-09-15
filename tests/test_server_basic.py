@@ -1720,7 +1720,7 @@ def test_product_gallery_data_product_with_period_of_observation(dispatcher_live
     elif timerange_parameters == 'observation_id':
         params['observation_id'] = 'test observation'
     elif timerange_parameters == 'new_time_range':
-        params['T1'] = (now - timedelta(days=random.randint(3, 9))).strftime('%Y-%m-%dT%H:%M:%S')
+        params['T1'] = (now - timedelta(days=random.randint(30, 150))).strftime('%Y-%m-%dT%H:%M:%S')
         params['T2'] = now.strftime('%Y-%m-%dT%H:%M:%S')
 
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
@@ -1802,7 +1802,7 @@ def test_product_gallery_data_product_with_period_of_observation(dispatcher_live
 
 @pytest.mark.test_drupal
 @pytest.mark.parametrize("obsid", [1960001, ["1960001", "1960002", "1960003"]])
-@pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "time_range_no_timezone_limits", "time_range_with_timezone", "new_time_range", "observation_id"])
+@pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "time_range_no_timezone_limits", "time_range_with_timezone", "new_time_range"])
 def test_product_gallery_post_period_of_observation(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, timerange_parameters, obsid):
     server = dispatcher_live_fixture_with_gallery
 
@@ -1835,10 +1835,8 @@ def test_product_gallery_post_period_of_observation(dispatcher_live_fixture_with
     elif timerange_parameters == 'time_range_with_timezone':
         params['T1'] = '2022-07-21T00:29:47+0100'
         params['T2'] = '2022-07-23T05:29:11+0100'
-    elif timerange_parameters == 'observation_id':
-        params['observation_id'] = 'test observation'
     elif timerange_parameters == 'new_time_range':
-        params['T1'] = (now - timedelta(days=random.randint(3, 9))).strftime('%Y-%m-%dT%H:%M:%S')
+        params['T1'] = (now - timedelta(days=random.randint(30, 150))).strftime('%Y-%m-%dT%H:%M:%S')
         params['T2'] = now.strftime('%Y-%m-%dT%H:%M:%S')
 
     c = requests.post(os.path.join(server, "post_observation_to_gallery"),
@@ -1910,8 +1908,6 @@ def test_product_gallery_post_period_of_observation(dispatcher_live_fixture_with
             t_end = parser.parse(times[1]).strftime('%Y-%m-%dT%H:%M:%S')
             assert parsed_t1_no_timezone == t_start
             assert parsed_t2_no_timezone == t_end
-    else:
-        assert obs_per_title == 'test observation'
 
 
 @pytest.mark.test_drupal
