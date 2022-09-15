@@ -393,6 +393,35 @@ def post_content_to_gallery(decoded_token,
     img_fid = None
     product_title = None
     data_product_id = None
+    if files is not None:
+        for f in files:
+            if f == 'img':
+                img_file_obj = files[f]
+                # upload file to drupal
+                output_img_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
+                                                       file_type="image",
+                                                       file=img_file_obj,
+                                                       gallery_jwt_token=gallery_jwt_token,
+                                                       sentry_dsn=sentry_dsn)
+                img_fid = output_img_post['fid'][0]['value']
+            else:
+                output_file_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
+                                                        file_type="document",
+                                                        file=files[f],
+                                                        gallery_jwt_token=gallery_jwt_token,
+                                                        sentry_dsn=sentry_dsn)
+                if f.startswith('fits_file'):
+                    if fits_file_fid_list is None:
+                        fits_file_fid_list = []
+                    fits_file_fid_list.append(output_file_post['fid'][0]['value'])
+                elif f.startswith('html_file'):
+                    if html_file_fid_list is None:
+                        html_file_fid_list = []
+                    html_file_fid_list.append(output_file_post['fid'][0]['value'])
+                elif f.startswith('yaml_file'):
+                    if yaml_file_fid_list is None:
+                        yaml_file_fid_list = []
+                    yaml_file_fid_list.append(output_file_post['fid'][0]['value'])
     if content_type == content_type.DATA_PRODUCT:
 
         product_id = par_dic.get('product_id', None)
@@ -410,35 +439,6 @@ def post_content_to_gallery(decoded_token,
                 logger.info(f"the data-product \"{product_title}\", id: {data_product_id} will be updated")
 
         # process files sent
-        if files is not None:
-            for f in files:
-                if f == 'img':
-                    img_file_obj = files[f]
-                    # upload file to drupal
-                    output_img_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
-                                                           file_type="image",
-                                                           file=img_file_obj,
-                                                           gallery_jwt_token=gallery_jwt_token,
-                                                           sentry_dsn=sentry_dsn)
-                    img_fid = output_img_post['fid'][0]['value']
-                else:
-                    output_file_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
-                                                            file_type="document",
-                                                            file=files[f],
-                                                            gallery_jwt_token=gallery_jwt_token,
-                                                            sentry_dsn=sentry_dsn)
-                    if f.startswith('fits_file'):
-                        if fits_file_fid_list is None:
-                            fits_file_fid_list = []
-                        fits_file_fid_list.append(output_file_post['fid'][0]['value'])
-                    elif f.startswith('html_file'):
-                        if html_file_fid_list is None:
-                            html_file_fid_list = []
-                        html_file_fid_list.append(output_file_post['fid'][0]['value'])
-                    elif f.startswith('yaml_file'):
-                        if yaml_file_fid_list is None:
-                            yaml_file_fid_list = []
-                        yaml_file_fid_list.append(output_file_post['fid'][0]['value'])
 
         product_title = par_dic.pop('product_title', product_title)
         observation_id = par_dic.pop('observation_id', None)
@@ -641,10 +641,7 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
 
     output_post = analyze_drupal_output(log_res, operation_performed="posting a new observation")
 
-    # extract the id of the observation
-    observation_drupal_id = output_post['nid'][0]['value']
-
-    return observation_drupal_id
+    return output_post
 
 
 # TODO to further optimize in two separate calls
@@ -804,11 +801,13 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
                     break
 
         if observation_drupal_id is None and (t1 is not None and t2 is not None):
-            observation_drupal_id = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
-                                                     t1, t2, timezone=timezone,
-                                                     obsids=obsids,
-                                                     observation_attachment_file_fid_list=observation_attachment_file_fid_list,
-                                                     sentry_dsn=sentry_dsn)
+            output_post = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
+                                           t1, t2, timezone=timezone,
+                                           obsids=obsids,
+                                           observation_attachment_file_fid_list=observation_attachment_file_fid_list,
+                                           sentry_dsn=sentry_dsn)
+            # extract the id of the observation
+            observation_drupal_id = output_post['nid'][0]['value']
             observation_information_message = 'a new observation has been posted' + \
                                               observation_information_message_timezone_warning
 

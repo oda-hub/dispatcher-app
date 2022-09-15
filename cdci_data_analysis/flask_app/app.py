@@ -628,7 +628,7 @@ def post_observation_to_gallery():
     par_dic.pop('token')
 
     output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
-                                                        content_type=drupal_helper.ContentType.OBSERVATION,
+                                                        content_type="observation",
                                                         disp_conf=app_config,
                                                         files=request.files,
                                                         **par_dic)
