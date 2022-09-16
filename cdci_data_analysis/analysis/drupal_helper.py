@@ -467,9 +467,11 @@ def post_content_to_gallery(decoded_token,
         revnum_1 = kwargs.pop('revnum_1', None)
         revnum_2 = kwargs.pop('revnum_2', None)
         obsid = kwargs.pop('obsid', None)
+        title = kwargs.pop('title', None)
         output_content_post = post_observation(product_gallery_url=product_gallery_url,
                                                gallery_jwt_token=gallery_jwt_token,
                                                converttime_revnum_service_url=converttime_revnum_service_url,
+                                               title=title,
                                                t1=t1, t2=t2, timezone=timezone,
                                                revnum_1=revnum_1, revnum_2=revnum_2,
                                                obsids=obsid,
@@ -585,13 +587,14 @@ def build_gallery_observation_node(product_gallery_url,
 
 
 def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
+                     title=None,
                      t1=None, t2=None, timezone=None,
                      revnum_1=None, revnum_2=None,
                      obsids=None,
                      observation_attachment_file_fid_list=None,
                      sentry_dsn=None):
 
-    t1_formatted = t2_formatted = t1_revnum_1 = t2_revnum_2 = None
+    t1_formatted = t2_formatted = t1_revnum_1 = t2_revnum_2 = formatted_title = None
 
     tz_to_apply = tz.gettz(timezone)
 
@@ -599,11 +602,9 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
         # format the time fields, from the format request
         t1_parsed = parser.parse(t1, ignoretz=True)
         t1_formatted = t1_parsed.astimezone(tz_to_apply).strftime('%Y-%m-%dT%H:%M:%S%z')
-        # t1_formatted = t1_parsed.astimezone(tz_to_apply).strftime('%Y-%m-%dT%H:%M:%S%z')
 
         t2_parsed = parser.parse(t2, ignoretz=True)
         t2_formatted = t2_parsed.astimezone(tz_to_apply).strftime('%Y-%m-%dT%H:%M:%S%z')
-        # t2_formatted = t2_parsed.astimezone(tz_to_apply).strftime('%Y-%m-%dT%H:%M:%S%z')
 
         t1_revnum_1 = get_revnum(service_url=converttime_revnum_service_url, time_to_convert=t1_formatted)
         if t1_revnum_1 is not None and 'revnum' in t1_revnum_1:
@@ -616,10 +617,13 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
         else:
             logger.warning(f'error while retrieving the revolution number from corresponding to the time {t2}')
 
-        title = "_".join(["observation", t1_formatted, t2_formatted])
+        formatted_title = "_".join(["observation", t1_formatted, t2_formatted])
     else:
         # assign a randomly generate id in case to time range is provided
-        title = "_".join(["observation", str(uuid.uuid4())])
+        formatted_title = "_".join(["observation", str(uuid.uuid4())])
+
+    if title is not None:
+        formatted_title=title
 
     if revnum_1 is not None:
         t1_revnum_1 = revnum_1
@@ -627,7 +631,7 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
         t2_revnum_2 = revnum_2
 
     body_gallery_observation_node = build_gallery_observation_node(product_gallery_url,
-                                                                   title=title,
+                                                                   title=formatted_title,
                                                                    t1=t1_formatted, t2=t2_formatted,
                                                                    revnum_1=t1_revnum_1, revnum_2=t2_revnum_2,
                                                                    obsids=obsids,
