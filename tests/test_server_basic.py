@@ -1800,6 +1800,7 @@ def test_product_gallery_data_product_with_period_of_observation(dispatcher_live
         assert obs_per_title == 'test observation'
 
 
+@pytest.mark.xfail
 @pytest.mark.test_drupal
 def test_product_gallery_post_period_of_observation_with_revnum(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
     server = dispatcher_live_fixture_with_gallery

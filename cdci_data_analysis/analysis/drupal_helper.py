@@ -625,10 +625,11 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
     if title is not None:
         formatted_title=title
 
-    if revnum_1 is not None:
-        t1_revnum_1 = revnum_1
-    if revnum_2 is not None:
-        t2_revnum_2 = revnum_2
+    # TODO posting of an observation via the revnum not implemented yet
+    # if revnum_1 is not None:
+    #     t1_revnum_1 = revnum_1
+    # if revnum_2 is not None:
+    #     t2_revnum_2 = revnum_2
 
     body_gallery_observation_node = build_gallery_observation_node(product_gallery_url,
                                                                    title=formatted_title,
