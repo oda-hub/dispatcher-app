@@ -769,16 +769,6 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
         if isinstance(output_get, list) and len(output_get) >= 1:
             observation_drupal_id = output_get[0]['nid']
             observation_information_message = 'observation assigned by the user'
-            #
-            # if obsids is not None or observation_attachment_file_fid_list is not None or t1 is not None or t2 is not None:
-            #     output_post = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
-            #                                    title=observation_title,
-            #                                    t1=t1, t2=t2, timezone=timezone,
-            #                                    obsids=obsids,
-            #                                    observation_attachment_file_fid_list=observation_attachment_file_fid_list,
-            #                                    sentry_dsn=sentry_dsn,
-            #                                    update_observation=True)
-            #     logger.info(f"observation with id {output_post['nid'][0]['value']} has been successfully updated")
 
     else:
 
@@ -803,17 +793,6 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
                     observation_drupal_id = observation['nid']
                     observation_information_message = 'observation assigned from the provided time range' + \
                                                       observation_information_message_timezone_warning
-                    # if obsids is not None or observation_attachment_file_fid_list is not None or t1 is not None or t2 is not None:
-                    #     output_post = post_observation(product_gallery_url, gallery_jwt_token,
-                    #                                    converttime_revnum_service_url,
-                    #                                    title=observation_title,
-                    #                                    t1=t1, t2=t2, timezone=timezone,
-                    #                                    obsids=obsids,
-                    #                                    observation_attachment_file_fid_list=observation_attachment_file_fid_list,
-                    #                                    sentry_dsn=sentry_dsn,
-                    #                                    update_observation=True)
-                    #     logger.info(
-                    #         f"observation with id {output_post['nid'][0]['value']} has been successfully updated")
                     break
 
     if observation_drupal_id is None and (t1 is not None and t2 is not None):
