@@ -658,7 +658,10 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
                                          headers=headers,
                                          sentry_dsn=sentry_dsn)
     else:
-        log_res = execute_drupal_request(f"{product_gallery_url}/node",
+        observation_drupal_id, observation_information_message, output_observation_post = \
+            get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
+                                      observation_title=title)
+        log_res = execute_drupal_request(os.path.join(product_gallery_url, 'node', observation_drupal_id),
                                          method='patch',
                                          data=json.dumps(body_gallery_observation_node),
                                          headers=headers,
