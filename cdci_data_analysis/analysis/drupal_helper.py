@@ -809,7 +809,7 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
 
         if observation_drupal_id is None and (t1 is not None and t2 is not None):
             output_post = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
-                                           t1, t2, timezone=timezone,
+                                           t1=t1, t2=t2, timezone=timezone,
                                            obsids=obsids,
                                            observation_attachment_file_fid_list=observation_attachment_file_fid_list,
                                            sentry_dsn=sentry_dsn)
