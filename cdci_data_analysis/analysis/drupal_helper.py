@@ -468,7 +468,7 @@ def post_content_to_gallery(decoded_token,
         revnum_2 = kwargs.pop('revnum_2', None)
         obsid = kwargs.pop('obsid', None)
         title = kwargs.pop('title', None)
-        update_observation = kwargs.pop('update_observation', False)
+        update_observation = kwargs.pop('update_observation', 'False') == 'True'
         output_content_post = post_observation(product_gallery_url=product_gallery_url,
                                                gallery_jwt_token=gallery_jwt_token,
                                                converttime_revnum_service_url=converttime_revnum_service_url,
