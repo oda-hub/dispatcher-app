@@ -468,6 +468,7 @@ def post_content_to_gallery(decoded_token,
         revnum_2 = kwargs.pop('revnum_2', None)
         obsid = kwargs.pop('obsid', None)
         title = kwargs.pop('title', None)
+        update_observation = kwargs.pop('update_observation', False)
         output_content_post = post_observation(product_gallery_url=product_gallery_url,
                                                gallery_jwt_token=gallery_jwt_token,
                                                converttime_revnum_service_url=converttime_revnum_service_url,
@@ -476,7 +477,11 @@ def post_content_to_gallery(decoded_token,
                                                revnum_1=revnum_1, revnum_2=revnum_2,
                                                obsids=obsid,
                                                observation_attachment_file_fid_list=yaml_file_fid_list,
-                                               sentry_dsn=sentry_dsn)
+                                               sentry_dsn=sentry_dsn,
+                                               update_observation=update_observation)
+        # extract the id of the observation
+        observation_drupal_id = output_content_post['nid'][0]['value']
+        logger.info(f"observation with id {observation_drupal_id} has been successfully posted")
     else:
         output_content_post = None
     return output_content_post
@@ -586,13 +591,22 @@ def build_gallery_observation_node(product_gallery_url,
     return body_gallery_observation_node
 
 
+def format_time(time_str, tz_to_apply):
+    # format the time fields, from the format request
+    t_parsed = parser.parse(time_str, ignoretz=True)
+    t_formatted = t_parsed.astimezone(tz_to_apply).strftime('%Y-%m-%dT%H:%M:%S%z')
+
+    return t_formatted
+
+
 def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
                      title=None,
                      t1=None, t2=None, timezone=None,
                      revnum_1=None, revnum_2=None,
                      obsids=None,
                      observation_attachment_file_fid_list=None,
-                     sentry_dsn=None):
+                     sentry_dsn=None,
+                     update_observation=False):
 
     t1_formatted = t2_formatted = t1_revnum_1 = t2_revnum_2 = formatted_title = None
 
@@ -600,11 +614,8 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
 
     if t1 is not None and t2 is not None:
         # format the time fields, from the format request
-        t1_parsed = parser.parse(t1, ignoretz=True)
-        t1_formatted = t1_parsed.astimezone(tz_to_apply).strftime('%Y-%m-%dT%H:%M:%S%z')
-
-        t2_parsed = parser.parse(t2, ignoretz=True)
-        t2_formatted = t2_parsed.astimezone(tz_to_apply).strftime('%Y-%m-%dT%H:%M:%S%z')
+        t1_formatted = format_time(t1, tz_to_apply)
+        t2_formatted = format_time(t2, tz_to_apply)
 
         t1_revnum_1 = get_revnum(service_url=converttime_revnum_service_url, time_to_convert=t1_formatted)
         if t1_revnum_1 is not None and 'revnum' in t1_revnum_1:
@@ -640,11 +651,18 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
 
     headers = get_drupal_request_headers(gallery_jwt_token)
 
-    log_res = execute_drupal_request(f"{product_gallery_url}/node",
-                                     method='post',
-                                     data=json.dumps(body_gallery_observation_node),
-                                     headers=headers,
-                                     sentry_dsn=sentry_dsn)
+    if update_observation is False:
+        log_res = execute_drupal_request(f"{product_gallery_url}/node",
+                                         method='post',
+                                         data=json.dumps(body_gallery_observation_node),
+                                         headers=headers,
+                                         sentry_dsn=sentry_dsn)
+    else:
+        log_res = execute_drupal_request(f"{product_gallery_url}/node",
+                                         method='patch',
+                                         data=json.dumps(body_gallery_observation_node),
+                                         headers=headers,
+                                         sentry_dsn=sentry_dsn)
 
     output_post = analyze_drupal_output(log_res, operation_performed="posting a new observation")
 
@@ -729,43 +747,38 @@ def get_data_product_list_by_product_id(product_gallery_url, gallery_jwt_token, 
 
 def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
                               t1=None, t2=None, timezone=None,
+                              revnum_1=None, revnum_2=None,
                               obsids=None,
                               observation_attachment_file_fid_list=None,
-                              observation_id=None,
+                              observation_title=None,
                               sentry_dsn=None) \
-        -> Tuple[Optional[str], Optional[str]]:
+        -> Tuple[Optional[str], Optional[str], Optional[object]]:
     observation_drupal_id = None
     observation_information_message = None
     observation_information_message_timezone_warning = ""
-    if observation_id is not None:
+    output_post = None
+    if observation_title is not None:
         # get from the drupal the relative id
         headers = get_drupal_request_headers(gallery_jwt_token)
 
-        log_res = execute_drupal_request(f"{product_gallery_url}/observations/{observation_id}",
+        log_res = execute_drupal_request(f"{product_gallery_url}/observations/{observation_title}",
                                          headers=headers,
                                          sentry_dsn=sentry_dsn)
         output_get = analyze_drupal_output(log_res, operation_performed="retrieving the observation information")
 
-        if isinstance(output_get, list) and len(output_get) == 1:
+        if isinstance(output_get, list) and len(output_get) >= 1:
             observation_drupal_id = output_get[0]['nid']
             observation_information_message = 'observation assigned by the user'
-
-            if obsids is not None or observation_attachment_file_fid_list is not None:
-                body_gallery_observation_node = build_gallery_observation_node(product_gallery_url,
-                                                                               title=observation_id,
-                                                                               obsids=obsids,
-                                                                               observation_attachment_file_fid_list=observation_attachment_file_fid_list)
-                # finally, post the data product to the gallery
-                headers = get_drupal_request_headers(gallery_jwt_token)
-                logger.info(f"updating the period of observation with id {observation_drupal_id}")
-                log_res = execute_drupal_request(os.path.join(product_gallery_url, 'node', observation_drupal_id),
-                                                 method='patch',
-                                                 data=json.dumps(body_gallery_observation_node),
-                                                 headers=headers,
-                                                 sentry_dsn=sentry_dsn)
-                output_post = analyze_drupal_output(log_res,
-                                                    operation_performed=f"updating the period of observation with id {observation_drupal_id}")
-                logger.info(f"observation with id {output_post['nid'][0]['value']} has been successfully updated")
+            #
+            # if obsids is not None or observation_attachment_file_fid_list is not None or t1 is not None or t2 is not None:
+            #     output_post = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
+            #                                    title=observation_title,
+            #                                    t1=t1, t2=t2, timezone=timezone,
+            #                                    obsids=obsids,
+            #                                    observation_attachment_file_fid_list=observation_attachment_file_fid_list,
+            #                                    sentry_dsn=sentry_dsn,
+            #                                    update_observation=True)
+            #     logger.info(f"observation with id {output_post['nid'][0]['value']} has been successfully updated")
 
     else:
 
@@ -790,35 +803,32 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
                     observation_drupal_id = observation['nid']
                     observation_information_message = 'observation assigned from the provided time range' + \
                                                       observation_information_message_timezone_warning
-                    if obsids is not None or observation_attachment_file_fid_list is not None:
-                        body_gallery_observation_node = build_gallery_observation_node(product_gallery_url,
-                                                                                       title=observation["title"],
-                                                                                       obsids=obsids,
-                                                                                       observation_attachment_file_fid_list=observation_attachment_file_fid_list)
-                        # finally, post the data product to the gallery
-                        headers = get_drupal_request_headers(gallery_jwt_token)
-                        logger.info(f"updating the period of observation with id {observation_drupal_id}")
-                        log_res = execute_drupal_request(os.path.join(product_gallery_url, 'node', observation_drupal_id),
-                                                         method='patch',
-                                                         data=json.dumps(body_gallery_observation_node),
-                                                         headers=headers,
-                                                         sentry_dsn=sentry_dsn)
-                        output_post = analyze_drupal_output(log_res, operation_performed=f"updating the period of observation with id {observation_drupal_id}")
-                        logger.info(f"observation with id {output_post['nid'][0]['value']} has been successfully updated")
+                    # if obsids is not None or observation_attachment_file_fid_list is not None or t1 is not None or t2 is not None:
+                    #     output_post = post_observation(product_gallery_url, gallery_jwt_token,
+                    #                                    converttime_revnum_service_url,
+                    #                                    title=observation_title,
+                    #                                    t1=t1, t2=t2, timezone=timezone,
+                    #                                    obsids=obsids,
+                    #                                    observation_attachment_file_fid_list=observation_attachment_file_fid_list,
+                    #                                    sentry_dsn=sentry_dsn,
+                    #                                    update_observation=True)
+                    #     logger.info(
+                    #         f"observation with id {output_post['nid'][0]['value']} has been successfully updated")
                     break
 
-        if observation_drupal_id is None and (t1 is not None and t2 is not None):
-            output_post = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
-                                           t1=t1, t2=t2, timezone=timezone,
-                                           obsids=obsids,
-                                           observation_attachment_file_fid_list=observation_attachment_file_fid_list,
-                                           sentry_dsn=sentry_dsn)
-            # extract the id of the observation
-            observation_drupal_id = output_post['nid'][0]['value']
-            observation_information_message = 'a new observation has been posted' + \
+    if observation_drupal_id is None and (t1 is not None and t2 is not None):
+        output_post = post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
+                                       title=observation_title,
+                                       t1=t1, t2=t2, timezone=timezone,
+                                       obsids=obsids,
+                                       observation_attachment_file_fid_list=observation_attachment_file_fid_list,
+                                       sentry_dsn=sentry_dsn)
+        # extract the id of the observation
+        observation_drupal_id = output_post['nid'][0]['value']
+        observation_information_message = 'a new observation has been posted' + \
                                               observation_information_message_timezone_warning
 
-    return observation_drupal_id, observation_information_message
+    return observation_drupal_id, observation_information_message, output_post
 
 
 def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
@@ -891,12 +901,12 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
     if 'obsid' in kwargs:
         obsid = kwargs.pop('obsid')
 
-    observation_drupal_id, observation_information_message = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
+    observation_drupal_id, observation_information_message, output_observation_post = get_observation_drupal_id(product_gallery_url, gallery_jwt_token,
                                                                                        converttime_revnum_service_url,
                                                                                        t1=t1, t2=t2, timezone=timezone,
                                                                                        obsids=obsid,
                                                                                        observation_attachment_file_fid_list=observation_attachment_file_fid_list,
-                                                                                       observation_id=observation_id)
+                                                                                       observation_title=observation_id)
     if observation_drupal_id is not None:
         body_gallery_article_node["field_derived_from_observation"] = [{
             "target_id": observation_drupal_id
