@@ -487,6 +487,7 @@ def post_content_to_gallery(decoded_token,
             observation_drupal_id = output_content_post['nid'][0]['value']
             logger.info(f"observation with id {observation_drupal_id} has been successfully posted")
         else:
+            output_content_post = {}
             logger.info(f"no observation has been created or updated")
 
     return output_content_post

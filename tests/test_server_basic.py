@@ -1885,15 +1885,12 @@ def test_product_gallery_update_period_of_observation(dispatcher_live_fixture_wi
 
     params = {
         'token': encoded_token,
-        'title': 'test observation',
+        'title': 'test observation' + '_' + str(uuid.uuid4()),
         'T1': '2022-07-21T00:29:47',
         'T2': '2022-07-23T05:29:11',
         'update_observation': True,
+        'create_new': force_creation_new
     }
-
-    if force_creation_new:
-        params['create_new'] = True
-        params['title'] = params['title'] + '_' + str(uuid.uuid4())
 
     c = requests.post(os.path.join(server, "post_observation_to_gallery"),
                       params={**params},
@@ -1903,7 +1900,10 @@ def test_product_gallery_update_period_of_observation(dispatcher_live_fixture_wi
 
     drupal_res_obj = c.json()
 
-    assert drupal_res_obj['title'][0]['value'] == params['title']
+    if force_creation_new:
+        assert drupal_res_obj['title'][0]['value'] == params['title']
+    else:
+        assert drupal_res_obj == {}
 
 
 @pytest.mark.test_drupal
