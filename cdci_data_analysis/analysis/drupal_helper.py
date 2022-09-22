@@ -393,6 +393,7 @@ def post_content_to_gallery(decoded_token,
     img_fid = None
     product_title = None
     data_product_id = None
+    output_content_post = None
     if files is not None:
         for f in files:
             if f == 'img':
@@ -469,6 +470,7 @@ def post_content_to_gallery(decoded_token,
         obsid = kwargs.pop('obsid', None)
         title = kwargs.pop('title', None)
         update_observation = kwargs.pop('update_observation', 'False') == 'True'
+        create_new = kwargs.pop('create_new', 'False') == 'True'
         output_content_post = post_observation(product_gallery_url=product_gallery_url,
                                                gallery_jwt_token=gallery_jwt_token,
                                                converttime_revnum_service_url=converttime_revnum_service_url,
@@ -478,12 +480,15 @@ def post_content_to_gallery(decoded_token,
                                                obsids=obsid,
                                                observation_attachment_file_fid_list=yaml_file_fid_list,
                                                sentry_dsn=sentry_dsn,
-                                               update_observation=update_observation)
-        # extract the id of the observation
-        observation_drupal_id = output_content_post['nid'][0]['value']
-        logger.info(f"observation with id {observation_drupal_id} has been successfully posted")
-    else:
-        output_content_post = None
+                                               update_observation=update_observation,
+                                               create_new=create_new)
+        if output_content_post is not None:
+            # extract the id of the observation
+            observation_drupal_id = output_content_post['nid'][0]['value']
+            logger.info(f"observation with id {observation_drupal_id} has been successfully posted")
+        else:
+            logger.info(f"no observation has been created or updated")
+
     return output_content_post
 
 
@@ -606,8 +611,9 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
                      obsids=None,
                      observation_attachment_file_fid_list=None,
                      sentry_dsn=None,
-                     update_observation=False):
-
+                     update_observation=False,
+                     create_new=False):
+    log_res = output_post = None
     t1_formatted = t2_formatted = t1_revnum_1 = t2_revnum_2 = formatted_title = None
 
     tz_to_apply = tz.gettz(timezone)
@@ -661,13 +667,20 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
         observation_drupal_id, observation_information_message, output_observation_post = \
             get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
                                       observation_title=title)
-        log_res = execute_drupal_request(os.path.join(product_gallery_url, 'node', observation_drupal_id),
-                                         method='patch',
-                                         data=json.dumps(body_gallery_observation_node),
-                                         headers=headers,
-                                         sentry_dsn=sentry_dsn)
-
-    output_post = analyze_drupal_output(log_res, operation_performed="posting a new observation")
+        if observation_drupal_id is not None:
+            log_res = execute_drupal_request(os.path.join(product_gallery_url, 'node', observation_drupal_id),
+                                             method='patch',
+                                             data=json.dumps(body_gallery_observation_node),
+                                             headers=headers,
+                                             sentry_dsn=sentry_dsn)
+        elif observation_drupal_id is None and create_new is True:
+            log_res = execute_drupal_request(f"{product_gallery_url}/node",
+                                             method='post',
+                                             data=json.dumps(body_gallery_observation_node),
+                                             headers=headers,
+                                             sentry_dsn=sentry_dsn)
+    if log_res is not None:
+        output_post = analyze_drupal_output(log_res, operation_performed="posting a new observation")
 
     return output_post
 
@@ -806,9 +819,10 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
                                        observation_attachment_file_fid_list=observation_attachment_file_fid_list,
                                        sentry_dsn=sentry_dsn)
         # extract the id of the observation
-        observation_drupal_id = output_post['nid'][0]['value']
-        observation_information_message = 'a new observation has been posted' + \
-                                              observation_information_message_timezone_warning
+        if output_post is not None:
+            observation_drupal_id = output_post['nid'][0]['value']
+            observation_information_message = 'a new observation has been posted' + \
+                                                  observation_information_message_timezone_warning
 
     return observation_drupal_id, observation_information_message, output_post
 
