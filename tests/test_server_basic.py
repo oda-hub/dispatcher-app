@@ -4,6 +4,7 @@ import urllib
 
 import requests
 import time
+import uuid
 import json
 import os
 import logging
@@ -1866,6 +1867,43 @@ def test_product_gallery_post_period_of_observation_with_revnum(dispatcher_live_
     assert 'field_rev2' in drupal_res_obs_info_obj
     assert drupal_res_obs_info_obj['field_rev1'][0]['value'] == revnum1_input['revnum']
     assert drupal_res_obs_info_obj['field_rev2'][0]['value'] == revnum2_input['revnum']
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("force_creation_new", [True, False])
+def test_product_gallery_update_period_of_observation(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, force_creation_new):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'token': encoded_token,
+        'title': 'test observation' + '_' + str(uuid.uuid4()),
+        'T1': '2022-07-21T00:29:47',
+        'T2': '2022-07-23T05:29:11',
+        'update_observation': True,
+        'create_new': force_creation_new
+    }
+
+    c = requests.post(os.path.join(server, "post_observation_to_gallery"),
+                      params={**params},
+                      )
+
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    if force_creation_new:
+        assert drupal_res_obj['title'][0]['value'] == params['title']
+    else:
+        assert drupal_res_obj == {}
 
 
 @pytest.mark.test_drupal
