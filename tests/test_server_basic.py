@@ -4,6 +4,7 @@ import urllib
 
 import requests
 import time
+import uuid
 import json
 import os
 import logging
@@ -25,7 +26,7 @@ from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_has
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, generate_notebook_filename
 from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id
-from cdci_data_analysis.plugins.dummy_instrument.data_server_dispatcher import DataServerQuery
+from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
 
 # logger
 logger = logging.getLogger(__name__)
@@ -76,6 +77,47 @@ def test_js9(dispatcher_live_fixture):
     r = requests.get(f'{dispatcher_live_fixture.rstrip("/")}/api/v1.0/oda/get_js9_plot', params={'file_path': 'js9.fits'})
     assert r.status_code == 200
 
+@pytest.fixture
+def safe_dummy_plugin_conf():
+    from cdci_data_analysis.plugins.dummy_plugin import conf_file
+    with open(conf_file, 'r') as fd:
+        config = fd.read()
+    yield conf_file
+    with open(conf_file, 'w') as fd:
+        fd.write(config)
+
+@pytest.mark.fast
+def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+    c = requests.get(server + "/api/instr-list",
+                     params={'instrument': 'mock'})
+    logger.info("content: %s", c.text)
+    jdata = c.json()
+    logger.info(json.dumps(jdata, indent=4, sort_keys=True))
+    logger.info(jdata)
+    assert c.status_code == 200
+    assert 'empty' in jdata
+    assert 'empty-async' in jdata
+    assert 'empty-semi-async' in jdata
+    
+    with open(safe_dummy_plugin_conf, 'w') as fd:
+        fd.write('instruments: []\n')
+    
+    c = requests.get(server + "/reload-plugin/dummy_plugin")
+    assert c.status_code == 200
+
+    c = requests.get(server + "/api/instr-list",
+                     params={'instrument': 'mock'})
+    logger.info("content: %s", c.text)
+    jdata = c.json()
+    logger.info(json.dumps(jdata, indent=4, sort_keys=True))
+    logger.info(jdata)
+    assert c.status_code == 200
+    # parameterize this
+    assert 'empty' not in jdata
+    assert 'empty-async' not in jdata
+    assert 'empty-semi-async' not in jdata
 
 @pytest.mark.fast
 def test_empty_request(dispatcher_live_fixture):
@@ -93,7 +135,7 @@ def test_empty_request(dispatcher_live_fixture):
     assert c.status_code == 400
 
     # parameterize this
-    assert jdata['installed_instruments'] == ['empty', 'empty-async', 'empty-semi-async'] or \
+    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-semi-async']) or \
            jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"
@@ -1640,8 +1682,9 @@ def test_converttime_revnum(dispatcher_live_fixture_with_gallery, time_to_conver
 
 
 @pytest.mark.test_drupal
+@pytest.mark.parametrize("obsid", [1960001, ["1960001", "1960002", "1960003"]])
 @pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "time_range_no_timezone_limits", "time_range_with_timezone", "new_time_range", "observation_id"])
-def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, timerange_parameters):
+def test_product_gallery_data_product_with_period_of_observation(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, timerange_parameters, obsid):
     server = dispatcher_live_fixture_with_gallery
 
     logger.info("constructed server: %s", server)
@@ -1657,7 +1700,13 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
         'content_type': 'data_product',
         'product_title': 'Test observation range',
         'token': encoded_token,
+        'obsid': obsid
     }
+    if isinstance(obsid, list):
+        params['obsid'] = ','.join(obsid)
+
+    file_obj = {'yaml_file_0': open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'rb')}
+
     now = datetime.now()
 
     if timerange_parameters == 'time_range_no_timezone':
@@ -1672,11 +1721,12 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
     elif timerange_parameters == 'observation_id':
         params['observation_id'] = 'test observation'
     elif timerange_parameters == 'new_time_range':
-        params['T1'] = (now - timedelta(days=10)).strftime('%Y-%m-%dT%H:%M:%S')
+        params['T1'] = (now - timedelta(days=random.randint(30, 150))).strftime('%Y-%m-%dT%H:%M:%S')
         params['T2'] = now.strftime('%Y-%m-%dT%H:%M:%S')
 
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
-                      params={**params}
+                      params={**params},
+                      files=file_obj
                       )
 
     assert c.status_code == 200
@@ -1706,6 +1756,18 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
     assert 'field_timerange' in drupal_res_obs_info_obj
     obs_per_field_timerange = drupal_res_obs_info_obj['field_timerange']
     obs_per_title = drupal_res_obs_info_obj['title'][0]['value']
+
+    assert 'field_obsid' in drupal_res_obs_info_obj
+    if isinstance(obsid, list):
+        for single_obsid in obsid:
+            assert drupal_res_obs_info_obj['field_obsid'][obsid.index(single_obsid)]['value'] == single_obsid
+    else:
+        assert drupal_res_obs_info_obj['field_obsid'][0]['value'] == str(obsid)
+
+    link_field_field_attachments = os.path.join(
+        dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+        'rest/relation/node/observation/field_attachments')
+    assert link_field_field_attachments in drupal_res_obs_info_obj['_links']
 
     obs_per_field_timerange_start_no_timezone = parser.parse(obs_per_field_timerange[0]['value']).strftime('%Y-%m-%dT%H:%M:%S')
     obs_per_field_timerange_end_no_timezone = parser.parse(obs_per_field_timerange[0]['end_value']).strftime(
@@ -1737,6 +1799,225 @@ def test_product_gallery_time_range(dispatcher_live_fixture_with_gallery, dispat
             assert parsed_t2_no_timezone == t_end
     else:
         assert obs_per_title == 'test observation'
+
+
+@pytest.mark.xfail
+@pytest.mark.test_drupal
+def test_product_gallery_post_period_of_observation_with_revnum(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    t1 = '2022-07-21T00:29:47'
+    t2 = '2022-07-23T05:29:11'
+    revnum1_input = get_revnum(
+        service_url=dispatcher_test_conf_with_gallery['product_gallery_options']['converttime_revnum_service_url'],
+        time_to_convert=t1)
+    revnum2_input = get_revnum(
+        service_url=dispatcher_test_conf_with_gallery['product_gallery_options']['converttime_revnum_service_url'],
+        time_to_convert=t2)
+
+    params = {
+        'token': encoded_token,
+        'title': 'test observation title with rev num',
+        'revnum_1': revnum1_input['revnum'],
+        'revnum_2': revnum2_input['revnum']
+    }
+
+    c = requests.post(os.path.join(server, "post_observation_to_gallery"),
+                      params={**params},
+                      )
+
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    observation_id = drupal_res_obj['nid'][0]['value']
+
+    link_obs = os.path.join(
+        dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+        f'node/{observation_id}?_format=hal_json')
+
+    user_id_product_creator = get_user_id(product_gallery_url=dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                                          user_email=token_payload['sub'])
+    gallery_jwt_token = generate_gallery_jwt_token(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_secret_key'],
+                                                   user_id=user_id_product_creator)
+
+    header_request = get_drupal_request_headers(gallery_jwt_token)
+    response_obs_info = execute_drupal_request(link_obs, headers=header_request)
+
+    drupal_res_obs_info_obj = response_obs_info.json()
+
+    # assert 'field_timerange' in drupal_res_obs_info_obj
+    # obs_per_field_timerange = drupal_res_obs_info_obj['field_timerange']
+    # obs_per_field_timerange_start_no_timezone = parser.parse(obs_per_field_timerange[0]['value']).strftime('%Y-%m-%dT%H:%M:%S')
+    # obs_per_field_timerange_end_no_timezone = parser.parse(obs_per_field_timerange[0]['end_value']).strftime(
+    #     '%Y-%m-%dT%H:%M:%S')
+    # assert obs_per_field_timerange_start_no_timezone == t1
+    # assert obs_per_field_timerange_end_no_timezone == t2
+
+    assert 'field_rev1' in drupal_res_obs_info_obj
+    assert 'field_rev2' in drupal_res_obs_info_obj
+    assert drupal_res_obs_info_obj['field_rev1'][0]['value'] == revnum1_input['revnum']
+    assert drupal_res_obs_info_obj['field_rev2'][0]['value'] == revnum2_input['revnum']
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("force_creation_new", [True, False])
+def test_product_gallery_update_period_of_observation(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, force_creation_new):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'token': encoded_token,
+        'title': 'test observation' + '_' + str(uuid.uuid4()),
+        'T1': '2022-07-21T00:29:47',
+        'T2': '2022-07-23T05:29:11',
+        'update_observation': True,
+        'create_new': force_creation_new
+    }
+
+    c = requests.post(os.path.join(server, "post_observation_to_gallery"),
+                      params={**params},
+                      )
+
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    if force_creation_new:
+        assert drupal_res_obj['title'][0]['value'] == params['title']
+    else:
+        assert drupal_res_obj == {}
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("obsid", [1960001, ["1960001", "1960002", "1960003"]])
+@pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "time_range_no_timezone_limits", "time_range_with_timezone", "new_time_range"])
+@pytest.mark.parametrize("include_title", [True, False])
+def test_product_gallery_post_period_of_observation(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, timerange_parameters, obsid, include_title):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'token': encoded_token,
+        'obsid': obsid
+    }
+    if isinstance(obsid, list):
+        params['obsid'] = ','.join(obsid)
+    if include_title:
+        params['title'] = "test observation title"
+
+    file_obj = {'yaml_file_0': open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'rb')}
+
+    now = datetime.now()
+
+    if timerange_parameters == 'time_range_no_timezone':
+        params['T1'] = '2022-07-21T00:29:47'
+        params['T2'] = '2022-07-23T05:29:11'
+    elif timerange_parameters == 'time_range_no_timezone_limits':
+        params['T1'] = '2021-02-01T00:00:00'
+        params['T2'] = '2021-03-31T23:59:59'
+    elif timerange_parameters == 'time_range_with_timezone':
+        params['T1'] = '2022-07-21T00:29:47+0100'
+        params['T2'] = '2022-07-23T05:29:11+0100'
+    elif timerange_parameters == 'new_time_range':
+        params['T1'] = (now - timedelta(days=random.randint(30, 150))).strftime('%Y-%m-%dT%H:%M:%S')
+        params['T2'] = now.strftime('%Y-%m-%dT%H:%M:%S')
+
+    c = requests.post(os.path.join(server, "post_observation_to_gallery"),
+                      params={**params},
+                      files=file_obj
+                      )
+
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    observation_id = drupal_res_obj['nid'][0]['value']
+
+    link_obs = os.path.join(
+        dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+        f'node/{observation_id}?_format=hal_json')
+
+    user_id_product_creator = get_user_id(product_gallery_url=dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                                          user_email=token_payload['sub'])
+    gallery_jwt_token = generate_gallery_jwt_token(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_secret_key'],
+                                                   user_id=user_id_product_creator)
+
+    header_request = get_drupal_request_headers(gallery_jwt_token)
+    response_obs_info = execute_drupal_request(link_obs, headers=header_request)
+
+    drupal_res_obs_info_obj = response_obs_info.json()
+
+    assert 'field_timerange' in drupal_res_obs_info_obj
+    obs_per_field_timerange = drupal_res_obs_info_obj['field_timerange']
+
+    assert 'field_obsid' in drupal_res_obs_info_obj
+    if isinstance(obsid, list):
+        for single_obsid in obsid:
+            assert drupal_res_obs_info_obj['field_obsid'][obsid.index(single_obsid)]['value'] == single_obsid
+    else:
+        assert drupal_res_obs_info_obj['field_obsid'][0]['value'] == str(obsid)
+
+    link_field_field_attachments = os.path.join(
+        dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+        'rest/relation/node/observation/field_attachments')
+    assert link_field_field_attachments in drupal_res_obs_info_obj['_links']
+
+    obs_per_field_timerange_start_no_timezone = parser.parse(obs_per_field_timerange[0]['value']).strftime('%Y-%m-%dT%H:%M:%S')
+    obs_per_field_timerange_end_no_timezone = parser.parse(obs_per_field_timerange[0]['end_value']).strftime(
+        '%Y-%m-%dT%H:%M:%S')
+
+    parsed_t1_no_timezone = parser.parse(params['T1']).strftime('%Y-%m-%dT%H:%M:%S')
+    parsed_t2_no_timezone = parser.parse(params['T2']).strftime('%Y-%m-%dT%H:%M:%S')
+    assert obs_per_field_timerange_start_no_timezone == parsed_t1_no_timezone
+    assert obs_per_field_timerange_end_no_timezone == parsed_t2_no_timezone
+    if timerange_parameters == 'new_time_range':
+        assert 'field_rev1' in drupal_res_obs_info_obj
+        assert 'field_rev2' in drupal_res_obs_info_obj
+        revnum1_input = get_revnum(service_url=dispatcher_test_conf_with_gallery['product_gallery_options']['converttime_revnum_service_url'],
+                                   time_to_convert=params['T1'])
+        assert drupal_res_obs_info_obj['field_rev1'][0]['value'] == revnum1_input['revnum']
+        revnum2_input = get_revnum(service_url=dispatcher_test_conf_with_gallery['product_gallery_options']['converttime_revnum_service_url'],
+                                   time_to_convert=params['T2'])
+        assert drupal_res_obs_info_obj['field_rev2'][0]['value'] == revnum2_input['revnum']
+        # additional check for the time range REST call
+        observations_range = get_observations_for_time_range(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                                                             gallery_jwt_token,
+                                                             t1=params['T1'], t2=params['T2'])
+        assert len(observations_range) == 1
+        times = observations_range[0]['field_timerange'].split('--')
+        t_start = parser.parse(times[0]).strftime('%Y-%m-%dT%H:%M:%S')
+        t_end = parser.parse(times[1]).strftime('%Y-%m-%dT%H:%M:%S')
+        assert parsed_t1_no_timezone == t_start
+        assert parsed_t2_no_timezone == t_end
+
+    if include_title:
+        assert drupal_res_obs_info_obj['title'][0]['value'] == params['title']
 
 
 @pytest.mark.test_drupal

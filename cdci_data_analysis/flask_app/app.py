@@ -18,7 +18,6 @@ from raven.contrib.flask import Sentry
 from sentry_sdk.integrations.flask import FlaskIntegration
 from flask import jsonify, send_from_directory, redirect, Response, Flask, request, make_response, g
 
-
 # restx not really used
 from flask_restx import Api, Resource, reqparse
 
@@ -67,7 +66,15 @@ ns_conf = api.namespace('api/v1.0/oda', description='api')
 def before_request():
     g.request_start_time = _time.time()
 
+@app.route('/reload-plugin/<name>')
+def reload_plugin(name):
+    try:
+        importer.reload_plugin(name)
+        return f'Plugin {name} reloaded\n'
+    except ModuleNotFoundError as e:
+        return f'Plugin {name} not found\n', 400
 
+    
 @app.route("/api/meta-data")
 def run_api_meta_data():
     query = InstrumentQueryBackEnd(app, get_meta_data=True)
@@ -598,6 +605,35 @@ def get_parents_term():
     output_request = json.dumps(list_parents)
 
     return output_request
+
+
+@app.route('/post_observation_to_gallery', methods=['POST'])
+def post_observation_to_gallery():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
+                                                        content_type="observation",
+                                                        disp_conf=app_config,
+                                                        files=request.files,
+                                                        **par_dic)
+
+    return output_post
 
 
 @app.route('/post_product_to_gallery', methods=['POST'])

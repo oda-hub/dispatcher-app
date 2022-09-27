@@ -30,7 +30,7 @@ jobs:
         - antares
         - gw
         - legacysurvey
-        # - nb2workflow
+        - nb2workflow
         # - polar
 
     services:
