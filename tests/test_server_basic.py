@@ -2257,11 +2257,12 @@ def test_post_data_product_with_multiple_sources(dispatcher_live_fixture_with_ga
 
             drupal_res_source_info_obj = response_obs_info.json()
 
-            assert 'field_alternative_names' in drupal_res_source_info_obj
-            assert len(drupal_res_source_info_obj['field_alternative_names']) == 3
-            assert drupal_res_source_info_obj['field_alternative_names'][0]['value'] == 'unknown source 1'
-            assert drupal_res_source_info_obj['field_alternative_names'][1]['value'] == 'unknown source 2'
-            assert drupal_res_source_info_obj['field_alternative_names'][2]['value'] == 'unknown source 3'
+            assert 'field_alternative_names_long_str' in drupal_res_source_info_obj
+            field_alternative_names_long_str_splitted = drupal_res_source_info_obj['field_alternative_names_long_str'][0]['value'].split(',')
+            assert len(field_alternative_names_long_str_splitted) == 3
+            assert field_alternative_names_long_str_splitted[0] == 'unknown source 1'
+            assert field_alternative_names_long_str_splitted[1] == 'unknown source 2'
+            assert field_alternative_names_long_str_splitted[2] == 'unknown source 3'
 
     else:
         assert link_field_describes_astro_entity not in drupal_res_obj['_links']

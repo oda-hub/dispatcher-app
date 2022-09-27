@@ -534,11 +534,9 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
         "value": astro_entity_portal_link
     }]
     if object_ids is not None:
-        body_gallery_astro_entity_node["field_alternative_names"] = []
-        for object_id in object_ids:
-            body_gallery_astro_entity_node["field_alternative_names"].append({
-                "value": object_id
-            })
+        body_gallery_astro_entity_node["field_alternative_names_long_str"] = [{
+            "value": ','.join(object_ids)
+        }]
 
     headers = get_drupal_request_headers(gallery_jwt_token)
 
@@ -929,16 +927,16 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
     # set the source astrophysical entity if available
     src_name_concat = None
     src_name_arg = kwargs.pop('src_name', None)
+    src_portal_link_arg = kwargs.pop('entity_portal_link', None)
+    object_ids_arg = kwargs.pop('object_ids', None)
     if src_name_arg is not None:
         src_name_list = src_name_arg.split(',')
         src_name_concat = "_".join(src_name_list)
 
-        src_portal_link_arg = kwargs.pop('entity_portal_link', None)
         src_portal_link_list = None
         if src_portal_link_arg is not None:
             src_portal_link_list = src_portal_link_arg.split(',')
 
-        object_ids_arg = kwargs.pop('object_ids', None)
         object_ids_lists = None
         if object_ids_arg is not None:
             object_ids_lists = json.loads(object_ids_arg)
