@@ -925,11 +925,17 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
     src_name_arg = kwargs.pop('src_name', None)
     if src_name_arg is not None:
         src_name_list = src_name_arg.split(',')
+        src_name_concat = "_".join(src_name_list)
+
         src_portal_link_arg = kwargs.pop('entity_portal_link', None)
         src_portal_link_list = None
         if src_portal_link_arg is not None:
             src_portal_link_list = src_portal_link_arg.split(',')
-        src_name_concat = "_".join(src_name_list)
+
+        object_ids_arg = kwargs.pop('object_ids_list')
+        object_ids_lists = None
+        if object_ids_arg is not None:
+            object_ids_lists = object_ids_arg.split(',')
 
         for src_name in src_name_list:
             source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
