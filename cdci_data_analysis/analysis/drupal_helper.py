@@ -953,7 +953,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                 src_portal_link = None
                 if src_portal_link_list is not None and src_portal_link_list[src_name_idx] != '':
                     src_portal_link = src_portal_link_list[src_name_idx].strip()
-                object_ids = []
+                object_ids = None
                 if object_ids_lists is not None and object_ids_lists[src_name_idx] != []:
                     object_ids = object_ids_lists[src_name_idx]
                 source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
