@@ -517,7 +517,7 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
     return observations
 
 
-def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name, astro_entity_portal_link=None,  sentry_dsn=None):
+def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name, astro_entity_portal_link=None, object_ids=None, sentry_dsn=None):
     # post new observation with or without a specific time range
     body_gallery_astro_entity_node = copy.deepcopy(body_article_product_gallery.body_node)
     astro_entity_name = astro_entity_name.strip()
@@ -528,11 +528,17 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
     # TODO perhaps a bit of duplication here?
     body_gallery_astro_entity_node["title"]["value"] = astro_entity_name
     body_gallery_astro_entity_node["field_source_name"] = [{
-            "value": astro_entity_name
-        }]
+        "value": astro_entity_name
+    }]
     body_gallery_astro_entity_node["field_link"] = [{
         "value": astro_entity_portal_link
     }]
+    if 'object_ids' is not None:
+        body_gallery_astro_entity_node["object_ids"] = []
+        for object_id in object_ids:
+            body_gallery_astro_entity_node["object_ids"].append({
+                "value": object_id
+            })
 
     headers = get_drupal_request_headers(gallery_jwt_token)
 
@@ -947,9 +953,13 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                 src_portal_link = None
                 if src_portal_link_list is not None and src_portal_link_list[src_name_idx] != '':
                     src_portal_link = src_portal_link_list[src_name_idx].strip()
+                object_ids = []
+                if object_ids_lists is not None and object_ids_lists[src_name_idx] != []:
+                    object_ids = object_ids_lists[src_name_idx]
                 source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
                                                      astro_entity_name=src_name.strip(),
                                                      astro_entity_portal_link=src_portal_link,
+                                                     object_ids=object_ids,
                                                      sentry_dsn=sentry_dsn)
 
             if source_entity_id is not None:
