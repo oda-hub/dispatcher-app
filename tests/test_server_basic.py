@@ -2205,7 +2205,7 @@ def test_post_data_product_with_multiple_sources(dispatcher_live_fixture_with_ga
     elif type_source == "list":
         source_name = 'GX 1+4, Crab, unknown_src, unknown_src_no_link'
         entity_portal_link = "http://cdsportal.u-strasbg.fr/?target=GX%201%204, http://cdsportal.u-strasbg.fr/?target=Crab, , link"
-        object_ids = [["GX 1+4", "GX 99", "Test"], ["Crab", "GX 99", "Test"], [], ["unknown source 1", "unknown source 2", "unknown source 3"]]
+        object_ids = [["GX 1+4", "GX 99", "Test"], ["Crab", "GX 99", "Test"], [], ["unknown_src_no_link", "unknown source 1", "unknown source 2", "unknown source 3"]]
 
     params = {
         'instrument': 'isgri',
@@ -2259,10 +2259,11 @@ def test_post_data_product_with_multiple_sources(dispatcher_live_fixture_with_ga
 
             assert 'field_alternative_names_long_str' in drupal_res_source_info_obj
             field_alternative_names_long_str_splitted = drupal_res_source_info_obj['field_alternative_names_long_str'][0]['value'].split(',')
-            assert len(field_alternative_names_long_str_splitted) == 3
-            assert field_alternative_names_long_str_splitted[0] == 'unknown source 1'
-            assert field_alternative_names_long_str_splitted[1] == 'unknown source 2'
-            assert field_alternative_names_long_str_splitted[2] == 'unknown source 3'
+            assert len(field_alternative_names_long_str_splitted) == 4
+            assert field_alternative_names_long_str_splitted[0] == 'unknown_src_no_link'
+            assert field_alternative_names_long_str_splitted[1] == 'unknown source 1'
+            assert field_alternative_names_long_str_splitted[2] == 'unknown source 2'
+            assert field_alternative_names_long_str_splitted[3] == 'unknown source 3'
 
     else:
         assert link_field_describes_astro_entity not in drupal_res_obj['_links']
