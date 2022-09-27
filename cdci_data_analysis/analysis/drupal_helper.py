@@ -941,7 +941,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
         object_ids_arg = kwargs.pop('object_ids_list', None)
         object_ids_lists = None
         if object_ids_arg is not None:
-            object_ids_lists = object_ids_arg.split(',')
+            json.loads(object_ids_arg)
 
         for src_name in src_name_list:
             source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
