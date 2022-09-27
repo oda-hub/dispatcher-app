@@ -25,7 +25,7 @@ from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, generate_notebook_filename
-from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id
+from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id, get_source_astrophysical_entity_id_by_source_name
 from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
 
 # logger
@@ -2197,17 +2197,21 @@ def test_post_data_product_with_multiple_sources(dispatcher_live_fixture_with_ga
 
     source_name = None
     entity_portal_link = None
+    object_ids = None
     if type_source == "single":
         source_name = "GX 1+4"
         entity_portal_link = "http://cdsportal.u-strasbg.fr/?target=GX%201%204"
+        object_ids = [["GX 1+4", "GX 99", "Test"]]
     elif type_source == "list":
         source_name = 'GX 1+4, Crab, unknown_src, unknown_src_no_link'
         entity_portal_link = "http://cdsportal.u-strasbg.fr/?target=GX%201%204, http://cdsportal.u-strasbg.fr/?target=Crab, , link"
+        object_ids = [["GX 1+4", "GX 99", "Test"], ["Crab", "GX 99", "Test"], [], ["unknown source 1", "unknown source 2", "unknown source 3"]]
 
     params = {
         'instrument': 'isgri',
         'src_name': source_name,
         'entity_portal_link': entity_portal_link,
+        'object_ids': json.dumps(object_ids),
         'product_type': 'isgri_lc',
         'content_type': 'data_product',
         'product_title': "product with multiple sources",
@@ -2232,6 +2236,33 @@ def test_post_data_product_with_multiple_sources(dispatcher_live_fixture_with_ga
             assert len(drupal_res_obj['_links'][link_field_describes_astro_entity]) == 1
         elif type_source == "list":
             assert len(drupal_res_obj['_links'][link_field_describes_astro_entity]) == len(source_name.split(','))
+            user_id_product_creator = get_user_id(
+                product_gallery_url=dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                user_email=token_payload['sub'])
+            gallery_jwt_token = generate_gallery_jwt_token(
+                dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_secret_key'],
+                user_id=user_id_product_creator)
+            source_entity_id = get_source_astrophysical_entity_id_by_source_name(
+                dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                gallery_jwt_token,
+                source_name="unknown_src_no_link")
+            assert source_entity_id is not None
+
+            link_source = os.path.join(
+                dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                f'node/{source_entity_id}?_format=hal_json')
+
+            header_request = get_drupal_request_headers(gallery_jwt_token)
+            response_obs_info = execute_drupal_request(link_source, headers=header_request)
+
+            drupal_res_source_info_obj = response_obs_info.json()
+
+            assert 'field_alternative_names' in drupal_res_source_info_obj
+            assert len(drupal_res_source_info_obj['field_alternative_names']) == 3
+            assert drupal_res_source_info_obj['field_alternative_names'][0]['value'] == 'unknown source 1'
+            assert drupal_res_source_info_obj['field_alternative_names'][1]['value'] == 'unknown source 2'
+            assert drupal_res_source_info_obj['field_alternative_names'][2]['value'] == 'unknown source 3'
+
     else:
         assert link_field_describes_astro_entity not in drupal_res_obj['_links']
 
