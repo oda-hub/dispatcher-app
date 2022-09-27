@@ -533,7 +533,7 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
     body_gallery_astro_entity_node["field_link"] = [{
         "value": astro_entity_portal_link
     }]
-    if 'object_ids' is not None:
+    if object_ids is not None:
         body_gallery_astro_entity_node["object_ids"] = []
         for object_id in object_ids:
             body_gallery_astro_entity_node["object_ids"].append({
@@ -938,7 +938,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
         if src_portal_link_arg is not None:
             src_portal_link_list = src_portal_link_arg.split(',')
 
-        object_ids_arg = kwargs.pop('object_ids_list')
+        object_ids_arg = kwargs.pop('object_ids_list', None)
         object_ids_lists = None
         if object_ids_arg is not None:
             object_ids_lists = object_ids_arg.split(',')
