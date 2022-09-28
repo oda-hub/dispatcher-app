@@ -766,6 +766,19 @@ def get_data_product_list_by_product_id(product_gallery_url, gallery_jwt_token, 
     return data_product_list
 
 
+def get_observation_yaml_attachments_by_observation_title(product_gallery_url, gallery_jwt_token, observation_title,
+                                                          sentry_dsn=None):
+    # get from the drupal the relative id
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/get_observation_attachments/{observation_title}",
+                                     headers=headers,
+                                     sentry_dsn=sentry_dsn)
+    output_get = analyze_drupal_output(log_res, operation_performed="retrieving the observation information")
+
+    return output_get
+
+
 def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
                               t1=None, t2=None, timezone=None,
                               revnum_1=None, revnum_2=None,
