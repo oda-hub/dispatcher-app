@@ -1907,6 +1907,53 @@ def test_product_gallery_update_period_of_observation(dispatcher_live_fixture_wi
         assert drupal_res_obj == {}
 
 
+def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    now = datetime.now()
+
+    params = {
+        'token': encoded_token,
+        'obsid': "1960001, 1960002, 1960003",
+        'title': "test observation title",
+        'T1': (now - timedelta(days=random.randint(30, 150))).strftime('%Y-%m-%dT%H:%M:%S'),
+        'T2': now.strftime('%Y-%m-%dT%H:%M:%S')
+    }
+
+    file_obj = {'yaml_file_0': open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'rb')}
+
+    c = requests.post(os.path.join(server, "post_observation_to_gallery"),
+                      params={**params},
+                      files=file_obj
+                      )
+
+    assert c.status_code == 200
+
+    c = requests.get(os.path.join(server, "get_observation_attachments"),
+                     params={'title': 'test observation title',
+                             'token': encoded_token}
+                     )
+
+    assert c.status_code == 200
+    drupal_res_obj = c.json()
+
+    assert 'file_path' in drupal_res_obj
+    assert 'file_content' in drupal_res_obj
+
+    with open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'r') as f_yaml_file:
+        yaml_file_content = f_yaml_file.read()
+
+    assert drupal_res_obj['file_content'] == yaml_file_content
+
+
 @pytest.mark.test_drupal
 @pytest.mark.parametrize("obsid", [1960001, ["1960001", "1960002", "1960003"]])
 @pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "time_range_no_timezone_limits", "time_range_with_timezone", "new_time_range"])
