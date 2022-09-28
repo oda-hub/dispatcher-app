@@ -607,10 +607,9 @@ def get_parents_term():
     return output_request
 
 
-@app.route('/get_observation_attachments', methods=['POST'])
+@app.route('/get_observation_attachments', methods=['GET'])
 def get_observation_attachments():
     logger.info("request.args: %s ", request.args)
-    logger.info("request.files: %s ", request.files)
 
     token = request.args.get('token', None)
     app_config = app.config.get('conf')

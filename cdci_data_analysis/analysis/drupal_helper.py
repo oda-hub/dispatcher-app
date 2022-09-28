@@ -517,7 +517,13 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
     return observations
 
 
-def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name, astro_entity_portal_link=None, object_ids=None, sentry_dsn=None):
+def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
+                      astro_entity_portal_link=None,
+                      source_ra=None,
+                      source_dec=None,
+                      object_type=None,
+                      object_ids=None,
+                      sentry_dsn=None):
     # post new observation with or without a specific time range
     body_gallery_astro_entity_node = copy.deepcopy(body_article_product_gallery.body_node)
     astro_entity_name = astro_entity_name.strip()
@@ -536,6 +542,21 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
     if object_ids is not None:
         body_gallery_astro_entity_node["field_alternative_names_long_str"] = [{
             "value": ','.join(object_ids)
+        }]
+
+    if source_ra is not None:
+        body_gallery_astro_entity_node["field_source_ra"] = [{
+            "value": source_ra
+        }]
+
+    if source_dec is not None:
+        body_gallery_astro_entity_node["field_source_dec"] = [{
+            "value": source_dec
+        }]
+
+    if object_type is not None:
+        body_gallery_astro_entity_node["field_object_type"] = [{
+            "value": object_type
         }]
 
     headers = get_drupal_request_headers(gallery_jwt_token)
@@ -776,6 +797,9 @@ def get_observation_yaml_attachments_by_observation_title(product_gallery_url, g
                                      sentry_dsn=sentry_dsn)
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the observation information")
 
+    if output_get is not None and isinstance(output_get, list):
+        return output_get[0]
+
     return output_get
 
 
@@ -942,17 +966,28 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
     src_name_arg = kwargs.pop('src_name', None)
     src_portal_link_arg = kwargs.pop('entity_portal_link', None)
     object_ids_arg = kwargs.pop('object_ids', None)
+    source_coord_arg = kwargs.pop('source_coord', None)
+    object_type_arg = kwargs.pop('object_type', None)
     if src_name_arg is not None:
         src_name_list = src_name_arg.split(',')
         src_name_concat = "_".join(src_name_list)
 
         src_portal_link_list = None
         if src_portal_link_arg is not None:
+            # TODO consider using json.loads
             src_portal_link_list = src_portal_link_arg.split(',')
 
         object_ids_lists = None
         if object_ids_arg is not None:
             object_ids_lists = json.loads(object_ids_arg)
+
+        source_coord_obj_list = None
+        if source_coord_arg is not None:
+            source_coord_obj_list = json.loads(source_coord_arg)
+
+        object_type_list = None
+        if object_type_arg is not None:
+            object_type_list = json.loads(object_type_arg)
 
         for src_name in src_name_list:
             source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
@@ -967,9 +1002,18 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                 object_ids = None
                 if object_ids_lists is not None and object_ids_lists[src_name_idx] != []:
                     object_ids = object_ids_lists[src_name_idx]
+                source_coord = None
+                if source_coord_obj_list is not None and source_coord_obj_list[src_name_idx] != {}:
+                    source_coord = source_coord_obj_list[src_name_idx]
+                object_type = None
+                if object_type_list is not None and object_type_list[src_name_idx] != '':
+                    object_type = object_type_list[src_name_idx]
                 source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
                                                      astro_entity_name=src_name.strip(),
                                                      astro_entity_portal_link=src_portal_link,
+                                                     source_ra=source_coord['source_ra'],
+                                                     source_dec=source_coord['source_dec'],
+                                                     object_type=object_type,
                                                      object_ids=object_ids,
                                                      sentry_dsn=sentry_dsn)
 
