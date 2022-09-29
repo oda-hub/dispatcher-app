@@ -747,11 +747,28 @@ def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, galle
     headers = get_drupal_request_headers(gallery_jwt_token)
 
     # the URL-reserved characters should be quoted eg GX 1+4 -> GX%201%2B4
-    # TODO to verify if this approach also for the other requestes
-    params = {"src_name": source_name}
     source_name = urllib.parse.quote(source_name.strip())
+    log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/source/{source_name}",
+                                     headers=headers,
+                                     sentry_dsn=sentry_dsn)
+    output_get = analyze_drupal_output(log_res, operation_performed="retrieving the astrophysical entity information")
+    if isinstance(output_get, list) and len(output_get) == 1:
+        entities_id = output_get[0]['nid']
 
-    log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/all_source",
+    return entities_id
+
+def get_source_astrophysical_entity_id_by_source_and_alternative_name(product_gallery_url, gallery_jwt_token, source_name=None, sentry_dsn=None) \
+        -> Optional[str]:
+    entities_id = None
+    # get from the drupal the relative id
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    # the URL-reserved characters should be quoted eg GX 1+4 -> GX%201%2B4
+    # TODO to verify if this approach also for the other requestes
+    params = {"src_name": source_name.strip(),
+              "_format": "hal_json"}
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/all_sources",
                                      headers=headers,
                                      params=params,
                                      sentry_dsn=sentry_dsn)
@@ -996,10 +1013,10 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
 
         for src_name in src_name_list:
             src_name_idx = src_name_list.index(src_name)
-            source_coord = {}
+            arg_source_coord = {}
             if source_coord_obj_list is not None and source_coord_obj_list[src_name_idx] != {}:
-                source_coord = source_coord_obj_list[src_name_idx]
-            source_entity_list = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
+                arg_source_coord = source_coord_obj_list[src_name_idx]
+            source_entity_list = get_source_astrophysical_entity_id_by_source_and_alternative_name(product_gallery_url, gallery_jwt_token,
                                                                                    source_name=src_name,
                                                                                    sentry_dsn=sentry_dsn)
             source_entity_id = None
@@ -1007,29 +1024,33 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                 source_entity_id = source_entity_list[0]['nid']
             elif len(source_entity_list) > 1:
                 for source_entity in source_entity_list:
-                    source_entity_id = source_entity['nid']
                     source_entity_title = source_entity['title']
-                    source_entity_coord_ra = None
-                    source_entity_coord_dec = None
-                    if source_entity['field_source_ra'] != "":
-                        source_entity_coord_ra = float(source_entity['field_source_ra'])
-                    if source_entity['field_source_dec'] != "":
-                        source_entity_coord_dec = float(source_entity[0]['field_source_dec'])
+                    if source_entity_title.strip() == src_name.strip():
+                        source_entity_id = source_entity['nid']
+                        break
+                    else:
+                        source_entity_coord_ra = None
+                        source_entity_coord_dec = None
+                        if source_entity['field_source_ra'] != "":
+                            source_entity_coord_ra = float(source_entity['field_source_ra'])
+                        if source_entity['field_source_dec'] != "":
+                            source_entity_coord_dec = float(source_entity['field_source_dec'])
 
-                    arg_source_coord_ra = source_coord.get('source_ra', None),
-                    arg_source_coord_dec = source_coord.get('source_dec', None),
-                    if source_entity_coord_ra is not None and source_entity_coord_dec is not None:
-                        drupal_source_sky_coord = SkyCoord(source_entity_coord_ra, source_entity_coord_dec, unit=(u.deg, u.deg))
-                        arg_source_sky_coord = SkyCoord(arg_source_coord_ra, arg_source_coord_dec, unit=(u.deg, u.deg), frame="fk5")
-                        separation = drupal_source_sky_coord.separation(arg_source_sky_coord).deg
-                        tolerance = 1. / 60.
-                        ind = np.logical_or(source_entity_title == src_name, separation <= tolerance)
-                        if np.count_nonzero(ind) > 0:
-                            break
+                        arg_source_coord_ra = arg_source_coord.get('source_ra', None)
+                        arg_source_coord_dec = arg_source_coord.get('source_dec', None)
+                        if source_entity_coord_ra is not None and source_entity_coord_dec is not None and \
+                                arg_source_coord_ra is not None and arg_source_coord_dec is not None:
+                            drupal_source_sky_coord = SkyCoord(source_entity_coord_ra, source_entity_coord_dec, unit=(u.hourangle, u.deg))
+                            arg_source_sky_coord = SkyCoord(arg_source_coord_ra, arg_source_coord_dec, unit=(u.hourangle, u.deg), frame="fk5")
+                            separation = drupal_source_sky_coord.separation(arg_source_sky_coord).deg
+                            tolerance = 1. / 60.
+                            ind = np.logical_or(source_entity_title == src_name, separation <= tolerance)
+                            if np.count_nonzero(ind) > 0:
+                                source_entity_id = source_entity['nid']
+                                break
 
             # create a new source ? yes if the user wants it
             if source_entity_id is None and insert_new_source:
-
                 src_portal_link = None
                 if src_portal_link_list is not None and src_portal_link_list[src_name_idx] != '':
                     src_portal_link = src_portal_link_list[src_name_idx].strip()
@@ -1042,8 +1063,8 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                 source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
                                                      astro_entity_name=src_name.strip(),
                                                      astro_entity_portal_link=src_portal_link,
-                                                     source_ra=source_coord.get('source_ra', None),
-                                                     source_dec=source_coord.get('source_dec', None),
+                                                     source_ra=arg_source_coord.get('source_ra', None),
+                                                     source_dec=arg_source_coord.get('source_dec', None),
                                                      object_type=object_type,
                                                      object_ids=object_ids,
                                                      sentry_dsn=sentry_dsn)
