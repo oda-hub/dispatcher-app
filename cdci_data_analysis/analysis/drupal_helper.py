@@ -1002,7 +1002,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                 object_ids = None
                 if object_ids_lists is not None and object_ids_lists[src_name_idx] != []:
                     object_ids = object_ids_lists[src_name_idx]
-                source_coord = None
+                source_coord = {}
                 if source_coord_obj_list is not None and source_coord_obj_list[src_name_idx] != {}:
                     source_coord = source_coord_obj_list[src_name_idx]
                 object_type = None
