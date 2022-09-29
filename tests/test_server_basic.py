@@ -1908,6 +1908,7 @@ def test_product_gallery_update_period_of_observation(dispatcher_live_fixture_wi
         assert drupal_res_obj == {}
 
 
+@pytest.mark.test_drupal
 def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
     server = dispatcher_live_fixture_with_gallery
 
