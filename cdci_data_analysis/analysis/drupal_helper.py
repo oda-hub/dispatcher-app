@@ -4,6 +4,7 @@ import time
 import urllib.parse
 
 import jwt
+import numpy as np
 import requests
 import base64
 import copy
@@ -17,6 +18,8 @@ import sentry_sdk
 from dateutil import parser, tz
 from datetime import datetime
 from enum import Enum, auto
+from astropy.coordinates import SkyCoord
+from astropy import units as u
 
 from cdci_data_analysis.analysis import tokenHelper
 from ..analysis.exceptions import RequestNotUnderstood, InternalError, RequestNotAuthorized
@@ -745,16 +748,18 @@ def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, galle
 
     # the URL-reserved characters should be quoted eg GX 1+4 -> GX%201%2B4
     # TODO to verify if this approach also for the other requestes
+    params = {"src_name": source_name}
     source_name = urllib.parse.quote(source_name.strip())
 
-    log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/source/{source_name}",
+    log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/all_source",
                                      headers=headers,
+                                     params=params,
                                      sentry_dsn=sentry_dsn)
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the astrophysical entity information")
     if isinstance(output_get, list) and len(output_get) == 1:
         entities_id = output_get[0]['nid']
 
-    return entities_id
+    return output_get
 
 
 def get_data_product_list_by_job_id(product_gallery_url, gallery_jwt_token, job_id=None, sentry_dsn=None) -> list:
@@ -990,21 +995,47 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
             object_type_list = json.loads(object_type_arg)
 
         for src_name in src_name_list:
-            source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
-                                                                                 source_name=src_name,
-                                                                                 sentry_dsn=sentry_dsn)
+            src_name_idx = src_name_list.index(src_name)
+            source_coord = {}
+            if source_coord_obj_list is not None and source_coord_obj_list[src_name_idx] != {}:
+                source_coord = source_coord_obj_list[src_name_idx]
+            source_entity_list = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
+                                                                                   source_name=src_name,
+                                                                                   sentry_dsn=sentry_dsn)
+            source_entity_id = None
+            if len(source_entity_list) == 1:
+                source_entity_id = source_entity_list[0]['nid']
+            elif len(source_entity_list) > 1:
+                for source_entity in source_entity_list:
+                    source_entity_id = source_entity['nid']
+                    source_entity_title = source_entity['title']
+                    source_entity_coord_ra = None
+                    source_entity_coord_dec = None
+                    if source_entity['field_source_ra'] != "":
+                        source_entity_coord_ra = float(source_entity['field_source_ra'])
+                    if source_entity['field_source_dec'] != "":
+                        source_entity_coord_dec = float(source_entity[0]['field_source_dec'])
+
+                    arg_source_coord_ra = source_coord.get('source_ra', None),
+                    arg_source_coord_dec = source_coord.get('source_dec', None),
+                    if source_entity_coord_ra is not None and source_entity_coord_dec is not None:
+                        drupal_source_sky_coord = SkyCoord(source_entity_coord_ra, source_entity_coord_dec, unit=(u.deg, u.deg))
+                        arg_source_sky_coord = SkyCoord(arg_source_coord_ra, arg_source_coord_dec, unit=(u.deg, u.deg), frame="fk5")
+                        separation = drupal_source_sky_coord.separation(arg_source_sky_coord).deg
+                        tolerance = 1. / 60.
+                        ind = np.logical_or(source_entity_title == src_name, separation <= tolerance)
+                        if np.count_nonzero(ind) > 0:
+                            break
+
             # create a new source ? yes if the user wants it
             if source_entity_id is None and insert_new_source:
-                src_name_idx = src_name_list.index(src_name)
+
                 src_portal_link = None
                 if src_portal_link_list is not None and src_portal_link_list[src_name_idx] != '':
                     src_portal_link = src_portal_link_list[src_name_idx].strip()
                 object_ids = None
                 if object_ids_lists is not None and object_ids_lists[src_name_idx] != []:
                     object_ids = object_ids_lists[src_name_idx]
-                source_coord = {}
-                if source_coord_obj_list is not None and source_coord_obj_list[src_name_idx] != {}:
-                    source_coord = source_coord_obj_list[src_name_idx]
                 object_type = None
                 if object_type_list is not None and object_type_list[src_name_idx] != '':
                     object_type = object_type_list[src_name_idx]
