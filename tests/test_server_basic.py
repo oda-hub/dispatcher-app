@@ -2246,27 +2246,37 @@ def test_post_data_product_with_multiple_sources(dispatcher_live_fixture_with_ga
     source_name = None
     entity_portal_link = None
     object_ids = None
+    object_type = None
+    source_coord = None
     if type_source == "single":
         source_name = "GX 1+4"
         entity_portal_link = "http://cdsportal.u-strasbg.fr/?target=GX%201%204"
         object_ids = [["GX 1+4", "GX 99", "Test"]]
+        object_type = ["Symbiotic"]
+        source_coord = [{"source_ra": 263.00897166666664, "source_dec": -24.74559138888889}]
     elif type_source == "list":
         source_name = 'GX 1+4, Crab, unknown_src, unknown_src_no_link'
         entity_portal_link = "http://cdsportal.u-strasbg.fr/?target=GX%201%204, http://cdsportal.u-strasbg.fr/?target=Crab, , link"
         object_ids = [["GX 1+4", "GX 99", "Test"], ["Crab", "GX 99", "Test"], [], ["unknown_src_no_link", "unknown source 1", "unknown source 2", "unknown source 3"]]
+        object_type = ["Symbiotic", "SNRemnant", "", "Test"]
+        source_coord = [{"source_ra": 263.00897166666664, "source_dec": -24.74559138888889},
+                        {"source_ra": 83.63333333333331, "source_dec": 22.013333333333332},
+                        {},
+                        {"source_ra": 11.11, "source_dec": 434.89}]
 
     params = {
         'instrument': 'isgri',
         'src_name': source_name,
-        'entity_portal_link': entity_portal_link,
-        'object_ids': json.dumps(object_ids),
+        'entity_portal_link_list': entity_portal_link,
+        'object_ids_list': json.dumps(object_ids),
+        'source_coord_list': json.dumps(source_coord),
+        'object_type_list': json.dumps(object_type),
         'product_type': 'isgri_lc',
         'content_type': 'data_product',
         'product_title': "product with multiple sources",
         'token': encoded_token,
         'insert_new_source': insert_new_source
     }
-
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
                       params={**params}
                       )
@@ -2312,6 +2322,15 @@ def test_post_data_product_with_multiple_sources(dispatcher_live_fixture_with_ga
             assert field_alternative_names_long_str_splitted[1] == 'unknown source 1'
             assert field_alternative_names_long_str_splitted[2] == 'unknown source 2'
             assert field_alternative_names_long_str_splitted[3] == 'unknown source 3'
+
+            assert 'field_source_ra' in drupal_res_source_info_obj
+            assert drupal_res_source_info_obj['field_source_ra'][0]['value'] == source_coord[3]['source_ra']
+            assert 'field_source_dec' in drupal_res_source_info_obj
+            assert drupal_res_source_info_obj['field_source_dec'][0]['value'] == source_coord[3]['source_dec']
+            assert 'field_link' in drupal_res_source_info_obj
+            assert drupal_res_source_info_obj['field_link'][0]['value'] == 'link'
+            assert 'field_object_type' in drupal_res_source_info_obj
+            assert drupal_res_source_info_obj['field_object_type'][0]['value'] == 'Test'
 
     else:
         assert link_field_describes_astro_entity not in drupal_res_obj['_links']
