@@ -964,10 +964,10 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
     # set the source astrophysical entity if available
     src_name_concat = None
     src_name_arg = kwargs.pop('src_name', None)
-    src_portal_link_arg = kwargs.pop('entity_portal_link', None)
-    object_ids_arg = kwargs.pop('object_ids', None)
-    source_coord_arg = kwargs.pop('source_coord', None)
-    object_type_arg = kwargs.pop('object_type', None)
+    src_portal_link_arg = kwargs.pop('entity_portal_link_list', None)
+    object_ids_arg = kwargs.pop('object_ids_list', None)
+    source_coord_arg = kwargs.pop('source_coord_list', None)
+    object_type_arg = kwargs.pop('object_type_list', None)
     if src_name_arg is not None:
         src_name_list = src_name_arg.split(',')
         src_name_concat = "_".join(src_name_list)
@@ -1011,8 +1011,8 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                 source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
                                                      astro_entity_name=src_name.strip(),
                                                      astro_entity_portal_link=src_portal_link,
-                                                     source_ra=source_coord['source_ra'],
-                                                     source_dec=source_coord['source_dec'],
+                                                     source_ra=source_coord.get('source_ra', None),
+                                                     source_dec=source_coord.get('source_dec', None),
                                                      object_type=object_type,
                                                      object_ids=object_ids,
                                                      sentry_dsn=sentry_dsn)
@@ -1124,6 +1124,7 @@ def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: 
                         resolved_obj['DEC'] = float(returned_resolved_obj['dec'])
                     if 'object_ids' in returned_resolved_obj:
                         resolved_obj['object_ids'] = returned_resolved_obj['object_ids']
+                        
                     resolved_obj['entity_portal_link'] = entities_portal_url.format(quoted_name)
                     resolved_obj['message'] = f'{name} successfully resolved'
                 elif not returned_resolved_obj['success']:
