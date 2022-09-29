@@ -815,7 +815,7 @@ def get_observation_yaml_attachments_by_observation_title(product_gallery_url, g
     log_res = execute_drupal_request(f"{product_gallery_url}/get_observation_attachments/{observation_title}",
                                      headers=headers,
                                      sentry_dsn=sentry_dsn)
-    output_get = analyze_drupal_output(log_res, operation_performed="retrieving the observation information")
+    output_get = analyze_drupal_output(log_res, operation_performed="retrieving the observation attachments")
 
     if output_get is not None and isinstance(output_get, list):
         return output_get[0]
