@@ -757,9 +757,9 @@ def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, galle
 
     return entities_id
 
+
 def get_source_astrophysical_entity_id_by_source_and_alternative_name(product_gallery_url, gallery_jwt_token, source_name=None, sentry_dsn=None) \
         -> Optional[str]:
-    entities_id = None
     # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
 
@@ -773,8 +773,6 @@ def get_source_astrophysical_entity_id_by_source_and_alternative_name(product_ga
                                      params=params,
                                      sentry_dsn=sentry_dsn)
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the astrophysical entity information")
-    if isinstance(output_get, list) and len(output_get) == 1:
-        entities_id = output_get[0]['nid']
 
     return output_get
 
