@@ -15,6 +15,7 @@ import re
 from typing import Optional, Tuple, Dict
 
 import sentry_sdk
+import yaml
 from dateutil import parser, tz
 from datetime import datetime
 from enum import Enum, auto
@@ -818,6 +819,13 @@ def get_observation_yaml_attachments_by_observation_title(product_gallery_url, g
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the observation attachments")
 
     if output_get is not None and isinstance(output_get, list):
+        # TODO might be needed if a better formatting of the output is needed
+        # if 'file_content' in output_get[0]:
+        #     splitted_content_list = output_get[0]['file_content'].split('{"single_file_content": "')
+        #     for splitted_content in splitted_content_list:
+        #         if splitted_content != '':
+        #             if splitted_content.strip()
+        #             yaml.parse(splitted_content)
         return output_get[0]
 
     return output_get

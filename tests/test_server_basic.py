@@ -1930,7 +1930,8 @@ def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_f
         'T2': now.strftime('%Y-%m-%dT%H:%M:%S')
     }
 
-    file_obj = {'yaml_file_0': open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'rb')}
+    file_obj = {'yaml_file_0': open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'rb'),
+                'yaml_file_1': open('observation_yaml_dummy_files/obs_rev_1.yaml', 'rb')}
 
     c = requests.post(os.path.join(server, "post_observation_to_gallery"),
                       params={**params},
@@ -1950,10 +1951,14 @@ def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_f
     assert 'file_path' in drupal_res_obj
     assert 'file_content' in drupal_res_obj
 
-    with open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'r') as f_yaml_file:
-        yaml_file_content = f_yaml_file.read()
+    with open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'r') as f_yaml_file_yaml_file_content_obs_rev_2542:
+        yaml_file_content_obs_rev_2542 = f_yaml_file_yaml_file_content_obs_rev_2542.read()
 
-    assert drupal_res_obj['file_content'] == yaml_file_content
+    with open('observation_yaml_dummy_files/obs_rev_1.yaml', 'r') as f_yaml_file_yaml_file_content_obs_rev_1:
+        yaml_file_content_obs_rev_1 = f_yaml_file_yaml_file_content_obs_rev_1.read()
+
+    assert yaml_file_content_obs_rev_1 in drupal_res_obj['file_content']
+    assert yaml_file_content_obs_rev_2542 in drupal_res_obj['file_content']
 
 
 @pytest.mark.test_drupal
