@@ -581,7 +581,7 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
 def build_gallery_observation_node(product_gallery_url,
                                    title,
                                    t1=None, t2=None,
-                                   revnum_1=None, revnum_2=None,
+                                   revnum_1=None, revnum_2=None, span_rev=None,
                                    obsids=None,
                                    observation_attachment_file_fid_list=None,
                                    ):
@@ -621,6 +621,10 @@ def build_gallery_observation_node(product_gallery_url,
         body_gallery_observation_node["field_rev2"] = [{
             "value": revnum_2
         }]
+    if span_rev is not None:
+        body_gallery_observation_node["field_span_rev"] = [{
+            "value": span_rev
+        }]
 
     return body_gallery_observation_node
 
@@ -643,7 +647,7 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
                      update_observation=False,
                      create_new=False):
     log_res = output_post = None
-    t1_formatted = t2_formatted = t1_revnum_1 = t2_revnum_2 = formatted_title = None
+    t1_formatted = t2_formatted = t1_revnum_1 = t2_revnum_2 = formatted_title = span_rev = None
 
     tz_to_apply = tz.gettz(timezone)
 
@@ -663,6 +667,9 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
         else:
             logger.warning(f'error while retrieving the revolution number from corresponding to the time {t2}')
 
+        if t1_revnum_1 is not None and t2_revnum_2 is not None:
+            span_rev = t2_revnum_2 - t1_revnum_1
+
         formatted_title = "_".join(["observation", t1_formatted, t2_formatted])
     else:
         # assign a randomly generate id in case to time range is provided
@@ -681,6 +688,7 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
                                                                    title=formatted_title,
                                                                    t1=t1_formatted, t2=t2_formatted,
                                                                    revnum_1=t1_revnum_1, revnum_2=t2_revnum_2,
+                                                                   span_rev=span_rev,
                                                                    obsids=obsids,
                                                                    observation_attachment_file_fid_list=observation_attachment_file_fid_list)
 

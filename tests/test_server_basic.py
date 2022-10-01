@@ -2054,6 +2054,7 @@ def test_product_gallery_post_period_of_observation(dispatcher_live_fixture_with
     if timerange_parameters == 'new_time_range':
         assert 'field_rev1' in drupal_res_obs_info_obj
         assert 'field_rev2' in drupal_res_obs_info_obj
+        assert 'field_span_rev' in drupal_res_obs_info_obj
         revnum1_input = get_revnum(service_url=dispatcher_test_conf_with_gallery['product_gallery_options']['converttime_revnum_service_url'],
                                    time_to_convert=params['T1'])
         assert drupal_res_obs_info_obj['field_rev1'][0]['value'] == revnum1_input['revnum']
@@ -2064,6 +2065,7 @@ def test_product_gallery_post_period_of_observation(dispatcher_live_fixture_with
         observations_range = get_observations_for_time_range(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
                                                              gallery_jwt_token,
                                                              t1=params['T1'], t2=params['T2'])
+        assert drupal_res_obs_info_obj['field_span_rev'][0]['value'] == revnum2_input['revnum'] - revnum1_input['revnum']
         assert len(observations_range) == 1
         times = observations_range[0]['field_timerange'].split('--')
         t_start = parser.parse(times[0]).strftime('%Y-%m-%dT%H:%M:%S')
