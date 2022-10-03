@@ -493,6 +493,36 @@ def post_content_to_gallery(decoded_token,
             output_content_post = {}
             logger.info(f"no observation has been created or updated")
 
+    elif content_type == content_type.ASTROPHYSICAL_ENTITY:
+        src_name = kwargs.pop('src_name', None)
+        src_portal_link = kwargs.pop('src_portal_link', None)
+        source_ra = kwargs.pop('source_ra', None)
+        source_dec = kwargs.pop('source_dec', None)
+        object_type = kwargs.pop('object_type', None)
+        object_ids = kwargs.pop('object_ids', None)
+        update_astro_entity = kwargs.pop('update_astro_entity', 'False') == 'True'
+        force_create_new = kwargs.pop('create_new', 'False') == 'True'
+        source_entity_id = None
+        if update_astro_entity:
+            source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url,
+                                                                                 gallery_jwt_token,
+                                                                                 source_name=src_name,
+                                                                                 sentry_dsn=sentry_dsn)
+            if source_entity_id is None and force_create_new is True:
+                update_astro_entity = False
+
+        post_astro_entity(product_gallery_url=product_gallery_url,
+                          gallery_jwt_token=gallery_jwt_token,
+                          astro_entity_name=src_name.strip(),
+                          astro_entity_portal_link=src_portal_link,
+                          source_ra=source_ra,
+                          source_dec=source_dec,
+                          object_type=object_type,
+                          object_ids=object_ids,
+                          sentry_dsn=sentry_dsn,
+                          update_astro_entity=update_astro_entity,
+                          astro_entity_id=source_entity_id)
+
     return output_content_post
 
 
@@ -526,7 +556,9 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
                       source_dec=None,
                       object_type=None,
                       object_ids=None,
-                      sentry_dsn=None):
+                      sentry_dsn=None,
+                      astro_entity_id=None,
+                      update_astro_entity=False):
     # post new observation with or without a specific time range
     body_gallery_astro_entity_node = copy.deepcopy(body_article_product_gallery.body_node)
     astro_entity_name = astro_entity_name.strip()
@@ -564,11 +596,18 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
 
     headers = get_drupal_request_headers(gallery_jwt_token)
 
-    log_res = execute_drupal_request(f"{product_gallery_url}/node",
-                                     method='post',
-                                     data=json.dumps(body_gallery_astro_entity_node),
-                                     headers=headers,
-                                     sentry_dsn=sentry_dsn)
+    if update_astro_entity:
+        log_res = execute_drupal_request(os.path.join(product_gallery_url, 'node', astro_entity_id),
+                                         method='patch',
+                                         data=json.dumps(body_gallery_astro_entity_node),
+                                         headers=headers,
+                                         sentry_dsn=sentry_dsn)
+    else:
+        log_res = execute_drupal_request(f"{product_gallery_url}/node",
+                                         method='post',
+                                         data=json.dumps(body_gallery_astro_entity_node),
+                                         headers=headers,
+                                         sentry_dsn=sentry_dsn)
 
     output_post = analyze_drupal_output(log_res, operation_performed="posting a new astrophysical entity")
 
@@ -1053,12 +1092,9 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                         arg_source_coord_dec = arg_source_coord.get('source_dec', None)
                         if source_entity_coord_ra is not None and source_entity_coord_dec is not None and \
                                 arg_source_coord_ra is not None and arg_source_coord_dec is not None:
-                            drupal_source_sky_coord = SkyCoord(source_entity_coord_ra, source_entity_coord_dec, unit=(u.hourangle, u.deg))
-                            arg_source_sky_coord = SkyCoord(arg_source_coord_ra, arg_source_coord_dec, unit=(u.hourangle, u.deg), frame="fk5")
-                            separation = drupal_source_sky_coord.separation(arg_source_sky_coord).deg
-                            tolerance = 1. / 60.
-                            ind = np.logical_or(source_entity_title == src_name, separation <= tolerance)
-                            if np.count_nonzero(ind) > 0:
+                            matching_coords = check_matching_coords(source_entity_title, source_entity_coord_ra, source_entity_coord_dec,
+                                                                    src_name, arg_source_coord_ra, arg_source_coord_dec)
+                            if matching_coords:
                                 source_entity_id = source_entity['nid']
                                 break
 
@@ -1170,6 +1206,19 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
         output_post = analyze_drupal_output(log_res, operation_performed="posting a new data product to the gallery")
 
     return output_post
+
+
+def check_matching_coords(source_1_name, source_1_coord_ra, source_1_coord_dec,
+                          source_2_name, source_2_coord_ra, source_2_coord_dec,
+                          tolerance=1. / 60):
+    drupal_source_sky_coord = SkyCoord(source_1_coord_ra, source_1_coord_dec, unit=(u.hourangle, u.deg))
+    arg_source_sky_coord = SkyCoord(source_2_coord_ra, source_2_coord_dec, unit=(u.hourangle, u.deg), frame="fk5")
+    separation = drupal_source_sky_coord.separation(arg_source_sky_coord).deg
+    ind = np.logical_or(source_1_name == source_2_name, separation <= tolerance)
+    if np.count_nonzero(ind) > 0:
+        return True
+
+    return False
 
 
 def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: str = None):
