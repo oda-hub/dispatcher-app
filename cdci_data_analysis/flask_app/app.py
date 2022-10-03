@@ -658,7 +658,7 @@ def get_observation_attachments():
 
 
 @app.route('/post_astro_entity_to_gallery', methods=['POST'])
-def post_observation_to_gallery():
+def post_astro_entity_to_gallery():
     logger.info("request.args: %s ", request.args)
     logger.info("request.files: %s ", request.files)
 

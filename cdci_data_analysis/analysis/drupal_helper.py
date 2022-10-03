@@ -508,20 +508,28 @@ def post_content_to_gallery(decoded_token,
                                                                                  gallery_jwt_token,
                                                                                  source_name=src_name,
                                                                                  sentry_dsn=sentry_dsn)
-            if source_entity_id is None and force_create_new is True:
-                update_astro_entity = False
+        if source_entity_id is None and force_create_new is True:
+            update_astro_entity = False
 
-        post_astro_entity(product_gallery_url=product_gallery_url,
-                          gallery_jwt_token=gallery_jwt_token,
-                          astro_entity_name=src_name.strip(),
-                          astro_entity_portal_link=src_portal_link,
-                          source_ra=source_ra,
-                          source_dec=source_dec,
-                          object_type=object_type,
-                          object_ids=object_ids,
-                          sentry_dsn=sentry_dsn,
-                          update_astro_entity=update_astro_entity,
-                          astro_entity_id=source_entity_id)
+        if not (force_create_new is False and source_entity_id is None):
+            output_content_post = post_astro_entity(product_gallery_url=product_gallery_url,
+                                                    gallery_jwt_token=gallery_jwt_token,
+                                                    astro_entity_name=src_name.strip(),
+                                                    astro_entity_portal_link=src_portal_link,
+                                                    source_ra=source_ra,
+                                                    source_dec=source_dec,
+                                                    object_type=object_type,
+                                                    object_ids=object_ids,
+                                                    sentry_dsn=sentry_dsn,
+                                                    update_astro_entity=update_astro_entity,
+                                                    astro_entity_id=source_entity_id)
+        if output_content_post is not None:
+            # extract the id of the observation
+            astrophysical_entity_drupal_id = output_content_post['nid'][0]['value']
+            logger.info(f"Astrophysical entity with id {astrophysical_entity_drupal_id} has been successfully posted")
+        else:
+            output_content_post = {}
+            logger.info(f"no astrophysical entity has been created or updated")
 
     return output_content_post
 
@@ -611,10 +619,7 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
 
     output_post = analyze_drupal_output(log_res, operation_performed="posting a new astrophysical entity")
 
-    # extract the id of the observation
-    astro_entity_drupal_id = output_post['nid'][0]['value']
-
-    return astro_entity_drupal_id
+    return output_post
 
 
 def build_gallery_observation_node(product_gallery_url,
@@ -1109,14 +1114,17 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                 object_type = None
                 if object_type_list is not None and object_type_list[src_name_idx] != '':
                     object_type = object_type_list[src_name_idx]
-                source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
-                                                     astro_entity_name=src_name.strip(),
-                                                     astro_entity_portal_link=src_portal_link,
-                                                     source_ra=arg_source_coord.get('source_ra', None),
-                                                     source_dec=arg_source_coord.get('source_dec', None),
-                                                     object_type=object_type,
-                                                     object_ids=object_ids,
-                                                     sentry_dsn=sentry_dsn)
+                output_post = post_astro_entity(product_gallery_url, gallery_jwt_token,
+                                                astro_entity_name=src_name.strip(),
+                                                astro_entity_portal_link=src_portal_link,
+                                                source_ra=arg_source_coord.get('source_ra', None),
+                                                source_dec=arg_source_coord.get('source_dec', None),
+                                                object_type=object_type,
+                                                object_ids=object_ids,
+                                                sentry_dsn=sentry_dsn)
+
+                # extract the id of the observation
+                source_entity_id = output_post['nid'][0]['value']
 
             if source_entity_id is not None:
                 if 'field_describes_astro_entity' not in body_gallery_article_node:
