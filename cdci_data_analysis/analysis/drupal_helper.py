@@ -4,6 +4,7 @@ import time
 import urllib.parse
 
 import jwt
+import numpy as np
 import requests
 import base64
 import copy
@@ -17,6 +18,8 @@ import sentry_sdk
 from dateutil import parser, tz
 from datetime import datetime
 from enum import Enum, auto
+from astropy.coordinates import SkyCoord
+from astropy import units as u
 
 from cdci_data_analysis.analysis import tokenHelper
 from ..analysis.exceptions import RequestNotUnderstood, InternalError, RequestNotAuthorized
@@ -517,7 +520,13 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
     return observations
 
 
-def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name, astro_entity_portal_link=None,  sentry_dsn=None):
+def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
+                      astro_entity_portal_link=None,
+                      source_ra=None,
+                      source_dec=None,
+                      object_type=None,
+                      object_ids=None,
+                      sentry_dsn=None):
     # post new observation with or without a specific time range
     body_gallery_astro_entity_node = copy.deepcopy(body_article_product_gallery.body_node)
     astro_entity_name = astro_entity_name.strip()
@@ -528,11 +537,30 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
     # TODO perhaps a bit of duplication here?
     body_gallery_astro_entity_node["title"]["value"] = astro_entity_name
     body_gallery_astro_entity_node["field_source_name"] = [{
-            "value": astro_entity_name
-        }]
+        "value": astro_entity_name
+    }]
     body_gallery_astro_entity_node["field_link"] = [{
         "value": astro_entity_portal_link
     }]
+    if object_ids is not None:
+        body_gallery_astro_entity_node["field_alternative_names_long_str"] = [{
+            "value": ','.join(object_ids)
+        }]
+
+    if source_ra is not None:
+        body_gallery_astro_entity_node["field_source_ra"] = [{
+            "value": source_ra
+        }]
+
+    if source_dec is not None:
+        body_gallery_astro_entity_node["field_source_dec"] = [{
+            "value": source_dec
+        }]
+
+    if object_type is not None:
+        body_gallery_astro_entity_node["field_object_type"] = [{
+            "value": object_type
+        }]
 
     headers = get_drupal_request_headers(gallery_jwt_token)
 
@@ -553,7 +581,7 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
 def build_gallery_observation_node(product_gallery_url,
                                    title,
                                    t1=None, t2=None,
-                                   revnum_1=None, revnum_2=None,
+                                   revnum_1=None, revnum_2=None, span_rev=None,
                                    obsids=None,
                                    observation_attachment_file_fid_list=None,
                                    ):
@@ -593,6 +621,10 @@ def build_gallery_observation_node(product_gallery_url,
         body_gallery_observation_node["field_rev2"] = [{
             "value": revnum_2
         }]
+    if span_rev is not None:
+        body_gallery_observation_node["field_span_rev"] = [{
+            "value": span_rev
+        }]
 
     return body_gallery_observation_node
 
@@ -615,7 +647,7 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
                      update_observation=False,
                      create_new=False):
     log_res = output_post = None
-    t1_formatted = t2_formatted = t1_revnum_1 = t2_revnum_2 = formatted_title = None
+    t1_formatted = t2_formatted = t1_revnum_1 = t2_revnum_2 = formatted_title = span_rev = None
 
     tz_to_apply = tz.gettz(timezone)
 
@@ -635,6 +667,9 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
         else:
             logger.warning(f'error while retrieving the revolution number from corresponding to the time {t2}')
 
+        if t1_revnum_1 is not None and t2_revnum_2 is not None:
+            span_rev = t2_revnum_2 - t1_revnum_1
+
         formatted_title = "_".join(["observation", t1_formatted, t2_formatted])
     else:
         # assign a randomly generate id in case to time range is provided
@@ -653,6 +688,7 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
                                                                    title=formatted_title,
                                                                    t1=t1_formatted, t2=t2_formatted,
                                                                    revnum_1=t1_revnum_1, revnum_2=t2_revnum_2,
+                                                                   span_rev=span_rev,
                                                                    obsids=obsids,
                                                                    observation_attachment_file_fid_list=observation_attachment_file_fid_list)
 
@@ -719,9 +755,7 @@ def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, galle
     headers = get_drupal_request_headers(gallery_jwt_token)
 
     # the URL-reserved characters should be quoted eg GX 1+4 -> GX%201%2B4
-    # TODO to verify if this approach also for the other requestes
     source_name = urllib.parse.quote(source_name.strip())
-
     log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/source/{source_name}",
                                      headers=headers,
                                      sentry_dsn=sentry_dsn)
@@ -730,6 +764,25 @@ def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, galle
         entities_id = output_get[0]['nid']
 
     return entities_id
+
+
+def get_source_astrophysical_entity_id_by_source_and_alternative_name(product_gallery_url, gallery_jwt_token, source_name=None, sentry_dsn=None) \
+        -> Optional[str]:
+    # get from the drupal the relative id
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    # the URL-reserved characters should be quoted eg GX 1+4 -> GX%201%2B4
+    # TODO to verify if this approach also for the other requestes
+    params = {"src_name": source_name.strip(),
+              "_format": "hal_json"}
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/all_sources",
+                                     headers=headers,
+                                     params=params,
+                                     sentry_dsn=sentry_dsn)
+    output_get = analyze_drupal_output(log_res, operation_performed="retrieving the astrophysical entity information")
+
+    return output_get
 
 
 def get_data_product_list_by_job_id(product_gallery_url, gallery_jwt_token, job_id=None, sentry_dsn=None) -> list:
@@ -760,6 +813,29 @@ def get_data_product_list_by_product_id(product_gallery_url, gallery_jwt_token, 
         data_product_list = output_get
 
     return data_product_list
+
+
+def get_observation_yaml_attachments_by_observation_title(product_gallery_url, gallery_jwt_token, observation_title,
+                                                          sentry_dsn=None):
+    # get from the drupal the relative id
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/get_observation_attachments/{observation_title}",
+                                     headers=headers,
+                                     sentry_dsn=sentry_dsn)
+    output_get = analyze_drupal_output(log_res, operation_performed="retrieving the observation attachments")
+
+    if output_get is not None and isinstance(output_get, list):
+        # TODO might be needed if a better formatting of the output is needed
+        # if 'file_content' in output_get[0]:
+        #     splitted_content_list = output_get[0]['file_content'].split('{"single_file_content": "')
+        #     for splitted_content in splitted_content_list:
+        #         if splitted_content != '':
+        #             if splitted_content.strip()
+        #             yaml.parse(splitted_content)
+        return output_get[0]
+
+    return output_get
 
 
 def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
@@ -923,27 +999,87 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
     # set the source astrophysical entity if available
     src_name_concat = None
     src_name_arg = kwargs.pop('src_name', None)
+    src_portal_link_arg = kwargs.pop('entity_portal_link_list', None)
+    object_ids_arg = kwargs.pop('object_ids_list', None)
+    source_coord_arg = kwargs.pop('source_coord_list', None)
+    object_type_arg = kwargs.pop('object_type_list', None)
     if src_name_arg is not None:
         src_name_list = src_name_arg.split(',')
-        src_portal_link_arg = kwargs.pop('entity_portal_link', None)
-        src_portal_link_list = None
-        if src_portal_link_arg is not None:
-            src_portal_link_list = src_portal_link_arg.split(',')
         src_name_concat = "_".join(src_name_list)
 
+        src_portal_link_list = None
+        if src_portal_link_arg is not None:
+            # TODO consider using json.loads
+            src_portal_link_list = src_portal_link_arg.split(',')
+
+        object_ids_lists = None
+        if object_ids_arg is not None:
+            object_ids_lists = json.loads(object_ids_arg)
+
+        source_coord_obj_list = None
+        if source_coord_arg is not None:
+            source_coord_obj_list = json.loads(source_coord_arg)
+
+        object_type_list = None
+        if object_type_arg is not None:
+            object_type_list = json.loads(object_type_arg)
+
         for src_name in src_name_list:
-            source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token,
-                                                                                 source_name=src_name,
-                                                                                 sentry_dsn=sentry_dsn)
+            src_name_idx = src_name_list.index(src_name)
+            arg_source_coord = {}
+            if source_coord_obj_list is not None and source_coord_obj_list[src_name_idx] != {}:
+                arg_source_coord = source_coord_obj_list[src_name_idx]
+            source_entity_list = get_source_astrophysical_entity_id_by_source_and_alternative_name(product_gallery_url, gallery_jwt_token,
+                                                                                   source_name=src_name,
+                                                                                   sentry_dsn=sentry_dsn)
+            source_entity_id = None
+            if len(source_entity_list) == 1:
+                source_entity_id = source_entity_list[0]['nid']
+            elif len(source_entity_list) > 1:
+                for source_entity in source_entity_list:
+                    source_entity_title = source_entity['title']
+                    if source_entity_title.strip() == src_name.strip():
+                        source_entity_id = source_entity['nid']
+                        break
+                    else:
+                        source_entity_coord_ra = None
+                        source_entity_coord_dec = None
+                        if source_entity['field_source_ra'] != "":
+                            source_entity_coord_ra = float(source_entity['field_source_ra'])
+                        if source_entity['field_source_dec'] != "":
+                            source_entity_coord_dec = float(source_entity['field_source_dec'])
+
+                        arg_source_coord_ra = arg_source_coord.get('source_ra', None)
+                        arg_source_coord_dec = arg_source_coord.get('source_dec', None)
+                        if source_entity_coord_ra is not None and source_entity_coord_dec is not None and \
+                                arg_source_coord_ra is not None and arg_source_coord_dec is not None:
+                            drupal_source_sky_coord = SkyCoord(source_entity_coord_ra, source_entity_coord_dec, unit=(u.hourangle, u.deg))
+                            arg_source_sky_coord = SkyCoord(arg_source_coord_ra, arg_source_coord_dec, unit=(u.hourangle, u.deg), frame="fk5")
+                            separation = drupal_source_sky_coord.separation(arg_source_sky_coord).deg
+                            tolerance = 1. / 60.
+                            ind = np.logical_or(source_entity_title == src_name, separation <= tolerance)
+                            if np.count_nonzero(ind) > 0:
+                                source_entity_id = source_entity['nid']
+                                break
+
             # create a new source ? yes if the user wants it
             if source_entity_id is None and insert_new_source:
-                src_name_idx = src_name_list.index(src_name)
                 src_portal_link = None
                 if src_portal_link_list is not None and src_portal_link_list[src_name_idx] != '':
                     src_portal_link = src_portal_link_list[src_name_idx].strip()
+                object_ids = None
+                if object_ids_lists is not None and object_ids_lists[src_name_idx] != []:
+                    object_ids = object_ids_lists[src_name_idx]
+                object_type = None
+                if object_type_list is not None and object_type_list[src_name_idx] != '':
+                    object_type = object_type_list[src_name_idx]
                 source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
                                                      astro_entity_name=src_name.strip(),
                                                      astro_entity_portal_link=src_portal_link,
+                                                     source_ra=arg_source_coord.get('source_ra', None),
+                                                     source_dec=arg_source_coord.get('source_dec', None),
+                                                     object_type=object_type,
+                                                     object_ids=object_ids,
                                                      sentry_dsn=sentry_dsn)
 
             if source_entity_id is not None:
@@ -1051,6 +1187,10 @@ def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: 
                         resolved_obj['RA'] = float(returned_resolved_obj['ra'])
                     if 'dec' in returned_resolved_obj:
                         resolved_obj['DEC'] = float(returned_resolved_obj['dec'])
+                    if 'object_ids' in returned_resolved_obj:
+                        resolved_obj['object_ids'] = returned_resolved_obj['object_ids']
+                    if 'object_type' in returned_resolved_obj:
+                        resolved_obj['object_type'] = returned_resolved_obj['object_type']
                     resolved_obj['entity_portal_link'] = entities_portal_url.format(quoted_name)
                     resolved_obj['message'] = f'{name} successfully resolved'
                 elif not returned_resolved_obj['success']:

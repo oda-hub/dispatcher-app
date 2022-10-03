@@ -25,7 +25,7 @@ from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, generate_notebook_filename
-from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id
+from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id, get_source_astrophysical_entity_id_by_source_name
 from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
 
 # logger
@@ -1567,6 +1567,8 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
         assert 'DEC' in resolved_obj
         assert 'RA' in resolved_obj
         assert 'entity_portal_link' in resolved_obj
+        assert 'object_ids' in resolved_obj
+        assert 'object_type' in resolved_obj
 
         assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
         assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery["product_gallery_options"]["entities_portal_url"]\
@@ -1907,6 +1909,59 @@ def test_product_gallery_update_period_of_observation(dispatcher_live_fixture_wi
 
 
 @pytest.mark.test_drupal
+def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    now = datetime.now()
+
+    params = {
+        'token': encoded_token,
+        'obsid': "1960001, 1960002, 1960003",
+        'title': "test observation title",
+        'T1': (now - timedelta(days=random.randint(30, 150))).strftime('%Y-%m-%dT%H:%M:%S'),
+        'T2': now.strftime('%Y-%m-%dT%H:%M:%S')
+    }
+
+    file_obj = {'yaml_file_0': open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'rb'),
+                'yaml_file_1': open('observation_yaml_dummy_files/obs_rev_1.yaml', 'rb')}
+
+    c = requests.post(os.path.join(server, "post_observation_to_gallery"),
+                      params={**params},
+                      files=file_obj
+                      )
+
+    assert c.status_code == 200
+
+    c = requests.get(os.path.join(server, "get_observation_attachments"),
+                     params={'title': 'test observation title',
+                             'token': encoded_token}
+                     )
+
+    assert c.status_code == 200
+    drupal_res_obj = c.json()
+
+    assert 'file_path' in drupal_res_obj
+    assert 'file_content' in drupal_res_obj
+
+    with open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'r') as f_yaml_file_yaml_file_content_obs_rev_2542:
+        yaml_file_content_obs_rev_2542 = f_yaml_file_yaml_file_content_obs_rev_2542.read()
+
+    with open('observation_yaml_dummy_files/obs_rev_1.yaml', 'r') as f_yaml_file_yaml_file_content_obs_rev_1:
+        yaml_file_content_obs_rev_1 = f_yaml_file_yaml_file_content_obs_rev_1.read()
+
+    assert yaml_file_content_obs_rev_1 in drupal_res_obj['file_content']
+    assert yaml_file_content_obs_rev_2542 in drupal_res_obj['file_content']
+
+
+@pytest.mark.test_drupal
 @pytest.mark.parametrize("obsid", [1960001, ["1960001", "1960002", "1960003"]])
 @pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "time_range_no_timezone_limits", "time_range_with_timezone", "new_time_range"])
 @pytest.mark.parametrize("include_title", [True, False])
@@ -1999,6 +2054,7 @@ def test_product_gallery_post_period_of_observation(dispatcher_live_fixture_with
     if timerange_parameters == 'new_time_range':
         assert 'field_rev1' in drupal_res_obs_info_obj
         assert 'field_rev2' in drupal_res_obs_info_obj
+        assert 'field_span_rev' in drupal_res_obs_info_obj
         revnum1_input = get_revnum(service_url=dispatcher_test_conf_with_gallery['product_gallery_options']['converttime_revnum_service_url'],
                                    time_to_convert=params['T1'])
         assert drupal_res_obs_info_obj['field_rev1'][0]['value'] == revnum1_input['revnum']
@@ -2009,6 +2065,7 @@ def test_product_gallery_post_period_of_observation(dispatcher_live_fixture_with
         observations_range = get_observations_for_time_range(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
                                                              gallery_jwt_token,
                                                              t1=params['T1'], t2=params['T2'])
+        assert drupal_res_obs_info_obj['field_span_rev'][0]['value'] == revnum2_input['revnum'] - revnum1_input['revnum']
         assert len(observations_range) == 1
         times = observations_range[0]['field_timerange'].split('--')
         t_start = parser.parse(times[0]).strftime('%Y-%m-%dT%H:%M:%S')
@@ -2196,24 +2253,38 @@ def test_post_data_product_with_multiple_sources(dispatcher_live_fixture_with_ga
 
     source_name = None
     entity_portal_link = None
+    object_ids = None
+    object_type = None
+    source_coord = None
     if type_source == "single":
         source_name = "GX 1+4"
         entity_portal_link = "http://cdsportal.u-strasbg.fr/?target=GX%201%204"
+        object_ids = [["GX 1+4", "GX 99", "Test"]]
+        object_type = ["Symbiotic"]
+        source_coord = [{"source_ra": 263.00897166666664, "source_dec": -24.74559138888889}]
     elif type_source == "list":
         source_name = 'GX 1+4, Crab, unknown_src, unknown_src_no_link'
         entity_portal_link = "http://cdsportal.u-strasbg.fr/?target=GX%201%204, http://cdsportal.u-strasbg.fr/?target=Crab, , link"
+        object_ids = [["GX 1+4", "GX 99", "Test"], ["Crab", "GX 99", "Test"], [], ["unknown_src_no_link", "unknown source 1", "unknown source 2", "unknown source 3", "GX 1+4"]]
+        object_type = ["Symbiotic", "SNRemnant", "", "Test"]
+        source_coord = [{"source_ra": 263.00897166666664, "source_dec": -24.74559138888889},
+                        {"source_ra": 83.63333333333331, "source_dec": 22.013333333333332},
+                        {},
+                        {"source_ra": 11.11, "source_dec": 43.89}]
 
     params = {
         'instrument': 'isgri',
         'src_name': source_name,
-        'entity_portal_link': entity_portal_link,
+        'entity_portal_link_list': entity_portal_link,
+        'object_ids_list': json.dumps(object_ids),
+        'source_coord_list': json.dumps(source_coord),
+        'object_type_list': json.dumps(object_type),
         'product_type': 'isgri_lc',
         'content_type': 'data_product',
         'product_title': "product with multiple sources",
         'token': encoded_token,
         'insert_new_source': insert_new_source
     }
-
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
                       params={**params}
                       )
@@ -2231,6 +2302,45 @@ def test_post_data_product_with_multiple_sources(dispatcher_live_fixture_with_ga
             assert len(drupal_res_obj['_links'][link_field_describes_astro_entity]) == 1
         elif type_source == "list":
             assert len(drupal_res_obj['_links'][link_field_describes_astro_entity]) == len(source_name.split(','))
+            user_id_product_creator = get_user_id(
+                product_gallery_url=dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                user_email=token_payload['sub'])
+            gallery_jwt_token = generate_gallery_jwt_token(
+                dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_secret_key'],
+                user_id=user_id_product_creator)
+            source_entity_id = get_source_astrophysical_entity_id_by_source_name(
+                dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                gallery_jwt_token,
+                source_name="unknown_src_no_link")
+            assert source_entity_id is not None
+
+            link_source = os.path.join(
+                dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                f'node/{source_entity_id}?_format=hal_json')
+
+            header_request = get_drupal_request_headers(gallery_jwt_token)
+            response_obs_info = execute_drupal_request(link_source, headers=header_request)
+
+            drupal_res_source_info_obj = response_obs_info.json()
+
+            assert 'field_alternative_names_long_str' in drupal_res_source_info_obj
+            field_alternative_names_long_str_splitted = drupal_res_source_info_obj['field_alternative_names_long_str'][0]['value'].split(',')
+            assert len(field_alternative_names_long_str_splitted) == 5
+            assert field_alternative_names_long_str_splitted[0] == 'unknown_src_no_link'
+            assert field_alternative_names_long_str_splitted[1] == 'unknown source 1'
+            assert field_alternative_names_long_str_splitted[2] == 'unknown source 2'
+            assert field_alternative_names_long_str_splitted[3] == 'unknown source 3'
+            assert field_alternative_names_long_str_splitted[4] == 'GX 1+4'
+
+            assert 'field_source_ra' in drupal_res_source_info_obj
+            assert drupal_res_source_info_obj['field_source_ra'][0]['value'] == source_coord[3]['source_ra']
+            assert 'field_source_dec' in drupal_res_source_info_obj
+            assert drupal_res_source_info_obj['field_source_dec'][0]['value'] == source_coord[3]['source_dec']
+            assert 'field_link' in drupal_res_source_info_obj
+            assert drupal_res_source_info_obj['field_link'][0]['value'] == 'link'
+            assert 'field_object_type' in drupal_res_source_info_obj
+            assert drupal_res_source_info_obj['field_object_type'][0]['value'] == 'Test'
+
     else:
         assert link_field_describes_astro_entity not in drupal_res_obj['_links']
 
