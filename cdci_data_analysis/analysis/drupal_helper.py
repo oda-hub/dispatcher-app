@@ -498,6 +498,11 @@ def post_content_to_gallery(decoded_token,
         force_create_new = kwargs.pop('create_new', 'False') == 'True'
         src_name = kwargs.pop('src_name', None)
         source_entity_id = None
+        source_ra = None
+        source_dec = None
+        src_portal_link = None
+        object_type = None
+        object_ids = None
         if update_astro_entity:
             auto_update = kwargs.pop('auto_update', 'False') == 'True'
             if auto_update is True:
@@ -515,11 +520,6 @@ def post_content_to_gallery(decoded_token,
                             msg = f'\nSource {src_name} was successfully validated'
                     msg += '\n'
                     logger.info(msg)
-                    source_ra = None
-                    source_dec = None
-                    src_portal_link = None
-                    object_type = None
-                    object_ids = None
                     if 'RA' in resolved_obj:
                         source_ra = Angle(resolved_obj["RA"], unit='degree').deg
                     if 'DEC' in resolved_obj:
@@ -536,7 +536,7 @@ def post_content_to_gallery(decoded_token,
                 source_dec = kwargs.pop('source_dec', None)
                 object_type = kwargs.pop('object_type', None)
                 object_ids = kwargs.pop('object_ids', None)
-        if update_astro_entity:
+
             source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url,
                                                                                  gallery_jwt_token,
                                                                                  source_name=src_name,
