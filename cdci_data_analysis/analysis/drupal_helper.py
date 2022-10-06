@@ -18,7 +18,7 @@ import sentry_sdk
 from dateutil import parser, tz
 from datetime import datetime
 from enum import Enum, auto
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, Angle
 from astropy import units as u
 
 from cdci_data_analysis.analysis import tokenHelper
@@ -494,15 +494,48 @@ def post_content_to_gallery(decoded_token,
             logger.info(f"no observation has been created or updated")
 
     elif content_type == content_type.ASTROPHYSICAL_ENTITY:
-        src_name = kwargs.pop('src_name', None)
-        src_portal_link = kwargs.pop('src_portal_link', None)
-        source_ra = kwargs.pop('source_ra', None)
-        source_dec = kwargs.pop('source_dec', None)
-        object_type = kwargs.pop('object_type', None)
-        object_ids = kwargs.pop('object_ids', None)
         update_astro_entity = kwargs.pop('update_astro_entity', 'False') == 'True'
         force_create_new = kwargs.pop('create_new', 'False') == 'True'
+        src_name = kwargs.pop('src_name', None)
         source_entity_id = None
+        if update_astro_entity:
+            auto_update = kwargs.pop('auto_update', 'False') == 'True'
+            if auto_update is True:
+                name_resolver_url = disp_conf.name_resolver_url
+                entities_portal_url = disp_conf.entities_portal_url
+                resolved_obj = resolve_name(name_resolver_url=name_resolver_url,
+                                            entities_portal_url=entities_portal_url,
+                                            name=src_name)
+                if resolved_obj is not None:
+                    msg = ''
+                    if 'message' in resolved_obj:
+                        if 'could not be resolved' in resolved_obj['message']:
+                            msg = f'\nSource {src_name} could not be validated'
+                        elif 'successfully resolved' in resolved_obj['message']:
+                            msg = f'\nSource {src_name} was successfully validated'
+                    msg += '\n'
+                    logger.info(msg)
+                    source_ra = None
+                    source_dec = None
+                    src_portal_link = None
+                    object_type = None
+                    object_ids = None
+                    if 'RA' in resolved_obj:
+                        source_ra = Angle(resolved_obj["RA"], unit='degree').deg
+                    if 'DEC' in resolved_obj:
+                        source_dec = Angle(resolved_obj["DEC"], unit='degree').deg
+                    if 'entity_portal_link' in resolved_obj:
+                        src_portal_link = resolved_obj['entity_portal_link']
+                    if 'object_type' in resolved_obj:
+                        object_type = resolved_obj['object_type']
+                    if 'object_ids' in resolved_obj:
+                        object_ids = resolved_obj['object_ids']
+            else:
+                src_portal_link = kwargs.pop('src_portal_link', None)
+                source_ra = kwargs.pop('source_ra', None)
+                source_dec = kwargs.pop('source_dec', None)
+                object_type = kwargs.pop('object_type', None)
+                object_ids = kwargs.pop('object_ids', None)
         if update_astro_entity:
             source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url,
                                                                                  gallery_jwt_token,
