@@ -495,7 +495,6 @@ def post_content_to_gallery(decoded_token,
 
     elif content_type == content_type.ASTROPHYSICAL_ENTITY:
         update_astro_entity = kwargs.pop('update_astro_entity', 'False') == 'True'
-        force_create_new = kwargs.pop('create_new', 'False') == 'True'
         src_name = kwargs.pop('src_name', None)
         source_entity_id = None
         source_ra = None
@@ -541,21 +540,25 @@ def post_content_to_gallery(decoded_token,
                                                                                  gallery_jwt_token,
                                                                                  source_name=src_name,
                                                                                  sentry_dsn=sentry_dsn)
-        if source_entity_id is None and force_create_new is True:
-            update_astro_entity = False
+        if update_astro_entity and source_entity_id is None:
+            logger.warning(f'an update of an astrophysical entity could not be performed since the correspondent one '
+                           f'could not be found, please check the provided name')
+            raise RequestNotUnderstood(message="Request data not found",
+                                       payload={'drupal_helper_error_message': 'error while updating astrophysical and '
+                                                                               'entity product: no correspondent entity '
+                                                                               'could be found with the provided name'})
 
-        if not (force_create_new is False and source_entity_id is None):
-            output_content_post = post_astro_entity(product_gallery_url=product_gallery_url,
-                                                    gallery_jwt_token=gallery_jwt_token,
-                                                    astro_entity_name=src_name.strip(),
-                                                    astro_entity_portal_link=src_portal_link,
-                                                    source_ra=source_ra,
-                                                    source_dec=source_dec,
-                                                    object_type=object_type,
-                                                    object_ids=object_ids,
-                                                    sentry_dsn=sentry_dsn,
-                                                    update_astro_entity=update_astro_entity,
-                                                    astro_entity_id=source_entity_id)
+        output_content_post = post_astro_entity(product_gallery_url=product_gallery_url,
+                                                gallery_jwt_token=gallery_jwt_token,
+                                                astro_entity_name=src_name.strip(),
+                                                astro_entity_portal_link=src_portal_link,
+                                                source_ra=source_ra,
+                                                source_dec=source_dec,
+                                                object_type=object_type,
+                                                object_ids=object_ids,
+                                                sentry_dsn=sentry_dsn,
+                                                update_astro_entity=update_astro_entity,
+                                                astro_entity_id=source_entity_id)
         if output_content_post is not None:
             # extract the id of the observation
             astrophysical_entity_drupal_id = output_content_post['nid'][0]['value']
