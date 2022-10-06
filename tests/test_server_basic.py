@@ -1907,7 +1907,8 @@ def test_product_gallery_update_new_astrophysical_entity(dispatcher_live_fixture
 
 
 @pytest.mark.test_drupal
-def test_product_gallery_update_existing_astrophysical_entity(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+@pytest.mark.parametrize("auto_update", [True, False])
+def test_product_gallery_update_existing_astrophysical_entity(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, auto_update):
     server = dispatcher_live_fixture_with_gallery
 
     logger.info("constructed server: %s", server)
@@ -1937,8 +1938,9 @@ def test_product_gallery_update_existing_astrophysical_entity(dispatcher_live_fi
     params = {
         'token': encoded_token,
         'src_name': 'GX 1+4',
-        'source_dec': -24.74559138888889,
-        'update_astro_entity': True
+        'source_dec': -24.9,
+        'update_astro_entity': True,
+        'auto_update': auto_update
     }
 
     c = requests.post(os.path.join(server, "post_astro_entity_to_gallery"),
@@ -1947,7 +1949,10 @@ def test_product_gallery_update_existing_astrophysical_entity(dispatcher_live_fi
 
     assert c.status_code == 200
     drupal_res_obj = c.json()
-    assert drupal_res_obj['field_source_dec'][0]['value'] == params['source_dec']
+    if auto_update:
+        assert drupal_res_obj['field_source_dec'][0]['value'] != params['source_dec']
+    else:
+        assert drupal_res_obj['field_source_dec'][0]['value'] == params['source_dec']
 
 
 @pytest.mark.test_drupal
