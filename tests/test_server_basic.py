@@ -1872,8 +1872,8 @@ def test_product_gallery_post_period_of_observation_with_revnum(dispatcher_live_
 
 
 @pytest.mark.test_drupal
-@pytest.mark.parametrize("force_creation_new", [True, False])
-def test_product_gallery_update_period_of_observation(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, force_creation_new):
+@pytest.mark.parametrize("update_astro_entity", [True, False])
+def test_product_gallery_update_new_astrophysical_entity(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, update_astro_entity):
     server = dispatcher_live_fixture_with_gallery
 
     logger.info("constructed server: %s", server)
@@ -1887,25 +1887,107 @@ def test_product_gallery_update_period_of_observation(dispatcher_live_fixture_wi
 
     params = {
         'token': encoded_token,
-        'title': 'test observation' + '_' + str(uuid.uuid4()),
-        'T1': '2022-07-21T00:29:47',
-        'T2': '2022-07-23T05:29:11',
-        'update_observation': True,
-        'create_new': force_creation_new
+        'src_name': 'test astro entity' + '_' + str(uuid.uuid4()),
+        'update_astro_entity': update_astro_entity
     }
 
-    c = requests.post(os.path.join(server, "post_observation_to_gallery"),
+    c = requests.post(os.path.join(server, "post_astro_entity_to_gallery"),
+                      params={**params},
+                      )
+
+    drupal_res_obj = c.json()
+    if update_astro_entity:
+        assert c.status_code == 400
+        assert 'drupal_helper_error_message' in drupal_res_obj
+        assert 'error while updating astrophysical and entity product: no correspondent entity could be found with the provided name' \
+               in drupal_res_obj['drupal_helper_error_message']
+    else:
+        assert c.status_code == 200
+        assert drupal_res_obj['title'][0]['value'] == params['src_name']
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("auto_update", [True, False])
+def test_product_gallery_update_existing_astrophysical_entity(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, auto_update):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'token': encoded_token,
+        'src_name': 'GX 1+4',
+        'source_dec': -24,
+        'update_astro_entity': True
+    }
+
+    c = requests.post(os.path.join(server, "post_astro_entity_to_gallery"),
+                      params={**params},
+                      )
+
+    assert c.status_code == 200
+    drupal_res_obj = c.json()
+    assert drupal_res_obj['field_source_dec'][0]['value'] == params['source_dec']
+
+    params = {
+        'token': encoded_token,
+        'src_name': 'GX 1+4',
+        'source_dec': -24.9,
+        'update_astro_entity': True,
+        'auto_update': auto_update
+    }
+
+    c = requests.post(os.path.join(server, "post_astro_entity_to_gallery"),
+                      params={**params},
+                      )
+
+    assert c.status_code == 200
+    drupal_res_obj = c.json()
+    if auto_update:
+        assert drupal_res_obj['field_source_dec'][0]['value'] != params['source_dec']
+    else:
+        assert drupal_res_obj['field_source_dec'][0]['value'] == params['source_dec']
+
+
+@pytest.mark.test_drupal
+def test_product_gallery_get_all_astro_entities(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'token': encoded_token,
+        'src_name': 'test astro entity' + '_' + str(uuid.uuid4())
+    }
+
+    c = requests.post(os.path.join(server, "post_astro_entity_to_gallery"),
                       params={**params},
                       )
 
     assert c.status_code == 200
 
+    c = requests.get(os.path.join(server, "get_all_astro_entities"),
+                     params={'token': encoded_token}
+                     )
+
+    assert c.status_code == 200
     drupal_res_obj = c.json()
 
-    if force_creation_new:
-        assert drupal_res_obj['title'][0]['value'] == params['title']
-    else:
-        assert drupal_res_obj == {}
+    assert isinstance(drupal_res_obj, list)
+    assert params['src_name'] in drupal_res_obj
 
 
 @pytest.mark.test_drupal
@@ -2486,6 +2568,7 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
 
     assert link_fits_file_id in drupal_res_obj['_links']
     assert len(drupal_res_obj['_links'][link_fits_file_id]) == 1
+
 
 
 @pytest.mark.test_drupal

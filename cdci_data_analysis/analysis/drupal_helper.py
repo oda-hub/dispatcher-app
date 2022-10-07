@@ -18,7 +18,7 @@ import sentry_sdk
 from dateutil import parser, tz
 from datetime import datetime
 from enum import Enum, auto
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, Angle
 from astropy import units as u
 
 from cdci_data_analysis.analysis import tokenHelper
@@ -466,6 +466,7 @@ def post_content_to_gallery(decoded_token,
                                                            sentry_dsn=sentry_dsn,
                                                            **par_dic)
     elif content_type == content_type.OBSERVATION:
+        # TODO build the body to send to the gallery in more automated fashion (like done for the data-product)
         t1 = kwargs.pop('T1', None)
         t2 = kwargs.pop('T2', None)
         revnum_1 = kwargs.pop('revnum_1', None)
@@ -492,6 +493,81 @@ def post_content_to_gallery(decoded_token,
         else:
             output_content_post = {}
             logger.info(f"no observation has been created or updated")
+
+    elif content_type == content_type.ASTROPHYSICAL_ENTITY:
+        # TODO build the body to send to the gallery in more automated fashion (like done for the data-product)
+        update_astro_entity = kwargs.pop('update_astro_entity', 'False') == 'True'
+        src_name = kwargs.pop('src_name', None)
+        source_entity_id = None
+        source_ra = None
+        source_dec = None
+        src_portal_link = None
+        object_type = None
+        object_ids = None
+        if update_astro_entity:
+            auto_update = kwargs.pop('auto_update', 'False') == 'True'
+            if auto_update is True:
+                name_resolver_url = disp_conf.name_resolver_url
+                entities_portal_url = disp_conf.entities_portal_url
+                resolved_obj = resolve_name(name_resolver_url=name_resolver_url,
+                                            entities_portal_url=entities_portal_url,
+                                            name=src_name)
+                if resolved_obj is not None:
+                    msg = ''
+                    if 'message' in resolved_obj:
+                        if 'could not be resolved' in resolved_obj['message']:
+                            msg = f'\nSource {src_name} could not be validated'
+                        elif 'successfully resolved' in resolved_obj['message']:
+                            msg = f'\nSource {src_name} was successfully validated'
+                    msg += '\n'
+                    logger.info(msg)
+                    if 'RA' in resolved_obj:
+                        source_ra = Angle(resolved_obj["RA"], unit='degree').deg
+                    if 'DEC' in resolved_obj:
+                        source_dec = Angle(resolved_obj["DEC"], unit='degree').deg
+                    if 'entity_portal_link' in resolved_obj:
+                        src_portal_link = resolved_obj['entity_portal_link']
+                    if 'object_type' in resolved_obj:
+                        object_type = resolved_obj['object_type']
+                    if 'object_ids' in resolved_obj:
+                        object_ids = resolved_obj['object_ids']
+            else:
+                src_portal_link = kwargs.pop('src_portal_link', None)
+                source_ra = kwargs.pop('source_ra', None)
+                source_dec = kwargs.pop('source_dec', None)
+                object_type = kwargs.pop('object_type', None)
+                object_ids = kwargs.pop('object_ids', None)
+
+            source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url,
+                                                                                 gallery_jwt_token,
+                                                                                 source_name=src_name,
+                                                                                 sentry_dsn=sentry_dsn)
+        if update_astro_entity and source_entity_id is None:
+            logger.warning(f'an update of an astrophysical entity could not be performed since the correspondent one '
+                           f'could not be found, please check the provided name')
+            raise RequestNotUnderstood(message="Request data not found",
+                                       payload={'drupal_helper_error_message': 'error while updating astrophysical and '
+                                                                               'entity product: no correspondent entity '
+                                                                               'could be found with the provided name'})
+
+        output_content_post = post_astro_entity(product_gallery_url=product_gallery_url,
+                                                gallery_jwt_token=gallery_jwt_token,
+                                                astro_entity_name=src_name.strip(),
+                                                astro_entity_portal_link=src_portal_link,
+                                                source_ra=source_ra,
+                                                source_dec=source_dec,
+                                                object_type=object_type,
+                                                object_ids=object_ids,
+                                                sentry_dsn=sentry_dsn,
+                                                update_astro_entity=update_astro_entity,
+                                                astro_entity_id=source_entity_id)
+        if output_content_post is not None:
+            # extract the id of the observation
+            astrophysical_entity_drupal_id = output_content_post['nid'][0]['value']
+            logger.info(f"Astrophysical entity with id {astrophysical_entity_drupal_id} has been successfully posted")
+        else:
+            output_content_post = {}
+            logger.info(f"no astrophysical entity has been created or updated")
 
     return output_content_post
 
@@ -526,7 +602,9 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
                       source_dec=None,
                       object_type=None,
                       object_ids=None,
-                      sentry_dsn=None):
+                      sentry_dsn=None,
+                      astro_entity_id=None,
+                      update_astro_entity=False):
     # post new observation with or without a specific time range
     body_gallery_astro_entity_node = copy.deepcopy(body_article_product_gallery.body_node)
     astro_entity_name = astro_entity_name.strip()
@@ -539,9 +617,10 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
     body_gallery_astro_entity_node["field_source_name"] = [{
         "value": astro_entity_name
     }]
-    body_gallery_astro_entity_node["field_link"] = [{
-        "value": astro_entity_portal_link
-    }]
+    if astro_entity_portal_link is not None:
+        body_gallery_astro_entity_node["field_link"] = [{
+            "value": astro_entity_portal_link
+        }]
     if object_ids is not None:
         body_gallery_astro_entity_node["field_alternative_names_long_str"] = [{
             "value": ','.join(object_ids)
@@ -564,18 +643,22 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
 
     headers = get_drupal_request_headers(gallery_jwt_token)
 
-    log_res = execute_drupal_request(f"{product_gallery_url}/node",
-                                     method='post',
-                                     data=json.dumps(body_gallery_astro_entity_node),
-                                     headers=headers,
-                                     sentry_dsn=sentry_dsn)
+    if update_astro_entity:
+        log_res = execute_drupal_request(os.path.join(product_gallery_url, 'node', astro_entity_id),
+                                         method='patch',
+                                         data=json.dumps(body_gallery_astro_entity_node),
+                                         headers=headers,
+                                         sentry_dsn=sentry_dsn)
+    else:
+        log_res = execute_drupal_request(f"{product_gallery_url}/node",
+                                         method='post',
+                                         data=json.dumps(body_gallery_astro_entity_node),
+                                         headers=headers,
+                                         sentry_dsn=sentry_dsn)
 
     output_post = analyze_drupal_output(log_res, operation_performed="posting a new astrophysical entity")
 
-    # extract the id of the observation
-    astro_entity_drupal_id = output_post['nid'][0]['value']
-
-    return astro_entity_drupal_id
+    return output_post
 
 
 def build_gallery_observation_node(product_gallery_url,
@@ -748,10 +831,22 @@ def get_instrument_product_type_id(product_gallery_url, gallery_jwt_token, produ
     return output_dict
 
 
+def get_all_source_astrophysical_entities(product_gallery_url, gallery_jwt_token, sentry_dsn=None) -> Optional[list]:
+    entities = []
+    headers = get_drupal_request_headers(gallery_jwt_token)
+    log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/source/all",
+                                     headers=headers,
+                                     sentry_dsn=sentry_dsn)
+    output_get = analyze_drupal_output(log_res, operation_performed="retrieving the astrophysical entity information")
+    if isinstance(output_get, list):
+        entities = list(obj['title'] for obj in output_get)
+
+    return entities
+
+
 def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, gallery_jwt_token, source_name=None, sentry_dsn=None) \
         -> Optional[str]:
     entities_id = None
-    # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
 
     # the URL-reserved characters should be quoted eg GX 1+4 -> GX%201%2B4
@@ -1053,12 +1148,9 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                         arg_source_coord_dec = arg_source_coord.get('source_dec', None)
                         if source_entity_coord_ra is not None and source_entity_coord_dec is not None and \
                                 arg_source_coord_ra is not None and arg_source_coord_dec is not None:
-                            drupal_source_sky_coord = SkyCoord(source_entity_coord_ra, source_entity_coord_dec, unit=(u.hourangle, u.deg))
-                            arg_source_sky_coord = SkyCoord(arg_source_coord_ra, arg_source_coord_dec, unit=(u.hourangle, u.deg), frame="fk5")
-                            separation = drupal_source_sky_coord.separation(arg_source_sky_coord).deg
-                            tolerance = 1. / 60.
-                            ind = np.logical_or(source_entity_title == src_name, separation <= tolerance)
-                            if np.count_nonzero(ind) > 0:
+                            matching_coords = check_matching_coords(source_entity_title, source_entity_coord_ra, source_entity_coord_dec,
+                                                                    src_name, arg_source_coord_ra, arg_source_coord_dec)
+                            if matching_coords:
                                 source_entity_id = source_entity['nid']
                                 break
 
@@ -1073,14 +1165,17 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                 object_type = None
                 if object_type_list is not None and object_type_list[src_name_idx] != '':
                     object_type = object_type_list[src_name_idx]
-                source_entity_id = post_astro_entity(product_gallery_url, gallery_jwt_token,
-                                                     astro_entity_name=src_name.strip(),
-                                                     astro_entity_portal_link=src_portal_link,
-                                                     source_ra=arg_source_coord.get('source_ra', None),
-                                                     source_dec=arg_source_coord.get('source_dec', None),
-                                                     object_type=object_type,
-                                                     object_ids=object_ids,
-                                                     sentry_dsn=sentry_dsn)
+                output_post = post_astro_entity(product_gallery_url, gallery_jwt_token,
+                                                astro_entity_name=src_name.strip(),
+                                                astro_entity_portal_link=src_portal_link,
+                                                source_ra=arg_source_coord.get('source_ra', None),
+                                                source_dec=arg_source_coord.get('source_dec', None),
+                                                object_type=object_type,
+                                                object_ids=object_ids,
+                                                sentry_dsn=sentry_dsn)
+
+                # extract the id of the observation
+                source_entity_id = output_post['nid'][0]['value']
 
             if source_entity_id is not None:
                 if 'field_describes_astro_entity' not in body_gallery_article_node:
@@ -1170,6 +1265,19 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
         output_post = analyze_drupal_output(log_res, operation_performed="posting a new data product to the gallery")
 
     return output_post
+
+
+def check_matching_coords(source_1_name, source_1_coord_ra, source_1_coord_dec,
+                          source_2_name, source_2_coord_ra, source_2_coord_dec,
+                          tolerance=1. / 60):
+    drupal_source_sky_coord = SkyCoord(source_1_coord_ra, source_1_coord_dec, unit=(u.hourangle, u.deg))
+    arg_source_sky_coord = SkyCoord(source_2_coord_ra, source_2_coord_dec, unit=(u.hourangle, u.deg), frame="fk5")
+    separation = drupal_source_sky_coord.separation(arg_source_sky_coord).deg
+    ind = np.logical_or(source_1_name == source_2_name, separation <= tolerance)
+    if np.count_nonzero(ind) > 0:
+        return True
+
+    return False
 
 
 def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: str = None):
