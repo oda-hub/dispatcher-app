@@ -466,6 +466,7 @@ def post_content_to_gallery(decoded_token,
                                                            sentry_dsn=sentry_dsn,
                                                            **par_dic)
     elif content_type == content_type.OBSERVATION:
+        # TODO build the body to send to the gallery in more automated fashion (like done for the data-product)
         t1 = kwargs.pop('T1', None)
         t2 = kwargs.pop('T2', None)
         revnum_1 = kwargs.pop('revnum_1', None)
@@ -494,6 +495,7 @@ def post_content_to_gallery(decoded_token,
             logger.info(f"no observation has been created or updated")
 
     elif content_type == content_type.ASTROPHYSICAL_ENTITY:
+        # TODO build the body to send to the gallery in more automated fashion (like done for the data-product)
         update_astro_entity = kwargs.pop('update_astro_entity', 'False') == 'True'
         src_name = kwargs.pop('src_name', None)
         source_entity_id = None
