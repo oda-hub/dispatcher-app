@@ -617,9 +617,10 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
     body_gallery_astro_entity_node["field_source_name"] = [{
         "value": astro_entity_name
     }]
-    body_gallery_astro_entity_node["field_link"] = [{
-        "value": astro_entity_portal_link
-    }]
+    if astro_entity_portal_link is not None:
+        body_gallery_astro_entity_node["field_link"] = [{
+            "value": astro_entity_portal_link
+        }]
     if object_ids is not None:
         body_gallery_astro_entity_node["field_alternative_names_long_str"] = [{
             "value": ','.join(object_ids)
