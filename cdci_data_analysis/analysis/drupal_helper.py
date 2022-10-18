@@ -1094,6 +1094,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
     # set the source astrophysical entity if available
     src_name_concat = None
     src_name_arg = kwargs.pop('src_name', None)
+    main_id_arg = kwargs.pop('main_id', None)
     src_portal_link_arg = kwargs.pop('entity_portal_link_list', None)
     object_ids_arg = kwargs.pop('object_ids_list', None)
     source_coord_arg = kwargs.pop('source_coord_list', None)
@@ -1101,6 +1102,10 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
     if src_name_arg is not None:
         src_name_list = src_name_arg.split(',')
         src_name_concat = "_".join(src_name_list)
+
+        main_id_list = None
+        if main_id_arg is not None:
+            main_id_list = json.loads(main_id_arg)
 
         src_portal_link_list = None
         if src_portal_link_arg is not None:
@@ -1122,11 +1127,21 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
         for src_name in src_name_list:
             src_name_idx = src_name_list.index(src_name)
             arg_source_coord = {}
+            main_id = None
             if source_coord_obj_list is not None and source_coord_obj_list[src_name_idx] != {}:
                 arg_source_coord = source_coord_obj_list[src_name_idx]
-            source_entity_list = get_source_astrophysical_entity_id_by_source_and_alternative_name(product_gallery_url, gallery_jwt_token,
-                                                                                   source_name=src_name,
-                                                                                   sentry_dsn=sentry_dsn)
+            if main_id_list is not None and source_coord_obj_list[src_name_idx] != '':
+                main_id = main_id_list[src_name_idx]
+
+            if main_id is not None:
+                source_entity_list = get_source_astrophysical_entity_id_by_source_and_alternative_name(product_gallery_url,
+                                                                                                   gallery_jwt_token,
+                                                                                                   source_name=main_id,
+                                                                                                   sentry_dsn=sentry_dsn)
+            else:
+                source_entity_list = get_source_astrophysical_entity_id_by_source_and_alternative_name(product_gallery_url, gallery_jwt_token,
+                                                                                       source_name=src_name,
+                                                                                       sentry_dsn=sentry_dsn)
             source_entity_id = None
             if len(source_entity_list) == 1:
                 source_entity_id = source_entity_list[0]['nid']
