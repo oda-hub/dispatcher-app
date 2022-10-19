@@ -549,7 +549,7 @@ def post_content_to_gallery(decoded_token,
                                                                                  sentry_dsn=sentry_dsn)
         if update_astro_entity and source_entity_id is None:
             logger.warning(f'an update of an astrophysical entity could not be performed since the correspondent one '
-                           f'could not be found, please check the provided name')
+                           f'could not be found in the gallery, please check the provided name')
             raise RequestNotUnderstood(message="Request data not found",
                                        payload={'drupal_helper_error_message': 'error while updating astrophysical and '
                                                                                'entity product: no correspondent entity '
