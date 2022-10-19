@@ -261,7 +261,7 @@ class InstrumentQueryBackEnd:
                         )
                         self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
                         
-                        known_parameter_names = ['instrument', 
+                        known_argument_names = ['instrument', 
                                                  'query_status', 
                                                  'query_type', 
                                                  'product_type', 
@@ -270,13 +270,13 @@ class InstrumentQueryBackEnd:
                                                  'api',
                                                  'oda_api_version',
                                                  'off_line',
-                                                 'job_id'] + self.instrument.get_parameters_name_list()
-                        self.unknown_parameters_name_list = []
+                                                 'job_id'] + self.instrument.get_arguments_name_list()
+                        self.unknown_arguments_name_list = []
                         for k in list(self.par_dic.keys()):
-                            if k not in known_parameter_names:
+                            if k not in known_argument_names:
                                 self.par_dic.pop(k)
                                 self.logger.warning("parameter '%s' is in the request but not used by instrument '%s'", k, self.instrument_name)
-                                self.unknown_parameters_name_list.append(k)
+                                self.unknown_arguments_name_list.append(k)
                 # TODO: if not callback!
                 # if 'query_status' not in self.par_dic:
                 #    raise MissingRequestParameter('no query_status!')
@@ -881,7 +881,7 @@ class InstrumentQueryBackEnd:
         else:
             prod_name = None
         if hasattr(self, 'instrument'):
-            _l = self.instrument.get_parameters_name_list(prod_name=prod_name)
+            _l = self.instrument.get_arguments_name_list(prod_name=prod_name)
             if 'user_catalog' in _l:
                 _l.remove('user_catalog')
         else:
@@ -1123,11 +1123,11 @@ class InstrumentQueryBackEnd:
         if query_out is not None:
             out_dict['products'] = query_out.prod_dictionary
             out_dict['exit_status'] = query_out.status_dictionary
-            if getattr(self, 'unknown_parameters_name_list', []):
-                if len(self.unknown_parameters_name_list) == 1:
-                    comment = f'Please note that parameter {self.unknown_parameters_name_list[0]} is not used'
+            if getattr(self, 'unknown_arguments_name_list', []):
+                if len(self.unknown_arguments_name_list) == 1:
+                    comment = f'Please note that parameter {self.unknown_arguments_name_list[0]} is not used'
                 else:
-                    comment = f'Please note that parameters {", ".join(self.unknown_parameters_name_list)} are not used'
+                    comment = f'Please note that parameters {", ".join(self.unknown_arguments_name_list)} are not used'
                 out_dict['exit_status']['comment'] = \
                     out_dict['exit_status']['comment'] + ' ' + comment if out_dict['exit_status']['comment'] else comment
 

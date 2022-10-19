@@ -530,8 +530,8 @@ class Instrument:
                 l.append(_query.get_parameters_list_as_json(prod_dict=self.query_dictionary))
 
         return l
-
-    def get_parameters_name_list(self, prod_name=None):
+    
+    def get_parameters_list(self, prod_name=None):
         l = []
         _add_query = False
         for _query in self._queries_list:
@@ -555,9 +555,22 @@ class Instrument:
                 _add_query = False
 
             if _add_query == True:
-                for _par in _query._parameters_list:
-                    l.append(_par.name)
+                l.extend(_query._parameters_list)
 
+        return l
+    
+    def get_arguments_name_list(self, prod_name=None):
+        l = []
+        for par in self.get_parameters_list(prod_name = prod_name):
+            l.extend(par.argument_names_list)
+        l = list(dict.fromkeys(l)) # remove duplicates preserving order
+        return l
+        
+    def get_parameters_name_list(self, prod_name=None):
+        l = []
+        for par in self.get_parameters_list(prod_name = prod_name):
+            l.append(par.name)
+        # TODO: what about duplicates here? 
         return l
 
     def set_pars_from_form(self,par_dic,logger=None,verbose=False,sentry_dsn=None):

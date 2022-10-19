@@ -205,6 +205,7 @@ class Parameter:
                  allowed_values=None,
                  **kwargs
                  ):
+        
         if len(kwargs) > 0:
             logger.error("possibily programming error: class %s initialized with extra arguments %s",
                          self, kwargs)
@@ -248,6 +249,14 @@ class Parameter:
         self.par_default_format=par_default_format
         self.par_format_name=par_format_name
         self.value = value
+        
+        self._arg_list = [self.name]
+        if par_format_name is not None:
+            self._arg_list.append(par_format_name)
+        
+    @property
+    def argument_names_list(self):
+        return self._arg_list
 
     @property
     def name(self):
@@ -391,8 +400,10 @@ class Parameter:
         pass
 
     def reprJSON(self):
-        return dict(name=self.name, units=self.units, value=self.value)
-    
+        reprjson = [dict(name=self.name, units=self.units, value=self.value)]
+        if self.par_format_name is not None:
+            reprjson.append(dict(name=self.par_format_name, units="str", value=self.par_format))
+        return reprjson
 
     @classmethod
     def matches_owl_uri(cls, owl_uri: str) -> bool:

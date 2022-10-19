@@ -358,7 +358,7 @@ class EchoProductQuery(ProductQuery):
         super().__init__(name, parameters_list=parameters_list)
      
     def get_data_server_query(self, instrument, config=None, **kwargs):
-        param_names = instrument.get_parameters_name_list()
+        param_names = instrument.get_arguments_name_list()
         param_dict = {x: instrument.get_par_by_name(x).value for x in param_names}
         return EchoServerDispatcher(instrument=instrument, param_dict=param_dict)
     

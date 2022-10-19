@@ -246,9 +246,13 @@ class BaseQuery(object):
         l=[ {'query_name':self.name}]
 
         for par in self._parameters_list:
-            l.append(par.reprJSON())
-
-        return json.dumps(l)
+            l.extend(par.reprJSON())
+        # remove duplicates like T_format
+        seen = set()
+        l1 = [x for x in l if (x.get('name') is None) or not (x.get('name') in seen or seen.add(x.get('name')))]
+        
+        print(l1)
+        return json.dumps(l1)
 
     # Check if the given query cn be executed given a list of roles extracted from the token
     def check_query_roles(self, roles, par_dic):
@@ -344,10 +348,14 @@ class ProductQuery(BaseQuery):
             l.append({'product_name': self.name})
 
         for par in self._parameters_list:
-            l.append(par.reprJSON())
-
-        print(l)
-        return json.dumps(l)
+            l.extend(par.reprJSON())
+        
+        # remove duplicates like T_format
+        seen = set()
+        l1 = [x for x in l if (x.get('name') is None) or not (x.get('name') in seen or seen.add(x.get('name')))]
+        
+        print(l1)
+        return json.dumps(l1)
 
     def get_prod_by_name(self,name):
         return self.query_prod_list.get_prod_by_name(name)
