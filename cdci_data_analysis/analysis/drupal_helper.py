@@ -498,7 +498,7 @@ def post_content_to_gallery(decoded_token,
         # TODO build the body to send to the gallery in more automated fashion (like done for the data-product)
         update_astro_entity = kwargs.pop('update_astro_entity', 'False') == 'True'
         src_name = kwargs.pop('src_name', None)
-        main_id = None
+        # main_id = None
         source_entity_id = None
         source_ra = None
         source_dec = None
@@ -532,20 +532,20 @@ def post_content_to_gallery(decoded_token,
                         object_type = resolved_obj['object_type']
                     if 'object_ids' in resolved_obj:
                         object_ids = resolved_obj['object_ids']
-                    if 'main_id' in resolved_obj:
-                        main_id = resolved_obj['main_id']
+                    # if 'main_id' in resolved_obj:
+                    #     main_id = resolved_obj['main_id']
             else:
                 src_portal_link = kwargs.pop('src_portal_link', None)
                 source_ra = kwargs.pop('source_ra', None)
                 source_dec = kwargs.pop('source_dec', None)
                 object_type = kwargs.pop('object_type', None)
                 object_ids = kwargs.pop('object_ids', None)
-            src_name_search = src_name.strip()
-            if main_id is not None:
-                src_name_search = main_id.strip()
+            # src_name_search = src_name.strip()
+            # if main_id is not None:
+            #     src_name_search = main_id.strip()
             source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url,
                                                                                  gallery_jwt_token,
-                                                                                 source_name=src_name_search,
+                                                                                 source_name=src_name,
                                                                                  sentry_dsn=sentry_dsn)
         if update_astro_entity and source_entity_id is None:
             logger.warning(f'an update of an astrophysical entity could not be performed since the correspondent one '
