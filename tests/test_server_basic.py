@@ -2342,5 +2342,5 @@ def test_unknown_argument(dispatcher_live_fixture):
     
     assert re.match(r'Please note that arguments?.*unknown.*not used', jdata['exit_status']['comment'])
     assert 'T_format' not in jdata['exit_status']['comment']
-    assert 'unknown' not in jdata['products']['analysis_parameters'].keys()
-    assert 'unknown' not in jdata['products']['api_code']
+    #assert 'unknown' not in jdata['products']['analysis_parameters'].keys()
+    #assert 'unknown' not in jdata['products']['api_code']
