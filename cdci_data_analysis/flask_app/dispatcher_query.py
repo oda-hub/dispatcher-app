@@ -260,7 +260,7 @@ class InstrumentQueryBackEnd:
                             sentry_dsn=self.sentry_dsn
                         )
                         self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
-                        
+
                         known_argument_names = ['instrument', 
                                                  'query_status', 
                                                  'query_type', 
@@ -274,7 +274,8 @@ class InstrumentQueryBackEnd:
                         self.unknown_arguments_name_list = []
                         for k in list(self.par_dic.keys()):
                             if k not in known_argument_names:
-                                self.par_dic.pop(k)
+                                # self.par_dic.pop(k) 
+                                # # TODO: really want to remove unneded args, but need to be careful with job_id; breaks too many tests
                                 self.logger.warning("argument '%s' is in the request but not used by instrument '%s'", k, self.instrument_name)
                                 self.unknown_arguments_name_list.append(k)
                 # TODO: if not callback!
