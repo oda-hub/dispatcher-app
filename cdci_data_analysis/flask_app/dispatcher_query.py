@@ -275,7 +275,7 @@ class InstrumentQueryBackEnd:
                         for k in list(self.par_dic.keys()):
                             if k not in known_argument_names:
                                 self.par_dic.pop(k)
-                                self.logger.warning("parameter '%s' is in the request but not used by instrument '%s'", k, self.instrument_name)
+                                self.logger.warning("argument '%s' is in the request but not used by instrument '%s'", k, self.instrument_name)
                                 self.unknown_arguments_name_list.append(k)
                 # TODO: if not callback!
                 # if 'query_status' not in self.par_dic:
@@ -1125,9 +1125,9 @@ class InstrumentQueryBackEnd:
             out_dict['exit_status'] = query_out.status_dictionary
             if getattr(self, 'unknown_arguments_name_list', []):
                 if len(self.unknown_arguments_name_list) == 1:
-                    comment = f'Please note that parameter {self.unknown_arguments_name_list[0]} is not used'
+                    comment = f'Please note that argument {self.unknown_arguments_name_list[0]} is not used'
                 else:
-                    comment = f'Please note that parameters {", ".join(self.unknown_arguments_name_list)} are not used'
+                    comment = f'Please note that argument {", ".join(self.unknown_arguments_name_list)} are not used'
                 out_dict['exit_status']['comment'] = \
                     out_dict['exit_status']['comment'] + ' ' + comment if out_dict['exit_status']['comment'] else comment
 
