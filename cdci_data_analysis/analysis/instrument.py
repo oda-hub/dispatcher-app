@@ -555,6 +555,7 @@ class Instrument:
                 _add_query = False
 
             if _add_query == True:
+          if _add_query:
                 l.extend(_query._parameters_list)
 
         return l
