@@ -274,8 +274,9 @@ class InstrumentQueryBackEnd:
                         self.unknown_arguments_name_list = []
                         for k in list(self.par_dic.keys()):
                             if k not in known_argument_names:
-                                # self.par_dic.pop(k) 
-                                # # TODO: really want to remove unneded args, but need to be careful with job_id; breaks too many tests
+                                if not self.instrument.allow_unknown_arguments:
+                                    self.par_dic.pop(k) 
+                                
                                 self.logger.warning("argument '%s' is in the request but not used by instrument '%s'", k, self.instrument_name)
                                 self.unknown_arguments_name_list.append(k)
                 # TODO: if not callback!

@@ -79,7 +79,8 @@ class Instrument:
                  data_serve_conf_file=None,
                  product_queries_list=None,
                  data_server_query_class=None,
-                 query_dictionary={}):
+                 query_dictionary={},
+                 allow_unknown_arguments=False):
 
         # name
         self.name = instr_name
@@ -105,6 +106,8 @@ class Instrument:
         self.input_product_query=input_product_query
 
         self.query_dictionary = query_dictionary
+        
+        self.allow_unknown_arguments = allow_unknown_arguments
 
     def __repr__(self):
         return f"[ {self.__class__.__name__} : {self.name} ]"
