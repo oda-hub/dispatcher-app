@@ -1086,7 +1086,8 @@ def test_user_catalog(dispatcher_live_fixture, correct_format, catalog_selected_
         'instrument': 'empty',
         'selected_catalog': json.dumps(selected_catalog_dict),
         'catalog_selected_objects': catalog_selected_objects,
-        'token': encoded_token
+        'token': encoded_token,
+        'allow_unknown_args': True
     }
 
     jdata = ask(server,

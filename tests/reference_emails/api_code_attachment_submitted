@@ -8,6 +8,7 @@ par_dict = {
     "T1": "2017-03-06T13:26:48.000",
     "T2": "2017-03-06T15:32:27.000",
     "T_format": "isot",
+    "allow_unknown_args": "True",
     "instrument": "empty-async",
     "p": 10.0,
     "product": "numerical",
