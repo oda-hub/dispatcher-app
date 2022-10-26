@@ -193,9 +193,10 @@ class Instrument:
             if k not in known_argument_names:
                 if not (self.allow_unknown_arguments or arg_dic.get('allow_unknown_args', 'False') == 'True'):
                     updated_arg_dic.pop(k) 
-                
-                self.logger.warning("argument '%s' is in the request but not used by instrument '%s'", k, self.name)
-                self.unknown_arguments_name_list.append(k)
+                    self.logger.warning("argument '%s' is in the request but not used by instrument '%s', removing it", k, self.name)
+                    self.unknown_arguments_name_list.append(k)
+                else:
+                    self.logger.warning("argument '%s' not defined for instrument '%s'", k, self.name)
         
         return updated_arg_dic
 
