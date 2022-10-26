@@ -41,16 +41,16 @@ default_params = dict(
                     query_type="Real",
                     instrument="isgri",
                     product_type="isgri_image",
-                    osa_version="OSA10.2",
-                    E1_keV=20.,
-                    E2_keV=40.,
+                    # osa_version="OSA10.2",
+                    # E1_keV=20.,
+                    # E2_keV=40.,
                     T1="2008-01-01T11:11:11.000",
                     T2="2009-01-01T11:11:11.000",
                     T_format='isot',
-                    max_pointings=2,
+                    # max_pointings=2,
                     RA=83,
                     DEC=22,
-                    radius=6,
+                    # radius=6,
                     async_dispatcher=False
                  )
 
@@ -916,7 +916,7 @@ def test_scws_list_file(dispatcher_live_fixture):
         'instrument': 'empty',
         'p': 5.,
         'use_scws': 'user_file',
-        'token': encoded_token
+        'token': encoded_token,
     }
 
     file_path = DispatcherJobState.create_p_value_file(p_value=5)

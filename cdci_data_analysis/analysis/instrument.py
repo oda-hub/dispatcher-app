@@ -80,7 +80,7 @@ class Instrument:
                  product_queries_list=None,
                  data_server_query_class=None,
                  query_dictionary={},
-                 allow_unknown_arguments=True):
+                 allow_unknown_arguments=False):
 
         # name
         self.name = instr_name
@@ -185,11 +185,13 @@ class Instrument:
                                 'api',
                                 'oda_api_version',
                                 'off_line',
-                                'job_id'] + self.get_arguments_name_list()
+                                'job_id',
+                                'async_dispatcher',
+                                'allow_unknown_args'] + self.get_arguments_name_list()
         self.unknown_arguments_name_list = []
         for k in list(updated_arg_dic.keys()):
             if k not in known_argument_names:
-                if not self.allow_unknown_arguments:
+                if not (self.allow_unknown_arguments or arg_dic.get('allow_unknown_args', 'False') == 'True'):
                     updated_arg_dic.pop(k) 
                 
                 self.logger.warning("argument '%s' is in the request but not used by instrument '%s'", k, self.name)
