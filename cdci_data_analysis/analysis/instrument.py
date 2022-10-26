@@ -80,7 +80,7 @@ class Instrument:
                  product_queries_list=None,
                  data_server_query_class=None,
                  query_dictionary={},
-                 allow_unknown_arguments=False):
+                 allow_unknown_arguments=True):
 
         # name
         self.name = instr_name
@@ -129,8 +129,8 @@ class Instrument:
     def _check_names(self):
         pass
 
-    def set_pars_from_dic(self, par_dic, verbose=False):
-        product_type = par_dic.get('product_type', None)
+    def set_pars_from_dic(self, arg_dic, verbose=False):
+        product_type = arg_dic.get('product_type', None)
         if product_type is not None:
             query_name = self.get_product_query_name(product_type)
             query_obj = self.get_query_by_name(query_name)
@@ -142,28 +142,28 @@ class Instrument:
         else:
             param_list = [par for _query in self._queries_list for par in _query.parameters]
 
-        updated_par_dic = par_dic.copy()
+        updated_arg_dic = arg_dic.copy()
         
         for par in param_list:
             self.logger.info("before normalizing, set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
-                             par, par.name, par.value, par_dic.get(par.name, None))
+                             par, par.name, par.value, arg_dic.get(par.name, None))
 
             # this is required because in some cases a parameter is set without a name (eg UserCatalog),
             # or they don't have to set (eg scw_list)
             if par.name is not None and par.name not in params_not_to_be_included:
                 # set the value for par to a default format,
                 # or to a default value if this is not included within the request
-                updated_par_dic[par.name] = par.set_value_from_form(par_dic, verbose=verbose)
+                updated_arg_dic[par.name] = par.set_value_from_form(arg_dic, verbose=verbose)
 
                 if par.units_name is not None:
                     if par.default_units is not None:
-                        updated_par_dic[par.units_name] = par.default_units
+                        updated_arg_dic[par.units_name] = par.default_units
                     else:
                         raise InternalError("Error when setting the parameter %s: "
                                             "default unit not specified" % par.name)
                 if par.par_format_name is not None:
                     if par.par_default_format is not None:
-                        updated_par_dic[par.par_format_name] = par.par_default_format
+                        updated_arg_dic[par.par_format_name] = par.par_default_format
                     else:
                         raise InternalError("Error when setting the parameter %s: "
                                             "default format not specified" % par.name)
@@ -171,12 +171,31 @@ class Instrument:
                     self.logger.warning("units_name for the parameter %s not specified", par.name)
 
             self.logger.info("after normalizing, set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
-                             par, par.name, par.value, par_dic.get(par.name, None))
+                             par, par.name, par.value, arg_dic.get(par.name, None))
 
             if par.name == "scw_list":
                 self.logger.info("set_pars_from_dic>> scw_list is %s", par.value)
 
-        return updated_par_dic
+        known_argument_names = ['instrument', 
+                                'query_status', 
+                                'query_type', 
+                                'product_type', 
+                                'session_id', 
+                                'token',
+                                'api',
+                                'oda_api_version',
+                                'off_line',
+                                'job_id'] + self.get_arguments_name_list()
+        self.unknown_arguments_name_list = []
+        for k in list(updated_arg_dic.keys()):
+            if k not in known_argument_names:
+                if not self.allow_unknown_arguments:
+                    self.par_dic.pop(k) 
+                
+                self.logger.warning("argument '%s' is in the request but not used by instrument '%s'", k, self.name)
+                self.unknown_arguments_name_list.append(k)
+        
+        return updated_arg_dic
 
     def set_par(self,par_name,value):
         p=self.get_par_by_name(par_name)
