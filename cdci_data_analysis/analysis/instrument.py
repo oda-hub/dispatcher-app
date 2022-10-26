@@ -190,7 +190,7 @@ class Instrument:
         for k in list(updated_arg_dic.keys()):
             if k not in known_argument_names:
                 if not self.allow_unknown_arguments:
-                    self.par_dic.pop(k) 
+                    updated_arg_dic.pop(k) 
                 
                 self.logger.warning("argument '%s' is in the request but not used by instrument '%s'", k, self.name)
                 self.unknown_arguments_name_list.append(k)
