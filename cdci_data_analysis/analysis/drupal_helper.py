@@ -269,9 +269,9 @@ def execute_drupal_request(url,
                                     payload={'drupal_helper_error_message': str(e)})
 
 
-def get_drupal_request_headers(gallery_jwt_token=None):
+def get_drupal_request_headers(gallery_jwt_token=None, content_type='application/hal+json'):
     headers = {
-        'Content-type': 'application/hal+json'
+        'Content-type': content_type
     }
     if gallery_jwt_token is not None:
         headers['Authorization'] = 'Bearer ' + gallery_jwt_token
@@ -1178,7 +1178,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                     object_type = object_type_list[src_name_idx]
                 output_post = post_astro_entity(product_gallery_url, gallery_jwt_token,
                                                 astro_entity_name=src_name.strip(),
-                                                astro_entity_portal_link=src_portal_link,
+                                                src_portal_link=src_portal_link,
                                                 source_ra=arg_source_coord.get('source_ra', None),
                                                 source_dec=arg_source_coord.get('source_dec', None),
                                                 object_type=object_type,
