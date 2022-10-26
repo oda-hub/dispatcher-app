@@ -1089,12 +1089,15 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
     # set the source astrophysical entity if available
     src_name_concat = None
     src_name_arg = kwargs.pop('src_name', None)
+    # src_obj_arg = kwargs.pop('src_obj', None)
+    # src_obj = json.loads(src_obj_arg)
     main_id_arg = kwargs.pop('main_id', None)
     src_portal_link_arg = kwargs.pop('entity_portal_link_list', None)
     object_ids_arg = kwargs.pop('object_ids_list', None)
     source_coord_arg = kwargs.pop('source_coord_list', None)
     object_type_arg = kwargs.pop('object_type_list', None)
     if src_name_arg is not None:
+        # src_obj = json.loads(src_name_arg)
         src_name_list = src_name_arg.split(',')
         src_name_concat = "_".join(src_name_list)
 
@@ -1167,23 +1170,19 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
 
             # create a new source ? yes if the user wants it
             if source_entity_id is None and insert_new_source:
-                src_portal_link = None
+                source_kwargs = dict()
                 if src_portal_link_list is not None and src_portal_link_list[src_name_idx] != '':
-                    src_portal_link = src_portal_link_list[src_name_idx].strip()
-                object_ids = None
+                    source_kwargs['src_portal_link'] = src_portal_link_list[src_name_idx].strip()
                 if object_ids_lists is not None and object_ids_lists[src_name_idx] != []:
-                    object_ids = object_ids_lists[src_name_idx]
-                object_type = None
+                    source_kwargs['object_ids'] = object_ids_lists[src_name_idx]
                 if object_type_list is not None and object_type_list[src_name_idx] != '':
-                    object_type = object_type_list[src_name_idx]
+                    source_kwargs['object_type'] = object_type_list[src_name_idx]
+                source_kwargs['source_ra'] = arg_source_coord.get('source_ra', None)
+                source_kwargs['source_dec'] = arg_source_coord.get('source_dec', None)
                 output_post = post_astro_entity(product_gallery_url, gallery_jwt_token,
                                                 astro_entity_name=src_name.strip(),
-                                                src_portal_link=src_portal_link,
-                                                source_ra=arg_source_coord.get('source_ra', None),
-                                                source_dec=arg_source_coord.get('source_dec', None),
-                                                object_type=object_type,
-                                                object_ids=object_ids,
-                                                sentry_dsn=sentry_dsn)
+                                                sentry_dsn=sentry_dsn,
+                                                **source_kwargs)
 
                 # extract the id of the observation
                 source_entity_id = output_post['nid'][0]['value']
