@@ -1420,6 +1420,7 @@ def test_default_values(dispatcher_live_fixture, additional_parameter):
 
     if additional_parameter:
         params['additional_param'] = 'no_value'
+        params['allow_unknown_args'] = True
 
     jdata = ask(server,
                 params,
