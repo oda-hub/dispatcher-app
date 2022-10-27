@@ -41,19 +41,23 @@ default_params = dict(
                     query_type="Real",
                     instrument="isgri",
                     product_type="isgri_image",
-                    # osa_version="OSA10.2",
-                    # E1_keV=20.,
-                    # E2_keV=40.,
+                    osa_version="OSA10.2",
+                    E1_keV=20.,
+                    E2_keV=40.,
                     T1="2008-01-01T11:11:11.000",
                     T2="2009-01-01T11:11:11.000",
                     T_format='isot',
-                    # max_pointings=2,
+                    max_pointings=2,
                     RA=83,
                     DEC=22,
-                    # radius=6,
+                    radius=6,
                     async_dispatcher=False
                  )
 
+specific_args = ['osa_version', 'E1_keV', 'E2_keV', 'max_pointings', 'radius']
+def remove_args_from_dic(arg_dic, remove_keys):
+    for key in remove_keys:
+        arg_dic.pop(key, None)
 
 default_exp_time = int(time.time()) + 5000
 default_token_payload = dict(
@@ -957,6 +961,7 @@ def test_scws_list_file(dispatcher_live_fixture):
         "p_list": ["5"],
         "sub": "mtm@mtmco.net"}
     )
+    remove_args_from_dic(restricted_par_dic, specific_args)
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
@@ -1030,6 +1035,7 @@ def test_catalog_file(dispatcher_live_fixture, correct_format):
                 'src_name': '1E 1740.7-2942',
             }
         )
+        remove_args_from_dic(restricted_par_dic, specific_args)
         calculated_job_id = make_hash(restricted_par_dic)
 
         assert job_id == calculated_job_id
@@ -1122,6 +1128,7 @@ def test_user_catalog(dispatcher_live_fixture, correct_format, catalog_selected_
                 'src_name': '1E 1740.7-2942',
             }
         )
+        remove_args_from_dic(restricted_par_dic, specific_args)
         calculated_job_id = make_hash(restricted_par_dic)
 
         assert job_id == calculated_job_id
@@ -1392,6 +1399,7 @@ def test_image(dispatcher_live_fixture):
             'sub': 'mtm@mtmco.net',
         }
     )
+    remove_args_from_dic(restricted_par_dic, specific_args)
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
@@ -1453,6 +1461,7 @@ def test_default_values(dispatcher_live_fixture, additional_parameter):
                                                                     'T2': '2017-03-06T15:32:27.000',
                                                                     'T_format': 'isot'
                                                                     })
+    remove_args_from_dic(restricted_par_dic, specific_args)
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
