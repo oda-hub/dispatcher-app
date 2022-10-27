@@ -1128,7 +1128,6 @@ def test_user_catalog(dispatcher_live_fixture, correct_format, catalog_selected_
                 'src_name': '1E 1740.7-2942',
             }
         )
-        remove_args_from_dic(restricted_par_dic, specific_args)
         calculated_job_id = make_hash(restricted_par_dic)
 
         assert job_id == calculated_job_id
