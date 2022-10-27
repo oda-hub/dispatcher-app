@@ -15,7 +15,6 @@ import re
 from typing import Optional, Tuple, Dict
 
 import sentry_sdk
-from IPython.core.magic_arguments import kwds
 from dateutil import parser, tz
 from datetime import datetime
 from enum import Enum, auto
