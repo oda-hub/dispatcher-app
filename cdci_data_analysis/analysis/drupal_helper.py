@@ -53,7 +53,7 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
                                    payload={'drupal_helper_error_message': f'error while performing: {operation_performed}'})
     else:
         if drupal_output.headers.get('content-type') == 'application/hal+json' or \
-            drupal_output.headers.get('content-type') == 'application/json':
+                drupal_output.headers.get('content-type') == 'application/json':
             return drupal_output.json()
         return drupal_output.text
 
@@ -275,7 +275,7 @@ def get_drupal_request_headers(gallery_jwt_token=None, content_type='application
         'Content-type': content_type
     }
     for k, v in kwargs.items():
-        headers[k.replace('_', '-')] = v
+        headers[k] = v
     if gallery_jwt_token is not None:
         headers['Authorization'] = 'Bearer ' + gallery_jwt_token
     return headers
@@ -329,22 +329,22 @@ def delete_file_gallery(product_gallery_url, file_to_delete_id, gallery_jwt_toke
 def post_file_to_gallery_via_file_upload(product_gallery_url, file, gallery_jwt_token, file_type="image", sentry_dsn=None):
     logger.info(f"uploading file {file} to the product gallery via file_upload")
     if file_type == "image":
-        post_url = os.path.join(product_gallery_url, 'file/upload/media/image/field_media_image')
+        post_url = os.path.join(product_gallery_url, 'file/upload/media/image_file/field_media_image_1')
     elif file_type == "html_file":
         post_url = os.path.join(product_gallery_url, 'file/upload/media/html_file/field_media_file')
     elif file_type == "fits_file":
-        post_url = os.path.join(product_gallery_url, 'file/upload/media/data_product_attachment/field_media_file_1')
+        post_url = os.path.join(product_gallery_url, 'file/upload/media/fits_file/field_media_file_1')
     elif file_type == "yaml_file":
-        post_url = os.path.join(product_gallery_url, 'file/upload/media/observation_attachment/field_media_file_2')
+        post_url = os.path.join(product_gallery_url, 'file/upload/media/text_file/field_media_file_2')
     else:
         logger.warning(f"an attempt to upload a file with name {file.filename} of type {file_type} was made, but this type is currently not "
                        f"supported, please review your request")
         raise NotImplementedError
 
-    content_disposition_header = f'file; filename=\"{file.filename}\"'
+    content_disposition_arg = {'content-disposition': f'file; filename=\"{file.filename}\"'}
     headers = get_drupal_request_headers(gallery_jwt_token,
                                          content_type='application/octet-stream',
-                                         content_disposition=content_disposition_header)
+                                         **content_disposition_arg)
 
     log_res = execute_drupal_request(post_url,
                                      method='post',
@@ -435,47 +435,39 @@ def post_content_to_gallery(decoded_token,
     if files is not None:
         for f in files:
             if f == 'img':
-                img_file_obj = files[f]
-                # upload file to drupal
-                # output_img_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
-                #                                        file_type="image",
-                #                                        file=img_file_obj,
-                #                                        gallery_jwt_token=gallery_jwt_token,
-                #                                        sentry_dsn=sentry_dsn)
                 output_img_post = post_file_to_gallery_via_file_upload(product_gallery_url=product_gallery_url,
                                                        file_type="image",
-                                                       file=img_file_obj,
+                                                       file=files[f],
                                                        gallery_jwt_token=gallery_jwt_token,
                                                        sentry_dsn=sentry_dsn)
                 img_fid = output_img_post['fid'][0]['value']
-            else:
-                if f.startswith('fits_file'):
-                    output_file_post = post_file_to_gallery_via_file_upload(product_gallery_url=product_gallery_url,
-                                                            file_type="fits_file",
-                                                            file=files[f],
-                                                            gallery_jwt_token=gallery_jwt_token,
-                                                            sentry_dsn=sentry_dsn)
-                    if fits_file_fid_list is None:
-                        fits_file_fid_list = []
-                    fits_file_fid_list.append(output_file_post['fid'][0]['value'])
-                elif f.startswith('html_file'):
-                    output_file_post = post_file_to_gallery_via_file_upload(product_gallery_url=product_gallery_url,
-                                                                            file_type="html_file",
-                                                                            file=files[f],
-                                                                            gallery_jwt_token=gallery_jwt_token,
-                                                                            sentry_dsn=sentry_dsn)
-                    if html_file_fid_list is None:
-                        html_file_fid_list = []
-                    html_file_fid_list.append(output_file_post['fid'][0]['value'])
-                elif f.startswith('yaml_file'):
-                    output_file_post = post_file_to_gallery_via_file_upload(product_gallery_url=product_gallery_url,
-                                                                            file_type="yaml_file",
-                                                                            file=files[f],
-                                                                            gallery_jwt_token=gallery_jwt_token,
-                                                                            sentry_dsn=sentry_dsn)
-                    if yaml_file_fid_list is None:
-                        yaml_file_fid_list = []
-                    yaml_file_fid_list.append(output_file_post['fid'][0]['value'])
+            elif f.startswith('fits_file'):
+                output_file_post = post_file_to_gallery_via_file_upload(product_gallery_url=product_gallery_url,
+                                                        file_type="fits_file",
+                                                        file=files[f],
+                                                        gallery_jwt_token=gallery_jwt_token,
+                                                        sentry_dsn=sentry_dsn)
+                if fits_file_fid_list is None:
+                    fits_file_fid_list = []
+                fits_file_fid_list.append(output_file_post['fid'][0]['value'])
+            elif f.startswith('html_file'):
+                output_file_post = post_file_to_gallery_via_file_upload(product_gallery_url=product_gallery_url,
+                                                                        file_type="html_file",
+                                                                        file=files[f],
+                                                                        gallery_jwt_token=gallery_jwt_token,
+                                                                        sentry_dsn=sentry_dsn)
+                if html_file_fid_list is None:
+                    html_file_fid_list = []
+                html_file_fid_list.append(output_file_post['fid'][0]['value'])
+            elif f.startswith('yaml_file'):
+                output_file_post = post_file_to_gallery_via_file_upload(product_gallery_url=product_gallery_url,
+                                                                        file_type="yaml_file",
+                                                                        file=files[f],
+                                                                        gallery_jwt_token=gallery_jwt_token,
+                                                                        sentry_dsn=sentry_dsn)
+                if yaml_file_fid_list is None:
+                    yaml_file_fid_list = []
+                yaml_file_fid_list.append(output_file_post['fid'][0]['value'])
     if content_type == content_type.DATA_PRODUCT:
 
         product_id = par_dic.get('product_id', None)
