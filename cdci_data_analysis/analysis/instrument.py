@@ -63,6 +63,18 @@ __author__ = "Andrea Tramacere"
 # TODO: this is not preserved between requests, and is not thread safe. Why not pass it in class instances?
 params_not_to_be_included = ['user_catalog',]
 
+general_use_args = ['instrument', 
+                    'query_status', 
+                    'query_type', 
+                    'product_type', 
+                    'session_id', 
+                    'token',
+                    'api',
+                    'oda_api_version',
+                    'off_line',
+                    'job_id',
+                    'async_dispatcher',
+                    'allow_unknown_args']
 
 class DataServerQueryClassNotSet(Exception):
     pass
@@ -176,22 +188,12 @@ class Instrument:
             if par.name == "scw_list":
                 self.logger.info("set_pars_from_dic>> scw_list is %s", par.value)
 
-        known_argument_names = ['instrument', 
-                                'query_status', 
-                                'query_type', 
-                                'product_type', 
-                                'session_id', 
-                                'token',
-                                'api',
-                                'oda_api_version',
-                                'off_line',
-                                'job_id',
-                                'async_dispatcher',
-                                'allow_unknown_args'] + self.get_arguments_name_list()
+        self.allow_unknown_arguments = self.allow_unknown_arguments or arg_dic.get('allow_unknown_args', 'False') == 'True'
+        known_argument_names = general_use_args + self.get_arguments_name_list()
         self.unknown_arguments_name_list = []
         for k in list(updated_arg_dic.keys()):
             if k not in known_argument_names:
-                if not (self.allow_unknown_arguments or arg_dic.get('allow_unknown_args', 'False') == 'True'):
+                if not self.allow_unknown_arguments:
                     updated_arg_dic.pop(k) 
                     self.logger.warning("argument '%s' is in the request but not used by instrument '%s', removing it", k, self.name)
                     self.unknown_arguments_name_list.append(k)
