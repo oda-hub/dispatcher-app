@@ -326,22 +326,13 @@ def delete_file_gallery(product_gallery_url, file_to_delete_id, gallery_jwt_toke
     return output_post
 
 
-def post_file_to_gallery_via_file_upload(product_gallery_url, file, gallery_jwt_token, file_type="image", sentry_dsn=None):
+def post_file_to_gallery_via_file_upload(product_gallery_url, file, gallery_jwt_token, field_name,
+                                         entity_type_id="node", bundle="data_product", sentry_dsn=None):
     logger.info(f"uploading file {file} to the product gallery via file_upload")
-    if file_type == "image":
-        post_url = os.path.join(product_gallery_url, 'file/upload/media/image_file/field_media_image_1')
-    elif file_type == "html_file":
-        post_url = os.path.join(product_gallery_url, 'file/upload/media/html_file/field_media_file')
-    elif file_type == "fits_file":
-        post_url = os.path.join(product_gallery_url, 'file/upload/media/fits_file/field_media_file_1')
-    elif file_type == "yaml_file":
-        post_url = os.path.join(product_gallery_url, 'file/upload/media/text_file/field_media_file_2')
-    else:
-        logger.warning(f"an attempt to upload a file with name {file.filename} of type {file_type} was made, but this type is currently not "
-                       f"supported, please review your request")
-        raise NotImplementedError
+    post_url = os.path.join(product_gallery_url, f'file/upload/{entity_type_id}/{bundle}/{field_name}')
 
-    content_disposition_arg = {'content-disposition': f'file; filename=\"{file.filename}\"'}
+    content_disposition_arg = {'content-disposition': f'file; filename=\"{file.filename}\"',
+                               'connection': 'keep-alive'}
     headers = get_drupal_request_headers(gallery_jwt_token,
                                          content_type='application/octet-stream',
                                          **content_disposition_arg)
@@ -436,34 +427,42 @@ def post_content_to_gallery(decoded_token,
         for f in files:
             if f == 'img':
                 output_img_post = post_file_to_gallery_via_file_upload(product_gallery_url=product_gallery_url,
-                                                       file_type="image",
-                                                       file=files[f],
-                                                       gallery_jwt_token=gallery_jwt_token,
-                                                       sentry_dsn=sentry_dsn)
+                                                                       gallery_jwt_token=gallery_jwt_token,
+                                                                       field_name="field_image_png",
+                                                                       entity_type_id="node",
+                                                                       bundle="data_product",
+                                                                       file=files[f],
+                                                                       sentry_dsn=sentry_dsn)
                 img_fid = output_img_post['fid'][0]['value']
             elif f.startswith('fits_file'):
                 output_file_post = post_file_to_gallery_via_file_upload(product_gallery_url=product_gallery_url,
-                                                        file_type="fits_file",
-                                                        file=files[f],
-                                                        gallery_jwt_token=gallery_jwt_token,
-                                                        sentry_dsn=sentry_dsn)
+                                                                        gallery_jwt_token=gallery_jwt_token,
+                                                                        field_name="field_fits_file",
+                                                                        entity_type_id="node",
+                                                                        bundle="data_product",
+                                                                        file=files[f],
+                                                                        sentry_dsn=sentry_dsn)
                 if fits_file_fid_list is None:
                     fits_file_fid_list = []
                 fits_file_fid_list.append(output_file_post['fid'][0]['value'])
             elif f.startswith('html_file'):
                 output_file_post = post_file_to_gallery_via_file_upload(product_gallery_url=product_gallery_url,
-                                                                        file_type="html_file",
-                                                                        file=files[f],
                                                                         gallery_jwt_token=gallery_jwt_token,
+                                                                        field_name="field_html_file",
+                                                                        entity_type_id="node",
+                                                                        bundle="data_product",
+                                                                        file=files[f],
                                                                         sentry_dsn=sentry_dsn)
                 if html_file_fid_list is None:
                     html_file_fid_list = []
                 html_file_fid_list.append(output_file_post['fid'][0]['value'])
             elif f.startswith('yaml_file'):
                 output_file_post = post_file_to_gallery_via_file_upload(product_gallery_url=product_gallery_url,
-                                                                        file_type="yaml_file",
-                                                                        file=files[f],
                                                                         gallery_jwt_token=gallery_jwt_token,
+                                                                        field_name="field_attachments",
+                                                                        entity_type_id="node",
+                                                                        bundle="observation",
+                                                                        file=files[f],
                                                                         sentry_dsn=sentry_dsn)
                 if yaml_file_fid_list is None:
                     yaml_file_fid_list = []
