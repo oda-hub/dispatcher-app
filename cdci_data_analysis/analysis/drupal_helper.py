@@ -52,7 +52,8 @@ def analyze_drupal_output(drupal_output, operation_performed=None):
                                    status_code=drupal_output.status_code,
                                    payload={'drupal_helper_error_message': f'error while performing: {operation_performed}'})
     else:
-        if drupal_output.headers.get('content-type') == 'application/hal+json':
+        if drupal_output.headers.get('content-type') == 'application/hal+json' or \
+                drupal_output.headers.get('content-type') == 'application/json':
             return drupal_output.json()
         return drupal_output.text
 
@@ -269,10 +270,12 @@ def execute_drupal_request(url,
                                     payload={'drupal_helper_error_message': str(e)})
 
 
-def get_drupal_request_headers(gallery_jwt_token=None):
+def get_drupal_request_headers(gallery_jwt_token=None, content_type='application/hal+json', **kwargs):
     headers = {
-        'Content-type': 'application/hal+json'
+        'Content-type': content_type
     }
+    for k, v in kwargs.items():
+        headers[k] = v
     if gallery_jwt_token is not None:
         headers['Authorization'] = 'Bearer ' + gallery_jwt_token
     return headers
@@ -320,6 +323,29 @@ def delete_file_gallery(product_gallery_url, file_to_delete_id, gallery_jwt_toke
 
     logger.info(f"file with {file_to_delete_id} successfully deleted from the product gallery")
     output_post = analyze_drupal_output(log_res, operation_performed="deleting a file from the product gallery")
+    return output_post
+
+
+def post_file_to_gallery_via_file_upload(product_gallery_url, file, gallery_jwt_token, field_name,
+                                         entity_type_id="node", bundle="data_product", sentry_dsn=None):
+    logger.info(f"uploading file {file} to the product gallery via file_upload")
+    post_url = os.path.join(product_gallery_url, f'file/upload/{entity_type_id}/{bundle}/{field_name}')
+
+    content_disposition_arg = {'content-disposition': f'file; filename=\"{file.filename}\"',
+                               'connection': 'keep-alive'}
+    headers = get_drupal_request_headers(gallery_jwt_token,
+                                         content_type='application/octet-stream',
+                                         **content_disposition_arg)
+
+    log_res = execute_drupal_request(post_url,
+                                     method='post',
+                                     data=file,
+                                     request_format='json',
+                                     headers=headers,
+                                     sentry_dsn=sentry_dsn)
+
+    logger.info(f"file {file.filename} successfully uploaded to the product gallery")
+    output_post = analyze_drupal_output(log_res, operation_performed="posting a picture to the product gallery")
     return output_post
 
 
@@ -400,32 +426,47 @@ def post_content_to_gallery(decoded_token,
     if files is not None:
         for f in files:
             if f == 'img':
-                img_file_obj = files[f]
-                # upload file to drupal
-                output_img_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
-                                                       file_type="image",
-                                                       file=img_file_obj,
-                                                       gallery_jwt_token=gallery_jwt_token,
-                                                       sentry_dsn=sentry_dsn)
+                output_img_post = post_file_to_gallery_via_file_upload(product_gallery_url=product_gallery_url,
+                                                                       gallery_jwt_token=gallery_jwt_token,
+                                                                       field_name="field_image_png",
+                                                                       entity_type_id="node",
+                                                                       bundle="data_product",
+                                                                       file=files[f],
+                                                                       sentry_dsn=sentry_dsn)
                 img_fid = output_img_post['fid'][0]['value']
-            else:
-                output_file_post = post_file_to_gallery(product_gallery_url=product_gallery_url,
-                                                        file_type="document",
-                                                        file=files[f],
-                                                        gallery_jwt_token=gallery_jwt_token,
-                                                        sentry_dsn=sentry_dsn)
-                if f.startswith('fits_file'):
-                    if fits_file_fid_list is None:
-                        fits_file_fid_list = []
-                    fits_file_fid_list.append(output_file_post['fid'][0]['value'])
-                elif f.startswith('html_file'):
-                    if html_file_fid_list is None:
-                        html_file_fid_list = []
-                    html_file_fid_list.append(output_file_post['fid'][0]['value'])
-                elif f.startswith('yaml_file'):
-                    if yaml_file_fid_list is None:
-                        yaml_file_fid_list = []
-                    yaml_file_fid_list.append(output_file_post['fid'][0]['value'])
+            elif f.startswith('fits_file'):
+                output_file_post = post_file_to_gallery_via_file_upload(product_gallery_url=product_gallery_url,
+                                                                        gallery_jwt_token=gallery_jwt_token,
+                                                                        field_name="field_fits_file",
+                                                                        entity_type_id="node",
+                                                                        bundle="data_product",
+                                                                        file=files[f],
+                                                                        sentry_dsn=sentry_dsn)
+                if fits_file_fid_list is None:
+                    fits_file_fid_list = []
+                fits_file_fid_list.append(output_file_post['fid'][0]['value'])
+            elif f.startswith('html_file'):
+                output_file_post = post_file_to_gallery_via_file_upload(product_gallery_url=product_gallery_url,
+                                                                        gallery_jwt_token=gallery_jwt_token,
+                                                                        field_name="field_html_file",
+                                                                        entity_type_id="node",
+                                                                        bundle="data_product",
+                                                                        file=files[f],
+                                                                        sentry_dsn=sentry_dsn)
+                if html_file_fid_list is None:
+                    html_file_fid_list = []
+                html_file_fid_list.append(output_file_post['fid'][0]['value'])
+            elif f.startswith('yaml_file'):
+                output_file_post = post_file_to_gallery_via_file_upload(product_gallery_url=product_gallery_url,
+                                                                        gallery_jwt_token=gallery_jwt_token,
+                                                                        field_name="field_attachments",
+                                                                        entity_type_id="node",
+                                                                        bundle="observation",
+                                                                        file=files[f],
+                                                                        sentry_dsn=sentry_dsn)
+                if yaml_file_fid_list is None:
+                    yaml_file_fid_list = []
+                yaml_file_fid_list.append(output_file_post['fid'][0]['value'])
     if content_type == content_type.DATA_PRODUCT:
 
         product_id = par_dic.get('product_id', None)
