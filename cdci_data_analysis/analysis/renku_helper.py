@@ -48,7 +48,7 @@ def push_api_code(api_code,
         token = None
         token_match = re.search(token_pattern, api_code, flags=re.DOTALL)
         if token_match is not None:
-            token = json.loads(f'{{{token_match[0]}}}')
+            token = json.loads(f'{{{token_match[0]}}}')['token']
         if token is not None:
             api_code = re.sub(token_pattern, '"token": os.environ[\'TOKEN\'],', api_code, flags=re.DOTALL)
         # api_code = "import getpass\n\n" + api_code
