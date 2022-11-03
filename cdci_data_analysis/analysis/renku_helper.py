@@ -19,6 +19,7 @@ logger = app_logging.getLogger('renku_helper')
 
 def push_api_code(api_code,
                   job_id,
+                  token,
                   renku_gitlab_repository_url,
                   renku_gitlab_ssh_key_path,
                   renku_base_project_url,
@@ -45,13 +46,7 @@ def push_api_code(api_code,
 
         step = f'removing token from the api_code'
         token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
-        token = None
-        token_match = re.search(token_pattern, api_code, flags=re.DOTALL)
-        if token_match is not None:
-            token = json.loads(f'{{{token_match[0]}}}')['token']
-        if token is not None:
-            api_code = re.sub(token_pattern, '"token": os.environ[\'TOKEN\'],', api_code, flags=re.DOTALL)
-        # api_code = "import getpass\n\n" + api_code
+        api_code = re.sub(token_pattern, '"token": os.environ[\'TOKEN\'],', api_code, flags=re.DOTALL)
         logger.info(step)
 
         step = f'creating new notebook with the api code'

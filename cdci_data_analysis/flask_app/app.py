@@ -303,6 +303,7 @@ def push_renku_branch():
 
     if api_code is not None:
         api_code_url = renku_helper.push_api_code(api_code=api_code,
+                                                  token=token,
                                                   job_id=job_id,
                                                   renku_gitlab_repository_url=renku_gitlab_repository_url,
                                                   renku_base_project_url=renku_base_project_url,
