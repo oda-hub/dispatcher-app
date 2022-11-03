@@ -156,7 +156,7 @@ def check_job_id_branch_is_present(repo, job_id):
     r = re.compile(f".*_{job_id}")
     filtered_list = list(filter(r.match, list_branches))
 
-    return len(filtered_list) == 1
+    return len(filtered_list) >= 1
 
 
 def get_branch_name(job_id=None, session_id=None):
