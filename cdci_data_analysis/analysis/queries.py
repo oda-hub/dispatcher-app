@@ -251,7 +251,7 @@ class BaseQuery(object):
         seen = set()
         l1 = [x for x in l if (x.get('name') is None) or not (x.get('name') in seen or seen.add(x.get('name')))]
         
-        print(l1)
+        logger.info(l1)
         return json.dumps(l1)
 
     # Check if the given query cn be executed given a list of roles extracted from the token

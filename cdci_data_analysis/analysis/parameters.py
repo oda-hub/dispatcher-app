@@ -256,7 +256,7 @@ class Parameter:
         
     @property
     def argument_names_list(self):
-        return self._arg_list
+        return self._arg_list[:]
 
     @property
     def name(self):
@@ -400,6 +400,7 @@ class Parameter:
         pass
 
     def reprJSON(self):
+        # produces json-serialisable list
         reprjson = [dict(name=self.name, units=self.units, value=self.value)]
         if self.par_format_name is not None:
             reprjson.append(dict(name=self.par_format_name, units="str", value=self.par_format))

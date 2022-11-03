@@ -63,18 +63,22 @@ __author__ = "Andrea Tramacere"
 # TODO: this is not preserved between requests, and is not thread safe. Why not pass it in class instances?
 params_not_to_be_included = ['user_catalog',]
 
-general_use_args = ['instrument', 
-                    'query_status', 
-                    'query_type', 
-                    'product_type', 
-                    'session_id', 
-                    'token',
-                    'api',
-                    'oda_api_version',
-                    'off_line',
-                    'job_id',
-                    'async_dispatcher',
-                    'allow_unknown_args']
+non_parameter_args = ['instrument', 
+                      'query_status', 
+                      'query_type', 
+                      'product_type', 
+                      'session_id', 
+                      'token',
+                      'api',
+                      'oda_api_version',
+                      'off_line',
+                      'job_id',
+                      'async_dispatcher',
+                      'allow_unknown_args']
+# NOTE: arguments are passed in the request to the dispatcher
+# some arguments are used to set the values of the analysis parameters
+# the parameter is a subclass of Parameter and may use several arguments to set it's value 
+# (e.g. value and T_format for Time)
 
 class DataServerQueryClassNotSet(Exception):
     pass
@@ -189,7 +193,7 @@ class Instrument:
                 self.logger.info("set_pars_from_dic>> scw_list is %s", par.value)
 
         self.allow_unknown_arguments = self.allow_unknown_arguments or arg_dic.get('allow_unknown_args', 'False') == 'True'
-        known_argument_names = general_use_args + self.get_arguments_name_list()
+        known_argument_names = non_parameter_args + self.get_arguments_name_list()
         self.unknown_arguments_name_list = []
         for k in list(updated_arg_dic.keys()):
             if k not in known_argument_names:
