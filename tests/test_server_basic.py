@@ -2703,11 +2703,12 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
 
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
     token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
-    token_match = re.search(token_pattern, extracted_api_code, flags=re.DOTALL)
-    if token_match is not None:
-        token = json.loads(f'{{{token_match[0]}}}')['token']
-    if token is not None:
-        extracted_api_code = re.sub(token_pattern, '"token": os.environ[\'TOKEN\'],', extracted_api_code, flags=re.DOTALL)
+    # token_match = re.search(token_pattern, extracted_api_code, flags=re.DOTALL)
+    # if token_match is not None:
+    #     token = json.loads(f'{{{token_match[0]}}}')['token']
+    # if token is not None:
+    #     extracted_api_code = re.sub(token_pattern, '"token": os.environ[\'TOKEN\'],', extracted_api_code, flags=re.DOTALL)
+    extracted_api_code = re.sub(token_pattern, '"token": os.environ[\'TOKEN\'],', extracted_api_code, flags=re.DOTALL)
     # extracted_api_code = re.sub(token_pattern, '# "token": getpass.getpass(),', extracted_api_code, flags=re.DOTALL)
     #
     # extracted_api_code = 'import getpass\n\n' + extracted_api_code
