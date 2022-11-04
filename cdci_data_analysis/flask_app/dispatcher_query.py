@@ -260,6 +260,7 @@ class InstrumentQueryBackEnd:
                             sentry_dsn=self.sentry_dsn
                         )
                         self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
+
                 # TODO: if not callback!
                 # if 'query_status' not in self.par_dic:
                 #    raise MissingRequestParameter('no query_status!')
@@ -864,7 +865,7 @@ class InstrumentQueryBackEnd:
         else:
             prod_name = None
         if hasattr(self, 'instrument'):
-            _l = self.instrument.get_parameters_name_list(prod_name=prod_name)
+            _l = self.instrument.get_arguments_name_list(prod_name=prod_name)
             if 'user_catalog' in _l:
                 _l.remove('user_catalog')
         else:
@@ -1106,6 +1107,13 @@ class InstrumentQueryBackEnd:
         if query_out is not None:
             out_dict['products'] = query_out.prod_dictionary
             out_dict['exit_status'] = query_out.status_dictionary
+            if getattr(self.instrument, 'unknown_arguments_name_list', []):
+                if len(self.instrument.unknown_arguments_name_list) == 1:
+                    comment = f'Please note that argument {self.instrument.unknown_arguments_name_list[0]} is not used'
+                else:
+                    comment = f'Please note that arguments {", ".join(self.instrument.unknown_arguments_name_list)} are not used'
+                out_dict['exit_status']['comment'] = \
+                    out_dict['exit_status']['comment'] + ' ' + comment if out_dict['exit_status']['comment'] else comment
 
         if job_monitor is not None:
             out_dict['job_monitor'] = job_monitor

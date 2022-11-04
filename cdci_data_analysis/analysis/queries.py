@@ -242,18 +242,30 @@ class BaseQuery(object):
         else:
             return l
 
-    def get_parameters_list_as_json(self,prod_dict=None):
+    def get_parameters_list_as_json(self,**kwargs):
         l=[ {'query_name':self.name}]
 
         for par in self._parameters_list:
-            l.append(par.reprJSON())
-
-        return json.dumps(l)
+            l.extend(par.reprJSONifiable())
+        l1 = self._remove_duplicates_from_par_list(l)
+        return json.dumps(l1)
 
     # Check if the given query cn be executed given a list of roles extracted from the token
     def check_query_roles(self, roles, par_dic):
         results = dict(authorization=True, needed_roles=[])
         return results
+    
+    @staticmethod
+    def _remove_duplicates_from_par_list(l):
+        seen = set()
+        l1 = []
+        for x in l:
+            if (x.get('name') is None) or not (x.get('name') in seen):
+                l1.append(x)
+            else:
+                logger.info('removed duplicate %s', x.get('name'))
+            seen.add(x.get('name'))        
+        return l1
 
 
 class SourceQuery(BaseQuery):
@@ -330,7 +342,7 @@ class ProductQuery(BaseQuery):
         traceback.print_stack()
         raise RuntimeError(f'{self}: get_data_server_query needs to be implemented in derived class')
 
-    def get_parameters_list_as_json(self,prod_dict=None):
+    def get_parameters_list_as_json(self, prod_dict=None):
 
         l=[ {'query_name':self.name}]
         prod_name=None
@@ -344,10 +356,10 @@ class ProductQuery(BaseQuery):
             l.append({'product_name': self.name})
 
         for par in self._parameters_list:
-            l.append(par.reprJSON())
-
-        print(l)
-        return json.dumps(l)
+            l.extend(par.reprJSONifiable())
+        
+        l1 = self._remove_duplicates_from_par_list(l)
+        return json.dumps(l1)
 
     def get_prod_by_name(self,name):
         return self.query_prod_list.get_prod_by_name(name)
