@@ -2150,6 +2150,7 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
             instrument="empty-async",
             product_type="numerical",
             token=encoded_token,
+            allow_unknown_args=True,
         )
 
     # this kind of parameters never really happen, and we should be alerted

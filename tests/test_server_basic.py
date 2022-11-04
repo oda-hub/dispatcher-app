@@ -55,6 +55,10 @@ default_params = dict(
                     async_dispatcher=False
                  )
 
+specific_args = ['osa_version', 'E1_keV', 'E2_keV', 'max_pointings', 'radius']
+def remove_args_from_dic(arg_dic, remove_keys):
+    for key in remove_keys:
+        arg_dic.pop(key, None)
 
 default_exp_time = int(time.time()) + 5000
 default_token_payload = dict(
@@ -917,7 +921,7 @@ def test_scws_list_file(dispatcher_live_fixture):
         'instrument': 'empty',
         'p': 5.,
         'use_scws': 'user_file',
-        'token': encoded_token
+        'token': encoded_token,
     }
 
     file_path = DispatcherJobState.create_p_value_file(p_value=5)
@@ -958,6 +962,7 @@ def test_scws_list_file(dispatcher_live_fixture):
         "p_list": ["5"],
         "sub": "mtm@mtmco.net"}
     )
+    remove_args_from_dic(restricted_par_dic, specific_args)
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
@@ -1031,6 +1036,7 @@ def test_catalog_file(dispatcher_live_fixture, correct_format):
                 'src_name': '1E 1740.7-2942',
             }
         )
+        remove_args_from_dic(restricted_par_dic, specific_args)
         calculated_job_id = make_hash(restricted_par_dic)
 
         assert job_id == calculated_job_id
@@ -1087,7 +1093,8 @@ def test_user_catalog(dispatcher_live_fixture, correct_format, catalog_selected_
         'instrument': 'empty',
         'selected_catalog': json.dumps(selected_catalog_dict),
         'catalog_selected_objects': catalog_selected_objects,
-        'token': encoded_token
+        'token': encoded_token,
+        'allow_unknown_args': True
     }
 
     jdata = ask(server,
@@ -1392,6 +1399,7 @@ def test_image(dispatcher_live_fixture):
             'sub': 'mtm@mtmco.net',
         }
     )
+    remove_args_from_dic(restricted_par_dic, specific_args)
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
@@ -1420,6 +1428,7 @@ def test_default_values(dispatcher_live_fixture, additional_parameter):
 
     if additional_parameter:
         params['additional_param'] = 'no_value'
+        params['allow_unknown_args'] = True
 
     jdata = ask(server,
                 params,
@@ -1452,6 +1461,7 @@ def test_default_values(dispatcher_live_fixture, additional_parameter):
                                                                     'T2': '2017-03-06T15:32:27.000',
                                                                     'T_format': 'isot'
                                                                     })
+    remove_args_from_dic(restricted_par_dic, specific_args)
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
@@ -2756,3 +2766,25 @@ def test_param_value(dispatcher_live_fixture):
 
     assert jdata['products']['analysis_parameters']['T1'] == '2017-03-06T13:26:48.000'
     assert jdata['products']['echo']['T1'] == 57818.560277777775
+
+@pytest.mark.fast
+def test_unknown_argument(dispatcher_live_fixture):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+
+    c = requests.get(server + "/run_analysis",
+                   params={'instrument': 'empty',
+                           'product_type': 'dummy',
+                           'query_status': 'new',
+                           'query_type': 'Real',
+                           'unknown': 2.0},
+                  )
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+    
+    assert re.match(r'Please note that arguments?.*unknown.*not used', jdata['exit_status']['comment'])
+    assert 'T_format' not in jdata['exit_status']['comment']
+    assert 'unknown' not in jdata['products']['analysis_parameters'].keys()
+    assert 'unknown' not in jdata['products']['api_code']
