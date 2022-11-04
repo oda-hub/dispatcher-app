@@ -399,7 +399,7 @@ class Parameter:
     def check_value(val, units=None, name=None, par_format=None):
         pass
 
-    def reprJSON(self):
+    def reprJSONifiable(self):
         # produces json-serialisable list
         reprjson = [dict(name=self.name, units=self.units, value=self.value)]
         if self.par_format_name is not None:

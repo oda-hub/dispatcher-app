@@ -77,8 +77,9 @@ non_parameter_args = ['instrument',
                       'allow_unknown_args']
 # NOTE: arguments are passed in the request to the dispatcher
 # some arguments are used to set the values of the analysis parameters
-# the parameter is a subclass of Parameter and may use several arguments to set it's value 
-# (e.g. value and T_format for Time)
+# the parameter is a subclass of Parameter and may use several arguments to set it's value
+# some arguments may be used to set values of several parameters 
+# (e.g. for Time(name='T1') and Time(name='T2') arguments will be T1, T2, T_format)
 
 class DataServerQueryClassNotSet(Exception):
     pass
@@ -192,7 +193,8 @@ class Instrument:
             if par.name == "scw_list":
                 self.logger.info("set_pars_from_dic>> scw_list is %s", par.value)
 
-        self.allow_unknown_arguments = self.allow_unknown_arguments or arg_dic.get('allow_unknown_args', 'False') == 'True'
+        if arg_dic.get('allow_unknown_args', None):
+            self.allow_unknown_arguments = arg_dic.get('allow_unknown_args', 'False') == 'True'
         known_argument_names = non_parameter_args + self.get_arguments_name_list()
         self.unknown_arguments_name_list = []
         for k in list(updated_arg_dic.keys()):
@@ -601,7 +603,8 @@ class Instrument:
         l = []
         for par in self.get_parameters_list(prod_name = prod_name):
             l.append(par.name)
-        # TODO: what about duplicates here? 
+        if len(l) > len(set(l)):
+            self.logger.warning('duplicates in parameters_name_list: %s', l)
         return l
 
     def set_pars_from_form(self,par_dic,logger=None,verbose=False,sentry_dsn=None):
