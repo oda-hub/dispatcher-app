@@ -46,7 +46,7 @@ def push_api_code(api_code,
 
         step = f'removing token from the api_code'
         token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
-        api_code = re.sub(token_pattern, '"token": os.environ[\'TOKEN\'],', api_code, flags=re.DOTALL)
+        api_code = re.sub(token_pattern, '"token": os.environ[\'ODA_TOKEN\'],', api_code, flags=re.DOTALL)
         logger.info(step)
 
         step = f'creating new notebook with the api code'
@@ -93,7 +93,7 @@ def generate_renku_session_url(repo, renku_base_project_url, branch_name, commit
     if notebook_name is not None:
         output_url += f'&notebook={notebook_name}'
     if token is not None:
-        output_url += f'&env[TOKEN]={token}'
+        output_url += f'&env[ODA_TOKEN]={token}'
     return output_url
     
 
