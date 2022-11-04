@@ -2697,7 +2697,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}" \
                      f"&commit={repo.head.commit.hexsha}" \
                      f"&notebook={api_code_file_name}" \
-                     f"&env[TOKEN]={encoded_token}"
+                     f"&env[ODA_TOKEN]={encoded_token}"
 
     api_code_file_path = os.path.join(repo.working_dir, api_code_file_name)
 
