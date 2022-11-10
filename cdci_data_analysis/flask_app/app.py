@@ -12,9 +12,10 @@ import string
 import random
 import hashlib
 import jwt
+import sentry_sdk
 
 from raven.contrib.flask import Sentry
-
+from sentry_sdk.integrations.flask import FlaskIntegration
 from flask import jsonify, send_from_directory, redirect, Response, Flask, request, make_response, g
 
 # restx not really used
@@ -65,7 +66,15 @@ ns_conf = api.namespace('api/v1.0/oda', description='api')
 def before_request():
     g.request_start_time = _time.time()
 
+@app.route('/reload-plugin/<name>')
+def reload_plugin(name):
+    try:
+        importer.reload_plugin(name)
+        return f'Plugin {name} reloaded\n'
+    except ModuleNotFoundError as e:
+        return f'Plugin {name} not found\n', 400
 
+    
 @app.route("/api/meta-data")
 def run_api_meta_data():
     query = InstrumentQueryBackEnd(app, get_meta_data=True)
@@ -171,7 +180,9 @@ def common_exception_payload():
     payload = {}
 
     payload['cdci_data_analysis_version'] = __version__
+    payload['cdci_data_analysis_version_details'] = os.getenv('DISPATCHER_VERSION_DETAILS', 'unknown')
     payload['oda_api_version'] = oda_api.__version__
+     
     _l = []
 
     for instrument_factory in importer.instrument_factory_list:
@@ -209,6 +220,28 @@ def update_token_email_options():
     query = InstrumentQueryBackEnd(app, update_token=True)
 
     query.update_token(update_email_options=True)
+    # TODO adaption to the QueryOutJSON schema is needed
+    return query.token
+
+
+@app.route('/refresh_token', methods=['POST', 'GET'])
+def refresh_token():
+    logger.info("request.args: %s ", request.args)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['refresh-tokens'],
+                                                                  action="refresh your token")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+
+    query = InstrumentQueryBackEnd(app, update_token=True)
+
+    query.update_token(refresh_token=True)
     # TODO adaption to the QueryOutJSON schema is needed
     return query.token
 
@@ -337,9 +370,16 @@ def run_analysis():
               repr(e), traceback.format_exc())
         sentry_url = getattr(app.config.get('conf'), 'sentry_url', None)
         if sentry_url is not None:
-            sentry_client = Sentry(app, dsn=sentry_url)
-            sentry_client.capture('raven.events.Message',
-                                  message=f'exception in run_analysis: {str(e)}')
+            sentry_sdk.init(
+                dsn=sentry_url,
+                # Set traces_sample_rate to 1.0 to capture 100%
+                # of transactions for performance monitoring.
+                # We recommend adjusting this value in production.
+                traces_sample_rate=1.0,
+                debug=True,
+                max_breadcrumbs=50,
+            )
+            sentry_sdk.capture_message(f'exception in run_analysis: {str(e)}')
         else:
             logger.warning("sentry not used")
 
@@ -567,6 +607,163 @@ def get_parents_term():
     return output_request
 
 
+@app.route('/get_observation_attachments', methods=['GET'])
+def get_observation_attachments():
+    logger.info("request.args: %s ", request.args)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    sentry_dsn = getattr(app_config, 'sentry_url', None)
+    if sentry_dsn is not None:
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            # Set traces_sample_rate to 1.0 to capture 100%
+            # of transactions for performance monitoring.
+            # We recommend adjusting this value in production.
+            traces_sample_rate=1.0,
+            debug=True,
+            max_breadcrumbs=50,
+        )
+
+    gallery_secret_key = app_config.product_gallery_secret_key
+    product_gallery_url = app_config.product_gallery_url
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
+                                                        user_email=user_email,
+                                                        sentry_dsn=sentry_dsn)
+    gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+
+    observation_title = par_dic.pop('title', None)
+
+    output_get = drupal_helper.get_observation_yaml_attachments_by_observation_title(
+        product_gallery_url, gallery_jwt_token,
+        observation_title=observation_title,
+        sentry_dsn=sentry_dsn
+        )
+
+    return output_get
+
+
+@app.route('/get_all_astro_entities', methods=['GET'])
+def get_all_astro_entities():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    sentry_dsn = getattr(app_config, 'sentry_url', None)
+    if sentry_dsn is not None:
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            # Set traces_sample_rate to 1.0 to capture 100%
+            # of transactions for performance monitoring.
+            # We recommend adjusting this value in production.
+            traces_sample_rate=1.0,
+            debug=True,
+            max_breadcrumbs=50,
+        )
+
+    gallery_secret_key = app_config.product_gallery_secret_key
+    product_gallery_url = app_config.product_gallery_url
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
+                                                        user_email=user_email,
+                                                        sentry_dsn=sentry_dsn)
+    # update the token
+    gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+
+    output_get = drupal_helper.get_all_source_astrophysical_entities(product_gallery_url=product_gallery_url,
+                                                                     gallery_jwt_token=gallery_jwt_token,
+                                                                     sentry_dsn=sentry_dsn)
+    output_list = json.dumps(output_get)
+
+    return output_list
+
+
+@app.route('/post_astro_entity_to_gallery', methods=['POST'])
+def post_astro_entity_to_gallery():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
+                                                        content_type="astrophysical_entity",
+                                                        disp_conf=app_config,
+                                                        files=request.files,
+                                                        **par_dic)
+
+    return output_post
+
+
+@app.route('/post_observation_to_gallery', methods=['POST'])
+def post_observation_to_gallery():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
+                                                        content_type="observation",
+                                                        disp_conf=app_config,
+                                                        files=request.files,
+                                                        **par_dic)
+
+    return output_post
+
+
 @app.route('/post_product_to_gallery', methods=['POST'])
 def post_product_to_gallery():
     logger.info("request.args: %s ", request.args)
@@ -604,6 +801,18 @@ def report_incident():
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
+    sentry_dsn = getattr(app_config, 'sentry_url', None)
+    if sentry_dsn is not None:
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            # Set traces_sample_rate to 1.0 to capture 100%
+            # of transactions for performance monitoring.
+            # We recommend adjusting this value in production.
+            traces_sample_rate=1.0,
+            debug=True,
+            max_breadcrumbs=50,
+        )
+
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key)
 
     if output_code is not None:
@@ -625,7 +834,8 @@ def report_incident():
             decoded_token=decoded_token,
             incident_content=incident_content,
             incident_time=incident_time,
-            scratch_dir=scratch_dir
+            scratch_dir=scratch_dir,
+            sentry_dsn=sentry_dsn
         )
         report_incident_status = 'incident report email successfully sent'
     except email_helper.EMailNotSent as e:
@@ -633,9 +843,16 @@ def report_incident():
         logging.warning(f'email sending failed: {e}')
         sentry_url = getattr(app.config.get('conf'), 'sentry_url', None)
         if sentry_url is not None:
-            sentry_client = Sentry(app, dsn=sentry_url)
-            sentry_client.capture('raven.events.Message',
-                                  message=f'sending email failed {e}')
+            sentry_sdk.init(
+                dsn=sentry_url,
+                # Set traces_sample_rate to 1.0 to capture 100%
+                # of transactions for performance monitoring.
+                # We recommend adjusting this value in production.
+                traces_sample_rate=1.0,
+                debug=True,
+                max_breadcrumbs=50,
+            )
+            sentry_sdk.capture_message(f'sending email failed {e}')
         else:
             logger.warning("sentry not used")
     except MissingRequestParameter as e:
@@ -677,14 +894,17 @@ class GetJS9Plot(Resource):
         """
         returns the js9 image display
         """
-        api_parser = reqparse.RequestParser()
-        api_parser.add_argument(
-            'file_path', required=True, help="the name of the file", type=str)
-        api_parser.add_argument('ext_id', required=False,
-                                help="extension id", type=int, default=4)
-        api_args = api_parser.parse_args()
-        file_path = api_args['file_path']
-        ext_id = api_args['ext_id']
+        # api_parser = reqparse.RequestParser()
+        # api_parser.add_argument(
+        #     'file_path', required=True, help="the name of the file", type=str)
+        # api_parser.add_argument('ext_id', required=False,
+        #                         help="extension id", type=int, default=4)
+
+        
+        # api_args = api_parser.parse_args()
+
+        file_path = request.args.get('file_path')
+        ext_id = int(request.args.get('ext_id', 4))
 
         try:
             tmp_file = FitsFile(file_path)
@@ -698,10 +918,9 @@ class GetJS9Plot(Resource):
             # print('qui',e)
             raise APIerror('problem with input file: %s' % e, status_code=410)
 
-        region_file = None
-        if 'region_file' in api_args.keys():
-            region_file = api_args['region_file']
-        print('file_path,region_file', tmp_file.file_path.path, region_file)
+        region_file = request.args.get('region_file', None)
+        
+        print('file_path, region_file', tmp_file.file_path.path, region_file)
         try:
             img = Image(None, None)
             #print('get_js9_plot path',tmp_file.file_path.path)
@@ -768,6 +987,10 @@ def conf_app(conf):
 
 def run_app(conf, debug=False, threaded=False):
     conf_app(conf)
+
+    logger.debug(f"starting flask web server: host:{conf.bind_host}, port: {conf.bind_port}, debug: {debug}, "
+                f"threaded: {threaded}")
+
     app.run(host=conf.bind_host, port=conf.bind_port,
             debug=debug, threaded=threaded)
 

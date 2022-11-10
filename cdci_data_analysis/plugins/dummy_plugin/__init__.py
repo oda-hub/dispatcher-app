@@ -36,9 +36,13 @@ __author__ = "Andrea Tramacere"
 # Project
 # relative import eg: from .mod import f
 
+import os
+conf_file = os.path.dirname(__file__) + '/dummy_plugin_conf.yml'
+
 
 from .my_instrument import my_instr_factory
 
 
 
 instr_factory_list=[my_instr_factory]
+

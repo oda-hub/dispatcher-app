@@ -3,7 +3,7 @@ numpy
 pyyaml
 simplejson
 flask>=2.0.3
-astropy>=2.0.3
+astropy>=5.0.1
 pylogstash_context>=0.1.19
 gunicorn
 decorator
@@ -27,6 +27,8 @@ marshmallow
 requests
 GitPython
 nbformat
+sentry-sdk
+pytest-sentry
 -e git+https://github.com/oda-hub/oda_api.git#egg=oda_api
 
 MarkupSafe==2.0.1

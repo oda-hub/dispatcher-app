@@ -1,14 +1,17 @@
 import pytest
+import pytest_sentry
 
 from cdci_data_analysis.pytest_fixtures import (
             app, 
             dispatcher_local_mail_server,
             dispatcher_local_mail_server_subprocess,
             dispatcher_live_fixture,
+            gunicorn_dispatcher_live_fixture,
             dispatcher_live_fixture_no_debug_mode,
             dispatcher_live_fixture_with_gallery,
             dispatcher_live_fixture_with_gallery_no_resolver,
             dispatcher_long_living_fixture,
+            gunicorn_dispatcher_long_living_fixture,
             dispatcher_test_conf,
             dispatcher_test_conf_with_gallery,
             dispatcher_test_conf_with_gallery_no_resolver,
@@ -17,7 +20,10 @@ from cdci_data_analysis.pytest_fixtures import (
             dispatcher_test_conf_with_gallery_no_resolver_fn,
             dispatcher_test_conf_fn,
             dispatcher_debug,
+            sentry_sdk_fixture,
             dispatcher_nodebug,
+            gunicorn_dispatcher,
+            gunicorn_tmp_path,
             cleanup,
             empty_products_files_fixture,
             empty_products_user_files_fixture,

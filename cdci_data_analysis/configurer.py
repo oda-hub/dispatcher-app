@@ -93,8 +93,8 @@ class DataServerConf:
             required_keys.remove('data_server_url')
         except KeyError as e:
             logger.error(
-                f"problem constructing {self}: data_server_url configuration key is required")
-            raise e
+                f"problem constructing {self}: data_server_url configuration key is required, got %s", e)
+            raise
 
         self.process_integral_keys(conf, required_keys)
 
@@ -225,6 +225,7 @@ class ConfigEnv(object):
                                      products_url,
                                      disp_dict['dispatcher_callback_url_base'],
                                      disp_dict['secret_key'],
+                                     disp_dict.get('token_max_refresh_interval', 604800),
                                      disp_dict['email_options']['smtp_server'],
                                      disp_dict['email_options']['sender_email_address'],
                                      disp_dict['email_options']['cc_receivers_email_addresses'],
@@ -240,7 +241,8 @@ class ConfigEnv(object):
                                      disp_dict['email_options'].get('incident_report_email_options', {}).get('incident_report_receivers_email_addresses', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_url', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_secret_key', None),
-                                     disp_dict.get('product_gallery_options', {}).get('product_gallery_timezone', "Europe/Zurich"),
+                                     disp_dict.get('product_gallery_options', {}).get('product_gallery_timezone',
+                                                                                      "Europe/Zurich"),
                                      disp_dict.get('product_gallery_options', {}).get('name_resolver_url', 'https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}'),
                                      disp_dict.get('product_gallery_options', {}).get('entities_portal_url', 'http://cdsportal.u-strasbg.fr/?target={}'),
                                      disp_dict.get('product_gallery_options', {}).get('converttime_revnum_service_url', 'https://www.astro.unige.ch/mmoda/dispatch-data/gw/timesystem/api/v1.0/converttime/UTC/{}/REVNUM'),
@@ -285,6 +287,7 @@ class ConfigEnv(object):
                             products_url,
                             dispatcher_callback_url_base,
                             secret_key,
+                            token_max_refresh_interval,
                             smtp_server,
                             sender_email_address,
                             cc_receivers_email_addresses,
@@ -318,6 +321,7 @@ class ConfigEnv(object):
         self.products_url = products_url
         self.dispatcher_callback_url_base = dispatcher_callback_url_base
         self.secret_key = secret_key
+        self.token_max_refresh_interval = token_max_refresh_interval
         self.smtp_server = smtp_server
         self.sender_email_address = sender_email_address
         self.cc_receivers_email_addresses = cc_receivers_email_addresses
