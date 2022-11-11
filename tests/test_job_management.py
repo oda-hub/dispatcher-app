@@ -1077,11 +1077,10 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
     dispatcher_local_mail_server.assert_email_number(2)
 
     # check the time in the title and filename is still the one of the first request
-    # check the time in the title and filename is still the one of the first request
     for msg in dispatcher_local_mail_server.local_smtp_output:
         msg_data = email.message_from_string(msg['data'])
         assert msg_data[
-                   'Subject'] == f"[ODA][submitted] dummy first requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+                   'Subject'] == f"[ODA][submitted] dummy requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
 
     list_email_files = glob.glob(os.path.join(dispatcher_job_state.email_history_folder, f'email_submitted_*.email'))
     assert len(list_email_files) == 2
@@ -1109,7 +1108,7 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
     for msg in dispatcher_local_mail_server.local_smtp_output:
         msg_data = email.message_from_string(msg['data'])
         assert msg_data[
-                   'Subject'] == f"[ODA][submitted] dummy first requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+                   'Subject'] == f"[ODA][submitted] dummy requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
     list_email_files = glob.glob(os.path.join(dispatcher_job_state.email_history_folder, f'email_submitted_*.email'))
     assert len(list_email_files) == 3
     for email_file in list_email_files:
