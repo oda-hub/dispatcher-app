@@ -105,7 +105,7 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
 generalized_email_patterns = {
     'time_request_str': [
         r'(because at )([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.*?)( \()',
-        '(first requested at )(.*? .*?)( job_id:)'
+        '(requested at )(.*? .*?)( job_id:)'
     ],
     'token_exp_time_str': [
         '(and will be valid until )(.*? .*?)(.<br>)'
@@ -421,7 +421,7 @@ def validate_email_content(
     if state_title is None:
         state_title = state
 
-    assert msg['Subject'] == f"[ODA][{state_title}] {product} first requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+    assert msg['Subject'] == f"[ODA][{state_title}] {product} requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
     assert msg['From'] == 'team@odahub.io'
     assert msg['To'] == 'mtm@mtmco.net'
     assert msg['CC'] == ", ".join(['team@odahub.io'])
@@ -1116,6 +1116,7 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
         f_name_splited = f_name.split('_')
         assert len(f_name_splited) == 4
         assert float(f_name.split('_')[3]) == time_request
+
 
 @pytest.mark.not_safe_parallel
 def test_email_unnecessary_job_id(dispatcher_live_fixture, dispatcher_local_mail_server):
