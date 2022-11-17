@@ -269,9 +269,9 @@ def execute_drupal_request(url,
                                     payload={'drupal_helper_error_message': str(e)})
 
 
-def get_drupal_request_headers(gallery_jwt_token=None):
+def get_drupal_request_headers(gallery_jwt_token=None, content_type='application/hal+json'):
     headers = {
-        'Content-type': 'application/hal+json'
+        'Content-type': content_type
     }
     if gallery_jwt_token is not None:
         headers['Authorization'] = 'Bearer ' + gallery_jwt_token
@@ -498,12 +498,8 @@ def post_content_to_gallery(decoded_token,
         # TODO build the body to send to the gallery in more automated fashion (like done for the data-product)
         update_astro_entity = kwargs.pop('update_astro_entity', 'False') == 'True'
         src_name = kwargs.pop('src_name', None)
+        # main_id = None
         source_entity_id = None
-        source_ra = None
-        source_dec = None
-        src_portal_link = None
-        object_type = None
-        object_ids = None
         if update_astro_entity:
             auto_update = kwargs.pop('auto_update', 'False') == 'True'
             if auto_update is True:
@@ -522,45 +518,33 @@ def post_content_to_gallery(decoded_token,
                     msg += '\n'
                     logger.info(msg)
                     if 'RA' in resolved_obj:
-                        source_ra = Angle(resolved_obj["RA"], unit='degree').deg
+                        kwargs['source_ra'] = Angle(resolved_obj["RA"], unit='degree').deg
                     if 'DEC' in resolved_obj:
-                        source_dec = Angle(resolved_obj["DEC"], unit='degree').deg
+                        kwargs['source_dec'] = Angle(resolved_obj["DEC"], unit='degree').deg
                     if 'entity_portal_link' in resolved_obj:
-                        src_portal_link = resolved_obj['entity_portal_link']
+                        kwargs['src_portal_link'] = resolved_obj['entity_portal_link']
                     if 'object_type' in resolved_obj:
-                        object_type = resolved_obj['object_type']
+                        kwargs['object_type'] = resolved_obj['object_type']
                     if 'object_ids' in resolved_obj:
-                        object_ids = resolved_obj['object_ids']
-            else:
-                src_portal_link = kwargs.pop('src_portal_link', None)
-                source_ra = kwargs.pop('source_ra', None)
-                source_dec = kwargs.pop('source_dec', None)
-                object_type = kwargs.pop('object_type', None)
-                object_ids = kwargs.pop('object_ids', None)
+                        kwargs['object_ids'] = resolved_obj['object_ids']
+                    # if 'main_id' in resolved_obj:
+                    #     main_id = resolved_obj['main_id']
 
+            # src_name_search = src_name.strip()
+            # if main_id is not None:
+            #     src_name_search = main_id.strip()
             source_entity_id = get_source_astrophysical_entity_id_by_source_name(product_gallery_url,
                                                                                  gallery_jwt_token,
                                                                                  source_name=src_name,
                                                                                  sentry_dsn=sentry_dsn)
-        if update_astro_entity and source_entity_id is None:
-            logger.warning(f'an update of an astrophysical entity could not be performed since the correspondent one '
-                           f'could not be found, please check the provided name')
-            raise RequestNotUnderstood(message="Request data not found",
-                                       payload={'drupal_helper_error_message': 'error while updating astrophysical and '
-                                                                               'entity product: no correspondent entity '
-                                                                               'could be found with the provided name'})
 
         output_content_post = post_astro_entity(product_gallery_url=product_gallery_url,
                                                 gallery_jwt_token=gallery_jwt_token,
                                                 astro_entity_name=src_name.strip(),
-                                                astro_entity_portal_link=src_portal_link,
-                                                source_ra=source_ra,
-                                                source_dec=source_dec,
-                                                object_type=object_type,
-                                                object_ids=object_ids,
-                                                sentry_dsn=sentry_dsn,
                                                 update_astro_entity=update_astro_entity,
-                                                astro_entity_id=source_entity_id)
+                                                astro_entity_id=source_entity_id,
+                                                sentry_dsn=sentry_dsn,
+                                                **kwargs)
         if output_content_post is not None:
             # extract the id of the observation
             astrophysical_entity_drupal_id = output_content_post['nid'][0]['value']
@@ -597,14 +581,19 @@ def get_observations_for_time_range(product_gallery_url, gallery_jwt_token, t1=N
 
 
 def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
-                      astro_entity_portal_link=None,
-                      source_ra=None,
-                      source_dec=None,
-                      object_type=None,
-                      object_ids=None,
-                      sentry_dsn=None,
                       astro_entity_id=None,
-                      update_astro_entity=False):
+                      sentry_dsn=None,
+                      update_astro_entity=False,
+                      **kwargs):
+
+    if update_astro_entity and astro_entity_id is None:
+        logger.warning(f'an update of an astrophysical entity could not be performed since the correspondent one '
+                       f'could not be found in the gallery, please check the provided name')
+        raise RequestNotUnderstood(message="Request data not found",
+                                   payload={'drupal_helper_error_message': 'error while updating astrophysical and '
+                                                                           'entity product: no correspondent entity '
+                                                                           'could be found with the provided name'})
+
     # post new observation with or without a specific time range
     body_gallery_astro_entity_node = copy.deepcopy(body_article_product_gallery.body_node)
     astro_entity_name = astro_entity_name.strip()
@@ -617,25 +606,31 @@ def post_astro_entity(product_gallery_url, gallery_jwt_token, astro_entity_name,
     body_gallery_astro_entity_node["field_source_name"] = [{
         "value": astro_entity_name
     }]
+    astro_entity_portal_link = kwargs.pop('src_portal_link', None)
     if astro_entity_portal_link is not None:
         body_gallery_astro_entity_node["field_link"] = [{
             "value": astro_entity_portal_link
         }]
+
+    object_ids = kwargs.pop('object_ids', None)
     if object_ids is not None:
         body_gallery_astro_entity_node["field_alternative_names_long_str"] = [{
             "value": ','.join(object_ids)
         }]
 
+    source_ra = kwargs.pop('source_ra', None)
     if source_ra is not None:
         body_gallery_astro_entity_node["field_source_ra"] = [{
             "value": source_ra
         }]
 
+    source_dec = kwargs.pop('source_dec', None)
     if source_dec is not None:
         body_gallery_astro_entity_node["field_source_dec"] = [{
             "value": source_dec
         }]
 
+    object_type = kwargs.pop('object_type', None)
     if object_type is not None:
         body_gallery_astro_entity_node["field_object_type"] = [{
             "value": object_type
@@ -1094,13 +1089,21 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
     # set the source astrophysical entity if available
     src_name_concat = None
     src_name_arg = kwargs.pop('src_name', None)
+    # src_obj_arg = kwargs.pop('src_obj', None)
+    # src_obj = json.loads(src_obj_arg)
+    main_id_arg = kwargs.pop('main_id', None)
     src_portal_link_arg = kwargs.pop('entity_portal_link_list', None)
     object_ids_arg = kwargs.pop('object_ids_list', None)
     source_coord_arg = kwargs.pop('source_coord_list', None)
     object_type_arg = kwargs.pop('object_type_list', None)
     if src_name_arg is not None:
+        # src_obj = json.loads(src_name_arg)
         src_name_list = src_name_arg.split(',')
         src_name_concat = "_".join(src_name_list)
+
+        main_id_list = None
+        if main_id_arg is not None:
+            main_id_list = json.loads(main_id_arg)
 
         src_portal_link_list = None
         if src_portal_link_arg is not None:
@@ -1122,11 +1125,22 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
         for src_name in src_name_list:
             src_name_idx = src_name_list.index(src_name)
             arg_source_coord = {}
+            main_id = None
             if source_coord_obj_list is not None and source_coord_obj_list[src_name_idx] != {}:
                 arg_source_coord = source_coord_obj_list[src_name_idx]
-            source_entity_list = get_source_astrophysical_entity_id_by_source_and_alternative_name(product_gallery_url, gallery_jwt_token,
-                                                                                   source_name=src_name,
-                                                                                   sentry_dsn=sentry_dsn)
+            if main_id_list is not None and source_coord_obj_list[src_name_idx] != '':
+                main_id = main_id_list[src_name_idx]
+
+            if main_id is not None:
+                source_entity_list = get_source_astrophysical_entity_id_by_source_and_alternative_name(product_gallery_url,
+                                                                                                   gallery_jwt_token,
+                                                                                                   source_name=main_id,
+                                                                                                   sentry_dsn=sentry_dsn)
+            else:
+                source_entity_list = get_source_astrophysical_entity_id_by_source_and_alternative_name(product_gallery_url,
+                                                                                                       gallery_jwt_token,
+                                                                                                       source_name=src_name,
+                                                                                                       sentry_dsn=sentry_dsn)
             source_entity_id = None
             if len(source_entity_list) == 1:
                 source_entity_id = source_entity_list[0]['nid']
@@ -1156,23 +1170,19 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
 
             # create a new source ? yes if the user wants it
             if source_entity_id is None and insert_new_source:
-                src_portal_link = None
+                source_kwargs = dict()
                 if src_portal_link_list is not None and src_portal_link_list[src_name_idx] != '':
-                    src_portal_link = src_portal_link_list[src_name_idx].strip()
-                object_ids = None
+                    source_kwargs['src_portal_link'] = src_portal_link_list[src_name_idx].strip()
                 if object_ids_lists is not None and object_ids_lists[src_name_idx] != []:
-                    object_ids = object_ids_lists[src_name_idx]
-                object_type = None
+                    source_kwargs['object_ids'] = object_ids_lists[src_name_idx]
                 if object_type_list is not None and object_type_list[src_name_idx] != '':
-                    object_type = object_type_list[src_name_idx]
+                    source_kwargs['object_type'] = object_type_list[src_name_idx]
+                source_kwargs['source_ra'] = arg_source_coord.get('source_ra', None)
+                source_kwargs['source_dec'] = arg_source_coord.get('source_dec', None)
                 output_post = post_astro_entity(product_gallery_url, gallery_jwt_token,
                                                 astro_entity_name=src_name.strip(),
-                                                astro_entity_portal_link=src_portal_link,
-                                                source_ra=arg_source_coord.get('source_ra', None),
-                                                source_dec=arg_source_coord.get('source_dec', None),
-                                                object_type=object_type,
-                                                object_ids=object_ids,
-                                                sentry_dsn=sentry_dsn)
+                                                sentry_dsn=sentry_dsn,
+                                                **source_kwargs)
 
                 # extract the id of the observation
                 source_entity_id = output_post['nid'][0]['value']
@@ -1299,6 +1309,8 @@ def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: 
                         resolved_obj['object_ids'] = returned_resolved_obj['object_ids']
                     if 'object_type' in returned_resolved_obj:
                         resolved_obj['object_type'] = returned_resolved_obj['object_type']
+                    if 'main_id' in returned_resolved_obj:
+                        resolved_obj['main_id'] = returned_resolved_obj['main_id']
                     resolved_obj['entity_portal_link'] = entities_portal_url.format(quoted_name)
                     resolved_obj['message'] = f'{name} successfully resolved'
                 elif not returned_resolved_obj['success']:
