@@ -105,7 +105,7 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
 generalized_email_patterns = {
     'time_request_str': [
         r'(because at )([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.*?)( \()',
-        '(first requested at )(.*? .*?)( job_id:)'
+        '(requested at )(.*? .*?)( job_id:)'
     ],
     'token_exp_time_str': [
         '(and will be valid until )(.*? .*?)(.<br>)'
@@ -421,7 +421,7 @@ def validate_email_content(
     if state_title is None:
         state_title = state
 
-    assert msg['Subject'] == f"[ODA][{state_title}] {product} first requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+    assert msg['Subject'] == f"[ODA][{state_title}] {product} requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
     assert msg['From'] == 'team@odahub.io'
     assert msg['To'] == 'mtm@mtmco.net'
     assert msg['CC'] == ", ".join(['team@odahub.io'])
@@ -1021,6 +1021,9 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
     assert jdata['exit_status']['job_status'] == 'submitted'
     assert jdata['exit_status']['email_status'] == 'email sent'
 
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
     # check the email in the email folders, and that the first one was produced
     
     dispatcher_job_state.assert_email(state="submitted")
@@ -1072,7 +1075,20 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
     
     dispatcher_job_state.assert_email(state="submitted", number=2)
     dispatcher_local_mail_server.assert_email_number(2)
-    
+
+    # check the time in the title and filename is still the one of the first request
+    for msg in dispatcher_local_mail_server.local_smtp_output:
+        msg_data = email.message_from_string(msg['data'])
+        assert msg_data[
+                   'Subject'] == f"[ODA][submitted] dummy requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+
+    list_email_files = glob.glob(os.path.join(dispatcher_job_state.email_history_folder, f'email_submitted_*.email'))
+    assert len(list_email_files) == 2
+    for email_file in list_email_files:
+        f_name, f_ext = os.path.splitext(os.path.basename(email_file))
+        f_name_splited = f_name.split('_')
+        assert len(f_name_splited) == 4
+        assert float(f_name.split('_')[3]) == time_request
 
     # let the interval time pass again, so that a new email si sent
     time.sleep(5)
@@ -1087,6 +1103,19 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
 
     # check the email in the email folders, and that the first one was produced
     dispatcher_local_mail_server.assert_email_number(3)
+
+    # check the time in the title and filename is still the one of the first request
+    for msg in dispatcher_local_mail_server.local_smtp_output:
+        msg_data = email.message_from_string(msg['data'])
+        assert msg_data[
+                   'Subject'] == f"[ODA][submitted] dummy requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+    list_email_files = glob.glob(os.path.join(dispatcher_job_state.email_history_folder, f'email_submitted_*.email'))
+    assert len(list_email_files) == 3
+    for email_file in list_email_files:
+        f_name, f_ext = os.path.splitext(os.path.basename(email_file))
+        f_name_splited = f_name.split('_')
+        assert len(f_name_splited) == 4
+        assert float(f_name.split('_')[3]) == time_request
 
 
 @pytest.mark.not_safe_parallel
