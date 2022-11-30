@@ -178,6 +178,22 @@ def check_scw_list_length(
         return False
 
 
+def get_first_submitted_email_time(job_id, scratch_dir):
+    first_submitted_email_time = None
+    submitted_email_pattern = os.path.join(
+        scratch_dir,
+        'email_history',
+        'email_submitted_*.email'
+    )
+    submitted_email_files = sorted(glob.glob(submitted_email_pattern), key=os.path.getmtime)
+
+    if len(submitted_email_files) >= 1:
+        f_name, f_ext = os.path.splitext(os.path.basename(submitted_email_files[0]))
+        first_submitted_email_time = float(f_name.split('_')[3])
+
+    return first_submitted_email_time
+
+
 def send_incident_report_email(
         config,
         job_id,
@@ -366,7 +382,7 @@ and if this is not what you expected, you probably need to modify the request pa
                          attachment=api_code_email_attachment,
                          sentry_dsn=sentry_dsn)
 
-    store_status_email_info(message, status, scratch_dir, sending_time=sending_time)
+    store_status_email_info(message, status, scratch_dir, sending_time=sending_time, first_submitted_time=time_request)
 
     return message
 
@@ -472,14 +488,19 @@ def send_email(smtp_server,
                 server.quit()
 
 
-def store_status_email_info(message, status, scratch_dir, sending_time=None):
-    path_email_history_folder = scratch_dir + '/email_history'
+def store_status_email_info(message, status, scratch_dir, sending_time=None, first_submitted_time=None):
+    path_email_history_folder = os.path.join(scratch_dir, 'email_history')
     if not os.path.exists(path_email_history_folder):
         os.makedirs(path_email_history_folder)
     if sending_time is None:
         sending_time = time_.time()
+    if first_submitted_time is None:
+        first_submitted_time = sending_time
+
+    email_file_name = f'email_{status}_{str(sending_time)}_{str(first_submitted_time)}.email'
+
     # record the email just sent in a dedicated file
-    with open(path_email_history_folder + '/email_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
+    with open(os.path.join(path_email_history_folder, email_file_name), 'w+') as outfile:
         outfile.write(message.as_string())
 
 
