@@ -2709,6 +2709,8 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
                      f"&notebook={api_code_file_name}" \
                      f"&env[ODA_TOKEN]={encoded_token}"
 
+    logger.info("Renku url: %s", c.text)
+
     api_code_file_path = os.path.join(repo.working_dir, api_code_file_name)
 
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
