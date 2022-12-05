@@ -18,6 +18,7 @@ logger = app_logging.getLogger('renku_helper')
 
 def push_api_code(api_code,
                   job_id,
+                  token,
                   renku_gitlab_repository_url,
                   renku_gitlab_ssh_key_path,
                   renku_base_project_url,
@@ -44,8 +45,7 @@ def push_api_code(api_code,
 
         step = f'removing token from the api_code'
         token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
-        api_code = re.sub(token_pattern, '# "token": getpass.getpass(),', api_code, flags=re.DOTALL)
-        api_code = "import getpass\n\n" + api_code
+        api_code = re.sub(token_pattern, '"token": os.environ[\'ODA_TOKEN\'],', api_code, flags=re.DOTALL)
         logger.info(step)
 
         step = f'creating new notebook with the api code'
@@ -62,7 +62,8 @@ def push_api_code(api_code,
                                                        renku_base_project_url=renku_base_project_url,
                                                        branch_name=branch_name,
                                                        commit=commit_info.hexsha,
-                                                       notebook_name=new_file_name)
+                                                       notebook_name=new_file_name,
+                                                       token=token)
         logger.info(step)
 
     except Exception as e:
@@ -81,7 +82,7 @@ def push_api_code(api_code,
     return renku_session_url
 
 
-def generate_renku_session_url(repo, renku_base_project_url, branch_name, commit=None, notebook_name=None):
+def generate_renku_session_url(repo, renku_base_project_url, branch_name, commit=None, notebook_name=None, token=None):
     original_url = repo.remotes.origin.url
     repo_path = get_repo_path(original_url)
     renku_project_url = f'{renku_base_project_url}/{repo_path}'
@@ -90,6 +91,8 @@ def generate_renku_session_url(repo, renku_base_project_url, branch_name, commit
         output_url += f'&commit={commit}'
     if notebook_name is not None:
         output_url += f'&notebook={notebook_name}'
+    if token is not None:
+        output_url += f'&env[ODA_TOKEN]={token}'
     return output_url
     
 
@@ -147,7 +150,7 @@ def check_job_id_branch_is_present(repo, job_id):
     r = re.compile(f".*_{job_id}")
     filtered_list = list(filter(r.match, list_branches))
 
-    return len(filtered_list) == 1
+    return len(filtered_list) >= 1
 
 
 def get_branch_name(job_id=None, session_id=None):

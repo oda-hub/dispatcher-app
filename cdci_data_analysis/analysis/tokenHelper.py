@@ -12,12 +12,13 @@ logger = app_logging.getLogger('tokenHelper')
 
 def get_token_roles(decoded_token):
     # extract role(s)
-    if isinstance(decoded_token['roles'], str):
-        roles = decoded_token['roles'].split(',') if 'roles' in decoded_token else []
-        roles[:] = [r.strip() for r in roles]
-    elif isinstance(decoded_token['roles'], list):
-        roles = decoded_token['roles'] if 'roles' in decoded_token else []
-        roles[:] = [r.strip() for r in roles]
+    roles = None
+    if 'roles' in decoded_token:
+        if isinstance(decoded_token['roles'], str):
+            roles = decoded_token['roles'].split(',')
+        elif isinstance(decoded_token['roles'], list):
+            roles = decoded_token['roles']
+        roles = [r.strip() for r in roles]
     return roles
 
 

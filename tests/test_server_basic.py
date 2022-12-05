@@ -2704,15 +2704,18 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     repo.git.pull("--set-upstream", repo.remote().name, str(repo.head.ref))
     api_code_file_name = generate_notebook_filename(job_id=job_id)
 
-    assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}&commit={repo.head.commit.hexsha}&notebook={api_code_file_name}"
+    assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}" \
+                     f"&commit={repo.head.commit.hexsha}" \
+                     f"&notebook={api_code_file_name}" \
+                     f"&env[ODA_TOKEN]={encoded_token}"
+
+    logger.info("Renku url: %s", c.text)
 
     api_code_file_path = os.path.join(repo.working_dir, api_code_file_name)
 
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
     token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
-    extracted_api_code = re.sub(token_pattern, '# "token": getpass.getpass(),', extracted_api_code, flags=re.DOTALL)
-
-    extracted_api_code = 'import getpass\n\n' + extracted_api_code
+    extracted_api_code = re.sub(token_pattern, '"token": os.environ[\'ODA_TOKEN\'],', extracted_api_code, flags=re.DOTALL)
 
     assert os.path.exists(api_code_file_path)
     parsed_notebook = nbf.read(api_code_file_path, 4)
