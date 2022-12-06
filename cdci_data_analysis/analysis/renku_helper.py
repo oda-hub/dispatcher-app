@@ -151,7 +151,7 @@ def get_list_remote_branches_repo(repo):
 def check_job_id_branch_is_present(repo, job_id):
     list_branches = get_list_remote_branches_repo(repo)
 
-    r = re.compile(f".*_{job_id}")
+    r = re.compile(f"^(?!renku/autosave/).*_{job_id}")
     filtered_list = list(filter(r.match, list_branches))
 
     return len(filtered_list) >= 1
