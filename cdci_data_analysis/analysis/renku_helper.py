@@ -46,6 +46,7 @@ def push_api_code(api_code,
         step = f'removing token from the api_code'
         token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
         api_code = re.sub(token_pattern, '"token": os.environ[\'ODA_TOKEN\'],', api_code, flags=re.DOTALL)
+        api_code = "import os\n\n" + api_code
         logger.info(step)
 
         step = f'creating new notebook with the api code'
