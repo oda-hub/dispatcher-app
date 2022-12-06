@@ -233,7 +233,7 @@ def commit_and_push_file(repo, file_path, user_name=None, user_email=None, produ
     origin = repo.remote(name="origin")
     # TODO make it work with methods from GitPython
     # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
-    push_info = repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref), "--force")
+    push_info = repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref))
     logger.info("push operation complete")
 
     return commit_info
