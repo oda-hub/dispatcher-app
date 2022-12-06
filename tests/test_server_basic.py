@@ -2699,15 +2699,13 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
 
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
     token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
-    extracted_api_code = re.sub(token_pattern, '"token": os.environ[\'ODA_TOKEN\'],', extracted_api_code, flags=re.DOTALL)
-    extracted_api_code = "import os\n\n" + extracted_api_code
+    extracted_api_code = "import os\n\n" + re.sub(token_pattern, '"token": os.environ[\'ODA_TOKEN\'],', extracted_api_code, flags=re.DOTALL)
     nb_obj = create_new_notebook_with_code(extracted_api_code)
     notebook_hash = generate_nb_hash(nb_obj)
 
-    repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}_{notebook_hash}')
-    repo.git.pull("--set-upstream", repo.remote().name, str(repo.head.ref))
-    api_code_file_name = generate_notebook_filename(job_id=job_id)
+    repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}_{notebook_hash}', pull=True)
 
+    api_code_file_name = generate_notebook_filename(job_id=job_id)
     api_code_file_path = os.path.join(repo.working_dir, api_code_file_name)
 
     assert check_job_id_branch_is_present(repo, job_id, notebook_hash)
