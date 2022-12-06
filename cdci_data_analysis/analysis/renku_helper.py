@@ -45,7 +45,11 @@ def push_api_code(api_code,
 
         step = f'creating new notebook with the api code'
         file_name = generate_notebook_filename(job_id=job_id)
-        new_file_path, new_file_name, notebook_hash = create_new_notebook_with_code(repo, api_code, file_name)
+        nb_obj = create_new_notebook_with_code(api_code)
+        logger.info(step)
+
+        step = f'generating hash notebook'
+        notebook_hash = generate_nb_hash(nb_obj)
         logger.info(step)
 
         step = 'assigning branch name'
@@ -60,16 +64,23 @@ def push_api_code(api_code,
         repo = checkout_branch_renku_repo(repo, branch_name, pull=branch_existing)
         logger.info(step)
 
-        step = f'committing and pushing the api code to the renku repository'
-        commit_info = commit_and_push_file(repo, new_file_path, user_name=user_name, user_email=user_email, products_url=products_url, request_dict=request_dict)
-        logger.info(step)
+        if not branch_existing:
+            step = 'writing notebook file'
+            new_file_path = write_notebook_file(repo, nb_obj, file_name)
+            logger.info(step)
+
+            step = f'committing and pushing the api code to the renku repository'
+            commit_info = commit_and_push_file(repo, new_file_path, user_name=user_name, user_email=user_email, products_url=products_url, request_dict=request_dict)
+            logger.info(step)
+        else:
+            commit_info = repo.head.commit
 
         step = f'generating a valid url to start a new session on the new branch'
         renku_session_url = generate_renku_session_url(repo,
                                                        renku_base_project_url=renku_base_project_url,
                                                        branch_name=branch_name,
                                                        commit=commit_info.hexsha,
-                                                       notebook_name=new_file_name,
+                                                       notebook_name=file_name,
                                                        token=token)
         logger.info(step)
 
@@ -146,7 +157,7 @@ def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_ssh_key_p
 
 def get_list_remote_branches_repo(repo):
 
-    list_branches = repo.git.branch("-a", "--format=%(refname:short)").split("\n")
+    list_branches = repo.git.branch("-ar", "--format=%(refname:short)").split("\n")
 
     return list_branches
 
@@ -185,11 +196,22 @@ def generate_notebook_filename(job_id):
     return "_".join(["api_code", job_id]) + '.ipynb'
 
 
-def create_new_notebook_with_code(repo, api_code, file_name):
+def write_notebook_file(repo, nb, file_name):
     repo_dir = repo.working_dir
-
     file_path = os.path.join(repo_dir, file_name)
+    nbf.write(nb, file_path)
 
+    return file_path
+def generate_nb_hash(nb):
+    copied_nb = copy.deepcopy(nb)
+
+    copied_nb['cells'][0].pop('id')
+    copied_nb['cells'][1].pop('id')
+
+    notebook_hash = make_hash(copied_nb)
+
+    return notebook_hash
+def create_new_notebook_with_code(api_code):
     nb = nbf.v4.new_notebook()
 
     text = "# Notebook automatically generated from MMODA"
@@ -203,13 +225,7 @@ def create_new_notebook_with_code(repo, api_code, file_name):
         "name": "python3"
     }
 
-    nbf.write(nb, file_path)
-
-    copied_nb = copy.deepcopy(nb)
-    copied_nb['cells'][0].pop('id')
-    copied_nb['cells'][1].pop('id')
-    notebook_hash = make_hash(copied_nb)
-    return file_path, file_name, notebook_hash
+    return nb
 
 
 def generate_commit_request_url(products_url, params_dic, use_scws=None):

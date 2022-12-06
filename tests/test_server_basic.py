@@ -24,7 +24,7 @@ import string
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
-from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, generate_notebook_filename, create_new_notebook_with_code
+from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, generate_notebook_filename, create_new_notebook_with_code, generate_nb_hash
 from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id, get_source_astrophysical_entity_id_by_source_name
 from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
 
@@ -2694,22 +2694,21 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     repo_path = get_repo_path(repo_url)
     renku_project_url = f'{renku_base_project_url}/{repo_path}'
 
-
     # validate content pushed
     repo = clone_renku_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
-
-
-    repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}')
-    repo.git.pull("--set-upstream", repo.remote().name, str(repo.head.ref))
-    api_code_file_name = generate_notebook_filename(job_id=job_id)
-
-    api_code_file_path = os.path.join(repo.working_dir, api_code_file_name)
 
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
     token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
     extracted_api_code = re.sub(token_pattern, '"token": os.environ[\'ODA_TOKEN\'],', extracted_api_code, flags=re.DOTALL)
     extracted_api_code = "import os\n\n" + extracted_api_code
-    new_file_path, new_file_name, notebook_hash = create_new_notebook_with_code(repo, extracted_api_code, api_code_file_name)
+    nb_obj = create_new_notebook_with_code(extracted_api_code)
+    notebook_hash = generate_nb_hash(nb_obj)
+
+    repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}_{notebook_hash}')
+    repo.git.pull("--set-upstream", repo.remote().name, str(repo.head.ref))
+    api_code_file_name = generate_notebook_filename(job_id=job_id)
+
+    api_code_file_path = os.path.join(repo.working_dir, api_code_file_name)
 
     assert check_job_id_branch_is_present(repo, job_id, notebook_hash)
 
