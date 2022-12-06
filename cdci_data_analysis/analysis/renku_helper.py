@@ -6,12 +6,14 @@ import nbformat as nbf
 import shutil
 import giturlparse
 import sentry_sdk
+import copy
 
 from git import Repo, Actor
 
 from ..app_logging import app_logging
 from .exceptions import RequestNotUnderstood
 from .email_helper import generate_products_url_from_par_dict
+from .hash import make_hash
 
 logger = app_logging.getLogger('renku_helper')
 
@@ -35,17 +37,6 @@ def push_api_code(api_code,
                                 renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
         logger.info(step)
 
-        step = 'check branch existence'
-        branch_existing = check_job_id_branch_is_present(repo, job_id=job_id)
-        
-        step = 'assigning branch name'
-        branch_name = get_branch_name(job_id=job_id)
-        logger.info(step)
-
-        step = f'checkout branch {branch_name}'
-        repo = checkout_branch_renku_repo(repo, branch_name, pull=branch_existing)
-        logger.info(step)
-
         step = f'removing token from the api_code'
         token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
         api_code = re.sub(token_pattern, '"token": os.environ[\'ODA_TOKEN\'],', api_code, flags=re.DOTALL)
@@ -54,7 +45,19 @@ def push_api_code(api_code,
 
         step = f'creating new notebook with the api code'
         file_name = generate_notebook_filename(job_id=job_id)
-        new_file_path, new_file_name = create_new_notebook_with_code(repo, api_code, file_name)
+        new_file_path, new_file_name, notebook_hash = create_new_notebook_with_code(repo, api_code, file_name)
+        logger.info(step)
+
+        step = 'assigning branch name'
+        branch_name = get_branch_name(job_id=job_id, notebook_hash=notebook_hash)
+        logger.info(step)
+
+        step = 'check branch existence'
+        branch_existing = check_job_id_branch_is_present(repo, job_id=job_id, notebook_hash=notebook_hash)
+        logger.info(step)
+
+        step = f'checkout branch {branch_name}'
+        repo = checkout_branch_renku_repo(repo, branch_name, pull=branch_existing)
         logger.info(step)
 
         step = f'committing and pushing the api code to the renku repository'
@@ -148,23 +151,23 @@ def get_list_remote_branches_repo(repo):
     return list_branches
 
 
-def check_job_id_branch_is_present(repo, job_id):
+def check_job_id_branch_is_present(repo, job_id, notebook_hash):
     list_branches = get_list_remote_branches_repo(repo)
 
-    r = re.compile(f"^(?!renku/autosave/).*_{job_id}")
+    r = re.compile(f"^(?!renku/autosave/).*_{job_id}_{notebook_hash}")
     filtered_list = list(filter(r.match, list_branches))
 
-    return len(filtered_list) >= 1
+    return len(filtered_list) == 1
 
 
-def get_branch_name(job_id=None, session_id=None):
+def get_branch_name(job_id=None, notebook_hash=None):
     branch_name = 'mmoda_request'
 
     if job_id is not None:
         branch_name += f'_{job_id}'
 
-    if session_id is not None:
-        branch_name += f'_{session_id}'
+    if notebook_hash is not None:
+        branch_name += f'_{notebook_hash}'
 
     return branch_name
 
@@ -202,7 +205,11 @@ def create_new_notebook_with_code(repo, api_code, file_name):
 
     nbf.write(nb, file_path)
 
-    return file_path, file_name
+    copied_nb = copy.deepcopy(nb)
+    copied_nb['cells'][0].pop('id')
+    copied_nb['cells'][1].pop('id')
+    notebook_hash = make_hash(copied_nb)
+    return file_path, file_name, notebook_hash
 
 
 def generate_commit_request_url(products_url, params_dic, use_scws=None):
