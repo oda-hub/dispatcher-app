@@ -34,13 +34,16 @@ def push_api_code(api_code,
         repo = clone_renku_repo(renku_gitlab_repository_url,
                                 renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
         logger.info(step)
+
+        step = 'check branch existence'
+        branch_existing = check_job_id_branch_is_present(repo, job_id=job_id)
         
         step = 'assigning branch name'
         branch_name = get_branch_name(job_id=job_id)
         logger.info(step)
 
         step = f'checkout branch {branch_name}'
-        repo = checkout_branch_renku_repo(repo, branch_name)
+        repo = checkout_branch_renku_repo(repo, branch_name, pull=branch_existing)
         logger.info(step)
 
         step = f'removing token from the api_code'
@@ -166,8 +169,11 @@ def get_branch_name(job_id=None, session_id=None):
     return branch_name
 
 
-def checkout_branch_renku_repo(repo, branch_name):
+def checkout_branch_renku_repo(repo, branch_name, pull=False):
     repo.git.checkout('-b', branch_name)
+    if pull:
+        repo.git.pull("--set-upstream", repo.remote().name, str(repo.head.ref))
+        logger.info("pull operation complete")
 
     return repo
 
@@ -230,10 +236,10 @@ def commit_and_push_file(repo, file_path, user_name=None, user_email=None, produ
                        "to retrieve the result please follow the link")
 
     commit_info = repo.index.commit(commit_msg, author=author)
-    origin = repo.remote(name="origin")
+    repo.remote(name="origin")
     # TODO make it work with methods from GitPython
     # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
-    push_info = repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref))
+    repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref))
     logger.info("push operation complete")
 
     return commit_info
