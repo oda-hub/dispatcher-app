@@ -206,6 +206,8 @@ def write_notebook_file(repo, nb, file_name):
     nbf.write(nb, file_path)
 
     return file_path
+
+
 def generate_nb_hash(nb):
     copied_nb = copy.deepcopy(nb)
 
@@ -215,6 +217,8 @@ def generate_nb_hash(nb):
     notebook_hash = make_hash(copied_nb)
 
     return notebook_hash
+
+
 def create_new_notebook_with_code(api_code):
     nb = nbf.v4.new_notebook()
 
