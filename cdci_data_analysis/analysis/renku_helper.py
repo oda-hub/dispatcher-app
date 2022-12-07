@@ -48,19 +48,23 @@ def push_api_code(api_code,
         nb_obj = create_new_notebook_with_code(api_code)
         logger.info(step)
 
-        step = f'generating hash notebook'
+        step = f'generating hash of the notebook content'
         notebook_hash = generate_nb_hash(nb_obj)
         logger.info(step)
 
-        step = 'assigning branch name'
+        step = 'assigning branch name, using the job_id and the notebook hash'
         branch_name = get_branch_name(job_id=job_id, notebook_hash=notebook_hash)
         logger.info(step)
 
-        step = 'check branch existence'
+        step = 'check branch existence, using the job_id and the notebook hash'
         branch_existing = check_job_id_branch_is_present(repo, job_id=job_id, notebook_hash=notebook_hash)
         logger.info(step)
 
         step = f'checkout branch {branch_name}'
+        if branch_existing:
+            step += ', since the branch already exists so we perform a git pull'
+        else:
+            step += ', but we don\'t perform any git pull since the branch does not exist'
         repo = checkout_branch_renku_repo(repo, branch_name, pull=branch_existing)
         logger.info(step)
 
