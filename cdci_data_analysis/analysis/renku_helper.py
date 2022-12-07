@@ -6,12 +6,14 @@ import nbformat as nbf
 import shutil
 import giturlparse
 import sentry_sdk
+import copy
 
 from git import Repo, Actor
 
 from ..app_logging import app_logging
 from .exceptions import RequestNotUnderstood
 from .email_helper import generate_products_url_from_par_dict
+from .hash import make_hash
 
 logger = app_logging.getLogger('renku_helper')
 
@@ -34,35 +36,55 @@ def push_api_code(api_code,
         repo = clone_renku_repo(renku_gitlab_repository_url,
                                 renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
         logger.info(step)
-        
-        step = 'assigning branch name'
-        branch_name = get_branch_name(job_id=job_id)
-        logger.info(step)
-
-        step = f'checkout branch {branch_name}'
-        repo = checkout_branch_renku_repo(repo, branch_name)
-        logger.info(step)
 
         step = f'removing token from the api_code'
         token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
         api_code = re.sub(token_pattern, '"token": os.environ[\'ODA_TOKEN\'],', api_code, flags=re.DOTALL)
+        api_code = "import os\n\n" + api_code
         logger.info(step)
 
         step = f'creating new notebook with the api code'
         file_name = generate_notebook_filename(job_id=job_id)
-        new_file_path, new_file_name = create_new_notebook_with_code(repo, api_code, file_name)
+        nb_obj = create_new_notebook_with_code(api_code)
         logger.info(step)
 
-        step = f'committing and pushing the api code to the renku repository'
-        commit_info = commit_and_push_file(repo, new_file_path, user_name=user_name, user_email=user_email, products_url=products_url, request_dict=request_dict)
+        step = f'generating hash of the notebook content'
+        notebook_hash = generate_nb_hash(nb_obj)
         logger.info(step)
+
+        step = 'assigning branch name, using the job_id and the notebook hash'
+        branch_name = get_branch_name(job_id=job_id, notebook_hash=notebook_hash)
+        logger.info(step)
+
+        step = 'check branch existence, using the job_id and the notebook hash'
+        branch_existing = check_job_id_branch_is_present(repo, job_id=job_id, notebook_hash=notebook_hash)
+        logger.info(step)
+
+        step = f'checkout branch {branch_name}'
+        if branch_existing:
+            step += ', since the branch already exists so we perform a git pull'
+        else:
+            step += ', but we don\'t perform any git pull since the branch does not exist'
+        repo = checkout_branch_renku_repo(repo, branch_name, pull=branch_existing)
+        logger.info(step)
+
+        if not branch_existing:
+            step = 'writing notebook file'
+            new_file_path = write_notebook_file(repo, nb_obj, file_name)
+            logger.info(step)
+
+            step = f'committing and pushing the api code to the renku repository'
+            commit_info = commit_and_push_file(repo, new_file_path, user_name=user_name, user_email=user_email, products_url=products_url, request_dict=request_dict)
+            logger.info(step)
+        else:
+            commit_info = repo.head.commit
 
         step = f'generating a valid url to start a new session on the new branch'
         renku_session_url = generate_renku_session_url(repo,
                                                        renku_base_project_url=renku_base_project_url,
                                                        branch_name=branch_name,
                                                        commit=commit_info.hexsha,
-                                                       notebook_name=new_file_name,
+                                                       notebook_name=file_name,
                                                        token=token)
         logger.info(step)
 
@@ -139,34 +161,37 @@ def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_ssh_key_p
 
 def get_list_remote_branches_repo(repo):
 
-    list_branches = repo.git.branch("-a", "--format=%(refname:short)").split("\n")
+    list_branches = repo.git.branch("-ar", "--format=%(refname:short)").split("\n")
 
     return list_branches
 
 
-def check_job_id_branch_is_present(repo, job_id):
+def check_job_id_branch_is_present(repo, job_id, notebook_hash):
     list_branches = get_list_remote_branches_repo(repo)
 
-    r = re.compile(f".*_{job_id}")
+    r = re.compile(f"^(?!renku/autosave/).*_{job_id}_{notebook_hash}")
     filtered_list = list(filter(r.match, list_branches))
 
-    return len(filtered_list) >= 1
+    return len(filtered_list) == 1
 
 
-def get_branch_name(job_id=None, session_id=None):
+def get_branch_name(job_id=None, notebook_hash=None):
     branch_name = 'mmoda_request'
 
     if job_id is not None:
         branch_name += f'_{job_id}'
 
-    if session_id is not None:
-        branch_name += f'_{session_id}'
+    if notebook_hash is not None:
+        branch_name += f'_{notebook_hash}'
 
     return branch_name
 
 
-def checkout_branch_renku_repo(repo, branch_name):
+def checkout_branch_renku_repo(repo, branch_name, pull=False):
     repo.git.checkout('-b', branch_name)
+    if pull:
+        repo.git.pull("--set-upstream", repo.remote().name, str(repo.head.ref))
+        logger.info("pull operation complete")
 
     return repo
 
@@ -175,11 +200,26 @@ def generate_notebook_filename(job_id):
     return "_".join(["api_code", job_id]) + '.ipynb'
 
 
-def create_new_notebook_with_code(repo, api_code, file_name):
+def write_notebook_file(repo, nb, file_name):
     repo_dir = repo.working_dir
-
     file_path = os.path.join(repo_dir, file_name)
+    nbf.write(nb, file_path)
 
+    return file_path
+
+
+def generate_nb_hash(nb):
+    copied_nb = copy.deepcopy(nb)
+
+    copied_nb['cells'][0].pop('id')
+    copied_nb['cells'][1].pop('id')
+
+    notebook_hash = make_hash(copied_nb)
+
+    return notebook_hash
+
+
+def create_new_notebook_with_code(api_code):
     nb = nbf.v4.new_notebook()
 
     text = "# Notebook automatically generated from MMODA"
@@ -193,9 +233,7 @@ def create_new_notebook_with_code(repo, api_code, file_name):
         "name": "python3"
     }
 
-    nbf.write(nb, file_path)
-
-    return file_path, file_name
+    return nb
 
 
 def generate_commit_request_url(products_url, params_dic, use_scws=None):
@@ -229,10 +267,10 @@ def commit_and_push_file(repo, file_path, user_name=None, user_email=None, produ
                        "to retrieve the result please follow the link")
 
     commit_info = repo.index.commit(commit_msg, author=author)
-    origin = repo.remote(name="origin")
+    repo.remote(name="origin")
     # TODO make it work with methods from GitPython
     # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
-    push_info = repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref), "--force")
+    repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref))
     logger.info("push operation complete")
 
     return commit_info
