@@ -658,6 +658,56 @@ def get_observation_attachments():
     return output_get
 
 
+@app.route('/get_all_revs', methods=['GET'])
+def get_all_revs():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="getting all the revolutions from the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    sentry_dsn = getattr(app_config, 'sentry_url', None)
+    if sentry_dsn is not None:
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            # Set traces_sample_rate to 1.0 to capture 100%
+            # of transactions for performance monitoring.
+            # We recommend adjusting this value in production.
+            traces_sample_rate=1.0,
+            debug=True,
+            max_breadcrumbs=50,
+        )
+
+    gallery_secret_key = app_config.product_gallery_secret_key
+    product_gallery_url = app_config.product_gallery_url
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
+                                                        user_email=user_email,
+                                                        sentry_dsn=sentry_dsn)
+    # update the token
+    gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+
+    output_get = drupal_helper.get_all_revolutions(product_gallery_url=product_gallery_url,
+                                                   gallery_jwt_token=gallery_jwt_token,
+                                                   sentry_dsn=sentry_dsn)
+
+    output_list = json.dumps(output_get)
+
+    return output_list
+
+
 @app.route('/get_all_astro_entities', methods=['GET'])
 def get_all_astro_entities():
     logger.info("request.args: %s ", request.args)
@@ -669,7 +719,7 @@ def get_all_astro_entities():
 
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
                                                                   required_roles=['gallery contributor'],
-                                                                  action="post on the product gallery")
+                                                                  action="getting all the astro entities from the product gallery")
 
     if output_code is not None:
         return make_response(output, output_code)

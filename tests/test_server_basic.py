@@ -1966,6 +1966,44 @@ def test_product_gallery_update_existing_astrophysical_entity(dispatcher_live_fi
 
 
 @pytest.mark.test_drupal
+def test_product_gallery_get_all_revs(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    now = datetime.now()
+
+    params = {
+        'token': encoded_token,
+        'title': "rev. test",
+        'T1': (now - timedelta(days=random.randint(30, 150))).strftime('%Y-%m-%dT%H:%M:%S'),
+        'T2': now.strftime('%Y-%m-%dT%H:%M:%S')
+    }
+
+    c = requests.post(os.path.join(server, "post_observation_to_gallery"),
+                      params={**params},
+                      )
+
+    assert c.status_code == 200
+
+    c = requests.get(os.path.join(server, "get_all_revs"),
+                     params={'token': encoded_token}
+                     )
+
+    assert c.status_code == 200
+    drupal_res_obj = c.json()
+
+    assert isinstance(drupal_res_obj, list)
+    assert params['title'] in drupal_res_obj
+
+
+@pytest.mark.test_drupal
 def test_product_gallery_get_all_astro_entities(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
     server = dispatcher_live_fixture_with_gallery
 
