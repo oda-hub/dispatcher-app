@@ -831,6 +831,19 @@ def get_instrument_product_type_id(product_gallery_url, gallery_jwt_token, produ
     return output_dict
 
 
+def get_all_revolutions(product_gallery_url, gallery_jwt_token, sentry_dsn=None) -> Optional[list]:
+    entities = []
+    headers = get_drupal_request_headers(gallery_jwt_token)
+    log_res = execute_drupal_request(f"{product_gallery_url}/get_revs",
+                                     headers=headers,
+                                     sentry_dsn=sentry_dsn)
+    output_get = analyze_drupal_output(log_res, operation_performed="retrieving all the revolutions from the product gallery")
+    if isinstance(output_get, list):
+        entities = list(obj['title'] for obj in output_get)
+
+    return entities
+
+
 def get_all_source_astrophysical_entities(product_gallery_url, gallery_jwt_token, sentry_dsn=None) -> Optional[list]:
     entities = []
     headers = get_drupal_request_headers(gallery_jwt_token)
