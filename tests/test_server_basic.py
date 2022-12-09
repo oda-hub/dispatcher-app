@@ -2791,3 +2791,24 @@ def test_unknown_argument(dispatcher_live_fixture):
     assert 'T_format' not in jdata['exit_status']['comment']
     assert 'unknown' not in jdata['products']['analysis_parameters'].keys()
     assert 'unknown' not in jdata['products']['api_code']
+    
+@pytest.mark.fast
+def test_catalog_selected_objects_accepted(dispatcher_live_fixture):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+
+    c = requests.get(server + "/run_analysis",
+                   params={'instrument': 'empty',
+                           'product_type': 'dummy',
+                           'query_status': 'new',
+                           'query_type': 'Real',
+                           'catalog_selected_objects': '0, 1'},
+                  )
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+    
+    assert not re.match(r'Please note that arguments?.*catalog_selected_objects.*not used', jdata['exit_status']['comment'])
+    assert 'catalog_selected_objects' in jdata['products']['analysis_parameters'].keys()
+    assert 'catalog_selected_objects' in jdata['products']['api_code']
