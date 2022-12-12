@@ -262,6 +262,18 @@ def push_renku_branch():
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
+    sentry_dsn = app_config.get('sentry_url', None)
+    if sentry_dsn is not None:
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            # Set traces_sample_rate to 1.0 to capture 100%
+            # of transactions for performance monitoring.
+            # We recommend adjusting this value in production.
+            traces_sample_rate=1.0,
+            debug=True,
+            max_breadcrumbs=50,
+        )
+
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
                                                                   required_roles=['renku contributor'],
                                                                   action="perform this operation")
@@ -309,7 +321,8 @@ def push_renku_branch():
                                                   renku_base_project_url=renku_base_project_url,
                                                   renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path,
                                                   user_name=user_name, user_email=user_email,
-                                                  products_url=products_url, request_dict=request_dict)
+                                                  products_url=products_url, request_dict=request_dict,
+                                                  sentry_dsn=sentry_dsn)
 
         return api_code_url
 
