@@ -262,7 +262,7 @@ def push_renku_branch():
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
-    sentry_dsn = app_config.get('sentry_url', None)
+    sentry_dsn = getattr(app.config.get('conf'), 'sentry_url', None)
     if sentry_dsn is not None:
         sentry_sdk.init(
             dsn=sentry_dsn,
