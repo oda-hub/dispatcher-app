@@ -806,3 +806,31 @@ class UserCatalog(Parameter):
     @staticmethod
     def check_name_value(value, units=None, name=None, par_format=None):
         pass
+
+class Boolean(Parameter):
+    owl_uris = ['http://www.w3.org/2001/XMLSchema#bool']
+    
+    def __init__(self, value=None, name=None):
+
+        super().__init__(value=value,
+                         name=name
+                         )
+        self._set_val(value)
+
+    @property
+    def value(self):
+        return str(self._value).lower() #because passed in json
+
+    @value.setter
+    def value(self, v):
+        self._set_val(v)
+
+    def _set_val(self, value):
+        if value == 'false' or value == "False" or value == "no" \
+                            or str(value) == "0" or value is False:
+            self._value = False
+        elif value == 'true' or value == "True" or value == "yes" \
+                            or str(value) == "1" or value is True:
+            self._value = True
+        else:
+            raise ValueError(f'Wrong value for parameter {self.name}')
