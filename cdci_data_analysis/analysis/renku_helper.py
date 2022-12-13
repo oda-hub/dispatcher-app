@@ -208,16 +208,16 @@ def write_notebook_file(repo, nb, file_name):
     return file_path
 
 
-def generate_nb_hash(nb):
-    copied_nb = copy.deepcopy(nb)
+def generate_nb_hash(nb_obj):
+    copied_notebook_obj = copy.deepcopy(nb_obj)
 
     try:
-        copied_nb['cells'][0].pop('id')
-        copied_nb['cells'][1].pop('id')
-        notebook_hash = make_hash(copied_nb)
+        del copied_notebook_obj['cells'][0]['id']
+        del copied_notebook_obj['cells'][1]['id']
+        notebook_hash = make_hash(copied_notebook_obj)
     except:
-        logger.error(f'Unable to generate a hash of the notebook object: {copied_nb}')
-        raise Exception(f'Unable to generate a hash of the notebook object: {copied_nb}')
+        logger.error(f'Unable to generate a hash of the notebook object: {copied_notebook_obj}')
+        raise Exception(f'Unable to generate a hash of the notebook object: {copied_notebook_obj}')
 
 
     return notebook_hash
