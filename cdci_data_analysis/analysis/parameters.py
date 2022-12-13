@@ -61,6 +61,14 @@ def subclasses_recursive(cls):
         indirect.extend(subclasses_recursive(subclass))
     return direct + indirect
 
+def basic_check_bounds(val, min_value = None, max_value = None, name=None):
+    if min_value is not None:
+        if val < min_value:
+            raise ValueError(f'Parameter {name} wrong value {val}: should be greater than {min_value}')
+    if max_value is not None:
+        if val > max_value:
+            raise ValueError(f'Parameter {name} wrong value {val}: should be less than {max_value}')
+
 # TODO this class seems not to be in use anywhere, not even the plugins
 class ParameterGroup(object):
 
@@ -398,7 +406,7 @@ class Parameter:
     @staticmethod
     def check_value(val, units=None, name=None, par_format=None):
         pass
-
+        
     def reprJSONifiable(self):
         # produces json-serialisable list
         reprjson = [dict(name=self.name, units=self.units, value=self.value)]
@@ -475,10 +483,22 @@ class Name(String):
 
 class Float(Parameter):
     owl_uris = ["http://www.w3.org/2001/XMLSchema#float"]
-    def __init__(self, value=None, units=None, name=None, allowed_units=None, default_units=None, check_value=None):
+    def __init__(self, 
+                 value=None, 
+                 units=None, 
+                 name=None, 
+                 allowed_units=None, 
+                 default_units=None, 
+                 check_value=None, 
+                 min_value= None,
+                 max_value = None):
 
         if check_value is None:
             check_value = self.check_float_value
+        
+        self._min_value = min_value
+        self._max_value = max_value
+        self.check_bounds = basic_check_bounds
 
         super().__init__(value=value,
                          units=units,
@@ -499,6 +519,11 @@ class Float(Parameter):
         if v is not None and v != '':
             self.check_value(v, name=self.name, units=self.units)
             self._v = float(v)
+            if self._min_value is not None or self._max_value is not None:
+                self.check_bounds(v,
+                                  min_value = self._min_value, 
+                                  max_value = self._max_value,
+                                  name = self.name)
         else:
             self._v = None
 
@@ -529,13 +554,17 @@ class Float(Parameter):
 class Integer(Parameter):
     owl_uris = "http://www.w3.org/2001/XMLSchema#int"
 
-    def __init__(self, value=None, units=None, name=None, check_value=None):
+    def __init__(self, value=None, units=None, name=None, check_value=None, min_value = None, max_value = None):
 
         _allowed_units = None
 
         if check_value is None:
             check_value = self.check_int_value
 
+        self._min_value = min_value
+        self._max_value = max_value
+        self.check_bounds = basic_check_bounds
+        
         super().__init__(value=value,
                          units=units,
                          check_value=check_value,
@@ -543,6 +572,7 @@ class Integer(Parameter):
                          allowed_types=[int],
                          name=name,
                          allowed_units=_allowed_units)
+
 
     @property
     def value(self):
@@ -553,6 +583,11 @@ class Integer(Parameter):
         if v is not None and v != '':
             self.check_value(v, name=self.name, units=self.units)
             self._v = int(v)
+            if self._min_value is not None or self._max_value is not None:
+                self.check_bounds(v,
+                                  min_value = self._min_value, 
+                                  max_value = self._max_value,
+                                  name = self.name)
         else:
             self._v = None
 

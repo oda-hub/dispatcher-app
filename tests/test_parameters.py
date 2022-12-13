@@ -342,3 +342,17 @@ def test_parameter_from_owl_uri_extra_param(caplog):
                            units='d', # wrong parameter
                            name='example')
     assert "parameter units with value d not used to construct <class 'cdci_data_analysis.analysis.parameters.Time'>" in caplog.text
+
+@pytest.mark.fast
+def test_parameter_bounds():
+    int_param = Integer(5, name = 'INT', min_value = 2, max_value = 8)
+    fl_param = Float(5., name = 'FL', min_value = 2.2, max_value = 7.7)
+    with pytest.raises(ValueError):
+        int_param.value = 1
+        int_param.value = 10
+        fl_param.value = 1.2
+        fl_param.value = 8.3
+        param = Integer(1, name = 'INT', min_value = 2, max_value = 8)
+        param = Float(1.1, name = 'FL', min_value = 2.2, max_value = 7.7)
+        param = Integer(10, name = 'INT', min_value = 2, max_value = 8)
+        param = Float(8.2, name = 'FL', min_value = 2.2, max_value = 7.7)
