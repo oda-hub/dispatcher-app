@@ -215,9 +215,9 @@ def generate_nb_hash(nb):
         copied_nb['cells'][0].pop('id')
         copied_nb['cells'][1].pop('id')
         notebook_hash = make_hash(copied_nb)
-    except Exception as e:
-        logger.error(f'Unable to generate a hash of the notebook object: {copied_nb}\n{e}')
-        raise Exception(f'Unable to generate a hash of the notebook object: {copied_nb}\n{e}')
+    except:
+        logger.error(f'Unable to generate a hash of the notebook object: {copied_nb}')
+        raise Exception(f'Unable to generate a hash of the notebook object: {copied_nb}')
 
 
     return notebook_hash
