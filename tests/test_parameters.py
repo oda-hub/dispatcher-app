@@ -20,7 +20,8 @@ from cdci_data_analysis.analysis.parameters import (
     Angle,
     InputProdList,
     DetectionThreshold,
-    String
+    String,
+    Boolean
 )
 
 import numpy as np
@@ -353,17 +354,18 @@ def test_parameter_bounds():
         int_param.value = 10
         fl_param.value = 1.2
         fl_param.value = 8.3
-        param = Integer(1, name = 'INT', min_value = 2, max_value = 8)
-        param = Float(1.1, name = 'FL', min_value = 2.2, max_value = 7.7)
-        param = Integer(10, name = 'INT', min_value = 2, max_value = 8)
-        param = Float(8.2, name = 'FL', min_value = 2.2, max_value = 7.7)
+        Integer(1, name = 'INT', min_value = 2, max_value = 8)
+        Float(1.1, name = 'FL', min_value = 2.2, max_value = 7.7)
+        Integer(10, name = 'INT', min_value = 2, max_value = 8)
+        Float(8.2, name = 'FL', min_value = 2.2, max_value = 7.7)
     with pytest.raises(NotImplementedError):
-        param = Parameter(value = 1, name = 'foo', min_value = 0, max_value=10)
+        Parameter(value = 1, name = 'foo', min_value = 0, max_value=10)
         
 @pytest.mark.fast 
 def test_parameter_meta_data():
     bounded_parameter = Float(value = 1., name='bounded', min_value=0.1, max_value=2)
     choice_parameter = String(value = 'spam', name='choice', allowed_values=['spam', 'eggs', 'hams'])
+    bool_parameter = Boolean(value = True, name = 'bool')
     assert bounded_parameter.reprJSONifiable() == [{'name': 'bounded', 
                                                     'units': None, 'value': 1.0, 
                                                     'restrictions': {'min_value': 0.1, 'max_value': 2.0}}]
@@ -371,3 +373,32 @@ def test_parameter_meta_data():
                                                    'units': 'str', 
                                                    'value': 'spam',
                                                    'restrictions': {'allowed_values': ['spam', 'eggs', 'hams']}}]
+    assert bool_parameter.reprJSONifiable() == [{'name': 'bool', 
+                                                'units': None, 
+                                                'value': 'true', 
+                                                'restrictions': {'allowed_values': ['True', 'true', 'yes', '1', True, 
+                                                                                    'False', 'false', 'no', '0', False]}}]
+    
+@pytest.mark.fast
+@pytest.mark.parametrize('inval, iswrong, expected',
+                         [('True', False, 'true'),
+                          ('true', False, 'true'),
+                          ('yes', False, 'true'),
+                          ('1', False, 'true'),
+                          (True, False, 'true'),
+                          
+                          ('False', False, 'false'),
+                          ('false', False, 'false'),
+                          ('no', False, 'false'),
+                          ('0', False, 'false'),
+                          (False, False, 'false'),
+                          
+                          ('Spam', True, 'false'),
+                          (5, True, 'false')])
+def test_boolean_parameter(inval, iswrong, expected):
+    if not iswrong:
+        p = Boolean(inval)
+        assert p.value == expected
+    else:
+        with pytest.raises(ValueError):
+            Boolean(inval)
