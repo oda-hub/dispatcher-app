@@ -211,6 +211,8 @@ class Parameter:
 
                  check_value=None,
                  allowed_values=None,
+                 min_value = None,
+                 max_value = None,
                  **kwargs
                  ):
         
@@ -256,8 +258,11 @@ class Parameter:
         self.par_format=par_format
         self.par_default_format=par_default_format
         self.par_format_name=par_format_name
+        self._min_value = min_value
+        self._max_value = max_value
         self.value = value
-        
+
+
         self._arg_list = [self.name]
         if par_format_name is not None:
             self._arg_list.append(par_format_name)
@@ -285,6 +290,11 @@ class Parameter:
         if v is not None:
             if self.check_value is not None:
                 self.check_value(v, units=self.units, name=self.name, par_format=self.par_format)
+            if self._min_value is not None or self._max_value is not None:
+                self.check_bounds(v,
+                                  min_value = self._min_value, 
+                                  max_value = self._max_value,
+                                  name = self.name)            
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
                     raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
@@ -406,10 +416,23 @@ class Parameter:
     @staticmethod
     def check_value(val, units=None, name=None, par_format=None):
         pass
+    
+    @staticmethod
+    def check_bounds(val, min_value, max_value, name):
+        raise NotImplementedError(f"Parameter {name} doesn't support min_value/max_value check")
         
     def reprJSONifiable(self):
         # produces json-serialisable list
         reprjson = [dict(name=self.name, units=self.units, value=self.value)]
+        restrictions = {}
+        if self._allowed_values is not None:
+            restrictions['allowed_values'] = self._allowed_values
+        if getattr(self, '_min_value', None) is not None:
+            restrictions['min_value'] = self._min_value
+        if getattr(self, '_max_value', None) is not None:
+            restrictions['max_value'] = self._max_value
+        if restrictions:
+            reprjson[0]['restrictions'] = restrictions
         if self.par_format_name is not None:
             reprjson.append(dict(name=self.par_format_name, units="str", value=self.par_format))
         return reprjson
@@ -465,14 +488,15 @@ class Parameter:
 class String(Parameter):
     owl_uris = ["http://www.w3.org/2001/XMLSchema#str"]
     
-    def __init__(self, value=None, name_format='str', name=None):
+    def __init__(self, value=None, name_format='str', name=None, allowed_values = None):
 
         _allowed_units = ['str']
         super().__init__(value=value,
                          units=name_format,
                          check_value=self.check_name_value,
                          name=name,
-                         allowed_units=_allowed_units)
+                         allowed_units=_allowed_units,
+                         allowed_values=allowed_values)
 
     @staticmethod
     def check_name_value(value, units=None, name=None, par_format=None):
@@ -496,8 +520,6 @@ class Float(Parameter):
         if check_value is None:
             check_value = self.check_float_value
         
-        self._min_value = min_value
-        self._max_value = max_value
         self.check_bounds = basic_check_bounds
 
         super().__init__(value=value,
@@ -508,7 +530,9 @@ class Float(Parameter):
                          default_type=float,
                          # TODO added for consistency with Integer
                          allowed_types=[float],
-                         allowed_units=allowed_units)
+                         allowed_units=allowed_units,
+                         min_value=min_value,
+                         max_value=max_value)
 
     @property
     def value(self):
@@ -561,8 +585,6 @@ class Integer(Parameter):
         if check_value is None:
             check_value = self.check_int_value
 
-        self._min_value = min_value
-        self._max_value = max_value
         self.check_bounds = basic_check_bounds
         
         super().__init__(value=value,
@@ -571,7 +593,9 @@ class Integer(Parameter):
                          default_type=int,
                          allowed_types=[int],
                          name=name,
-                         allowed_units=_allowed_units)
+                         allowed_units=_allowed_units,
+                         min_value = min_value,
+                         max_value = max_value)
 
 
     @property
