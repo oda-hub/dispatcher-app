@@ -212,8 +212,8 @@ def generate_nb_hash(nb_obj):
     copied_notebook_obj = copy.deepcopy(nb_obj)
 
     try:
-        copied_notebook_obj['cells'][0].pop('id', None)
-        copied_notebook_obj['cells'][1].pop('id', None)
+        for cell in copied_notebook_obj['cells']:
+            cell.pop('id', None)
         notebook_hash = make_hash(copied_notebook_obj)
     except:
         logger.error(f'Unable to generate a hash of the notebook object: {copied_notebook_obj}')
