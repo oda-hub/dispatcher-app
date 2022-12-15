@@ -248,7 +248,7 @@ def refresh_token():
 
 
 @app.route('/free-up-space', methods=['POST', 'GET'])
-def inspect_state():
+def free_up_space():
     logger.info("request.args: %s ", request.args)
 
     free_up_result_data_obj = InstrumentQueryBackEnd.free_up_space(app)
