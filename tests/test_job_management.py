@@ -2409,8 +2409,9 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
         assert jdata["error_message"] == error_message
 
 
-@pytest.mark.parametrize("number_folder_to_delete", ["not_provided", 1, 8])
-def test_free_up_space(dispatcher_live_fixture, number_folder_to_delete):
+@pytest.mark.parametrize("number_folders_to_delete", ["not_provided", 1, 8])
+@pytest.mark.parametrize("number_analysis_to_run", [5, 1, 8])
+def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, number_analysis_to_run):
     DispatcherJobState.remove_scratch_folders()
 
     server = dispatcher_live_fixture
@@ -2430,25 +2431,19 @@ def test_free_up_space(dispatcher_live_fixture, number_folder_to_delete):
         'instrument': 'empty',
         'token': encoded_token,
     }
-    if number_folder_to_delete == 'not_provided':
+
+    for i in range(number_analysis_to_run):
         ask(server,
             params,
             expected_query_status=["done"],
             max_time_s=150
             )
-    else:
-        for i in range(number_folder_to_delete):
-            ask(server,
-                params,
-                expected_query_status=["done"],
-                max_time_s=150
-                )
 
     params = {
         'token': encoded_token,
-        'folder_to_delete': number_folder_to_delete
+        'folder_to_delete': number_folders_to_delete
     }
-    if number_folder_to_delete == 'not_provided':
+    if number_folders_to_delete == 'not_provided':
         params.pop('folder_to_delete')
     # for the email we only use the first 8 characters
     c = requests.get(os.path.join(server, "free-up-space"), params=params)
@@ -2456,11 +2451,19 @@ def test_free_up_space(dispatcher_live_fixture, number_folder_to_delete):
     jdata = c.json()
 
     assert 'output_status' in jdata
-    if number_folder_to_delete == 'not_provided':
-        number_folder_to_delete = 1
-    assert jdata['output_status'] == f"Removed {number_folder_to_delete} scratch directories"
+    if number_folders_to_delete == 'not_provided':
+        number_folders_to_delete = 5
 
-    assert len(glob.glob("scratch_sid_*_jid_*")) == 0
+    if number_folders_to_delete <= number_analysis_to_run:
+        number_folders_deleted = number_folders_to_delete
+        number_folders_left = number_analysis_to_run - number_folders_to_delete
+    else:
+        number_folders_deleted = number_analysis_to_run
+        number_folders_left = 0
+
+    assert jdata['output_status'] == f"Removed {number_folders_deleted} scratch directories"
+
+    assert len(glob.glob("scratch_sid_*_jid_*")) == number_folders_left
 
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
