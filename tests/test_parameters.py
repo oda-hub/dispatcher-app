@@ -381,20 +381,20 @@ def test_parameter_meta_data():
     
 @pytest.mark.fast
 @pytest.mark.parametrize('inval, iswrong, expected',
-                         [('True', False, 'true'),
-                          ('true', False, 'true'),
-                          ('yes', False, 'true'),
-                          ('1', False, 'true'),
-                          (True, False, 'true'),
+                         [('True', False, True),
+                          ('true', False, True),
+                          ('yes', False, True),
+                          ('1', False, True),
+                          (True, False, True),
                           
-                          ('False', False, 'false'),
-                          ('false', False, 'false'),
-                          ('no', False, 'false'),
-                          ('0', False, 'false'),
-                          (False, False, 'false'),
+                          ('False', False, False),
+                          ('false', False, False),
+                          ('no', False, False),
+                          ('0', False, False),
+                          (False, False, False),
                           
-                          ('Spam', True, 'false'),
-                          (5, True, 'false')])
+                          ('Spam', True, False),
+                          (5, True, False)])
 def test_boolean_parameter(inval, iswrong, expected):
     if not iswrong:
         p = Boolean(inval)

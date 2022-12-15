@@ -880,7 +880,7 @@ class Boolean(Parameter):
 
     @property
     def value(self):
-        return str(self._value).lower() #because passed in json
+        return self._value
 
     @value.setter
     def value(self, v):
