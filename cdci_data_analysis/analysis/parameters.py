@@ -61,7 +61,7 @@ def subclasses_recursive(cls):
         indirect.extend(subclasses_recursive(subclass))
     return direct + indirect
 
-def basic_check_bounds(val, min_value = None, max_value = None, name=None):
+def basic_numeric_check_bounds(val, min_value = None, max_value = None, name=None):
     if min_value is not None:
         if val < min_value:
             raise ValueError(f'Parameter {name} wrong value {val}: should be greater than {min_value}')
@@ -520,7 +520,7 @@ class Float(Parameter):
         if check_value is None:
             check_value = self.check_float_value
         
-        self.check_bounds = basic_check_bounds
+        self.check_bounds = basic_numeric_check_bounds
 
         super().__init__(value=value,
                          units=units,
@@ -585,7 +585,7 @@ class Integer(Parameter):
         if check_value is None:
             check_value = self.check_int_value
 
-        self.check_bounds = basic_check_bounds
+        self.check_bounds = basic_numeric_check_bounds
         
         super().__init__(value=value,
                          units=units,
