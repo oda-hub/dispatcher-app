@@ -2409,6 +2409,49 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
         assert jdata["error_message"] == error_message
 
 
+def test_free_up_space(dispatcher_live_fixture):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    token_payload = {
+        **default_token_payload,
+        "roles": ['job manager'],
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
+
+    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    scratch_dir_ctime = os.stat(scratch_dir_fn).st_ctime
+
+    assert os.path.exists(scratch_dir_fn)
+
+    # for the email we only use the first 8 characters
+    c = requests.get(os.path.join(server, "free-up-space"),
+                     params=dict(
+                         token=encoded_token,
+                     ))
+
+    assert not os.path.exists(scratch_dir_fn)
+
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
 def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
