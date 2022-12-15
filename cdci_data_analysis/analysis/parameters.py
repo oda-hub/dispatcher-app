@@ -692,6 +692,8 @@ class Time(Parameter):
 # it is confusing that TimeDelta derives from Time.  
 # https://github.com/astropy/astropy/blob/main/astropy/time/core.py#L379
 class TimeDelta(Time):
+    owl_uris = [] # to avoid unnecessary attempt to initialize it for time parameter
+    
     def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None, par_default_format='sec'):
 
         super().__init__(value=value,
