@@ -24,7 +24,6 @@ def push_api_code(api_code,
                   renku_gitlab_repository_url,
                   renku_gitlab_ssh_key_path,
                   renku_base_project_url,
-                  sentry_dsn=None,
                   user_name=None,
                   user_email=None,
                   products_url=None,
@@ -91,11 +90,8 @@ def push_api_code(api_code,
     except Exception as e:
         error_message = error_message.format(step=step)
         logger.warning(f"something happened while pushing the api_code: {step}, {e}")
-
         traceback.print_exc()
 
-        if sentry_dsn is not None:
-            sentry_sdk.capture_message(f'{error_message}\n{e}')
         raise RequestNotUnderstood(error_message)
     finally:
         logger.info("==> removing repository folder, since it is no longer necessary")
@@ -212,8 +208,8 @@ def generate_nb_hash(nb_obj):
     copied_notebook_obj = copy.deepcopy(nb_obj)
 
     try:
-        del copied_notebook_obj['cells'][0]['id']
-        del copied_notebook_obj['cells'][1]['id']
+        for cell in copied_notebook_obj['cells']:
+            cell.pop('id', None)
         notebook_hash = make_hash(copied_notebook_obj)
     except:
         logger.error(f'Unable to generate a hash of the notebook object: {copied_notebook_obj}')

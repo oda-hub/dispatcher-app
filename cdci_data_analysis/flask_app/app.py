@@ -7,6 +7,7 @@ Created on Wed May 10 10:55:20 2017
 """
 import glob
 import json
+import os
 import re
 import string
 import random
@@ -258,79 +259,92 @@ def inspect_state():
 def push_renku_branch():
     logger.info("request.args: %s ", request.args)
 
-    token = request.args.get('token', None)
-    app_config = app.config.get('conf')
-    secret_key = app_config.secret_key
+    try:
 
-    sentry_dsn = getattr(app.config.get('conf'), 'sentry_url', None)
-    if sentry_dsn is not None:
-        sentry_sdk.init(
-            dsn=sentry_dsn,
-            # Set traces_sample_rate to 1.0 to capture 100%
-            # of transactions for performance monitoring.
-            # We recommend adjusting this value in production.
-            traces_sample_rate=1.0,
-            debug=True,
-            max_breadcrumbs=50,
-        )
+        token = request.args.get('token', None)
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
 
-    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                  required_roles=['renku contributor'],
-                                                                  action="perform this operation")
+        output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                      required_roles=['renku contributor'],
+                                                                      action="perform this operation")
 
-    if output_code is not None:
-        return make_response(output, output_code)
-    decoded_token = output
+        if output_code is not None:
+            return make_response(output, output_code)
+        decoded_token = output
 
-    user_name = tokenHelper.get_token_user(decoded_token)
-    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+        user_name = tokenHelper.get_token_user(decoded_token)
+        user_email = tokenHelper.get_token_user_email_address(decoded_token)
 
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
-    # TODO check job_id is provided with the request
-    job_id = par_dic.pop('job_id')
-    api_code = None
-    request_dict = None
-    # Get the API code to push to the new renku branch
-    scratch_dir_pattern = f'scratch_sid_*_jid_{job_id}*'
-    list_scratch_folders = glob.glob(scratch_dir_pattern)
-    if len(list_scratch_folders) >= 1:
-        query_output_json_content_original = json.load(open(list_scratch_folders[0] + '/query_output.json'))
-        prod_dict = query_output_json_content_original['prod_dictionary']
-        # remove parameters that should not be shared (eg token)
-        api_code = prod_dict.pop('api_code', None)
-        request_dict = prod_dict.pop('analysis_parameters', None)
+        par_dic = request.values.to_dict()
+        par_dic.pop('token')
+        # TODO check job_id is provided with the request
+        job_id = par_dic.pop('job_id')
+        api_code = None
+        request_dict = None
+        # Get the API code to push to the new renku branch
+        scratch_dir_pattern = f'scratch_sid_*_jid_{job_id}*'
+        list_scratch_folders = glob.glob(scratch_dir_pattern)
+        if len(list_scratch_folders) >= 1:
+            with open(os.path.join(list_scratch_folders[0], 'query_output.json')) as q_out_f:
+                query_output_json_content_original = json.load(q_out_f)
 
-    renku_gitlab_repository_url = app_config.renku_gitlab_repository_url
-    renku_gitlab_ssh_key_path = app_config.renku_gitlab_ssh_key_path
-    renku_base_project_url = app_config.renku_base_project_url
-    products_url = app_config.products_url
+            prod_dict = query_output_json_content_original['prod_dictionary']
+            # remove parameters that should not be shared (eg token)
+            api_code = prod_dict.pop('api_code', None)
+            request_dict = prod_dict.pop('analysis_parameters', None)
+        else:
+            error_message = f"Error while posting data in the renku branch: " \
+                            f"no scratch folder was found with the given job_id :{job_id}"
+            raise RequestNotUnderstood(error_message)
 
-    renku_logger = logger.getChild('push_renku_branch')
-    renku_logger.info('renku_gitlab_repository_url: %s', renku_gitlab_repository_url)
-    renku_logger.info('renku_base_project_url: %s', renku_base_project_url)
-    renku_logger.info('renku_gitlab_ssh_key_path: %s', renku_gitlab_ssh_key_path)
-    renku_logger.info('user_name: %s', user_name)
-    renku_logger.info('user_email: %s', user_email)
+        renku_gitlab_repository_url = app_config.renku_gitlab_repository_url
+        renku_gitlab_ssh_key_path = app_config.renku_gitlab_ssh_key_path
+        renku_base_project_url = app_config.renku_base_project_url
+        products_url = app_config.products_url
 
-    if api_code is not None:
-        api_code_url = renku_helper.push_api_code(api_code=api_code,
-                                                  token=token,
-                                                  job_id=job_id,
-                                                  renku_gitlab_repository_url=renku_gitlab_repository_url,
-                                                  renku_base_project_url=renku_base_project_url,
-                                                  renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path,
-                                                  user_name=user_name, user_email=user_email,
-                                                  products_url=products_url, request_dict=request_dict,
-                                                  sentry_dsn=sentry_dsn)
+        renku_logger = logger.getChild('push_renku_branch')
+        renku_logger.info('renku_gitlab_repository_url: %s', renku_gitlab_repository_url)
+        renku_logger.info('renku_base_project_url: %s', renku_base_project_url)
+        renku_logger.info('renku_gitlab_ssh_key_path: %s', renku_gitlab_ssh_key_path)
+        renku_logger.info('user_name: %s', user_name)
+        renku_logger.info('user_email: %s', user_email)
 
-        return api_code_url
+        if api_code is not None:
+            api_code_url = renku_helper.push_api_code(api_code=api_code,
+                                                      token=token,
+                                                      job_id=job_id,
+                                                      renku_gitlab_repository_url=renku_gitlab_repository_url,
+                                                      renku_base_project_url=renku_base_project_url,
+                                                      renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path,
+                                                      user_name=user_name, user_email=user_email,
+                                                      products_url=products_url,
+                                                      request_dict=request_dict)
 
-    else:
-        raise RequestNotUnderstood(message="Request data not found",
-                                   payload={'error_message': 'error while posting data in the renku branch: '
-                                                             'api_code was not found, '
-                                                             'perhaps wrong job_id was passed?'})
+            return api_code_url
+
+        else:
+            error_message = "Error while posting data in the renku branch: api_code was not found, " \
+                            "perhaps wrong job_id was passed?"
+            raise RequestNotUnderstood(error_message)
+
+    except Exception as e:
+        error_message = f"Exception in push-renku-branch: {repr(e)}, {traceback.format_exc()}"
+        logging.getLogger().error(error_message)
+        sentry_dsn = getattr(app.config.get('conf'), 'sentry_url', None)
+        if sentry_dsn is not None:
+            sentry_sdk.init(
+                dsn=sentry_dsn,
+                traces_sample_rate=1.0,
+                debug=True,
+                max_breadcrumbs=50,
+            )
+
+        if sentry_dsn is not None:
+            sentry_sdk.capture_message(f'{error_message}')
+        raise RequestNotUnderstood(message="Error while posting on the renku branch",
+                                   payload={'error_message': error_message})
+
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
