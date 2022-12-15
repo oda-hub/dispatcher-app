@@ -249,16 +249,12 @@ def refresh_token():
 
 @app.route('/free-up-space', methods=['POST', 'GET'])
 def free_up_space():
-    logger.info("request.args: %s ", request.args)
-
     free_up_result_data_obj = InstrumentQueryBackEnd.free_up_space(app)
     return free_up_result_data_obj
 
 
 @app.route('/inspect-state', methods=['POST', 'GET'])
 def inspect_state():
-    logger.info("request.args: %s ", request.args)
-
     state_data_obj = InstrumentQueryBackEnd.inspect_state(app)
     return state_data_obj
 
