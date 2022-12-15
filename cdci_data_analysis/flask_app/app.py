@@ -327,6 +327,7 @@ def push_renku_branch():
             error_message = "Error while posting data in the renku branch: api_code was not found, " \
                             "perhaps wrong job_id was passed?"
             raise RequestNotUnderstood(error_message)
+
     except Exception as e:
         error_message = f"Exception in push-renku-branch: {repr(e)}, {traceback.format_exc()}"
         logging.getLogger().error(error_message)
