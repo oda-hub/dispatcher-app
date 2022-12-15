@@ -339,7 +339,7 @@ class InstrumentQueryBackEnd:
 
         list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key = os.path.getmtime)
 
-        list_scratch_dir_to_delete = list_scratch_dir[0:numb_folders_to_delete - 1] if len(list_scratch_dir) >= 5 else list_scratch_dir
+        list_scratch_dir_to_delete = list_scratch_dir[0:numb_folders_to_delete] if len(list_scratch_dir) >= 5 else list_scratch_dir
 
         for d in list_scratch_dir_to_delete:
             shutil.rmtree(d)
