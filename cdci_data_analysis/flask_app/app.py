@@ -286,7 +286,9 @@ def push_renku_branch():
         scratch_dir_pattern = f'scratch_sid_*_jid_{job_id}*'
         list_scratch_folders = glob.glob(scratch_dir_pattern)
         if len(list_scratch_folders) >= 1:
-            query_output_json_content_original = json.load(open(os.path.join(list_scratch_folders[0], 'query_output.json')))
+            with open(os.path.join(list_scratch_folders[0], 'query_output.json')) as q_out_f:
+                query_output_json_content_original = json.load(q_out_f)
+
             prod_dict = query_output_json_content_original['prod_dictionary']
             # remove parameters that should not be shared (eg token)
             api_code = prod_dict.pop('api_code', None)
