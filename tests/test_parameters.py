@@ -375,7 +375,7 @@ def test_parameter_meta_data():
                                                    'restrictions': {'allowed_values': ['spam', 'eggs', 'hams']}}]
     assert bool_parameter.reprJSONifiable() == [{'name': 'bool', 
                                                 'units': None, 
-                                                'value': 'true', 
+                                                'value': True, 
                                                 'restrictions': {'allowed_values': ['True', 'true', 'yes', '1', True, 
                                                                                     'False', 'false', 'no', '0', False]}}]
     
