@@ -7,6 +7,7 @@ Created on Wed May 10 10:55:20 2017
 """
 import glob
 import json
+import os
 import re
 import string
 import random
@@ -295,7 +296,7 @@ def push_renku_branch():
     scratch_dir_pattern = f'scratch_sid_*_jid_{job_id}*'
     list_scratch_folders = glob.glob(scratch_dir_pattern)
     if len(list_scratch_folders) >= 1:
-        query_output_json_content_original = json.load(open(list_scratch_folders[0] + '/query_output.json'))
+        query_output_json_content_original = json.load(open(os.path.join(list_scratch_folders[0], 'query_output.json')))
         prod_dict = query_output_json_content_original['prod_dictionary']
         # remove parameters that should not be shared (eg token)
         api_code = prod_dict.pop('api_code', None)
