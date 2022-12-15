@@ -293,6 +293,10 @@ def push_renku_branch():
             # remove parameters that should not be shared (eg token)
             api_code = prod_dict.pop('api_code', None)
             request_dict = prod_dict.pop('analysis_parameters', None)
+        else:
+            error_message = f"Error while posting data in the renku branch: " \
+                            f"no scratch folder was found with the given job_id :{job_id}"
+            raise RequestNotUnderstood(error_message)
 
         renku_gitlab_repository_url = app_config.renku_gitlab_repository_url
         renku_gitlab_ssh_key_path = app_config.renku_gitlab_ssh_key_path
