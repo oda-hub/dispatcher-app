@@ -2409,7 +2409,8 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
         assert jdata["error_message"] == error_message
 
 
-def test_free_up_space(dispatcher_live_fixture):
+@pytest.mark.parametrize("number_folder_to_delete", ["not_provided", 1, 8])
+def test_free_up_space(dispatcher_live_fixture, number_folder_to_delete):
     DispatcherJobState.remove_scratch_folders()
 
     server = dispatcher_live_fixture
@@ -2444,11 +2445,14 @@ def test_free_up_space(dispatcher_live_fixture):
 
     assert os.path.exists(scratch_dir_fn)
 
+    params = {
+        'token': encoded_token,
+        'folder_to_delete': number_folder_to_delete
+    }
+    if number_folder_to_delete == 'not_provided':
+        params.pop('folder_to_delete')
     # for the email we only use the first 8 characters
-    c = requests.get(os.path.join(server, "free-up-space"),
-                     params=dict(
-                         token=encoded_token,
-                     ))
+    c = requests.get(os.path.join(server, "free-up-space"), params=params)
 
     assert not os.path.exists(scratch_dir_fn)
 
