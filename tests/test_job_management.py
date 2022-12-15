@@ -2430,20 +2430,19 @@ def test_free_up_space(dispatcher_live_fixture, number_folder_to_delete):
         'instrument': 'empty',
         'token': encoded_token,
     }
-
-    jdata = ask(server,
+    if number_folder_to_delete == 'not_provided':
+        ask(server,
+            params,
+            expected_query_status=["done"],
+            max_time_s=150
+            )
+    else:
+        for i in range(number_folder_to_delete):
+            ask(server,
                 params,
                 expected_query_status=["done"],
-                max_time_s=150,
+                max_time_s=150
                 )
-
-    job_id = jdata['products']['job_id']
-    session_id = jdata['session_id']
-
-    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
-    scratch_dir_ctime = os.stat(scratch_dir_fn).st_ctime
-
-    assert os.path.exists(scratch_dir_fn)
 
     params = {
         'token': encoded_token,
@@ -2454,7 +2453,14 @@ def test_free_up_space(dispatcher_live_fixture, number_folder_to_delete):
     # for the email we only use the first 8 characters
     c = requests.get(os.path.join(server, "free-up-space"), params=params)
 
-    assert not os.path.exists(scratch_dir_fn)
+    jdata = c.json()
+
+    assert 'output_status' in jdata
+    if number_folder_to_delete == 'not_provided':
+        number_folder_to_delete = 1
+    assert jdata['output_status'] == f"Removed {number_folder_to_delete} scratch directories"
+
+    assert len(glob.glob("scratch_sid_*_jid_*")) == 0
 
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])

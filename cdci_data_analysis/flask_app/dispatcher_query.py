@@ -335,7 +335,7 @@ class InstrumentQueryBackEnd:
         if output_code is not None:
             return make_response(output, output_code)
 
-        numb_folders_to_delete = request.args.get('folder_to_delete', 5)
+        numb_folders_to_delete = int(request.args.get('folder_to_delete', 5))
 
         list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key = os.path.getmtime)
 
