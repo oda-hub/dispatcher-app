@@ -344,7 +344,10 @@ class InstrumentQueryBackEnd:
         for d in list_scratch_dir_to_delete:
             shutil.rmtree(d)
 
-        logger.info(f"Removed {numb_folders_to_delete} scratch directories")
+        result_scratch_dir_deletion = f"Removed {numb_folders_to_delete} scratch directories"
+        logger.info(result_scratch_dir_deletion)
+
+        return jsonify(dict(output_status=result_scratch_dir_deletion))
 
     @staticmethod
     def inspect_state(app):
