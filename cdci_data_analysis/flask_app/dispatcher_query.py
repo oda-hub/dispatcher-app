@@ -322,39 +322,45 @@ class InstrumentQueryBackEnd:
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
     @staticmethod
+    def free_up_space(app):
+        token = request.args.get('token', None)
+
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
+
+        output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                      required_roles=['job manager'],
+                                                                      action="free_up space on the server")
+
+        if output_code is not None:
+            return make_response(output, output_code)
+
+        numb_folders_to_delete = request.args.get('folder_to_delete', 5)
+
+        list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key = os.path.getmtime)
+
+        list_scratch_dir_to_delete = list_scratch_dir[0:numb_folders_to_delete - 1] if len(list_scratch_dir) >= 5 else list_scratch_dir
+
+        for d in list_scratch_dir_to_delete:
+            shutil.rmtree(d)
+
+        logger.info(f"Removed {numb_folders_to_delete} scratch directories")
+
+    @staticmethod
     def inspect_state(app):
         token = request.args.get('token', None)
-        if token is None:
-            # TODO what about using the RequestNotAuthorized exception?
-            # raise RequestNotAuthorized("A token must be provided.")
-            return make_response('A token must be provided.'), 403
-        try:
-            secret_key = app.config.get('conf').secret_key
-            decoded_token = tokenHelper.get_decoded_token(token, secret_key)
-            logger.info("==> token %s", decoded_token)
-        except jwt.exceptions.ExpiredSignatureError:
-            # raise RequestNotAuthorized("The token provided is expired.")
-            return make_response('The token provided is expired.'), 403
-        except jwt.exceptions.InvalidTokenError:
-            # raise RequestNotAuthorized("The token provided is not valid.")
-            return make_response('The token provided is not valid.'), 403
+
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
+        output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                      required_roles=['job manager'],
+                                                                      action="inspect the state for a given job_id")
+
+        if output_code is not None:
+            return make_response(output, output_code)
 
         recent_days = request.args.get('recent_days', 3, type=float)
         job_id = request.args.get('job_id', None)
-
-        roles = tokenHelper.get_token_roles(decoded_token)
-
-        required_roles = ['job manager']
-        # no need to have both, one of those two is sufficient
-        if not any(item in roles for item in required_roles):
-            lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
-            message = (
-                f"Unfortunately, your privileges are not sufficient for this type of request.\n"
-                f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
-            )
-            # raise RequestNotAuthorized(message=message)
-            return make_response(message), 403
-
         records = []
 
         for scratch_dir in glob.glob("scratch_sid_*_jid_*"):

@@ -2468,7 +2468,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
         if 'job manager' not in roles:
             lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
             error_message = (
-                f'Unfortunately, your privileges are not sufficient for this type of request.\n'
+                f'Unfortunately, your privileges are not sufficient to inspect the state for a given job_id.\n'
                 f'Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}.'
             )
 
