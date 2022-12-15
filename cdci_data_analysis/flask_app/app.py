@@ -327,10 +327,12 @@ def push_renku_branch():
         return api_code_url
 
     else:
+        error_message = "Error while posting data in the renku branch: api_code was not found, " \
+                        "perhaps wrong job_id was passed?"
+        if sentry_dsn is not None:
+            sentry_sdk.capture_message(f'{error_message}')
         raise RequestNotUnderstood(message="Request data not found",
-                                   payload={'error_message': 'error while posting data in the renku branch: '
-                                                             'api_code was not found, '
-                                                             'perhaps wrong job_id was passed?'})
+                                   payload={'error_message': error_message})
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
