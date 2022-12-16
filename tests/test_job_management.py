@@ -2439,6 +2439,10 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, number
             max_time_s=150
             )
 
+    dict_creation_time = {p : os.path.getmtime(p) for p in sorted(glob.glob("scratch_sid_*"),
+                                                                  key=os.path.getmtime)}
+    logger.info(f"Ordered list of creation time of the execution folders:\n{json.dumps(dict_creation_time, indent=4)}")
+
     params = {
         'token': encoded_token,
         'folder_to_delete': number_folders_to_delete
