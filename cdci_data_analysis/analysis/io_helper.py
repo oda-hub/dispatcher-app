@@ -204,3 +204,16 @@ def upload_file(name, dir):
         file_path = os.path.join(dir, filename)
         file.save(file_path)
         return file_path
+
+
+def format_size(size_bytes, format_returned='M'):
+    size_bytes = float(size_bytes)
+    size_kb = size_bytes / 1024
+    size_mb = size_kb / 1024
+    size_gb = size_mb / 1024
+    if format_returned == 'M':
+        return "%.2fM" % size_mb
+    elif format_returned == 'G':
+        return "%.2fG" % size_gb
+    else:
+        return "%.2fkb" % size_kb

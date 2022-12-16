@@ -31,10 +31,8 @@ import gzip
 import socket
 import logstash
 import shutil
-import typing
 import jwt
 import re
-import sentry_sdk
 
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
@@ -43,7 +41,7 @@ from ..analysis.instrument import params_not_to_be_included
 from ..analysis.hash import make_hash
 from ..analysis.hash import default_kw_black_list
 from ..analysis.job_manager import job_factory
-from ..analysis.io_helper import FilePath
+from ..analysis.io_helper import FilePath, format_size
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
@@ -338,11 +336,25 @@ class InstrumentQueryBackEnd:
         numb_folders_to_delete = int(request.args.get('folder_to_delete', 5))
 
         list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key = os.path.getmtime)
-
         list_scratch_dir_to_delete = list_scratch_dir[0:numb_folders_to_delete] if len(list_scratch_dir) >= 5 else list_scratch_dir
 
+        dict_scratch_dir = {p : os.path.getmtime(p) for p in sorted(glob.glob("scratch_sid_*"), key=os.path.getmtime)}
+        pre_clean_space_stats = shutil.disk_usage(os.getcwd())
+        pre_clean_available_space =  format_size(pre_clean_space_stats.free, format_returned='M')
+
+        logger.info(f"Number of scratch folder before clean-up: {len(dict_scratch_dir)}.\n"
+                    f"The available amount of space is {pre_clean_available_space}")
+
         for d in list_scratch_dir_to_delete:
+            dict_scratch_dir.pop(d, None)
             shutil.rmtree(d)
+
+        post_clean_space_space = shutil.disk_usage(os.getcwd())
+        post_clean_available_space = format_size(post_clean_space_space.free, format_returned='M')
+
+        logger.info(f"Number of scratch folder after clean-up: {len(dict_scratch_dir)}.\n"
+                    f"Removed {len(list_scratch_dir_to_delete)} scratch directories, "
+                    f"and now the available amount of space is {post_clean_available_space}")
 
         result_scratch_dir_deletion = f"Removed {len(list_scratch_dir_to_delete)} scratch directories"
         logger.info(result_scratch_dir_deletion)
