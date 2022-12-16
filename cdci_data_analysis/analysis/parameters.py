@@ -61,14 +61,6 @@ def subclasses_recursive(cls):
         indirect.extend(subclasses_recursive(subclass))
     return direct + indirect
 
-def basic_numeric_check_bounds(val, min_value = None, max_value = None, name=None):
-    if min_value is not None:
-        if val < min_value:
-            raise ValueError(f'Parameter {name} wrong value {val}: should be greater than {min_value}')
-    if max_value is not None:
-        if val > max_value:
-            raise ValueError(f'Parameter {name} wrong value {val}: should be less than {max_value}')
-
 # TODO this class seems not to be in use anywhere, not even the plugins
 class ParameterGroup(object):
 
@@ -505,7 +497,17 @@ class String(Parameter):
 class Name(String):
     owl_uris = ["http://odahub.io/ontology#AstrophysicalObject"]
 
-class Float(Parameter):
+class NumericParameter(Parameter):
+    @staticmethod
+    def check_bounds(val, min_value = None, max_value = None, name=None):
+        if min_value is not None:
+            if val < min_value:
+                raise ValueError(f'Parameter {name} wrong value {val}: should be greater than {min_value}')
+        if max_value is not None:
+            if val > max_value:
+                raise ValueError(f'Parameter {name} wrong value {val}: should be less than {max_value}')
+
+class Float(NumericParameter):
     owl_uris = ["http://www.w3.org/2001/XMLSchema#float"]
     def __init__(self, 
                  value=None, 
@@ -520,8 +522,6 @@ class Float(Parameter):
         if check_value is None:
             check_value = self.check_float_value
         
-        self.check_bounds = basic_numeric_check_bounds
-
         super().__init__(value=value,
                          units=units,
                          check_value=check_value,
@@ -575,7 +575,7 @@ class Float(Parameter):
                                    f'of type {type(value).__name__}')
 
 
-class Integer(Parameter):
+class Integer(NumericParameter):
     owl_uris = "http://www.w3.org/2001/XMLSchema#int"
 
     def __init__(self, value=None, units=None, name=None, check_value=None, min_value = None, max_value = None):
@@ -584,9 +584,7 @@ class Integer(Parameter):
 
         if check_value is None:
             check_value = self.check_int_value
-
-        self.check_bounds = basic_numeric_check_bounds
-        
+       
         super().__init__(value=value,
                          units=units,
                          check_value=check_value,
