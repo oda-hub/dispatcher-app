@@ -521,6 +521,9 @@ class Float(NumericParameter):
 
         if check_value is None:
             check_value = self.check_float_value
+        else:
+            logger.warning('The check_value argument of the %s parameter class is DEPRECATED', 
+                           self.__class__.__name__)
         
         super().__init__(value=value,
                          units=units,
@@ -584,7 +587,10 @@ class Integer(NumericParameter):
 
         if check_value is None:
             check_value = self.check_int_value
-       
+        else:
+            logger.warning('The check_value argument of the %s parameter class is DEPRECATED', 
+                           self.__class__.__name__)
+        
         super().__init__(value=value,
                          units=units,
                          check_value=check_value,
@@ -821,6 +827,10 @@ class Energy(Float):
     def __init__(self, value=None, E_units='keV', name=None, check_value=None):
         if check_value is None:
             check_value = self.check_energy_value
+        else:
+            logger.warning('The check_value argument of the %s parameter class is DEPRECATED', 
+                           self.__class__.__name__)
+        
 
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
 
