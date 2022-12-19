@@ -6,6 +6,7 @@ Created on Wed May 10 10:55:20 2017
 @author: andrea tramcere
 """
 import os
+import time
 from builtins import (open, str, range,
                       object)
 
@@ -333,10 +334,24 @@ class InstrumentQueryBackEnd:
         if output_code is not None:
             return make_response(output, output_code)
 
-        numb_folders_to_delete = int(request.args.get('folder_to_delete', 5))
+        current_time = time.time()
+        # let's pass the minimum age the folders to be deleted should have
+        minimum_folder_age_weeks = request.args.get('minimum_age', 1)
 
         list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key = os.path.getmtime)
-        list_scratch_dir_to_delete = list_scratch_dir[0:numb_folders_to_delete] if len(list_scratch_dir) >= 5 else list_scratch_dir
+        list_scratch_dir_to_delete = []
+
+        for scratch_dir in list_scratch_dir:
+            if current_time - os.path.getmtime(scratch_dir) > minimum_folder_age_weeks:
+                job_monitor_path = os.path.join(scratch_dir, 'job_monitor')
+                with open(job_monitor_path, 'r') as jm_file:
+                    monitor = json.load(jm_file)
+                    job_status = monitor['status']
+                if job_status == 'done':
+                    list_scratch_dir_to_delete.append(scratch_dir)
+            else:
+                break
+        # list_scratch_dir_to_delete = list_scratch_dir[0:numb_folders_to_delete] if len(list_scratch_dir) >= 5 else list_scratch_dir
 
         dict_scratch_dir = {p : os.path.getmtime(p) for p in sorted(glob.glob("scratch_sid_*"), key=os.path.getmtime)}
         pre_clean_space_stats = shutil.disk_usage(os.getcwd())
