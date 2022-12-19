@@ -2420,7 +2420,7 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, number
 
     token_payload = {
         **default_token_payload,
-        "roles": ['job manager'],
+        "roles": ['space manager'],
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 

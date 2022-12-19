@@ -327,7 +327,7 @@ class InstrumentQueryBackEnd:
         secret_key = app_config.secret_key
 
         output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                      required_roles=['job manager'],
+                                                                      required_roles=['space manager'],
                                                                       action="free_up space on the server")
 
         if output_code is not None:
