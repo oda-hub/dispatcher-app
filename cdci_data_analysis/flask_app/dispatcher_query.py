@@ -336,14 +336,17 @@ class InstrumentQueryBackEnd:
 
         current_time_secs = time.time()
         # let's pass the minimum age the folders to be deleted should have
-        minimum_folder_age_days = request.args.get('minimum_age', 1)
+        minimum_folder_age_days = request.args.get('minimum_age', 7)
+
 
         list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key = os.path.getmtime)
         list_scratch_dir_to_delete = []
 
         for scratch_dir in list_scratch_dir:
             scratch_dir_age_days = (current_time_secs - os.path.getmtime(scratch_dir)) / (60 * 60 * 24)
-            if scratch_dir_age_days  >= minimum_folder_age_days:
+            if scratch_dir_age_days >= 30:
+                list_scratch_dir_to_delete.append(scratch_dir)
+            elif scratch_dir_age_days  >= minimum_folder_age_days:
                 analysis_parameters_path = os.path.join(scratch_dir, 'analysis_parameters.json')
                 with open(analysis_parameters_path) as analysis_parameters_file:
                     dict_analysis_parameters = json.load(analysis_parameters_file)
@@ -352,7 +355,7 @@ class InstrumentQueryBackEnd:
                 if token is not None:
                     try:
                         tokenHelper.get_decoded_token(token, secret_key)
-                    except jwt.exceptions.ExpiredSignatureError as e:
+                    except jwt.exceptions.ExpiredSignatureError:
                         token_expired = True
 
                 job_monitor_path = os.path.join(scratch_dir, 'job_monitor.json')
@@ -361,6 +364,7 @@ class InstrumentQueryBackEnd:
                     job_status = monitor['status']
                 if job_status == 'done' and (token is None or token_expired):
                     list_scratch_dir_to_delete.append(scratch_dir)
+
             else:
                 break
         # list_scratch_dir_to_delete = list_scratch_dir[0:numb_folders_to_delete] if len(list_scratch_dir) >= 5 else list_scratch_dir
