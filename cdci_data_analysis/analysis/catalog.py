@@ -225,7 +225,7 @@ class BasicCatalog(object):
             unit = table.meta['COORD_UNIT']
             cat= cls(src_names,lon,lat,significance,_table=table,unit=unit,frame=frame)
         except:
-            print(f"Error while parsing catalog from table: {table}")
+            print(f"Error while parsing catalog from table: \n{table}\n{table.keys()}\n{table.meta.keys()}\n")
             raise RuntimeError('Table in fits file is not valid to build Catalog')
 
         return  cat
