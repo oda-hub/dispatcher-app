@@ -2409,9 +2409,8 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
         assert jdata["error_message"] == error_message
 
 
-@pytest.mark.parametrize("number_folders_to_delete", ["not_provided", 1, 8])
-@pytest.mark.parametrize("number_analysis_to_run", [5, 1, 8])
-def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, number_analysis_to_run):
+@pytest.mark.parametrize("number_folders_to_delete", [1, 8])
+def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete):
     DispatcherJobState.remove_scratch_folders()
 
     server = dispatcher_live_fixture
@@ -2432,6 +2431,8 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, number
         'token': encoded_token,
     }
 
+    number_analysis_to_run = 8
+
     for i in range(number_analysis_to_run):
         ask(server,
             params,
@@ -2439,24 +2440,22 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, number
             max_time_s=150
             )
 
-    dict_creation_time = {p : os.path.getmtime(p) for p in sorted(glob.glob("scratch_sid_*"),
-                                                                  key=os.path.getmtime)}
-    logger.info(f"Ordered list of creation time of the execution folders:\n{json.dumps(dict_creation_time, indent=4)}")
+    list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key=os.path.getmtime)
+
+    current_time = time.time()
+    one_month_secs = 60 * 60 * 24 * 30
+
+    for scratch_dir in list_scratch_dir[0: number_folders_to_delete]:
+        os.utime(scratch_dir, (current_time, current_time - one_month_secs))
 
     params = {
-        'token': encoded_token,
-        'folder_to_delete': number_folders_to_delete
+        'token': encoded_token
     }
-    if number_folders_to_delete == 'not_provided':
-        params.pop('folder_to_delete')
-    # for the email we only use the first 8 characters
     c = requests.get(os.path.join(server, "free-up-space"), params=params)
 
     jdata = c.json()
 
     assert 'output_status' in jdata
-    if number_folders_to_delete == 'not_provided':
-        number_folders_to_delete = 5
 
     if number_folders_to_delete <= number_analysis_to_run:
         number_folders_deleted = number_folders_to_delete
