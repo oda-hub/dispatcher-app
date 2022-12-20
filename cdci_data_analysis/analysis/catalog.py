@@ -52,7 +52,7 @@ def _selector(func,arr,mask):
 class BasicCatalog(object):
     def __init__(self,src_names,lon,lat,significance,unit='deg',frame='FK5',_selected=None,_table=None):
 
-        self.selected = np.ones(len(src_names), dtype=np.bool_)
+        self.selected = np.ones(len(src_names), dtype=np.bool)
 
         if _selected is not None:
             self.selected = False
@@ -200,7 +200,6 @@ class BasicCatalog(object):
 
     @classmethod
     def from_file(cls,file_name):
-        print(f"Loading catalog from file {file_name}")
         format_list=['ascii.ecsv','fits']
         cat=None
         for f in format_list:
@@ -210,7 +209,6 @@ class BasicCatalog(object):
                 pass
 
         if cat is None:
-            print("Catalog format not valid")
             raise RuntimeError('file format for catalog not valid')
         return cat
 
@@ -225,8 +223,6 @@ class BasicCatalog(object):
             unit = table.meta['COORD_UNIT']
             cat= cls(src_names,lon,lat,significance,_table=table,unit=unit,frame=frame)
         except Exception as e:
-            print(f"Error while parsing catalog from table: \n{table}\n{table.keys()}\n{table.meta.keys()}\n")
-            print(e)
             raise RuntimeError('Table in fits file is not valid to build Catalog')
 
         return  cat
