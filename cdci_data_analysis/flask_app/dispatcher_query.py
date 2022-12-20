@@ -321,8 +321,19 @@ class InstrumentQueryBackEnd:
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
     @staticmethod
-    def free_up_space(app):
+    def free_up_space(app, sentry_dsn=None):
         token = request.args.get('token', None)
+
+        if sentry_dsn is not None:
+            sentry_sdk.init(
+                dsn=sentry_dsn,
+                # Set traces_sample_rate to 1.0 to capture 100%
+                # of transactions for performance monitoring.
+                # We recommend adjusting this value in production.
+                traces_sample_rate=1.0,
+                debug=True,
+                max_breadcrumbs=50,
+            )
 
         app_config = app.config.get('conf')
         secret_key = app_config.secret_key
@@ -362,9 +373,14 @@ class InstrumentQueryBackEnd:
                 with open(job_monitor_path, 'r') as jm_file:
                     monitor = json.load(jm_file)
                     job_status = monitor['status']
+                    job_id = monitor['job_id']
                 if job_status == 'done' and (token is None or token_expired):
                     list_scratch_dir_to_delete.append(scratch_dir)
-
+                if job_status != 'done':
+                    incomplete_job_alert_message = f"The job {job_id} is yet complete despite being older than {minimum_folder_age_days} days"
+                    logger.info(incomplete_job_alert_message)
+                    if sentry_dsn is not None:
+                        sentry_sdk.capture_message(incomplete_job_alert_message)
             else:
                 break
         # list_scratch_dir_to_delete = list_scratch_dir[0:numb_folders_to_delete] if len(list_scratch_dir) >= 5 else list_scratch_dir
