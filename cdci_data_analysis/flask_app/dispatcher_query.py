@@ -346,18 +346,20 @@ class InstrumentQueryBackEnd:
             return make_response(output, output_code)
 
         current_time_secs = time.time()
+        hard_minimum_folder_age_days = app_config.hard_minimum_folder_age_days
         # let's pass the minimum age the folders to be deleted should have
-        minimum_folder_age_days = request.args.get('minimum_age', 7)
-
+        soft_minimum_folder_age_days = request.args.get('minimum_age', None)
+        if soft_minimum_folder_age_days is None:
+            soft_minimum_folder_age_days = app_config.soft_minimum_folder_age_days
 
         list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key = os.path.getmtime)
         list_scratch_dir_to_delete = []
 
         for scratch_dir in list_scratch_dir:
             scratch_dir_age_days = (current_time_secs - os.path.getmtime(scratch_dir)) / (60 * 60 * 24)
-            if scratch_dir_age_days >= 30:
+            if scratch_dir_age_days >= hard_minimum_folder_age_days:
                 list_scratch_dir_to_delete.append(scratch_dir)
-            elif scratch_dir_age_days  >= minimum_folder_age_days:
+            elif scratch_dir_age_days  >= soft_minimum_folder_age_days:
                 analysis_parameters_path = os.path.join(scratch_dir, 'analysis_parameters.json')
                 with open(analysis_parameters_path) as analysis_parameters_file:
                     dict_analysis_parameters = json.load(analysis_parameters_file)
@@ -378,7 +380,7 @@ class InstrumentQueryBackEnd:
                     list_scratch_dir_to_delete.append(scratch_dir)
                 if job_status != 'done':
                     incomplete_job_alert_message = f"The job {job_id} is yet to complete despite being older " \
-                                                   f"than {minimum_folder_age_days} days. This has been detected " \
+                                                   f"than {soft_minimum_folder_age_days} days. This has been detected " \
                                                    f"while checking for deletion the folder {scratch_dir}."
                     logger.info(incomplete_job_alert_message)
                     if sentry_dsn is not None:

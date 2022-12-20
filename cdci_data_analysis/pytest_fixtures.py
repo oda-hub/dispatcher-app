@@ -372,6 +372,8 @@ dispatcher:
     logstash_port: 
     secret_key: 'secretkey_test'
     token_max_refresh_interval: 604800
+    soft_minimum_folder_age_days: 1
+    hard_minimum_folder_age_days: 30
     bind_options:
         bind_host: 0.0.0.0
         bind_port: 8011
