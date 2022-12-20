@@ -963,7 +963,7 @@ def test_email_run_analysis_callback(gunicorn_dispatcher_long_living_fixture, di
     if encoded_token is None:
         assert r.text == 'A token must be provided.'
     else:
-        assert r.text == ("Unfortunately, your privileges are not sufficient for this type of request.\n"
+        assert r.text == ("Unfortunately, your privileges are not sufficient to inspect the state for a given job_id.\n"
                           "Your privilege roles include ['general'], but the following roles are"
                           " missing: job manager.")
 
