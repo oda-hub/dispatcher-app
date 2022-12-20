@@ -377,7 +377,9 @@ class InstrumentQueryBackEnd:
                 if job_status == 'done' and (token is None or token_expired):
                     list_scratch_dir_to_delete.append(scratch_dir)
                 if job_status != 'done':
-                    incomplete_job_alert_message = f"The job {job_id} is yet complete despite being older than {minimum_folder_age_days} days"
+                    incomplete_job_alert_message = f"The job {job_id} is yet to complete despite being older " \
+                                                   f"than {minimum_folder_age_days} days. This has been detected " \
+                                                   f"while checking for deletion the folder {scratch_dir}."
                     logger.info(incomplete_job_alert_message)
                     if sentry_dsn is not None:
                         sentry_sdk.capture_message(incomplete_job_alert_message)
