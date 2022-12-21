@@ -417,7 +417,7 @@ class LightCurveProduct(BaseQueryProduct):
                       x_label='', y_label='',
                       title=None, max_bins=1E4):
         warning = ''
-        max_bins = np.int(max_bins)
+        max_bins = int(max_bins)
         if np.size(x) > max_bins:
             actual_size = np.size(x)
             x=x[:max_bins]
@@ -428,7 +428,7 @@ class LightCurveProduct(BaseQueryProduct):
                 dy=dy[:max_bins]
             warning='!!! WARNING Number of bins displayed are limited to %d, actual number of bins is %d'%(max_bins,actual_size)
             title=title+'\n %s'%warning
-        x = x - np.int(x.min())
+        x = x - int(x.min())
 
         sp=ScatterPlot(w=600,h=600,x_label=x_label,y_label=y_label,title=title)
         sp.add_errorbar(x,y,yerr=dy,xerr=dx)
@@ -646,7 +646,7 @@ class SpectralFitProduct(BaseQueryProduct):
             if len(p) != 2:
                 raise RuntimeError('Malformed par string') 
             else:
-                i = np.int(p[0])
+                i = int(p[0])
             pars_dict[i] = p[1]
         return pars_dict
 

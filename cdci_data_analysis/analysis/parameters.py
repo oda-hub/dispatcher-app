@@ -70,7 +70,7 @@ class ParameterGroup(object):
         self._check_pars(par_list)
         self.exclusive = True
 
-        self.msk = np.ones(len(par_list), dtype=np.bool)
+        self.msk = np.ones(len(par_list), dtype=bool)
 
         if exclusive:
             self.msk[::] = False
