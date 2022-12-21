@@ -226,7 +226,7 @@ class ConfigEnv(object):
                                      disp_dict['dispatcher_callback_url_base'],
                                      disp_dict['secret_key'],
                                      disp_dict.get('token_max_refresh_interval', 604800),
-                                     disp_dict.get('soft_minimum_folder_age_days', 1),
+                                     disp_dict.get('soft_minimum_folder_age_days', 5),
                                      disp_dict.get('hard_minimum_folder_age_days', 30),
                                      disp_dict['email_options']['smtp_server'],
                                      disp_dict['email_options']['sender_email_address'],
