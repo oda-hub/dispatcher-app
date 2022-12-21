@@ -2424,6 +2424,12 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
+    expired_token = {
+        **default_token_payload,
+        "roles": ['space manager'],
+        "exp": int(time.time()) - 15
+    }
+
     params = {
         'query_status': 'new',
         'product_type': 'dummy',
@@ -2445,14 +2451,29 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
 
     current_time = time.time()
     one_month_secs = 60 * 60 * 24 * 30
+    if soft_minimum_age_days != 'not_provided':
+        soft_minimum_age_days_secs = soft_minimum_age_days * 60 *60 * 24
 
     for scratch_dir in list_scratch_dir[0: number_folders_to_delete]:
-        os.utime(scratch_dir, (current_time, current_time - one_month_secs))
+        # set folders to be deleted
+        if soft_minimum_age_days == 'not_provided':
+            os.utime(scratch_dir, (current_time, current_time - one_month_secs))
+        else:
+            os.utime(scratch_dir, (current_time, current_time - soft_minimum_age_days_secs))
+        analysis_parameters_path = os.path.join(scratch_dir, 'analysis_parameters.json')
+        with open(analysis_parameters_path) as analysis_parameters_file:
+            dict_analysis_parameters = json.load(analysis_parameters_file)
+        dict_analysis_parameters['token'] = expired_token
+        with open(analysis_parameters_path, 'w') as dict_analysis_parameters_outfile:
+            my_json_str = json.dumps(dict_analysis_parameters, indent=4)
+            dict_analysis_parameters_outfile.write(u'%s' % my_json_str)
+
 
     params = {
         'token': encoded_token,
         'soft_minimum_age_days': soft_minimum_age_days
     }
+
     if soft_minimum_age_days == 'not_provided':
         params.pop('soft_minimum_age_days')
 
