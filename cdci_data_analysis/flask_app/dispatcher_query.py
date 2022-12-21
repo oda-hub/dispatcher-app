@@ -375,7 +375,7 @@ class InstrumentQueryBackEnd:
                     job_id = monitor['job_id']
                 if job_status == 'done' and (token is None or token_expired):
                     list_scratch_dir_to_delete.append(scratch_dir)
-                if job_status != 'done' and token_expired:
+                elif job_status != 'done' and token_expired:
                     incomplete_job_alert_message = f"The job {job_id} is yet to complete despite being older " \
                                                    f"than {soft_minimum_folder_age_days} days. This has been detected " \
                                                    f"while checking for deletion the folder {scratch_dir}."
