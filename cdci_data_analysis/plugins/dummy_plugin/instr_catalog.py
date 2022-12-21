@@ -66,9 +66,9 @@ class MyInstrCatalog(BasicCatalog):
 
 
         self.add_column(data=NEW_SOURCE, name='NEW_SOURCE')
-        self.add_column(data=ISGRI_FLAG, name='ISGRI_FLAG', dtype=np.int)
-        self.add_column(data=FLAG, name='FLAG', dtype=np.int)
-        self.add_column(data=ERR_RAD, name='ERR_RAD', dtype=np.float)
+        self.add_column(data=ISGRI_FLAG, name='ISGRI_FLAG', dtype=int)
+        self.add_column(data=FLAG, name='FLAG', dtype=int)
+        self.add_column(data=ERR_RAD, name='ERR_RAD', dtype=float)
 
     @classmethod
     def build_from_dict_list(cls, distlist):
