@@ -321,9 +321,10 @@ class InstrumentQueryBackEnd:
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
     @staticmethod
-    def free_up_space(app, sentry_dsn=None):
+    def free_up_space(app):
         token = request.args.get('token', None)
 
+        sentry_dsn = getattr(app.config.get('conf'), 'sentry_url', None)
         if sentry_dsn is not None:
             sentry_sdk.init(
                 dsn=sentry_dsn,
