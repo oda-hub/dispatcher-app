@@ -2483,16 +2483,9 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
 
     assert 'output_status' in jdata
 
-    if number_folders_to_delete <= number_analysis_to_run:
-        number_folders_deleted = number_folders_to_delete
-        number_folders_left = number_analysis_to_run - number_folders_to_delete
-    else:
-        number_folders_deleted = number_analysis_to_run
-        number_folders_left = 0
+    assert jdata['output_status'] == f"Removed {number_folders_to_delete} scratch directories"
 
-    assert jdata['output_status'] == f"Removed {number_folders_deleted} scratch directories"
-
-    assert len(glob.glob("scratch_sid_*_jid_*")) == number_folders_left
+    assert len(glob.glob("scratch_sid_*_jid_*")) == number_analysis_to_run - number_folders_to_delete
 
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
