@@ -2410,7 +2410,8 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
 
 
 @pytest.mark.parametrize("number_folders_to_delete", [1, 8])
-def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete):
+@pytest.mark.parametrize("soft_minimum_age_days", ["not_provided", 1, 5])
+def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_minimum_age_days):
     DispatcherJobState.remove_scratch_folders()
 
     server = dispatcher_live_fixture
@@ -2449,8 +2450,12 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete):
         os.utime(scratch_dir, (current_time, current_time - one_month_secs))
 
     params = {
-        'token': encoded_token
+        'token': encoded_token,
+        'soft_minimum_age_days': soft_minimum_age_days
     }
+    if soft_minimum_age_days == 'not_provided':
+        params.pop('soft_minimum_age_days')
+
     c = requests.get(os.path.join(server, "free-up-space"), params=params)
 
     jdata = c.json()
