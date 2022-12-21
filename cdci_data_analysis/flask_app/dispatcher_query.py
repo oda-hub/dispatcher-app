@@ -348,9 +348,11 @@ class InstrumentQueryBackEnd:
         current_time_secs = time.time()
         hard_minimum_folder_age_days = app_config.hard_minimum_folder_age_days
         # let's pass the minimum age the folders to be deleted should have
-        soft_minimum_folder_age_days = request.args.get('minimum_age_days', None)
+        soft_minimum_folder_age_days = request.args.get('soft_minimum_age_days', None)
         if soft_minimum_folder_age_days is None or isinstance(soft_minimum_folder_age_days, int):
             soft_minimum_folder_age_days = app_config.soft_minimum_folder_age_days
+        else:
+            soft_minimum_folder_age_days = int(soft_minimum_folder_age_days)
 
         list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key = os.path.getmtime)
         list_scratch_dir_to_delete = []
