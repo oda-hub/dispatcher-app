@@ -2453,13 +2453,12 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
     one_month_secs = 60 * 60 * 24 * 30
     if soft_minimum_age_days != 'not_provided':
         soft_minimum_age_days_secs = soft_minimum_age_days * 60 *60 * 24
+    else:
+        soft_minimum_age_days_secs = one_month_secs
 
     for scratch_dir in list_scratch_dir[0: number_folders_to_delete]:
         # set folders to be deleted
-        if soft_minimum_age_days == 'not_provided':
-            os.utime(scratch_dir, (current_time, current_time - one_month_secs))
-        else:
-            os.utime(scratch_dir, (current_time, current_time - soft_minimum_age_days_secs))
+        os.utime(scratch_dir, (current_time, current_time - soft_minimum_age_days_secs))
         analysis_parameters_path = os.path.join(scratch_dir, 'analysis_parameters.json')
         with open(analysis_parameters_path) as analysis_parameters_file:
             dict_analysis_parameters = json.load(analysis_parameters_file)
