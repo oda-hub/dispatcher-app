@@ -349,7 +349,7 @@ class InstrumentQueryBackEnd:
         hard_minimum_folder_age_days = app_config.hard_minimum_folder_age_days
         # let's pass the minimum age the folders to be deleted should have
         soft_minimum_folder_age_days = request.args.get('minimum_age_days', None)
-        if soft_minimum_folder_age_days is None:
+        if soft_minimum_folder_age_days is None or isinstance(soft_minimum_folder_age_days, int):
             soft_minimum_folder_age_days = app_config.soft_minimum_folder_age_days
 
         list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key = os.path.getmtime)
@@ -375,16 +375,16 @@ class InstrumentQueryBackEnd:
                     job_id = monitor['job_id']
                 if job_status == 'done' and (token is None or token_expired):
                     list_scratch_dir_to_delete.append(scratch_dir)
-                elif job_status != 'done' and token_expired:
-                    incomplete_job_alert_message = f"The job {job_id} is yet to complete despite being older " \
-                                                   f"than {soft_minimum_folder_age_days} days. This has been detected " \
+                else:
+                    incomplete_job_alert_message = f"The job {job_id} is yet to complete despite being older "\
+                                                   f"than {soft_minimum_folder_age_days} days. This has been detected "\
                                                    f"while checking for deletion the folder {scratch_dir}."
+
                     logger.info(incomplete_job_alert_message)
                     if sentry_dsn is not None:
                         sentry_sdk.capture_message(incomplete_job_alert_message)
             else:
                 break
-        # list_scratch_dir_to_delete = list_scratch_dir[0:numb_folders_to_delete] if len(list_scratch_dir) >= 5 else list_scratch_dir
 
         pre_clean_space_stats = shutil.disk_usage(os.getcwd())
         pre_clean_available_space =  format_size(pre_clean_space_stats.free, format_returned='M')
