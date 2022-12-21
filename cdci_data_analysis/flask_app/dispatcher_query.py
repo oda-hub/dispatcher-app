@@ -365,11 +365,8 @@ class InstrumentQueryBackEnd:
                     dict_analysis_parameters = json.load(analysis_parameters_file)
                 token = dict_analysis_parameters.get('token', None)
                 token_expired = False
-                if token is not None:
-                    try:
-                        tokenHelper.get_decoded_token(token, secret_key)
-                    except jwt.exceptions.ExpiredSignatureError:
-                        token_expired = True
+                if token is not None and token['exp'] < current_time_secs:
+                    token_expired = True
 
                 job_monitor_path = os.path.join(scratch_dir, 'job_monitor.json')
                 with open(job_monitor_path, 'r') as jm_file:
@@ -378,7 +375,7 @@ class InstrumentQueryBackEnd:
                     job_id = monitor['job_id']
                 if job_status == 'done' and (token is None or token_expired):
                     list_scratch_dir_to_delete.append(scratch_dir)
-                if job_status != 'done':
+                if job_status != 'done' and token_expired:
                     incomplete_job_alert_message = f"The job {job_id} is yet to complete despite being older " \
                                                    f"than {soft_minimum_folder_age_days} days. This has been detected " \
                                                    f"while checking for deletion the folder {scratch_dir}."
