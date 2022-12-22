@@ -19,7 +19,6 @@ from cdci_data_analysis.pytest_fixtures import (
             dispatcher_test_conf_with_gallery_fn,
             dispatcher_test_conf_with_gallery_no_resolver_fn,
             dispatcher_test_conf_fn,
-            dispatcher_parameterized_hard_minimum_age_days,
             dispatcher_debug,
             sentry_sdk_fixture,
             dispatcher_nodebug,
