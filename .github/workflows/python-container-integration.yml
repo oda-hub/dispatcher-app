@@ -70,7 +70,12 @@ jobs:
     
     - name: Test ${{ matrix.plugin-name }} plugin with pytest
       run: |
+        set -x
+        export DISPATCHER_MOCK_KB=yes
         for plugin in integral integral-all-sky antares gw legacysurvey nb2workflow; do
-          cd plugin-$plugin && DISPATCHER_MOCK_KB=yes python -m pytest tests -sv --full-trace --log-cli-level=DEBUG 
+          (
+            cd plugin-$plugin
+            python -m pytest tests -sv --full-trace --log-cli-level=DEBUG 
+          )
         done
     
