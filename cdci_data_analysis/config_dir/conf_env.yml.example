@@ -23,6 +23,10 @@ dispatcher:
     # used for token validation
     secret_key:  YOUR_VERY_OWN_SECRET_KEY
 
+    # used when scratch folders needs to be deleted
+    soft_minimum_folder_age_days:
+    hard_minimum_folder_age_days:
+
     # maximum interval allowed during token refreshing
     token_max_refresh_interval: 604800
 

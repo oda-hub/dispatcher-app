@@ -372,6 +372,8 @@ dispatcher:
     logstash_port: 
     secret_key: 'secretkey_test'
     token_max_refresh_interval: 604800
+    soft_minimum_folder_age_days: 5
+    hard_minimum_folder_age_days: 30
     bind_options:
         bind_host: 0.0.0.0
         bind_port: 8011
@@ -704,6 +706,21 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_de
         gunicorn = False
         if os.environ.get('GUNICORN_DISPATCHER', 'no') == 'yes':
             gunicorn = True
+        # TODO has to be improved
+        if hasattr(request, 'param') and request.param is not None and isinstance(request.param, tuple):
+            param_name = request.param[0]
+            param_value = request.param[1]
+            if param_value is not None:
+                fn = f"test-dispatcher-conf-with-{param_name}-param.yaml"
+
+                with open(dispatcher_test_conf_fn) as f_default:
+                    disp_conf = yaml.safe_load(f_default.read())
+                disp_conf['dispatcher'][param_name] = param_value
+
+                with open(fn, "w") as f:
+                    yaml.dump(disp_conf, f)
+
+                dispatcher_test_conf_fn = fn
 
         dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=gunicorn)
 

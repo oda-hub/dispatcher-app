@@ -963,7 +963,7 @@ def test_email_run_analysis_callback(gunicorn_dispatcher_long_living_fixture, di
     if encoded_token is None:
         assert r.text == 'A token must be provided.'
     else:
-        assert r.text == ("Unfortunately, your privileges are not sufficient for this type of request.\n"
+        assert r.text == ("Unfortunately, your privileges are not sufficient to inspect the state for a given job_id.\n"
                           "Your privilege roles include ['general'], but the following roles are"
                           " missing: job manager.")
 
@@ -2409,6 +2409,87 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
         assert jdata["error_message"] == error_message
 
 
+@pytest.mark.parametrize("number_folders_to_delete", [1, 8])
+@pytest.mark.parametrize("soft_minimum_age_days", ["not_provided", 1, 5])
+@pytest.mark.parametrize("dispatcher_live_fixture", [("hard_minimum_folder_age_days", None),
+                                                     ("hard_minimum_folder_age_days", 1),
+                                                     ("hard_minimum_folder_age_days", 15),
+                                                     ("hard_minimum_folder_age_days", 60)], indirect=True)
+def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_minimum_age_days):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    token_payload = {
+        **default_token_payload,
+        "roles": ['space manager'],
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    expired_token = {
+        **default_token_payload,
+        "roles": ['space manager'],
+        "exp": int(time.time()) - 15
+    }
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    number_analysis_to_run = 8
+
+    for i in range(number_analysis_to_run):
+        ask(server,
+            params,
+            expected_query_status=["done"],
+            max_time_s=150
+            )
+
+    list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key=os.path.getmtime)
+
+    current_time = time.time()
+    one_month_secs = 60 * 60 * 24 * 30
+    if soft_minimum_age_days != 'not_provided':
+        soft_minimum_age_days_secs = soft_minimum_age_days * 60 *60 * 24
+    else:
+        soft_minimum_age_days_secs = one_month_secs
+
+    for scratch_dir in list_scratch_dir[0: number_folders_to_delete]:
+        # set folders to be deleted
+        os.utime(scratch_dir, (current_time, current_time - soft_minimum_age_days_secs))
+        analysis_parameters_path = os.path.join(scratch_dir, 'analysis_parameters.json')
+        with open(analysis_parameters_path) as analysis_parameters_file:
+            dict_analysis_parameters = json.load(analysis_parameters_file)
+        dict_analysis_parameters['token'] = expired_token
+        with open(analysis_parameters_path, 'w') as dict_analysis_parameters_outfile:
+            my_json_str = json.dumps(dict_analysis_parameters, indent=4)
+            dict_analysis_parameters_outfile.write(u'%s' % my_json_str)
+
+
+    params = {
+        'token': encoded_token,
+        'soft_minimum_age_days': soft_minimum_age_days
+    }
+
+    if soft_minimum_age_days == 'not_provided':
+        params.pop('soft_minimum_age_days')
+
+    c = requests.get(os.path.join(server, "free-up-space"), params=params)
+
+    jdata = c.json()
+
+    assert 'output_status' in jdata
+
+    assert jdata['output_status'] == f"Removed {number_folders_to_delete} scratch directories"
+
+    assert len(glob.glob("scratch_sid_*_jid_*")) == number_analysis_to_run - number_folders_to_delete
+
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
 def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
@@ -2468,7 +2549,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
         if 'job manager' not in roles:
             lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
             error_message = (
-                f'Unfortunately, your privileges are not sufficient for this type of request.\n'
+                f'Unfortunately, your privileges are not sufficient to inspect the state for a given job_id.\n'
                 f'Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}.'
             )
 
