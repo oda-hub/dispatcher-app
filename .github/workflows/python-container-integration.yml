@@ -56,7 +56,7 @@ jobs:
 
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi      
 
-        pip install -e .[test]
+        pip install -e .[test] -k not test_empty_request and not test_no_debug_mode_empty_request
 
         for plugin in integral integral-all-sky antares gw legacysurvey nb2workflow; do
           git clone https://github.com/oda-hub/dispatcher-plugin-$plugin plugin-$plugin
