@@ -75,7 +75,7 @@ jobs:
         for plugin in integral integral-all-sky antares gw legacysurvey nb2workflow; do
           (
             cd plugin-$plugin
-            python -m pytest tests -sv --full-trace --log-cli-level=DEBUG 
+            python -m pytest tests -sv --full-trace --log-cli-level=DEBUG -k 'not test_no_debug_mode_empty_request and not test_empty_request'
           )
         done
     
