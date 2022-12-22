@@ -707,7 +707,7 @@ def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_de
         if os.environ.get('GUNICORN_DISPATCHER', 'no') == 'yes':
             gunicorn = True
         # TODO has to be improved
-        if request.param is not None and isinstance(request.param, tuple):
+        if hasattr(request, 'param') and request.param is not None and isinstance(request.param, tuple):
             param_name = request.param[0]
             param_value = request.param[1]
             if param_value is not None:
