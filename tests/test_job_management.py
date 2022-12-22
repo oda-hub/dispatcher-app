@@ -2411,10 +2411,11 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
 
 @pytest.mark.parametrize("number_folders_to_delete", [1, 8])
 @pytest.mark.parametrize("soft_minimum_age_days", ["not_provided", 1, 5])
-def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_minimum_age_days):
+@pytest.mark.parametrize("dispatcher_parameterized_hard_minimum_age_days", ["not_provided", 15, 60], indirect=True)
+def test_free_up_space(dispatcher_parameterized_hard_minimum_age_days, number_folders_to_delete, soft_minimum_age_days):
     DispatcherJobState.remove_scratch_folders()
 
-    server = dispatcher_live_fixture
+    server = dispatcher_parameterized_hard_minimum_age_days
 
     logger.info("constructed server: %s", server)
 

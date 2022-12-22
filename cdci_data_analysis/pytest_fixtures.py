@@ -696,6 +696,39 @@ def empty_products_user_files_fixture(default_params_dict, default_token_payload
 
     yield scratch_params
 
+@pytest.fixture
+def dispatcher_parameterized_hard_minimum_age_days(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug, request):
+    if request.param is not None and isinstance(request.param, int):
+        fn = "test-dispatcher-conf-with-hard-minimum-age-days-param.yaml"
+
+        with open(dispatcher_test_conf_fn) as f_default:
+            disp_conf = yaml.safe_load(f_default.read())
+        disp_conf['dispatcher']['hard_minimum_folder_age_days'] = request.param
+
+        with open(fn, "w") as f:
+            yaml.dump(disp_conf, f)
+
+        dispatcher_test_conf_fn = fn
+
+    if os.getenv('TEST_ONLY_FAST') == 'true':
+        # in this case, run all dispatchers long-living, since it's faster but less safe
+        yield request.getfixturevalue('dispatcher_long_living_fixture')
+    else:
+        gunicorn = False
+        if os.environ.get('GUNICORN_DISPATCHER', 'no') == 'yes':
+            gunicorn = True
+
+        dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=gunicorn)
+
+        service = dispatcher_state['url']
+        pid = dispatcher_state['pid']
+
+        yield service
+
+        kill_child_processes(pid, signal.SIGINT)
+        os.kill(pid, signal.SIGINT)
+
+
 
 @pytest.fixture
 def dispatcher_live_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug, request):
