@@ -6,6 +6,7 @@ Created on Wed May 10 10:55:20 2017
 @author: andrea tramcere
 """
 import os
+import time
 from builtins import (open, str, range,
                       object)
 
@@ -31,10 +32,8 @@ import gzip
 import socket
 import logstash
 import shutil
-import typing
 import jwt
 import re
-import sentry_sdk
 
 from ..plugins import importer
 from ..analysis.queries import * # TODO: evil wildcard import
@@ -43,7 +42,7 @@ from ..analysis.instrument import params_not_to_be_included
 from ..analysis.hash import make_hash
 from ..analysis.hash import default_kw_black_list
 from ..analysis.job_manager import job_factory
-from ..analysis.io_helper import FilePath
+from ..analysis.io_helper import FilePath, format_size
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
@@ -322,39 +321,111 @@ class InstrumentQueryBackEnd:
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
     @staticmethod
+    def free_up_space(app):
+        token = request.args.get('token', None)
+
+        sentry_dsn = getattr(app.config.get('conf'), 'sentry_url', None)
+        if sentry_dsn is not None:
+            sentry_sdk.init(
+                dsn=sentry_dsn,
+                # Set traces_sample_rate to 1.0 to capture 100%
+                # of transactions for performance monitoring.
+                # We recommend adjusting this value in production.
+                traces_sample_rate=1.0,
+                debug=True,
+                max_breadcrumbs=50,
+            )
+
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
+
+        output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                      required_roles=['space manager'],
+                                                                      action="free_up space on the server")
+
+        if output_code is not None:
+            return make_response(output, output_code)
+
+        current_time_secs = time.time()
+        hard_minimum_folder_age_days = app_config.hard_minimum_folder_age_days
+        # let's pass the minimum age the folders to be deleted should have
+        soft_minimum_folder_age_days = request.args.get('soft_minimum_age_days', None)
+        if soft_minimum_folder_age_days is None or isinstance(soft_minimum_folder_age_days, int):
+            soft_minimum_folder_age_days = app_config.soft_minimum_folder_age_days
+        else:
+            soft_minimum_folder_age_days = int(soft_minimum_folder_age_days)
+
+        list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key = os.path.getmtime)
+        list_scratch_dir_to_delete = []
+
+        for scratch_dir in list_scratch_dir:
+            scratch_dir_age_days = (current_time_secs - os.path.getmtime(scratch_dir)) / (60 * 60 * 24)
+            if scratch_dir_age_days >= hard_minimum_folder_age_days:
+                list_scratch_dir_to_delete.append(scratch_dir)
+            elif scratch_dir_age_days  >= soft_minimum_folder_age_days:
+                analysis_parameters_path = os.path.join(scratch_dir, 'analysis_parameters.json')
+                with open(analysis_parameters_path) as analysis_parameters_file:
+                    dict_analysis_parameters = json.load(analysis_parameters_file)
+                token = dict_analysis_parameters.get('token', None)
+                token_expired = False
+                if token is not None and token['exp'] < current_time_secs:
+                    token_expired = True
+
+                job_monitor_path = os.path.join(scratch_dir, 'job_monitor.json')
+                with open(job_monitor_path, 'r') as jm_file:
+                    monitor = json.load(jm_file)
+                    job_status = monitor['status']
+                    job_id = monitor['job_id']
+                if job_status == 'done' and (token is None or token_expired):
+                    list_scratch_dir_to_delete.append(scratch_dir)
+                else:
+                    incomplete_job_alert_message = f"The job {job_id} is yet to complete despite being older "\
+                                                   f"than {soft_minimum_folder_age_days} days. This has been detected "\
+                                                   f"while checking for deletion the folder {scratch_dir}."
+
+                    logger.info(incomplete_job_alert_message)
+                    if sentry_dsn is not None:
+                        sentry_sdk.capture_message(incomplete_job_alert_message)
+            else:
+                break
+
+        pre_clean_space_stats = shutil.disk_usage(os.getcwd())
+        pre_clean_available_space =  format_size(pre_clean_space_stats.free, format_returned='M')
+
+        logger.info(f"Number of scratch folder before clean-up: {len(list_scratch_dir)}.\n"
+                    f"The available amount of space is {pre_clean_available_space}")
+
+        for d in list_scratch_dir_to_delete:
+            shutil.rmtree(d)
+
+        post_clean_space_space = shutil.disk_usage(os.getcwd())
+        post_clean_available_space = format_size(post_clean_space_space.free, format_returned='M')
+
+        list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"))
+        logger.info(f"Number of scratch folder after clean-up: {len(list_scratch_dir)}.\n"
+                    f"Removed {len(list_scratch_dir_to_delete)} scratch directories, "
+                    f"and now the available amount of space is {post_clean_available_space}")
+
+        result_scratch_dir_deletion = f"Removed {len(list_scratch_dir_to_delete)} scratch directories"
+        logger.info(result_scratch_dir_deletion)
+
+        return jsonify(dict(output_status=result_scratch_dir_deletion))
+
+    @staticmethod
     def inspect_state(app):
         token = request.args.get('token', None)
-        if token is None:
-            # TODO what about using the RequestNotAuthorized exception?
-            # raise RequestNotAuthorized("A token must be provided.")
-            return make_response('A token must be provided.'), 403
-        try:
-            secret_key = app.config.get('conf').secret_key
-            decoded_token = tokenHelper.get_decoded_token(token, secret_key)
-            logger.info("==> token %s", decoded_token)
-        except jwt.exceptions.ExpiredSignatureError:
-            # raise RequestNotAuthorized("The token provided is expired.")
-            return make_response('The token provided is expired.'), 403
-        except jwt.exceptions.InvalidTokenError:
-            # raise RequestNotAuthorized("The token provided is not valid.")
-            return make_response('The token provided is not valid.'), 403
+
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
+        output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                      required_roles=['job manager'],
+                                                                      action="inspect the state for a given job_id")
+
+        if output_code is not None:
+            return make_response(output, output_code)
 
         recent_days = request.args.get('recent_days', 3, type=float)
         job_id = request.args.get('job_id', None)
-
-        roles = tokenHelper.get_token_roles(decoded_token)
-
-        required_roles = ['job manager']
-        # no need to have both, one of those two is sufficient
-        if not any(item in roles for item in required_roles):
-            lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
-            message = (
-                f"Unfortunately, your privileges are not sufficient for this type of request.\n"
-                f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
-            )
-            # raise RequestNotAuthorized(message=message)
-            return make_response(message), 403
-
         records = []
 
         for scratch_dir in glob.glob("scratch_sid_*_jid_*"):

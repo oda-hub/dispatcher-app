@@ -222,7 +222,7 @@ class BasicCatalog(object):
             lat =table[table.meta['LAT_NAME']]
             unit = table.meta['COORD_UNIT']
             cat= cls(src_names,lon,lat,significance,_table=table,unit=unit,frame=frame)
-        except:
+        except Exception as e:
             raise RuntimeError('Table in fits file is not valid to build Catalog')
 
         return  cat
