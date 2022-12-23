@@ -859,7 +859,9 @@ class Energy(Float):
         Energy.check_energy_value(value, units=units, name=name)
 
 class SpectralBoundary(Energy):
-    pass
+    @staticmethod
+    def check_value(value, units=None, name=None):
+        SpectralBoundary.check_energy_value(value, units=units, name=name)
 
 
 class DetectionThreshold(Float):
