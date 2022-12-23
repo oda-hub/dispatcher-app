@@ -223,10 +223,7 @@ class Parameter:
                 par_default_format is not None and par_default_format != '':
             par_format = par_default_format
 
-        if check_value is not None:
-            logger.warning('The check_value argument of the %s parameter class is DEPRECATED', 
-                            self.__class__.__name__)
-            self.check_value = check_value
+        self.check_value = check_value
 
         if allowed_units is not None:
             # handles case of []
@@ -488,14 +485,11 @@ class String(Parameter):
         _allowed_units = ['str']
         super().__init__(value=value,
                          units=name_format,
+                         check_value=self.check_name_value,
                          name=name,
                          allowed_units=_allowed_units,
                          allowed_values=allowed_values)
-        
-    @staticmethod
-    def check_value(value, units=None, name=None, par_format=None):
-        String.check_name_value(value, units=units, name=name, par_format=par_format)
-        
+
     @staticmethod
     def check_name_value(value, units=None, name=None, par_format=None):
         pass
@@ -525,14 +519,12 @@ class Float(NumericParameter):
                  min_value= None,
                  max_value = None):
 
-        if check_value is not None:
-            self.check_value = check_value
-            logger.warning('The check_value argument of the %s parameter class is DEPRECATED', 
-                           self.__class__.__name__)
-            
+        if check_value is None:
+            check_value = self.check_float_value
         
         super().__init__(value=value,
                          units=units,
+                         check_value=check_value,
                          default_units=default_units,
                          name=name,
                          default_type=float,
@@ -581,10 +573,7 @@ class Float(NumericParameter):
             except:
                 raise RuntimeError(f'the Float parameter {name} cannot be assigned the value {value} '
                                    f'of type {type(value).__name__}')
-    
-    @staticmethod
-    def check_value(value, units=None, name=None):
-        Float.check_float_value(value, units=units, name=name)
+
 
 class Integer(NumericParameter):
     owl_uris = "http://www.w3.org/2001/XMLSchema#int"
@@ -593,13 +582,12 @@ class Integer(NumericParameter):
 
         _allowed_units = None
 
-        if check_value is not None:
-            self.check_value = check_value
-            logger.warning('The check_value argument of the %s parameter class is DEPRECATED', 
-                           self.__class__.__name__)
+        if check_value is None:
+            check_value = self.check_int_value
         
         super().__init__(value=value,
                          units=units,
+                         check_value=check_value,
                          default_type=int,
                          allowed_types=[int],
                          name=name,
@@ -645,9 +633,6 @@ class Integer(NumericParameter):
                 raise RuntimeError(f'the Integer parameter {name} cannot be assigned the value {value} '
                                    f'of type {type(value).__name__}')
 
-    @staticmethod
-    def check_value(val, units=None, name=None):
-        Integer.check_int_value(val, units, name)
 
 class Time(Parameter):
     # TODO:
@@ -742,6 +727,7 @@ class InputProdList(Parameter):
 
         super().__init__(value=value,
                          par_format=_format,
+                         check_value=self.check_list_value,
                          name=name,
                          allowed_units=_allowed_units)
 
@@ -793,9 +779,6 @@ class InputProdList(Parameter):
         else:
             raise RuntimeError(f'{name} units not valid {par_format}')
 
-    @staticmethod
-    def check_value(val, units=None, name=None, par_format=None):
-        InputProdList.check_list_value(val, units, name, par_format)
 
 class Angle(Float):
     owl_uris = ["http://odahub.io/ontology#PointOfInterestRA", "http://odahub.io/ontology#PointOfInterestDEC"]
@@ -836,16 +819,15 @@ class Angle(Float):
 
 class Energy(Float):
     def __init__(self, value=None, E_units='keV', name=None, check_value=None):
-        if check_value is not None:
-            self.check_value = check_value
-            logger.warning('The check_value argument of the %s parameter class is DEPRECATED', 
-                           self.__class__.__name__)
-        
+        if check_value is None:
+            check_value = self.check_energy_value
+
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
 
         super().__init__(value=value,
                          units=E_units,
                          default_units='keV',
+                         check_value=check_value,
                          name=name,
                          allowed_units=_allowed_units)
 
@@ -853,15 +835,10 @@ class Energy(Float):
     @staticmethod
     def check_energy_value(value, units=None, name=None):
         Float.check_float_value(value, units=units, name=name)
-    
-    @staticmethod
-    def check_value(value, units=None, name=None):
-        Energy.check_energy_value(value, units=units, name=name)
+
 
 class SpectralBoundary(Energy):
-    @staticmethod
-    def check_value(value, units=None, name=None):
-        SpectralBoundary.check_energy_value(value, units=units, name=name)
+    pass
 
 
 class DetectionThreshold(Float):
@@ -870,6 +847,8 @@ class DetectionThreshold(Float):
 
         super().__init__(value=value,
                          units=units,
+                         # TODO to check if it's correct
+                         check_value=self.check_float_value,
                          name=name,
                          allowed_units=_allowed_units)
 
@@ -879,6 +858,7 @@ class UserCatalog(Parameter):
         _allowed_units = ['str']
         super().__init__(value=value,
                          par_format=name_format,
+                         check_value=self.check_name_value,
                          name=name,
                          allowed_units=_allowed_units)
 
@@ -886,10 +866,6 @@ class UserCatalog(Parameter):
     def check_name_value(value, units=None, name=None, par_format=None):
         pass
 
-    @staticmethod
-    def check_value(value, units=None, name=None, par_format=None):
-        UserCatalog.check_name_value(value, units, name, par_format)
-        
 class Boolean(Parameter):
     owl_uris = ['http://www.w3.org/2001/XMLSchema#bool']
     
