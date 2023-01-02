@@ -2761,13 +2761,20 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     assert parsed_notebook.cells[0].source == "# Notebook automatically generated from MMODA"
     assert parsed_notebook.cells[1].source == extracted_api_code
 
-    assert repo.head.reference.commit.message is not None
     request_url = generate_commit_request_url(products_url, request_dict)
-    commit_message = (f"Stored API code of MMODA request by {token_payload['name']} for a {request_dict['product_type']}"
+    notebook_commit_message = (f"Stored API code of MMODA request by {token_payload['name']} for a {request_dict['product_type']}"
                       f" from the instrument {request_dict['instrument']}"
                       f"\nthe original request was generated via {request_url}\n"
                       "to retrieve the result please follow the link")
-    assert repo.head.reference.commit.message == commit_message
+
+    # assert repo.head.reference.commit.message is not None
+    # assert repo.head.reference.commit.message == commit_message
+
+    git_notebook_commit_msg = list(repo.iter_commits(paths=api_code_file_name))[0].message
+    config_file_commit_msg = list(repo.iter_commits(paths='.renku/renku.ini'))[0].message
+
+    assert git_notebook_commit_msg == notebook_commit_message
+    assert config_file_commit_msg == 'Update Renku config file with starting notebook'
 
     shutil.rmtree(repo.working_dir)
 
