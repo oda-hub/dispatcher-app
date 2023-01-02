@@ -2766,7 +2766,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     commit_message = (f"Stored API code of MMODA request by {token_payload['name']} for a {request_dict['product_type']}"
                       f" from the instrument {request_dict['instrument']}"
                       f"\nthe original request was generated via {request_url}\n"
-                      "to retrieve the result please follow the link. The Renku config file has also been updated")
+                      "to retrieve the result please follow the link")
     assert repo.head.reference.commit.message == commit_message
 
     shutil.rmtree(repo.working_dir)
