@@ -272,7 +272,7 @@ def generate_commit_request_url(products_url, params_dic, use_scws=None):
 
 
 def commit_and_push_file(repo, file_path, user_name=None, user_email=None, products_url=None, request_dict=None, config_file_path=None):
-    add_info = repo.index.add(file_path)
+    repo.index.add(file_path)
     author = None
 
     commit_msg = "Stored API code of MMODA request"
@@ -292,7 +292,7 @@ def commit_and_push_file(repo, file_path, user_name=None, user_email=None, produ
 
     if config_file_path is not None:
         commit_msg += ". The Renku config file has also been updated"
-        add_info = repo.index.add(config_file_path)
+        repo.index.add(config_file_path)
 
     commit_info = repo.index.commit(commit_msg, author=author)
     repo.remote(name="origin")
