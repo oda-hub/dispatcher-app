@@ -68,7 +68,7 @@ def push_api_code(api_code,
         logger.info(step)
 
         step = f'checking renku ini file for the starting notebook, and push the update if necessary'
-        update_default_url_renku_ini(repo, file_name, user_name=user_name, user_email=user_email)
+        update_and_commit_default_url_renku_ini(repo, file_name, user_name=user_name, user_email=user_email)
         logger.info(step)
 
         if not branch_existing:
@@ -209,7 +209,28 @@ def write_notebook_file(repo, nb, file_name):
     return file_path
 
 
-def update_default_url_renku_ini(repo, file_name, user_name=None, user_email=None):
+def add_commit_push(repo, commit_msg, files_path_to_add, user_name=None, user_email=None):
+    if isinstance(files_path_to_add, list):
+        for path in files_path_to_add:
+            repo.index.add(path)
+    else:
+        repo.index.add(files_path_to_add)
+
+    author = None
+
+    if user_name is not None:
+        author = Actor(user_name, user_email)
+
+    commit_info = repo.index.commit(commit_msg, author=author)
+    repo.remote(name="origin")
+    # TODO make it work with methods from GitPython
+    # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
+    repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref))
+
+    return commit_info
+
+
+def update_and_commit_default_url_renku_ini(repo, file_name, user_name=None, user_email=None):
     repo_dir = repo.working_dir
 
     renku_ini_path = None
@@ -226,18 +247,7 @@ def update_default_url_renku_ini(repo, file_name, user_name=None, user_email=Non
                 renku_config.write(renku_ini_file)
 
             commit_msg = "Update Renku config file with starting notebook"
-            repo.index.add(renku_ini_path)
-
-            author = None
-
-            if user_name is not None:
-                author = Actor(user_name, user_email)
-
-            commit_info = repo.index.commit(commit_msg, author=author)
-            repo.remote(name="origin")
-            # TODO make it work with methods from GitPython
-            # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
-            repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref))
+            add_commit_push(repo, commit_msg, renku_ini_path, user_name, user_email)
             logger.info("renku config push operation complete")
 
     return renku_ini_path
@@ -287,12 +297,8 @@ def generate_commit_request_url(products_url, params_dic, use_scws=None):
 
 
 def commit_and_push_notebook_file(repo, file_path, user_name=None, user_email=None, products_url=None, request_dict=None):
-    repo.index.add(file_path)
-    author = None
-
     commit_msg = "Stored API code of MMODA request"
     if user_name is not None:
-        author = Actor(user_name, user_email)
         commit_msg += f" by {user_name}"
 
     if request_dict is not None:
@@ -304,11 +310,7 @@ def commit_and_push_notebook_file(repo, file_path, user_name=None, user_email=No
         commit_msg += (f"\nthe original request was generated via {request_url}\n"
                        "to retrieve the result please follow the link")
 
-    commit_info = repo.index.commit(commit_msg, author=author)
-    repo.remote(name="origin")
-    # TODO make it work with methods from GitPython
-    # e.g. push_info = origin.push(refspec='origin:' + str(repo.head.ref))
-    repo.git.push("--set-upstream", repo.remote().name, str(repo.head.ref))
+    commit_info = add_commit_push(repo, commit_msg, file_path, user_name, user_email)
     logger.info("notebook commit push operation complete")
 
     return commit_info
