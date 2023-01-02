@@ -2750,11 +2750,10 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
 
     assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}_{notebook_hash}" \
                      f"&commit={repo.head.commit.hexsha}" \
-                     f"&notebook={api_code_file_name}" \
                      f"&env[ODA_TOKEN]={encoded_token}"
+                     # f"&notebook={api_code_file_name}" \
 
     logger.info("Renku url: %s", c.text)
-
 
     assert os.path.exists(api_code_file_path)
     parsed_notebook = nbf.read(api_code_file_path, 4)
@@ -2767,7 +2766,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     commit_message = (f"Stored API code of MMODA request by {token_payload['name']} for a {request_dict['product_type']}"
                       f" from the instrument {request_dict['instrument']}"
                       f"\nthe original request was generated via {request_url}\n"
-                      "to retrieve the result please follow the link")
+                      "to retrieve the result please follow the link. The Renku config file has also been updated")
     assert repo.head.reference.commit.message == commit_message
 
     shutil.rmtree(repo.working_dir)
