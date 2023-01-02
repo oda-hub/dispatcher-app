@@ -5,10 +5,10 @@ import traceback
 import nbformat as nbf
 import shutil
 import giturlparse
-import sentry_sdk
 import copy
 
 from git import Repo, Actor
+from configparser import ConfigParser
 
 from ..app_logging import app_logging
 from .exceptions import RequestNotUnderstood
@@ -72,9 +72,14 @@ def push_api_code(api_code,
             new_file_path = write_notebook_file(repo, nb_obj, file_name)
             logger.info(step)
 
-            step = f'committing and pushing the api code to the renku repository'
-            commit_info = commit_and_push_file(repo, new_file_path, user_name=user_name, user_email=user_email, products_url=products_url, request_dict=request_dict)
+            step = f'updating renku ini file with the starting notebook'
+            renku_config_path = update_default_url_renku_ini(repo, file_name)
             logger.info(step)
+
+            step = f'committing and pushing the api code to the renku repository'
+            commit_info = commit_and_push_file(repo, new_file_path, user_name=user_name, user_email=user_email, products_url=products_url, request_dict=request_dict, config_file_path=renku_config_path)
+            logger.info(step)
+
         else:
             commit_info = repo.head.commit
 
@@ -83,7 +88,7 @@ def push_api_code(api_code,
                                                        renku_base_project_url=renku_base_project_url,
                                                        branch_name=branch_name,
                                                        commit=commit_info.hexsha,
-                                                       notebook_name=file_name,
+                                                       # notebook_name=file_name,
                                                        token=token)
         logger.info(step)
 
@@ -204,6 +209,24 @@ def write_notebook_file(repo, nb, file_name):
     return file_path
 
 
+def update_default_url_renku_ini(repo, file_name):
+    repo_dir = repo.working_dir
+
+    renku_ini_path = None
+
+    if os.path.exists(os.path.join(repo_dir, '.renku', 'renku.ini')):
+        renku_ini_path = os.path.join(repo_dir, '.renku', 'renku.ini')
+        renku_config = ConfigParser()
+        renku_config.read(renku_ini_path)
+
+        if 'renku "interactive"' in renku_config:
+            renku_config['renku "interactive"']['default_url'] = f'/lab/tree/{file_name}'
+
+            with open(renku_ini_path, 'w') as renku_ini_file:
+                renku_config.write(renku_ini_file)
+
+    return renku_ini_path
+
 def generate_nb_hash(nb_obj):
     copied_notebook_obj = copy.deepcopy(nb_obj)
 
@@ -248,7 +271,7 @@ def generate_commit_request_url(products_url, params_dic, use_scws=None):
     return request_url
 
 
-def commit_and_push_file(repo, file_path, user_name=None, user_email=None, products_url=None, request_dict=None):
+def commit_and_push_file(repo, file_path, user_name=None, user_email=None, products_url=None, request_dict=None, config_file_path=None):
     add_info = repo.index.add(file_path)
     author = None
 
@@ -265,6 +288,11 @@ def commit_and_push_file(repo, file_path, user_name=None, user_email=None, produ
         request_url = generate_commit_request_url(products_url, request_dict)
         commit_msg += (f"\nthe original request was generated via {request_url}\n"
                        "to retrieve the result please follow the link")
+
+
+    if config_file_path is not None:
+        commit_msg += ". The Renku config file has also been updated"
+        add_info = repo.index.add(config_file_path)
 
     commit_info = repo.index.commit(commit_msg, author=author)
     repo.remote(name="origin")
