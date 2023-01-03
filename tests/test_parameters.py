@@ -351,12 +351,19 @@ def test_parameter_bounds():
     fl_param = Float(5., name = 'FL', min_value = 2.2, max_value = 7.7)
     with pytest.raises(ValueError):
         int_param.value = 1
+    with pytest.raises(ValueError):
         int_param.value = 10
+    with pytest.raises(ValueError):
         fl_param.value = 1.2
+    with pytest.raises(ValueError):
         fl_param.value = 8.3
+    with pytest.raises(ValueError):
         Integer(1, name = 'INT', min_value = 2, max_value = 8)
+    with pytest.raises(ValueError):
         Float(1.1, name = 'FL', min_value = 2.2, max_value = 7.7)
+    with pytest.raises(ValueError):
         Integer(10, name = 'INT', min_value = 2, max_value = 8)
+    with pytest.raises(ValueError):
         Float(8.2, name = 'FL', min_value = 2.2, max_value = 7.7)
     with pytest.raises(NotImplementedError):
         Parameter(value = 1, name = 'foo', min_value = 0, max_value=10)
