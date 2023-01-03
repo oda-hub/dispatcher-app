@@ -15,7 +15,6 @@ from datetime import datetime, timedelta
 from dateutil import parser, tz
 from functools import reduce
 from urllib import parse
-from configparser import ConfigParser
 import nbformat as nbf
 import yaml
 import gzip
