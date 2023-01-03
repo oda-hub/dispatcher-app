@@ -57,15 +57,15 @@ def push_api_code(api_code,
 
         step = 'generating hash of the config content'
         logger.info(step)
-        renku_ini_hash = generate_ini_file_hash(config_ini_obj)
+        config_ini_hash = generate_ini_file_hash(config_ini_obj)
 
         step = 'assigning branch name, using the job_id and the notebook hash'
         logger.info(step)
-        branch_name = get_branch_name(job_id=job_id, notebook_hash=notebook_hash, renku_ini_hash=renku_ini_hash)
+        branch_name = get_branch_name(job_id=job_id, notebook_hash=notebook_hash, renku_ini_hash=config_ini_hash)
 
         step = 'check branch existence, using the job_id and the notebook hash'
         logger.info(step)
-        branch_existing = check_job_id_branch_is_present(repo, job_id=job_id, notebook_hash=notebook_hash)
+        branch_existing = check_job_id_branch_is_present(repo, job_id=job_id, notebook_hash=notebook_hash, config_ini_hash=config_ini_hash)
 
         step = f'checkout branch {branch_name}'
         if branch_existing:
@@ -175,10 +175,10 @@ def get_list_remote_branches_repo(repo):
     return list_branches
 
 
-def check_job_id_branch_is_present(repo, job_id, notebook_hash):
+def check_job_id_branch_is_present(repo, job_id, notebook_hash, config_ini_hash):
     list_branches = get_list_remote_branches_repo(repo)
 
-    r = re.compile(f"^(?!renku/autosave/).*_{job_id}_{notebook_hash}")
+    r = re.compile(f"^(?!renku/autosave/).*_{job_id}_{notebook_hash}_{config_ini_hash}")
     filtered_list = list(filter(r.match, list_branches))
 
     return len(filtered_list) == 1
