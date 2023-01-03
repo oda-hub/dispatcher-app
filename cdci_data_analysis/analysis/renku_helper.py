@@ -282,9 +282,9 @@ def generate_nb_hash(nb_obj):
     return notebook_hash
 
 
-def create_renku_ini_config_obj(file_name):
+def create_renku_ini_config_obj(default_url_file_name):
     renku_config = ConfigParser()
-    renku_config['renku "interactive"'] = {'default_url': f'/lab/tree/{file_name}'}
+    renku_config['renku "interactive"'] = {'default_url': f'/lab/tree/{default_url_file_name}'}
 
     return renku_config
 
