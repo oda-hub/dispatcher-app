@@ -32,65 +32,70 @@ def push_api_code(api_code,
     repo = None
     try:
         step = 'cloning repository'
+        logger.info(step)
         repo = clone_renku_repo(renku_gitlab_repository_url,
                                 renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
-        logger.info(step)
 
         step = f'removing token from the api_code'
+        logger.info(step)
         token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
         api_code = re.sub(token_pattern, '"token": os.environ[\'ODA_TOKEN\'],', api_code, flags=re.DOTALL)
         api_code = "import os\n\n" + api_code
-        logger.info(step)
 
         step = f'creating new notebook with the api code'
         file_name = generate_notebook_filename(job_id=job_id)
+        logger.info(step)
         nb_obj = create_new_notebook_with_code(api_code)
-        logger.info(step)
 
-        step = f'generating hash of the notebook content'
-        notebook_hash = generate_nb_hash(nb_obj)
+        step = 'generating hash of the notebook content'
         logger.info(step)
+        notebook_hash = generate_nb_hash(nb_obj)
+
+        step = 'checking renku ini file for the starting notebook, and push the update if necessary'
+        logger.info(step)
+        renku_ini_path = update_and_commit_default_url_renku_ini(repo, file_name, user_name=user_name, user_email=user_email)
+
+        step = 'generating hash of the config file'
+        logger.info(step)
+        renku_ini_hash = generate_ini_file_hash(renku_ini_path)
 
         step = 'assigning branch name, using the job_id and the notebook hash'
-        branch_name = get_branch_name(job_id=job_id, notebook_hash=notebook_hash)
         logger.info(step)
+        branch_name = get_branch_name(job_id=job_id, notebook_hash=notebook_hash, renku_ini_hash=renku_ini_hash)
 
         step = 'check branch existence, using the job_id and the notebook hash'
-        branch_existing = check_job_id_branch_is_present(repo, job_id=job_id, notebook_hash=notebook_hash)
         logger.info(step)
+        branch_existing = check_job_id_branch_is_present(repo, job_id=job_id, notebook_hash=notebook_hash)
 
         step = f'checkout branch {branch_name}'
         if branch_existing:
             step += ', since the branch already exists so we perform a git pull'
         else:
             step += ', but we don\'t perform any git pull since the branch does not exist'
+        logger.info(step)
         repo = checkout_branch_renku_repo(repo, branch_name, pull=branch_existing)
-        logger.info(step)
 
-        step = f'checking renku ini file for the starting notebook, and push the update if necessary'
-        update_and_commit_default_url_renku_ini(repo, file_name, user_name=user_name, user_email=user_email)
-        logger.info(step)
 
         if not branch_existing:
             step = 'writing notebook file'
+            logger.info(step)
             new_file_path = write_notebook_file(repo, nb_obj, file_name)
-            logger.info(step)
 
-            step = f'committing and pushing the api code to the renku repository'
-            commit_info = commit_and_push_notebook_file(repo, new_file_path, user_name=user_name, user_email=user_email, products_url=products_url, request_dict=request_dict)
+            step = 'committing and pushing the api code to the renku repository'
             logger.info(step)
+            commit_info = commit_and_push_notebook_file(repo, new_file_path, user_name=user_name, user_email=user_email, products_url=products_url, request_dict=request_dict)
 
         else:
             commit_info = repo.head.commit
 
-        step = f'generating a valid url to start a new session on the new branch'
+        step = 'generating a valid url to start a new session on the new branch'
+        logger.info(step)
         renku_session_url = generate_renku_session_url(repo,
                                                        renku_base_project_url=renku_base_project_url,
                                                        branch_name=branch_name,
                                                        commit=commit_info.hexsha,
                                                        # notebook_name=file_name,
                                                        token=token)
-        logger.info(step)
 
     except Exception as e:
         error_message = error_message.format(step=step)
@@ -176,7 +181,7 @@ def check_job_id_branch_is_present(repo, job_id, notebook_hash):
     return len(filtered_list) == 1
 
 
-def get_branch_name(job_id=None, notebook_hash=None):
+def get_branch_name(job_id=None, notebook_hash=None, renku_ini_hash=None):
     branch_name = 'mmoda_request'
 
     if job_id is not None:
@@ -184,6 +189,9 @@ def get_branch_name(job_id=None, notebook_hash=None):
 
     if notebook_hash is not None:
         branch_name += f'_{notebook_hash}'
+
+    if renku_ini_hash is not None:
+        branch_name += f'_{renku_ini_hash}'
 
     return branch_name
 
@@ -251,6 +259,21 @@ def update_and_commit_default_url_renku_ini(repo, file_name, user_name=None, use
             logger.info("renku config push operation complete")
 
     return renku_ini_path
+
+
+def generate_ini_file_hash(ini_file_path):
+    ini_config = ConfigParser()
+    ini_config.read(ini_file_path)
+
+    try:
+        ini_config_dict = { s:dict(ini_config.items(s)) for s in ini_config.sections() }
+        ini_hash = make_hash(ini_config_dict)
+    except:
+        logger.error(f'Unable to generate a hash of the ini config file: {ini_file_path}')
+        raise Exception(f'Unable to generate a hash of the ini config file: {ini_file_path}')
+
+    return ini_hash
+
 
 def generate_nb_hash(nb_obj):
     copied_notebook_obj = copy.deepcopy(nb_obj)
