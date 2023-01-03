@@ -42,7 +42,7 @@ def push_api_code(api_code,
         api_code = re.sub(token_pattern, '"token": os.environ[\'ODA_TOKEN\'],', api_code, flags=re.DOTALL)
         api_code = "import os\n\n" + api_code
 
-        step = f'creating new notebook with the api code'
+        step = 'creating new notebook with the api code'
         file_name = generate_notebook_filename(job_id=job_id)
         logger.info(step)
         nb_obj = create_new_notebook_with_code(api_code)
@@ -51,13 +51,13 @@ def push_api_code(api_code,
         logger.info(step)
         notebook_hash = generate_nb_hash(nb_obj)
 
-        step = 'checking renku ini file for the starting notebook, and push the update if necessary'
+        step = 'creating renku ini config file'
         logger.info(step)
-        renku_ini_path = update_and_commit_default_url_renku_ini(repo, file_name, user_name=user_name, user_email=user_email)
+        config_ini_obj = create_renku_ini_config_obj(file_name)
 
-        step = 'generating hash of the config file'
+        step = 'generating hash of the config content'
         logger.info(step)
-        renku_ini_hash = generate_ini_file_hash(renku_ini_path)
+        renku_ini_hash = generate_ini_file_hash(config_ini_obj)
 
         step = 'assigning branch name, using the job_id and the notebook hash'
         logger.info(step)
@@ -75,8 +75,11 @@ def push_api_code(api_code,
         logger.info(step)
         repo = checkout_branch_renku_repo(repo, branch_name, pull=branch_existing)
 
-
         if not branch_existing:
+            step = 'updating renku ini file for the starting notebook, and push the update'
+            logger.info(step)
+            update_and_commit_default_url_renku_ini(repo, config_ini_obj, user_name=user_name, user_email=user_email)
+
             step = 'writing notebook file'
             logger.info(step)
             new_file_path = write_notebook_file(repo, nb_obj, file_name)
@@ -238,39 +241,28 @@ def add_commit_push(repo, commit_msg, files_path_to_add, user_name=None, user_em
     return commit_info
 
 
-def update_and_commit_default_url_renku_ini(repo, file_name, user_name=None, user_email=None):
+def update_and_commit_default_url_renku_ini(repo, config_obj, user_name=None, user_email=None):
     repo_dir = repo.working_dir
 
-    renku_ini_path = None
+    renku_ini_path = os.path.join(repo_dir, '.renku', 'renku.ini')
 
-    if os.path.exists(os.path.join(repo_dir, '.renku', 'renku.ini')):
-        renku_ini_path = os.path.join(repo_dir, '.renku', 'renku.ini')
-        renku_config = ConfigParser()
-        renku_config.read(renku_ini_path)
+    with open(renku_ini_path, 'w') as renku_ini_file:
+        config_obj.write(renku_ini_file)
 
-        if 'renku "interactive"' in renku_config and renku_config['renku "interactive"']['default_url'] == '/lab':
-            renku_config['renku "interactive"']['default_url'] = f'/lab/tree/{file_name}'
-
-            with open(renku_ini_path, 'w') as renku_ini_file:
-                renku_config.write(renku_ini_file)
-
-            commit_msg = "Update Renku config file with starting notebook"
-            add_commit_push(repo, commit_msg, renku_ini_path, user_name, user_email)
-            logger.info("renku config push operation complete")
+    commit_msg = "Update Renku config file with starting notebook"
+    add_commit_push(repo, commit_msg, renku_ini_path, user_name, user_email)
+    logger.info("renku config push operation complete")
 
     return renku_ini_path
 
 
-def generate_ini_file_hash(ini_file_path):
-    ini_config = ConfigParser()
-    ini_config.read(ini_file_path)
-
+def generate_ini_file_hash(config_ini_obj):
     try:
-        ini_config_dict = { s:dict(ini_config.items(s)) for s in ini_config.sections() }
+        ini_config_dict = { s:dict(config_ini_obj.items(s)) for s in config_ini_obj.sections() }
         ini_hash = make_hash(ini_config_dict)
     except:
-        logger.error(f'Unable to generate a hash of the ini config file: {ini_file_path}')
-        raise Exception(f'Unable to generate a hash of the ini config file: {ini_file_path}')
+        logger.error(f'Unable to generate a hash of the ini config file: {ini_config_dict}')
+        raise Exception(f'Unable to generate a hash of the ini config file: {ini_config_dict}')
 
     return ini_hash
 
@@ -289,6 +281,12 @@ def generate_nb_hash(nb_obj):
 
     return notebook_hash
 
+
+def create_renku_ini_config_obj(file_name):
+    renku_config = ConfigParser()
+    renku_config['renku "interactive"'] = {'default_url': f'/lab/tree/{file_name}'}
+
+    return renku_config
 
 def create_new_notebook_with_code(api_code):
     nb = nbf.v4.new_notebook()
