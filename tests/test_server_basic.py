@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from dateutil import parser, tz
 from functools import reduce
 from urllib import parse
+from configparser import ConfigParser
 import nbformat as nbf
 import yaml
 import gzip
@@ -24,7 +25,7 @@ import string
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
-from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, generate_notebook_filename, create_new_notebook_with_code, generate_nb_hash
+from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, generate_notebook_filename, create_new_notebook_with_code, generate_nb_hash, create_renku_ini_config_obj, generate_ini_file_hash
 from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id, get_source_astrophysical_entity_id_by_source_name
 from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
 
@@ -2735,20 +2736,25 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     # validate content pushed
     repo = clone_renku_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
 
-    extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
-    token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
-    extracted_api_code = "import os\n\n" + re.sub(token_pattern, '"token": os.environ[\'ODA_TOKEN\'],', extracted_api_code, flags=re.DOTALL)
-    nb_obj = create_new_notebook_with_code(extracted_api_code)
-    notebook_hash = generate_nb_hash(nb_obj)
-
-    repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}_{notebook_hash}', pull=True)
-
     api_code_file_name = generate_notebook_filename(job_id=job_id)
     api_code_file_path = os.path.join(repo.working_dir, api_code_file_name)
 
-    assert check_job_id_branch_is_present(repo, job_id, notebook_hash)
+    extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
+    token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
+    extracted_api_code = "import os\n\n" + re.sub(token_pattern, '"token": os.environ[\'ODA_TOKEN\'],', extracted_api_code, flags=re.DOTALL)
 
-    assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}_{notebook_hash}" \
+    nb_obj = create_new_notebook_with_code(extracted_api_code)
+    notebook_hash = generate_nb_hash(nb_obj)
+
+    config_ini_obj = create_renku_ini_config_obj(api_code_file_name)
+    config_ini_hash = generate_ini_file_hash(config_ini_obj)
+
+    repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}_{notebook_hash}_{config_ini_hash}', pull=True)
+
+
+    assert check_job_id_branch_is_present(repo, job_id, notebook_hash, config_ini_hash)
+
+    assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}_{notebook_hash}_{config_ini_hash}" \
                      f"&commit={repo.head.commit.hexsha}" \
                      f"&env[ODA_TOKEN]={encoded_token}"
                      # f"&notebook={api_code_file_name}" \
@@ -2766,9 +2772,6 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
                       f" from the instrument {request_dict['instrument']}"
                       f"\nthe original request was generated via {request_url}\n"
                       "to retrieve the result please follow the link")
-
-    # assert repo.head.reference.commit.message is not None
-    # assert repo.head.reference.commit.message == commit_message
 
     git_notebook_commit_msg = list(repo.iter_commits(paths=api_code_file_name))[0].message
     config_file_commit_msg = list(repo.iter_commits(paths='.renku/renku.ini'))[0].message
