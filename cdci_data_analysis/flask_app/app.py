@@ -94,12 +94,6 @@ def run_api_instr_list():
     return query.get_instr_list()
 
 
-@app.route("/api/development-instr-list")
-def run_api_instr_list():
-    query = InstrumentQueryBackEnd(app, get_meta_data=True)
-    return query.get_instr_list(only_development=True)
-
-
 @app.route('/meta-data')
 def meta_data():
     query = InstrumentQueryBackEnd(app, get_meta_data=True)
