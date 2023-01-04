@@ -947,12 +947,10 @@ class InstrumentQueryBackEnd:
         # print('CICCIO',self.par_dic)
         return jsonify(self.par_dic)
 
-    def get_instr_list(self, only_development=False):
+    def get_instr_list(self, name=None):
         _l = []
         for instrument_factory in importer.instrument_factory_list:
-            instrument = instrument_factory()
-            if only_development and instrument.development:
-                _l.append(instrument.name)
+            _l.append(instrument_factory().name)
 
         return jsonify(_l)
 
