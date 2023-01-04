@@ -93,6 +93,7 @@ class Instrument:
                  instrumet_query,
                  input_product_query=None,
                  asynch=True,
+                 development=False,
                  catalog=None,
                  data_serve_conf_file=None,
                  product_queries_list=None,
@@ -108,6 +109,8 @@ class Instrument:
         self.src_query=src_query
         # asynch
         self.asynch=asynch
+        #development instrument
+        self.development=development
         #Instrument specific
         self.instrumet_query=instrumet_query
         #self.data_serve_conf_file=data_serve_conf_file
