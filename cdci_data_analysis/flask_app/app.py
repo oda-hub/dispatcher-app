@@ -259,6 +259,13 @@ def inspect_state():
     return state_data_obj
 
 
+# TODO perhaps the way we name the functionality should be better phrased
+@app.route('/get-user-specific-instrument-list')
+def get_user_specific_instrument_list():
+    instrument_list = InstrumentQueryBackEnd.get_user_specific_instrument_list(app)
+    return instrument_list
+
+
 @app.route('/push-renku-branch', methods=['POST'])
 def push_renku_branch():
     logger.info("request.args: %s ", request.args)
