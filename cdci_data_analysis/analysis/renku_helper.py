@@ -53,7 +53,7 @@ def push_api_code(api_code,
 
         step = 'creating renku ini config file'
         logger.info(step)
-        config_ini_obj = create_renku_ini_config_obj(file_name)
+        config_ini_obj = create_renku_ini_config_obj(repo, file_name)
 
         step = 'generating hash of the config content'
         logger.info(step)
@@ -282,9 +282,14 @@ def generate_nb_hash(nb_obj):
     return notebook_hash
 
 
-def create_renku_ini_config_obj(default_url_file_name):
+def create_renku_ini_config_obj(repo, default_url_file_name):
+    repo_dir = repo.working_dir
+
+    renku_ini_path = os.path.join(repo_dir, '.renku', 'renku.ini')
+
     renku_config = ConfigParser()
-    renku_config['renku "interactive"'] = {'default_url': f'/lab/tree/{default_url_file_name}'}
+    renku_config.read(renku_ini_path)
+    renku_config['renku "interactive"']['default_url'] = f'/lab/tree/{default_url_file_name}'
 
     return renku_config
 
