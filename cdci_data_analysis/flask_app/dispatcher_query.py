@@ -411,29 +411,20 @@ class InstrumentQueryBackEnd:
 
         return jsonify(dict(output_status=result_scratch_dir_deletion))
 
-
-    @staticmethod
-    def get_user_specific_instrument_list(app):
-        token = request.args.get('token', None)
-
+    def get_user_specific_instrument_list(self, app):
+        roles = None
         app_config = app.config.get('conf')
         secret_key = app_config.secret_key
-        if token is not None:
-            try:
-                decoded_token = tokenHelper.get_decoded_token(token, secret_key)
-                logger.info("==> token %s", decoded_token)
-                roles = tokenHelper.get_token_roles(decoded_token)
-            except jwt.exceptions.ExpiredSignatureError:
-                return 'The token provided is expired.', 403
-            except jwt.exceptions.InvalidTokenError:
-                return 'The token provided is not valid.', 403
+        if self.token is not None:
+            decoded_token = tokenHelper.get_decoded_token(self.token, secret_key)
+            roles = tokenHelper.get_token_roles(decoded_token)
 
         out_instrument_list = []
         for instrument_factory in importer.instrument_factory_list:
             instrument = instrument_factory()
 
             if instrument.development:
-                if token is not None and roles is not None:
+                if self.token is not None and roles is not None:
                     if 'oda workflow developer' in roles:
                         out_instrument_list.append(instrument.name)
             else:
