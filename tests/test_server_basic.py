@@ -2745,7 +2745,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     nb_obj = create_new_notebook_with_code(extracted_api_code)
     notebook_hash = generate_nb_hash(nb_obj)
 
-    config_ini_obj = create_renku_ini_config_obj(api_code_file_name)
+    config_ini_obj = create_renku_ini_config_obj(repo, api_code_file_name)
     config_ini_hash = generate_ini_file_hash(config_ini_obj)
 
     repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}_{notebook_hash}_{config_ini_hash}', pull=True)
