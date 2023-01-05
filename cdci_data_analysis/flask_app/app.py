@@ -262,8 +262,7 @@ def inspect_state():
 # TODO perhaps the way we name the functionality should be better phrased
 @app.route('/get-user-specific-instrument-list')
 def get_user_specific_instrument_list():
-    query = InstrumentQueryBackEnd(app, get_meta_data=True)
-    instrument_list = query.get_user_specific_instrument_list(app)
+    instrument_list = InstrumentQueryBackEnd.get_user_specific_instrument_list(app)
     return instrument_list
 
 
