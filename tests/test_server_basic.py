@@ -2674,7 +2674,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
         "roles": "general, renku contributor",
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-    p = 7
+    p = 7.5
 
     if not existing_branch:
         p += random.random()
