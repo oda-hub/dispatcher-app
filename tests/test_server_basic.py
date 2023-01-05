@@ -401,6 +401,36 @@ def test_download_products_public(dispatcher_long_living_fixture, empty_products
 
 
 @pytest.mark.fast
+def test_per_user_instrument_list(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    c = requests.get(server + "/get-user-specific-instrument-list")
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert not 'empty-development' in jdata
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "roles": "oda workflow developer"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    c = requests.get(server + "/get-user-specific-instrument-list",
+                     params={"token": encoded_token})
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert 'empty-development' in jdata
+
+
+@pytest.mark.fast
 def test_download_products_authorized_user(dispatcher_live_fixture, empty_products_user_files_fixture):
     server = dispatcher_live_fixture
 
