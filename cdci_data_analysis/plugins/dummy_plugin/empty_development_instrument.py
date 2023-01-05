@@ -42,23 +42,12 @@ from .data_server_dispatcher import (EmptyProductQuery,
                                      FailingProductQuery, 
                                      DataServerParametricQuery, 
                                      EchoProductQuery)
+from .empty_instrument import BoundaryFloat
 
 # duplicated with jemx, but this staticmethod makes it complex.
 # this all should be done commonly, for all parameters - limits are common thing
 from ...analysis.exceptions import RequestNotUnderstood
 from ...analysis.parameters import SpectralBoundary, Angle, Energy
-
-
-
-class BoundaryFloat(Float):
-    @staticmethod
-    def check_float_value(value, units=None, name=None):
-        Float.check_float_value(value, units=units, name=name)
-
-        value = float(value)
-
-        if value > 800:
-            raise RequestNotUnderstood('p value is restricted to 800 W')
 
 
 def my_instr_factory():
