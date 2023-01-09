@@ -132,7 +132,7 @@ def test_empty_request(dispatcher_live_fixture):
                    params={},
                 )
 
-    print("content:", c.text)
+    print("test_empty_request content output:", c.text)
 
     jdata=c.json()
 
