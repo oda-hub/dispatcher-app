@@ -35,7 +35,7 @@ __author__ = "Andrea Tramacere"
 
 
 from cdci_data_analysis.analysis.instrument import Instrument
-from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float
+from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery
 
 from .data_server_dispatcher import (EmptyProductQuery, 
                                      DataServerNumericQuery, 
@@ -46,7 +46,6 @@ from .empty_instrument import BoundaryFloat
 
 # duplicated with jemx, but this staticmethod makes it complex.
 # this all should be done commonly, for all parameters - limits are common thing
-from ...analysis.exceptions import RequestNotUnderstood
 from ...analysis.parameters import SpectralBoundary, Angle, Energy
 
 
