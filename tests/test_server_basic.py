@@ -429,6 +429,22 @@ def test_per_user_instrument_list(dispatcher_live_fixture):
     assert isinstance(jdata, list)
     assert 'empty-development' in jdata
 
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "roles": "general"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    c = requests.get(server + "/get-user-specific-instrument-list",
+                     params={"token": encoded_token})
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert not 'empty-development' in jdata
+
 
 @pytest.mark.fast
 def test_download_products_authorized_user(dispatcher_live_fixture, empty_products_user_files_fixture):
