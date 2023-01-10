@@ -88,10 +88,10 @@ def run_api_parameters():
     return query.get_paramters_dict()
 
 
-@app.route("/api/instr-list")
-def run_api_instr_list():
-    query = InstrumentQueryBackEnd(app, get_meta_data=True)
-    return query.get_instr_list()
+# @app.route("/api/instr-list")
+# def run_api_instr_list():
+#     query = InstrumentQueryBackEnd(app, get_meta_data=True)
+#     return query.get_instr_list()
 
 
 @app.route('/meta-data')
