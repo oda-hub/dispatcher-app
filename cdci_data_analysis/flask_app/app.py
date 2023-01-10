@@ -259,9 +259,8 @@ def inspect_state():
     return state_data_obj
 
 
-# TODO perhaps the way we name the functionality should be better phrased
-@app.route('/get-user-specific-instrument-list')
-def get_user_specific_instrument_list():
+@app.route('/instr-list')
+def instr_list():
     instrument_list = InstrumentQueryBackEnd.get_user_specific_instrument_list(app)
     return instrument_list
 
