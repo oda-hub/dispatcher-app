@@ -316,6 +316,8 @@ class InstrumentQuery(BaseQuery):
 
         super(InstrumentQuery, self).__init__(name,parameters_list)
 
+    def check_instrument_roles(self, roles):
+        raise RuntimeError(f'{self}: check_instrument_access needs to be implemented for the {self.name} instrument')
 
 class ProductQuery(BaseQuery):
     def __init__(self,

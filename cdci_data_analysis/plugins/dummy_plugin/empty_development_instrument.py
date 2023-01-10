@@ -49,14 +49,23 @@ from .empty_instrument import BoundaryFloat
 from ...analysis.parameters import SpectralBoundary, Angle, Energy
 
 
+class InstrumentWithCheckQuery(InstrumentQuery):
+    def check_instrument_roles(self, roles):
+        if 'oda workflow developer' in roles:
+            return True
+        else:
+            return False
+
+
+
 def my_instr_factory():
     src_query = SourceQuery('src_query')
 
     # empty query
-    instr_query = InstrumentQuery(name='empty_instrument_query',
-                                  input_prod_list_name='p_list',
-                                  catalog=None,
-                                  catalog_name='user_catalog')
+    instr_query = InstrumentWithCheckQuery(name='empty_instrument_query',
+                                           input_prod_list_name='p_list',
+                                           catalog=None,
+                                           catalog_name='user_catalog')
 
     empty_query = EmptyProductQuery('empty_parameters_dummy_query',)
     failing_query = FailingProductQuery('failing_parameters_dummy_query', )

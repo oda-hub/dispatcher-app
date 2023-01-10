@@ -431,8 +431,9 @@ class InstrumentQueryBackEnd:
             instrument = instrument_factory()
 
             if instrument.development:
-                if token is not None and roles is not None and 'oda workflow developer' in roles:
-                    out_instrument_list.append(instrument.name)
+                if token is not None and roles is not None:
+                    if instrument.check_instrument_access(roles) :
+                        out_instrument_list.append(instrument.name)
             else:
                 out_instrument_list.append(instrument.name)
 
