@@ -406,7 +406,7 @@ def test_per_user_instrument_list(dispatcher_live_fixture):
 
     logger.info("constructed server: %s", server)
 
-    c = requests.get(server + "/get-user-specific-instrument-list")
+    c = requests.get(server + "//instr-list")
 
     jdata = c.json()
 
@@ -421,7 +421,7 @@ def test_per_user_instrument_list(dispatcher_live_fixture):
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    c = requests.get(server + "/get-user-specific-instrument-list",
+    c = requests.get(server + "/instr-list",
                      params={"token": encoded_token})
 
     jdata = c.json()
@@ -437,7 +437,7 @@ def test_per_user_instrument_list(dispatcher_live_fixture):
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    c = requests.get(server + "/get-user-specific-instrument-list",
+    c = requests.get(server + "/instr-list",
                      params={"token": encoded_token})
 
     jdata = c.json()
