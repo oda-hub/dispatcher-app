@@ -94,7 +94,7 @@ def safe_dummy_plugin_conf():
 def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
-    c = requests.get(server + "/instr-list",
+    c = requests.get(server + "/api/instr-list",
                      params={'instrument': 'mock'})
     logger.info("content: %s", c.text)
     jdata = c.json()
@@ -111,7 +111,7 @@ def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture):
     c = requests.get(server + "/reload-plugin/dummy_plugin")
     assert c.status_code == 200
 
-    c = requests.get(server + "/instr-list",
+    c = requests.get(server + "/api/instr-list",
                      params={'instrument': 'mock'})
     logger.info("content: %s", c.text)
     jdata = c.json()
@@ -401,12 +401,13 @@ def test_download_products_public(dispatcher_long_living_fixture, empty_products
 
 
 @pytest.mark.fast
-def test_per_user_instrument_list(dispatcher_live_fixture):
+@pytest.mark.parametrize("endpoint_url", ["instr-list", "api/instr-list"])
+def test_per_user_instrument_list(dispatcher_live_fixture, endpoint_url):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
 
-    c = requests.get(server + "/instr-list")
+    c = requests.get(os.path.join(server, endpoint_url))
 
     jdata = c.json()
 
@@ -421,7 +422,7 @@ def test_per_user_instrument_list(dispatcher_live_fixture):
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    c = requests.get(server + "/instr-list",
+    c = requests.get(os.path.join(server, endpoint_url),
                      params={"token": encoded_token})
 
     jdata = c.json()
@@ -437,7 +438,7 @@ def test_per_user_instrument_list(dispatcher_live_fixture):
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    c = requests.get(server + "/instr-list",
+    c = requests.get(os.path.join(server, endpoint_url),
                      params={"token": encoded_token})
 
     jdata = c.json()
