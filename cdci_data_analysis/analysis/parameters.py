@@ -431,7 +431,7 @@ class Parameter:
 
     @classmethod
     def matches_owl_uri(cls, owl_uri: str) -> bool:
-        return owl_uri in getattr(cls, "owl_uris", [])
+        return owl_uri in getattr(cls, "owl_uris", ())
 
     @classmethod
     def from_owl_uri(cls,
@@ -478,7 +478,7 @@ class Parameter:
         return possible_parameter_interpretations[0]
 
 class String(Parameter):
-    owl_uris = ["http://www.w3.org/2001/XMLSchema#str"]
+    owl_uris = ("http://www.w3.org/2001/XMLSchema#str")
     
     def __init__(self, value=None, name_format='str', name=None, allowed_values = None):
 
@@ -495,7 +495,7 @@ class String(Parameter):
         pass
 
 class Name(String):
-    owl_uris = ["http://odahub.io/ontology#AstrophysicalObject"]
+    owl_uris = ("http://odahub.io/ontology#AstrophysicalObject")
 
 class NumericParameter(Parameter):
     @staticmethod
@@ -508,7 +508,7 @@ class NumericParameter(Parameter):
                 raise ValueError(f'Parameter {name} wrong value {val}: should be less than {max_value}')
 
 class Float(NumericParameter):
-    owl_uris = ["http://www.w3.org/2001/XMLSchema#float"]
+    owl_uris = ("http://www.w3.org/2001/XMLSchema#float")
     def __init__(self, 
                  value=None, 
                  units=None, 
@@ -576,7 +576,7 @@ class Float(NumericParameter):
 
 
 class Integer(NumericParameter):
-    owl_uris = "http://www.w3.org/2001/XMLSchema#int"
+    owl_uris = ("http://www.w3.org/2001/XMLSchema#int")
 
     def __init__(self, value=None, units=None, name=None, check_value=None, min_value = None, max_value = None):
 
@@ -641,9 +641,9 @@ class Time(Parameter):
     # of this class.
     # reading the rdf should be done with thread-safe caching to avoid frequent requests
 
-    owl_uris = ["http://odahub.io/ontology#TimeInstant",
+    owl_uris = ("http://odahub.io/ontology#TimeInstant",
                 "http://odahub.io/ontology#StartTime",
-                "http://odahub.io/ontology#EndTime"]
+                "http://odahub.io/ontology#EndTime")
 
     def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None, par_default_format='isot'):
 
@@ -690,7 +690,7 @@ class Time(Parameter):
 # it is confusing that TimeDelta derives from Time.  
 # https://github.com/astropy/astropy/blob/main/astropy/time/core.py#L379
 class TimeDelta(Time):
-    owl_uris = [] # to avoid unnecessary attempt to initialize it for time parameter
+    owl_uris = () # to avoid unnecessary attempt to initialize it for time parameter
     
     def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None, par_default_format='sec'):
 
@@ -781,7 +781,7 @@ class InputProdList(Parameter):
 
 
 class Angle(Float):
-    owl_uris = ["http://odahub.io/ontology#PointOfInterestRA", "http://odahub.io/ontology#PointOfInterestDEC"]
+    owl_uris = ("http://odahub.io/ontology#PointOfInterestRA", "http://odahub.io/ontology#PointOfInterestDEC")
     
     def __init__(self, value=None, units=None, default_units='deg', name=None):
 
@@ -867,7 +867,7 @@ class UserCatalog(Parameter):
         pass
 
 class Boolean(Parameter):
-    owl_uris = ['http://www.w3.org/2001/XMLSchema#bool']
+    owl_uris = ('http://www.w3.org/2001/XMLSchema#bool')
     
     def __init__(self, value=None, name=None):
 
