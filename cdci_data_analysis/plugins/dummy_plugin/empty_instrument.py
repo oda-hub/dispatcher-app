@@ -46,7 +46,7 @@ from .data_server_dispatcher import (EmptyProductQuery,
 # duplicated with jemx, but this staticmethod makes it complex.
 # this all should be done commonly, for all parameters - limits are common thing
 from ...analysis.exceptions import RequestNotUnderstood
-from ...analysis.parameters import SpectralBoundary, Angle, Energy, Integer, Float, Boolean, String
+from ...analysis.parameters import SpectralBoundary, Angle, Energy, Integer, Float, String
 
 
 
