@@ -94,7 +94,7 @@ def safe_dummy_plugin_conf():
 def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture):
     server = dispatcher_live_fixture
     print("constructed server:", server)
-    c = requests.get(server + "/api/instr-list",
+    c = requests.get(server + "/instr-list",
                      params={'instrument': 'mock'})
     logger.info("content: %s", c.text)
     jdata = c.json()
@@ -111,7 +111,7 @@ def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture):
     c = requests.get(server + "/reload-plugin/dummy_plugin")
     assert c.status_code == 200
 
-    c = requests.get(server + "/api/instr-list",
+    c = requests.get(server + "/instr-list",
                      params={'instrument': 'mock'})
     logger.info("content: %s", c.text)
     jdata = c.json()
