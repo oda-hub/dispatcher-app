@@ -490,9 +490,9 @@ class Instrument:
             return self.query_dictionary[product_type]
 
 
-    def check_instrument_access(self, roles):
+    def check_instrument_access(self, roles, email):
         if self.development:
-            return self.instrumet_query.check_instrument_roles(roles)
+            return self.instrumet_query.check_instrument_roles(roles, email)
         else:
             return True
 

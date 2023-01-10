@@ -416,6 +416,7 @@ class InstrumentQueryBackEnd:
         token = request.args.get('token', None)
 
         roles = []
+        email = None
         if token is not None:
             app_config = app.config.get('conf')
             secret_key = app_config.secret_key
@@ -423,6 +424,7 @@ class InstrumentQueryBackEnd:
                                                                           action="getting the list of instrument")
             decoded_token = tokenHelper.get_decoded_token(token, secret_key)
             roles = tokenHelper.get_token_roles(decoded_token)
+            email = tokenHelper.get_token_user_email_address(decoded_token)
             if output_code is not None:
                 return make_response(output, output_code)
 
@@ -430,7 +432,7 @@ class InstrumentQueryBackEnd:
         for instrument_factory in importer.instrument_factory_list:
             instrument = instrument_factory()
 
-            if instrument.check_instrument_access(roles):
+            if instrument.check_instrument_access(roles, email):
                 out_instrument_list.append(instrument.name)
 
         return jsonify(out_instrument_list)
