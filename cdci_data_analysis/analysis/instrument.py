@@ -93,7 +93,7 @@ class Instrument:
                  instrumet_query,
                  input_product_query=None,
                  asynch=True,
-                 development=False,
+                 restricted_access=False,
                  catalog=None,
                  data_serve_conf_file=None,
                  product_queries_list=None,
@@ -110,7 +110,7 @@ class Instrument:
         # asynch
         self.asynch=asynch
         #development instrument
-        self.development=development
+        self.restricted_access=restricted_access
         #Instrument specific
         self.instrumet_query=instrumet_query
         #self.data_serve_conf_file=data_serve_conf_file
@@ -491,7 +491,7 @@ class Instrument:
 
 
     def check_instrument_access(self, roles, email):
-        if self.development:
+        if self.restricted_access:
             return self.instrumet_query.check_instrument_roles(roles, email)
         else:
             return True
