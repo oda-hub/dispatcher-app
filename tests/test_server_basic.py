@@ -406,7 +406,7 @@ def test_per_user_instrument_list(dispatcher_live_fixture):
 
     logger.info("constructed server: %s", server)
 
-    c = requests.get(server + "//instr-list")
+    c = requests.get(server + "/instr-list")
 
     jdata = c.json()
 

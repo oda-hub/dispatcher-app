@@ -90,7 +90,7 @@ def my_instr_factory():
 
     return Instrument('empty-development',
                       src_query=src_query,
-                      development=True,
+                      restricted_access=True,
                       instrumet_query=instr_query,
                       product_queries_list=[empty_query, numerical_query, failing_query, parametrical_query, echo_param_query],
                       query_dictionary=query_dictionary)
