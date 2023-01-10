@@ -415,7 +415,7 @@ class InstrumentQueryBackEnd:
     def get_user_specific_instrument_list(app):
         token = request.args.get('token', None)
 
-        roles = None
+        roles = []
         if token is not None:
             app_config = app.config.get('conf')
             secret_key = app_config.secret_key
@@ -430,11 +430,7 @@ class InstrumentQueryBackEnd:
         for instrument_factory in importer.instrument_factory_list:
             instrument = instrument_factory()
 
-            if instrument.development:
-                if token is not None and roles is not None:
-                    if instrument.check_instrument_access(roles) :
-                        out_instrument_list.append(instrument.name)
-            else:
+            if instrument.check_instrument_access(roles):
                 out_instrument_list.append(instrument.name)
 
         return jsonify(out_instrument_list)

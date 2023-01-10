@@ -491,11 +491,10 @@ class Instrument:
 
 
     def check_instrument_access(self, roles):
-        results = self.instrumet_query.check_instrument_roles(roles)
-        if results:
-            return True
+        if self.development:
+            return self.instrumet_query.check_instrument_roles(roles)
         else:
-            return False
+            return True
 
 
     def check_instrument_query_role(self, query_obj, product_type, roles, par_dic):
