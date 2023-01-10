@@ -46,7 +46,7 @@ from .data_server_dispatcher import (EmptyProductQuery,
 # duplicated with jemx, but this staticmethod makes it complex.
 # this all should be done commonly, for all parameters - limits are common thing
 from ...analysis.exceptions import RequestNotUnderstood
-from ...analysis.parameters import SpectralBoundary, Angle, Energy
+from ...analysis.parameters import SpectralBoundary, Angle, Energy, Integer, Float, Boolean, String
 
 
 
@@ -87,6 +87,14 @@ def my_instr_factory():
     energ = Energy(value=1., E_units='MeV', name='energ')
     echo_param_query = EchoProductQuery('echo_parameters_dummy_query',
                                         parameters_list=[ang, ang_deg, energ])
+    
+    bounded_int_param = Integer(5, name = 'bounded_int_par', min_value = 2, max_value = 8)
+    bounded_float_param = Float(5., name = 'bounded_float_par', min_value = 2.2, max_value = 7.7)
+    string_select_param = String('spam', name='string_select_par', allowed_values=('spam', 'eggs', 'ham'))
+    restricted_param_query = DataServerParametricQuery('restricted_parameters_dummy_query',
+                                                    parameters_list=[bounded_int_param, 
+                                                                     bounded_float_param,
+                                                                     string_select_param])
 
     # this dicts binds the product query name to the product name from frontend
     # eg my_instr_image is the parameter passed by the fronted to access the
@@ -100,9 +108,15 @@ def my_instr_factory():
     query_dictionary['failing'] = 'failing_parameters_dummy_query'
     query_dictionary['parametrical'] = 'parametrical_parameters_dummy_query'
     query_dictionary['echo'] = 'echo_parameters_dummy_query'
+    query_dictionary['restricted'] = 'restricted_parameters_dummy_query'
 
     return Instrument('empty',
                       src_query=src_query,
                       instrumet_query=instr_query,
-                      product_queries_list=[empty_query, numerical_query, failing_query, parametrical_query, echo_param_query],
+                      product_queries_list=[empty_query, 
+                                            numerical_query, 
+                                            failing_query, 
+                                            parametrical_query, 
+                                            echo_param_query, 
+                                            restricted_param_query],
                       query_dictionary=query_dictionary)

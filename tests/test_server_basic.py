@@ -2850,3 +2850,24 @@ def test_catalog_selected_objects_accepted(dispatcher_live_fixture):
     assert not re.match(r'Please note that arguments?.*catalog_selected_objects.*not used', jdata['exit_status']['comment'])
     assert 'catalog_selected_objects' in jdata['products']['analysis_parameters'].keys()
     assert 'catalog_selected_objects' in jdata['products']['api_code']
+    
+@pytest.mark.fast
+def test_parameter_bounds_metadata(dispatcher_live_fixture):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+    
+    c = requests.get(server + '/meta-data',
+                     params={'instrument': 'empty'})
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+    
+    metadata = [json.loads(x) for x in jdata[0] if isinstance(x, str)]
+    restricted_meta = [x for x in metadata if x[0]['query_name'] == 'restricted_parameters_dummy_query'][0]
+    def meta_for_par(parname):
+        return [x for x in restricted_meta if x.get('name', None) == parname][0]
+    
+    assert meta_for_par('bounded_int_par')['restrictions'] == {'min_value': 2, 'max_value': 8}
+    assert meta_for_par('bounded_float_par')['restrictions'] == {'min_value': 2.2, 'max_value': 7.7}
+    assert meta_for_par('string_select_par')['restrictions'] == {'allowed_values': ['spam', 'eggs', 'ham']}
