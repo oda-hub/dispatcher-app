@@ -93,12 +93,7 @@ def run_api_instr_list():
     logger.warning('\nThe endpoint /api/instr-list is deprecated and you will be automatically redirected to the '
                    '\'instr-list\' endpoint. Please use this one in the future.\n')
 
-    redirection_url = url_for('instr_list')
-
-    if request.args:
-        redirection_url += f'?{urlencode(request.args)}'
-
-    return redirect(redirection_url)
+    return redirect(url_for('instr_list', **request.args))
 
 
 @app.route('/meta-data')
