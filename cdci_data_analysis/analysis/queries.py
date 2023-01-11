@@ -318,7 +318,10 @@ class InstrumentQuery(BaseQuery):
 
         super(InstrumentQuery, self).__init__(name,parameters_list)
 
-    def check_instrument_access(self, roles, email):
+    def check_instrument_access(self, roles=None, email=None):
+        if roles is None:
+            roles = []
+
         return (self.restricted_access and 'oda workflow developer' in roles) or not self.restricted_access
 
 class ProductQuery(BaseQuery):

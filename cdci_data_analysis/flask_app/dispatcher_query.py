@@ -173,6 +173,8 @@ class InstrumentQueryBackEnd:
             # In that case, validation is needed
             self.public = True
             self.token = None
+            email=None
+            roles=None
             self.decoded_token = None
             if 'token' in self.par_dic.keys() and self.par_dic['token'] not in ["", "None", None]:
                 self.token = self.par_dic['token']
@@ -181,6 +183,8 @@ class InstrumentQueryBackEnd:
                 self.log_query_progression("before validate_query_from_token")
                 try:
                     if self.validate_query_from_token():
+                        roles = tokenHelper.get_token_roles(self.decoded_token)
+                        email = tokenHelper.get_token_user_email_address(self.decoded_token)
                         pass
                 except jwt.exceptions.ExpiredSignatureError as e:
                     logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event': 'token-expired'})
@@ -226,7 +230,7 @@ class InstrumentQueryBackEnd:
 
             if get_meta_data:
                 self.logger.info("get_meta_data request: no scratch_dir")
-                self.set_instrument(self.instrument_name)
+                self.set_instrument(self.instrument_name, roles, email)
                 # TODO
                 # decide if it is worth to add the logger also in this case
                 #self.set_scratch_dir(self.par_dic['session_id'], verbose=verbose)
@@ -238,7 +242,7 @@ class InstrumentQueryBackEnd:
                 # self.set_sentry_client()
                 # TODO is also the case of call_back to handle ?
                 if not data_server_call_back:
-                    self.set_instrument(self.instrument_name)
+                    self.set_instrument(self.instrument_name, roles, email)
                     verbose = self.par_dic.get('verbose', 'False') == 'True'
                     try:
                         self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
@@ -1047,7 +1051,9 @@ class InstrumentQueryBackEnd:
                 status_details = None
                 if status == 'done':
                     # set instrument
-                    self.set_instrument(self.instrument_name)
+                    roles = tokenHelper.get_token_roles(self.decoded_token)
+                    email = tokenHelper.get_token_user_email_address(self.decoded_token)
+                    self.set_instrument(self.instrument_name, roles, email)
                     status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
                                                                         config=self.config,
                                                                         logger=self.logger,
@@ -1270,7 +1276,8 @@ class InstrumentQueryBackEnd:
 
         return out_dict
 
-    def set_instrument(self, instrument_name):
+    def set_instrument(self, instrument_name, roles, email):
+
         known_instruments = []
 
         new_instrument = None
@@ -1280,7 +1287,7 @@ class InstrumentQueryBackEnd:
         else:
             for instrument_factory in importer.instrument_factory_list:
                 instrument = instrument_factory()
-                if instrument.name == instrument_name:
+                if instrument.name == instrument_name and instrument.instrumet_query.check_instrument_access(roles, email):
                     new_instrument = instrument  # multiple assignment? TODO
 
                 known_instruments.append(instrument.name)
