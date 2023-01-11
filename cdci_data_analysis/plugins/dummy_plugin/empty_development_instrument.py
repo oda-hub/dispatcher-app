@@ -60,6 +60,7 @@ def my_instr_factory():
 
     # empty query
     instr_query = InstrumentQuery(name='empty_instrument_query',
+                                  restricted_access=True,
                                            input_prod_list_name='p_list',
                                            catalog=None,
                                            catalog_name='user_catalog')
@@ -90,7 +91,6 @@ def my_instr_factory():
 
     return Instrument('empty-development',
                       src_query=src_query,
-                      restricted_access=True,
                       instrumet_query=instr_query,
                       product_queries_list=[empty_query, numerical_query, failing_query, parametrical_query, echo_param_query],
                       query_dictionary=query_dictionary)

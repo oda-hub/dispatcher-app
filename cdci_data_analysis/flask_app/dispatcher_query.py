@@ -432,7 +432,7 @@ class InstrumentQueryBackEnd:
         for instrument_factory in importer.instrument_factory_list:
             instrument = instrument_factory()
 
-            if instrument.check_instrument_access(roles, email):
+            if instrument.instrumet_query.check_instrument_access(roles, email):
                 out_instrument_list.append(instrument.name)
 
         return jsonify(out_instrument_list)

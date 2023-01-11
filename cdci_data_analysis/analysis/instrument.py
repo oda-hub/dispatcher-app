@@ -93,7 +93,6 @@ class Instrument:
                  instrumet_query,
                  input_product_query=None,
                  asynch=True,
-                 restricted_access=False,
                  catalog=None,
                  data_serve_conf_file=None,
                  product_queries_list=None,
@@ -109,8 +108,6 @@ class Instrument:
         self.src_query=src_query
         # asynch
         self.asynch=asynch
-        #development instrument
-        self.restricted_access=restricted_access
         #Instrument specific
         self.instrumet_query=instrumet_query
         #self.data_serve_conf_file=data_serve_conf_file
@@ -488,13 +485,6 @@ class Instrument:
             raise Exception(f"product type {product_type} not in query_dictionary {self.query_dictionary}")
         else:
             return self.query_dictionary[product_type]
-
-
-    def check_instrument_access(self, roles, email):
-        if self.restricted_access:
-            return self.instrumet_query.check_instrument_roles(roles, email)
-        else:
-            return True
 
 
     def check_instrument_query_role(self, query_obj, product_type, roles, par_dic):
