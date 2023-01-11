@@ -20,7 +20,7 @@ Module API
 
 from __future__ import absolute_import, division, print_function
 
-__author__ = "Andrea Tramacere"
+__author__ = "Gabriele Barni"
 
 # Standard library
 # eg copy
