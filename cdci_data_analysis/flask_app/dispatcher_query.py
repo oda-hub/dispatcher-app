@@ -1281,19 +1281,26 @@ class InstrumentQueryBackEnd:
         known_instruments = []
 
         new_instrument = None
+        no_access = False
         # TODO to get rid of the mock instrument option, we now have the empty instrument
         if instrument_name == 'mock':
             new_instrument = 'mock'
         else:
             for instrument_factory in importer.instrument_factory_list:
                 instrument = instrument_factory()
-                if instrument.name == instrument_name and instrument.instrumet_query.check_instrument_access(roles, email):
-                    new_instrument = instrument  # multiple assignment? TODO
+                if instrument.name == instrument_name:
+                    if instrument.instrumet_query.check_instrument_access(roles, email):
+                        new_instrument = instrument  # multiple assignment? TODO
+                    else:
+                        no_access = True
 
                 known_instruments.append(instrument.name)
-
         if new_instrument is None:
-            raise InstrumentNotRecognized(f'instrument: "{instrument_name}", known: {known_instruments}')
+            if no_access:
+                raise RequestNotAuthorized(f"Unfortunately, your priviledges are not sufficient "
+                                           f"to make the request for this instrument.\n")
+            else:
+                raise InstrumentNotRecognized(f'instrument: "{instrument_name}", known: {known_instruments}')
         else:
             self.instrument = new_instrument
 
