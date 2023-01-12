@@ -2920,4 +2920,4 @@ def test_restricted_parameter_bad_request(dispatcher_live_fixture, par_name, par
     assert c.status_code == 400
     print("content:", c.text)
     jdata=c.json()
-    assert f'Parameter {par_name} wrong value' in jdata['error']
+    assert jdata['error'].startswith( f'RequestNotUnderstood():Parameter {par_name} wrong value' )

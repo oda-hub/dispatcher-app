@@ -23,6 +23,7 @@ from cdci_data_analysis.analysis.parameters import (
     String,
     Boolean
 )
+from cdci_data_analysis.analysis.exceptions import RequestNotUnderstood
 
 import numpy as np
 
@@ -136,7 +137,7 @@ def test_angle_parameter():
         (Angle, 1, {'units': 'arcsec'}, 1, 0.0002777777777777778),
         (Angle, -29.74516667, {}, -29.74516667, -29.74516667),
         (Angle, '-29.74516667', {}, -29.74516667, -29.74516667),
-        (Angle, 'aaaaa', {}, ValueError, None),
+        (Angle, 'aaaaa', {}, RequestNotUnderstood, None),
         (Angle, -0.519151094946, {'units': 'rad'}, -0.519151094946, -29.745166670001282)
     ]:
         def constructor():
@@ -168,11 +169,11 @@ def test_time_parameter():
         (Time, '2017-03-06T13:26:48.000', {'T_format': 'isot'}, '2017-03-06T13:26:48.000', '2017-03-06T13:26:48.000'),
         (Time, 57818.560277777775, {'T_format': 'mjd'}, 57818.560277777775, '2017-03-06T13:26:48.000'),
         (Time, '57818.560277777775', {'T_format': 'mjd'}, 57818.560277777775, '2017-03-06T13:26:48.000'),
-        (Time, '2017-03-06Z13:26:48.000', {'T_format': 'isot'}, ValueError, None),
-        (Time, 'aaaa', {'T_format': 'mjd'}, ValueError, None),
+        (Time, '2017-03-06Z13:26:48.000', {'T_format': 'isot'}, RequestNotUnderstood, None),
+        (Time, 'aaaa', {'T_format': 'mjd'}, RequestNotUnderstood, None),
         (TimeDelta, 1000., {'delta_T_format': 'sec'}, np.float64(1000.), np.float64(1000.)),
         (TimeDelta, '1000.', {'delta_T_format': 'sec'}, np.float64(1000.), np.float64(1000.)),
-        (TimeDelta, 'aaaa', {'delta_T_format': 'sec'}, ValueError, None)
+        (TimeDelta, 'aaaa', {'delta_T_format': 'sec'}, RequestNotUnderstood, None)
     ]:
         def constructor():
             return parameter_type(value=input_value,
@@ -349,21 +350,21 @@ def test_parameter_from_owl_uri_extra_param(caplog):
 def test_parameter_bounds():
     int_param = Integer(5, name = 'INT', min_value = 2, max_value = 8)
     fl_param = Float(5., name = 'FL', min_value = 2.2, max_value = 7.7)
-    with pytest.raises(ValueError):
+    with pytest.raises(RequestNotUnderstood):
         int_param.value = 1
-    with pytest.raises(ValueError):
+    with pytest.raises(RequestNotUnderstood):
         int_param.value = 10
-    with pytest.raises(ValueError):
+    with pytest.raises(RequestNotUnderstood):
         fl_param.value = 1.2
-    with pytest.raises(ValueError):
+    with pytest.raises(RequestNotUnderstood):
         fl_param.value = 8.3
-    with pytest.raises(ValueError):
+    with pytest.raises(RequestNotUnderstood):
         Integer(1, name = 'INT', min_value = 2, max_value = 8)
-    with pytest.raises(ValueError):
+    with pytest.raises(RequestNotUnderstood):
         Float(1.1, name = 'FL', min_value = 2.2, max_value = 7.7)
-    with pytest.raises(ValueError):
+    with pytest.raises(RequestNotUnderstood):
         Integer(10, name = 'INT', min_value = 2, max_value = 8)
-    with pytest.raises(ValueError):
+    with pytest.raises(RequestNotUnderstood):
         Float(8.2, name = 'FL', min_value = 2.2, max_value = 7.7)
     with pytest.raises(NotImplementedError):
         Parameter(value = 1, name = 'foo', min_value = 0, max_value=10)
@@ -407,5 +408,5 @@ def test_boolean_parameter(inval, iswrong, expected):
         p = Boolean(inval)
         assert p.value == expected
     else:
-        with pytest.raises(ValueError):
+        with pytest.raises(RequestNotUnderstood):
             Boolean(inval)
