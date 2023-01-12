@@ -40,6 +40,8 @@ import numpy as np
 
 from typing import Union
 from inspect import signature
+from .exceptions import RequestNotUnderstood
+
 
 logger = logging.getLogger(__name__)
 
@@ -289,7 +291,7 @@ class Parameter:
                                   name = self.name)            
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
-                    raise RuntimeError(f'Parameter {self.name} wrong value {v}: not in allowed {self._allowed_values}')
+                    raise RequestNotUnderstood(f'Parameter {self.name} wrong value {v}: not in allowed {self._allowed_values}')
             if isinstance(v, str):
                 self._value = v.strip()
             else:
@@ -503,11 +505,11 @@ class NumericParameter(Parameter):
         if min_value is not None:
             if isinstance(min_value, str): min_value = float(min_value)
             if val <= min_value:
-                raise ValueError(f'Parameter {name} wrong value {val}: should be greater than {min_value}')
+                raise RequestNotUnderstood(f'Parameter {name} wrong value {val}: should be greater than {min_value}')
         if max_value is not None:
             if isinstance(max_value, str): max_value = float(max_value)
             if val >= max_value:
-                raise ValueError(f'Parameter {name} wrong value {val}: should be less than {max_value}')
+                raise RequestNotUnderstood(f'Parameter {name} wrong value {val}: should be lower than {max_value}')
 
 class Float(NumericParameter):
     owl_uris = ("http://www.w3.org/2001/XMLSchema#float")
@@ -573,7 +575,7 @@ class Float(NumericParameter):
             try:
                 float(value)
             except:
-                raise RuntimeError(f'the Float parameter {name} cannot be assigned the value {value} '
+                raise RequestNotUnderstood(f'the Float parameter {name} cannot be assigned the value {value} '
                                    f'of type {type(value).__name__}')
 
 
@@ -628,11 +630,11 @@ class Integer(NumericParameter):
             if isinstance(value, float):
                 message = f'{value} is an invalid value for {name} since it cannot be used as an Integer'
                 logger.error(message)
-                raise RuntimeError(message)
+                raise RequestNotUnderstood(message)
             try:
                 int(value)
             except:
-                raise RuntimeError(f'the Integer parameter {name} cannot be assigned the value {value} '
+                raise RequestNotUnderstood(f'the Integer parameter {name} cannot be assigned the value {value} '
                                    f'of type {type(value).__name__}')
 
 
@@ -762,7 +764,7 @@ class InputProdList(Parameter):
                 self.check_value(v, par_format=self.par_format, name=self.name)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
-                    raise RuntimeError(f'Parameter {self.name} wrong value {v}: not in allowed {self._allowed_values}')
+                    raise RequestNotUnderstood(f'Parameter {self.name} wrong value {v}: not in allowed {self._allowed_values}')
             if v == [''] or v is None or str(v) == '':
                 self._value = ['']
             else:
@@ -891,4 +893,4 @@ class Boolean(Parameter):
         elif v in self._true_rep:
             self._value = True
         else:
-            raise ValueError(f'Wrong value for parameter {self.name}')
+            raise RequestNotUnderstood(f'Wrong value for boolean parameter {self.name}')
