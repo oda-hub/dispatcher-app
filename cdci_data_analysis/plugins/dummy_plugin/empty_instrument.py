@@ -91,7 +91,7 @@ def my_instr_factory():
     bounded_int_param = Integer(5, name = 'bounded_int_par', min_value = 2, max_value = 8)
     bounded_float_param = Float(5., name = 'bounded_float_par', min_value = 2.2, max_value = 7.7)
     string_select_param = String('spam', name='string_select_par', allowed_values=('spam', 'eggs', 'ham'))
-    restricted_param_query = DataServerParametricQuery('restricted_parameters_dummy_query',
+    restricted_param_query = EchoProductQuery('restricted_parameters_dummy_query',
                                                     parameters_list=[bounded_int_param, 
                                                                      bounded_float_param,
                                                                      string_select_param])

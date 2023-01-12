@@ -289,7 +289,7 @@ class Parameter:
                                   name = self.name)            
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
-                    raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
+                    raise RuntimeError(f'Parameter {self.name} wrong value {v}: not in allowed {self._allowed_values}')
             if isinstance(v, str):
                 self._value = v.strip()
             else:
@@ -501,10 +501,12 @@ class NumericParameter(Parameter):
     @staticmethod
     def check_bounds(val, min_value = None, max_value = None, name=None):
         if min_value is not None:
-            if val < min_value:
+            if isinstance(min_value, str): min_value = float(min_value)
+            if val <= min_value:
                 raise ValueError(f'Parameter {name} wrong value {val}: should be greater than {min_value}')
         if max_value is not None:
-            if val > max_value:
+            if isinstance(max_value, str): max_value = float(max_value)
+            if val >= max_value:
                 raise ValueError(f'Parameter {name} wrong value {val}: should be less than {max_value}')
 
 class Float(NumericParameter):
@@ -544,7 +546,7 @@ class Float(NumericParameter):
             self.check_value(v, name=self.name, units=self.units)
             self._v = float(v)
             if self._min_value is not None or self._max_value is not None:
-                self.check_bounds(v,
+                self.check_bounds(self._v,
                                   min_value = self._min_value, 
                                   max_value = self._max_value,
                                   name = self.name)
@@ -606,7 +608,7 @@ class Integer(NumericParameter):
             self.check_value(v, name=self.name, units=self.units)
             self._v = int(v)
             if self._min_value is not None or self._max_value is not None:
-                self.check_bounds(v,
+                self.check_bounds(self._v,
                                   min_value = self._min_value, 
                                   max_value = self._max_value,
                                   name = self.name)
@@ -760,7 +762,7 @@ class InputProdList(Parameter):
                 self.check_value(v, par_format=self.par_format, name=self.name)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
-                    raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
+                    raise RuntimeError(f'Parameter {self.name} wrong value {v}: not in allowed {self._allowed_values}')
             if v == [''] or v is None or str(v) == '':
                 self._value = ['']
             else:
