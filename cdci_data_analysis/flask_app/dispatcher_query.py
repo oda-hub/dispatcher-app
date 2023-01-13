@@ -185,7 +185,7 @@ class InstrumentQueryBackEnd:
                     if self.validate_query_from_token():
                         roles = tokenHelper.get_token_roles(self.decoded_token)
                         email = tokenHelper.get_token_user_email_address(self.decoded_token)
-                        pass
+
                 except jwt.exceptions.ExpiredSignatureError as e:
                     logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event': 'token-expired'})
                     message = ("The token provided is expired, please try to logout and login again. "
