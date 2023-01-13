@@ -49,12 +49,6 @@ from .empty_instrument import BoundaryFloat
 from ...analysis.parameters import SpectralBoundary, Angle, Energy
 
 
-# class InstrumentWithCheckQuery(InstrumentQuery):
-#     def check_instrument_roles(self, roles, email):
-#         return True
-
-
-
 def my_instr_factory():
     src_query = SourceQuery('src_query')
 
