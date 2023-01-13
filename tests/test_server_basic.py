@@ -2735,7 +2735,8 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     # validate content pushed
     repo = clone_renku_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
 
-    api_code_file_name = generate_notebook_filename(job_id=job_id)
+    # api_code_file_name = generate_notebook_filename(job_id=job_id)
+    api_code_file_name = 'api_code.ipynb'
     api_code_file_path = os.path.join(repo.working_dir, api_code_file_name)
 
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
@@ -2749,7 +2750,6 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     config_ini_hash = generate_ini_file_hash(config_ini_obj)
 
     repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}_{notebook_hash}_{config_ini_hash}', pull=True)
-
 
     assert check_job_id_branch_is_present(repo, job_id, notebook_hash, config_ini_hash)
 
