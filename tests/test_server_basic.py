@@ -439,11 +439,11 @@ def test_query_restricted_instrument(dispatcher_live_fixture):
         'token': encoded_token
     }
 
-    jdata = ask(server,
-                params,
-                expected_query_status=["done"],
-                max_time_s=50
-                )
+    ask(server,
+        params,
+        expected_query_status=["done"],
+        max_time_s=50
+        )
 
     token_payload = {
         **default_token_payload,
