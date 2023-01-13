@@ -24,7 +24,7 @@ import string
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
-from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, generate_notebook_filename, create_new_notebook_with_code, generate_nb_hash, create_renku_ini_config_obj, generate_ini_file_hash
+from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, create_new_notebook_with_code, generate_nb_hash, create_renku_ini_config_obj, generate_ini_file_hash
 from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id, get_source_astrophysical_entity_id_by_source_name
 from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
 
@@ -2735,7 +2735,6 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     # validate content pushed
     repo = clone_renku_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
 
-    # api_code_file_name = generate_notebook_filename(job_id=job_id)
     api_code_file_name = 'api_code.ipynb'
     api_code_file_path = os.path.join(repo.working_dir, api_code_file_name)
 

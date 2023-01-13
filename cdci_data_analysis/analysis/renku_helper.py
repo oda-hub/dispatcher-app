@@ -44,7 +44,6 @@ def push_api_code(api_code,
 
         step = 'creating new notebook with the api code'
         logger.info(step)
-        # file_name = generate_notebook_filename(job_id=job_id)
         file_name = 'api_code.ipynb'
         nb_obj = create_new_notebook_with_code(api_code)
 
