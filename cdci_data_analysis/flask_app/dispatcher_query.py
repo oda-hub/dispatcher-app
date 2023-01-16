@@ -173,6 +173,8 @@ class InstrumentQueryBackEnd:
             # In that case, validation is needed
             self.public = True
             self.token = None
+            email=None
+            roles=None
             self.decoded_token = None
             if 'token' in self.par_dic.keys() and self.par_dic['token'] not in ["", "None", None]:
                 self.token = self.par_dic['token']
@@ -181,7 +183,9 @@ class InstrumentQueryBackEnd:
                 self.log_query_progression("before validate_query_from_token")
                 try:
                     if self.validate_query_from_token():
-                        pass
+                        roles = tokenHelper.get_token_roles(self.decoded_token)
+                        email = tokenHelper.get_token_user_email_address(self.decoded_token)
+
                 except jwt.exceptions.ExpiredSignatureError as e:
                     logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event': 'token-expired'})
                     message = ("The token provided is expired, please try to logout and login again. "
@@ -226,7 +230,7 @@ class InstrumentQueryBackEnd:
 
             if get_meta_data:
                 self.logger.info("get_meta_data request: no scratch_dir")
-                self.set_instrument(self.instrument_name)
+                self.set_instrument(self.instrument_name, roles, email)
                 # TODO
                 # decide if it is worth to add the logger also in this case
                 #self.set_scratch_dir(self.par_dic['session_id'], verbose=verbose)
@@ -238,7 +242,7 @@ class InstrumentQueryBackEnd:
                 # self.set_sentry_client()
                 # TODO is also the case of call_back to handle ?
                 if not data_server_call_back:
-                    self.set_instrument(self.instrument_name)
+                    self.set_instrument(self.instrument_name, roles, email)
                     verbose = self.par_dic.get('verbose', 'False') == 'True'
                     try:
                         self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
@@ -410,6 +414,33 @@ class InstrumentQueryBackEnd:
         logger.info(result_scratch_dir_deletion)
 
         return jsonify(dict(output_status=result_scratch_dir_deletion))
+
+    @staticmethod
+    def get_user_specific_instrument_list(app):
+        token = request.args.get('token', None)
+
+        roles = []
+        email = None
+        if token is not None:
+            app_config = app.config.get('conf')
+            secret_key = app_config.secret_key
+            output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                          action="getting the list of instrument")
+            decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+            roles = tokenHelper.get_token_roles(decoded_token)
+            email = tokenHelper.get_token_user_email_address(decoded_token)
+            if output_code is not None:
+                return make_response(output, output_code)
+
+        out_instrument_list = []
+        for instrument_factory in importer.instrument_factory_list:
+            instrument = instrument_factory()
+
+            if instrument.instrumet_query.check_instrument_access(roles, email):
+                out_instrument_list.append(instrument.name)
+
+        return jsonify(out_instrument_list)
+
 
     @staticmethod
     def inspect_state(app):
@@ -1020,7 +1051,9 @@ class InstrumentQueryBackEnd:
                 status_details = None
                 if status == 'done':
                     # set instrument
-                    self.set_instrument(self.instrument_name)
+                    roles = tokenHelper.get_token_roles(self.decoded_token)
+                    email = tokenHelper.get_token_user_email_address(self.decoded_token)
+                    self.set_instrument(self.instrument_name, roles, email)
                     status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
                                                                         config=self.config,
                                                                         logger=self.logger,
@@ -1243,10 +1276,12 @@ class InstrumentQueryBackEnd:
 
         return out_dict
 
-    def set_instrument(self, instrument_name):
+    def set_instrument(self, instrument_name, roles, email):
+
         known_instruments = []
 
         new_instrument = None
+        no_access = False
         # TODO to get rid of the mock instrument option, we now have the empty instrument
         if instrument_name == 'mock':
             new_instrument = 'mock'
@@ -1254,12 +1289,18 @@ class InstrumentQueryBackEnd:
             for instrument_factory in importer.instrument_factory_list:
                 instrument = instrument_factory()
                 if instrument.name == instrument_name:
-                    new_instrument = instrument  # multiple assignment? TODO
+                    if instrument.instrumet_query.check_instrument_access(roles, email):
+                        new_instrument = instrument  # multiple assignment? TODO
+                    else:
+                        no_access = True
 
                 known_instruments.append(instrument.name)
-
         if new_instrument is None:
-            raise InstrumentNotRecognized(f'instrument: "{instrument_name}", known: {known_instruments}')
+            if no_access:
+                raise RequestNotAuthorized(f"Unfortunately, your priviledges are not sufficient "
+                                           f"to make the request for this instrument.\n")
+            else:
+                raise InstrumentNotRecognized(f'instrument: "{instrument_name}", known: {known_instruments}')
         else:
             self.instrument = new_instrument
 

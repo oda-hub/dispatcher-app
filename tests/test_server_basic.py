@@ -24,7 +24,7 @@ import string
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
-from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, generate_notebook_filename, create_new_notebook_with_code, generate_nb_hash
+from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, create_new_notebook_with_code, generate_nb_hash, create_renku_ini_config_obj, generate_ini_file_hash
 from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id, get_source_astrophysical_entity_id_by_source_name
 from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
 
@@ -132,14 +132,14 @@ def test_empty_request(dispatcher_live_fixture):
                    params={},
                 )
 
-    print("content:", c.text)
+    print("test_empty_request content output:", c.text)
 
     jdata=c.json()
 
     assert c.status_code == 400
 
     # parameterize this
-    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-semi-async']) or \
+    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-semi-async', 'empty-development']) or \
            jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"
@@ -398,6 +398,124 @@ def test_download_products_public(dispatcher_long_living_fixture, empty_products
         data_downloaded = fout.read()
 
     assert data_downloaded == empty_products_files_fixture['content']
+
+
+def test_query_restricted_instrument(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+
+    logger.info("constructed server: %s", server)
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty-development',
+    }
+
+    jdata = ask(server,
+                params,
+                expected_status_code=403,
+                expected_query_status=None,
+                max_time_s=150
+                )
+
+    assert jdata["debug_message"] == ""
+    assert jdata["error_message"] == "Unfortunately, your priviledges are not sufficient to make the request for this instrument.\n"
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "roles": "oda workflow developer"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty-development',
+        'token': encoded_token
+    }
+
+    ask(server,
+        params,
+        expected_query_status=["done"],
+        max_time_s=50
+        )
+
+    token_payload = {
+        **default_token_payload,
+        "roles": "general"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty-development',
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_status_code=403,
+                expected_query_status=None,
+                max_time_s=150
+                )
+
+    assert jdata["debug_message"] == ""
+    assert jdata["error_message"] == "Unfortunately, your priviledges are not sufficient to make the request for this instrument.\n"
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize("endpoint_url", ["instr-list", "api/instr-list"])
+def test_per_user_instrument_list(dispatcher_live_fixture, endpoint_url):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    c = requests.get(os.path.join(server, endpoint_url))
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert not 'empty-development' in jdata
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "roles": "oda workflow developer"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    c = requests.get(os.path.join(server, endpoint_url),
+                     params={"token": encoded_token})
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert 'empty-development' in jdata
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "roles": "general"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    c = requests.get(os.path.join(server, endpoint_url),
+                     params={"token": encoded_token})
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert not 'empty-development' in jdata
 
 
 @pytest.mark.fast
@@ -2674,7 +2792,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
         "roles": "general, renku contributor",
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-    p = 7
+    p = 7.5
 
     if not existing_branch:
         p += random.random()
@@ -2735,26 +2853,29 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     # validate content pushed
     repo = clone_renku_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
 
+    api_code_file_name = 'api_code.ipynb'
+    api_code_file_path = os.path.join(repo.working_dir, api_code_file_name)
+
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
     token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
     extracted_api_code = "import os\n\n" + re.sub(token_pattern, '"token": os.environ[\'ODA_TOKEN\'],', extracted_api_code, flags=re.DOTALL)
+
     nb_obj = create_new_notebook_with_code(extracted_api_code)
     notebook_hash = generate_nb_hash(nb_obj)
 
-    repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}_{notebook_hash}', pull=True)
+    config_ini_obj = create_renku_ini_config_obj(repo, api_code_file_name)
+    config_ini_hash = generate_ini_file_hash(config_ini_obj)
 
-    api_code_file_name = generate_notebook_filename(job_id=job_id)
-    api_code_file_path = os.path.join(repo.working_dir, api_code_file_name)
+    repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}_{notebook_hash}_{config_ini_hash}', pull=True)
 
-    assert check_job_id_branch_is_present(repo, job_id, notebook_hash)
+    assert check_job_id_branch_is_present(repo, job_id, notebook_hash, config_ini_hash)
 
-    assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}_{notebook_hash}" \
+    assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}_{notebook_hash}_{config_ini_hash}" \
                      f"&commit={repo.head.commit.hexsha}" \
-                     f"&notebook={api_code_file_name}" \
                      f"&env[ODA_TOKEN]={encoded_token}"
+                     # f"&notebook={api_code_file_name}" \
 
     logger.info("Renku url: %s", c.text)
-
 
     assert os.path.exists(api_code_file_path)
     parsed_notebook = nbf.read(api_code_file_path, 4)
@@ -2762,13 +2883,17 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     assert parsed_notebook.cells[0].source == "# Notebook automatically generated from MMODA"
     assert parsed_notebook.cells[1].source == extracted_api_code
 
-    assert repo.head.reference.commit.message is not None
     request_url = generate_commit_request_url(products_url, request_dict)
-    commit_message = (f"Stored API code of MMODA request by {token_payload['name']} for a {request_dict['product_type']}"
+    notebook_commit_message = (f"Stored API code of MMODA request by {token_payload['name']} for a {request_dict['product_type']}"
                       f" from the instrument {request_dict['instrument']}"
                       f"\nthe original request was generated via {request_url}\n"
                       "to retrieve the result please follow the link")
-    assert repo.head.reference.commit.message == commit_message
+
+    git_notebook_commit_msg = list(repo.iter_commits(paths=api_code_file_name))[0].message
+    config_file_commit_msg = list(repo.iter_commits(paths='.renku/renku.ini'))[0].message
+
+    assert git_notebook_commit_msg == notebook_commit_message
+    assert config_file_commit_msg == 'Update Renku config file with starting notebook'
 
     shutil.rmtree(repo.working_dir)
 

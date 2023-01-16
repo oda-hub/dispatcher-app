@@ -17,7 +17,7 @@ import sentry_sdk
 
 from raven.contrib.flask import Sentry
 from sentry_sdk.integrations.flask import FlaskIntegration
-from flask import jsonify, send_from_directory, redirect, Response, Flask, request, make_response, g
+from flask import jsonify, send_from_directory, redirect, Response, Flask, request, make_response, g, url_for
 
 # restx not really used
 from flask_restx import Api, Resource, reqparse
@@ -90,8 +90,10 @@ def run_api_parameters():
 
 @app.route("/api/instr-list")
 def run_api_instr_list():
-    query = InstrumentQueryBackEnd(app, get_meta_data=True)
-    return query.get_instr_list()
+    logger.warning('\nThe endpoint /api/instr-list is deprecated and you will be automatically redirected to the '
+                   '\'instr-list\' endpoint. Please use this one in the future.\n')
+
+    return redirect(url_for('instr_list', **request.args))
 
 
 @app.route('/meta-data')
@@ -257,6 +259,12 @@ def free_up_space():
 def inspect_state():
     state_data_obj = InstrumentQueryBackEnd.inspect_state(app)
     return state_data_obj
+
+
+@app.route('/instr-list')
+def instr_list():
+    instrument_list = InstrumentQueryBackEnd.get_user_specific_instrument_list(app)
+    return instrument_list
 
 
 @app.route('/push-renku-branch', methods=['POST'])
