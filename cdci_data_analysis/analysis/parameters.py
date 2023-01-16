@@ -794,14 +794,16 @@ class InputProdList(Parameter):
 class Angle(Float):
     owl_uris = ("http://odahub.io/ontology#PointOfInterestRA", "http://odahub.io/ontology#PointOfInterestDEC")
     
-    def __init__(self, value=None, units=None, default_units='deg', name=None):
+    def __init__(self, value=None, units=None, default_units='deg', name=None, min_value = None, max_value = None):
 
         super().__init__(value=value,
                          units=units,
                          # TODO can we safely make this assumption?
                          default_units=default_units,
                          name=name,
-                         allowed_units=None)
+                         allowed_units=None,
+                         min_value = min_value,
+                         max_value = max_value)
 
     def get_value_in_default_units(self):
         return self.get_value_in_units(self.default_units)
@@ -832,7 +834,7 @@ class Angle(Float):
 
 
 class Energy(Float):
-    def __init__(self, value=None, E_units='keV', name=None, check_value=None):
+    def __init__(self, value=None, E_units='keV', name=None, check_value=None, min_value = None, max_value = None):
         if check_value is None:
             check_value = self.check_energy_value
 
@@ -843,7 +845,9 @@ class Energy(Float):
                          default_units='keV',
                          check_value=check_value,
                          name=name,
-                         allowed_units=_allowed_units)
+                         allowed_units=_allowed_units,
+                         min_value = min_value,
+                         max_value = max_value)
 
     # TODO re-introduced for retro-compatibility
     @staticmethod
@@ -856,7 +860,7 @@ class SpectralBoundary(Energy):
 
 
 class DetectionThreshold(Float):
-    def __init__(self, value=None, units='sigma', name=None):
+    def __init__(self, value=None, units='sigma', name=None, min_value = None, max_value = None):
         _allowed_units = ['sigma']
 
         super().__init__(value=value,
@@ -864,7 +868,9 @@ class DetectionThreshold(Float):
                          # TODO to check if it's correct
                          check_value=self.check_float_value,
                          name=name,
-                         allowed_units=_allowed_units)
+                         allowed_units=_allowed_units,
+                         min_value = min_value,
+                         max_value = max_value)
 
 
 class UserCatalog(Parameter):
