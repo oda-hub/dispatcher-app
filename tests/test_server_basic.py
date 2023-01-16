@@ -132,14 +132,14 @@ def test_empty_request(dispatcher_live_fixture):
                    params={},
                 )
 
-    print("content:", c.text)
+    print("test_empty_request content output:", c.text)
 
     jdata=c.json()
 
     assert c.status_code == 400
 
     # parameterize this
-    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-semi-async']) or \
+    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-semi-async', 'empty-development']) or \
            jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"
@@ -398,6 +398,124 @@ def test_download_products_public(dispatcher_long_living_fixture, empty_products
         data_downloaded = fout.read()
 
     assert data_downloaded == empty_products_files_fixture['content']
+
+
+def test_query_restricted_instrument(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+
+    logger.info("constructed server: %s", server)
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty-development',
+    }
+
+    jdata = ask(server,
+                params,
+                expected_status_code=403,
+                expected_query_status=None,
+                max_time_s=150
+                )
+
+    assert jdata["debug_message"] == ""
+    assert jdata["error_message"] == "Unfortunately, your priviledges are not sufficient to make the request for this instrument.\n"
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "roles": "oda workflow developer"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty-development',
+        'token': encoded_token
+    }
+
+    ask(server,
+        params,
+        expected_query_status=["done"],
+        max_time_s=50
+        )
+
+    token_payload = {
+        **default_token_payload,
+        "roles": "general"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty-development',
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_status_code=403,
+                expected_query_status=None,
+                max_time_s=150
+                )
+
+    assert jdata["debug_message"] == ""
+    assert jdata["error_message"] == "Unfortunately, your priviledges are not sufficient to make the request for this instrument.\n"
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize("endpoint_url", ["instr-list", "api/instr-list"])
+def test_per_user_instrument_list(dispatcher_live_fixture, endpoint_url):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    c = requests.get(os.path.join(server, endpoint_url))
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert not 'empty-development' in jdata
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "roles": "oda workflow developer"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    c = requests.get(os.path.join(server, endpoint_url),
+                     params={"token": encoded_token})
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert 'empty-development' in jdata
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "roles": "general"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    c = requests.get(os.path.join(server, endpoint_url),
+                     params={"token": encoded_token})
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert not 'empty-development' in jdata
 
 
 @pytest.mark.fast

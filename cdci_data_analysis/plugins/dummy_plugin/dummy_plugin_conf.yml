@@ -2,3 +2,4 @@ instruments:
 - empty_instrument
 - empty_async_instrument
 - empty_semi_async_instrument
+- empty_development_instrument

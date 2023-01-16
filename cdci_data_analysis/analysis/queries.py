@@ -295,6 +295,7 @@ class InstrumentQuery(BaseQuery):
     def __init__(self,
                  name,
                  extra_parameters_list=[],
+                 restricted_access=False,
                  input_prod_list_name=None,
                  input_prod_value=None,
                  catalog_name=None,
@@ -308,6 +309,7 @@ class InstrumentQuery(BaseQuery):
 
         self.input_prod_list_name = input_prod_list_name
         self.catalog_name = catalog_name
+        self.restricted_access = restricted_access
 
         parameters_list=[catalog, input_prod_list, selected_catalog]
 
@@ -316,6 +318,11 @@ class InstrumentQuery(BaseQuery):
 
         super(InstrumentQuery, self).__init__(name,parameters_list)
 
+    def check_instrument_access(self, roles=None, email=None):
+        if roles is None:
+            roles = []
+
+        return (self.restricted_access and 'oda workflow developer' in roles) or not self.restricted_access
 
 class ProductQuery(BaseQuery):
     def __init__(self,

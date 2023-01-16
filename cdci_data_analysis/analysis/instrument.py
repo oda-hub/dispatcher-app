@@ -486,6 +486,7 @@ class Instrument:
         else:
             return self.query_dictionary[product_type]
 
+
     def check_instrument_query_role(self, query_obj, product_type, roles, par_dic):
         results = query_obj.check_query_roles(roles, par_dic)
         if not results['authorization']:
