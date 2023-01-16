@@ -108,7 +108,7 @@ def test_energy_defaults():
         (SpectralBoundary, 10, 10., 'keV', float),
         (SpectralBoundary, 10., 10., 'eV', float),
         (SpectralBoundary, 10., RuntimeError, 'W', None),
-        (SpectralBoundary, 'ssss', RuntimeError, None, None),
+        (SpectralBoundary, 'ssss', RequestNotUnderstood, None, None),
     ]:
         def constructor():
             return parameter_type(value=input_value,
@@ -145,6 +145,7 @@ def test_angle_parameter():
                                   name="my-parameter-name",
                                   **format_args
                                   )
+
 
         if isinstance(outcome, type) and issubclass(outcome, Exception):
             with pytest.raises(outcome):
@@ -257,18 +258,18 @@ def test_parameter_normalization_no_units():
             (Float, "25.", 25.0),
             (Float, "25.64547871216879451687311", 25.64547871216879451687311),
             (Float, "2.5e1", 25.0),
-            (Float, "aaaa", RuntimeError),
+            (Float, "aaaa", RequestNotUnderstood),
             (Float, None, None),
             (Float, '', None),
             (Integer, 25, 25),
             (Integer, None, None),
             (Integer, '', None),
-            (Integer, 25., RuntimeError),
-            (Integer, 25.64547871216879451687311, RuntimeError),
+            (Integer, 25., RequestNotUnderstood),
+            (Integer, 25.64547871216879451687311, RequestNotUnderstood),
             (Integer, "25", 25),
-            (Integer, "25.", RuntimeError),
-            (Integer, "25.64547871216879451687311", RuntimeError),
-            (Integer, "aaaa", RuntimeError)
+            (Integer, "25.", RequestNotUnderstood),
+            (Integer, "25.64547871216879451687311", RequestNotUnderstood),
+            (Integer, "aaaa", RequestNotUnderstood)
     ]:
 
         def constructor():

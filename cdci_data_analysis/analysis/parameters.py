@@ -686,7 +686,10 @@ class Time(Parameter):
         self._set_time(v, par_format=par_format)
 
     def _set_time(self, value, par_format):
-        self._astropy_time = astropyTime(value, format=par_format)
+        try:
+            self._astropy_time = astropyTime(value, format=par_format)
+        except ValueError as e:
+            raise RequestNotUnderstood(f'Parameter {self.name} wrong value {value}: can\'t be parsed as Time of {par_format} format')
         self._value = value
 
 
@@ -717,7 +720,11 @@ class TimeDelta(Time):
         self._set_time(v, format=units)
 
     def _set_time(self, value, format):
-        self._astropy_time_delta = astropyTimeDelta(value, format=format)
+        try:
+            self._astropy_time_delta = astropyTimeDelta(value, format=format)
+        except ValueError as e:
+            raise RequestNotUnderstood(f'Parameter {self.name} wrong value {value}: can\'t be parsed as TimeDelta of {format} format')
+
         self._value = value
 
 
@@ -811,7 +818,10 @@ class Angle(Float):
         if units is None:
             units = self.units
 
-        self._set_angle(v, units=units)
+        try:
+            self._set_angle(v, units=units)
+        except ValueError as e:
+            raise RequestNotUnderstood(f'Parameter {self.name} wrong value {v}: can\'t be parsed as Angle')
 
     def _set_angle(self, value, units):
         if value == '' or value is None:
