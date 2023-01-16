@@ -2975,3 +2975,74 @@ def test_catalog_selected_objects_accepted(dispatcher_live_fixture):
     assert not re.match(r'Please note that arguments?.*catalog_selected_objects.*not used', jdata['exit_status']['comment'])
     assert 'catalog_selected_objects' in jdata['products']['analysis_parameters'].keys()
     assert 'catalog_selected_objects' in jdata['products']['api_code']
+    
+@pytest.mark.fast
+def test_parameter_bounds_metadata(dispatcher_live_fixture):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+    
+    c = requests.get(server + '/meta-data',
+                     params={'instrument': 'empty'})
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+    
+    metadata = [json.loads(x) for x in jdata[0] if isinstance(x, str)]
+    restricted_meta = [x for x in metadata if x[0]['query_name'] == 'restricted_parameters_dummy_query'][0]
+    def meta_for_par(parname):
+        return [x for x in restricted_meta if x.get('name', None) == parname][0]
+    
+    assert meta_for_par('bounded_int_par')['restrictions'] == {'min_value': 2, 'max_value': 8}
+    assert meta_for_par('bounded_float_par')['restrictions'] == {'min_value': 2.2, 'max_value': 7.7}
+    assert meta_for_par('string_select_par')['restrictions'] == {'allowed_values': ['spam', 'eggs', 'ham']}
+    
+@pytest.mark.fast
+def test_restricted_parameters_good_request(dispatcher_live_fixture):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+    
+    good_par = {'instrument': 'empty',
+                'product_type': 'restricted',
+                'query_status': 'new',
+                'query_type': 'Real',
+                'bounded_int_par': 6,
+                'bounded_float_par': 6.1,
+                'string_select_par': 'ham'
+                }
+    
+    c = requests.get(server + '/run_analysis',
+                     params = good_par)
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+    assert jdata['exit_status']['status'] == 0
+    assert jdata['exit_status']['job_status'] == 'done'
+    # check parameters were actually set to proper values
+    assert jdata['products']['echo']['bounded_int_par'] == 6
+    assert jdata['products']['echo']['bounded_float_par'] == 6.1
+    assert jdata['products']['echo']['string_select_par'] == 'ham'
+
+@pytest.mark.fast
+@pytest.mark.parametrize("par_name,par_value", (('bounded_int_par', 40), 
+                                           ('bounded_float_par', -10.), 
+                                           ('string_select_par', 'foo')))
+def test_restricted_parameter_bad_request(dispatcher_live_fixture, par_name, par_value):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+    
+    good_par = {'instrument': 'empty',
+                  'product_type': 'restricted',
+                  'query_status': 'new',
+                  'query_type': 'Real',
+                  }
+    
+    c = requests.get(server + '/run_analysis',
+                     params = {**good_par,
+                               par_name: par_value})
+    
+    assert c.status_code == 400
+    print("content:", c.text)
+    jdata=c.json()
+    assert jdata['error'].startswith( f'RequestNotUnderstood():Parameter {par_name} wrong value' )

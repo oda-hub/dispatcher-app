@@ -2350,14 +2350,13 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
     else:
         expected_query_status = None
         expected_status_code = 400
-        error_message = (f'[ InstrumentQueryBackEnd : empty-async ] constructor failed: '
-                         f'Input values did not match the format class {time_format}:\n')
         if time_format == 'isot':
-            error_message += 'ValueError: Time 57818 does not match isot format'
+            par, val = ('T1', time_combinations[0]) if isinstance(time_combinations[0], float) else ('T2', time_combinations[1])
+            error_message = f'Parameter {par} wrong value {val}: can\'t be parsed as Time of isot format'
         else:
-            error_message += f'TypeError: for {time_format} class, input should be (long) doubles, string, ' \
-                             f'or Decimal, and second values are only allowed for (long) doubles.'
-
+            par, val = ('T1', time_combinations[0]) if isinstance(time_combinations[0], str) else ('T2', time_combinations[1])
+            error_message = f'Parameter {par} wrong value {val}: can\'t be parsed as Time of mjd format'
+            
     # this should return status submitted, so email sent
     jdata = ask(server,
                 dict_param,

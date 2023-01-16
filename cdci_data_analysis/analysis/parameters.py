@@ -40,6 +40,8 @@ import numpy as np
 
 from typing import Union
 from inspect import signature
+from .exceptions import RequestNotUnderstood
+
 
 logger = logging.getLogger(__name__)
 
@@ -203,6 +205,8 @@ class Parameter:
 
                  check_value=None,
                  allowed_values=None,
+                 min_value = None,
+                 max_value = None,
                  **kwargs
                  ):
         
@@ -248,8 +252,11 @@ class Parameter:
         self.par_format=par_format
         self.par_default_format=par_default_format
         self.par_format_name=par_format_name
+        self._min_value = min_value
+        self._max_value = max_value
         self.value = value
-        
+
+
         self._arg_list = [self.name]
         if par_format_name is not None:
             self._arg_list.append(par_format_name)
@@ -277,9 +284,14 @@ class Parameter:
         if v is not None:
             if self.check_value is not None:
                 self.check_value(v, units=self.units, name=self.name, par_format=self.par_format)
+            if self._min_value is not None or self._max_value is not None:
+                self.check_bounds(v,
+                                  min_value = self._min_value, 
+                                  max_value = self._max_value,
+                                  name = self.name)            
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
-                    raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
+                    raise RequestNotUnderstood(f'Parameter {self.name} wrong value {v}: not in allowed {self._allowed_values}')
             if isinstance(v, str):
                 self._value = v.strip()
             else:
@@ -398,17 +410,30 @@ class Parameter:
     @staticmethod
     def check_value(val, units=None, name=None, par_format=None):
         pass
-
+    
+    @staticmethod
+    def check_bounds(val, min_value, max_value, name):
+        raise NotImplementedError(f"Parameter {name} doesn't support min_value/max_value check")
+        
     def reprJSONifiable(self):
         # produces json-serialisable list
         reprjson = [dict(name=self.name, units=self.units, value=self.value)]
+        restrictions = {}
+        if self._allowed_values is not None:
+            restrictions['allowed_values'] = self._allowed_values
+        if getattr(self, '_min_value', None) is not None:
+            restrictions['min_value'] = self._min_value
+        if getattr(self, '_max_value', None) is not None:
+            restrictions['max_value'] = self._max_value
+        if restrictions:
+            reprjson[0]['restrictions'] = restrictions
         if self.par_format_name is not None:
             reprjson.append(dict(name=self.par_format_name, units="str", value=self.par_format))
         return reprjson
 
     @classmethod
     def matches_owl_uri(cls, owl_uri: str) -> bool:
-        return owl_uri in getattr(cls, "owl_uris", [])
+        return owl_uri in getattr(cls, "owl_uris", ())
 
     @classmethod
     def from_owl_uri(cls,
@@ -455,31 +480,52 @@ class Parameter:
         return possible_parameter_interpretations[0]
 
 class String(Parameter):
-    owl_uris = ["http://www.w3.org/2001/XMLSchema#str"]
+    owl_uris = ("http://www.w3.org/2001/XMLSchema#str")
     
-    def __init__(self, value=None, name_format='str', name=None):
+    def __init__(self, value=None, name_format='str', name=None, allowed_values = None):
 
         _allowed_units = ['str']
         super().__init__(value=value,
                          units=name_format,
                          check_value=self.check_name_value,
                          name=name,
-                         allowed_units=_allowed_units)
+                         allowed_units=_allowed_units,
+                         allowed_values=allowed_values)
 
     @staticmethod
     def check_name_value(value, units=None, name=None, par_format=None):
         pass
 
 class Name(String):
-    owl_uris = ["http://odahub.io/ontology#AstrophysicalObject"]
+    owl_uris = ("http://odahub.io/ontology#AstrophysicalObject")
 
-class Float(Parameter):
-    owl_uris = ["http://www.w3.org/2001/XMLSchema#float"]
-    def __init__(self, value=None, units=None, name=None, allowed_units=None, default_units=None, check_value=None):
+class NumericParameter(Parameter):
+    @staticmethod
+    def check_bounds(val, min_value = None, max_value = None, name=None):
+        if min_value is not None:
+            if isinstance(min_value, str): min_value = float(min_value)
+            if val <= min_value:
+                raise RequestNotUnderstood(f'Parameter {name} wrong value {val}: should be greater than {min_value}')
+        if max_value is not None:
+            if isinstance(max_value, str): max_value = float(max_value)
+            if val >= max_value:
+                raise RequestNotUnderstood(f'Parameter {name} wrong value {val}: should be lower than {max_value}')
+
+class Float(NumericParameter):
+    owl_uris = ("http://www.w3.org/2001/XMLSchema#float")
+    def __init__(self, 
+                 value=None, 
+                 units=None, 
+                 name=None, 
+                 allowed_units=None, 
+                 default_units=None, 
+                 check_value=None, 
+                 min_value= None,
+                 max_value = None):
 
         if check_value is None:
             check_value = self.check_float_value
-
+        
         super().__init__(value=value,
                          units=units,
                          check_value=check_value,
@@ -488,7 +534,9 @@ class Float(Parameter):
                          default_type=float,
                          # TODO added for consistency with Integer
                          allowed_types=[float],
-                         allowed_units=allowed_units)
+                         allowed_units=allowed_units,
+                         min_value=min_value,
+                         max_value=max_value)
 
     @property
     def value(self):
@@ -499,6 +547,11 @@ class Float(Parameter):
         if v is not None and v != '':
             self.check_value(v, name=self.name, units=self.units)
             self._v = float(v)
+            if self._min_value is not None or self._max_value is not None:
+                self.check_bounds(self._v,
+                                  min_value = self._min_value, 
+                                  max_value = self._max_value,
+                                  name = self.name)
         else:
             self._v = None
 
@@ -522,27 +575,30 @@ class Float(Parameter):
             try:
                 float(value)
             except:
-                raise RuntimeError(f'the Float parameter {name} cannot be assigned the value {value} '
+                raise RequestNotUnderstood(f'the Float parameter {name} cannot be assigned the value {value} '
                                    f'of type {type(value).__name__}')
 
 
-class Integer(Parameter):
-    owl_uris = "http://www.w3.org/2001/XMLSchema#int"
+class Integer(NumericParameter):
+    owl_uris = ("http://www.w3.org/2001/XMLSchema#int")
 
-    def __init__(self, value=None, units=None, name=None, check_value=None):
+    def __init__(self, value=None, units=None, name=None, check_value=None, min_value = None, max_value = None):
 
         _allowed_units = None
 
         if check_value is None:
             check_value = self.check_int_value
-
+        
         super().__init__(value=value,
                          units=units,
                          check_value=check_value,
                          default_type=int,
                          allowed_types=[int],
                          name=name,
-                         allowed_units=_allowed_units)
+                         allowed_units=_allowed_units,
+                         min_value = min_value,
+                         max_value = max_value)
+
 
     @property
     def value(self):
@@ -553,6 +609,11 @@ class Integer(Parameter):
         if v is not None and v != '':
             self.check_value(v, name=self.name, units=self.units)
             self._v = int(v)
+            if self._min_value is not None or self._max_value is not None:
+                self.check_bounds(self._v,
+                                  min_value = self._min_value, 
+                                  max_value = self._max_value,
+                                  name = self.name)
         else:
             self._v = None
 
@@ -569,11 +630,11 @@ class Integer(Parameter):
             if isinstance(value, float):
                 message = f'{value} is an invalid value for {name} since it cannot be used as an Integer'
                 logger.error(message)
-                raise RuntimeError(message)
+                raise RequestNotUnderstood(message)
             try:
                 int(value)
             except:
-                raise RuntimeError(f'the Integer parameter {name} cannot be assigned the value {value} '
+                raise RequestNotUnderstood(f'the Integer parameter {name} cannot be assigned the value {value} '
                                    f'of type {type(value).__name__}')
 
 
@@ -584,9 +645,9 @@ class Time(Parameter):
     # of this class.
     # reading the rdf should be done with thread-safe caching to avoid frequent requests
 
-    owl_uris = ["http://odahub.io/ontology#TimeInstant",
+    owl_uris = ("http://odahub.io/ontology#TimeInstant",
                 "http://odahub.io/ontology#StartTime",
-                "http://odahub.io/ontology#EndTime"]
+                "http://odahub.io/ontology#EndTime")
 
     def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None, par_default_format='isot'):
 
@@ -625,7 +686,10 @@ class Time(Parameter):
         self._set_time(v, par_format=par_format)
 
     def _set_time(self, value, par_format):
-        self._astropy_time = astropyTime(value, format=par_format)
+        try:
+            self._astropy_time = astropyTime(value, format=par_format)
+        except ValueError as e:
+            raise RequestNotUnderstood(f'Parameter {self.name} wrong value {value}: can\'t be parsed as Time of {par_format} format')
         self._value = value
 
 
@@ -633,6 +697,8 @@ class Time(Parameter):
 # it is confusing that TimeDelta derives from Time.  
 # https://github.com/astropy/astropy/blob/main/astropy/time/core.py#L379
 class TimeDelta(Time):
+    owl_uris = () # to avoid unnecessary attempt to initialize it for time parameter
+    
     def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None, par_default_format='sec'):
 
         super().__init__(value=value,
@@ -654,7 +720,11 @@ class TimeDelta(Time):
         self._set_time(v, format=units)
 
     def _set_time(self, value, format):
-        self._astropy_time_delta = astropyTimeDelta(value, format=format)
+        try:
+            self._astropy_time_delta = astropyTimeDelta(value, format=format)
+        except ValueError as e:
+            raise RequestNotUnderstood(f'Parameter {self.name} wrong value {value}: can\'t be parsed as TimeDelta of {format} format')
+
         self._value = value
 
 
@@ -701,7 +771,7 @@ class InputProdList(Parameter):
                 self.check_value(v, par_format=self.par_format, name=self.name)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
-                    raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
+                    raise RequestNotUnderstood(f'Parameter {self.name} wrong value {v}: not in allowed {self._allowed_values}')
             if v == [''] or v is None or str(v) == '':
                 self._value = ['']
             else:
@@ -722,7 +792,7 @@ class InputProdList(Parameter):
 
 
 class Angle(Float):
-    owl_uris = ["http://odahub.io/ontology#PointOfInterestRA", "http://odahub.io/ontology#PointOfInterestDEC"]
+    owl_uris = ("http://odahub.io/ontology#PointOfInterestRA", "http://odahub.io/ontology#PointOfInterestDEC")
     
     def __init__(self, value=None, units=None, default_units='deg', name=None):
 
@@ -748,7 +818,10 @@ class Angle(Float):
         if units is None:
             units = self.units
 
-        self._set_angle(v, units=units)
+        try:
+            self._set_angle(v, units=units)
+        except ValueError as e:
+            raise RequestNotUnderstood(f'Parameter {self.name} wrong value {v}: can\'t be parsed as Angle')
 
     def _set_angle(self, value, units):
         if value == '' or value is None:
@@ -806,3 +879,28 @@ class UserCatalog(Parameter):
     @staticmethod
     def check_name_value(value, units=None, name=None, par_format=None):
         pass
+
+class Boolean(Parameter):
+    owl_uris = ('http://www.w3.org/2001/XMLSchema#bool')
+    
+    def __init__(self, value=None, name=None):
+
+        self._true_rep = ['True', 'true', 'yes', '1', True]
+        self._false_rep = ['False', 'false', 'no', '0', False]
+        super().__init__(value=value,
+                         name=name,
+                         allowed_values=self._true_rep+self._false_rep
+                         )
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, v):
+        if v in self._false_rep:
+            self._value = False
+        elif v in self._true_rep:
+            self._value = True
+        else:
+            raise RequestNotUnderstood(f'Wrong value for boolean parameter {self.name}')

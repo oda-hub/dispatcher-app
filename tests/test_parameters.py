@@ -19,8 +19,11 @@ from cdci_data_analysis.analysis.parameters import (
     ParameterTuple,
     Angle,
     InputProdList,
-    DetectionThreshold
+    DetectionThreshold,
+    String,
+    Boolean
 )
+from cdci_data_analysis.analysis.exceptions import RequestNotUnderstood
 
 import numpy as np
 
@@ -105,7 +108,7 @@ def test_energy_defaults():
         (SpectralBoundary, 10, 10., 'keV', float),
         (SpectralBoundary, 10., 10., 'eV', float),
         (SpectralBoundary, 10., RuntimeError, 'W', None),
-        (SpectralBoundary, 'ssss', RuntimeError, None, None),
+        (SpectralBoundary, 'ssss', RequestNotUnderstood, None, None),
     ]:
         def constructor():
             return parameter_type(value=input_value,
@@ -134,7 +137,7 @@ def test_angle_parameter():
         (Angle, 1, {'units': 'arcsec'}, 1, 0.0002777777777777778),
         (Angle, -29.74516667, {}, -29.74516667, -29.74516667),
         (Angle, '-29.74516667', {}, -29.74516667, -29.74516667),
-        (Angle, 'aaaaa', {}, ValueError, None),
+        (Angle, 'aaaaa', {}, RequestNotUnderstood, None),
         (Angle, -0.519151094946, {'units': 'rad'}, -0.519151094946, -29.745166670001282)
     ]:
         def constructor():
@@ -142,6 +145,7 @@ def test_angle_parameter():
                                   name="my-parameter-name",
                                   **format_args
                                   )
+
 
         if isinstance(outcome, type) and issubclass(outcome, Exception):
             with pytest.raises(outcome):
@@ -166,11 +170,11 @@ def test_time_parameter():
         (Time, '2017-03-06T13:26:48.000', {'T_format': 'isot'}, '2017-03-06T13:26:48.000', '2017-03-06T13:26:48.000'),
         (Time, 57818.560277777775, {'T_format': 'mjd'}, 57818.560277777775, '2017-03-06T13:26:48.000'),
         (Time, '57818.560277777775', {'T_format': 'mjd'}, 57818.560277777775, '2017-03-06T13:26:48.000'),
-        (Time, '2017-03-06Z13:26:48.000', {'T_format': 'isot'}, ValueError, None),
-        (Time, 'aaaa', {'T_format': 'mjd'}, ValueError, None),
+        (Time, '2017-03-06Z13:26:48.000', {'T_format': 'isot'}, RequestNotUnderstood, None),
+        (Time, 'aaaa', {'T_format': 'mjd'}, RequestNotUnderstood, None),
         (TimeDelta, 1000., {'delta_T_format': 'sec'}, np.float64(1000.), np.float64(1000.)),
         (TimeDelta, '1000.', {'delta_T_format': 'sec'}, np.float64(1000.), np.float64(1000.)),
-        (TimeDelta, 'aaaa', {'delta_T_format': 'sec'}, ValueError, None)
+        (TimeDelta, 'aaaa', {'delta_T_format': 'sec'}, RequestNotUnderstood, None)
     ]:
         def constructor():
             return parameter_type(value=input_value,
@@ -254,18 +258,18 @@ def test_parameter_normalization_no_units():
             (Float, "25.", 25.0),
             (Float, "25.64547871216879451687311", 25.64547871216879451687311),
             (Float, "2.5e1", 25.0),
-            (Float, "aaaa", RuntimeError),
+            (Float, "aaaa", RequestNotUnderstood),
             (Float, None, None),
             (Float, '', None),
             (Integer, 25, 25),
             (Integer, None, None),
             (Integer, '', None),
-            (Integer, 25., RuntimeError),
-            (Integer, 25.64547871216879451687311, RuntimeError),
+            (Integer, 25., RequestNotUnderstood),
+            (Integer, 25.64547871216879451687311, RequestNotUnderstood),
             (Integer, "25", 25),
-            (Integer, "25.", RuntimeError),
-            (Integer, "25.64547871216879451687311", RuntimeError),
-            (Integer, "aaaa", RuntimeError)
+            (Integer, "25.", RequestNotUnderstood),
+            (Integer, "25.64547871216879451687311", RequestNotUnderstood),
+            (Integer, "aaaa", RequestNotUnderstood)
     ]:
 
         def constructor():
@@ -342,3 +346,68 @@ def test_parameter_from_owl_uri_extra_param(caplog):
                            units='d', # wrong parameter
                            name='example')
     assert "parameter units with value d not used to construct <class 'cdci_data_analysis.analysis.parameters.Time'>" in caplog.text
+
+@pytest.mark.fast
+def test_parameter_bounds():
+    int_param = Integer(5, name = 'INT', min_value = 2, max_value = 8)
+    fl_param = Float(5., name = 'FL', min_value = 2.2, max_value = 7.7)
+    with pytest.raises(RequestNotUnderstood):
+        int_param.value = 1
+    with pytest.raises(RequestNotUnderstood):
+        int_param.value = 10
+    with pytest.raises(RequestNotUnderstood):
+        fl_param.value = 1.2
+    with pytest.raises(RequestNotUnderstood):
+        fl_param.value = 8.3
+    with pytest.raises(RequestNotUnderstood):
+        Integer(1, name = 'INT', min_value = 2, max_value = 8)
+    with pytest.raises(RequestNotUnderstood):
+        Float(1.1, name = 'FL', min_value = 2.2, max_value = 7.7)
+    with pytest.raises(RequestNotUnderstood):
+        Integer(10, name = 'INT', min_value = 2, max_value = 8)
+    with pytest.raises(RequestNotUnderstood):
+        Float(8.2, name = 'FL', min_value = 2.2, max_value = 7.7)
+    with pytest.raises(NotImplementedError):
+        Parameter(value = 1, name = 'foo', min_value = 0, max_value=10)
+        
+@pytest.mark.fast 
+def test_parameter_meta_data():
+    bounded_parameter = Float(value = 1., name='bounded', min_value=0.1, max_value=2)
+    choice_parameter = String(value = 'spam', name='choice', allowed_values=['spam', 'eggs', 'hams'])
+    bool_parameter = Boolean(value = True, name = 'bool')
+    assert bounded_parameter.reprJSONifiable() == [{'name': 'bounded', 
+                                                    'units': None, 'value': 1.0, 
+                                                    'restrictions': {'min_value': 0.1, 'max_value': 2.0}}]
+    assert choice_parameter.reprJSONifiable() == [{'name': 'choice', 
+                                                   'units': 'str', 
+                                                   'value': 'spam',
+                                                   'restrictions': {'allowed_values': ['spam', 'eggs', 'hams']}}]
+    assert bool_parameter.reprJSONifiable() == [{'name': 'bool', 
+                                                'units': None, 
+                                                'value': True, 
+                                                'restrictions': {'allowed_values': ['True', 'true', 'yes', '1', True, 
+                                                                                    'False', 'false', 'no', '0', False]}}]
+    
+@pytest.mark.fast
+@pytest.mark.parametrize('inval, iswrong, expected',
+                         [('True', False, True),
+                          ('true', False, True),
+                          ('yes', False, True),
+                          ('1', False, True),
+                          (True, False, True),
+                          
+                          ('False', False, False),
+                          ('false', False, False),
+                          ('no', False, False),
+                          ('0', False, False),
+                          (False, False, False),
+                          
+                          ('Spam', True, False),
+                          (5, True, False)])
+def test_boolean_parameter(inval, iswrong, expected):
+    if not iswrong:
+        p = Boolean(inval)
+        assert p.value == expected
+    else:
+        with pytest.raises(RequestNotUnderstood):
+            Boolean(inval)
