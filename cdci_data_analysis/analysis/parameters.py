@@ -504,11 +504,11 @@ class NumericParameter(Parameter):
     def check_bounds(val, min_value = None, max_value = None, name=None):
         if min_value is not None:
             if isinstance(min_value, str): min_value = float(min_value)
-            if val <= min_value:
+            if val < min_value:
                 raise RequestNotUnderstood(f'Parameter {name} wrong value {val}: should be greater than {min_value}')
         if max_value is not None:
             if isinstance(max_value, str): max_value = float(max_value)
-            if val >= max_value:
+            if val > max_value:
                 raise RequestNotUnderstood(f'Parameter {name} wrong value {val}: should be lower than {max_value}')
 
 class Float(NumericParameter):
