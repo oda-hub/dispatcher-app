@@ -505,11 +505,11 @@ class NumericParameter(Parameter):
         if min_value is not None:
             if isinstance(min_value, str): min_value = float(min_value)
             if val < min_value:
-                raise RequestNotUnderstood(f'Parameter {name} wrong value {val}: should be greater than {min_value}')
+                raise RequestNotUnderstood(f'Parameter {name} wrong value {val}: should be greater or equal than {min_value}')
         if max_value is not None:
             if isinstance(max_value, str): max_value = float(max_value)
             if val > max_value:
-                raise RequestNotUnderstood(f'Parameter {name} wrong value {val}: should be lower than {max_value}')
+                raise RequestNotUnderstood(f'Parameter {name} wrong value {val}: should be lower or equal than {max_value}')
 
 class Float(NumericParameter):
     owl_uris = ("http://www.w3.org/2001/XMLSchema#float")
