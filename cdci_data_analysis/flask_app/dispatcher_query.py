@@ -925,8 +925,12 @@ class InstrumentQueryBackEnd:
 
             tmp_dir, target_file = self.prepare_download(
                 file_list, file_name, self.scratch_dir)
-            return send_from_directory(directory=tmp_dir, path=target_file, attachment_filename=target_file,
-                                       as_attachment=True)
+            try:
+                return send_from_directory(directory=tmp_dir, path=target_file, attachment_filename=target_file,
+                                        as_attachment=True)
+            except Exception as e:
+                return send_from_directory(directory=tmp_dir, filename=target_file, attachment_filename=target_file,
+                                           as_attachment=True)
         except RequestNotAuthorized as e:
             return self.build_response_failed('oda_api permissions failed',
                                               e.message,
