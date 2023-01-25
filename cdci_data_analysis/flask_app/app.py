@@ -604,13 +604,23 @@ def get_list_terms():
         return make_response(output, output_code)
     decoded_token = output
 
+    sentry_dsn = getattr(app_config, 'sentry_url', None)
+    if sentry_dsn is not None:
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            traces_sample_rate=1.0,
+            debug=True,
+            max_breadcrumbs=50,
+        )
+
     group = request.args.get('group', None)
     parent = request.args.get('parent', None)
 
     list_terms = drupal_helper.get_list_terms(disp_conf=app_config,
                                               group=group,
                                               parent=parent,
-                                              decoded_token=decoded_token)
+                                              decoded_token=decoded_token,
+                                              sentry_dsn=sentry_dsn)
 
     output_request = json.dumps(list_terms)
 
@@ -632,13 +642,23 @@ def get_parents_term():
         return make_response(output, output_code)
     decoded_token = output
 
+    sentry_dsn = getattr(app_config, 'sentry_url', None)
+    if sentry_dsn is not None:
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            traces_sample_rate=1.0,
+            debug=True,
+            max_breadcrumbs=50,
+        )
+
     group = request.args.get('group', None)
     term = request.args.get('term', None)
 
     list_parents = drupal_helper.get_parents_term(disp_conf=app_config,
                                                   term=term,
                                                   group=group,
-                                                  decoded_token=decoded_token)
+                                                  decoded_token=decoded_token,
+                                                  sentry_dsn=sentry_dsn)
 
     output_request = json.dumps(list_parents)
 
