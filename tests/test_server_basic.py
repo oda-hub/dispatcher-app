@@ -473,12 +473,17 @@ def test_query_restricted_instrument(dispatcher_live_fixture):
 
 @pytest.mark.fast
 @pytest.mark.parametrize("endpoint_url", ["instr-list", "api/instr-list"])
-def test_per_user_instrument_list(dispatcher_live_fixture, endpoint_url):
-    server = dispatcher_live_fixture
+def test_per_user_instrument_list(dispatcher_live_fixture_with_local_products_url, endpoint_url):
+    server = dispatcher_live_fixture_with_local_products_url
 
     logger.info("constructed server: %s", server)
 
     c = requests.get(os.path.join(server, endpoint_url))
+
+    if endpoint_url == 'api/instr-list':
+        assert c.status_code == 302
+    else:
+        assert c.status_code == 200
 
     jdata = c.json()
 
