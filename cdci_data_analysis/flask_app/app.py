@@ -90,10 +90,8 @@ def run_api_parameters():
 
 @app.route("/api/instr-list")
 def run_api_instr_list():
-    logger.warning('\nThe endpoint /api/instr-list is deprecated and you will be automatically redirected to the '
-                   '\'instr-list\' endpoint. Please use this one in the future.\n')
-
-    return redirect(url_for('instr_list', **request.args))
+    instrument_list = InstrumentQueryBackEnd.get_user_specific_instrument_list(app)
+    return instrument_list
 
 
 @app.route('/meta-data')
