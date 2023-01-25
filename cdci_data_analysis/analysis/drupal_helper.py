@@ -79,17 +79,17 @@ def get_list_terms(decoded_token, group, parent=None, disp_conf=None, sentry_dsn
         else:
             parent = 'production'
         log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary_parent/instruments/{parent}?_format=hal_json",
-                                         headers=headers)
+                                         headers=headers, sentry_dsn=sentry_dsn)
 
     elif group is not None and str.lower(group) == 'products':
         if parent is None or parent == '':
             parent = 'all'
         log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/term_vocabulary_parent/products/{parent}?_format=hal_json",
-                                         headers=headers)
+                                         headers=headers, sentry_dsn=sentry_dsn)
 
     elif group is not None and str.lower(group) == 'sources':
         log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/source/all?_format=hal_json",
-                                         headers=headers)
+                                         headers=headers, sentry_dsn=sentry_dsn)
 
     if log_res is not None:
         output_request = analyze_drupal_output(log_res,
@@ -124,7 +124,7 @@ def get_parents_term(decoded_token, term, group=None, disp_conf=None, sentry_dsn
     if group is None or group == '':
         group = 'all'
     log_res = execute_drupal_request(f"{product_gallery_url}/taxonomy/product_term_parent/{term}/{group}?_format=hal_json",
-                                     headers=headers)
+                                     headers=headers, sentry_dsn=sentry_dsn)
 
     if log_res is not None:
         msg = f"retrieving the list parents for the term {term}, "
@@ -221,6 +221,13 @@ def execute_drupal_request(url,
                 m = re.search(r'<em(.*)>InvalidArgumentException</em>:(.*)</em>\)', res.text)
                 if m is not None:
                     drupal_helper_error_message = re.sub('<[^<]+?>', '', m.group())
+
+                if sentry_dsn is not None:
+                    sentry_sdk.capture_message(f'issue in completing a request to the product gallery: '
+                                               f'the requested url {url} lead to the error '
+                                               f'{drupal_helper_error_message}')
+                else:
+                    logger.warning("sentry not used")
 
                 raise InternalError('issue when performing a request to the product gallery',
                                     status_code=500,
@@ -786,7 +793,7 @@ def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_
     else:
         observation_drupal_id, observation_information_message, output_observation_post = \
             get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
-                                      observation_title=title)
+                                      observation_title=title, sentry_dsn=sentry_dsn)
         if observation_drupal_id is not None:
             log_res = execute_drupal_request(os.path.join(product_gallery_url, 'node', observation_drupal_id),
                                              method='patch',
@@ -1087,7 +1094,8 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
                                                                                        t1=t1, t2=t2, timezone=timezone,
                                                                                        obsids=obsid,
                                                                                        observation_attachment_file_fid_list=observation_attachment_file_fid_list,
-                                                                                       observation_title=observation_id)
+                                                                                       observation_title=observation_id,
+                                                                                       sentry_dsn=sentry_dsn)
     if observation_drupal_id is not None:
         body_gallery_article_node["field_derived_from_observation"] = [{
             "target_id": observation_drupal_id
@@ -1214,7 +1222,8 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
     ids_obj = get_instrument_product_type_id(product_gallery_url=product_gallery_url,
                                              gallery_jwt_token=gallery_jwt_token,
                                              product_type=product_type,
-                                             instrument=instrument)
+                                             instrument=instrument,
+                                             sentry_dsn=sentry_dsn)
     if 'instrument_id' in ids_obj:
         # info for the instrument
         body_gallery_article_node['field_instrumentused'] = [{
