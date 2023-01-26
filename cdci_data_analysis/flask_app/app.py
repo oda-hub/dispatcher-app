@@ -503,7 +503,7 @@ def output_html(data, code, headers=None):
 @ns_conf.route('/product/<path:path>', methods=['GET', 'POST'])
 # @app.route('/product/<path:path>',methods=['GET','POST'])
 class Product(Resource):
-    @api.doc(responses={410: 'problem with local file delivery'}, params={'path': 'the file path to be served'})
+    # @api.doc(responses={410: 'problem with local file delivery'}, params={'path': 'the file path to be served'})
     def get(self, path):
         """
         serves a locally stored file
@@ -885,7 +885,7 @@ def report_incident():
 @ns_conf.route('/js9/<path:path>', methods=['GET', 'POST'])
 # @app.route('/js9/<path:path>',methods=['GET','POST'])
 class JS9(Resource):
-    @api.doc(responses={410: 'problem with  js9 library'}, params={'path': 'the file path for the JS9 library'})
+    # @api.doc(responses={410: 'problem with  js9 library'}, params={'path': 'the file path for the JS9 library'})
     def get(self, path):
         """
         serves the js9 library
@@ -907,7 +907,7 @@ class JS9(Resource):
 
 @ns_conf.route('/get_js9_plot')
 class GetJS9Plot(Resource):
-    @api.doc(responses={410: 'problem with js9 image generation'}, params={'file_path': 'the file path', 'ext_id': 'extension id'})
+    # @api.doc(responses={410: 'problem with js9 image generation'}, params={'file_path': 'the file path', 'ext_id': 'extension id'})
     def get(self):
         """
         returns the js9 image display
@@ -958,7 +958,7 @@ class TestJS9Plot(Resource):
     """
     tests js9 with a predefined file
     """
-    @api.doc(responses={410: 'problem with js9 image generation'})
+    # @api.doc(responses={410: 'problem with js9 image generation'})
     def get(self):
         try:
             img = Image(None, None)

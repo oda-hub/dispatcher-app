@@ -37,7 +37,7 @@ class Sentry:
                     # We recommend adjusting this value in production.
                     traces_sample_rate=0.1,
                     debug=False,
-                    max_breadcrumbs=50,
+                    max_breadcrumbs=10,
                 )
             except Exception as e:
                 logger.warning("can not setup sentry with URL %s due to %s", self.sentry_url, e)
