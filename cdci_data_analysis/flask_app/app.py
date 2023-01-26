@@ -93,7 +93,7 @@ def run_api_instr_list():
     logger.warning('\nThe endpoint /api/instr-list is deprecated and you will be automatically redirected to the '
                    '\'instr-list\' endpoint. Please use this one in the future.\n')
 
-    redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data', 'instr-list')
+    redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/instr-list')
 
     if request.args:
         redirection_url += f'?{urlencode(request.args)}'
