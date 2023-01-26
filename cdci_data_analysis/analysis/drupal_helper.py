@@ -14,6 +14,8 @@ import re
 
 from typing import Optional, Tuple, Dict
 
+from ..flask_app.sentry import sentry
+
 import sentry_sdk
 from dateutil import parser, tz
 from datetime import datetime
@@ -223,9 +225,9 @@ def execute_drupal_request(url,
                     drupal_helper_error_message = re.sub('<[^<]+?>', '', m.group())
 
                 if sentry_dsn is not None:
-                    sentry_sdk.capture_message(f'issue in completing a request to the product gallery: '
-                                               f'the requested url {url} lead to the error '
-                                               f'{drupal_helper_error_message}')
+                    sentry.capture_message(f'issue in completing a request to the product gallery: '
+                                           f'the requested url {url} lead to the error '
+                                           f'{drupal_helper_error_message}')
                 else:
                     logger.warning("sentry not used")
 
@@ -267,10 +269,7 @@ def execute_drupal_request(url,
                                f"this prevented us to complete the request to the url: {url} \n"
                                f"this is likely to be a connection related problem, we are investigating and "
                                f"try to solve it as soon as possible")
-                if sentry_dsn is not None:
-                    sentry_sdk.capture_message(f'exception when performing a request to the product gallery: {repr(e)}')
-                else:
-                    logger.warning("sentry not used")
+                sentry.capture_message(f'exception when performing a request to the product gallery: {repr(e)}')                
                 raise InternalError('issue when performing a request to the product gallery',
                                     status_code=500,
                                     payload={'drupal_helper_error_message': str(e)})
@@ -372,17 +371,7 @@ def post_content_to_gallery(decoded_token,
     converttime_revnum_service_url = disp_conf.converttime_revnum_service_url
     timezone = disp_conf.product_gallery_timezone
 
-    sentry_dsn = getattr(disp_conf, 'sentry_url', None)
-    if sentry_dsn is not None:
-        sentry_sdk.init(
-            dsn=sentry_dsn,
-            # Set traces_sample_rate to 1.0 to capture 100%
-            # of transactions for performance monitoring.
-            # We recommend adjusting this value in production.
-            traces_sample_rate=1.0,
-            debug=True,
-            max_breadcrumbs=50,
-        )
+    sentry_dsn = sentry.sentry_url
 
     par_dic = copy.deepcopy(kwargs)
     # extract email address and then the relative user_id
