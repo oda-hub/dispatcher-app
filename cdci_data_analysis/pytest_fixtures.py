@@ -489,12 +489,16 @@ def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
 
 @pytest.fixture
 def dispatcher_test_conf_with_local_products_url(dispatcher_test_conf_with_local_products_url_fn):
-    yield yaml.load(open(dispatcher_test_conf_with_local_products_url_fn), Loader=yaml.SafeLoader)['dispatcher']
+    with open(dispatcher_test_conf_with_local_products_url_fn) as yaml_f:
+        loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
+    yield loaded_yaml['dispatcher']
 
 
 @pytest.fixture
 def dispatcher_test_conf_with_external_products_url(dispatcher_test_conf_with_external_products_url_fn):
-    yield yaml.load(open(dispatcher_test_conf_with_external_products_url_fn), Loader=yaml.SafeLoader)['dispatcher']
+    with open(dispatcher_test_conf_with_external_products_url_fn) as yaml_f:
+        loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
+    yield loaded_yaml['dispatcher']
 
 
 @pytest.fixture
