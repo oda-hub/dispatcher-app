@@ -8,15 +8,13 @@ Created on Wed May 10 10:55:20 2017
 import glob
 import json
 import os
-import re
 import string
 import random
 import hashlib
-import jwt
-import sentry_sdk
+
+import logging
 
 from raven.contrib.flask import Sentry
-from sentry_sdk.integrations.flask import FlaskIntegration
 from flask import jsonify, send_from_directory, redirect, Response, Flask, request, make_response, g, url_for
 
 # restx not really used
@@ -40,6 +38,7 @@ from ..analysis.exceptions import APIerror, MissingRequestParameter
 from ..app_logging import app_logging
 
 from ..analysis.json import CustomJSONEncoder
+from .sentry import sentry
 
 from cdci_data_analysis import __version__
 import oda_api
@@ -52,6 +51,8 @@ logger = app_logging.getLogger('flask_app')
 app = Flask(__name__,
             static_url_path=os.path.abspath('./'),
             static_folder='/static')
+
+sentry.app = app
 
 app.json_encoder = CustomJSONEncoder
 
@@ -341,17 +342,9 @@ def push_renku_branch():
     except Exception as e:
         error_message = f"Exception in push-renku-branch: {repr(e)}, {traceback.format_exc()}"
         logging.getLogger().error(error_message)
-        sentry_dsn = getattr(app.config.get('conf'), 'sentry_url', None)
-        if sentry_dsn is not None:
-            sentry_sdk.init(
-                dsn=sentry_dsn,
-                traces_sample_rate=1.0,
-                debug=True,
-                max_breadcrumbs=50,
-            )
 
-        if sentry_dsn is not None:
-            sentry_sdk.capture_message(f'{error_message}')
+        sentry.capture_message(f'exception in run_analysis: {str(e)}')
+        
         raise RequestNotUnderstood(message="Error while posting on the renku branch",
                                    payload={'error_message': error_message})
 
@@ -402,28 +395,11 @@ def run_analysis():
     except APIerror as e:
         raise
     except Exception as e:
-        logging.getLogger().error("exception in run_analysis: %s %s",
-                                  repr(e), traceback.format_exc())
-        print("exception in run_analysis: %s %s",
-              repr(e), traceback.format_exc())
-        sentry_url = getattr(app.config.get('conf'), 'sentry_url', None)
-        if sentry_url is not None:
-            sentry_sdk.init(
-                dsn=sentry_url,
-                # Set traces_sample_rate to 1.0 to capture 100%
-                # of transactions for performance monitoring.
-                # We recommend adjusting this value in production.
-                traces_sample_rate=1.0,
-                debug=True,
-                max_breadcrumbs=50,
-            )
-            sentry_sdk.capture_message(f'exception in run_analysis: {str(e)}')
-        else:
-            logger.warning("sentry not used")
+        sentry.capture_message(f"exception in run_analysis: {repr(e)} {traceback.format_exc()}")
 
         raise UnknownDispatcherException('request not valid',
-                           status_code=500,
-                           payload={'error_message': str(e), **common_exception_payload()})
+                                         status_code=500,
+                                         payload={'error_message': str(e), **common_exception_payload()})
 
 
 # or flask-marshmellow
@@ -604,14 +580,7 @@ def get_list_terms():
         return make_response(output, output_code)
     decoded_token = output
 
-    sentry_dsn = getattr(app_config, 'sentry_url', None)
-    if sentry_dsn is not None:
-        sentry_sdk.init(
-            dsn=sentry_dsn,
-            traces_sample_rate=1.0,
-            debug=True,
-            max_breadcrumbs=50,
-        )
+    sentry_dsn = sentry.sentry_url
 
     group = request.args.get('group', None)
     parent = request.args.get('parent', None)
@@ -642,14 +611,7 @@ def get_parents_term():
         return make_response(output, output_code)
     decoded_token = output
 
-    sentry_dsn = getattr(app_config, 'sentry_url', None)
-    if sentry_dsn is not None:
-        sentry_sdk.init(
-            dsn=sentry_dsn,
-            traces_sample_rate=1.0,
-            debug=True,
-            max_breadcrumbs=50,
-        )
+    sentry_dsn = sentry.sentry_url
 
     group = request.args.get('group', None)
     term = request.args.get('term', None)
@@ -684,17 +646,7 @@ def get_observation_attachments():
     par_dic = request.values.to_dict()
     par_dic.pop('token')
 
-    sentry_dsn = getattr(app_config, 'sentry_url', None)
-    if sentry_dsn is not None:
-        sentry_sdk.init(
-            dsn=sentry_dsn,
-            # Set traces_sample_rate to 1.0 to capture 100%
-            # of transactions for performance monitoring.
-            # We recommend adjusting this value in production.
-            traces_sample_rate=1.0,
-            debug=True,
-            max_breadcrumbs=50,
-        )
+    sentry_dsn = sentry.sentry_url
 
     gallery_secret_key = app_config.product_gallery_secret_key
     product_gallery_url = app_config.product_gallery_url
@@ -735,17 +687,7 @@ def get_all_revs():
     par_dic = request.values.to_dict()
     par_dic.pop('token')
 
-    sentry_dsn = getattr(app_config, 'sentry_url', None)
-    if sentry_dsn is not None:
-        sentry_sdk.init(
-            dsn=sentry_dsn,
-            # Set traces_sample_rate to 1.0 to capture 100%
-            # of transactions for performance monitoring.
-            # We recommend adjusting this value in production.
-            traces_sample_rate=1.0,
-            debug=True,
-            max_breadcrumbs=50,
-        )
+    sentry_dsn = sentry.sentry_url
 
     gallery_secret_key = app_config.product_gallery_secret_key
     product_gallery_url = app_config.product_gallery_url
@@ -785,17 +727,7 @@ def get_all_astro_entities():
     par_dic = request.values.to_dict()
     par_dic.pop('token')
 
-    sentry_dsn = getattr(app_config, 'sentry_url', None)
-    if sentry_dsn is not None:
-        sentry_sdk.init(
-            dsn=sentry_dsn,
-            # Set traces_sample_rate to 1.0 to capture 100%
-            # of transactions for performance monitoring.
-            # We recommend adjusting this value in production.
-            traces_sample_rate=1.0,
-            debug=True,
-            max_breadcrumbs=50,
-        )
+    sentry_dsn = sentry.sentry_url
 
     gallery_secret_key = app_config.product_gallery_secret_key
     product_gallery_url = app_config.product_gallery_url
@@ -909,17 +841,7 @@ def report_incident():
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
-    sentry_dsn = getattr(app_config, 'sentry_url', None)
-    if sentry_dsn is not None:
-        sentry_sdk.init(
-            dsn=sentry_dsn,
-            # Set traces_sample_rate to 1.0 to capture 100%
-            # of transactions for performance monitoring.
-            # We recommend adjusting this value in production.
-            traces_sample_rate=1.0,
-            debug=True,
-            max_breadcrumbs=50,
-        )
+    sentry_dsn = sentry.sentry_url
 
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key)
 
@@ -948,21 +870,9 @@ def report_incident():
         report_incident_status = 'incident report email successfully sent'
     except email_helper.EMailNotSent as e:
         report_incident_status = 'sending email failed'
-        logging.warning(f'email sending failed: {e}')
-        sentry_url = getattr(app.config.get('conf'), 'sentry_url', None)
-        if sentry_url is not None:
-            sentry_sdk.init(
-                dsn=sentry_url,
-                # Set traces_sample_rate to 1.0 to capture 100%
-                # of transactions for performance monitoring.
-                # We recommend adjusting this value in production.
-                traces_sample_rate=1.0,
-                debug=True,
-                max_breadcrumbs=50,
-            )
-            sentry_sdk.capture_message(f'sending email failed {e}')
-        else:
-            logger.warning("sentry not used")
+        logging.warning(f'email sending failed: {e}')        
+        sentry.capture_message(f'sending email failed {e}')
+
     except MissingRequestParameter as e:
         report_incident_status = 'sending email failed'
         logging.warning(f'parameter missing during call back: {e}')

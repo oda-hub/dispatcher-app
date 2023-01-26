@@ -48,6 +48,7 @@ from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.exceptions import BadRequest, APIerror, MissingRequestParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut, InternalError
 from . import tasks
+from ..flask_app.sentry import sentry
 
 from oda_api.api import DispatcherAPI
 
@@ -143,8 +144,7 @@ class InstrumentQueryBackEnd:
                 if 'job_id' in self.par_dic:
                     self.job_id = self.par_dic['job_id']
                 else:
-                    if getattr(self, 'sentry_dsn', None) is not None:
-                        sentry_sdk.capture_message("job_id not present during a call_back")
+                    sentry.capture_message("job_id not present during a call_back")
                     raise RequestNotUnderstood("job_id must be present during a call_back")
             if data_server_call_back:
                 # this can be set since it's a call_back and job_id and session_id are available
@@ -193,8 +193,7 @@ class InstrumentQueryBackEnd:
                                "and resubmit you request.")
                     if data_server_call_back:
                         message = "The token provided is expired, please resubmit you request with a valid token."
-                        if getattr(self, 'sentry_dsn', None) is not None:
-                            sentry_sdk.capture_message(message)
+                        sentry.capture_message(message)
 
                     raise RequestNotAuthorized(message)
                 except jwt.exceptions.InvalidSignatureError as e:
@@ -204,8 +203,7 @@ class InstrumentQueryBackEnd:
                                "and resubmit you request.")
                     if data_server_call_back:
                         message = "The token provided is expired, please resubmit you request with a valid token."
-                        if getattr(self, 'sentry_dsn', None) is not None:
-                            sentry_sdk.capture_message(message)
+                        sentry.capture_message(message)
 
                     raise RequestNotAuthorized(message)
 
@@ -247,8 +245,7 @@ class InstrumentQueryBackEnd:
                     try:
                         self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
                     except Exception as e:
-                        if getattr(self, 'sentry_dsn', None) is not None:
-                            sentry_sdk.capture_message(f"problem creating temp directory: {e}")
+                        sentry.capture_message(f"problem creating temp directory: {e}")
 
                         raise InternalError("we have encountered an internal error! "
                                             "Our team is notified and is working on it. We are sorry! "
@@ -328,17 +325,7 @@ class InstrumentQueryBackEnd:
     def free_up_space(app):
         token = request.args.get('token', None)
 
-        sentry_dsn = getattr(app.config.get('conf'), 'sentry_url', None)
-        if sentry_dsn is not None:
-            sentry_sdk.init(
-                dsn=sentry_dsn,
-                # Set traces_sample_rate to 1.0 to capture 100%
-                # of transactions for performance monitoring.
-                # We recommend adjusting this value in production.
-                traces_sample_rate=1.0,
-                debug=True,
-                max_breadcrumbs=50,
-            )
+        sentry_dsn = sentry.sentry_url
 
         app_config = app.config.get('conf')
         secret_key = app_config.secret_key
@@ -388,8 +375,7 @@ class InstrumentQueryBackEnd:
                                                    f"while checking for deletion the folder {scratch_dir}."
 
                     logger.info(incomplete_job_alert_message)
-                    if sentry_dsn is not None:
-                        sentry_sdk.capture_message(incomplete_job_alert_message)
+                    sentry.capture_message(incomplete_job_alert_message)
             else:
                 break
 
@@ -648,19 +634,11 @@ class InstrumentQueryBackEnd:
         return _logger
 
     def set_sentry_sdk(self, sentry_dsn=None):
-
         if sentry_dsn is not None:
-            sentry_sdk.init(
-                dsn=sentry_dsn,
-                # Set traces_sample_rate to 1.0 to capture 100%
-                # of transactions for performance monitoring.
-                # We recommend adjusting this value in production.
-                traces_sample_rate=1.0,
-                debug=True,
-                max_breadcrumbs=50,
-            )
+            if sentry.sentry_url != sentry_dsn:
+                raise NotImplementedError
 
-        self.sentry_dsn = sentry_dsn
+        self.sentry_dsn = sentry.sentry_url
 
     def get_current_ip(self):
         return socket.gethostbyname(socket.gethostname())
@@ -1105,16 +1083,14 @@ class InstrumentQueryBackEnd:
                                         full_dict=self.par_dic,
                                         email_status='multiple completion email detected')
             logging.warning(f'repeated sending of completion email detected: {e}')
-            if self.sentry_dsn is not None:
-                sentry_sdk.capture_message(f'sending email failed {e}')
+            sentry.capture_message(f'sending email failed {e}')
 
         except email_helper.EMailNotSent as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
                                         email_status='sending email failed')
             logging.warning(f'email sending failed: {e}')
-            if self.sentry_dsn is not None:
-                sentry_sdk.capture_message(f'sending email failed {e}')
+            sentry.capture_message(f'sending email failed {e}')
 
         except MissingRequestParameter as e:
             job.write_dataserver_status(status_dictionary_value=status,
@@ -1881,8 +1857,7 @@ class InstrumentQueryBackEnd:
                         except email_helper.EMailNotSent as e:
                             query_out.set_status_field('email_status', 'sending email failed')
                             logging.warning(f'email sending failed: {e}')
-                            if self.sentry_dsn is not None:
-                                sentry_sdk.capture_message(f'sending email failed {e.message}')
+                            sentry.capture_message(f'sending email failed {e.message}')
                 else:
                     query_new_status = 'failed'
                     job.set_failed()

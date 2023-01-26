@@ -20,7 +20,6 @@ Module API
 
 from __future__ import absolute_import, division, print_function
 
-import itertools
 import os
 from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
@@ -29,7 +28,7 @@ import string
 import json
 import logging
 
-import sentry_sdk
+from ..flask_app.sentry import sentry
 import yaml
 
 import numpy as np
@@ -42,6 +41,7 @@ from .products import QueryOutput
 from .queries import ProductQuery, SourceQuery, InstrumentQuery
 from .io_helper import upload_file
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
+from ..flask_app.sentry import sentry
 
 from oda_api.api import DispatcherAPI, RemoteException, DispatcherException, DispatcherNotAvailable, UnexpectedDispatcherStatusCode, RequestNotUnderstood as RequestNotUnderstoodOdaApi
 
@@ -275,8 +275,7 @@ class Instrument:
                                                  f', content of the temporary directory is {os.listdir(temp_dir)}',
                                                  additional='')
 
-            if sentry_dsn is not None:
-                sentry_sdk.capture_message(f'{error_message}\n{e}')
+            sentry.capture_message(f'{error_message}\n{e}')
 
             raise RequestNotUnderstood(error_message)
 
@@ -322,21 +321,19 @@ class Instrument:
                         'A exception regarding the dispatcher has been returned by the oda_api when retrieving '
                         'information from a completed job')
             status_details_output_obj['status'] = 'dispatcher_exception'
-            status_details_output_obj['exception_message'] = de
-            if sentry_dsn is not None:
-                sentry_sdk.capture_message((f'Dispatcher-related exception detected when retrieving additional '
-                                            f'information from a completed job '
-                                            f'{de}'))
+            status_details_output_obj['exception_message'] = str(de)
+            sentry.capture_message((f'Dispatcher-related exception detected when retrieving additional '
+                                    f'information from a completed job '
+                                    f'{de}'))
         except ConnectionError as ce:
             logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
                         'A connection error has been detected when retrieving additional information '
                         f'from a completed job: {ce}')
             status_details_output_obj['status'] = 'connection_error'
-            status_details_output_obj['exception_message'] = ce
-            if sentry_dsn is not None:
-                sentry_sdk.capture_message((f'ConnectionError detected when retrieving additional '
-                                            f'information from a completed job '
-                                            f'{ce}'))
+            status_details_output_obj['exception_message'] = str(ce)
+            sentry.capture_message((f'ConnectionError detected when retrieving additional '
+                                    f'information from a completed job '
+                                    f'{ce}'))
         except RemoteException as re:
             if 'unable to complete API call' in re.message:
                 logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
@@ -357,9 +354,9 @@ class Instrument:
 
                 status_details_output_obj['status'] = 'empty_product'
                 status_details_output_obj['exception_message'] = re.message + '\n' + re.debug_message
-            if sentry_dsn is not None:
-                sentry_sdk.capture_message((f'RemoteException detected when retrieving additional '
-                                            f'information from a completed job {re}'))
+
+            sentry.capture_message((f'RemoteException detected when retrieving additional '
+                                    f'information from a completed job {re}'))
 
         return status_details_output_obj
 
