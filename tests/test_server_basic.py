@@ -472,8 +472,24 @@ def test_query_restricted_instrument(dispatcher_live_fixture):
 
 
 @pytest.mark.fast
+def test_instrument_list_redirection_external_products_url(dispatcher_live_fixture_with_external_products_url,
+                                                           dispatcher_test_conf_with_external_products_url):
+    server = dispatcher_live_fixture_with_external_products_url
+
+    logger.info("constructed server: %s", server)
+
+    c = requests.get(os.path.join(server, "api/instr-list"), allow_redirects=False)
+
+    assert c.status_code == 302
+    redirection_header_location_url = c.headers["Location"]
+    redirection_url = os.path.join(dispatcher_test_conf_with_external_products_url['products_url'], 'dispatch-data/instr-list')
+    assert redirection_url == redirection_header_location_url
+
+
+
+@pytest.mark.fast
 @pytest.mark.parametrize("allow_redirect", [True, False])
-def test_instrument_list_redirection(dispatcher_live_fixture_with_local_products_url, allow_redirect):
+def test_instrument_list_redirection_local_products_url(dispatcher_live_fixture_with_local_products_url, allow_redirect):
     server = dispatcher_live_fixture_with_local_products_url
 
     logger.info("constructed server: %s", server)
@@ -483,7 +499,7 @@ def test_instrument_list_redirection(dispatcher_live_fixture_with_local_products
     if not allow_redirect:
         assert c.status_code == 302
         redirection_url = c.headers["Location"]
-        assert "instr-list" in redirection_url
+        assert redirection_url == "/instr-list"
     else:
         assert c.status_code == 200
 
