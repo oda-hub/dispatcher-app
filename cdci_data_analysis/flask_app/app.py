@@ -89,9 +89,11 @@ def run_api_instr_list():
 
     bind_host = app.config['conf'].bind_host
     bind_port = app.config['conf'].bind_port
+
     parsed_product_url = urlparse(app.config['conf'].products_url)
 
-    if parsed_product_url.hostname == bind_host and parsed_product_url.port == bind_port:
+    if (parsed_product_url.hostname is None and parsed_product_url.port is None) or \
+            (parsed_product_url.hostname == bind_host and parsed_product_url.port == bind_port):
         redirection_url = url_for('instr_list')
     else:
         redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/instr-list')

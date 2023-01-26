@@ -489,9 +489,77 @@ def test_instrument_list_redirection(dispatcher_live_fixture_with_local_products
 
 
 @pytest.mark.fast
+@pytest.mark.parametrize("allow_redirect", [True, False])
+def test_instrument_list_redirection_no_custom_products_url(dispatcher_live_fixture, allow_redirect):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    c = requests.get(os.path.join(server, "api/instr-list"), allow_redirects=allow_redirect)
+
+    if not allow_redirect:
+        assert c.status_code == 302
+        redirection_url = c.headers["Location"]
+        assert "instr-list" in redirection_url
+    else:
+        assert c.status_code == 200
+
+
+@pytest.mark.fast
 @pytest.mark.parametrize("endpoint_url", ["instr-list", "api/instr-list"])
 def test_per_user_instrument_list(dispatcher_live_fixture_with_local_products_url, endpoint_url):
     server = dispatcher_live_fixture_with_local_products_url
+
+    logger.info("constructed server: %s", server)
+
+    c = requests.get(os.path.join(server, endpoint_url))
+
+    assert c.status_code == 200
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert not 'empty-development' in jdata
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "roles": "oda workflow developer"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    c = requests.get(os.path.join(server, endpoint_url), params={"token": encoded_token})
+
+    assert c.status_code == 200
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert 'empty-development' in jdata
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "roles": "general"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    c = requests.get(os.path.join(server, endpoint_url), params={"token": encoded_token})
+
+    assert c.status_code == 200
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert not 'empty-development' in jdata
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize("endpoint_url", ["instr-list", "api/instr-list"])
+def test_per_user_instrument_list_no_custom_products_url(dispatcher_live_fixture, endpoint_url):
+    server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
 
