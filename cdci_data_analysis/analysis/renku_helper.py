@@ -289,7 +289,11 @@ def create_renku_ini_config_obj(repo, default_url_file_name):
 
     renku_config = ConfigParser()
     renku_config.read(renku_ini_path)
-    renku_config['renku "interactive"']['default_url'] = f'/lab/tree/{default_url_file_name}'
+
+    try:
+        renku_config['renku "interactive"']['default_url'] = f'/lab/tree/{default_url_file_name}'
+    except Exception:
+        renku_config['interactive']['default_url'] = f'/lab/tree/{default_url_file_name}'
 
     return renku_config
 
