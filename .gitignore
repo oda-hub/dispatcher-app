@@ -11,6 +11,7 @@
 *.egg-info
 *.egg
 /build
+/scw_list_files
 develop-eggs
 /dist
 /eggs
