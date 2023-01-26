@@ -292,7 +292,7 @@ def create_renku_ini_config_obj(repo, default_url_file_name):
 
     try:
         renku_config['renku "interactive"']['default_url'] = f'/lab/tree/{default_url_file_name}'
-    except Exception:
+    except KeyError:
         renku_config['interactive']['default_url'] = f'/lab/tree/{default_url_file_name}'
 
     return renku_config
