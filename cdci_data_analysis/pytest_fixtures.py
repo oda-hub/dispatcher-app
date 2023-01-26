@@ -488,6 +488,11 @@ def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
+def dispatcher_test_conf_with_local_products_url(dispatcher_test_conf_with_local_products_url_fn):
+    yield yaml.load(open(dispatcher_test_conf_with_local_products_url_fn), Loader=yaml.SafeLoader)['dispatcher']
+
+
+@pytest.fixture
 def dispatcher_test_conf_with_external_products_url(dispatcher_test_conf_with_external_products_url_fn):
     yield yaml.load(open(dispatcher_test_conf_with_external_products_url_fn), Loader=yaml.SafeLoader)['dispatcher']
 

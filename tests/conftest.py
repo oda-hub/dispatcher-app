@@ -23,6 +23,7 @@ from cdci_data_analysis.pytest_fixtures import (
             dispatcher_live_fixture_with_external_products_url,
             dispatcher_test_conf_with_external_products_url_fn,
             dispatcher_test_conf_with_external_products_url,
+            dispatcher_test_conf_with_local_products_url,
             dispatcher_test_conf_fn,
             dispatcher_debug,
             sentry_sdk_fixture,

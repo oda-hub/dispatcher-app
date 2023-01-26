@@ -489,7 +489,9 @@ def test_instrument_list_redirection_external_products_url(dispatcher_live_fixtu
 
 @pytest.mark.fast
 @pytest.mark.parametrize("allow_redirect", [True, False])
-def test_instrument_list_redirection_local_products_url(dispatcher_live_fixture_with_local_products_url, allow_redirect):
+def test_instrument_list_redirection_local_products_url(dispatcher_live_fixture_with_local_products_url,
+                                                        dispatcher_test_conf_with_local_products_url,
+                                                        allow_redirect):
     server = dispatcher_live_fixture_with_local_products_url
 
     logger.info("constructed server: %s", server)
@@ -498,8 +500,8 @@ def test_instrument_list_redirection_local_products_url(dispatcher_live_fixture_
 
     if not allow_redirect:
         assert c.status_code == 302
-        redirection_url = c.headers["Location"]
-        assert redirection_url == "/instr-list"
+        redirection_header_location_url = c.headers["Location"]
+        assert redirection_header_location_url == "/instr-list"
     else:
         assert c.status_code == 200
 
@@ -516,7 +518,7 @@ def test_instrument_list_redirection_no_custom_products_url(dispatcher_live_fixt
     if not allow_redirect:
         assert c.status_code == 302
         redirection_url = c.headers["Location"]
-        assert "instr-list" in redirection_url
+        assert redirection_url == "/instr-list"
     else:
         assert c.status_code == 200
 
