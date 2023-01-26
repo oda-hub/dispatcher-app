@@ -95,12 +95,7 @@ def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture_with_loca
     server = dispatcher_live_fixture_with_local_products_url
     print("constructed server:", server)
     c = requests.get(server + "/api/instr-list",
-                     params={'instrument': 'mock'},
-                     allow_redirects=False)
-    assert c.status_code == 302
-    redirect_url = parse.urlparse(c.headers['Location']).geturl()
-    redirect_url = redirect_url.replace("/dispatch-data", '')
-    c = requests.get(redirect_url)
+                     params={'instrument': 'mock'})
     logger.info("content: %s", c.text)
     jdata = c.json()
     logger.info(json.dumps(jdata, indent=4, sort_keys=True))
@@ -117,12 +112,7 @@ def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture_with_loca
     assert c.status_code == 200
 
     c = requests.get(server + "/api/instr-list",
-                     params={'instrument': 'mock'},
-                     allow_redirects=False)
-    assert c.status_code == 302
-    redirect_url = parse.urlparse(c.headers['Location']).geturl()
-    redirect_url = redirect_url.replace("/dispatch-data", '')
-    c = requests.get(redirect_url)
+                     params={'instrument': 'mock'})
     logger.info("content: %s", c.text)
     jdata = c.json()
     logger.info(json.dumps(jdata, indent=4, sort_keys=True))
@@ -482,20 +472,30 @@ def test_query_restricted_instrument(dispatcher_live_fixture):
 
 
 @pytest.mark.fast
+@pytest.mark.parametrize("allow_redirect", [True, False])
+def test_instrument_list_redirection(dispatcher_live_fixture_with_local_products_url, allow_redirect):
+    server = dispatcher_live_fixture_with_local_products_url
+
+    logger.info("constructed server: %s", server)
+
+    c = requests.get(os.path.join(server, "api/instr-list"), allow_redirects=allow_redirect)
+
+    if not allow_redirect:
+        assert c.status_code == 302
+        redirection_url = c.headers["Location"]
+        assert "instr-list" in redirection_url
+    else:
+        assert c.status_code == 200
+
+
+@pytest.mark.fast
 @pytest.mark.parametrize("endpoint_url", ["instr-list", "api/instr-list"])
 def test_per_user_instrument_list(dispatcher_live_fixture_with_local_products_url, endpoint_url):
     server = dispatcher_live_fixture_with_local_products_url
 
     logger.info("constructed server: %s", server)
 
-    if endpoint_url == 'api/instr-list':
-        c = requests.get(os.path.join(server, endpoint_url), allow_redirects=False)
-        assert c.status_code == 302
-        redirect_url = parse.urlparse(c.headers['Location']).geturl()
-        redirect_url = redirect_url.replace("/dispatch-data", '')
-        c = requests.get(redirect_url)
-    else:
-        c = requests.get(os.path.join(server, endpoint_url))
+    c = requests.get(os.path.join(server, endpoint_url))
         
     assert c.status_code == 200
 
@@ -512,14 +512,7 @@ def test_per_user_instrument_list(dispatcher_live_fixture_with_local_products_ur
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    if endpoint_url == 'api/instr-list':
-        c = requests.get(os.path.join(server, endpoint_url), allow_redirects=False, params={"token": encoded_token})
-        assert c.status_code == 302
-        redirect_url = parse.urlparse(c.headers['Location']).geturl()
-        redirect_url = redirect_url.replace("/dispatch-data", '')
-        c = requests.get(redirect_url)
-    else:
-        c = requests.get(os.path.join(server, endpoint_url), params={"token": encoded_token})
+    c = requests.get(os.path.join(server, endpoint_url), params={"token": encoded_token})
 
     assert c.status_code == 200
 
@@ -536,14 +529,7 @@ def test_per_user_instrument_list(dispatcher_live_fixture_with_local_products_ur
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    if endpoint_url == 'api/instr-list':
-        c = requests.get(os.path.join(server, endpoint_url), allow_redirects=False, params={"token": encoded_token})
-        assert c.status_code == 302
-        redirect_url = parse.urlparse(c.headers['Location']).geturl()
-        redirect_url = redirect_url.replace("/dispatch-data", '')
-        c = requests.get(redirect_url)
-    else:
-        c = requests.get(os.path.join(server, endpoint_url), params={"token": encoded_token})
+    c = requests.get(os.path.join(server, endpoint_url), params={"token": encoded_token})
 
     assert c.status_code == 200
 
