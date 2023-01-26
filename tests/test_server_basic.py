@@ -95,7 +95,12 @@ def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture_with_loca
     server = dispatcher_live_fixture_with_local_products_url
     print("constructed server:", server)
     c = requests.get(server + "/api/instr-list",
-                     params={'instrument': 'mock'})
+                     params={'instrument': 'mock'},
+                     allow_redirects=False)
+    assert c.status_code == 302
+    redirect_url = parse.urlparse(c.headers['Location']).geturl()
+    redirect_url = redirect_url.replace("/dispatch-data", '')
+    c = requests.get(redirect_url)
     logger.info("content: %s", c.text)
     jdata = c.json()
     logger.info(json.dumps(jdata, indent=4, sort_keys=True))
@@ -112,7 +117,12 @@ def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture_with_loca
     assert c.status_code == 200
 
     c = requests.get(server + "/api/instr-list",
-                     params={'instrument': 'mock'})
+                     params={'instrument': 'mock'},
+                     allow_redirects=False)
+    assert c.status_code == 302
+    redirect_url = parse.urlparse(c.headers['Location']).geturl()
+    redirect_url = redirect_url.replace("/dispatch-data", '')
+    c = requests.get(redirect_url)
     logger.info("content: %s", c.text)
     jdata = c.json()
     logger.info(json.dumps(jdata, indent=4, sort_keys=True))
