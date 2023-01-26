@@ -91,8 +91,8 @@ def safe_dummy_plugin_conf():
         fd.write(config)
 
 @pytest.mark.fast
-def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture):
-    server = dispatcher_live_fixture
+def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture_with_local_products_url):
+    server = dispatcher_live_fixture_with_local_products_url
     print("constructed server:", server)
     c = requests.get(server + "/api/instr-list",
                      params={'instrument': 'mock'})
@@ -478,12 +478,16 @@ def test_per_user_instrument_list(dispatcher_live_fixture_with_local_products_ur
 
     logger.info("constructed server: %s", server)
 
-    c = requests.get(os.path.join(server, endpoint_url))
-
     if endpoint_url == 'api/instr-list':
+        c = requests.get(os.path.join(server, endpoint_url), allow_redirects=False)
         assert c.status_code == 302
+        redirect_url = parse.urlparse(c.headers['Location']).geturl()
+        redirect_url = redirect_url.replace("/dispatch-data", '')
+        c = requests.get(redirect_url)
     else:
-        assert c.status_code == 200
+        c = requests.get(os.path.join(server, endpoint_url))
+        
+    assert c.status_code == 200
 
     jdata = c.json()
 
@@ -498,8 +502,16 @@ def test_per_user_instrument_list(dispatcher_live_fixture_with_local_products_ur
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    c = requests.get(os.path.join(server, endpoint_url),
-                     params={"token": encoded_token})
+    if endpoint_url == 'api/instr-list':
+        c = requests.get(os.path.join(server, endpoint_url), allow_redirects=False, params={"token": encoded_token})
+        assert c.status_code == 302
+        redirect_url = parse.urlparse(c.headers['Location']).geturl()
+        redirect_url = redirect_url.replace("/dispatch-data", '')
+        c = requests.get(redirect_url)
+    else:
+        c = requests.get(os.path.join(server, endpoint_url), params={"token": encoded_token})
+
+    assert c.status_code == 200
 
     jdata = c.json()
 
@@ -514,8 +526,16 @@ def test_per_user_instrument_list(dispatcher_live_fixture_with_local_products_ur
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    c = requests.get(os.path.join(server, endpoint_url),
-                     params={"token": encoded_token})
+    if endpoint_url == 'api/instr-list':
+        c = requests.get(os.path.join(server, endpoint_url), allow_redirects=False, params={"token": encoded_token})
+        assert c.status_code == 302
+        redirect_url = parse.urlparse(c.headers['Location']).geturl()
+        redirect_url = redirect_url.replace("/dispatch-data", '')
+        c = requests.get(redirect_url)
+    else:
+        c = requests.get(os.path.join(server, endpoint_url), params={"token": encoded_token})
+
+    assert c.status_code == 200
 
     jdata = c.json()
 
