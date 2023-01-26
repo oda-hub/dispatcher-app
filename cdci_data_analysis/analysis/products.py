@@ -1,6 +1,8 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+from builtins import (bytes, str, open, super, range,
+                      zip, round, input, int, pow, object, map, zip)
 import shutil
 import tempfile
 
@@ -29,7 +31,6 @@ from .plot_tools import Image, ScatterPlot, GridPlot
 
 from oda_api.data_products import NumpyDataProduct, NumpyDataUnit
 
-from ..flask_app.sentry import sentry
 from oda_api.api import DispatcherAPI
 from .parameters import *
 from .io_helper import FilePath
@@ -193,7 +194,8 @@ class QueryOutput(object):
                         logger.error('unable to represent %s due to %s, setting blank', excep, e)
                         e_message = ''
         
-        sentry.capture_message(e_message)
+        if sentry_dsn is not None:
+            sentry_sdk.capture_message(e_message)
 
         logger.error('set_query_exception with %s (%s) during %s', e_message, debug_message, failed_operation)
                         

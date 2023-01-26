@@ -6,7 +6,7 @@ from collections import OrderedDict
 from urllib.parse import urlencode
 import typing
 
-from ..flask_app.sentry import sentry
+import sentry_sdk
 
 from ..analysis import tokenHelper
 import smtplib
@@ -309,7 +309,8 @@ and if this is not what you expected, you probably need to modify the request pa
             status_details_title = 'finished: with empty product'
         # TODO observe the other possible error detected exceptions,and extend the status detail message for the email
         else:
-            sentry.capture_message(f'unexpected status_details content before sending email: {status_details}')
+            if sentry_dsn is not None:
+                sentry_sdk.capture_message(f'unexpected status_details content before sending email: {status_details}')
             raise NotImplementedError
 
     # TODO: enable this sometimes
@@ -475,9 +476,10 @@ def send_email(smtp_server,
 
                 store_not_sent_email(email_body_html, scratch_dir, sending_time=sending_time)
 
-                sentry.capture_message((f'multiple attempts to send an email with title {email_subject} '
-                                        f'have been detected, the following error has been generated:\n"'
-                                        f'{e}'))
+                if sentry_dsn is not None:
+                    sentry_sdk.capture_message((f'multiple attempts to send an email with title {email_subject} '
+                                                f'have been detected, the following error has been generated:\n"'
+                                                f'{e}'))
 
                 raise EMailNotSent(f"email not sent: {e}")
 
@@ -625,9 +627,9 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
         if status != 'submitted':
             status_ok = False
             logger.info(f'status {status} not a valid one for sending an email after a run_query')
-            if sentry_for_email_sending_check:
-                sentry.capture_message((f'an email sending attempt has been detected at the completion '
-                                        f'of the run_query method with the status: {status}'))
+            if sentry_dsn is not None and sentry_for_email_sending_check:
+                sentry_sdk.capture_message((f'an email sending attempt has been detected at the completion '
+                                            f'of the run_query method with the status: {status}'))
 
         # send submitted mail, status update
         sending_ok = email_sending_job_submitted and interval_ok and status_ok
@@ -706,9 +708,9 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
         # not valid status
         else:
             logger.info(f'status {status} not a valid one for sending an email after a callback')
-            if sentry_for_email_sending_check:
-                sentry.capture_message((f'an email sending attempt has been detected at the completion '
-                                        f'of the run_query method with the status: {status}'))
+            if sentry_dsn is not None and sentry_for_email_sending_check:
+                sentry_sdk.capture_message((f'an email sending attempt has been detected at the completion '
+                                            f'of the run_query method with the status: {status}'))
     else:
         logger.info(f'an email will not be sent because a token was not provided')
 
