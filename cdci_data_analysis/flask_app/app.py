@@ -6,24 +6,18 @@ Created on Wed May 10 10:55:20 2017
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
 import glob
-import json
-import os
-import re
 import string
 import random
 import hashlib
-import jwt
-import sentry_sdk
 
 from raven.contrib.flask import Sentry
-from sentry_sdk.integrations.flask import FlaskIntegration
 from flask import jsonify, send_from_directory, redirect, Response, Flask, request, make_response, g, url_for
 
 # restx not really used
-from flask_restx import Api, Resource, reqparse
+from flask_restx import Api, Resource
 
 import time as _time
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper, email_helper
 from .logstash import logstash_message
@@ -93,7 +87,14 @@ def run_api_instr_list():
     logger.warning('\nThe endpoint \'/api/instr-list\' is deprecated and you will be automatically redirected to the '
                    '\'/instr-list\' endpoint. Please use this one in the future.\n')
 
-    redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/instr-list')
+    bind_host = app.config['conf'].bind_host
+    bind_port = app.config['conf'].bind_port
+    parsed_product_url = urlparse(app.config['conf'].products_url)
+
+    if parsed_product_url.hostname == bind_host and parsed_product_url.port == bind_port:
+        redirection_url = url_for('instr_list')
+    else:
+        redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/instr-list')
 
     if request.args:
         redirection_url += f'?{urlencode(request.args)}'
