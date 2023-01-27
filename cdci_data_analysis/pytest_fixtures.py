@@ -480,7 +480,7 @@ def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
             f.write(f_default.read())
 
         f.write('\n    renku_options:'
-                '\n        renku_gitlab_repository_url: "git@renkulab.io:gabriele.barni/test-dispatcher-endpoint.git"'
+                '\n        renku_gitlab_repository_url: "git@renkulab.io:gabriele.barni/old-test-dispatcher-endpoint.git"'
                 '\n        renku_base_project_url: "http://renkulab.io/projects"'
                f'\n        ssh_key_path: "{os.getenv("SSH_KEY_FILE", "ssh_key_file")}"')
 
