@@ -259,6 +259,10 @@ def update_and_commit_default_url_renku_ini(repo, config_obj, user_name=None, us
 def generate_ini_file_hash(config_ini_obj):
     try:
         ini_config_dict = { s:dict(config_ini_obj.items(s)) for s in config_ini_obj.sections() }
+    except:
+        logger.error(f'Unable to generate a dictionary starting from the ini config file: {config_ini_obj}')
+        raise Exception(f'Unable to generate a dictionary starting from the ini config file: {config_ini_obj}')
+    try:
         ini_hash = make_hash(ini_config_dict)
     except:
         logger.error(f'Unable to generate a hash of the ini config file: {ini_config_dict}')
@@ -287,15 +291,20 @@ def create_renku_ini_config_obj(repo, default_url_file_name):
 
     renku_ini_path = os.path.join(repo_dir, '.renku', 'renku.ini')
 
-    renku_config = ConfigParser()
-    renku_config.read(renku_ini_path)
+    config_ini_obj = ConfigParser()
+    config_ini_obj.read(renku_ini_path)
 
     try:
-        renku_config['renku "interactive"']['default_url'] = f'/lab/tree/{default_url_file_name}'
-    except KeyError:
-        renku_config['interactive']['default_url'] = f'/lab/tree/{default_url_file_name}'
+        if 'renku "interactive"' in config_ini_obj:
+            config_ini_obj['renku "interactive"']['default_url'] = f'/lab/tree/{default_url_file_name}'
+        elif 'interactive' in config_ini_obj:
+            config_ini_obj['interactive']['default_url'] = f'/lab/tree/{default_url_file_name}'
+    except:
+        config_ini_obj_dict = {s:dict(config_ini_obj.items(s)) for s in config_ini_obj.sections()}
+        logger.error(f'Unable to generate the object of the ini config file at the path: {renku_ini_path}\n{config_ini_obj_dict}')
+        raise Exception(f'Unable to generate the object of the ini config file at the path: {renku_ini_path}\n{config_ini_obj_dict}')
 
-    return renku_config
+    return config_ini_obj
 
 def create_new_notebook_with_code(api_code):
     nb = nbf.v4.new_notebook()
