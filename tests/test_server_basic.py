@@ -91,8 +91,8 @@ def safe_dummy_plugin_conf():
         fd.write(config)
 
 @pytest.mark.fast
-def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture_with_local_products_url):
-    server = dispatcher_live_fixture_with_local_products_url
+def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture):
+    server = dispatcher_live_fixture
     print("constructed server:", server)
     c = requests.get(server + "/api/instr-list",
                      params={'instrument': 'mock'})
@@ -481,17 +481,16 @@ def test_instrument_list_redirection_external_products_url(dispatcher_live_fixtu
     c = requests.get(os.path.join(server, "api/instr-list"), allow_redirects=False)
 
     assert c.status_code == 302
-    # redirection_header_location_url = c.headers["Location"]
-    # redirection_url = os.path.join(dispatcher_test_conf_with_external_products_url['products_url'], 'dispatch-data/instr-list')
-    # assert redirection_url == redirection_header_location_url
+    redirection_header_location_url = c.headers["Location"]
+    redirection_url = os.path.join(dispatcher_test_conf_with_external_products_url['products_url'], 'dispatch-data/instr-list')
+    assert redirection_url == redirection_header_location_url
 
 
 @pytest.mark.fast
 @pytest.mark.parametrize("allow_redirect", [True, False])
-def test_instrument_list_redirection_local_products_url(dispatcher_live_fixture_with_local_products_url,
-                                                        dispatcher_test_conf_with_local_products_url,
+def test_instrument_list_redirection_no_custom_products_url(dispatcher_live_fixture_no_products_url,
                                                         allow_redirect):
-    server = dispatcher_live_fixture_with_local_products_url
+    server = dispatcher_live_fixture_no_products_url
 
     logger.info("constructed server: %s", server)
 
@@ -507,7 +506,7 @@ def test_instrument_list_redirection_local_products_url(dispatcher_live_fixture_
 
 @pytest.mark.fast
 @pytest.mark.parametrize("allow_redirect", [True, False])
-def test_instrument_list_redirection_no_custom_products_url(dispatcher_live_fixture, allow_redirect):
+def test_instrument_list_redirection(dispatcher_live_fixture, allow_redirect):
     server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
@@ -524,8 +523,8 @@ def test_instrument_list_redirection_no_custom_products_url(dispatcher_live_fixt
 
 @pytest.mark.fast
 @pytest.mark.parametrize("endpoint_url", ["instr-list", "api/instr-list"])
-def test_per_user_instrument_list(dispatcher_live_fixture_with_local_products_url, endpoint_url):
-    server = dispatcher_live_fixture_with_local_products_url
+def test_per_user_instrument_list(dispatcher_live_fixture, endpoint_url):
+    server = dispatcher_live_fixture
 
     logger.info("constructed server: %s", server)
 

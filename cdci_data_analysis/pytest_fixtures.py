@@ -411,11 +411,11 @@ def dispatcher_test_conf_empty_sentry_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
-def dispatcher_test_conf_with_local_products_url_fn(dispatcher_test_conf_fn):
+def dispatcher_test_conf_no_products_url_fn(dispatcher_test_conf_fn):
     fn = dispatcher_test_conf_fn
     with open(fn, "r+") as f:
         data = f.read()
-        data = re.sub('(\s+products_url:).*\n', '\n    products_url: http://0.0.0.0:8011\n', data)
+        data = re.sub('(\s+products_url:).*\n', r'\1\n', data)
         f.seek(0)
         f.write(data)
         f.truncate()
@@ -488,8 +488,8 @@ def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
-def dispatcher_test_conf_with_local_products_url(dispatcher_test_conf_with_local_products_url_fn):
-    with open(dispatcher_test_conf_with_local_products_url_fn) as yaml_f:
+def dispatcher_test_conf_no_products_url(dispatcher_test_conf_no_products_url_fn):
+    with open(dispatcher_test_conf_no_products_url_fn) as yaml_f:
         loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
     yield loaded_yaml['dispatcher']
 
@@ -818,8 +818,8 @@ def dispatcher_live_fixture_with_gallery_no_resolver(pytestconfig, dispatcher_te
 
 
 @pytest.fixture
-def dispatcher_live_fixture_with_local_products_url(pytestconfig, dispatcher_test_conf_with_local_products_url_fn, dispatcher_debug):
-    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_local_products_url_fn)
+def dispatcher_live_fixture_no_products_url(pytestconfig, dispatcher_test_conf_no_products_url_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_no_products_url_fn)
 
     service = dispatcher_state['url']
     pid = dispatcher_state['pid']
