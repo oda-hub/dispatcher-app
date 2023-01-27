@@ -14,6 +14,7 @@ import os
 import string
 import random
 import hashlib
+import validators
 
 import logging
 
@@ -97,8 +98,7 @@ def run_api_instr_list():
     logger.warning('\nThe endpoint \'/api/instr-list\' is deprecated and you will be automatically redirected to the '
                    '\'/instr-list\' endpoint. Please use this one in the future.\n')
 
-    parsed_products_url = urlparse(app.config['conf'].products_url)
-    if parsed_products_url.hostname is not None:
+    if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url):
         redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/instr-list')
     else:
         parsed_request_url = urlparse(request.url)
