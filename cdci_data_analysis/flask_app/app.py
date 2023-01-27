@@ -6,11 +6,15 @@ Created on Wed May 10 10:55:20 2017
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
 import glob
+import string
+import random
+import hashlib
 import json
 import os
 import string
 import random
 import hashlib
+import validators
 
 import logging
 
@@ -18,10 +22,10 @@ from raven.contrib.flask import Sentry
 from flask import jsonify, send_from_directory, redirect, Response, Flask, request, make_response, g, url_for
 
 # restx not really used
-from flask_restx import Api, Resource, reqparse
+from flask_restx import Api, Resource
 
 import time as _time
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper, email_helper
 from .logstash import logstash_message
@@ -91,8 +95,19 @@ def run_api_parameters():
 
 @app.route("/api/instr-list")
 def run_api_instr_list():
-    instrument_list = InstrumentQueryBackEnd.get_user_specific_instrument_list(app)
-    return instrument_list
+    logger.warning('\nThe endpoint \'/api/instr-list\' is deprecated and you will be automatically redirected to the '
+                   '\'/instr-list\' endpoint. Please use this one in the future.\n')
+
+    if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url):
+        redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/instr-list')
+    else:
+        parsed_request_url = urlparse(request.url)
+        path_request_url = parsed_request_url.path.replace('/api', '')
+
+        parsed_request_url = parsed_request_url._replace(path=path_request_url)
+        redirection_url = parsed_request_url.geturl()
+
+    return redirect(redirection_url)
 
 
 @app.route('/meta-data')

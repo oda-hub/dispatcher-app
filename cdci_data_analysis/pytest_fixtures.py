@@ -411,6 +411,32 @@ def dispatcher_test_conf_empty_sentry_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
+def dispatcher_test_conf_no_products_url_fn(dispatcher_test_conf_fn):
+    fn = dispatcher_test_conf_fn
+    with open(fn, "r+") as f:
+        data = f.read()
+        data = re.sub('(\s+products_url:).*\n', r'\1\n', data)
+        f.seek(0)
+        f.write(data)
+        f.truncate()
+
+    yield fn
+
+
+@pytest.fixture
+def dispatcher_test_conf_with_external_products_url_fn(dispatcher_test_conf_fn):
+    fn = dispatcher_test_conf_fn
+    with open(fn, "r+") as f:
+        data = f.read()
+        data = re.sub('(\s+products_url:).*\n', '\n    products_url: https://www.example.ch/mmoda\n', data)
+        f.seek(0)
+        f.write(data)
+        f.truncate()
+
+    yield fn
+
+
+@pytest.fixture
 def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
     fn = "test-dispatcher-conf-with-gallery.yaml"
 
@@ -459,6 +485,20 @@ def dispatcher_test_conf_with_renku_options_fn(dispatcher_test_conf_fn):
                f'\n        ssh_key_path: "{os.getenv("SSH_KEY_FILE", "ssh_key_file")}"')
 
     yield fn
+
+
+@pytest.fixture
+def dispatcher_test_conf_no_products_url(dispatcher_test_conf_no_products_url_fn):
+    with open(dispatcher_test_conf_no_products_url_fn) as yaml_f:
+        loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
+    yield loaded_yaml['dispatcher']
+
+
+@pytest.fixture
+def dispatcher_test_conf_with_external_products_url(dispatcher_test_conf_with_external_products_url_fn):
+    with open(dispatcher_test_conf_with_external_products_url_fn) as yaml_f:
+        loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
+    yield loaded_yaml['dispatcher']
 
 
 @pytest.fixture
@@ -767,6 +807,32 @@ def dispatcher_live_fixture_with_gallery(pytestconfig, dispatcher_test_conf_with
 @pytest.fixture
 def dispatcher_live_fixture_with_gallery_no_resolver(pytestconfig, dispatcher_test_conf_with_gallery_no_resolver_fn, dispatcher_debug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_gallery_no_resolver_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_no_products_url(pytestconfig, dispatcher_test_conf_no_products_url_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_no_products_url_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_with_external_products_url(pytestconfig, dispatcher_test_conf_with_external_products_url_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_external_products_url_fn)
 
     service = dispatcher_state['url']
     pid = dispatcher_state['pid']

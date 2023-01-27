@@ -11,6 +11,7 @@
 *.egg-info
 *.egg
 /build
+/scw_list_files
 develop-eggs
 /dist
 /eggs
@@ -39,6 +40,10 @@ jdata.json
 /tests/data/dummy_prods/query_catalog.fits
 /tests/data/dummy_prods/ds9.jpeg
 /tests/local_smtp_log
+/tests/test-dispatcher-conf-with-gallery.yaml
+/tests/test-dispatcher-conf-with-renku-options.yaml
+/tests/test-dispatcher-conf-with-hard-minimum-age-days-param.yaml
+/tests/test-dispatcher-conf-with-hard_minimum_folder_age_days-param.yaml
 .coverage.*
 .coverage
 *,cover
