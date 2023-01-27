@@ -47,7 +47,8 @@ install_req = [
     "GitPython",
     "nbformat",
     "giturlparse",
-    "sentry-sdk"
+    "sentry-sdk",
+    "validators"
 ]
 
 test_req = [
