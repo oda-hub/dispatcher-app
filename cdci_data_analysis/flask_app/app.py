@@ -97,24 +97,15 @@ def run_api_instr_list():
     logger.warning('\nThe endpoint \'/api/instr-list\' is deprecated and you will be automatically redirected to the '
                    '\'/instr-list\' endpoint. Please use this one in the future.\n')
 
-    # bind_host = app.config['conf'].bind_host
-    # bind_port = app.config['conf'].bind_port
-    #
-    # parsed_product_url = urlparse(app.config['conf'].products_url)
-    #
-    # if (parsed_product_url.hostname is None and parsed_product_url.port is None) or \
-    #         (parsed_product_url.hostname == bind_host and parsed_product_url.port == bind_port):
-    #     redirection_url = url_for('instr_list')
-    # else:
-    #     redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/instr-list')
+    parsed_products_url = urlparse(app.config['conf'].products_url)
+    if parsed_products_url.hostname is not None:
+        redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/instr-list')
+    else:
+        parsed_request_url = urlparse(request.url)
+        path_request_url = parsed_request_url.path.replace('/api', '')
 
-    parsed_request_url = urlparse(request.url)
-    path_request_url = parsed_request_url.path.replace('/api', '')
-
-    parsed_request_url = parsed_request_url._replace(path=path_request_url)
-    redirection_url = parsed_request_url.geturl()
-    # if request.args:
-    #     redirection_url += f'?{urlencode(request.args)}'
+        parsed_request_url = parsed_request_url._replace(path=path_request_url)
+        redirection_url = parsed_request_url.geturl()
 
     return redirect(redirection_url)
 
