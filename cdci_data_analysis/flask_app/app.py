@@ -358,7 +358,7 @@ def push_renku_branch():
         error_message = f"Exception in push-renku-branch: {repr(e)}, {traceback.format_exc()}"
         logging.getLogger().error(error_message)
 
-        sentry.capture_message(f'exception in run_analysis: {str(e)}')
+        sentry.capture_message(f'exception while posting on the renku branch: {str(e)}')
         
         raise RequestNotUnderstood(message="Error while posting on the renku branch",
                                    payload={'error_message': error_message})

@@ -28,7 +28,7 @@ def push_api_code(api_code,
                   user_email=None,
                   products_url=None,
                   request_dict=None):
-    error_message = 'Error while {step}'
+    error_message = 'Error while {step}\n{exception_message}'
     repo = None
     try:
         step = 'cloning repository'
@@ -101,8 +101,8 @@ def push_api_code(api_code,
                                                        token=token)
 
     except Exception as e:
-        error_message = error_message.format(step=step)
-        logger.warning(f"something happened while pushing the api_code: {step}, {e}")
+        error_message = error_message.format(step=step, exception_message=e)
+        logger.warning(f"something happened while pushing the api_code: {step}\n{e}")
         traceback.print_exc()
 
         raise RequestNotUnderstood(error_message)
@@ -259,14 +259,14 @@ def update_and_commit_default_url_renku_ini(repo, config_obj, user_name=None, us
 def generate_ini_file_hash(config_ini_obj):
     try:
         ini_config_dict = { s:dict(config_ini_obj.items(s)) for s in config_ini_obj.sections() }
-    except:
-        logger.error(f'Unable to generate a dictionary starting from the ini config file: {config_ini_obj}')
-        raise Exception(f'Unable to generate a dictionary starting from the ini config file: {config_ini_obj}')
+    except Exception as e:
+        logger.error(f'Unable to generate a dictionary starting from the ini config file: {config_ini_obj}\n{e}')
+        raise Exception(f"Unable to generate a dictionary starting from the ini config file: {config_ini_obj}\n{e}")
     try:
         ini_hash = make_hash(ini_config_dict)
-    except:
-        logger.error(f'Unable to generate a hash of the ini config file: {ini_config_dict}')
-        raise Exception(f'Unable to generate a hash of the ini config file: {ini_config_dict}')
+    except Exception as e:
+        logger.error(f'Unable to generate a hash of the ini config file: {ini_config_dict}\n{e}')
+        raise Exception(f'Unable to generate a hash of the ini config file: {ini_config_dict}\n{e}')
 
     return ini_hash
 
@@ -278,10 +278,9 @@ def generate_nb_hash(nb_obj):
         for cell in copied_notebook_obj['cells']:
             cell.pop('id', None)
         notebook_hash = make_hash(copied_notebook_obj)
-    except:
-        logger.error(f'Unable to generate a hash of the notebook object: {copied_notebook_obj}')
-        raise Exception(f'Unable to generate a hash of the notebook object: {copied_notebook_obj}')
-
+    except Exception as e:
+        logger.error(f'Unable to generate a hash of the notebook object: {copied_notebook_obj}\n{e}')
+        raise Exception(f'Unable to generate a hash of the notebook object: {copied_notebook_obj}\n{e}')
 
     return notebook_hash
 
@@ -299,10 +298,10 @@ def create_renku_ini_config_obj(repo, default_url_file_name):
             config_ini_obj['renku "interactive"']['default_url'] = f'/lab/tree/{default_url_file_name}'
         elif 'interactive' in config_ini_obj:
             config_ini_obj['interactive']['default_url'] = f'/lab/tree/{default_url_file_name}'
-    except:
+    except Exception as e:
         config_ini_obj_dict = {s:dict(config_ini_obj.items(s)) for s in config_ini_obj.sections()}
-        logger.error(f'Unable to generate the object of the ini config file at the path: {renku_ini_path}\n{config_ini_obj_dict}')
-        raise Exception(f'Unable to generate the object of the ini config file at the path: {renku_ini_path}\n{config_ini_obj_dict}')
+        logger.error(f'Unable to generate the object of the ini config file at the path: {renku_ini_path}\n{config_ini_obj_dict}\n{e}')
+        raise Exception(f'Unable to generate the object of the ini config file at the path: {renku_ini_path}\n{config_ini_obj_dict}\n{e}')
 
     return config_ini_obj
 
@@ -365,5 +364,5 @@ def remove_repository(repo, renku_repository_url):
         try:
             shutil.rmtree(repo_working_dir_path)
         except OSError as e:
-            logger.error('unable to remove repo directory repo_working_dir_path=%s !')
+            logger.error(f'unable to remove repo directory repo_working_dir_path=%s !\n{e}')
 
