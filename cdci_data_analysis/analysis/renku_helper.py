@@ -295,7 +295,13 @@ def create_renku_ini_config_obj(repo, default_url_file_name):
 
     try:
         if 'renku "interactive"' in config_ini_obj:
-            config_ini_obj['renku "interactive"']['default_url'] = f'/lab/tree/{default_url_file_name}'
+            # update to interactive
+            renku_interactive_section_items = config_ini_obj.items('renku "interactive"')
+            config_ini_obj.add_section('interactive')
+            for option, value in renku_interactive_section_items:
+                config_ini_obj.set('interactive', option, value)
+            config_ini_obj.remove_section('renku "interactive"')
+            config_ini_obj['interactive']['default_url'] = f'/lab/tree/{default_url_file_name}'
         elif 'interactive' in config_ini_obj:
             config_ini_obj['interactive']['default_url'] = f'/lab/tree/{default_url_file_name}'
     except Exception as e:
