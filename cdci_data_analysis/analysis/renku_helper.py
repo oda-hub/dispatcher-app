@@ -301,6 +301,7 @@ def create_renku_ini_config_obj(repo, default_url_file_name):
             for option, value in renku_interactive_section_items:
                 config_ini_obj.set('interactive', option, value)
             config_ini_obj.remove_section('renku "interactive"')
+
         config_ini_obj['interactive']['default_url'] = f'/lab/tree/{default_url_file_name}'
     except Exception as e:
         config_ini_obj_dict = {s:dict(config_ini_obj.items(s)) for s in config_ini_obj.sections()}
