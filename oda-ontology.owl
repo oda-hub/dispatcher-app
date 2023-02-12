@@ -1,0 +1,655 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://odahub.io/ontology#"
+     xml:base="http://odahub.io/ontology"
+     xmlns:dc="http://purl.org/dc/elements/1.1/"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:foaf="http://xmlns.com/foaf/0.1/"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:vann="http://purl.org/vocab/vann/">
+    <owl:Ontology rdf:about="http://odahub.io/ontology">
+        <dc:abstract>IVOA kindly provides various data and object types, but very little is availble about workflow types. 
+                                It is possible to combine function types (e.g. https://fno.io) with data types. 
+                                In this ontology we define supporting types, our own versions of some of the generic types, 
+                                and anything else needed to descrie Astrophysical Analysis Workflows.
+                                Please refer to https://odahub.io/docs/guide-ontology/ for instructions on how to contribute.</dc:abstract>
+        <dc:creator rdf:resource="https://github.com/andriineronov"/>
+        <dc:creator rdf:resource="https://github.com/burnout87"/>
+        <dc:creator rdf:resource="https://github.com/dsavchenko"/>
+        <dc:creator rdf:resource="https://github.com/volodymyrss"/>
+        <dc:description>Astrophysical Workflows, and corresponding input-output data types (Data Products, Input Parameters, etc) 
+                                used in MMODA project (https://www.astro.unige.ch/mmoda/, https://odahub.io/)</dc:description>
+        <dc:source>https://github.com/volodymyrss/hugo-odahub.git</dc:source>
+        <dc:title>MMODA Astrophysical Workflow Ontology</dc:title>
+        <dc:title>MMODA Astrophysical Workflows and Data Products</dc:title>
+        <vann:preferredNamespaceUri>http://odahub.io/ontology</vann:preferredNamespaceUri>
+        <owl:versionIRI>0.1.0</owl:versionIRI>
+        <foaf:logo rdf:resource="https://www.astro.unige.ch/mmoda/sites/all/themes/bootstrap_mmoda/logo.png"/>
+    </owl:Ontology>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Annotation properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://odahub.io/ontology#arg_name -->
+
+    <owl:AnnotationProperty rdf:about="http://odahub.io/ontology#arg_name"/>
+    
+
+
+    <!-- http://odahub.io/ontology#repr -->
+
+    <owl:AnnotationProperty rdf:about="http://odahub.io/ontology#repr"/>
+    
+
+
+    <!-- http://purl.org/dc/elements/1.1/abstract -->
+
+    <owl:AnnotationProperty rdf:about="http://purl.org/dc/elements/1.1/abstract"/>
+    
+
+
+    <!-- http://purl.org/dc/elements/1.1/creator -->
+
+    <owl:AnnotationProperty rdf:about="http://purl.org/dc/elements/1.1/creator"/>
+    
+
+
+    <!-- http://purl.org/dc/elements/1.1/description -->
+
+    <owl:AnnotationProperty rdf:about="http://purl.org/dc/elements/1.1/description"/>
+    
+
+
+    <!-- http://purl.org/dc/elements/1.1/source -->
+
+    <owl:AnnotationProperty rdf:about="http://purl.org/dc/elements/1.1/source"/>
+    
+
+
+    <!-- http://purl.org/dc/elements/1.1/title -->
+
+    <owl:AnnotationProperty rdf:about="http://purl.org/dc/elements/1.1/title"/>
+    
+
+
+    <!-- http://purl.org/vocab/vann/preferredNamespaceUri -->
+
+    <owl:AnnotationProperty rdf:about="http://purl.org/vocab/vann/preferredNamespaceUri"/>
+    
+
+
+    <!-- http://www.w3.org/2002/07/owl#versionIRI -->
+
+    <owl:AnnotationProperty rdf:about="http://www.w3.org/2002/07/owl#versionIRI"/>
+    
+
+
+    <!-- http://xmlns.com/foaf/0.1/logo -->
+
+    <owl:AnnotationProperty rdf:about="http://xmlns.com/foaf/0.1/logo"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Object Properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://odahub.io/ontology#format -->
+
+    <owl:ObjectProperty rdf:about="http://odahub.io/ontology#format">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
+        <rdfs:range rdf:resource="http://odahub.io/ontology#ParameterFormat"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://odahub.io/ontology#hasCoordinates -->
+
+    <owl:ObjectProperty rdf:about="http://odahub.io/ontology#hasCoordinates">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdfs:domain rdf:resource="http://odahub.io/ontology#AstrophysicalObject"/>
+        <rdfs:range rdf:resource="http://odahub.io/ontology#SkyCoordinates"/>
+        <rdfs:label>hasCoordinates</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://odahub.io/ontology#hasDec -->
+
+    <owl:ObjectProperty rdf:about="http://odahub.io/ontology#hasDec">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdfs:domain rdf:resource="http://odahub.io/ontology#SkyCoordinates"/>
+        <rdfs:range rdf:resource="http://odahub.io/ontology#Declination"/>
+        <rdfs:label>hasDec</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://odahub.io/ontology#hasRA -->
+
+    <owl:ObjectProperty rdf:about="http://odahub.io/ontology#hasRA">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdfs:domain rdf:resource="http://odahub.io/ontology#SkyCoordinates"/>
+        <rdfs:range rdf:resource="http://odahub.io/ontology#RightAscension"/>
+        <rdfs:label>hasRA</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://odahub.io/ontology#isRequesting -->
+
+    <owl:ObjectProperty rdf:about="http://odahub.io/ontology#isRequesting">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdfs:domain rdf:resource="http://odahub.io/ontology#Workflow"/>
+        <rdfs:range rdf:resource="http://odahub.io/ontology#AstrophysicalObject"/>
+        <rdfs:range rdf:resource="http://odahub.io/ontology#SkyCoordinates"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://odahub.io/ontology#isRequestingAstroObject -->
+
+    <owl:ObjectProperty rdf:about="http://odahub.io/ontology#isRequestingAstroObject">
+        <rdfs:subPropertyOf rdf:resource="http://odahub.io/ontology#isRequesting"/>
+        <rdfs:domain rdf:resource="http://odahub.io/ontology#Workflow"/>
+        <rdfs:range rdf:resource="http://odahub.io/ontology#AstrophysicalObject"/>
+        <rdfs:comment>This properties indicates that the :Workflow is making internally a call to another :Workflow, which derives some data about an :AstrophysicalObject</rdfs:comment>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://odahub.io/ontology#isRequestingParameter -->
+
+    <owl:ObjectProperty rdf:about="http://odahub.io/ontology#isRequestingParameter">
+        <rdfs:subPropertyOf rdf:resource="http://odahub.io/ontology#isRequesting"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://odahub.io/ontology#isUsing -->
+
+    <owl:ObjectProperty rdf:about="http://odahub.io/ontology#isUsing">
+        <rdfs:subPropertyOf rdf:resource="http://odahub.io/ontology#isRequesting"/>
+        <rdfs:domain rdf:resource="http://odahub.io/ontology#Workflow"/>
+        <rdfs:range rdf:resource="http://odahub.io/ontology#Workflow"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://odahub.io/ontology#unit -->
+
+    <owl:ObjectProperty rdf:about="http://odahub.io/ontology#unit">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdfs:domain rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
+        <rdfs:range rdf:resource="http://odahub.io/ontology#Unit"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Data properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://odahub.io/ontology#allowed_values -->
+
+    <owl:DatatypeProperty rdf:about="http://odahub.io/ontology#allowed_values">
+        <rdfs:domain rdf:resource="http://odahub.io/ontology#String"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://odahub.io/ontology#lower_limit -->
+
+    <owl:DatatypeProperty rdf:about="http://odahub.io/ontology#lower_limit">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://odahub.io/ontology#NumericParameter"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#float"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://odahub.io/ontology#upper_limit -->
+
+    <owl:DatatypeProperty rdf:about="http://odahub.io/ontology#upper_limit">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://odahub.io/ontology#NumericParameter"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#float"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://odahub.io/ontology#Angle -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Angle">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Float"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#AstrophysicalObject -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#AstrophysicalObject">
+        <rdfs:comment>Any Astrophysical object, possibly contained in space and/or time: Galaxy, Gamma-Ray Burst, Universe. Note that an object can be spatially or temporarily contained within another: e.g. a BlazarFlare is an episode of Blazar life, and a SunSpot is on the Sun.</rdfs:comment>
+        <rdfs:label>AstrophysicalObject</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#AstrophysicalObjectOfInterest -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#AstrophysicalObjectOfInterest">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#AstrophysicalObject"/>
+        <rdfs:label>AstrophysicalObjectOfInterest</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#AstroqueryModule -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#AstroqueryModule">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+        <rdfs:comment>An astroquery module is used internally by workflows to access data (observations, catalogs, etc).</rdfs:comment>
+        <rdfs:label>AstroqueryModule</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#DataProduct -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#DataProduct">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+        <rdfs:label>DataProduct</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Declination -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Declination">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Angle"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Quantity"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
+        <rdfs:label>Declination</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#DeclinationDegrees -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#DeclinationDegrees">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Declination"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
+                <owl:allValuesFrom rdf:resource="http://odahub.io/ontology#Degree"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:label>DeclinationDegrees</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Degree -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Degree">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Unit"/>
+        <repr rdf:datatype="http://www.w3.org/2001/XMLSchema#string">deg</repr>
+        <rdfs:label>Degree</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#DiscoveryWorkflow -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#DiscoveryWorkflow">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Workflow"/>
+        <dc:description>workflow which takes some dataset (crucially, unavailable at the time of the Workflow publishing) and produces some Evidence or a Decision</dc:description>
+        <rdfs:label>DiscoveryWorkflow</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#EndTime -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#EndTime">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#TimeInstant"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
+        <rdfs:label>EndTime</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#EndTimeISOT -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#EndTimeISOT">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#EndTime"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#TimeInstantISOT"/>
+        <rdfs:label>EndTimeISOT</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Float -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Float">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#NumericParameter"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Gaia -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Gaia">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Instrument"/>
+        <rdfs:label>Gaia</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#GaiaFilter -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#GaiaFilter">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+        <rdfs:label>GaiaFilter</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Instrument -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Instrument">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+        <rdfs:label>Instrument</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Integer -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Integer">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#NumericParameter"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#LightCurve -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#LightCurve">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#DataProduct"/>
+        <rdfs:subClassOf rdf:resource="http://www.ivoa.net/rdf/product-type#timeseries"/>
+        <rdfs:label>LightCurve</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#NumericParameter -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#NumericParameter">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#ParameterFormat -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#ParameterFormat"/>
+    
+
+
+    <!-- http://odahub.io/ontology#PointOfInterest -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#PointOfInterest">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#SkyCoordinates"/>
+        <rdfs:label>PointOfInterest</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#PointOfInterestDEC -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#PointOfInterestDEC">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Declination"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
+        <rdfs:label>PointOfInterestDEC</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#PointOfInterestRA -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#PointOfInterestRA">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#RightAscension"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
+        <rdfs:label>PointOfInterestRA</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Quantity -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Quantity">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+        <rdfs:label>Quantity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#RightAscension -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#RightAscension">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Angle"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Quantity"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
+        <rdfs:label>RightAscension</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#RightAscensionDegrees -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#RightAscensionDegrees">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#RightAscension"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
+                <owl:allValuesFrom rdf:resource="http://odahub.io/ontology#Degree"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:label>RightAscensionDegrees</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#SkyCoordinates -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#SkyCoordinates">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Quantity"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
+        <rdfs:comment>Sky coordinates. Typically represented as a string as known to https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html .
+Subclasses may have other ways to express the content.</rdfs:comment>
+        <rdfs:label>SkyCoordinates</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#StartTime -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#StartTime">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#TimeInstant"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
+        <rdfs:label>StartTime</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#StartTimeISOT -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#StartTimeISOT">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#StartTime"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#TimeInstantISOT"/>
+        <rdfs:label>StartTimeISOT</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#String -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#String">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#TimeFormat -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#TimeFormat">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#ParameterFormat"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#TimeInstant -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#TimeInstant">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Quantity"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
+        <rdfs:label>TimeInstant</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#TimeInstantISOT -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#TimeInstantISOT">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#TimeInstant"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#format"/>
+                <owl:hasValue rdf:resource="http://odahub.io/ontology#ISOT"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Unit -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Unit">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+        <rdfs:label>Unit</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Workflow -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Workflow">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+        <rdfs:label>Workflow</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#WorkflowParameter -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#WorkflowParameter">
+        <rdfs:label>WorkflowParameter</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.ivoa.net/rdf/product-type#timeseries -->
+
+    <owl:Class rdf:about="http://www.ivoa.net/rdf/product-type#timeseries"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Individuals
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://odahub.io/ontology#ISOT -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#ISOT">
+        <rdf:type rdf:resource="http://odahub.io/ontology#TimeFormat"/>
+        <arg_name rdf:datatype="http://www.w3.org/2001/XMLSchema#string">T_format</arg_name>
+        <repr rdf:datatype="http://www.w3.org/2001/XMLSchema#string">isot</repr>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#MJD -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#MJD">
+        <rdf:type rdf:resource="http://odahub.io/ontology#TimeFormat"/>
+        <arg_name rdf:datatype="http://www.w3.org/2001/XMLSchema#string">T_format</arg_name>
+        <repr rdf:datatype="http://www.w3.org/2001/XMLSchema#string">mjd</repr>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Annotations
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    <rdf:Description rdf:about="http://odahub.io/ontology#">
+        <dc:title>MMODA Astrophysical Workflows and Data Products</dc:title>
+    </rdf:Description>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi -->
+
