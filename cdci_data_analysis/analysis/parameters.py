@@ -439,8 +439,6 @@ class Parameter:
     def from_owl_uri(cls,
                      owl_uri,
                      **kwargs):
-        # TODO: what about units?
-
         possible_parameter_interpretations = []
 
         for x in subclasses_recursive(cls):
@@ -480,7 +478,7 @@ class Parameter:
         return possible_parameter_interpretations[0]
 
 class String(Parameter):
-    owl_uris = ("http://www.w3.org/2001/XMLSchema#str")
+    owl_uris = ("http://www.w3.org/2001/XMLSchema#str", "http://odahub.io/ontology#String")
     
     def __init__(self, value=None, name_format='str', name=None, allowed_values = None):
 
@@ -497,9 +495,11 @@ class String(Parameter):
         pass
 
 class Name(String):
-    owl_uris = ("http://odahub.io/ontology#AstrophysicalObject")
+    owl_uris = String.owl_uris + ("http://odahub.io/ontology#AstrophysicalObject",)
 
 class NumericParameter(Parameter):
+    owl_uris = ("http://odahub.io/ontology#NumericParameter")
+    
     @staticmethod
     def check_bounds(val, min_value = None, max_value = None, name=None):
         if min_value is not None:
@@ -512,7 +512,7 @@ class NumericParameter(Parameter):
                 raise RequestNotUnderstood(f'Parameter {name} wrong value {val}: should be lower or equal than {max_value}')
 
 class Float(NumericParameter):
-    owl_uris = ("http://www.w3.org/2001/XMLSchema#float")
+    owl_uris = ("http://www.w3.org/2001/XMLSchema#float", "http://odahub.io/ontology#Float")
     def __init__(self, 
                  value=None, 
                  units=None, 
@@ -580,7 +580,7 @@ class Float(NumericParameter):
 
 
 class Integer(NumericParameter):
-    owl_uris = ("http://www.w3.org/2001/XMLSchema#int")
+    owl_uris = ("http://www.w3.org/2001/XMLSchema#int", "http://odahub.io/ontology#Integer")
 
     def __init__(self, value=None, units=None, name=None, check_value=None, min_value = None, max_value = None):
 
@@ -645,9 +645,7 @@ class Time(Parameter):
     # of this class.
     # reading the rdf should be done with thread-safe caching to avoid frequent requests
 
-    owl_uris = ("http://odahub.io/ontology#TimeInstant",
-                "http://odahub.io/ontology#StartTime",
-                "http://odahub.io/ontology#EndTime")
+    owl_uris = ("http://odahub.io/ontology#TimeInstant",)
 
     def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None, par_default_format='isot'):
 
@@ -697,7 +695,7 @@ class Time(Parameter):
 # it is confusing that TimeDelta derives from Time.  
 # https://github.com/astropy/astropy/blob/main/astropy/time/core.py#L379
 class TimeDelta(Time):
-    owl_uris = () # to avoid unnecessary attempt to initialize it for time parameter
+    owl_uris = ("http://odahub.io/ontology#TimeDelta",) 
     
     def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None, par_default_format='sec'):
 
@@ -792,7 +790,7 @@ class InputProdList(Parameter):
 
 
 class Angle(Float):
-    owl_uris = ("http://odahub.io/ontology#PointOfInterestRA", "http://odahub.io/ontology#PointOfInterestDEC")
+    owl_uris = ("http://odahub.io/ontology#Angle")
     
     def __init__(self, value=None, units=None, default_units='deg', name=None, min_value = None, max_value = None):
 
@@ -834,6 +832,8 @@ class Angle(Float):
 
 
 class Energy(Float):
+    owl_uris = ("http://odahub.io/ontology#Energy", "http://odahub.io/ontology#Frequency")
+    
     def __init__(self, value=None, E_units='keV', name=None, check_value=None, min_value = None, max_value = None):
         if check_value is None:
             check_value = self.check_energy_value
@@ -860,6 +860,7 @@ class SpectralBoundary(Energy):
 
 
 class DetectionThreshold(Float):
+    owl_uris = ("http://odahub.io/ontology#DetectionThreshold",)    
     def __init__(self, value=None, units='sigma', name=None, min_value = None, max_value = None):
         _allowed_units = ['sigma']
 
@@ -887,7 +888,7 @@ class UserCatalog(Parameter):
         pass
 
 class Boolean(Parameter):
-    owl_uris = ('http://www.w3.org/2001/XMLSchema#bool')
+    owl_uris = ('http://www.w3.org/2001/XMLSchema#bool',"http://odahub.io/ontology#Boolean")
     
     def __init__(self, value=None, name=None):
 
