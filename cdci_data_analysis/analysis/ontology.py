@@ -12,7 +12,7 @@ class Ontology:
         self.g.bind('oda', ODA)
     
     def parse_extra_ttl(self, extra_ttl):
-        self.g.parse(extra_ttl)
+        self.g.parse(data = extra_ttl)
         
     def get_parameter_hierarchy(self, param_uri):
         if param_uri.startswith("http"): param_uri = f"<{param_uri}>"
@@ -38,9 +38,8 @@ class Ontology:
             query = "SELECT ?format_uri WHERE { "
         else:
             query = """
-            SELECT ?arg_name ?format WHERE { 
-                ?format_uri oda:repr ?format .
-                ?format_uri oda:arg_name ?arg_name .
+            SELECT ?format WHERE { 
+                ?format_uri oda:symbol ?format .
             """
         
         query += """
@@ -58,7 +57,7 @@ class Ontology:
                     ]
                 }
             }
-            """ % ( param_uri, param_uri)
+            """ % (param_uri, param_uri)
 
         qres = self.g.query(query)
         
@@ -68,11 +67,8 @@ class Ontology:
             #       probably RequestNotUnderstood is better for reporting
         
         if len(qres) == 0: return None
-        if return_uri:
-            return str(qres[0][0])
-        else:
-            row = list(qres)[0]
-            return {str(row[0]): str(row[1])}
+        
+        return str(list(qres)[0][0])
         
     def get_parameter_unit(self, param_uri, return_uri = False):
         if param_uri.startswith("http"): param_uri = f"<{param_uri}>"
@@ -82,7 +78,7 @@ class Ontology:
         else:
             query = """ 
             SELECT ?unit WHERE {
-                ?unit_uri oda:repr ?unit .
+                ?unit_uri oda:symbol ?unit .
             """
         
         query += """
@@ -90,7 +86,7 @@ class Ontology:
         %s (rdfs:subClassOf|a)* [
             a owl:Restriction ;
             owl:onProperty oda:unit ;
-            owl:allValuesFrom ?unit_uri ;
+            owl:hasValue ?unit_uri ;
             ]
         }
         UNION

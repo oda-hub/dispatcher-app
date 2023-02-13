@@ -42,15 +42,9 @@
     
 
 
-    <!-- http://odahub.io/ontology#arg_name -->
+    <!-- http://odahub.io/ontology#symbol -->
 
-    <owl:AnnotationProperty rdf:about="http://odahub.io/ontology#arg_name"/>
-    
-
-
-    <!-- http://odahub.io/ontology#repr -->
-
-    <owl:AnnotationProperty rdf:about="http://odahub.io/ontology#repr"/>
+    <owl:AnnotationProperty rdf:about="http://odahub.io/ontology#symbol"/>
     
 
 
@@ -267,6 +261,41 @@
     
 
 
+    <!-- http://odahub.io/ontology#AngleDegrees -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#AngleDegrees">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Angle"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#par_degree"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#AngleMinutes -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#AngleMinutes">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Angle"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#par_arcmin"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#AngleSeconds -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#AngleSeconds">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Angle"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#par_arcsec"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#AngleUnit -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#AngleUnit">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Unit"/>
+    </owl:Class>
+    
+
+
     <!-- http://odahub.io/ontology#AstrophysicalObject -->
 
     <owl:Class rdf:about="http://odahub.io/ontology#AstrophysicalObject">
@@ -295,6 +324,14 @@
     
 
 
+    <!-- http://odahub.io/ontology#Boolean -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Boolean">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
+    </owl:Class>
+    
+
+
     <!-- http://odahub.io/ontology#DataProduct -->
 
     <owl:Class rdf:about="http://odahub.io/ontology#DataProduct">
@@ -318,24 +355,9 @@
     <!-- http://odahub.io/ontology#DeclinationDegrees -->
 
     <owl:Class rdf:about="http://odahub.io/ontology#DeclinationDegrees">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#AngleDegrees"/>
         <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Declination"/>
-        <rdfs:subClassOf>
-            <owl:Restriction>
-                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
-                <owl:allValuesFrom rdf:resource="http://odahub.io/ontology#Degree"/>
-            </owl:Restriction>
-        </rdfs:subClassOf>
         <rdfs:label>DeclinationDegrees</rdfs:label>
-    </owl:Class>
-    
-
-
-    <!-- http://odahub.io/ontology#Degree -->
-
-    <owl:Class rdf:about="http://odahub.io/ontology#Degree">
-        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Unit"/>
-        <repr rdf:datatype="http://www.w3.org/2001/XMLSchema#string">deg</repr>
-        <rdfs:label>Degree</rdfs:label>
     </owl:Class>
     
 
@@ -370,10 +392,115 @@
     
 
 
+    <!-- http://odahub.io/ontology#EndTimeMJD -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#EndTimeMJD">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#EndTime"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#TimeInstantMJD"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Energy -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Energy">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Float"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#EnergyUnit -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#EnergyUnit">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Unit"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Energy_GeV -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Energy_GeV">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Energy"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#par_GeV"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Energy_MeV -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Energy_MeV">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Energy"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#par_MeV"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Energy_TeV -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Energy_TeV">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Energy"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#par_TeV"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Energy_eV -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Energy_eV">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Energy"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#par_eV"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Energy_keV -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Energy_keV">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Energy"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#par_keV"/>
+    </owl:Class>
+    
+
+
     <!-- http://odahub.io/ontology#Float -->
 
     <owl:Class rdf:about="http://odahub.io/ontology#Float">
         <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#NumericParameter"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Frequency -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Frequency">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Float"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#FrequencyGHz -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#FrequencyGHz">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Frequency"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#par_GHz"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#FrequencyHz -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#FrequencyHz">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Frequency"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#par_Hz"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#FrequencyMHz -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#FrequencyMHz">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Frequency"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#par_MHz"/>
     </owl:Class>
     
 
@@ -392,6 +519,14 @@
     <owl:Class rdf:about="http://odahub.io/ontology#GaiaFilter">
         <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
         <rdfs:label>GaiaFilter</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Image -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Image">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#DataProduct"/>
     </owl:Class>
     
 
@@ -431,9 +566,51 @@
     
 
 
+    <!-- http://odahub.io/ontology#ODAAstropyTable -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#ODAAstropyTable">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#DataProduct"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#ODABinaryProduct -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#ODABinaryProduct">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#DataProduct"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#ODAPictureProduct -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#ODAPictureProduct">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#DataProduct"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#ODATextProduct -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#ODATextProduct">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#DataProduct"/>
+    </owl:Class>
+    
+
+
     <!-- http://odahub.io/ontology#ParameterFormat -->
 
-    <owl:Class rdf:about="http://odahub.io/ontology#ParameterFormat"/>
+    <owl:Class rdf:about="http://odahub.io/ontology#ParameterFormat">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#ParameterWithUnit -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#ParameterWithUnit">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#NumericParameter"/>
+    </owl:Class>
     
 
 
@@ -449,7 +626,7 @@
     <!-- http://odahub.io/ontology#PointOfInterestDEC -->
 
     <owl:Class rdf:about="http://odahub.io/ontology#PointOfInterestDEC">
-        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Declination"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#DeclinationDegrees"/>
         <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
         <rdfs:label>PointOfInterestDEC</rdfs:label>
     </owl:Class>
@@ -459,7 +636,7 @@
     <!-- http://odahub.io/ontology#PointOfInterestRA -->
 
     <owl:Class rdf:about="http://odahub.io/ontology#PointOfInterestRA">
-        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#RightAscension"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#RightAscensionDegrees"/>
         <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
         <rdfs:label>PointOfInterestRA</rdfs:label>
     </owl:Class>
@@ -489,13 +666,8 @@
     <!-- http://odahub.io/ontology#RightAscensionDegrees -->
 
     <owl:Class rdf:about="http://odahub.io/ontology#RightAscensionDegrees">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#AngleDegrees"/>
         <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#RightAscension"/>
-        <rdfs:subClassOf>
-            <owl:Restriction>
-                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
-                <owl:allValuesFrom rdf:resource="http://odahub.io/ontology#Degree"/>
-            </owl:Restriction>
-        </rdfs:subClassOf>
         <rdfs:label>RightAscensionDegrees</rdfs:label>
     </owl:Class>
     
@@ -509,6 +681,14 @@
         <rdfs:comment>Sky coordinates. Typically represented as a string as known to https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html .
 Subclasses may have other ways to express the content.</rdfs:comment>
         <rdfs:label>SkyCoordinates</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#Spectrum -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Spectrum">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#DataProduct"/>
     </owl:Class>
     
 
@@ -533,10 +713,36 @@ Subclasses may have other ways to express the content.</rdfs:comment>
     
 
 
+    <!-- http://odahub.io/ontology#StartTimeMJD -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#StartTimeMJD">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#StartTime"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#TimeInstantMJD"/>
+    </owl:Class>
+    
+
+
     <!-- http://odahub.io/ontology#String -->
 
     <owl:Class rdf:about="http://odahub.io/ontology#String">
         <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#WorkflowParameter"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#TimeDays -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#TimeDays">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#TimeDelta"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#par_day"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#TimeDelta -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#TimeDelta">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Float"/>
     </owl:Class>
     
 
@@ -573,6 +779,37 @@ Subclasses may have other ways to express the content.</rdfs:comment>
     
 
 
+    <!-- http://odahub.io/ontology#TimeInstantMJD -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#TimeInstantMJD">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#TimeInstant"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#format"/>
+                <owl:hasValue rdf:resource="http://odahub.io/ontology#MJD"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#TimeSeconds -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#TimeSeconds">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#TimeDelta"/>
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#par_second"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#TimeUnit -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#TimeUnit">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Unit"/>
+    </owl:Class>
+    
+
+
     <!-- http://odahub.io/ontology#Unit -->
 
     <owl:Class rdf:about="http://odahub.io/ontology#Unit">
@@ -599,6 +836,182 @@ Subclasses may have other ways to express the content.</rdfs:comment>
     
 
 
+    <!-- http://odahub.io/ontology#par_GHz -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#par_GHz">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#ParameterWithUnit"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
+                <owl:hasValue rdf:resource="http://odahub.io/ontology#GHz"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#par_GeV -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#par_GeV">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#ParameterWithUnit"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
+                <owl:hasValue rdf:resource="http://odahub.io/ontology#GeV"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#par_Hz -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#par_Hz">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#ParameterWithUnit"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
+                <owl:hasValue rdf:resource="http://odahub.io/ontology#Hz"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#par_MHz -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#par_MHz">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#ParameterWithUnit"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
+                <owl:hasValue rdf:resource="http://odahub.io/ontology#MHz"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#par_MeV -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#par_MeV">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#ParameterWithUnit"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
+                <owl:hasValue rdf:resource="http://odahub.io/ontology#MeV"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#par_TeV -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#par_TeV">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#ParameterWithUnit"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
+                <owl:hasValue rdf:resource="http://odahub.io/ontology#TeV"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#par_arcmin -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#par_arcmin">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#ParameterWithUnit"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
+                <owl:hasValue rdf:resource="http://odahub.io/ontology#arcmin"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#par_arcsec -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#par_arcsec">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#ParameterWithUnit"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
+                <owl:hasValue rdf:resource="http://odahub.io/ontology#arcsec"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#par_day -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#par_day">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#ParameterWithUnit"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
+                <owl:hasValue rdf:resource="http://odahub.io/ontology#Day"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#par_degree -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#par_degree">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#ParameterWithUnit"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
+                <owl:hasValue rdf:resource="http://odahub.io/ontology#Degree"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#par_eV -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#par_eV">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#ParameterWithUnit"/>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#par_keV -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#par_keV">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#ParameterWithUnit"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
+                <owl:hasValue rdf:resource="http://odahub.io/ontology#keV"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#par_second -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#par_second">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#ParameterWithUnit"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#unit"/>
+                <owl:hasValue rdf:resource="http://odahub.io/ontology#Second"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
     <!-- http://www.ivoa.net/rdf/product-type#timeseries -->
 
     <owl:Class rdf:about="http://www.ivoa.net/rdf/product-type#timeseries"/>
@@ -616,12 +1029,74 @@ Subclasses may have other ways to express the content.</rdfs:comment>
     
 
 
+    <!-- http://odahub.io/ontology#Day -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#Day">
+        <rdf:type rdf:resource="http://odahub.io/ontology#TimeUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">d</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#Degree -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#Degree">
+        <rdf:type rdf:resource="http://odahub.io/ontology#AngleUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">deg</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#GHz -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#GHz">
+        <rdf:type rdf:resource="http://odahub.io/ontology#EnergyUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">GHz</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#GeV -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#GeV">
+        <rdf:type rdf:resource="http://odahub.io/ontology#EnergyUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">GeV</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#Hour -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#Hour">
+        <rdf:type rdf:resource="http://odahub.io/ontology#TimeUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">h</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#Hz -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#Hz">
+        <rdf:type rdf:resource="http://odahub.io/ontology#EnergyUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Hz</symbol>
+    </owl:NamedIndividual>
+    
+
+
     <!-- http://odahub.io/ontology#ISOT -->
 
     <owl:NamedIndividual rdf:about="http://odahub.io/ontology#ISOT">
         <rdf:type rdf:resource="http://odahub.io/ontology#TimeFormat"/>
-        <arg_name rdf:datatype="http://www.w3.org/2001/XMLSchema#string">T_format</arg_name>
-        <repr rdf:datatype="http://www.w3.org/2001/XMLSchema#string">isot</repr>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">isot</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#MHz -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#MHz">
+        <rdf:type rdf:resource="http://odahub.io/ontology#EnergyUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">MHz</symbol>
     </owl:NamedIndividual>
     
 
@@ -630,8 +1105,115 @@ Subclasses may have other ways to express the content.</rdfs:comment>
 
     <owl:NamedIndividual rdf:about="http://odahub.io/ontology#MJD">
         <rdf:type rdf:resource="http://odahub.io/ontology#TimeFormat"/>
-        <arg_name rdf:datatype="http://www.w3.org/2001/XMLSchema#string">T_format</arg_name>
-        <repr rdf:datatype="http://www.w3.org/2001/XMLSchema#string">mjd</repr>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">mjd</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#MeV -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#MeV">
+        <rdf:type rdf:resource="http://odahub.io/ontology#EnergyUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">MeV</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#Minute -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#Minute">
+        <rdf:type rdf:resource="http://odahub.io/ontology#TimeUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">m</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#Radian -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#Radian">
+        <rdf:type rdf:resource="http://odahub.io/ontology#AngleUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">rad</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#Second -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#Second">
+        <rdf:type rdf:resource="http://odahub.io/ontology#TimeUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">s</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#TeV -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#TeV">
+        <rdf:type rdf:resource="http://odahub.io/ontology#EnergyUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">TeV</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#arcmin -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#arcmin">
+        <rdf:type rdf:resource="http://odahub.io/ontology#AngleUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">arcmin</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#arcsec -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#arcsec">
+        <rdf:type rdf:resource="http://odahub.io/ontology#AngleUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">arcsec</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#eV -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#eV">
+        <rdf:type rdf:resource="http://odahub.io/ontology#EnergyUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">eV</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#hourangle_Hour -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#hourangle_Hour">
+        <rdf:type rdf:resource="http://odahub.io/ontology#AngleUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">h</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#hourangle_Minute -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#hourangle_Minute">
+        <rdf:type rdf:resource="http://odahub.io/ontology#AngleUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">m</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#hourangle_Second -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#hourangle_Second">
+        <rdf:type rdf:resource="http://odahub.io/ontology#AngleUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">s</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#keV -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#keV">
+        <rdf:type rdf:resource="http://odahub.io/ontology#EnergyUnit"/>
+        <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">keV</symbol>
     </owl:NamedIndividual>
     
 
