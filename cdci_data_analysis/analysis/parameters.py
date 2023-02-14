@@ -41,7 +41,7 @@ import numpy as np
 from typing import Union
 from inspect import signature
 from .exceptions import RequestNotUnderstood
-
+from .ontology import Ontology
 
 logger = logging.getLogger(__name__)
 
@@ -438,44 +438,63 @@ class Parameter:
     @classmethod
     def from_owl_uri(cls,
                      owl_uri,
+                     extra_ttl = None,
+                     ontology_path = 'oda-ontology.owl', #TODO: should default be here? Change to main ontology
                      **kwargs):
-        possible_parameter_interpretations = []
-
-        for x in subclasses_recursive(cls):
-            logger.debug("searching for class with owl_uri=%s, found %s", owl_uri, x)
-            if x.matches_owl_uri(owl_uri):
-                logger.info("will construct %s by url %s", x, owl_uri)
-                call_kwargs = {}
-                call_signature = signature(x)
-                for par_name, par_value in kwargs.items():
-                    if par_name in call_signature.parameters:
-                        call_kwargs[par_name] = par_value
-                    else:
-                        logger.error("parameter %s with value %s not used to construct %s and will be discarded for the instantiation, available parameters %s",
-                                     par_name, par_value, x, call_signature)
-                try:
-                    possible_parameter_interpretations.append(x(**call_kwargs))
-                except Exception as e:
-                    logger.exception(("owl_uri %s matches Parameter %s, but the Parameter constructor failed! "
-                                      "Possibly a programming error, or/and unspecified subclass"), owl_uri, x)
-
-        n_interpretations = len(possible_parameter_interpretations)
         
-        logger.info('found %s interpretations for type %s: %s',
-                    n_interpretations,
-                    owl_uri,
-                    possible_parameter_interpretations)
+        onto = Ontology(ontology_path)
+        if extra_ttl is not None:
+            onto.parse_extra_ttl(extra_ttl)
+        
+        par_format = onto.get_parameter_format(owl_uri)
+        par_unit = onto.get_parameter_unit(owl_uri)
+        
+        for owl_superclass_uri in onto.get_parameter_hierarchy(owl_uri):
+            for python_subclass in subclasses_recursive(cls):
+                logger.debug("searching for class with owl_uri=%s, found %s", owl_superclass_uri, python_subclass)
+                if python_subclass.matches_owl_uri(owl_superclass_uri):
+                    logger.info("will construct %s by owl_uri %s", python_subclass, owl_superclass_uri)
+                    call_kwargs = {}
+                    call_signature = signature(python_subclass)
+                    
+                    if par_format is not None:
+                        format_kw = getattr(python_subclass, 'format_kw', 'par_format')
+                        if format_kw in call_signature.parameters:
+                            call_kwargs[format_kw] = par_format
+                        else:
+                            logger.error(("according to ontology, owl_uri %s parameter have format %s but %s doesn't have %s keyword, "
+                                          "so format will be discarded for the instantiation"),
+                                         owl_uri, par_format, python_subclass, format_kw)
+                    if par_unit is not None:
+                        units_kw = getattr(python_subclass, 'units_kw', 'units')
+                        if units_kw in call_signature.parameters:
+                            call_kwargs[units_kw] = par_unit
+                        else:
+                            logger.error(("according to ontology, owl_uri %s parameter have unit %s but %s doesn't have %s keyword, "
+                                         "so unit will be discarded for the instantiation"),
+                                         owl_uri, par_unit, python_subclass, units_kw)
+                    
+                    for par_name, par_value in kwargs.items():
+                        if par_name in call_signature.parameters:
+                            if par_name in call_kwargs.keys(): 
+                                logger.warning("overriding ontology-derived value of the %s keyword of %s with explicitly set value %s",
+                                               par_name, python_subclass, par_value)
+                            call_kwargs[par_name] = par_value
+                        else:
+                            logger.error(("parameter %s with value %s not used to construct %s "
+                                          "and will be discarded for the instantiation, available parameters %s"),
+                                        par_name, par_value, python_subclass, call_signature)
+                    try:
+                        parameter_interpretation = python_subclass(**call_kwargs)
+                        return parameter_interpretation
+                    except Exception as e:
+                        logger.exception(("owl_uri %s matches Parameter %s, but the Parameter constructor failed! "
+                                          "Possibly a programming error"), 
+                                         owl_superclass_uri, python_subclass)
 
-        if n_interpretations == 0:
-            logger.warning(('Unknown owl type uri %s or failed to construct any parameter. '
-                            'Creating basic Parameter object.'), owl_uri)
-            possible_parameter_interpretations.append(cls(**kwargs))
-        elif n_interpretations > 1:
-            # this is likely to happen with subclasses and it can be ok
-            logger.info("picking the first one (the most general one) out of are multiple interpretations of type uri %s: %s",
-                        owl_uri, possible_parameter_interpretations)
-
-        return possible_parameter_interpretations[0]
+        logger.warning(('Unknown owl type uri %s or failed to construct any parameter. '
+                        'Creating basic Parameter object.'), owl_uri)
+        return cls(**kwargs)
 
 class String(Parameter):
     owl_uris = ("http://www.w3.org/2001/XMLSchema#str", "http://odahub.io/ontology#String")
@@ -639,15 +658,10 @@ class Integer(NumericParameter):
 
 
 class Time(Parameter):
-    # TODO:
-    # here, we should only keep TimeInstant, and use https://odahub.io/ontology/ontology.ttl
-    # to derive relations between sub-classes specified by the user but not relevant for construction
-    # of this class.
-    # reading the rdf should be done with thread-safe caching to avoid frequent requests
-
     owl_uris = ("http://odahub.io/ontology#TimeInstant",)
-
-    def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None, par_default_format='isot'):
+    format_kw = 'T_format'
+    
+    def __init__(self, value=None, T_format='isot', name=None, Time_format_name='T_format', par_default_format='isot'):
 
         super().__init__(value=value,
                          par_format=T_format,
@@ -696,6 +710,7 @@ class Time(Parameter):
 # https://github.com/astropy/astropy/blob/main/astropy/time/core.py#L379
 class TimeDelta(Time):
     owl_uris = ("http://odahub.io/ontology#TimeDelta",) 
+    format_kw = 'delta_T_format'
     
     def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None, par_default_format='sec'):
 
@@ -727,6 +742,8 @@ class TimeDelta(Time):
 
 
 class InputProdList(Parameter):
+    owl_uris = ('http://odahub.io/ontology#InputProdList',)
+    
     # TODO removal of the leading underscore cannot be done for compatibility with the plugins
     def __init__(self, value=None, _format='names_list', name: str = None):
         _allowed_units = ['names_list']
@@ -833,6 +850,7 @@ class Angle(Float):
 
 class Energy(Float):
     owl_uris = ("http://odahub.io/ontology#Energy", "http://odahub.io/ontology#Frequency")
+    units_kw = 'E_units'
     
     def __init__(self, value=None, E_units='keV', name=None, check_value=None, min_value = None, max_value = None):
         if check_value is None:

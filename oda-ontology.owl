@@ -614,6 +614,34 @@
     
 
 
+    <!-- http://odahub.io/ontology#Percentage -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#Percentage">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#Float"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#lower_limit"/>
+                <owl:hasValue rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">0</owl:hasValue>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://odahub.io/ontology#upper_limit"/>
+                <owl:hasValue rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">100</owl:hasValue>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://odahub.io/ontology#PhotometricBand -->
+
+    <owl:Class rdf:about="http://odahub.io/ontology#PhotometricBand">
+        <rdfs:subClassOf rdf:resource="http://odahub.io/ontology#String"/>
+    </owl:Class>
+    
+
+
     <!-- http://odahub.io/ontology#PointOfInterest -->
 
     <owl:Class rdf:about="http://odahub.io/ontology#PointOfInterest">
@@ -1083,11 +1111,42 @@ Subclasses may have other ways to express the content.</rdfs:comment>
     
 
 
+    <!-- http://odahub.io/ontology#ISGRIEnergy -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#ISGRIEnergy">
+        <rdf:type rdf:resource="http://odahub.io/ontology#Energy_keV"/>
+        <lower_limit rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">15</lower_limit>
+        <upper_limit rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">800</upper_limit>
+    </owl:NamedIndividual>
+    
+
+
     <!-- http://odahub.io/ontology#ISOT -->
 
     <owl:NamedIndividual rdf:about="http://odahub.io/ontology#ISOT">
         <rdf:type rdf:resource="http://odahub.io/ontology#TimeFormat"/>
         <symbol rdf:datatype="http://www.w3.org/2001/XMLSchema#string">isot</symbol>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#JEMXEnergy -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#JEMXEnergy">
+        <rdf:type rdf:resource="http://odahub.io/ontology#Energy_keV"/>
+        <lower_limit rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</lower_limit>
+        <upper_limit rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">35</upper_limit>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://odahub.io/ontology#LegacySurveyBand -->
+
+    <owl:NamedIndividual rdf:about="http://odahub.io/ontology#LegacySurveyBand">
+        <rdf:type rdf:resource="http://odahub.io/ontology#String"/>
+        <allowed_values>g</allowed_values>
+        <allowed_values>r</allowed_values>
+        <allowed_values>z</allowed_values>
     </owl:NamedIndividual>
     
 
