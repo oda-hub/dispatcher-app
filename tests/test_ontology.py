@@ -1,5 +1,6 @@
 import pytest
 from cdci_data_analysis.analysis.ontology import Ontology
+from cdci_data_analysis.analysis.exceptions import RequestNotUnderstood
 
 oda_prefix = 'http://odahub.io/ontology#'
 ontology_path = 'oda-ontology.owl'
@@ -65,8 +66,8 @@ def test_ambiguous_unit(onto):
                             @prefix rdfs: <rdfs	http://www.w3.org/2000/01/rdf-schema#> .
                             oda:Energy_EeV a oda:Energy_TeV ;
                                            oda:unit oda:EeV .""")
-    with pytest.raises(RuntimeError):
-        unit = onto.get_parameter_unit('oda:Energy_EeV')
+    with pytest.raises(RequestNotUnderstood):
+        onto.get_parameter_unit('oda:Energy_EeV')
 
     
 @pytest.mark.parametrize("owl_uri, expected, extra_ttl",
@@ -95,3 +96,20 @@ def test_ontology_redefined_limits(onto, caplog):
     assert limits == (25, 50)
     assert 'Ambiguous lower_limit, using the most restrictive' in caplog.text
     assert 'Ambiguous upper_limit, using the most restrictive' in caplog.text
+    
+@pytest.mark.parametrize("owl_uri, expected, extra_ttl",
+                         [('oda:String', None, None),
+                          ('oda:PhotometricBand', ['b', 'g', 'H', 'i', 'J', 'K', 'L', 'M', 'N', 'Q', 'r', 'u', 'v', 'y', 'z'], None),
+                          ('oda:LegacySurveyBand', ['r', 'g', 'z'], None),
+                          ('oda:custom', ['a', 'b'], """@prefix oda: <http://odahub.io/ontology#> .
+                                                        oda:custom a oda:String ;
+                                                                   oda:allowed_value "a" ;
+                                                                   oda:allowed_value "b" .""")
+                         ])
+def test_ontology_allowed_values(onto, owl_uri, expected, extra_ttl):
+    if extra_ttl is not None:
+        onto.parse_extra_ttl(extra_ttl)
+    allowed_values = onto.get_allowed_values(owl_uri)
+    assert allowed_values == expected
+    
+    

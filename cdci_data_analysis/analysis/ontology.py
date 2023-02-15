@@ -62,9 +62,8 @@ class Ontology:
                 }
                 UNION
                 {
-                %s (rdfs:subClassOf|a)* [
-                    oda:format ?format_uri ;
-                    ]
+                %s oda:format ?format_uri ;
+                   
                 }
             }
             """ % (param_uri, param_uri)
@@ -94,9 +93,7 @@ class Ontology:
         }
         UNION
         {
-        %s (rdfs:subClassOf|a)* [
-            oda:unit ?unit_uri ;
-            ]
+        %s oda:unit ?unit_uri ; 
         }
         }
         """ % (param_uri, param_uri)
@@ -126,9 +123,7 @@ class Ontology:
         }
         UNION
         {
-        %s (rdfs:subClassOf|a)* [
-            oda:%s_limit ?limit ;
-            ]
+        %s oda:%s_limit ?limit ;
         }
         }
         """
@@ -155,6 +150,14 @@ class Ontology:
         return (ll, ul)
     
     def get_allowed_values(self, param_uri):
+        if param_uri.startswith("http"): param_uri = f"<{param_uri}>"
+
+        # either uri is for Individual with allowed_values directly set, then don't go to superclass restrictions 
+        # or read all from superclass 
+     
+        
+        
         return None
-        return []
+        return [] #it's not used anywhere
         return ['a', 'b']
+    
