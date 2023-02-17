@@ -1,4 +1,5 @@
 import pytest
+import rdflib as rdf
 from cdci_data_analysis.analysis.ontology import Ontology
 from cdci_data_analysis.analysis.exceptions import RequestNotUnderstood
 
@@ -35,7 +36,8 @@ def test_ontology_unknown(onto, owl_uri, caplog):
                           ('oda:TimeInstant', None, None, False),
                           ('http://odahub.io/ontology#Unknown', None, None, False),
                           ('oda:foo', 'mjd', """@prefix oda: <http://odahub.io/ontology#> . 
-                                                oda:foo a oda:TimeInstant ; 
+                                                @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . 
+                                                oda:foo rdfs:subClassOf oda:TimeInstant ; 
                                                         oda:format oda:MJD . """, False)
                           ])
 def test_ontology_format(onto, owl_uri, expected,extra_ttl, return_uri):
@@ -50,7 +52,8 @@ def test_ontology_format(onto, owl_uri, expected,extra_ttl, return_uri):
                           ('oda:Energy', None, None, False),
                           ('http://odahub.io/ontology#Unknown', None, None, False),
                           ('oda:spam', 's', """@prefix oda: <http://odahub.io/ontology#> . 
-                                               oda:spam a oda:TimeDelta, oda:par_second . """, False),
+                                               @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . 
+                                               oda:spam rdfs:subClassOf oda:TimeDelta, oda:par_second . """, False),
                           ('oda:eggs', 'h', """@prefix oda: <http://odahub.io/ontology#> . 
                                                oda:eggs a oda:TimeDelta ;
                                                         oda:unit oda:Hour . """, False)
@@ -111,5 +114,23 @@ def test_ontology_allowed_values(onto, owl_uri, expected, extra_ttl):
         onto.parse_extra_ttl(extra_ttl)
     allowed_values = onto.get_allowed_values(owl_uri)
     assert allowed_values == expected
+    
+    
+def test_ontology_parsing_annotations():
+    g = rdf.Graph()
+    g.parse(data = """
+            @prefix oda: <http://odahub.io/ontology#> . 
+            @prefix unit: <http://odahub.io/ontology/unit#> . 
+            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . 
+            
+            oda:energyMin_keV_unit rdfs:subClassOf oda:energyMin;
+                              oda:unit unit:keV ;
+                              oda:format oda:MJD ;
+                              oda:allowed_value "a", "b" ;
+                              oda:lower_limit 0 ;
+                              oda:upper_limit 4 .
+            """)
+    pg = Ontology.parse_oda_annotations(g)
+    assert isinstance(pg, rdf.Graph)
     
     

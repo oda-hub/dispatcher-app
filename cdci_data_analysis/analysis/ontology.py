@@ -1,8 +1,13 @@
 import rdflib as rdf
+from rdflib.collection import Collection
+from rdflib.namespace import RDF, RDFS, OWL, XSD
 import logging
 from cdci_data_analysis.analysis.exceptions import RequestNotUnderstood
 
 logger = logging.getLogger(__name__)
+
+ODA = rdf.Namespace("http://odahub.io/ontology#")
+a = RDF.type
 
 class Ontology:
     def __init__(self, ontology_path):
@@ -11,7 +16,6 @@ class Ontology:
         #      but with possibility to update without restarting dispatcher
         self.g = rdf.Graph()
         self.g.parse(ontology_path)
-        ODA = rdf.Namespace("http://odahub.io/ontology#")
         self.g.bind('oda', ODA)
     
     def _get_symb(self, uri):
@@ -24,8 +28,95 @@ class Ontology:
         if len(s_qres) == 0: return uri.split('#')[1]
         return str(list(s_qres)[0][0])
     
-    def parse_extra_ttl(self, extra_ttl):
+    @staticmethod
+    def parse_oda_annotations(graph, limits_datatype = XSD.float):
+        """
+        will account for class annotations, which have special meaning
+        (currently lower_limit, upper_limit, allowed_value, unit, format)
+        producing respective owl class restrictions
+        """
+
+        #TODO: will it duplicate if restriction already set ?
+        #TODO: reject multiple annotations for unit, format and limits
+        
+        ### unit
+        for classuri, unituri in graph.subject_objects(ODA['unit']):
+            bn = rdf.BNode()
+            graph.add((bn, a, OWL.Restriction))
+            graph.add((bn, OWL.onProperty, ODA.has_unit))
+            graph.add((bn, OWL.hasValue, unituri))
+            
+            graph.add((classuri, RDFS.subClassOf, bn))
+
+        ### format
+        for classuri, formaturi in graph.subject_objects(ODA['format']):
+            bn = rdf.BNode()
+            graph.add((bn, a, OWL.Restriction))
+            graph.add((bn, OWL.onProperty, ODA.has_format))
+            graph.add((bn, OWL.hasValue, formaturi))
+            
+            graph.add((classuri, RDFS.subClassOf, bn))
+        
+        ### allowed_values
+        for classuri in graph.subjects(ODA['allowed_value'], None, unique=True):
+            c = Collection(graph, None)
+            for val in graph.objects(classuri, ODA['allowed_value']):
+                c.append(val)
+                
+            dtype = rdf.BNode()
+            graph.add((dtype, a, RDFS.Datatype))
+            graph.add((dtype, OWL.oneOf, c.uri))
+                
+            bn = rdf.BNode()
+            graph.add((bn, a, OWL.Restriction))
+            graph.add((bn, OWL.onProperty, ODA.value))
+            graph.add((bn, OWL.allValuesFrom, dtype))
+            
+            graph.add((classuri, RDFS.subClassOf, bn))
+        
+        ### limits
+        # TODO: datatypes of limits may not correspond to the restriction on value datatype
+        #       either try to infer from superclasses in graph (if available) or use limits_datatype
+        with_lower = list(graph.subjects(ODA['lower_limit'], None, unique=True))
+        with_upper = list(graph.subjects(ODA['upper_limit'], None, unique=True))
+        
+        for classuri in set(with_lower + with_upper):
+            ll = list(graph.objects(classuri, ODA['lower_limit']))
+            ul = list(graph.objects(classuri, ODA['upper_limit']))
+            if len(ll) > 1: raise RuntimeError('Multiple oda:lower_limit annotations')
+            if len(ul) > 1: raise RuntimeError('Multiple oda:lower_limit annotations')
+            
+            lim_r = []
+            if len(ll) != 0:
+                lim_r.append(rdf.BNode())
+                graph.add((lim_r[-1], XSD.minInclusive, ll[0]))
+            if len(ul) != 0:
+                lim_r.append(rdf.BNode())
+                graph.add((lim_r[-1], XSD.maxInclusive, ul[0]))
+            c = Collection(graph, None, lim_r)
+                        
+            dtype = rdf.BNode()
+            graph.add((dtype, a, RDFS.Datatype))
+            graph.add((dtype, OWL.onDatatype, limits_datatype))
+            graph.add((dtype, OWL.withRestrictions, c.uri))
+            
+            bn = rdf.BNode()
+            graph.add((bn, a, OWL.Restriction))
+            graph.add((bn, OWL.onProperty, ODA.value))
+            graph.add((bn, OWL.allValuesFrom, dtype))
+            
+            graph.add((classuri, RDFS.subClassOf, bn))
+        
+        return graph
+    
+    
+    def parse_extra_ttl(self, extra_ttl, parse_oda_annotations = True):
+        if parse_oda_annotations:
+            tmpg = rdf.Graph()
+            tmpg.parse(extra_ttl)
+            extra_ttl = self.parse_oda_annotations(tmpg).serialize(format='turtle')
         self.g.parse(data = extra_ttl)
+            
         
     def get_parameter_hierarchy(self, param_uri):
         param_uri_m = f"<{param_uri}>" if param_uri.startswith("http") else param_uri
