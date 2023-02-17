@@ -3,6 +3,7 @@ from rdflib.collection import Collection
 from rdflib.namespace import RDF, RDFS, OWL, XSD
 import logging
 from cdci_data_analysis.analysis.exceptions import RequestNotUnderstood
+from pyparsing.exceptions import ParseException
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,7 @@ class Ontology:
         if len(s_qres) == 0: return uri.split('#')[1]
         return str(list(s_qres)[0][0])
     
-    @staticmethod
-    def parse_oda_annotations(graph, limits_datatype = XSD.float):
+    def parse_oda_annotations(self, graph):
         """
         will account for class annotations, which have special meaning
         (currently lower_limit, upper_limit, allowed_value, unit, format)
@@ -37,27 +37,38 @@ class Ontology:
         """
 
         #TODO: will it duplicate if restriction already set ?
-        #TODO: reject multiple annotations for unit, format and limits
+        self.parse_unit_annotations(graph)
+        self.parse_format_annotations(graph)
+        self.parse_allowed_values_annotations(graph)
+        self.parse_limits_annotations(graph, infer_datatype=True)
         
-        ### unit
-        for classuri, unituri in graph.subject_objects(ODA['unit']):
-            bn = rdf.BNode()
-            graph.add((bn, a, OWL.Restriction))
-            graph.add((bn, OWL.onProperty, ODA.has_unit))
-            graph.add((bn, OWL.hasValue, unituri))
+    def parse_unit_annotations(self, graph):  
+        for classuri in graph.subjects(ODA['unit'], None):
+            unit_annotations = list(graph.objects(classuri, ODA['unit']))
+            if len(unit_annotations) > 1: 
+                raise RuntimeError('Multiple oda:unit annotations for %s', classuri)
+            for unituri in unit_annotations:
+                bn = rdf.BNode()
+                graph.add((bn, a, OWL.Restriction))
+                graph.add((bn, OWL.onProperty, ODA.has_unit))
+                graph.add((bn, OWL.hasValue, unituri))
             
-            graph.add((classuri, RDFS.subClassOf, bn))
-
-        ### format
-        for classuri, formaturi in graph.subject_objects(ODA['format']):
-            bn = rdf.BNode()
-            graph.add((bn, a, OWL.Restriction))
-            graph.add((bn, OWL.onProperty, ODA.has_format))
-            graph.add((bn, OWL.hasValue, formaturi))
+                graph.add((classuri, RDFS.subClassOf, bn))
             
-            graph.add((classuri, RDFS.subClassOf, bn))
-        
-        ### allowed_values
+    def parse_format_annotations(self, graph):
+        for classuri in graph.subjects(ODA['format'], None):
+            format_annotations = list(graph.objects(classuri, ODA['format']))
+            if len(format_annotations) > 1: 
+                raise RuntimeError('Multiple oda:format annotations for %s', classuri)
+            for formaturi in format_annotations:
+                bn = rdf.BNode()
+                graph.add((bn, a, OWL.Restriction))
+                graph.add((bn, OWL.onProperty, ODA.has_format))
+                graph.add((bn, OWL.hasValue, formaturi))
+                
+                graph.add((classuri, RDFS.subClassOf, bn))
+            
+    def parse_allowed_values_annotations(self, graph):        
         for classuri in graph.subjects(ODA['allowed_value'], None, unique=True):
             c = Collection(graph, None)
             for val in graph.objects(classuri, ODA['allowed_value']):
@@ -73,26 +84,48 @@ class Ontology:
             graph.add((bn, OWL.allValuesFrom, dtype))
             
             graph.add((classuri, RDFS.subClassOf, bn))
-        
-        ### limits
-        # TODO: datatypes of limits may not correspond to the restriction on value datatype
-        #       either try to infer from superclasses in graph (if available) or use limits_datatype
+            
+    def parse_limits_annotations(self, graph, infer_datatype = True):        
         with_lower = list(graph.subjects(ODA['lower_limit'], None, unique=True))
         with_upper = list(graph.subjects(ODA['upper_limit'], None, unique=True))
         
         for classuri in set(with_lower + with_upper):
             ll = list(graph.objects(classuri, ODA['lower_limit']))
             ul = list(graph.objects(classuri, ODA['upper_limit']))
-            if len(ll) > 1: raise RuntimeError('Multiple oda:lower_limit annotations')
-            if len(ul) > 1: raise RuntimeError('Multiple oda:lower_limit annotations')
+            if len(ll) > 1: 
+                raise RuntimeError('Multiple oda:lower_limit annotations for %s', classuri)
+            if len(ul) > 1: 
+                raise RuntimeError('Multiple oda:lower_limit annotations for %s', classuri)
+            
+            if infer_datatype:
+                # graph will usually be separate graph, 
+                # here, try to get datatype restriction for directly defined superclasses
+                possible_datatypes = set()
+                superclasses = list(graph.objects(classuri, RDFS.subClassOf))
+                superclasses.append(classuri)
+                for sc in superclasses:
+                    if isinstance(sc, rdf.BNode): continue
+                    dt = self._get_datatype_restriction(sc)
+                    if dt is not None:
+                        possible_datatypes.add(dt)
+                if len(possible_datatypes) > 1:
+                    raise RuntimeError('Ambiguous datatype for %s', classuri)
+                if len(possible_datatypes) == 1:
+                    limits_datatype = list(possible_datatypes)[0]
+            else:
+                limits_datatype = XSD.float
             
             lim_r = []
             if len(ll) != 0:
                 lim_r.append(rdf.BNode())
-                graph.add((lim_r[-1], XSD.minInclusive, ll[0]))
+                graph.add((lim_r[-1], 
+                           XSD.minInclusive, 
+                           rdf.Literal(ll[0].value, datatype=limits_datatype)))
             if len(ul) != 0:
                 lim_r.append(rdf.BNode())
-                graph.add((lim_r[-1], XSD.maxInclusive, ul[0]))
+                graph.add((lim_r[-1], 
+                           XSD.maxInclusive, 
+                           rdf.Literal(ll[0].value, datatype=limits_datatype)))
             c = Collection(graph, None, lim_r)
                         
             dtype = rdf.BNode()
@@ -106,15 +139,43 @@ class Ontology:
             graph.add((bn, OWL.allValuesFrom, dtype))
             
             graph.add((classuri, RDFS.subClassOf, bn))
-        
-        return graph
     
+    def _get_datatype_restriction(self, param_uri):
+        param_uri = f"<{param_uri}>" if param_uri.startswith("http") else param_uri
+        query = """
+            SELECT ?dt WHERE {
+                {
+                    %s rdfs:subClassOf+ [
+                        a owl:Restriction ;
+                        owl:onProperty oda:value ;
+                        owl:allValuesFrom ?dt
+                    ]   
+                    FILTER(isUri(?dt) && STRSTARTS(STR(?dt), STR(xsd:)))
+                }
+                UNION
+                {
+                    BIND(%s as ?dt)
+                    FILTER(STRSTARTS(STR(%s), STR(xsd:)))
+                }
+                UNION
+                {
+                    %s rdfs:subClassOf+ ?dt .
+                    FILTER(isUri(?dt) && STRSTARTS(STR(?dt), STR(xsd:)))
+                }
+            }
+        """ % (param_uri, param_uri, param_uri, param_uri)
+        qres = list(self.g.query(query))
+        if len(qres) == 0: return None
+        if len(set(r[0] for r in qres)) > 1:
+            RuntimeError("Ambiguous datatype of %s", param_uri) 
+        return qres[0][0]
     
     def parse_extra_ttl(self, extra_ttl, parse_oda_annotations = True):
         if parse_oda_annotations:
             tmpg = rdf.Graph()
-            tmpg.parse(extra_ttl)
-            extra_ttl = self.parse_oda_annotations(tmpg).serialize(format='turtle')
+            tmpg.parse(extra_ttl)       
+            self.parse_oda_annotations(tmpg)
+            extra_ttl = tmpg.serialize(format='turtle')
         self.g.parse(data = extra_ttl)
             
         

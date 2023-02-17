@@ -1,9 +1,11 @@
 import pytest
 import rdflib as rdf
+from rdflib.namespace import XSD
 from cdci_data_analysis.analysis.ontology import Ontology
 from cdci_data_analysis.analysis.exceptions import RequestNotUnderstood
 
 oda_prefix = 'http://odahub.io/ontology#'
+xsd_prefix = 'http://www.w3.org/2001/XMLSchema#'
 ontology_path = 'oda-ontology.owl'
 
 @pytest.fixture
@@ -114,23 +116,36 @@ def test_ontology_allowed_values(onto, owl_uri, expected, extra_ttl):
         onto.parse_extra_ttl(extra_ttl)
     allowed_values = onto.get_allowed_values(owl_uri)
     assert allowed_values == expected
+
+@pytest.mark.parametrize("par_uri, datatype",
+                         [('oda:Integer', XSD.integer),
+                          ('oda:Float', XSD.float),
+                          ('oda:Percentage', XSD.float),
+                          ('oda:Energy_keV', XSD.float),
+                          ('xsd:string', XSD.string),
+                          ('oda:Unknown', None),
+                          ])
+def test_datatype_restriction(onto, par_uri, datatype):
+    assert onto._get_datatype_restriction(par_uri) == datatype
+        
     
-    
-def test_ontology_parsing_annotations():
+#@pytest.mark.parametrize("input_ttl,kind,output_ttl" ) #TODO:
+def test_ontology_parsing_annotations(onto):
     g = rdf.Graph()
     g.parse(data = """
             @prefix oda: <http://odahub.io/ontology#> . 
             @prefix unit: <http://odahub.io/ontology/unit#> . 
             @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . 
             
-            oda:energyMin_keV_unit rdfs:subClassOf oda:energyMin;
+            oda:ham rdfs:subClassOf oda:Integer;
                               oda:unit unit:keV ;
                               oda:format oda:MJD ;
-                              oda:allowed_value "a", "b" ;
+                              oda:allowed_value 1, 2 ;
                               oda:lower_limit 0 ;
                               oda:upper_limit 4 .
             """)
-    pg = Ontology.parse_oda_annotations(g)
-    assert isinstance(pg, rdf.Graph)
+    onto.parse_oda_annotations(g)
+    
+    assert isinstance(g, rdf.Graph)
     
     
