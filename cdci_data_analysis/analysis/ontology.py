@@ -3,7 +3,6 @@ from rdflib.collection import Collection
 from rdflib.namespace import RDF, RDFS, OWL, XSD
 import logging
 from cdci_data_analysis.analysis.exceptions import RequestNotUnderstood
-from pyparsing.exceptions import ParseException
 import builtins
 
 logger = logging.getLogger(__name__)
@@ -14,10 +13,14 @@ a = RDF.type
 def xsd_type_to_python_type(xsd_uri):
     # TODO: this works only with simple builtin types, but OK for now
     typename = str(xsd_uri).split('#')[-1]
+    if typename == 'integer': typename = 'int'
+    if typename == 'boolean': typename = 'bool'
+    if typename == 'string': typename = 'str'
     try:
         return getattr(builtins, typename)
     except AttributeError:
         return None
+    
 class Ontology:
     def __init__(self, ontology_path):
         #TODO: it's not optimal to read ontology on every init
@@ -44,8 +47,9 @@ class Ontology:
         producing respective owl class restrictions
         """
 
-        #FIXME: duplicates restrictions if they already set
-        #       not a problem for extra_ttl but may occur in reparsing full ontology  
+        #TODO: duplicates restrictions if they already set
+        #       not a problem for extra_ttl 
+        #       but may occur in reparsing "big" ontology (not needed now)
     
         self.parse_unit_annotations(graph)
         self.parse_format_annotations(graph)
@@ -109,6 +113,7 @@ class Ontology:
             if len(ul) > 1: 
                 raise RuntimeError('Multiple oda:lower_limit annotations for %s', classuri)
             
+            limits_datatype = XSD.float # default, will work in most current cases
             if infer_datatype:
                 # graph will usually be separate graph, 
                 # here, try to get datatype restriction for directly defined superclasses
@@ -124,8 +129,6 @@ class Ontology:
                     raise RuntimeError('Ambiguous datatype for %s', classuri)
                 if len(possible_datatypes) == 1:
                     limits_datatype = list(possible_datatypes)[0]
-            else:
-                limits_datatype = XSD.float
             
             lim_r = []
             if len(ll) != 0:
@@ -138,7 +141,7 @@ class Ontology:
                 lim_r.append(rdf.BNode())
                 graph.add((lim_r[-1], 
                            XSD.maxInclusive, 
-                           rdf.Literal(xsd_type_to_python_type(limits_datatype)(ll[0].value), 
+                           rdf.Literal(xsd_type_to_python_type(limits_datatype)(ul[0].value), 
                                        datatype=limits_datatype)))
             c = Collection(graph, None, lim_r)
                         
@@ -191,7 +194,7 @@ class Ontology:
             try:
                 self.parse_oda_annotations(tmpg)
             except RuntimeError as e:
-                RequestNotUnderstood(e.message)
+                raise RequestNotUnderstood(e.message)
             extra_ttl = tmpg.serialize(format='turtle')
         self.g.parse(data = extra_ttl)
             
