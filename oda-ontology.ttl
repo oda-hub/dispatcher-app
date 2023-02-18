@@ -1,0 +1,951 @@
+@prefix : <http://odahub.io/ontology#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix unit: <http://odahub.io/ontology/unit#> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+@base <http://odahub.io/ontology> .
+
+<http://odahub.io/ontology> rdf:type owl:Ontology ;
+                             dc:abstract """IVOA kindly provides various data and object types, but very little is availble about workflow types. 
+                                It is possible to combine function types (e.g. https://fno.io) with data types. 
+                                In this ontology we define supporting types, our own versions of some of the generic types, 
+                                and anything else needed to descrie Astrophysical Analysis Workflows.
+                                Please refer to https://odahub.io/docs/guide-ontology/ for instructions on how to contribute.""" ;
+                             dc:creator <https://github.com/andriineronov> ,
+                                        <https://github.com/burnout87> ,
+                                        <https://github.com/dsavchenko> ,
+                                        <https://github.com/volodymyrss> ;
+                             dc:description """Astrophysical Workflows, and corresponding input-output data types (Data Products, Input Parameters, etc) 
+                                used in MMODA project (https://www.astro.unige.ch/mmoda/, https://odahub.io/)""" ;
+                             dc:source "https://github.com/volodymyrss/hugo-odahub.git" ;
+                             dc:title "MMODA Astrophysical Workflow Ontology" ,
+                                      "MMODA Astrophysical Workflows and Data Products" ;
+                             vann:preferredNamespaceUri "http://odahub.io/ontology" ;
+                             owl:versionIRI "0.1.0" ;
+                             foaf:logo <https://www.astro.unige.ch/mmoda/sites/all/themes/bootstrap_mmoda/logo.png> .
+
+#################################################################
+#    Annotation properties
+#################################################################
+
+###  http://odahub.io/ontology#allowed_value
+:allowed_value rdf:type owl:AnnotationProperty .
+
+
+###  http://odahub.io/ontology#format
+:format rdf:type owl:AnnotationProperty .
+
+
+###  http://odahub.io/ontology#lower_limit
+:lower_limit rdf:type owl:AnnotationProperty .
+
+
+###  http://odahub.io/ontology#symbol
+:symbol rdf:type owl:AnnotationProperty .
+
+
+###  http://odahub.io/ontology#unit
+:unit rdf:type owl:AnnotationProperty .
+
+
+###  http://odahub.io/ontology#upper_limit
+:upper_limit rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/abstract
+dc:abstract rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/creator
+dc:creator rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/description
+dc:description rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/source
+dc:source rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/title
+dc:title rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/vocab/vann/preferredNamespaceUri
+vann:preferredNamespaceUri rdf:type owl:AnnotationProperty .
+
+
+###  http://www.w3.org/2002/07/owl#versionIRI
+owl:versionIRI rdf:type owl:AnnotationProperty .
+
+
+###  http://xmlns.com/foaf/0.1/logo
+foaf:logo rdf:type owl:AnnotationProperty .
+
+
+#################################################################
+#    Object Properties
+#################################################################
+
+###  http://odahub.io/ontology#hasCoordinates
+:hasCoordinates rdf:type owl:ObjectProperty ;
+                rdfs:subPropertyOf owl:topObjectProperty ;
+                rdfs:domain :AstrophysicalObject ;
+                rdfs:range :SkyCoordinates ;
+                rdfs:label "hasCoordinates" .
+
+
+###  http://odahub.io/ontology#hasDec
+:hasDec rdf:type owl:ObjectProperty ;
+        rdfs:subPropertyOf owl:topObjectProperty ;
+        rdfs:domain :SkyCoordinates ;
+        rdfs:range :Declination ;
+        rdfs:label "hasDec" .
+
+
+###  http://odahub.io/ontology#hasRA
+:hasRA rdf:type owl:ObjectProperty ;
+       rdfs:subPropertyOf owl:topObjectProperty ;
+       rdfs:domain :SkyCoordinates ;
+       rdfs:range :RightAscension ;
+       rdfs:label "hasRA" .
+
+
+###  http://odahub.io/ontology#has_format
+:has_format rdf:type owl:ObjectProperty ;
+            rdfs:subPropertyOf owl:topObjectProperty ;
+            rdf:type owl:FunctionalProperty ;
+            rdfs:domain :WorkflowParameter ;
+            rdfs:range :ParameterFormat .
+
+
+###  http://odahub.io/ontology#has_unit
+:has_unit rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf owl:topObjectProperty ;
+          rdf:type owl:FunctionalProperty ;
+          rdfs:domain :WorkflowParameter ;
+          rdfs:range unit:Unit .
+
+
+###  http://odahub.io/ontology#isRequesting
+:isRequesting rdf:type owl:ObjectProperty ;
+              rdfs:subPropertyOf owl:topObjectProperty ;
+              rdfs:domain :Workflow ;
+              rdfs:range :AstrophysicalObject ,
+                         :SkyCoordinates .
+
+
+###  http://odahub.io/ontology#isRequestingAstroObject
+:isRequestingAstroObject rdf:type owl:ObjectProperty ;
+                         rdfs:subPropertyOf :isRequesting ;
+                         rdfs:domain :Workflow ;
+                         rdfs:range :AstrophysicalObject ;
+                         rdfs:comment "This properties indicates that the :Workflow is making internally a call to another :Workflow, which derives some data about an :AstrophysicalObject" .
+
+
+###  http://odahub.io/ontology#isRequestingParameter
+:isRequestingParameter rdf:type owl:ObjectProperty ;
+                       rdfs:subPropertyOf :isRequesting .
+
+
+###  http://odahub.io/ontology#isUsing
+:isUsing rdf:type owl:ObjectProperty ;
+         rdfs:subPropertyOf :isRequesting ;
+         rdfs:domain :Workflow ;
+         rdfs:range :Workflow .
+
+
+#################################################################
+#    Data properties
+#################################################################
+
+###  http://odahub.io/ontology#value
+:value rdf:type owl:DatatypeProperty ;
+       rdfs:subPropertyOf owl:topDataProperty ;
+       rdf:type owl:FunctionalProperty ;
+       rdfs:domain :WorkflowParameter .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  http://odahub.io/ontology#Angle
+:Angle rdf:type owl:Class ;
+       rdfs:subClassOf :Float ,
+                       [ rdf:type owl:Restriction ;
+                         owl:onProperty :has_unit ;
+                         owl:someValuesFrom unit:AngleUnit
+                       ] .
+
+
+###  http://odahub.io/ontology#AngleDegrees
+:AngleDegrees rdf:type owl:Class ;
+              rdfs:subClassOf :Angle ,
+                              :degree .
+
+
+###  http://odahub.io/ontology#AngleMinutes
+:AngleMinutes rdf:type owl:Class ;
+              rdfs:subClassOf :Angle ,
+                              :arcmin .
+
+
+###  http://odahub.io/ontology#AngleSeconds
+:AngleSeconds rdf:type owl:Class ;
+              rdfs:subClassOf :Angle ,
+                              :arcsec .
+
+
+###  http://odahub.io/ontology#AstrophysicalObject
+:AstrophysicalObject rdf:type owl:Class ;
+                     rdfs:comment "Any Astrophysical object, possibly contained in space and/or time: Galaxy, Gamma-Ray Burst, Universe. Note that an object can be spatially or temporarily contained within another: e.g. a BlazarFlare is an episode of Blazar life, and a SunSpot is on the Sun." ;
+                     rdfs:label "AstrophysicalObject" .
+
+
+###  http://odahub.io/ontology#AstrophysicalObjectOfInterest
+:AstrophysicalObjectOfInterest rdf:type owl:Class ;
+                               rdfs:subClassOf :AstrophysicalObject ;
+                               rdfs:label "AstrophysicalObjectOfInterest" .
+
+
+###  http://odahub.io/ontology#AstroqueryModule
+:AstroqueryModule rdf:type owl:Class ;
+                  rdfs:subClassOf owl:Thing ;
+                  rdfs:comment "An astroquery module is used internally by workflows to access data (observations, catalogs, etc)." ;
+                  rdfs:label "AstroqueryModule" .
+
+
+###  http://odahub.io/ontology#Boolean
+:Boolean rdf:type owl:Class ;
+         rdfs:subClassOf :WorkflowParameter ,
+                         [ rdf:type owl:Restriction ;
+                           owl:onProperty :value ;
+                           owl:allValuesFrom xsd:boolean
+                         ] .
+
+
+###  http://odahub.io/ontology#DataProduct
+:DataProduct rdf:type owl:Class ;
+             rdfs:subClassOf owl:Thing ;
+             rdfs:label "DataProduct" .
+
+
+###  http://odahub.io/ontology#Declination
+:Declination rdf:type owl:Class ;
+             rdfs:subClassOf :Angle ,
+                             :Quantity ,
+                             :WorkflowParameter ;
+             rdfs:label "Declination" .
+
+
+###  http://odahub.io/ontology#DeclinationDegrees
+:DeclinationDegrees rdf:type owl:Class ;
+                    rdfs:subClassOf :AngleDegrees ,
+                                    :Declination ;
+                    rdfs:label "DeclinationDegrees" .
+
+
+###  http://odahub.io/ontology#DiscoveryWorkflow
+:DiscoveryWorkflow rdf:type owl:Class ;
+                   rdfs:subClassOf :Workflow ;
+                   dc:description "workflow which takes some dataset (crucially, unavailable at the time of the Workflow publishing) and produces some Evidence or a Decision" ;
+                   rdfs:label "DiscoveryWorkflow" .
+
+
+###  http://odahub.io/ontology#EndTime
+:EndTime rdf:type owl:Class ;
+         rdfs:subClassOf :TimeInstant ,
+                         :WorkflowParameter ;
+         rdfs:label "EndTime" .
+
+
+###  http://odahub.io/ontology#EndTimeISOT
+:EndTimeISOT rdf:type owl:Class ;
+             rdfs:subClassOf :EndTime ,
+                             :TimeInstantISOT ;
+             rdfs:label "EndTimeISOT" .
+
+
+###  http://odahub.io/ontology#EndTimeMJD
+:EndTimeMJD rdf:type owl:Class ;
+            rdfs:subClassOf :EndTime ,
+                            :TimeInstantMJD .
+
+
+###  http://odahub.io/ontology#Energy
+:Energy rdf:type owl:Class ;
+        rdfs:subClassOf :Float ,
+                        [ rdf:type owl:Restriction ;
+                          owl:onProperty :has_unit ;
+                          owl:someValuesFrom unit:EnergyUnit
+                        ] .
+
+
+###  http://odahub.io/ontology#Energy_GeV
+:Energy_GeV rdf:type owl:Class ;
+            rdfs:subClassOf :Energy ,
+                            :GeV .
+
+
+###  http://odahub.io/ontology#Energy_MeV
+:Energy_MeV rdf:type owl:Class ;
+            rdfs:subClassOf :Energy ,
+                            :MeV .
+
+
+###  http://odahub.io/ontology#Energy_TeV
+:Energy_TeV rdf:type owl:Class ;
+            rdfs:subClassOf :Energy ,
+                            :TeV .
+
+
+###  http://odahub.io/ontology#Energy_eV
+:Energy_eV rdf:type owl:Class ;
+           rdfs:subClassOf :Energy ,
+                           :eV .
+
+
+###  http://odahub.io/ontology#Energy_keV
+:Energy_keV rdf:type owl:Class ;
+            rdfs:subClassOf :Energy ,
+                            :keV .
+
+
+###  http://odahub.io/ontology#ExpressedInUnit
+:ExpressedInUnit rdf:type owl:Class ;
+                 rdfs:subClassOf :NumericParameter .
+
+
+###  http://odahub.io/ontology#Float
+:Float rdf:type owl:Class ;
+       rdfs:subClassOf :NumericParameter ,
+                       [ rdf:type owl:Restriction ;
+                         owl:onProperty :value ;
+                         owl:allValuesFrom xsd:float
+                       ] .
+
+
+###  http://odahub.io/ontology#Frequency
+:Frequency rdf:type owl:Class ;
+           rdfs:subClassOf :Float ,
+                           [ rdf:type owl:Restriction ;
+                             owl:onProperty :has_unit ;
+                             owl:someValuesFrom unit:EnergyUnit
+                           ] .
+
+
+###  http://odahub.io/ontology#FrequencyGHz
+:FrequencyGHz rdf:type owl:Class ;
+              rdfs:subClassOf :Frequency ,
+                              :GHz .
+
+
+###  http://odahub.io/ontology#FrequencyHz
+:FrequencyHz rdf:type owl:Class ;
+             rdfs:subClassOf :Frequency ,
+                             :Hz .
+
+
+###  http://odahub.io/ontology#FrequencyMHz
+:FrequencyMHz rdf:type owl:Class ;
+              rdfs:subClassOf :Frequency ,
+                              :MHz .
+
+
+###  http://odahub.io/ontology#GHz
+:GHz rdf:type owl:Class ;
+     rdfs:subClassOf :ExpressedInUnit ,
+                     [ rdf:type owl:Restriction ;
+                       owl:onProperty :has_unit ;
+                       owl:hasValue unit:GHz
+                     ] .
+
+
+###  http://odahub.io/ontology#Gaia
+:Gaia rdf:type owl:Class ;
+      rdfs:subClassOf :Instrument ;
+      rdfs:label "Gaia" .
+
+
+###  http://odahub.io/ontology#GaiaFilter
+:GaiaFilter rdf:type owl:Class ;
+            rdfs:subClassOf owl:Thing ;
+            rdfs:label "GaiaFilter" .
+
+
+###  http://odahub.io/ontology#GeV
+:GeV rdf:type owl:Class ;
+     rdfs:subClassOf :ExpressedInUnit ,
+                     [ rdf:type owl:Restriction ;
+                       owl:onProperty :has_unit ;
+                       owl:hasValue unit:GeV
+                     ] .
+
+
+###  http://odahub.io/ontology#Hz
+:Hz rdf:type owl:Class ;
+    rdfs:subClassOf :ExpressedInUnit ,
+                    [ rdf:type owl:Restriction ;
+                      owl:onProperty :has_unit ;
+                      owl:hasValue unit:Hz
+                    ] .
+
+
+###  http://odahub.io/ontology#Image
+:Image rdf:type owl:Class ;
+       rdfs:subClassOf :DataProduct .
+
+
+###  http://odahub.io/ontology#Instrument
+:Instrument rdf:type owl:Class ;
+            rdfs:subClassOf owl:Thing ;
+            rdfs:label "Instrument" .
+
+
+###  http://odahub.io/ontology#Integer
+:Integer rdf:type owl:Class ;
+         rdfs:subClassOf :NumericParameter ,
+                         [ rdf:type owl:Restriction ;
+                           owl:onProperty :value ;
+                           owl:allValuesFrom xsd:integer
+                         ] .
+
+
+###  http://odahub.io/ontology#LightCurve
+:LightCurve rdf:type owl:Class ;
+            rdfs:subClassOf :DataProduct ,
+                            <http://www.ivoa.net/rdf/product-type#timeseries> ;
+            rdfs:label "LightCurve" .
+
+
+###  http://odahub.io/ontology#MHz
+:MHz rdf:type owl:Class ;
+     rdfs:subClassOf :ExpressedInUnit ,
+                     [ rdf:type owl:Restriction ;
+                       owl:onProperty :has_unit ;
+                       owl:hasValue unit:MHz
+                     ] .
+
+
+###  http://odahub.io/ontology#MeV
+:MeV rdf:type owl:Class ;
+     rdfs:subClassOf :ExpressedInUnit ,
+                     [ rdf:type owl:Restriction ;
+                       owl:onProperty :has_unit ;
+                       owl:hasValue unit:MeV
+                     ] .
+
+
+###  http://odahub.io/ontology#NumericParameter
+:NumericParameter rdf:type owl:Class ;
+                  rdfs:subClassOf :WorkflowParameter .
+
+
+###  http://odahub.io/ontology#ODAAstropyTable
+:ODAAstropyTable rdf:type owl:Class ;
+                 rdfs:subClassOf :DataProduct .
+
+
+###  http://odahub.io/ontology#ODABinaryProduct
+:ODABinaryProduct rdf:type owl:Class ;
+                  rdfs:subClassOf :DataProduct .
+
+
+###  http://odahub.io/ontology#ODAPictureProduct
+:ODAPictureProduct rdf:type owl:Class ;
+                   rdfs:subClassOf :DataProduct .
+
+
+###  http://odahub.io/ontology#ODATextProduct
+:ODATextProduct rdf:type owl:Class ;
+                rdfs:subClassOf :DataProduct .
+
+
+###  http://odahub.io/ontology#ParameterFormat
+:ParameterFormat rdf:type owl:Class ;
+                 rdfs:subClassOf owl:Thing .
+
+
+###  http://odahub.io/ontology#Percentage
+:Percentage rdf:type owl:Class ;
+            rdfs:subClassOf :Float ,
+                            [ rdf:type owl:Restriction ;
+                              owl:onProperty :value ;
+                              owl:allValuesFrom [ rdf:type rdfs:Datatype ;
+                                                  owl:onDatatype xsd:float ;
+                                                  owl:withRestrictions ( [ xsd:minInclusive "0.0"^^xsd:float
+                                                                         ]
+                                                                         [ xsd:maxInclusive "100.0"^^xsd:float
+                                                                         ]
+                                                                       )
+                                                ]
+                            ] .
+
+
+###  http://odahub.io/ontology#PhotometricBand
+:PhotometricBand rdf:type owl:Class ;
+                 rdfs:subClassOf :String ,
+                                 [ rdf:type owl:Restriction ;
+                                   owl:onProperty :value ;
+                                   owl:allValuesFrom [ rdf:type rdfs:Datatype ;
+                                                       owl:oneOf [ rdf:type rdf:List ;
+                                                                   rdf:first "H" ;
+                                                                   rdf:rest [ rdf:type rdf:List ;
+                                                                              rdf:first "J" ;
+                                                                              rdf:rest [ rdf:type rdf:List ;
+                                                                                         rdf:first "K" ;
+                                                                                         rdf:rest [ rdf:type rdf:List ;
+                                                                                                    rdf:first "L" ;
+                                                                                                    rdf:rest [ rdf:type rdf:List ;
+                                                                                                               rdf:first "M" ;
+                                                                                                               rdf:rest [ rdf:type rdf:List ;
+                                                                                                                          rdf:first "N" ;
+                                                                                                                          rdf:rest [ rdf:type rdf:List ;
+                                                                                                                                     rdf:first "Q" ;
+                                                                                                                                     rdf:rest [ rdf:type rdf:List ;
+                                                                                                                                                rdf:first "b" ;
+                                                                                                                                                rdf:rest [ rdf:type rdf:List ;
+                                                                                                                                                           rdf:first "g" ;
+                                                                                                                                                           rdf:rest [ rdf:type rdf:List ;
+                                                                                                                                                                      rdf:first "i" ;
+                                                                                                                                                                      rdf:rest [ rdf:type rdf:List ;
+                                                                                                                                                                                 rdf:first "r" ;
+                                                                                                                                                                                 rdf:rest [ rdf:type rdf:List ;
+                                                                                                                                                                                            rdf:first "u" ;
+                                                                                                                                                                                            rdf:rest [ rdf:type rdf:List ;
+                                                                                                                                                                                                       rdf:first "v" ;
+                                                                                                                                                                                                       rdf:rest [ rdf:type rdf:List ;
+                                                                                                                                                                                                                  rdf:first "y" ;
+                                                                                                                                                                                                                  rdf:rest [ rdf:type rdf:List ;
+                                                                                                                                                                                                                             rdf:first "z" ;
+                                                                                                                                                                                                                             rdf:rest rdf:nil
+                                                                                                                                                                                                                           ]
+                                                                                                                                                                                                                ]
+                                                                                                                                                                                                     ]
+                                                                                                                                                                                          ]
+                                                                                                                                                                               ]
+                                                                                                                                                                    ]
+                                                                                                                                                         ]
+                                                                                                                                              ]
+                                                                                                                                   ]
+                                                                                                                        ]
+                                                                                                             ]
+                                                                                                  ]
+                                                                                       ]
+                                                                            ]
+                                                                 ]
+                                                     ]
+                                 ] .
+
+
+###  http://odahub.io/ontology#PointOfInterest
+:PointOfInterest rdf:type owl:Class ;
+                 rdfs:subClassOf :SkyCoordinates ;
+                 rdfs:label "PointOfInterest" .
+
+
+###  http://odahub.io/ontology#PointOfInterestDEC
+:PointOfInterestDEC rdf:type owl:Class ;
+                    rdfs:subClassOf :DeclinationDegrees ,
+                                    :WorkflowParameter ;
+                    rdfs:label "PointOfInterestDEC" .
+
+
+###  http://odahub.io/ontology#PointOfInterestRA
+:PointOfInterestRA rdf:type owl:Class ;
+                   rdfs:subClassOf :RightAscensionDegrees ,
+                                   :WorkflowParameter ;
+                   rdfs:label "PointOfInterestRA" .
+
+
+###  http://odahub.io/ontology#Quantity
+:Quantity rdf:type owl:Class ;
+          rdfs:subClassOf owl:Thing ;
+          rdfs:label "Quantity" .
+
+
+###  http://odahub.io/ontology#RightAscension
+:RightAscension rdf:type owl:Class ;
+                rdfs:subClassOf :Angle ,
+                                :Quantity ,
+                                :WorkflowParameter ;
+                rdfs:label "RightAscension" .
+
+
+###  http://odahub.io/ontology#RightAscensionDegrees
+:RightAscensionDegrees rdf:type owl:Class ;
+                       rdfs:subClassOf :AngleDegrees ,
+                                       :RightAscension ;
+                       rdfs:label "RightAscensionDegrees" .
+
+
+###  http://odahub.io/ontology#SkyCoordinates
+:SkyCoordinates rdf:type owl:Class ;
+                rdfs:subClassOf :Quantity ,
+                                :WorkflowParameter ;
+                rdfs:comment """Sky coordinates. Typically represented as a string as known to https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html .
+Subclasses may have other ways to express the content.""" ;
+                rdfs:label "SkyCoordinates" .
+
+
+###  http://odahub.io/ontology#Spectrum
+:Spectrum rdf:type owl:Class ;
+          rdfs:subClassOf :DataProduct .
+
+
+###  http://odahub.io/ontology#StartTime
+:StartTime rdf:type owl:Class ;
+           rdfs:subClassOf :TimeInstant ,
+                           :WorkflowParameter ;
+           rdfs:label "StartTime" .
+
+
+###  http://odahub.io/ontology#StartTimeISOT
+:StartTimeISOT rdf:type owl:Class ;
+               rdfs:subClassOf :StartTime ,
+                               :TimeInstantISOT ;
+               rdfs:label "StartTimeISOT" .
+
+
+###  http://odahub.io/ontology#StartTimeMJD
+:StartTimeMJD rdf:type owl:Class ;
+              rdfs:subClassOf :StartTime ,
+                              :TimeInstantMJD .
+
+
+###  http://odahub.io/ontology#String
+:String rdf:type owl:Class ;
+        rdfs:subClassOf :WorkflowParameter .
+
+
+###  http://odahub.io/ontology#TeV
+:TeV rdf:type owl:Class ;
+     rdfs:subClassOf :ExpressedInUnit ,
+                     [ rdf:type owl:Restriction ;
+                       owl:onProperty :has_unit ;
+                       owl:hasValue unit:TeV
+                     ] .
+
+
+###  http://odahub.io/ontology#TimeDays
+:TimeDays rdf:type owl:Class ;
+          rdfs:subClassOf :TimeDelta ,
+                          :day .
+
+
+###  http://odahub.io/ontology#TimeDelta
+:TimeDelta rdf:type owl:Class ;
+           rdfs:subClassOf :Float ,
+                           [ rdf:type owl:Restriction ;
+                             owl:onProperty :has_unit ;
+                             owl:someValuesFrom unit:TimeUnit
+                           ] .
+
+
+###  http://odahub.io/ontology#TimeFormat
+:TimeFormat rdf:type owl:Class ;
+            rdfs:subClassOf :ParameterFormat .
+
+
+###  http://odahub.io/ontology#TimeInstant
+:TimeInstant rdf:type owl:Class ;
+             rdfs:subClassOf :Quantity ,
+                             :WorkflowParameter ;
+             rdfs:label "TimeInstant" .
+
+
+###  http://odahub.io/ontology#TimeInstantISOT
+:TimeInstantISOT rdf:type owl:Class ;
+                 rdfs:subClassOf :TimeInstant ,
+                                 [ rdf:type owl:Restriction ;
+                                   owl:onProperty :has_format ;
+                                   owl:hasValue :ISOT
+                                 ] .
+
+
+###  http://odahub.io/ontology#TimeInstantMJD
+:TimeInstantMJD rdf:type owl:Class ;
+                rdfs:subClassOf :TimeInstant ,
+                                [ rdf:type owl:Restriction ;
+                                  owl:onProperty :has_format ;
+                                  owl:hasValue :MJD
+                                ] .
+
+
+###  http://odahub.io/ontology#TimeSeconds
+:TimeSeconds rdf:type owl:Class ;
+             rdfs:subClassOf :TimeDelta ,
+                             :second .
+
+
+###  http://odahub.io/ontology#VisibleBand
+:VisibleBand rdf:type owl:Class ;
+             rdfs:subClassOf :PhotometricBand ,
+                             [ rdf:type owl:Restriction ;
+                               owl:onProperty :value ;
+                               owl:allValuesFrom [ rdf:type rdfs:Datatype ;
+                                                   owl:oneOf [ rdf:type rdf:List ;
+                                                               rdf:first "b" ;
+                                                               rdf:rest [ rdf:type rdf:List ;
+                                                                          rdf:first "g" ;
+                                                                          rdf:rest [ rdf:type rdf:List ;
+                                                                                     rdf:first "r" ;
+                                                                                     rdf:rest [ rdf:type rdf:List ;
+                                                                                                rdf:first "v" ;
+                                                                                                rdf:rest rdf:nil
+                                                                                              ]
+                                                                                   ]
+                                                                        ]
+                                                             ]
+                                                 ]
+                             ] ;
+             :allowed_value "b" ,
+                            "g" ,
+                            "r" ,
+                            "v" .
+
+
+###  http://odahub.io/ontology#Workflow
+:Workflow rdf:type owl:Class ;
+          rdfs:subClassOf owl:Thing ;
+          rdfs:label "Workflow" .
+
+
+###  http://odahub.io/ontology#WorkflowParameter
+:WorkflowParameter rdf:type owl:Class ;
+                   rdfs:label "WorkflowParameter" .
+
+
+###  http://odahub.io/ontology#arcmin
+:arcmin rdf:type owl:Class ;
+        rdfs:subClassOf :ExpressedInUnit ,
+                        [ rdf:type owl:Restriction ;
+                          owl:onProperty :has_unit ;
+                          owl:hasValue unit:arcmin
+                        ] .
+
+
+###  http://odahub.io/ontology#arcsec
+:arcsec rdf:type owl:Class ;
+        rdfs:subClassOf :ExpressedInUnit ,
+                        [ rdf:type owl:Restriction ;
+                          owl:onProperty :has_unit ;
+                          owl:hasValue unit:arcsec
+                        ] .
+
+
+###  http://odahub.io/ontology#day
+:day rdf:type owl:Class ;
+     rdfs:subClassOf :ExpressedInUnit ,
+                     [ rdf:type owl:Restriction ;
+                       owl:onProperty :has_unit ;
+                       owl:hasValue unit:Day
+                     ] .
+
+
+###  http://odahub.io/ontology#degree
+:degree rdf:type owl:Class ;
+        rdfs:subClassOf :ExpressedInUnit ,
+                        [ rdf:type owl:Restriction ;
+                          owl:onProperty :has_unit ;
+                          owl:hasValue unit:Degree
+                        ] .
+
+
+###  http://odahub.io/ontology#eV
+:eV rdf:type owl:Class ;
+    rdfs:subClassOf :ExpressedInUnit ,
+                    [ rdf:type owl:Restriction ;
+                      owl:onProperty :has_unit ;
+                      owl:hasValue unit:eV
+                    ] .
+
+
+###  http://odahub.io/ontology#keV
+:keV rdf:type owl:Class ;
+     rdfs:subClassOf :ExpressedInUnit ,
+                     [ rdf:type owl:Restriction ;
+                       owl:onProperty :has_unit ;
+                       owl:hasValue unit:keV
+                     ] .
+
+
+###  http://odahub.io/ontology#second
+:second rdf:type owl:Class ;
+        rdfs:subClassOf :ExpressedInUnit ,
+                        [ rdf:type owl:Restriction ;
+                          owl:onProperty :has_unit ;
+                          owl:hasValue unit:Second
+                        ] .
+
+
+###  http://odahub.io/ontology/unit#AngleUnit
+unit:AngleUnit rdf:type owl:Class ;
+               rdfs:subClassOf unit:Unit .
+
+
+###  http://odahub.io/ontology/unit#EnergyUnit
+unit:EnergyUnit rdf:type owl:Class ;
+                rdfs:subClassOf unit:Unit .
+
+
+###  http://odahub.io/ontology/unit#TimeUnit
+unit:TimeUnit rdf:type owl:Class ;
+              rdfs:subClassOf unit:Unit .
+
+
+###  http://odahub.io/ontology/unit#Unit
+unit:Unit rdf:type owl:Class ;
+          rdfs:subClassOf owl:Thing ;
+          rdfs:label "Unit" .
+
+
+###  http://www.ivoa.net/rdf/product-type#timeseries
+<http://www.ivoa.net/rdf/product-type#timeseries> rdf:type owl:Class .
+
+
+#################################################################
+#    Individuals
+#################################################################
+
+###  http://odahub.io/ontology#ISOT
+:ISOT rdf:type owl:NamedIndividual ,
+               :TimeFormat ;
+      :symbol "isot"^^xsd:string .
+
+
+###  http://odahub.io/ontology#MJD
+:MJD rdf:type owl:NamedIndividual ,
+              :TimeFormat ;
+     :symbol "mjd"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#Day
+unit:Day rdf:type owl:NamedIndividual ,
+                  unit:TimeUnit ;
+         :symbol "d"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#Degree
+unit:Degree rdf:type owl:NamedIndividual ,
+                     unit:AngleUnit ;
+            :symbol "deg"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#GHz
+unit:GHz rdf:type owl:NamedIndividual ,
+                  unit:EnergyUnit ;
+         :symbol "GHz"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#GeV
+unit:GeV rdf:type owl:NamedIndividual ,
+                  unit:EnergyUnit ;
+         :symbol "GeV"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#Hour
+unit:Hour rdf:type owl:NamedIndividual ,
+                   unit:TimeUnit ;
+          :symbol "h"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#Hz
+unit:Hz rdf:type owl:NamedIndividual ,
+                 unit:EnergyUnit ;
+        :symbol "Hz"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#MHz
+unit:MHz rdf:type owl:NamedIndividual ,
+                  unit:EnergyUnit ;
+         :symbol "MHz"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#MeV
+unit:MeV rdf:type owl:NamedIndividual ,
+                  unit:EnergyUnit ;
+         :symbol "MeV"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#Minute
+unit:Minute rdf:type owl:NamedIndividual ,
+                     unit:TimeUnit ;
+            :symbol "m"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#Radian
+unit:Radian rdf:type owl:NamedIndividual ,
+                     unit:AngleUnit ;
+            :symbol "rad"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#Second
+unit:Second rdf:type owl:NamedIndividual ,
+                     unit:TimeUnit ;
+            :symbol "s"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#TeV
+unit:TeV rdf:type owl:NamedIndividual ,
+                  unit:EnergyUnit ;
+         :symbol "TeV"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#arcmin
+unit:arcmin rdf:type owl:NamedIndividual ,
+                     unit:AngleUnit ;
+            :symbol "arcmin"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#arcsec
+unit:arcsec rdf:type owl:NamedIndividual ,
+                     unit:AngleUnit ;
+            :symbol "arcsec"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#eV
+unit:eV rdf:type owl:NamedIndividual ,
+                 unit:EnergyUnit ;
+        :symbol "eV"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#hourangle_Hour
+unit:hourangle_Hour rdf:type owl:NamedIndividual ,
+                             unit:AngleUnit ;
+                    :symbol "h"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#hourangle_Minute
+unit:hourangle_Minute rdf:type owl:NamedIndividual ,
+                               unit:AngleUnit ;
+                      :symbol "m"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#hourangle_Second
+unit:hourangle_Second rdf:type owl:NamedIndividual ,
+                               unit:AngleUnit ;
+                      :symbol "s"^^xsd:string .
+
+
+###  http://odahub.io/ontology/unit#keV
+unit:keV rdf:type owl:NamedIndividual ,
+                  unit:EnergyUnit ;
+         :symbol "keV"^^xsd:string .
+
+
+#################################################################
+#    Annotations
+#################################################################
+
+: dc:title "MMODA Astrophysical Workflows and Data Products" .
+
+
+###  Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi
