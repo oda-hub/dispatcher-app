@@ -1,12 +1,20 @@
 import pytest
 import rdflib as rdf
 from rdflib.namespace import XSD
+from rdflib.compare import isomorphic
 from cdci_data_analysis.analysis.ontology import Ontology
 from cdci_data_analysis.analysis.exceptions import RequestNotUnderstood
 
 oda_prefix = 'http://odahub.io/ontology#'
 xsd_prefix = 'http://www.w3.org/2001/XMLSchema#'
-ontology_path = 'oda-ontology.owl'
+add_prefixes = """
+            @prefix oda: <http://odahub.io/ontology#> . 
+            @prefix unit: <http://odahub.io/ontology/unit#> . 
+            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . 
+            @prefix owl: <http://www.w3.org/2002/07/owl#> .
+            @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+            """
+ontology_path = 'oda-ontology.ttl'
 
 @pytest.fixture
 def onto(scope='module'):
@@ -128,24 +136,137 @@ def test_ontology_allowed_values(onto, owl_uri, expected, extra_ttl):
 def test_datatype_restriction(onto, par_uri, datatype):
     assert onto._get_datatype_restriction(par_uri) == datatype
         
+     
+def test_parsing_unit_annotation(onto):
+    g, g_expect = rdf.Graph(), rdf.Graph()
+    annotated_ttl = add_prefixes + """
+        oda:someEnergy rdfs:subClassOf oda:Energy ;
+                    oda:unit    unit:keV .
+        """ 
+    g.parse(data = annotated_ttl)
     
-#@pytest.mark.parametrize("input_ttl,kind,output_ttl" ) #TODO:
-def test_ontology_parsing_annotations(onto):
-    g = rdf.Graph()
-    g.parse(data = """
-            @prefix oda: <http://odahub.io/ontology#> . 
-            @prefix unit: <http://odahub.io/ontology/unit#> . 
-            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . 
-            
-            oda:ham rdfs:subClassOf oda:Integer;
-                              oda:unit unit:keV ;
-                              oda:format oda:MJD ;
-                              oda:allowed_value 1, 2 ;
-                              oda:lower_limit 0 ;
-                              oda:upper_limit 4 .
-            """)
+    expected = annotated_ttl + """
+        oda:someEnergy rdfs:subClassOf [
+                    a owl:Restriction ;
+                    owl:onProperty oda:has_unit ;
+                    owl:hasValue unit:keV 
+                    ] .
+        """
+    g_expect.parse(data = expected)
+    
     onto.parse_oda_annotations(g)
     
-    assert isinstance(g, rdf.Graph)
+    assert isomorphic(g, g_expect)
     
+    with pytest.raises(RuntimeError):
+        annotated_ttl = add_prefixes + """
+            oda:someEnergy rdfs:subClassOf oda:Energy ;
+                        oda:unit    unit:keV ;
+                        oda:unit    unit:MeV .
+            """ 
+        g.parse(data = annotated_ttl)
+        onto.parse_oda_annotations(g)
     
+def test_parsing_format_annotation(onto):
+    g, g_expect = rdf.Graph(), rdf.Graph()
+    annotated_ttl = add_prefixes + """
+        oda:someTime rdfs:subClassOf oda:TimeInstant ;
+                    oda:format    oda:ISOT .
+        """ 
+    g.parse(data = annotated_ttl)
+    
+    expected = annotated_ttl + """
+        oda:someTime rdfs:subClassOf [
+                    a owl:Restriction ;
+                    owl:onProperty oda:has_format ;
+                    owl:hasValue oda:ISOT 
+                    ] .
+        """
+    g_expect.parse(data = expected)
+    
+    onto.parse_oda_annotations(g)
+    
+    assert isomorphic(g, g_expect)
+    
+    with pytest.raises(RuntimeError):
+        annotated_ttl = add_prefixes + """
+            oda:someTime rdfs:subClassOf oda:TimeInstant ;
+                    oda:format    oda:ISOT ;
+                    oda:format    oda:MJD . 
+            """ 
+        g.parse(data = annotated_ttl)
+        onto.parse_oda_annotations(g)
+    
+def test_parsing_allowedval_annotation(onto):
+    g, g_expect = rdf.Graph(), rdf.Graph()
+    annotated_ttl = add_prefixes + """
+        oda:someString rdfs:subClassOf oda:String ;
+                    oda:allowed_value  "a", "b", "c" .
+        """ 
+    g.parse(data = annotated_ttl)
+    
+    expected = annotated_ttl + """
+        oda:someString rdfs:subClassOf [
+                    a owl:Restriction ;
+                    owl:onProperty oda:value ;
+                    owl:allValuesFrom [
+                        a rdfs:Datatype ;
+                        owl:oneOf ("a" "b" "c") ] 
+                    ] .
+        """
+    g_expect.parse(data = expected)
+    
+    onto.parse_oda_annotations(g)
+    
+    assert isomorphic(g, g_expect)
+    
+@pytest.mark.parametrize("input_ttl, expected_restr",
+                         [("""oda:someFloat rdfs:subClassOf oda:Float ;
+                                            oda:lower_limit  0 .
+                           """,
+                           """oda:someFloat rdfs:subClassOf [
+                                    a owl:Restriction ;
+                                    owl:onProperty oda:value ;
+                                    owl:allValuesFrom [
+                                        a rdfs:Datatype ;
+                                        owl:onDatatype xsd:float ;
+                                        owl:withRestrictions ( [xsd:minInclusive "0.0"^^xsd:float ] )
+                                        ] 
+                                    ] . 
+                           """)
+                             #TODO: more tests
+                         ]) 
+def test_parsing_limits_annotation(onto, input_ttl, expected_restr):
+    g, g_expect = rdf.Graph(), rdf.Graph()
+    annotated_ttl = add_prefixes + input_ttl
+    g.parse(data = annotated_ttl)
+    
+    expected = annotated_ttl + expected_restr
+    g_expect.parse(data = expected)
+    
+    onto.parse_oda_annotations(g)
+    
+    assert isomorphic(g, g_expect)
+    
+
+def test_parsing_lower_limit_multiple_exception(onto):
+    g = rdf.Graph()
+    with pytest.raises(RuntimeError):
+        annotated_ttl = add_prefixes + """
+            oda:someFloat rdfs:subClassOf oda:Float ;
+                    oda:lower_limit   1.0 ;
+                    oda:lower_limit   1.1 . 
+            """ 
+        g.parse(data = annotated_ttl)
+        onto.parse_oda_annotations(g)
+
+def test_parsing_upper_limit_multiple_exception(onto):
+    g = rdf.Graph()
+    with pytest.raises(RuntimeError):
+        annotated_ttl = add_prefixes + """
+            oda:someFloat rdfs:subClassOf oda:Float ;
+                    oda:upper_limit   1.0 ;
+                    oda:upper_limit   1.1 . 
+            """ 
+        g.parse(data = annotated_ttl)
+        onto.parse_oda_annotations(g)

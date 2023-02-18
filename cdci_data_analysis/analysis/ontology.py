@@ -4,12 +4,20 @@ from rdflib.namespace import RDF, RDFS, OWL, XSD
 import logging
 from cdci_data_analysis.analysis.exceptions import RequestNotUnderstood
 from pyparsing.exceptions import ParseException
+import builtins
 
 logger = logging.getLogger(__name__)
 
 ODA = rdf.Namespace("http://odahub.io/ontology#")
 a = RDF.type
 
+def xsd_type_to_python_type(xsd_uri):
+    # TODO: this works only with simple builtin types, but OK for now
+    typename = str(xsd_uri).split('#')[-1]
+    try:
+        return getattr(builtins, typename)
+    except AttributeError:
+        return None
 class Ontology:
     def __init__(self, ontology_path):
         #TODO: it's not optimal to read ontology on every init
@@ -36,11 +44,15 @@ class Ontology:
         producing respective owl class restrictions
         """
 
-        #TODO: will it duplicate if restriction already set ?
+        #FIXME: duplicates restrictions if they already set
+        #       not a problem for extra_ttl but may occur in reparsing full ontology  
+    
         self.parse_unit_annotations(graph)
         self.parse_format_annotations(graph)
         self.parse_allowed_values_annotations(graph)
         self.parse_limits_annotations(graph, infer_datatype=True)
+        
+        
         
     def parse_unit_annotations(self, graph):  
         for classuri in graph.subjects(ODA['unit'], None):
@@ -120,12 +132,14 @@ class Ontology:
                 lim_r.append(rdf.BNode())
                 graph.add((lim_r[-1], 
                            XSD.minInclusive, 
-                           rdf.Literal(ll[0].value, datatype=limits_datatype)))
+                           rdf.Literal(xsd_type_to_python_type(limits_datatype)(ll[0].value), 
+                                       datatype=limits_datatype)))
             if len(ul) != 0:
                 lim_r.append(rdf.BNode())
                 graph.add((lim_r[-1], 
                            XSD.maxInclusive, 
-                           rdf.Literal(ll[0].value, datatype=limits_datatype)))
+                           rdf.Literal(xsd_type_to_python_type(limits_datatype)(ll[0].value), 
+                                       datatype=limits_datatype)))
             c = Collection(graph, None, lim_r)
                         
             dtype = rdf.BNode()
@@ -174,7 +188,10 @@ class Ontology:
         if parse_oda_annotations:
             tmpg = rdf.Graph()
             tmpg.parse(extra_ttl)       
-            self.parse_oda_annotations(tmpg)
+            try:
+                self.parse_oda_annotations(tmpg)
+            except RuntimeError as e:
+                RequestNotUnderstood(e.message)
             extra_ttl = tmpg.serialize(format='turtle')
         self.g.parse(data = extra_ttl)
             
