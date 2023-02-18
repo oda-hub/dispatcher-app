@@ -190,7 +190,7 @@ class Ontology:
     def parse_extra_ttl(self, extra_ttl, parse_oda_annotations = True):
         if parse_oda_annotations:
             tmpg = rdf.Graph()
-            tmpg.parse(extra_ttl)       
+            tmpg.parse(data = extra_ttl)       
             try:
                 self.parse_oda_annotations(tmpg)
             except RuntimeError as e:
@@ -225,20 +225,13 @@ class Ontology:
         if param_uri.startswith("http"): param_uri = f"<{param_uri}>"
        
         query = """ SELECT ?format_uri WHERE { 
-                {
-                    %s (rdfs:subClassOf|a)* [
-                    a owl:Restriction ;
-                    owl:onProperty oda:format ;
-                    owl:hasValue ?format_uri ;
-                    ]
-                }
-                UNION
-                {
-                %s oda:format ?format_uri ;
-                   
-                }
-            }
-            """ % (param_uri, param_uri)
+            %s (rdfs:subClassOf|a)* [
+            a owl:Restriction ;
+            owl:onProperty oda:has_format ;
+            owl:hasValue ?format_uri ;
+            ]
+        }
+        """ % (param_uri)
 
         qres = self.g.query(query)
         
@@ -256,19 +249,13 @@ class Ontology:
         if param_uri.startswith("http"): param_uri = f"<{param_uri}>"
 
         query = """SELECT ?unit_uri WHERE {
-        {
         %s (rdfs:subClassOf|a)* [
             a owl:Restriction ;
-            owl:onProperty oda:unit ;
+            owl:onProperty oda:has_unit ;
             owl:hasValue ?unit_uri ;
             ]
         }
-        UNION
-        {
-        %s oda:unit ?unit_uri ; 
-        }
-        }
-        """ % (param_uri, param_uri)
+        """ % (param_uri)
         
         qres = self.g.query(query)
         if len(qres) > 1:

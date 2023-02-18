@@ -7,6 +7,7 @@ from cdci_data_analysis.analysis.exceptions import RequestNotUnderstood
 
 oda_prefix = 'http://odahub.io/ontology#'
 xsd_prefix = 'http://www.w3.org/2001/XMLSchema#'
+unit_prefix = 'http://odahub.io/ontology/unit#'
 add_prefixes = """
             @prefix oda: <http://odahub.io/ontology#> . 
             @prefix unit: <http://odahub.io/ontology/unit#> . 
@@ -57,16 +58,17 @@ def test_ontology_format(onto, owl_uri, expected,extra_ttl, return_uri):
     assert format == expected
     
 @pytest.mark.parametrize("owl_uri, expected, extra_ttl, return_uri",
-                         [('oda:TimeDays', f'{oda_prefix}Day', None, True),
+                         [('oda:TimeDays', f'{unit_prefix}Day', None, True),
                           ('oda:DeclinationDegrees', 'deg', None, False),
                           ('oda:Energy', None, None, False),
                           ('http://odahub.io/ontology#Unknown', None, None, False),
                           ('oda:spam', 's', """@prefix oda: <http://odahub.io/ontology#> . 
                                                @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . 
-                                               oda:spam rdfs:subClassOf oda:TimeDelta, oda:par_second . """, False),
+                                               oda:spam rdfs:subClassOf oda:TimeDelta, oda:second . """, False),
                           ('oda:eggs', 'h', """@prefix oda: <http://odahub.io/ontology#> . 
+                                               @prefix unit: <http://odahub.io/ontology/unit#> . 
                                                oda:eggs a oda:TimeDelta ;
-                                                        oda:unit oda:Hour . """, False)
+                                                        oda:unit unit:Hour . """, False)
                          ])
 def test_ontology_unit(onto, owl_uri, expected, extra_ttl, return_uri):
     if extra_ttl is not None:
@@ -77,12 +79,12 @@ def test_ontology_unit(onto, owl_uri, expected, extra_ttl, return_uri):
 def test_ambiguous_unit(onto):
     onto.parse_extra_ttl("""@prefix oda: <http://odahub.io/ontology#> .
                             @prefix rdfs: <rdfs	http://www.w3.org/2000/01/rdf-schema#> .
+                            @prefix unit: <http://odahub.io/ontology/unit#> . 
                             oda:Energy_EeV a oda:Energy_TeV ;
-                                           oda:unit oda:EeV .""")
+                                           oda:unit unit:EeV .""")
     with pytest.raises(RequestNotUnderstood):
         onto.get_parameter_unit('oda:Energy_EeV')
 
-    
 @pytest.mark.parametrize("owl_uri, expected, extra_ttl",
                          [('oda:Float', (None, None), ""),
                           ('http://odahub.io/ontology#Unknown', (None, None), ""),
