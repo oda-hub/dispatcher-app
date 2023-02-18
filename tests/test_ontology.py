@@ -78,7 +78,7 @@ def test_ontology_unit(onto, owl_uri, expected, extra_ttl, return_uri):
     
 def test_ambiguous_unit(onto):
     onto.parse_extra_ttl("""@prefix oda: <http://odahub.io/ontology#> .
-                            @prefix rdfs: <rdfs	http://www.w3.org/2000/01/rdf-schema#> .
+                            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
                             @prefix unit: <http://odahub.io/ontology/unit#> . 
                             oda:Energy_EeV a oda:Energy_TeV ;
                                            oda:unit unit:EeV .""")
@@ -88,29 +88,23 @@ def test_ambiguous_unit(onto):
 @pytest.mark.parametrize("owl_uri, expected, extra_ttl",
                          [('oda:Float', (None, None), ""),
                           ('http://odahub.io/ontology#Unknown', (None, None), ""),
-                          ('oda:ISGRIEnergy', (15, 800), ""), # Individual 
                           ('oda:Percentage', (0, 100), ""), # Class
                           ('oda:Float_w_lim', (0, 1), """@prefix oda: <http://odahub.io/ontology#> .
-                                                         oda:Float_w_lim a oda:Float ;
+                                                         @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+                                                         oda:Float_w_lim rdfs:subClassOf oda:Float ;
                                                                     oda:lower_limit 0 ;
                                                                     oda:upper_limit 1 ."""),
+                          ('oda:sec_quart', (25, 50), """@prefix oda: <http://odahub.io/ontology#> .
+                                                         @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+                                                         oda:sec_quart rdfs:subClassOf oda:Percentage ;
+                                                                        oda:lower_limit 25 ;
+                                                                        oda:upper_limit 50 .""")
                          ])
 def test_ontology_limits(onto, owl_uri, expected, extra_ttl):
     if extra_ttl is not None:
         onto.parse_extra_ttl(extra_ttl)
     limits = onto.get_limits(owl_uri)
     assert limits == expected
-    
-def test_ontology_redefined_limits(onto, caplog):
-    onto.parse_extra_ttl("""@prefix oda: <http://odahub.io/ontology#> .
-                            oda:second_quartile a oda:Percentage ;
-                                                oda:lower_limit 25 ;
-                                                oda:upper_limit 50 .""")
-    # strictly speaking, this is inconsistent definition, but let's allow it
-    limits = onto.get_limits('oda:second_quartile')
-    assert limits == (25, 50)
-    assert 'Ambiguous lower_limit, using the most restrictive' in caplog.text
-    assert 'Ambiguous upper_limit, using the most restrictive' in caplog.text
     
 @pytest.mark.parametrize("owl_uri, expected, extra_ttl",
                          [('oda:String', None, None),

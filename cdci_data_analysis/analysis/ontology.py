@@ -272,40 +272,33 @@ class Ontology:
     def get_limits(self, param_uri):
         if param_uri.startswith("http"): param_uri = f"<{param_uri}>"
 
-        query = """SELECT ?limit WHERE {
-        {
-        %s (rdfs:subClassOf|a)* [
-            a owl:Restriction ;
-            owl:onProperty oda:%s_limit ;
-            owl:hasValue ?limit ;
-            ]
-        }
-        UNION
-        {
-        %s oda:%s_limit ?limit ;
-        }
-        }
+        query = """  
+            SELECT ?lim WHERE {
+            %s rdfs:subClassOf* [
+                a owl:Restriction ;
+                owl:onProperty oda:value ;
+                    owl:allValuesFrom [
+                        a rdfs:Datatype ;
+                        owl:withRestrictions [ rdf:rest*/rdf:first [ ?side ?lim ] ]        
+                    ]
+            ] .
+            FILTER(?side = xsd:%sInclusive)
+            }
         """
-        
-        qres_ll = self.g.query(query % (param_uri, 'lower', param_uri, 'lower'))
-        qres_ul = self.g.query(query % (param_uri, 'upper', param_uri, 'upper'))
+
+        qres_ll = self.g.query(query % (param_uri, 'min'))
+        qres_ul = self.g.query(query % (param_uri, 'max'))
         
         if len(qres_ll) == 0: 
             ll = None
-        elif len(qres_ll) == 1:
-            ll = float(list(qres_ll)[0][0])
         else:
-            ll = max([float(row[0]) for row in qres_ll])
-            logger.warning('Ambiguous lower_limit, using the most restrictive %s', ll)
+            ll = max([row[0].value for row in qres_ll])
             
         if len(qres_ul) == 0: 
             ul = None
-        elif len(qres_ul) == 1:
-            ul = float(list(qres_ul)[0][0])
         else:
-            ul = min([float(row[0]) for row in qres_ul])
-            logger.warning('Ambiguous upper_limit, using the most restrictive %s', ul)
-        
+            ul = min([row[0].value for row in qres_ul])
+            
         return (ll, ul)
     
     def get_allowed_values(self, param_uri):
