@@ -398,6 +398,22 @@ foaf:logo rdf:type owl:AnnotationProperty .
                     ] .
 
 
+###  http://odahub.io/ontology#ISGRIEnergy
+:ISGRIEnergy rdf:type owl:Class ;
+             rdfs:subClassOf :Energy_keV ,
+                             [ rdf:type owl:Restriction ;
+                               owl:onProperty :value ;
+                               owl:allValuesFrom [ rdf:type rdfs:Datatype ;
+                                                   owl:onDatatype xsd:float ;
+                                                   owl:withRestrictions ( [ xsd:minInclusive "15.0"^^xsd:float
+                                                                          ]
+                                                                          [ xsd:maxInclusive "800.0"^^xsd:float
+                                                                          ]
+                                                                        )
+                                                 ]
+                             ] .
+
+
 ###  http://odahub.io/ontology#Image
 :Image rdf:type owl:Class ;
        rdfs:subClassOf :DataProduct .
@@ -416,6 +432,22 @@ foaf:logo rdf:type owl:AnnotationProperty .
                            owl:onProperty :value ;
                            owl:allValuesFrom xsd:integer
                          ] .
+
+
+###  http://odahub.io/ontology#JEMXEnergy
+:JEMXEnergy rdf:type owl:Class ;
+            rdfs:subClassOf :Energy_keV ,
+                            [ rdf:type owl:Restriction ;
+                              owl:onProperty :value ;
+                              owl:allValuesFrom [ rdf:type rdfs:Datatype ;
+                                                  owl:onDatatype xsd:float ;
+                                                  owl:withRestrictions ( [ xsd:minInclusive "3.0"^^xsd:float
+                                                                         ]
+                                                                         [ xsd:maxInclusive "35.0"^^xsd:float
+                                                                         ]
+                                                                       )
+                                                ]
+                            ] .
 
 
 ###  http://odahub.io/ontology#LightCurve

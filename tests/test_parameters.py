@@ -325,27 +325,6 @@ def test_parameter_normalization_with_units():
             assert parameter.set_par(input_value) == outcome
             assert parameter.value == outcome
             assert type(parameter.value) == type(outcome)
-            
-@pytest.mark.fast
-@pytest.mark.parametrize('uri, value, param_type', 
-                         [('http://odahub.io/ontology#PointOfInterestRA', 0.0, Angle),
-                          ('http://odahub.io/ontology#PointOfInterestDEC', 0.0, Angle),
-                          ('http://odahub.io/ontology#StartTime', '2017-03-06T13:26:48.0', Time),
-                          ('http://odahub.io/ontology#EndTime', '2017-03-06T13:26:48.0', Time),
-                          ('http://odahub.io/ontology#TimeInstant', '2017-03-06T13:26:48.0', Time),
-                          ('http://odahub.io/ontology#AstrophysicalObject', 'Mrk421', Name)])
-def test_parameter_from_owl_uri(uri, value, param_type):
-    param = Parameter.from_owl_uri(uri, value=value, name='example')
-    assert isinstance(param, param_type)
-
-
-def test_parameter_from_owl_uri_extra_param(caplog):
-    Parameter.from_owl_uri('http://odahub.io/ontology#StartTime',
-                           value='59830',
-                           T_format='mjd',
-                           units='d', # wrong parameter
-                           name='example')
-    assert "parameter units with value d not used to construct <class 'cdci_data_analysis.analysis.parameters.Time'>" in caplog.text
 
 @pytest.mark.fast
 def test_parameter_bounds():
@@ -411,3 +390,177 @@ def test_boolean_parameter(inval, iswrong, expected):
     else:
         with pytest.raises(RequestNotUnderstood):
             Boolean(inval)
+            
+@pytest.mark.fast
+@pytest.mark.parametrize(
+    'uri, extra_ttl, use_ontology, value, param_type', 
+    [('http://odahub.io/ontology#TimeInstant', None, False, '2017-03-06T13:26:48.000', Time),
+    ('http://odahub.io/ontology#AstrophysicalObject', None, False, 'Mrk421', Name),
+    ('http://odahub.io/ontology#Unknown', None, False, 'foo', Parameter),
+    ('http://odahub.io/ontology#PointOfInterestRA', None, False, 0.0, Parameter),
+    ('http://odahub.io/ontology#Unknown', None, True, 'foo', Parameter),
+    ('http://odahub.io/ontology#PointOfInterestRA', None, True, 0.0, Angle),
+    ('http://odahub.io/ontology#PointOfInterestDEC', None, True, 0.0, Angle),
+    ('http://odahub.io/ontology#StartTime', None, True, '2017-03-06T13:26:48.000', Time),
+    ('http://odahub.io/ontology#EndTimeISOT', None, True, '2017-03-06T13:26:48.000', Time),
+    ('http://odahub.io/ontology#myminEnergy', 
+    """@prefix oda: <http://odahub.io/ontology#> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+        oda:myminEnergy rdfs:subClassOf oda:Energy_keV .""", 
+    True, 100, Energy),
+    ])
+def test_parameter_class_from_owl_uri(uri, extra_ttl, use_ontology, value, param_type):
+    ontology_path = 'tests/oda-ontology.ttl' if use_ontology else None
+    param = Parameter.from_owl_uri(uri, 
+                                   value=value,
+                                   extra_ttl = extra_ttl, 
+                                   name='example', 
+                                   ontology_path = ontology_path)
+    assert param.__class__.__name__ == param_type.__name__
+    assert param.value == value
+
+def test_parameter_from_owl_uri_extra_param(caplog):
+    Parameter.from_owl_uri('http://odahub.io/ontology#TimeInstant',
+                           value='59830',
+                           T_format='mjd',
+                           units='d', # wrong parameter
+                           name='example')
+    assert ("parameter units with value d not used to construct " 
+            "<class 'cdci_data_analysis.analysis.parameters.Time'>") in caplog.text
+
+@pytest.mark.fast
+@pytest.mark.parametrize(
+    "uri, extra_ttl, value, format_override, expected_format",
+    [('http://odahub.io/ontology#String', None, 'foo', None, None),
+     ('http://odahub.io/ontology#StartTimeMJD', None, 57818.560277777775, None, 'mjd'),
+     ('http://odahub.io/ontology#StartTimeMJD', None, '2017-03-06T13:26:48.000', 'isot', 'isot'),
+     ('http://odahub.io/ontology#mystarttime', 
+       """@prefix oda: <http://odahub.io/ontology#> . 
+          @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . 
+          oda:mystarttime rdfs:subClassOf oda:StartTime ; 
+               oda:format oda:MJD . """, 
+       57818.560277777775, None, 'mjd'),
+    ])
+def test_parameter_format_from_owl_uri(uri, extra_ttl, value, format_override, expected_format, caplog):
+    kwargs = {'T_format': format_override} if format_override is not None else {}
+    param = Parameter.from_owl_uri(uri, 
+                                   value=value,
+                                   extra_ttl = extra_ttl, 
+                                   name='example', 
+                                   ontology_path = 'tests/oda-ontology.ttl',
+                                   **kwargs)
+    if format_override:
+        assert ("overriding ontology-derived value of the T_format keyword of %s "
+                "with explicitly set value %s") % (Time, format_override) in caplog.text
+
+    assert param.par_format == expected_format 
+
+@pytest.mark.fast
+@pytest.mark.parametrize(
+    "uri, extra_ttl, unit_kw, unit_override, expected_unit",
+    [('http://odahub.io/ontology#Float', None, 'units', None, None),
+     ('http://odahub.io/ontology#Energy_keV', None, 'E_units', None, 'keV'),
+     ('http://odahub.io/ontology#Energy_keV', None, 'E_units', 'MeV', 'MeV'),
+     ('http://odahub.io/ontology#myEnergy', 
+       """@prefix oda: <http://odahub.io/ontology#> .
+          @prefix unit: <http://odahub.io/ontology/unit#> . 
+          @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . 
+          oda:myEnergy rdfs:subClassOf oda:Energy ; 
+               oda:unit unit:keV . """, 
+       'E_units', None, 'keV'),
+     ('http://odahub.io/ontology#myEnergy', 
+       """@prefix oda: <http://odahub.io/ontology#> .
+          @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . 
+          oda:myEnergy rdfs:subClassOf oda:Energy_MeV .""", 
+       'E_units', None, 'MeV'),
+    ])
+def test_parameter_unit_from_owl_uri(uri, extra_ttl, unit_kw, unit_override, expected_unit, caplog):
+    kwargs = {unit_kw: unit_override} if unit_override is not None else {}
+    param = Parameter.from_owl_uri(uri, 
+                                   value=1,
+                                   extra_ttl = extra_ttl, 
+                                   name='example', 
+                                   ontology_path = 'tests/oda-ontology.ttl',
+                                   **kwargs)
+    if unit_override:
+        assert ("overriding ontology-derived value of the %s keyword of %s "
+                "with explicitly set value %s") % (unit_kw, param.__class__, unit_override) in caplog.text
+
+    assert param.units == expected_unit 
+
+@pytest.mark.fast    
+@pytest.mark.parametrize(
+    "uri, extra_ttl, min_override, max_override, expected_min, expected_max",
+    [('http://odahub.io/ontology#Float', None, None, None, None, None),
+     ('http://odahub.io/ontology#Percentage', None, None, None, 0, 100),
+     ('http://odahub.io/ontology#Percentage', None, 25, 75, 25, 75),
+     ('http://odahub.io/ontology#boundedFloat', 
+       """@prefix oda: <http://odahub.io/ontology#> .
+          @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . 
+          oda:boundedFloat rdfs:subClassOf oda:Float ; 
+               oda:lower_limit 1 ;
+               oda:upper_limit 1000 . """, 
+       None, None, 1, 1000),
+     ('http://odahub.io/ontology#bfsc', 
+       """@prefix oda: <http://odahub.io/ontology#> .
+          @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . 
+          oda:bfsc rdfs:subClassOf oda:Percentage .""", 
+       None, None, 0, 100),
+    ])
+def test_parameter_bounds_from_owl_uri(uri, extra_ttl, min_override, max_override, expected_min, expected_max, caplog):
+    kwargs = {}
+    if min_override is not None:
+        kwargs['min_value'] = min_override
+    if max_override is not None:
+        kwargs['max_value'] = max_override
+    
+    param = Parameter.from_owl_uri(uri, 
+                                   value=50,
+                                   extra_ttl = extra_ttl, 
+                                   name='example', 
+                                   ontology_path = 'tests/oda-ontology.ttl',
+                                   **kwargs)
+    if min_override is not None:
+        assert ("overriding ontology-derived value of the min_value keyword of %s "
+                "with explicitly set value %s") % (param.__class__, min_override) in caplog.text
+    if max_override is not None:
+        assert ("overriding ontology-derived value of the max_value keyword of %s "
+                "with explicitly set value %s") % (param.__class__, max_override) in caplog.text
+
+    assert param._min_value == expected_min
+    assert param._max_value == expected_max
+
+@pytest.mark.fast    
+@pytest.mark.parametrize(
+    "uri, extra_ttl, allowed_val_override, expected_allowed_val",
+    [('http://odahub.io/ontology#String', None, None, None),
+     ('http://odahub.io/ontology#VisibleBand', None, None, ["b", "g", "r", "v"]),
+     ('http://odahub.io/ontology#VisibleBand', None, ["b", "g"], ["b", "g"]),
+     ('http://odahub.io/ontology#photoband', 
+       """@prefix oda: <http://odahub.io/ontology#> .
+          @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . 
+          oda:photoband rdfs:subClassOf oda:PhotometricBand ; 
+               oda:allowed_value "b", "g" . """, 
+       None, ["b", "g"]),
+     ('http://odahub.io/ontology#visible', 
+       """@prefix oda: <http://odahub.io/ontology#> .
+          @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . 
+          oda:visible rdfs:subClassOf oda:VisibleBand .""", 
+       None, ["b", "g", "r", "v"]),
+    ])
+def test_parameter_allowedval_from_owl_uri(uri, extra_ttl, allowed_val_override, expected_allowed_val, caplog):
+    kwargs = {'allowed_values': allowed_val_override} if allowed_val_override is not None else {}
+    
+    param = Parameter.from_owl_uri(uri, 
+                                   value="b",
+                                   extra_ttl = extra_ttl, 
+                                   name='example', 
+                                   ontology_path = 'tests/oda-ontology.ttl',
+                                   **kwargs)
+    if allowed_val_override is not None:
+        assert ("overriding ontology-derived value of the allowed_values keyword of %s "
+                "with explicitly set value %s") % (param.__class__, allowed_val_override) in caplog.text
+    if expected_allowed_val is not None:
+        assert sorted(param._allowed_values) == sorted(expected_allowed_val)
+    else:
+        assert param._allowed_values is None

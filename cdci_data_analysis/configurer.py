@@ -250,7 +250,8 @@ class ConfigEnv(object):
                                      disp_dict.get('product_gallery_options', {}).get('converttime_revnum_service_url', 'https://www.astro.unige.ch/mmoda/dispatch-data/gw/timesystem/api/v1.0/converttime/UTC/{}/REVNUM'),
                                      disp_dict.get('renku_options', {}).get('renku_gitlab_repository_url', None),
                                      disp_dict.get('renku_options', {}).get('renku_base_project_url', None),
-                                     disp_dict.get('renku_options', {}).get('ssh_key_path', None)
+                                     disp_dict.get('renku_options', {}).get('ssh_key_path', None),
+                                     disp_dict.get('ontology_path')
                                      )
 
         # not used?
@@ -313,7 +314,8 @@ class ConfigEnv(object):
                             converttime_revnum_service_url,
                             renku_gitlab_repository_url,
                             renku_base_project_url,
-                            renku_gitlab_ssh_key_path
+                            renku_gitlab_ssh_key_path,
+                            ontology_path = None,
                             ):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)

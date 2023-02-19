@@ -15,7 +15,7 @@ add_prefixes = """
             @prefix owl: <http://www.w3.org/2002/07/owl#> .
             @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
             """
-ontology_path = 'oda-ontology.ttl'
+ontology_path = 'tests/oda-ontology.ttl'
 
 @pytest.fixture
 def onto(scope='module'):
@@ -80,7 +80,7 @@ def test_ambiguous_unit(onto):
     onto.parse_extra_ttl("""@prefix oda: <http://odahub.io/ontology#> .
                             @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
                             @prefix unit: <http://odahub.io/ontology/unit#> . 
-                            oda:Energy_EeV a oda:Energy_TeV ;
+                            oda:Energy_EeV rdfs:subClassOf oda:Energy_TeV ;
                                            oda:unit unit:EeV .""")
     with pytest.raises(RequestNotUnderstood):
         onto.get_parameter_unit('oda:Energy_EeV')
