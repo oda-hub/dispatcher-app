@@ -184,7 +184,7 @@ class Ontology:
         qres = list(self.g.query(query))
         if len(qres) == 0: return None
         if len(set(r[0] for r in qres)) > 1:
-            RuntimeError("Ambiguous datatype of %s", param_uri) 
+            raise RuntimeError("Ambiguous datatype of %s", param_uri) 
         return qres[0][0]
     
     def parse_extra_ttl(self, extra_ttl, parse_oda_annotations = True):
