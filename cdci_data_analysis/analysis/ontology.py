@@ -303,13 +303,29 @@ class Ontology:
     
     def get_allowed_values(self, param_uri):
         if param_uri.startswith("http"): param_uri = f"<{param_uri}>"
+        
+        query = """ SELECT ?item (count(?list) as ?midcount) WHERE {    
+            
+            ?list rdf:rest*/rdf:first ?item .
+                
+            %s rdfs:subClassOf* [
+                a owl:Restriction ;
+                owl:onProperty oda:value ;
+                owl:allValuesFrom [
+                        a rdfs:Datatype ;
+                        owl:oneOf ?list        
+                    ]
+                ] 
+            }
+            GROUP BY ?item
+            ORDER BY DESC(?midcount)
+            """ % param_uri
 
-        # either uri is for Individual with allowed_values directly set, then don't go to superclass restrictions 
-        # or read all from superclass 
-     
+        qres = self.g.query(query)
         
-        
-        return None
-        return [] #it's not used anywhere
-        return ['a', 'b']
+        repnum = [row[1].value for row in qres]
+        if len(repnum) == 0: 
+            return None
+        maxrep = max(repnum)
+        return [row[0].value for row in qres if row[1].value == maxrep]
     

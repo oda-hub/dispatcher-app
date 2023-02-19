@@ -106,20 +106,31 @@ def test_ontology_limits(onto, owl_uri, expected, extra_ttl):
     limits = onto.get_limits(owl_uri)
     assert limits == expected
     
-@pytest.mark.parametrize("owl_uri, expected, extra_ttl",
-                         [('oda:String', None, None),
-                          ('oda:PhotometricBand', ['b', 'g', 'H', 'i', 'J', 'K', 'L', 'M', 'N', 'Q', 'r', 'u', 'v', 'y', 'z'], None),
-                          ('oda:LegacySurveyBand', ['r', 'g', 'z'], None),
-                          ('oda:custom', ['a', 'b'], """@prefix oda: <http://odahub.io/ontology#> .
-                                                        oda:custom a oda:String ;
-                                                                   oda:allowed_value "a" ;
-                                                                   oda:allowed_value "b" .""")
-                         ])
+@pytest.mark.parametrize(
+    "owl_uri, expected, extra_ttl",
+    [('oda:String', None, None),
+    ('oda:PhotometricBand', ['b', 'g', 'H', 'i', 'J', 'K', 'L', 'M', 'N', 'Q', 'r', 'u', 'v', 'y', 'z'], None),
+    ('oda:VisibleBand', ['b', 'g', 'r', 'v'], None),
+    ('oda:custom', ['a', 'b'], """@prefix oda: <http://odahub.io/ontology#> .
+                                @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+                                oda:custom rdfs:subClassOf oda:String ;
+                                            oda:allowed_value "a" ;
+                                            oda:allowed_value "b" ."""),
+    ('oda:wrong_visible', ['b', 'g'], """@prefix oda: <http://odahub.io/ontology#> .
+                                      @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+                                        oda:wrong_visible rdfs:subClassOf oda:VisibleBand ;
+                                        oda:allowed_value "a" ;
+                                        oda:allowed_value "b" ;
+                                        oda:allowed_value "g" .""")
+    ])
 def test_ontology_allowed_values(onto, owl_uri, expected, extra_ttl):
     if extra_ttl is not None:
         onto.parse_extra_ttl(extra_ttl)
     allowed_values = onto.get_allowed_values(owl_uri)
-    assert allowed_values == expected
+    if expected is None:
+        assert allowed_values is None
+    else:
+        assert sorted(allowed_values) == sorted(expected)
 
 @pytest.mark.parametrize("par_uri, datatype",
                          [('oda:Integer', XSD.integer),
