@@ -983,8 +983,15 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
             for observation in observations_range:
                 # parse times returned from drupal
                 times = observation['field_timerange'].split('--')
-                t_start_no_timezone = parser.parse(times[0]).strftime('%Y-%m-%dT%H:%M:%S')
-                t_end_no_timezone = parser.parse(times[1]).strftime('%Y-%m-%dT%H:%M:%S')
+                if len(times) > 0:
+                    t_start_no_timezone = parser.parse(times[0]).strftime('%Y-%m-%dT%H:%M:%S')
+                    if len(times) == 1:
+                        t_end_no_timezone = t_start_no_timezone
+                    else:
+                        t_end_no_timezone = parser.parse(times[1]).strftime('%Y-%m-%dT%H:%M:%S')
+                else:
+                    observation_information_message = 'no valid observation has been found'
+                    break
                 logger.info(f"comparing time range extracted from Drupal: {t_start_no_timezone} - {t_end_no_timezone}")
                 if t_start_no_timezone == parsed_t1_no_timezone and t_end_no_timezone == parsed_t2_no_timezone:
                     observation_drupal_id = observation['nid']
