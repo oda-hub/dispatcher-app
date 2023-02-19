@@ -31,7 +31,15 @@ def test_ontology_hierarchy(onto):
            
     hierarchy_list = onto.get_parameter_hierarchy('oda:Energy_keV')
     assert f'{oda_prefix}Energy' in hierarchy_list
-    assert hierarchy_list.index(f'{oda_prefix}Energy_keV') < hierarchy_list.index(f'{oda_prefix}Float')
+    assert hierarchy_list.index(f'{oda_prefix}Energy') < hierarchy_list.index(f'{oda_prefix}Float')
+
+    hierarchy_list = onto.get_parameter_hierarchy('oda:StartTimeISOT')
+    assert f'{oda_prefix}TimeInstant' in hierarchy_list
+    assert hierarchy_list.index(f'{oda_prefix}StartTime') < hierarchy_list.index(f'{oda_prefix}TimeInstant')
+
+    hierarchy_list = onto.get_parameter_hierarchy('oda:StartTime')
+    assert f'{oda_prefix}TimeInstant' in hierarchy_list
+    assert hierarchy_list.index(f'{oda_prefix}StartTime') < hierarchy_list.index(f'{oda_prefix}TimeInstant')
 
 
 @pytest.mark.parametrize('owl_uri', ['http://www.w3.org/2001/XMLSchema#bool', 'http://odahub.io/ontology#Unknown'])
