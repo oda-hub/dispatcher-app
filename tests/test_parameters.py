@@ -15,6 +15,7 @@ from cdci_data_analysis.analysis.parameters import (
     Name,
     Time,
     TimeDelta,
+    TimeInterval,
     ParameterRange,
     ParameterTuple,
     Angle,
@@ -564,3 +565,32 @@ def test_parameter_allowedval_from_owl_uri(uri, extra_ttl, allowed_val_override,
         assert sorted(param._allowed_values) == sorted(expected_allowed_val)
     else:
         assert param._allowed_values is None
+
+@pytest.mark.fast
+@pytest.mark.parametrize(
+    "value, unit, default_unit, expected_value, expected_in_default_units",
+    [(1, 'minute', 's', 1, 60),
+     ('1', 'hour', 's', 1, 3600),
+     ('1.', 'minute', 's', 1, 60),
+     ('1.', None, 's', 1, 1),
+     ]
+)
+def test_time_interval_param(value, unit, default_unit, expected_value, expected_in_default_units):
+    ti = TimeInterval(value=value, units=unit, name='example', default_units=default_unit)
+    assert ti.value == 1
+    assert ti.get_value_in_default_units() == expected_in_default_units
+    
+@pytest.mark.fast
+@pytest.mark.parametrize("value, unit", 
+                         [('aaa', 's'),
+                          (None, 's'),
+                          (1, 'minuit')])
+def test_time_interval_wrong_val(value, unit):
+    with pytest.raises((RequestNotUnderstood, RuntimeError)):
+        TimeInterval(value = value, units = unit)
+        
+def test_time_interval_bounds():
+    ti = TimeInterval(value=3, units='s', min_value = 1, max_value=5)
+    assert ti.value == 3 
+    with pytest.raises(RequestNotUnderstood):
+        TimeInterval(value=10, units='s', min_value = 1, max_value=5)

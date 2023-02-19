@@ -58,16 +58,16 @@ def test_ontology_format(onto, owl_uri, expected,extra_ttl, return_uri):
     assert format == expected
     
 @pytest.mark.parametrize("owl_uri, expected, extra_ttl, return_uri",
-                         [('oda:TimeDays', f'{unit_prefix}Day', None, True),
+                         [('oda:TimeIntervalDays', f'{unit_prefix}Day', None, True),
                           ('oda:DeclinationDegrees', 'deg', None, False),
                           ('oda:Energy', None, None, False),
                           ('http://odahub.io/ontology#Unknown', None, None, False),
                           ('oda:spam', 's', """@prefix oda: <http://odahub.io/ontology#> . 
                                                @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . 
-                                               oda:spam rdfs:subClassOf oda:TimeDelta, oda:second . """, False),
-                          ('oda:eggs', 'h', """@prefix oda: <http://odahub.io/ontology#> . 
+                                               oda:spam rdfs:subClassOf oda:TimeInterval, oda:second . """, False),
+                          ('oda:eggs', 'hour', """@prefix oda: <http://odahub.io/ontology#> . 
                                                @prefix unit: <http://odahub.io/ontology/unit#> . 
-                                               oda:eggs a oda:TimeDelta ;
+                                               oda:eggs a oda:TimeInterval ;
                                                         oda:unit unit:Hour . """, False)
                          ])
 def test_ontology_unit(onto, owl_uri, expected, extra_ttl, return_uri):

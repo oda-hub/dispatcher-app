@@ -666,21 +666,6 @@ Subclasses may have other ways to express the content.""" ;
                      ] .
 
 
-###  http://odahub.io/ontology#TimeDays
-:TimeDays rdf:type owl:Class ;
-          rdfs:subClassOf :TimeDelta ,
-                          :day .
-
-
-###  http://odahub.io/ontology#TimeDelta
-:TimeDelta rdf:type owl:Class ;
-           rdfs:subClassOf :Float ,
-                           [ rdf:type owl:Restriction ;
-                             owl:onProperty :has_unit ;
-                             owl:someValuesFrom unit:TimeUnit
-                           ] .
-
-
 ###  http://odahub.io/ontology#TimeFormat
 :TimeFormat rdf:type owl:Class ;
             rdfs:subClassOf :ParameterFormat .
@@ -711,10 +696,25 @@ Subclasses may have other ways to express the content.""" ;
                                 ] .
 
 
-###  http://odahub.io/ontology#TimeSeconds
-:TimeSeconds rdf:type owl:Class ;
-             rdfs:subClassOf :TimeDelta ,
-                             :second .
+###  http://odahub.io/ontology#TimeInterval
+:TimeInterval rdf:type owl:Class ;
+              rdfs:subClassOf :Float ,
+                              [ rdf:type owl:Restriction ;
+                                owl:onProperty :has_unit ;
+                                owl:someValuesFrom unit:TimeUnit
+                              ] .
+
+
+###  http://odahub.io/ontology#TimeIntervalDays
+:TimeIntervalDays rdf:type owl:Class ;
+                  rdfs:subClassOf :TimeInterval ,
+                                  :day .
+
+
+###  http://odahub.io/ontology#TimeIntervalSeconds
+:TimeIntervalSeconds rdf:type owl:Class ;
+                     rdfs:subClassOf :TimeInterval ,
+                                     :second .
 
 
 ###  http://odahub.io/ontology#VisibleBand
@@ -862,7 +862,7 @@ unit:Unit rdf:type owl:Class ;
 ###  http://odahub.io/ontology/unit#Day
 unit:Day rdf:type owl:NamedIndividual ,
                   unit:TimeUnit ;
-         :symbol "d"^^xsd:string .
+         :symbol "day"^^xsd:string .
 
 
 ###  http://odahub.io/ontology/unit#Degree
@@ -886,7 +886,7 @@ unit:GeV rdf:type owl:NamedIndividual ,
 ###  http://odahub.io/ontology/unit#Hour
 unit:Hour rdf:type owl:NamedIndividual ,
                    unit:TimeUnit ;
-          :symbol "h"^^xsd:string .
+          :symbol "hour"^^xsd:string .
 
 
 ###  http://odahub.io/ontology/unit#Hz

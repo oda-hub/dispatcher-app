@@ -33,7 +33,7 @@ import logging
 
 from astropy.time import Time as astropyTime
 from astropy.time import TimeDelta as astropyTimeDelta
-
+from astropy import units as apy_u 
 from astropy.coordinates import Angle as astropyAngle
 
 import numpy as np
@@ -547,7 +547,8 @@ class Float(NumericParameter):
                  default_units=None, 
                  check_value=None, 
                  min_value= None,
-                 max_value = None):
+                 max_value = None,
+                 units_name = None):
 
         if check_value is None:
             check_value = self.check_float_value
@@ -562,24 +563,25 @@ class Float(NumericParameter):
                          allowed_types=[float],
                          allowed_units=allowed_units,
                          min_value=min_value,
-                         max_value=max_value)
+                         max_value=max_value,
+                         units_name = units_name)
 
     @property
     def value(self):
-        return self._v
+        return self._value
 
     @value.setter
     def value(self, v):
         if v is not None and v != '':
             self.check_value(v, name=self.name, units=self.units)
-            self._v = float(v)
+            self._value = float(v)
             if self._min_value is not None or self._max_value is not None:
-                self.check_bounds(self._v,
+                self.check_bounds(self._value,
                                   min_value = self._min_value, 
                                   max_value = self._max_value,
                                   name = self.name)
         else:
-            self._v = None
+            self._value = None
 
     def get_value_in_units(self, units):
         logger.warning(f'no explict conversion implemented for the parameter {self.name}, '
@@ -608,7 +610,14 @@ class Float(NumericParameter):
 class Integer(NumericParameter):
     owl_uris = ("http://www.w3.org/2001/XMLSchema#int", "http://odahub.io/ontology#Integer")
 
-    def __init__(self, value=None, units=None, name=None, check_value=None, min_value = None, max_value = None):
+    def __init__(self, 
+                 value=None, 
+                 units=None, 
+                 name=None, 
+                 check_value=None, 
+                 min_value = None, 
+                 max_value = None,
+                 units_name = None):
 
         _allowed_units = None
 
@@ -623,7 +632,8 @@ class Integer(NumericParameter):
                          name=name,
                          allowed_units=_allowed_units,
                          min_value = min_value,
-                         max_value = max_value)
+                         max_value = max_value,
+                         units_name = units_name)
 
 
     @property
@@ -715,12 +725,15 @@ class Time(Parameter):
 # TODO: redefine time-timedelta relation
 # it is confusing that TimeDelta derives from Time.  
 # https://github.com/astropy/astropy/blob/main/astropy/time/core.py#L379
+# NOTE: added deprecation warning and introduced TimeInterval 
 class TimeDelta(Time):
-    owl_uris = ("http://odahub.io/ontology#TimeDelta",) 
+    owl_uris = ("http://odahub.io/ontology#TimeDeltaIsDeprecated",) 
     format_kw = 'delta_T_format'
     
     def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None, par_default_format='sec'):
-
+        logging.warning(('TimeDelta parameter is deprecated. '
+                         'It derives from Time, which is confusing. '
+                         'Consider using TimeInterval parameter.'))
         super().__init__(value=value,
                          T_format=delta_T_format,
                          Time_format_name=delta_T_format_name,
@@ -746,6 +759,54 @@ class TimeDelta(Time):
             raise RequestNotUnderstood(f'Parameter {self.name} wrong value {value}: can\'t be parsed as TimeDelta of {format} format')
 
         self._value = value
+
+class TimeInterval(Float):
+    owl_uris = ("http://odahub.io/ontology#TimeInterval",) 
+    
+    def __init__(self, 
+                 value=None, 
+                 units='s', 
+                 name=None, 
+                 default_units='s', 
+                 min_value=None, 
+                 max_value=None,
+                 units_name = None):
+
+        _allowed_units = ['s', 'minute', 'hour', 'day', 'year']
+        super().__init__(value=value,
+                         units=units,
+                         default_units=default_units,
+                         name=name,
+                         min_value=min_value,
+                         max_value=max_value,
+                         units_name = units_name,
+                         allowed_units=_allowed_units)
+
+    def get_value_in_units(self, units):
+        u = getattr(apy_u, units)
+        return self._astropy_time_delta.to_value(unit=u)
+
+    def get_value_in_default_units(self):
+        return self.get_value_in_units(self._default_units)
+    
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, v):
+        self._set_time(v)
+
+    def _set_time(self, value):
+        super(self.__class__, self.__class__).value.fset(self, value)
+        if self.units is None:
+            logger.warning(f'Units not set for {self.name}, using default units: {self._default_units}')
+            self.units = self._default_units
+        u = getattr(apy_u, self.units)
+        try:
+            self._astropy_time_delta = astropyTimeDelta(self.value * u)
+        except (ValueError, TypeError) as e:
+            raise RequestNotUnderstood(f'Parameter {self.name} wrong value {self.value}: can\'t be parsed as TimeDelta of {format} format')
 
 
 class InputProdList(Parameter):
@@ -816,7 +877,14 @@ class InputProdList(Parameter):
 class Angle(Float):
     owl_uris = ("http://odahub.io/ontology#Angle")
     
-    def __init__(self, value=None, units=None, default_units='deg', name=None, min_value = None, max_value = None):
+    def __init__(self, 
+                 value=None, 
+                 units=None, 
+                 default_units='deg', 
+                 name=None, 
+                 min_value = None, 
+                 max_value = None,
+                 units_name = None):
 
         super().__init__(value=value,
                          units=units,
@@ -825,7 +893,8 @@ class Angle(Float):
                          name=name,
                          allowed_units=None,
                          min_value = min_value,
-                         max_value = max_value)
+                         max_value = max_value,
+                         units_name = units_name)
 
     def get_value_in_default_units(self):
         return self.get_value_in_units(self.default_units)
@@ -859,7 +928,14 @@ class Energy(Float):
     owl_uris = ("http://odahub.io/ontology#Energy", "http://odahub.io/ontology#Frequency")
     units_kw = 'E_units'
     
-    def __init__(self, value=None, E_units='keV', name=None, check_value=None, min_value = None, max_value = None):
+    def __init__(self, 
+                 value=None, 
+                 E_units='keV', 
+                 name=None, 
+                 check_value=None, 
+                 min_value = None, 
+                 max_value = None,
+                 units_name = None):
         if check_value is None:
             check_value = self.check_energy_value
 
@@ -872,7 +948,8 @@ class Energy(Float):
                          name=name,
                          allowed_units=_allowed_units,
                          min_value = min_value,
-                         max_value = max_value)
+                         max_value = max_value,
+                         units_name = units_name)
 
     # TODO re-introduced for retro-compatibility
     @staticmethod
