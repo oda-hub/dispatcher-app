@@ -4,6 +4,7 @@ from rdflib.namespace import RDF, RDFS, OWL, XSD
 import logging
 from cdci_data_analysis.analysis.exceptions import RequestNotUnderstood
 import builtins
+from copy import deepcopy
 
 logger = logging.getLogger(__name__)
 
@@ -20,16 +21,46 @@ def xsd_type_to_python_type(xsd_uri):
         return getattr(builtins, typename)
     except AttributeError:
         return None
+
+class MainOntologyGraph:
+    def __init__(self, ontology_path, version):
+        self._ver = version 
+        self._path = ontology_path
+        self.reset(ontology_path, version)
+        
+    @property
+    def ontology_path(self):
+        return self._path
     
+    @property 
+    def version(self):
+        return self._ver
+    
+    @property
+    def graph(self):
+        return deepcopy(self._g)
+    
+    def reset(self, ontology_path, version):
+        if version != self._ver or ontology_path != self._path:
+            self._g = rdf.Graph()
+            self._g.parse(ontology_path)
+            self._g.bind('oda', ODA)
+            self._path = ontology_path
+            self._ver = version 
+
 class Ontology:
     def __init__(self, ontology_path):
-        #TODO: it's not optimal to read ontology on every init
-        #      it should be cached globally 
-        #      but with possibility to update without restarting dispatcher
-        self.g = rdf.Graph()
-        self.g.parse(ontology_path)
-        self.g.bind('oda', ODA)
-    
+        global main_ontology_graph
+        try: 
+            self.g = main_ontology_graph.graph
+        except NameError: 
+            main_ontology_graph = MainOntologyGraph(ontology_path, '0') 
+            self.g = main_ontology_graph.graph
+        # NOTE: the main ontology graph is initialized in first call and then persist 
+        #       this reduces amount of ttl parsing and requests if it's read from remote
+        #       every instance will reuse the copy of it 
+        # TODO: ontology versioning; method to update graph
+        
     def _get_symb(self, uri):
         s_qres = self.g.query( """SELECT ?symb WHERE { 
                                   { <%s> oda:symbol ?symb } 
