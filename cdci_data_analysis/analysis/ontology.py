@@ -26,7 +26,9 @@ class MainOntologyGraph:
     def __init__(self, ontology_path, version):
         self._ver = version 
         self._path = ontology_path
-        self.reset(ontology_path, version)
+        self._g = rdf.Graph()
+        self._g.parse(ontology_path)
+        self._g.bind('oda', ODA)
         
     @property
     def ontology_path(self):
