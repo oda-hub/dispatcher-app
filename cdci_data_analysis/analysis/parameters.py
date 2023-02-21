@@ -467,7 +467,9 @@ class Parameter:
                     call_signature = signature(python_subclass)                   
                     
                     for restr, overr_kw, kw_name in [(par_format, 'format_kw', 'par_format'), 
+                                                     (par_format, 'default_format_kw', 'par_default_format'),
                                                      (par_unit, 'units_kw', 'units'), 
+                                                     (par_unit, 'default_units_kw', 'default_units'),
                                                      (min_value, 'notexist', 'min_value'), 
                                                      (max_value, 'notexist', 'max_value'),
                                                      (allowed_values, 'notexist', 'allowed_values')]:
@@ -617,7 +619,8 @@ class Integer(NumericParameter):
                  check_value=None, 
                  min_value = None, 
                  max_value = None,
-                 units_name = None):
+                 units_name = None,
+                 default_units = None):
 
         _allowed_units = None
 
@@ -626,6 +629,7 @@ class Integer(NumericParameter):
         
         super().__init__(value=value,
                          units=units,
+                         default_units = default_units,
                          check_value=check_value,
                          default_type=int,
                          allowed_types=[int],
@@ -707,7 +711,7 @@ class Time(Parameter):
 
     @property
     def value(self):
-        return self.get_value_in_format(self.par_format)
+        return self._astropy_time.value
 
     @value.setter
     def value(self, v):
@@ -931,6 +935,7 @@ class Energy(Float):
     def __init__(self, 
                  value=None, 
                  E_units='keV', 
+                 default_units='keV',
                  name=None, 
                  check_value=None, 
                  min_value = None, 
@@ -943,7 +948,7 @@ class Energy(Float):
 
         super().__init__(value=value,
                          units=E_units,
-                         default_units='keV',
+                         default_units=default_units,
                          check_value=check_value,
                          name=name,
                          allowed_units=_allowed_units,
