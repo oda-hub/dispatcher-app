@@ -707,7 +707,7 @@ class Time(Parameter):
 
     @property
     def value(self):
-        return self._astropy_time.value
+        return self.get_value_in_format(self.par_format)
 
     @value.setter
     def value(self, v):
