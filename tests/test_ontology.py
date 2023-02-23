@@ -61,7 +61,7 @@ def test_ontology_unknown(onto, owl_uri, caplog):
                           ])
 def test_ontology_format(onto, owl_uri, expected,extra_ttl, return_uri):
     if extra_ttl is not None:
-        onto.parse_extra_ttl(extra_ttl)
+        onto.parse_extra_triples(extra_ttl)
     format = onto.get_parameter_format(owl_uri, return_uri=return_uri)
     assert format == expected
     
@@ -80,12 +80,12 @@ def test_ontology_format(onto, owl_uri, expected,extra_ttl, return_uri):
                          ])
 def test_ontology_unit(onto, owl_uri, expected, extra_ttl, return_uri):
     if extra_ttl is not None:
-        onto.parse_extra_ttl(extra_ttl)
+        onto.parse_extra_triples(extra_ttl)
     unit = onto.get_parameter_unit(owl_uri, return_uri=return_uri)
     assert unit == expected
     
 def test_ambiguous_unit(onto):
-    onto.parse_extra_ttl("""@prefix oda: <http://odahub.io/ontology#> .
+    onto.parse_extra_triples("""@prefix oda: <http://odahub.io/ontology#> .
                             @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
                             @prefix unit: <http://odahub.io/ontology/unit#> . 
                             oda:Energy_EeV rdfs:subClassOf oda:Energy_TeV ;
@@ -110,7 +110,7 @@ def test_ambiguous_unit(onto):
                          ])
 def test_ontology_limits(onto, owl_uri, expected, extra_ttl):
     if extra_ttl is not None:
-        onto.parse_extra_ttl(extra_ttl)
+        onto.parse_extra_triples(extra_ttl)
     limits = onto.get_limits(owl_uri)
     assert limits == expected
     
@@ -133,7 +133,7 @@ def test_ontology_limits(onto, owl_uri, expected, extra_ttl):
     ])
 def test_ontology_allowed_values(onto, owl_uri, expected, extra_ttl):
     if extra_ttl is not None:
-        onto.parse_extra_ttl(extra_ttl)
+        onto.parse_extra_triples(extra_ttl)
     allowed_values = onto.get_allowed_values(owl_uri)
     if expected is None:
         assert allowed_values is None

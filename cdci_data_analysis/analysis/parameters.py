@@ -445,7 +445,7 @@ class Parameter:
         if ontology_path:
             onto = Ontology(ontology_path)
             if extra_ttl is not None:
-                onto.parse_extra_ttl(extra_ttl)
+                onto.parse_extra_triples(extra_ttl)
             parameter_hierarchy = onto.get_parameter_hierarchy(owl_uri)
             par_format = onto.get_parameter_format(owl_uri)
             par_unit = onto.get_parameter_unit(owl_uri)

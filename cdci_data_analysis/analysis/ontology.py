@@ -9,6 +9,7 @@ from copy import deepcopy
 logger = logging.getLogger(__name__)
 
 ODA = rdf.Namespace("http://odahub.io/ontology#")
+ODAS = rdf.Namespace("https://odahub.io/ontology#")
 a = RDF.type
 
 def xsd_type_to_python_type(xsd_uri):
@@ -29,6 +30,7 @@ class MainOntologyGraph:
         self._g = rdf.Graph()
         self._g.parse(ontology_path)
         self._g.bind('oda', ODA)
+        self._g.bind('odas', ODAS)
         
     @property
     def ontology_path(self):
@@ -47,6 +49,7 @@ class MainOntologyGraph:
             self._g = rdf.Graph()
             self._g.parse(ontology_path)
             self._g.bind('oda', ODA)
+            self._g.bind('odas', ODAS)
             self._path = ontology_path
             self._ver = version 
 
@@ -220,16 +223,16 @@ class Ontology:
             raise RuntimeError("Ambiguous datatype of %s", param_uri) 
         return qres[0][0]
     
-    def parse_extra_ttl(self, extra_ttl, parse_oda_annotations = True):
+    def parse_extra_triples(self, extra_triples, format='n3', parse_oda_annotations = True):
         if parse_oda_annotations:
             tmpg = rdf.Graph()
-            tmpg.parse(data = extra_ttl)       
+            tmpg.parse(data = extra_triples)       
             try:
                 self.parse_oda_annotations(tmpg)
             except RuntimeError as e:
                 raise RequestNotUnderstood(e.message)
-            extra_ttl = tmpg.serialize(format='turtle')
-        self.g.parse(data = extra_ttl)
+            extra_triples = tmpg.serialize(format=format)
+        self.g.parse(data = extra_triples, format = format)
             
         
     def get_parameter_hierarchy(self, param_uri):
