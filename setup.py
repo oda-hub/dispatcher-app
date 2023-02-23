@@ -55,6 +55,10 @@ test_req = [
     'psutil',
 ]
 
+onto_req = [
+    'rdflib',
+]
+
 packs = find_packages()
 
 print ('packs',packs)
@@ -78,6 +82,7 @@ setup(name='cdci_data_analysis',
       include_package_data=True,
       install_requires=install_req,
       extras_require={
-          'test': test_req
+          'test': test_req,
+          'ontology': onto_req
       }
       )

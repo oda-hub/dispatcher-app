@@ -64,7 +64,7 @@ class DataServerConf:
 
         if allowed_keys is None:
             #temporary hardcode smth to preserve interface
-            allowed_optional_keys = ['data_server_cache']
+            allowed_optional_keys = ['data_server_cache', 'restricted_access']
 
             # preserving interface requires listing these keys, currently provided by all plugins (to be updated)
             allowed_optional_keys += ['data_server_remote_cache', 'dispatcher_mnt_point']
@@ -250,7 +250,7 @@ class ConfigEnv(object):
                                      disp_dict.get('product_gallery_options', {}).get('converttime_revnum_service_url', 'https://www.astro.unige.ch/mmoda/dispatch-data/gw/timesystem/api/v1.0/converttime/UTC/{}/REVNUM'),
                                      disp_dict.get('renku_options', {}).get('renku_gitlab_repository_url', None),
                                      disp_dict.get('renku_options', {}).get('renku_base_project_url', None),
-                                     disp_dict.get('renku_options', {}).get('ssh_key_path', None)
+                                     disp_dict.get('renku_options', {}).get('ssh_key_path', None),
                                      )
 
         # not used?
@@ -313,7 +313,7 @@ class ConfigEnv(object):
                             converttime_revnum_service_url,
                             renku_gitlab_repository_url,
                             renku_base_project_url,
-                            renku_gitlab_ssh_key_path
+                            renku_gitlab_ssh_key_path,
                             ):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
