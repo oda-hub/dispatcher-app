@@ -224,7 +224,9 @@ class Parameter:
                 par_default_format is not None and par_default_format != '':
             par_format = par_default_format
 
-        self.check_value = check_value
+        if check_value is not None:
+            logger.warning('Passing check_value to class constructor is deprecated. Override .check_value() method instead.')
+            self._deprecated_check_value = check_value
 
         if allowed_units is not None:
             # handles case of []
@@ -281,22 +283,33 @@ class Parameter:
     @value.setter
     def value(self, v):
         if v is not None:
-            if self.check_value is not None:
-                self.check_value(v, units=self.units, name=self.name, par_format=self.par_format)
+            if isinstance(v, str):
+                v = v.strip()
+
+            try:
+                self.set_par_internal_value(v)
+            except ValueError as e:
+                raise RequestNotUnderstood(f'Parameter {self.name} wrong value {v}. {e}')
+
+            if self._deprecated_check_value is not None:
+                self._deprecated_check_value(v, units=self.units, name=self.name, par_format=self.par_format)
+
+            self.check_value()
+           
             if self._min_value is not None or self._max_value is not None:
                 self.check_bounds(v,
-                                  min_value = self._min_value, 
-                                  max_value = self._max_value,
-                                  name = self.name)            
+                                    min_value = self._min_value, 
+                                    max_value = self._max_value,
+                                    name = self.name)
+        
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
                     raise RequestNotUnderstood(f'Parameter {self.name} wrong value {v}: not in allowed {self._allowed_values}')
-            if isinstance(v, str):
-                self._value = v.strip()
-            else:
-                self._value = v
         else:
             self._value = None
+
+    def set_par_internal_value(self, value):
+        self._value = value
 
     @property
     def default_units(self):
@@ -361,14 +374,14 @@ class Parameter:
             raise
 
         if in_dictionary is True:
-            return self.set_par(value=v, units=u, par_format=f)
+            return self._set_par_and_get_default(value=v, units=u, par_format=f)
         else:
             if verbose is True:
                 logger.debug('setting par: %s in the dictionary to its default value' % par_name)
             # set the default value
             return self.value
 
-    def set_par(self, value, units=None, par_format=None):
+    def _set_par_and_get_default(self, value, units=None, par_format=None):
         if units is not None:
             self.units = units
 
@@ -384,7 +397,15 @@ class Parameter:
     def get_value_in_default_format(self):
         return self.get_value_in_format(self.par_default_format)
 
-    def get_value_in_format(self, units):
+    def get_value_in_format(self, format):
+        logger.warning(f'no explict conversion implemented for the parameter {self.name}, '
+                       f'the non converted value is returned')
+        return self.value
+    
+    def get_value_in_default_units(self):
+        return self.get_value_in_units(self.par_default_units)
+
+    def get_value_in_units(self, units):
         logger.warning(f'no explict conversion implemented for the parameter {self.name}, '
                        f'the non converted value is returned')
         return self.value
@@ -407,13 +428,15 @@ class Parameter:
             raise RuntimeError(f'wrong type for par: {name}, found: {par_type}, allowed: {allowed}')
 
     @staticmethod
-    def check_value(val, units=None, name=None, par_format=None):
+    def _deprecated_check_value(val, units=None, name=None, par_format=None):
         pass
     
-    @staticmethod
-    def check_bounds(val, min_value, max_value, name):
+    def check_bounds(self, val, min_value, max_value, name):
         raise NotImplementedError(f"Parameter {name} doesn't support min_value/max_value check")
-        
+    
+    def check_value(self):
+        pass
+            
     def reprJSONifiable(self):
         # produces json-serialisable list
         reprjson = [dict(name=self.name, units=self.units, value=self.value)]
@@ -528,8 +551,7 @@ class Name(String):
 class NumericParameter(Parameter):
     owl_uris = ("http://odahub.io/ontology#NumericParameter")
     
-    @staticmethod
-    def check_bounds(val, min_value = None, max_value = None, name=None):
+    def check_bounds(self, val, min_value = None, max_value = None, name=None):
         if min_value is not None:
             if isinstance(min_value, str): min_value = float(min_value)
             if val < min_value:
@@ -575,7 +597,7 @@ class Float(NumericParameter):
     @value.setter
     def value(self, v):
         if v is not None and v != '':
-            self.check_value(v, name=self.name, units=self.units)
+            self._deprecated_check_value(v, name=self.name, units=self.units)
             self._value = float(v)
             if self._min_value is not None or self._max_value is not None:
                 self.check_bounds(self._value,
@@ -591,7 +613,7 @@ class Float(NumericParameter):
         return self.value
 
     def get_value_in_default_units(self):
-        self.check_value(self.value, name=self.name, units=self.units)
+        self._deprecated_check_value(self.value, name=self.name, units=self.units)
         return float(self.value) if self.value is not None else None
 
     def get_default_value(self):
@@ -647,7 +669,7 @@ class Integer(NumericParameter):
     @value.setter
     def value(self, v):
         if v is not None and v != '':
-            self.check_value(v, name=self.name, units=self.units)
+            self._deprecated_check_value(v, name=self.name, units=self.units)
             self._v = int(v)
             if self._min_value is not None or self._max_value is not None:
                 self.check_bounds(self._v,
@@ -658,7 +680,7 @@ class Integer(NumericParameter):
             self._v = None
 
     def get_value_in_default_units(self):
-        self.check_value(self.value, name=self.name, units=self.units)
+        self._deprecated_check_value(self.value, name=self.name, units=self.units)
         return int(self.value) if self.value is not None else None
 
     @staticmethod
@@ -854,8 +876,8 @@ class InputProdList(Parameter):
     @value.setter
     def value(self, v):
         if v is not None:
-            if self.check_value is not None:
-                self.check_value(v, par_format=self.par_format, name=self.name)
+            if self._deprecated_check_value is not None:
+                self._deprecated_check_value(v, par_format=self.par_format, name=self.name)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
                     raise RequestNotUnderstood(f'Parameter {self.name} wrong value {v}: not in allowed {self._allowed_values}')
