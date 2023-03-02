@@ -40,7 +40,10 @@ from .parameters import (Parameter,
                          DetectionThreshold,
                          Float,
                          TimeDelta,
-                         SpectralBoundary # this one is not used here but wildcard-imported from this module by integral plugin
+                         
+                         # these are not used here but wildcard-imported from this module by integral plugin
+                         SpectralBoundary,
+                         Integer
                          )
 from .products import SpectralFitProduct, QueryOutput, QueryProductList, ImageProduct
 from .io_helper import FilePath
