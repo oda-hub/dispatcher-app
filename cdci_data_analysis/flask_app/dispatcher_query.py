@@ -34,9 +34,12 @@ import logstash
 import shutil
 import jwt
 import re
+import logging
+import json
+import typing
 
 from ..plugins import importer
-from ..analysis.queries import * # TODO: evil wildcard import
+from ..analysis.queries import SourceQuery
 from ..analysis import tokenHelper, email_helper
 from ..analysis.instrument import params_not_to_be_included
 from ..analysis.hash import make_hash
