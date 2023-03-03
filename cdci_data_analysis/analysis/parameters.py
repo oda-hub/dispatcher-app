@@ -290,6 +290,8 @@ class Parameter:
                 self.set_par_internal_value(v)
             except ValueError as e:
                 raise RequestNotUnderstood(f'Parameter {self.name} wrong value {v}. {e}')
+            except Exception:
+                raise
 
             if self._deprecated_check_value is not None:
                 kwargs = { kw: getattr(self, kw) for kw in ('units', 'name', 'par_format') 
@@ -648,6 +650,12 @@ class Integer(NumericParameter):
                          max_value = max_value,
                          units_name = units_name)
 
+    def set_par_internal_value(self, value):
+        if isinstance(value, float):
+            message = f'{value} is an invalid value for {self.name} since it cannot be used as an Integer'
+            logger.error(message)
+            raise RequestNotUnderstood(message)
+        return super().set_par_internal_value(value)
 
 class Time(Parameter):
     owl_uris = ("http://odahub.io/ontology#TimeInstant",)
