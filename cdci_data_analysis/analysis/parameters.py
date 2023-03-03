@@ -893,26 +893,30 @@ class DetectionThreshold(Float):
 
         super().__init__(value=value,
                          units=units,
-                         # TODO to check if it's correct
-                         check_value=self.check_float_value,
+                         check_value=None,
                          name=name,
                          allowed_units=_allowed_units,
                          min_value = min_value,
                          max_value = max_value)
 
+    # 'sigma' is not astropy unit, so need to override methods
+    def get_value_in_units(self, units):
+        return self.value
+    
+    def set_par_internal_value(self, value):
+        if value is not None and value != '':
+            self._value = self.default_type(value) 
+        else:
+            self._value = None
 
 class UserCatalog(Parameter):
     def __init__(self, value=None, name_format='str', name=None):
         _allowed_units = ['str']
         super().__init__(value=value,
                          par_format=name_format,
-                         check_value=self.check_name_value,
+                         check_value=None,
                          name=name,
                          allowed_units=_allowed_units)
-
-    @staticmethod
-    def check_name_value(value, units=None, name=None, par_format=None):
-        pass
 
 class Boolean(Parameter):
     owl_uris = ('http://www.w3.org/2001/XMLSchema#bool',"http://odahub.io/ontology#Boolean")
