@@ -3011,7 +3011,8 @@ def test_param_value(dispatcher_live_fixture):
                            'energ': 2.0,
                            'T1': 57818.560277777775,
                            'T2': 57819.560277777775,
-                           'T_format': 'mjd'},
+                           'T_format': 'mjd',
+                           'energy_units': 'MeV'},
                   )
     
     assert c.status_code == 200
@@ -3022,15 +3023,16 @@ def test_param_value(dispatcher_live_fixture):
     assert jdata['products']['echo']['ang'] == 2
     # converted in the default units, which for the ang_deg parameter is arcsec
     assert jdata['products']['analysis_parameters']['ang_deg'] == 7200
-    assert jdata['products']['echo']['ang_deg'] == 7200
-    # TODO: but it should be kept un original request units in api_code, test it
+    # in the products it instead remains in deg
+    assert jdata['products']['echo']['ang_deg'] == 2
 
-    #also converted to default units, which is keV
     assert jdata['products']['analysis_parameters']['energ'] == 2000
-    assert jdata['products']['echo']['energ'] == 2000
+    assert jdata['products']['analysis_parameters']['energy_units'] == 'keV'
+    assert jdata['products']['echo']['energ'] == 2
 
     assert jdata['products']['analysis_parameters']['T1'] == '2017-03-06T13:26:48.000'
-    assert jdata['products']['echo']['T1'] == '2017-03-06T13:26:48.000'
+    assert jdata['products']['analysis_parameters']['T_format'] == 'isot'
+    assert jdata['products']['echo']['T1'] == 57818.560277777775
 
 @pytest.mark.fast
 def test_unknown_argument(dispatcher_live_fixture):

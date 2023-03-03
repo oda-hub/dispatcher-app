@@ -262,7 +262,7 @@ class InstrumentQueryBackEnd:
                             use_scws=self.use_scws,
                             sentry_dsn=self.sentry_dsn
                         )
-                        self.par_dic, self.cleaned_input_args = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
+                        self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
 
                 # TODO: if not callback!
                 # if 'query_status' not in self.par_dic:
@@ -1801,8 +1801,7 @@ class InstrumentQueryBackEnd:
                                                           verbose=verbose,
                                                           dry_run=dry_run,
                                                           api=api,
-                                                          decoded_token=self.decoded_token,
-                                                          api_par_dic = self.cleaned_input_args)
+                                                          decoded_token=self.decoded_token)
                     self.log_query_progression("after instrument.run_query")                                                          
                 except RequestNotAuthorized as e:
                     return self.build_response_failed('oda_api permissions failed',

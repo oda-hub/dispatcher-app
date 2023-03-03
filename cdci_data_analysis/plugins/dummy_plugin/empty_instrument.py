@@ -80,7 +80,7 @@ def my_instr_factory():
 
     ang = Angle(value=1., units='arcsec', default_units='arcsec', name='ang')
     ang_deg = Angle(value=1., units='deg', default_units='arcsec', name='ang_deg')
-    energ = Energy(value=1., E_units='MeV', name='energ')
+    energ = Energy(value=1., E_units='MeV', name='energ', units_name='energy_units')
     echo_param_query = EchoProductQuery('echo_parameters_dummy_query',
                                         parameters_list=[ang, ang_deg, energ])
     
