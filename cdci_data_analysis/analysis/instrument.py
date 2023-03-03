@@ -161,7 +161,7 @@ class Instrument:
             param_list = [par for _query in self._queries_list for par in _query.parameters]
 
         updated_arg_dic = arg_dic.copy()
-        unpdated_input_args = arg_dic.copy()
+        updated_input_args = arg_dic.copy()
         
         for par in param_list:
             self.logger.info("before normalizing, set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
@@ -177,12 +177,14 @@ class Instrument:
                 if par.units_name is not None:
                     if par.default_units is not None:
                         updated_arg_dic[par.units_name] = par.default_units
+                        updated_input_args[par.units_name] = par.units
                     else:
                         raise InternalError("Error when setting the parameter %s: "
                                             "default unit not specified" % par.name)
                 if par.par_format_name is not None:
                     if par.par_default_format is not None:
                         updated_arg_dic[par.par_format_name] = par.par_default_format
+                        updated_input_args[par.par_format_name] = par.par_format
                     else:
                         raise InternalError("Error when setting the parameter %s: "
                                             "default format not specified" % par.name)
@@ -203,13 +205,13 @@ class Instrument:
             if k not in known_argument_names:
                 if not self.allow_unknown_arguments:
                     updated_arg_dic.pop(k) 
-                    unpdated_input_args.pop(k)
+                    updated_input_args.pop(k)
                     self.logger.warning("argument '%s' is in the request but not used by instrument '%s', removing it", k, self.name)
                     self.unknown_arguments_name_list.append(k)
                 else:
                     self.logger.warning("argument '%s' not defined for instrument '%s'", k, self.name)
         
-        return updated_arg_dic, unpdated_input_args
+        return updated_arg_dic, updated_input_args
 
     def set_par(self,par_name,value):
         p=self.get_par_by_name(par_name)
