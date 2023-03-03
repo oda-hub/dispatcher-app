@@ -3030,7 +3030,7 @@ def test_param_value(dispatcher_live_fixture):
     assert jdata['products']['echo']['energ'] == 2000
 
     assert jdata['products']['analysis_parameters']['T1'] == '2017-03-06T13:26:48.000'
-    assert jdata['products']['echo']['T1'] == 57818.560277777775
+    assert jdata['products']['echo']['T1'] == '2017-03-06T13:26:48.000'
 
 @pytest.mark.fast
 def test_unknown_argument(dispatcher_live_fixture):
