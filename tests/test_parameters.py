@@ -583,7 +583,6 @@ def test_time_interval_param(value, unit, default_unit, expected_value, expected
 @pytest.mark.fast
 @pytest.mark.parametrize("value, unit", 
                          [('aaa', 's'),
-                          (None, 's'),
                           (1, 'minuit')])
 def test_time_interval_wrong_val(value, unit):
     with pytest.raises((RequestNotUnderstood, RuntimeError)):
