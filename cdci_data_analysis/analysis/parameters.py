@@ -902,9 +902,9 @@ class SpectralBoundary(Energy):
                          max_value=max_value, 
                          units_name=units_name)
         
-        @staticmethod
-        def check_energy_value(value, units, name): 
-            pass
+    @staticmethod
+    def check_energy_value(value, units, name): 
+        pass #the new-style check is anyway called before
         
 
 class DetectionThreshold(Float):
