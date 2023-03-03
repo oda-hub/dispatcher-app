@@ -293,12 +293,12 @@ class Parameter:
             except Exception:
                 raise
 
+            self.check_value()
+            
             if self._deprecated_check_value is not None:
                 kwargs = { kw: getattr(self, kw) for kw in ('units', 'name', 'par_format') 
                           if kw in signature(self._deprecated_check_value).parameters }        
                 self._deprecated_check_value(v, **kwargs)
-
-            self.check_value()
            
             if self._min_value is not None or self._max_value is not None:
                 self.check_bounds()
@@ -866,10 +866,6 @@ class Energy(Float):
                  max_value = None,
                  units_name = None):
 
-        # retro-compatibility with integral plugin
-        if check_value is None and getattr(self, 'check_energy_value', False):
-            check_value = self.check_energy_value
-
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
 
         super().__init__(value=value,
@@ -883,8 +879,33 @@ class Energy(Float):
                          units_name = units_name)
 
 class SpectralBoundary(Energy):
-    pass
-
+    def __init__(self, 
+                 value=None, 
+                 E_units='keV', 
+                 default_units='keV', 
+                 name=None, 
+                 check_value=None, 
+                 min_value=None, 
+                 max_value=None, 
+                 units_name=None):
+    
+        # retro-compatibility with integral plugin
+        if check_value is None:
+            check_value = self.check_energy_value
+    
+        super().__init__(value=value, 
+                         E_units=E_units, 
+                         default_units=default_units, 
+                         name=name, 
+                         check_value=check_value, 
+                         min_value=min_value, 
+                         max_value=max_value, 
+                         units_name=units_name)
+        
+        @staticmethod
+        def check_energy_value(value, units, name): 
+            pass
+        
 
 class DetectionThreshold(Float):
     owl_uris = ("http://odahub.io/ontology#DetectionThreshold",)    
