@@ -51,13 +51,9 @@ from ...analysis.parameters import SpectralBoundary, Angle, Energy, Integer, Flo
 
 
 class BoundaryFloat(Float):
-    @staticmethod
-    def check_float_value(value, units=None, name=None):
-        Float.check_float_value(value, units=units, name=name)
-
-        value = float(value)
-
-        if value > 800:
+    def check_value(self):
+        super().check_value()
+        if self.value > 800:
             raise RequestNotUnderstood('p value is restricted to 800 W')
 
 
