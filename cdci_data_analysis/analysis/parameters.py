@@ -405,7 +405,7 @@ class Parameter:
         return self.value
     
     def get_value_in_default_units(self):
-        return self.get_value_in_units(self.par_default_units)
+        return self.get_value_in_units(self.default_units)
 
     def get_value_in_units(self, units):
         logger.warning(f'no explict conversion implemented for the parameter {self.name}, '
@@ -571,8 +571,8 @@ class NumericParameter(Parameter):
             return self.value
         if self._quantity is None:
             return None
-        u = getattr(apy_u, self.units)
-        return self._quantity.to(u)
+        u = getattr(apy_u, units)
+        return self._quantity.to_value(u)
     
     def get_default_value(self):
         return self.get_value_in_default_units()
