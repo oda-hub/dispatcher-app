@@ -682,6 +682,10 @@ class Time(Parameter):
     @property
     def value(self):
         return self._astropy_time.value
+    
+    @value.setter
+    def value(self, v):
+        super(self.__class__, self.__class__).value.fset(self, v)
 
     def set_par_internal_value(self, value):
         try:
