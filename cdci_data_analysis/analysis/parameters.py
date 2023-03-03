@@ -374,14 +374,14 @@ class Parameter:
             raise
 
         if in_dictionary is True:
-            return self._set_par_and_get_default(value=v, units=u, par_format=f)
+            return self.set_par(value=v, units=u, par_format=f)
         else:
             if verbose is True:
                 logger.debug('setting par: %s in the dictionary to its default value' % par_name)
             # set the default value
             return self.value
 
-    def _set_par_and_get_default(self, value, units=None, par_format=None):
+    def set_par(self, value, units=None, par_format=None):
         if units is not None:
             self.units = units
 

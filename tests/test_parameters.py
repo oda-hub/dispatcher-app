@@ -160,7 +160,7 @@ def test_angle_parameter():
             # # backward compatibility
             # assert parameter.get_value_in_default_format() == outcome_default_units
             # setting value during request
-            assert parameter._set_par_and_get_default(input_value) == outcome_default_units
+            assert parameter.set_par(input_value) == outcome_default_units
             assert parameter.value == outcome
             if 'units' in format_args:
                 assert parameter.get_value_in_units(format_args['units']) == outcome
@@ -195,7 +195,7 @@ def test_time_parameter():
             # backward compatibility
             assert parameter.get_value_in_default_format() == outcome_default_format
             # setting value during request
-            assert parameter._set_par_and_get_default(input_value) == outcome_default_format
+            assert parameter.set_par(input_value) == outcome_default_format
             assert parameter.value == outcome
             if 'T_format' in format_args:
                 assert parameter.get_value_in_format(format_args['T_format']) == outcome
@@ -292,7 +292,7 @@ def test_parameter_normalization_no_units():
 
             # setting value during request
             
-            assert parameter._set_par_and_get_default(input_value) == outcome
+            assert parameter.set_par(input_value) == outcome
             assert parameter.value == outcome
             assert type(parameter.value) == type(outcome)
 
@@ -323,7 +323,7 @@ def test_parameter_normalization_with_units():
 
             # setting value during request
 
-            assert parameter._set_par_and_get_default(input_value) == outcome
+            assert parameter.set_par(input_value) == outcome
             assert parameter.value == outcome
             assert type(parameter.value) == type(outcome)
 
