@@ -477,9 +477,8 @@ class Instrument:
         # TODO: this can be misleading since it's the parameters actually used
         query_out.set_analysis_parameters(par_dic)
         
-        if api_par_dic is None:
-            api_par_dic = par_dic
-        query_out.set_api_code(api_par_dic, url=back_end_query.config.products_url + "/dispatch-data")
+        # TODO: this could be changed to api_par_dic to use parameters in original units  
+        query_out.set_api_code(par_dic, url=back_end_query.config.products_url + "/dispatch-data")
         query_out.dump_analysis_parameters(out_dir, par_dic)
 
         return query_out
