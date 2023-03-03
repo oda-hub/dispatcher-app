@@ -3022,11 +3022,12 @@ def test_param_value(dispatcher_live_fixture):
     assert jdata['products']['echo']['ang'] == 2
     # converted in the default units, which for the ang_deg parameter is arcsec
     assert jdata['products']['analysis_parameters']['ang_deg'] == 7200
-    # in the products it instead remains in deg
-    assert jdata['products']['echo']['ang_deg'] == 2
+    assert jdata['products']['echo']['ang_deg'] == 7200
+    # TODO: but it should be kept un original request units in api_code, test it
 
-    assert jdata['products']['analysis_parameters']['energ'] == 2
-    assert jdata['products']['echo']['energ'] == 2
+    #also converted to default units, which is keV
+    assert jdata['products']['analysis_parameters']['energ'] == 2000
+    assert jdata['products']['echo']['energ'] == 2000
 
     assert jdata['products']['analysis_parameters']['T1'] == '2017-03-06T13:26:48.000'
     assert jdata['products']['echo']['T1'] == 57818.560277777775
