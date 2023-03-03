@@ -34,7 +34,6 @@ import logging
 from astropy.time import Time as astropyTime
 from astropy.time import TimeDelta as astropyTimeDelta
 from astropy import units as apy_u 
-from astropy.coordinates import Angle as astropyAngle
 
 import numpy as np
 
@@ -293,7 +292,9 @@ class Parameter:
                 raise RequestNotUnderstood(f'Parameter {self.name} wrong value {v}. {e}')
 
             if self._deprecated_check_value is not None:
-                self._deprecated_check_value(v, units=self.units, name=self.name, par_format=self.par_format)
+                kwargs = { kw: getattr(self, kw) for kw in ('units', 'name', 'par_format') 
+                          if kw in signature(self._deprecated_check_value).parameters }        
+                self._deprecated_check_value(v, **kwargs)
 
             self.check_value()
            
@@ -856,7 +857,9 @@ class Energy(Float):
                  min_value = None, 
                  max_value = None,
                  units_name = None):
-        if check_value is None:
+
+        # retro-compatibility with integral plugin
+        if check_value is None and getattr(self, 'check_energy_value', False):
             check_value = self.check_energy_value
 
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
@@ -870,12 +873,6 @@ class Energy(Float):
                          min_value = min_value,
                          max_value = max_value,
                          units_name = units_name)
-
-    # TODO re-introduced for retro-compatibility
-    @staticmethod
-    def check_energy_value(value, units=None, name=None):
-        Float.check_float_value(value, units=units, name=name)
-
 
 class SpectralBoundary(Energy):
     pass

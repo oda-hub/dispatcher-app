@@ -103,13 +103,13 @@ def test_input_prod_list():
 
 @pytest.mark.fast
 def test_energy_defaults():
-    for parameter_type, input_value, outcome, e_units, expected_type in [
-        (Energy, 10., 10., 'keV', float),
-        (SpectralBoundary, 10., 10., 'keV', float),
-        (SpectralBoundary, 10, 10., 'keV', float),
-        (SpectralBoundary, 10., 10., 'eV', float),
-        (SpectralBoundary, 10., RuntimeError, 'W', None),
-        (SpectralBoundary, 'ssss', RequestNotUnderstood, None, None),
+    for parameter_type, input_value, outcome, outcome_in_default, e_units, expected_type in [
+        (Energy, 10., 10., 10., 'keV', float),
+        (SpectralBoundary, 10., 10., 10., 'keV', float),
+        (SpectralBoundary, 10, 10., 10., 'keV', float),
+        (SpectralBoundary, 10., 10., 0.01, 'eV', float),
+        (SpectralBoundary, 10., RuntimeError, ..., 'W', None),
+        (SpectralBoundary, 'ssss', RequestNotUnderstood, ...,  None, None),
     ]:
         def constructor():
             return parameter_type(value=input_value,
@@ -122,8 +122,8 @@ def test_energy_defaults():
         else:
             p_spectral_boundary = constructor()
 
-            assert p_spectral_boundary.get_value_in_default_units() == p_spectral_boundary.value
-            assert p_spectral_boundary.get_value_in_default_units() == outcome
+            assert p_spectral_boundary.get_value_in_default_units() == outcome_in_default
+            assert p_spectral_boundary.value == outcome
             assert type(p_spectral_boundary.value) == expected_type
 
 @pytest.mark.fast
