@@ -261,6 +261,8 @@ class Parameter:
         self._arg_list = [self.name]
         if par_format_name is not None:
             self._arg_list.append(par_format_name)
+        if units_name is not None:
+            self._arg_list.append(units_name)
         
     @property
     def argument_names_list(self):
