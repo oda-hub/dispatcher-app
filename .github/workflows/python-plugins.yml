@@ -67,9 +67,15 @@ jobs:
           < plugin/requirements.txt grep -v oda-hub/dispatcher-app | grep -v cdci-data-analysis | grep -v oda_api > plugin-req.txt
           pip install -r plugin-req.txt; 
         fi        
+        if [ -f plugin/test-requirements.txt ]; then 
+          < plugin/test-requirements.txt grep -v oda-hub/dispatcher-app | grep -v cdci-data-analysis | grep -v oda_api > plugin-test-req.txt
+          pip install -r plugin-test-req.txt; 
+        fi        
         pip install -e  ./plugin[test]
     
     - name: Test ${{ matrix.plugin-name }} plugin with pytest
+      env: 
+        ODA_ONTOLOGY_PATH: ../tests/oda-ontology.ttl
       run: |
         cd plugin && DISPATCHER_MOCK_KB=yes python -m pytest tests -sv --full-trace --log-cli-level=DEBUG 
     
