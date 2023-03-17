@@ -2251,7 +2251,7 @@ def test_product_gallery_get_all_astro_entities(dispatcher_live_fixture_with_gal
     drupal_res_obj = c.json()
 
     assert isinstance(drupal_res_obj, list)
-    assert params['src_name'] in drupal_res_obj
+    assert any(src['title'] == params['src_name'] for src in drupal_res_obj)
 
 
 @pytest.mark.test_drupal
