@@ -848,7 +848,7 @@ def get_all_source_astrophysical_entities(product_gallery_url, gallery_jwt_token
                                      sentry_dsn=sentry_dsn)
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the astrophysical entity information")
     if isinstance(output_get, list):
-        entities = list(obj['title'] for obj in output_get)
+        entities = list({'title': obj['title'], 'ra': obj['field_source_ra'], 'dec': obj['field_source_dec']} for obj in output_get)
 
     return entities
 
