@@ -2255,6 +2255,67 @@ def test_product_gallery_get_all_astro_entities(dispatcher_live_fixture_with_gal
 
 
 @pytest.mark.test_drupal
+def test_product_gallery_get_data_products_list_for_given_source(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    # let's create a source
+    source_params = {
+        'token': encoded_token,
+        'src_name': 'test astro entity' + '_' + str(uuid.uuid4())
+    }
+
+    c = requests.post(os.path.join(server, "post_astro_entity_to_gallery"),
+                      params={**source_params},
+                      )
+
+    assert c.status_code == 200
+
+    # let's post a product with the source just created
+    product_params = {
+        'instrument': 'empty',
+        'ra': 150,
+        'dec': 350,
+        'src_name': source_params['src_name'],
+        'content_type': 'data_product',
+        'token': encoded_token,
+        'insert_new_source': True
+    }
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                      params={**product_params}
+                      )
+
+    assert c.status_code == 200
+
+    params = {
+        'token': encoded_token,
+        'src_name': source_params['src_name']
+    }
+
+    c = requests.get(os.path.join(server, "get_data_product_list_by_astro_entity_name"),
+                     params=params
+                     )
+
+    assert c.status_code == 200
+    drupal_res_obj = c.json()
+
+    assert isinstance(drupal_res_obj, list)
+    assert len(drupal_res_obj) == 1
+    assert 'ra' in drupal_res_obj[0]
+    assert float(drupal_res_obj[0]['ra']) == float(product_params['ra'])
+    assert 'dec' in drupal_res_obj[0]
+    assert float(drupal_res_obj[0]['dec']) == float(product_params['dec'])
+
+
+@pytest.mark.test_drupal
 def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
     server = dispatcher_live_fixture_with_gallery
 
