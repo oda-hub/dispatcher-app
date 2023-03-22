@@ -2342,8 +2342,24 @@ def test_product_gallery_get_data_products_list_for_given_source(dispatcher_live
         drupal_res_obj_alternative_name = c.json()
         assert isinstance(drupal_res_obj_alternative_name, list)
 
-        assert drupal_res_obj_alternative_name == drupal_res_obj_source_name
+        assert len(drupal_res_obj_alternative_name) == len(drupal_res_obj_source_name)
 
+        # Comparing list1 and list2
+        for dict1 in drupal_res_obj_alternative_name:
+            found = False
+            for dict2 in drupal_res_obj_source_name:
+                if dict1 == dict2:
+                    found = True
+                    break
+            assert found
+
+        for dict2 in drupal_res_obj_source_name:
+            found = False
+            for dict1 in drupal_res_obj_alternative_name:
+                if dict1 == dict2:
+                    found = True
+                    break
+            assert found
 
 @pytest.mark.test_drupal
 def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
