@@ -2300,7 +2300,7 @@ def test_product_gallery_get_data_products_list_for_given_source(dispatcher_live
         'src_name': source_params['src_name']
     }
 
-    c = requests.get(os.path.join(server, "get_data_product_list_by_astro_entity_name"),
+    c = requests.get(os.path.join(server, "get_data_product_list_by_source_name"),
                      params=params
                      )
 

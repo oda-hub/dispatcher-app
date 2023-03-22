@@ -761,8 +761,8 @@ def get_all_astro_entities():
     return output_list
 
 
-@app.route('/get_data_product_list_by_astro_entity_name', methods=['GET'])
-def get_data_product_list_by_astro_entity_name():
+@app.route('/get_data_product_list_by_source_name', methods=['GET'])
+def get_data_product_list_by_source_name():
     logger.info("request.args: %s ", request.args)
     logger.info("request.files: %s ", request.files)
 
