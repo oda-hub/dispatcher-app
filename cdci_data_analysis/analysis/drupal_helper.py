@@ -840,6 +840,38 @@ def get_all_revolutions(product_gallery_url, gallery_jwt_token, sentry_dsn=None)
     return entities
 
 
+def get_data_product_list_by_source_name(product_gallery_url, gallery_jwt_token, src_name=None, sentry_dsn=None) -> Optional[list]:
+    product_list = []
+    if src_name is None:
+        return  product_list
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    source_entity_list = get_source_astrophysical_entity_id_by_source_and_alternative_name(product_gallery_url,
+                                                                                         gallery_jwt_token,
+                                                                                         source_name=src_name,
+                                                                                         sentry_dsn=sentry_dsn)
+
+    source_entity_id = None
+    if len(source_entity_list) >= 1:
+        source_entity_id = source_entity_list[0]['nid']
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/data_products/source_products/{source_entity_id}",
+                                     headers=headers,
+                                     sentry_dsn=sentry_dsn)
+    output_get = analyze_drupal_output(log_res, operation_performed="retrieving the astrophysical entity information")
+    if isinstance(output_get, list):
+        for obj in output_get:
+            refactored_obj = {}
+            for k, v in obj.items():
+                refactored_key = k
+                if k.startswith('field_'):
+                    refactored_key = k.replace('field_', '')
+                refactored_obj[refactored_key] = v
+            product_list.append(refactored_obj)
+
+    return product_list
+
+
 def get_all_source_astrophysical_entities(product_gallery_url, gallery_jwt_token, sentry_dsn=None) -> Optional[list]:
     entities = []
     headers = get_drupal_request_headers(gallery_jwt_token)
