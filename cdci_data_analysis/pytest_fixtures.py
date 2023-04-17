@@ -428,7 +428,7 @@ def dispatcher_test_conf_with_external_products_url_fn(dispatcher_test_conf_fn):
     fn = dispatcher_test_conf_fn
     with open(fn, "r+") as f:
         data = f.read()
-        data = re.sub('(\s+products_url:).*\n', '\n    products_url: https://www.example.ch/mmoda\n', data)
+        data = re.sub('(\s+products_url:).*\n', '\n    products_url: http://localhost:1234/mmoda/\n', data)
         f.seek(0)
         f.write(data)
         f.truncate()
