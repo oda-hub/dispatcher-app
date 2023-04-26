@@ -2453,10 +2453,6 @@ def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_f
         yaml_file_content_obs_rev_2542 = f_yaml_file_yaml_file_content_obs_rev_2542.read()
 
     assert yaml_file_content_obs_rev_2542 in drupal_res_obj['file_content']
-    # with open('observation_yaml_dummy_files/obs_rev_1.yaml', 'r') as f_yaml_file_yaml_file_content_obs_rev_1:
-    #     yaml_file_content_obs_rev_1 = f_yaml_file_yaml_file_content_obs_rev_1.read()
-    #
-    # assert yaml_file_content_obs_rev_1 in drupal_res_obj['file_content']
 
 
 @pytest.mark.test_drupal
