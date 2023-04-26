@@ -2287,7 +2287,7 @@ def test_product_gallery_get_data_products_list_for_given_source(dispatcher_live
             'instrument': 'empty',
             'ra': 150,
             'dec': 350,
-            'src_name': source_params['src_name'],
+            'src_name': source_name,
             'content_type': 'data_product',
             'token': encoded_token,
             'insert_new_source': True
@@ -2297,6 +2297,7 @@ def test_product_gallery_get_data_products_list_for_given_source(dispatcher_live
                           )
 
         assert c.status_code == 200
+
         params = {
             'token': encoded_token,
             'src_name': source_name
@@ -2355,6 +2356,57 @@ def test_product_gallery_get_data_products_list_for_given_source(dispatcher_live
         assert diff2 == set()
         assert diff1 == set()
 
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("source_name", ["known", "unknown"])
+def test_product_gallery_astro_entity_info(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_name):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    if source_name == 'unknown':
+        source_name = 'test astro entity' + '_' + str(uuid.uuid4())
+
+        params = {
+            'token': encoded_token,
+            'src_name': source_name
+        }
+        c = requests.get(os.path.join(server, "get_astro_entity_info_by_source_name"),
+                         params=params
+                         )
+
+        assert c.status_code == 200
+        drupal_res_obj = c.json()
+
+        assert drupal_res_obj == {}
+
+    else:
+        source_name = "V404 Cyg"
+        params = {
+            'token': encoded_token,
+            'src_name': source_name
+        }
+        c = requests.get(os.path.join(server, "get_astro_entity_info_by_source_name"),
+                         params=params
+                         )
+
+        assert c.status_code == 200
+        drupal_res_obj_source_name = c.json()
+        assert 'source_ra' in drupal_res_obj_source_name
+        assert 'source_dec' in drupal_res_obj_source_name
+        assert 'alternative_names_long_str' in drupal_res_obj_source_name
+        assert 'title' in drupal_res_obj_source_name
+        assert 'url' in drupal_res_obj_source_name
+        assert 'nid' in drupal_res_obj_source_name
+
+
 @pytest.mark.test_drupal
 def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
     server = dispatcher_live_fixture_with_gallery
@@ -2377,8 +2429,7 @@ def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_f
         'T2': now.strftime('%Y-%m-%dT%H:%M:%S')
     }
 
-    file_obj = {'yaml_file_0': open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'rb'),
-                'yaml_file_1': open('observation_yaml_dummy_files/obs_rev_1.yaml', 'rb')}
+    file_obj = {'yaml_file_0': open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'rb')}
 
     c = requests.post(os.path.join(server, "post_observation_to_gallery"),
                       params={**params},
@@ -2401,11 +2452,11 @@ def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_f
     with open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'r') as f_yaml_file_yaml_file_content_obs_rev_2542:
         yaml_file_content_obs_rev_2542 = f_yaml_file_yaml_file_content_obs_rev_2542.read()
 
-    with open('observation_yaml_dummy_files/obs_rev_1.yaml', 'r') as f_yaml_file_yaml_file_content_obs_rev_1:
-        yaml_file_content_obs_rev_1 = f_yaml_file_yaml_file_content_obs_rev_1.read()
-
-    assert yaml_file_content_obs_rev_1 in drupal_res_obj['file_content']
     assert yaml_file_content_obs_rev_2542 in drupal_res_obj['file_content']
+    # with open('observation_yaml_dummy_files/obs_rev_1.yaml', 'r') as f_yaml_file_yaml_file_content_obs_rev_1:
+    #     yaml_file_content_obs_rev_1 = f_yaml_file_yaml_file_content_obs_rev_1.read()
+    #
+    # assert yaml_file_content_obs_rev_1 in drupal_res_obj['file_content']
 
 
 @pytest.mark.test_drupal

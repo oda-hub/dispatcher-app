@@ -761,6 +761,61 @@ def get_all_astro_entities():
     return output_list
 
 
+@app.route('/get_astro_entity_info_by_source_name', methods=['GET'])
+def get_astro_entity_info_by_source_name():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="getting the info of an astro entity from the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    sentry_dsn = sentry.sentry_url
+
+    gallery_secret_key = app_config.product_gallery_secret_key
+    product_gallery_url = app_config.product_gallery_url
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
+                                                        user_email=user_email,
+                                                        sentry_dsn=sentry_dsn)
+    # update the token
+    gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+
+    src_name = request.args.get('src_name', None)
+
+    source_entity_info = drupal_helper.get_source_astrophysical_entity_info_by_source_and_alternative_name(product_gallery_url,
+                                                                                                          gallery_jwt_token,
+                                                                                                          source_name=src_name,
+                                                                                                          sentry_dsn=sentry_dsn)
+
+    refactored_astro_entity_info = {}
+    astro_entity_info = {}
+    if len(source_entity_info) >= 1:
+        astro_entity_info = source_entity_info[0]
+
+    for k, v in astro_entity_info.items():
+        refactored_key = k
+        if k.startswith('field_'):
+            refactored_key = k.replace('field_', '')
+        refactored_astro_entity_info[refactored_key] = v
+
+    output_obj = json.dumps(refactored_astro_entity_info)
+
+    return output_obj
+
+
+
 @app.route('/get_data_product_list_by_source_name', methods=['GET'])
 def get_data_product_list_by_source_name():
     logger.info("request.args: %s ", request.args)
