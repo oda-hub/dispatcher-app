@@ -2404,6 +2404,7 @@ def test_product_gallery_astro_entity_info(dispatcher_live_fixture_with_gallery,
         assert 'alternative_names_long_str' in drupal_res_obj_source_name
         assert 'title' in drupal_res_obj_source_name
         assert 'url' in drupal_res_obj_source_name
+        assert 'url_preview' in drupal_res_obj_source_name
         assert 'nid' in drupal_res_obj_source_name
 
 
