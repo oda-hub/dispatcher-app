@@ -775,7 +775,7 @@ def get_astro_entity_info_by_source_name():
                                                                   action="getting the info of an astro entity from the product gallery")
 
     if output_code is not None:
-        if output is None:
+        if output is None or not isinstance(output, str):
             output = 'Error while validating the token'
         return make_response(output, output_code)
 
