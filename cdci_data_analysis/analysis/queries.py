@@ -24,12 +24,34 @@ import json
 from collections import OrderedDict
 
 import sentry_sdk
+import decorator 
+import numpy as np
 
-from .parameters import *
+
+from .parameters import (Parameter, 
+                         ParameterGroup, 
+                         ParameterRange, 
+                         ParameterTuple,
+                         Name,
+                         Angle,
+                         Time,
+                         InputProdList,
+                         UserCatalog,
+                         DetectionThreshold,
+                         Float,
+                         TimeDelta,
+                         
+                         # these are not used here but wildcard-imported from this module by integral plugin
+                         SpectralBoundary,
+                         Integer
+                         )
 from .products import SpectralFitProduct, QueryOutput, QueryProductList, ImageProduct
 from .io_helper import FilePath
 from .exceptions import RequestNotUnderstood, UnfortunateRequestResults, BadRequest, InternalError
 import traceback
+
+logger = logging.getLogger(__name__)
+
 
 @decorator.decorator
 def check_is_base_query(func,prod_list,*args, **kwargs):

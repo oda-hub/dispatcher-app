@@ -359,6 +359,8 @@ class EchoProductQuery(ProductQuery):
      
     def get_data_server_query(self, instrument, config=None, **kwargs):
         param_names = instrument.get_parameters_name_list()
+        # this is very special test plugin to echo values as-is. 
+        # In real plugins .get_default_value() should be passed to backend
         param_dict = {x: instrument.get_par_by_name(x).value for x in param_names}
         return EchoServerDispatcher(instrument=instrument, param_dict=param_dict)
     
