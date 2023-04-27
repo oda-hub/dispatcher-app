@@ -903,7 +903,7 @@ def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, galle
 
 
 def get_source_astrophysical_entity_info_by_source_and_alternative_name(product_gallery_url, gallery_jwt_token, source_name=None, sentry_dsn=None) \
-        -> Union[list, None]:
+        -> Optional[list]:
     # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
 
