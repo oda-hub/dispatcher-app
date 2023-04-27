@@ -2429,7 +2429,9 @@ def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_f
         'T2': now.strftime('%Y-%m-%dT%H:%M:%S')
     }
 
-    file_obj = {'yaml_file_0': open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'rb')}
+    with open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'rb') as yaml_test_fn:
+        file_obj = {'yaml_file_0': yaml_test_fn}
+
 
     c = requests.post(os.path.join(server, "post_observation_to_gallery"),
                       params={**params},

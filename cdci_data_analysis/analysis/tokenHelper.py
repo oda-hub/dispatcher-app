@@ -1,6 +1,8 @@
 import jwt
 import oda_api.token
+
 from marshmallow import ValidationError
+from typing import Tuple, Optional, Union
 
 from cdci_data_analysis.analysis.exceptions import BadRequest
 from cdci_data_analysis.flask_app.schemas import EmailOptionsTokenSchema
@@ -111,7 +113,7 @@ def update_token_email_options(token, secret_key, new_options):
     return updated_token
 
 
-def validate_token_from_request(token, secret_key, required_roles=None, action=""):
+def validate_token_from_request(token, secret_key, required_roles=None, action="") -> Tuple[Union[str, dict, None], Optional[int]]:
     if token is None:
         return 'A token must be provided.', 403
     try:
