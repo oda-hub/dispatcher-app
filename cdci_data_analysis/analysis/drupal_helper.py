@@ -12,7 +12,7 @@ import uuid
 import glob
 import re
 
-from typing import Optional, Tuple, Dict, Union
+from typing import Optional, Tuple, Dict
 
 from ..flask_app.sentry import sentry
 
@@ -902,6 +902,7 @@ def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, galle
     return entities_id
 
 
+# TODO to verify if it will always return one single object for a single source name (or alternative name)
 def get_source_astrophysical_entity_info_by_source_and_alternative_name(product_gallery_url, gallery_jwt_token, source_name=None, sentry_dsn=None) \
         -> Optional[list]:
     # get from the drupal the relative id
