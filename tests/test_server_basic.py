@@ -2433,10 +2433,10 @@ def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_f
         file_obj = {'yaml_file_0': yaml_test_fn}
 
 
-    c = requests.post(os.path.join(server, "post_observation_to_gallery"),
-                      params={**params},
-                      files=file_obj
-                      )
+        c = requests.post(os.path.join(server, "post_observation_to_gallery"),
+                          params={**params},
+                          files=file_obj
+                          )
 
     assert c.status_code == 200
 
