@@ -812,6 +812,10 @@ def get_astro_entity_info_by_source_name():
         if k.startswith('field_'):
             refactored_key = k.replace('field_', '')
         refactored_astro_entity_info[refactored_key] = v
+    if 'nid' in astro_entity_info:
+        nid =  astro_entity_info['nid']
+
+        refactored_astro_entity_info['url_preview'] = os.path.join(product_gallery_url, f'node/{nid}/preview')
 
     output_obj = json.dumps(refactored_astro_entity_info)
 
