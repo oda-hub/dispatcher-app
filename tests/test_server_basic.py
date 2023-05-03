@@ -2359,7 +2359,8 @@ def test_product_gallery_get_data_products_list_for_given_source(dispatcher_live
 
 @pytest.mark.test_drupal
 @pytest.mark.parametrize("source_name", ["known", "unknown"])
-def test_product_gallery_astro_entity_info(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_name):
+@pytest.mark.parametrize("anonymous", ["known", "unknown"])
+def test_product_gallery_astro_entity_info(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_name, anonymous):
     server = dispatcher_live_fixture_with_gallery
 
     logger.info("constructed server: %s", server)
@@ -2375,9 +2376,11 @@ def test_product_gallery_astro_entity_info(dispatcher_live_fixture_with_gallery,
         source_name = 'test astro entity' + '_' + str(uuid.uuid4())
 
         params = {
-            'token': encoded_token,
             'src_name': source_name
         }
+        if not anonymous:
+            params['token'] = encoded_token
+
         c = requests.get(os.path.join(server, "get_astro_entity_info_by_source_name"),
                          params=params
                          )
@@ -2390,9 +2393,12 @@ def test_product_gallery_astro_entity_info(dispatcher_live_fixture_with_gallery,
     else:
         source_name = "V404 Cyg"
         params = {
-            'token': encoded_token,
             'src_name': source_name
         }
+
+        if not anonymous:
+            params['token'] = encoded_token
+
         c = requests.get(os.path.join(server, "get_astro_entity_info_by_source_name"),
                          params=params
                          )
