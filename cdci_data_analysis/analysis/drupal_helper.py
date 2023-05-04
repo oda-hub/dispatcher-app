@@ -16,7 +16,6 @@ from typing import Optional, Tuple, Dict
 
 from ..flask_app.sentry import sentry
 
-import sentry_sdk
 from dateutil import parser, tz
 from datetime import datetime
 from enum import Enum, auto
@@ -846,7 +845,7 @@ def get_data_product_list_by_source_name(product_gallery_url, gallery_jwt_token,
         return  product_list
     headers = get_drupal_request_headers(gallery_jwt_token)
 
-    source_entity_list = get_source_astrophysical_entity_id_by_source_and_alternative_name(product_gallery_url,
+    source_entity_list = get_source_astrophysical_entity_info_by_source_and_alternative_name(product_gallery_url,
                                                                                          gallery_jwt_token,
                                                                                          source_name=src_name,
                                                                                          sentry_dsn=sentry_dsn)
@@ -855,19 +854,20 @@ def get_data_product_list_by_source_name(product_gallery_url, gallery_jwt_token,
     if len(source_entity_list) >= 1:
         source_entity_id = source_entity_list[0]['nid']
 
-    log_res = execute_drupal_request(f"{product_gallery_url}/data_products/source_products/{source_entity_id}",
-                                     headers=headers,
-                                     sentry_dsn=sentry_dsn)
-    output_get = analyze_drupal_output(log_res, operation_performed="retrieving the astrophysical entity information")
-    if isinstance(output_get, list):
-        for obj in output_get:
-            refactored_obj = {}
-            for k, v in obj.items():
-                refactored_key = k
-                if k.startswith('field_'):
-                    refactored_key = k.replace('field_', '')
-                refactored_obj[refactored_key] = v
-            product_list.append(refactored_obj)
+    if source_entity_id is not None:
+        log_res = execute_drupal_request(f"{product_gallery_url}/data_products/source_products/{source_entity_id}",
+                                         headers=headers,
+                                         sentry_dsn=sentry_dsn)
+        output_get = analyze_drupal_output(log_res, operation_performed="retrieving the astrophysical entity information")
+        if isinstance(output_get, list):
+            for obj in output_get:
+                refactored_obj = {}
+                for k, v in obj.items():
+                    refactored_key = k
+                    if k.startswith('field_'):
+                        refactored_key = k.replace('field_', '')
+                    refactored_obj[refactored_key] = v
+                product_list.append(refactored_obj)
 
     return product_list
 
@@ -902,8 +902,9 @@ def get_source_astrophysical_entity_id_by_source_name(product_gallery_url, galle
     return entities_id
 
 
-def get_source_astrophysical_entity_id_by_source_and_alternative_name(product_gallery_url, gallery_jwt_token, source_name=None, sentry_dsn=None) \
-        -> Optional[str]:
+# TODO to verify if it will always return one single object for a single source name (or alternative name)
+def get_source_astrophysical_entity_info_by_source_and_alternative_name(product_gallery_url, gallery_jwt_token, source_name=None, sentry_dsn=None) \
+        -> Optional[list]:
     # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
 
@@ -1173,7 +1174,7 @@ def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, convert
             arg_source_coord = {}
             if source_coord_obj_list is not None and source_coord_obj_list[src_name_idx] != {}:
                 arg_source_coord = source_coord_obj_list[src_name_idx]
-            source_entity_list = get_source_astrophysical_entity_id_by_source_and_alternative_name(product_gallery_url, gallery_jwt_token,
+            source_entity_list = get_source_astrophysical_entity_info_by_source_and_alternative_name(product_gallery_url, gallery_jwt_token,
                                                                                    source_name=src_name,
                                                                                    sentry_dsn=sentry_dsn)
             source_entity_id = None
