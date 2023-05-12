@@ -504,18 +504,19 @@ class Instrument:
         else:
             return True
 
-    def get_html_draw(self, prod_name, image,image_header,catalog=None,**kwargs):
-        return self.get_query_by_name(prod_name).get_html_draw( image,image_header,catalog=catalog,**kwargs)
+    def get_html_draw(self, prod_name, image, image_header, catalog=None, **kwargs):
+        return self.get_query_by_name(prod_name).get_html_draw(image, image_header, catalog=catalog, **kwargs)
 
-    #def get_par_by_name(self,par_name, validate=False):
-    def get_par_by_name(self,par_name,add_src_query=True,add_instr_query=True,prod_name=None):
+    def get_par_by_name(self, par_name, add_src_query=True, add_instr_query=True, prod_name=None):
         p=None
         
         for _query in self._queries_list:
-            if isinstance(_query,SourceQuery) and add_src_query==False:
+            if isinstance(_query, SourceQuery) and add_src_query==False:
                 continue
-            if isinstance(_query,InstrumentQuery) and add_instr_query==False:
+            
+            if isinstance(_query, InstrumentQuery) and add_instr_query==False:
                 continue
+            
             if isinstance(_query, ProductQuery) and prod_name is not None and _query.name!=self.query_dictionary[prod_name]:
                 continue
 
@@ -525,9 +526,6 @@ class Instrument:
 
         if p is None:
             raise Warning('parameter', par_name, 'not found')
-
-     #   if validate and hasattr(p, 'check_value'):
-     #       p.check_value(p.value)
 
         return p
 
@@ -539,32 +537,25 @@ class Instrument:
             _query.show_parameters_list()
         print("-------------")
 
-    def get_parameters_list_as_json(self,add_src_query=True,add_instr_query=True,prod_name=None):
+    def get_parameters_list_as_json(self, add_src_query=True, add_instr_query=True, prod_name=None):
 
         l=[{'instrumet':self.name}]
         l.append({'prod_dict':self.query_dictionary})
-        #print('--> dict',self.query_dictionary)
-
 
         for _query in self._queries_list:
-            _add_query = True
             if isinstance(_query,SourceQuery) and add_src_query==False:
-                _add_query=False
-                #print('src',_query.name)
+                continue
 
             if isinstance(_query,InstrumentQuery) and add_instr_query==False:
-                _add_query=False
-            #print('isntr', _query.name)
+                continue
 
             if isinstance(_query, ProductQuery) and prod_name is not None and _query.name==self.query_dictionary[prod_name]:
-                _add_query = True
-                #print('prd', _query.name,prod_name)
+                continue
+                
             elif isinstance(_query, ProductQuery) and prod_name is not None and _query.name!=self.query_dictionary[prod_name]:
-                #print('prd', _query.name, prod_name)
-                _add_query = False
+                continue
 
-            if _add_query == True:
-                l.append(_query.get_parameters_list_as_json(prod_dict=self.query_dictionary))
+            l.append(_query.get_parameters_list_as_json(prod_dict=self.query_dictionary))
 
         return l
     
