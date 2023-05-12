@@ -508,10 +508,17 @@ class Instrument:
         return self.get_query_by_name(prod_name).get_html_draw( image,image_header,catalog=catalog,**kwargs)
 
     #def get_par_by_name(self,par_name, validate=False):
-    def get_par_by_name(self,par_name):
+    def get_par_by_name(self,par_name,add_src_query=True,add_instr_query=True,prod_name=None):
         p=None
-
+        
         for _query in self._queries_list:
+            if isinstance(_query,SourceQuery) and add_src_query==False:
+                continue
+            if isinstance(_query,InstrumentQuery) and add_instr_query==False:
+                continue
+            if isinstance(_query, ProductQuery) and prod_name is not None and _query.name!=self.query_dictionary[prod_name]:
+                continue
+
             if par_name in _query.par_names:
                 # TODO: this picks the last one if there are many?..
                 p  =  _query.get_par_by_name(par_name)
