@@ -511,7 +511,7 @@ class Instrument:
         p=None
         
         for _query in self._queries_list:
-            if isinstance(_query, SourceQuery) and add_src_query==False:
+            if isinstance(_query, SourceQuery) and not add_src_query:
                 continue
             
             if isinstance(_query, InstrumentQuery) and add_instr_query==False:
