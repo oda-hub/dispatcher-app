@@ -549,10 +549,7 @@ class Instrument:
             if isinstance(_query,InstrumentQuery) and not add_instr_query:
                 continue
 
-            if isinstance(_query, ProductQuery) and prod_name is not None and _query.name==self.query_dictionary[prod_name]:
-                continue
-                
-            elif isinstance(_query, ProductQuery) and prod_name is not None and _query.name!=self.query_dictionary[prod_name]:
+            if isinstance(_query, ProductQuery) and prod_name is not None and _query.name!=self.query_dictionary[prod_name]:
                 continue
 
             l.append(_query.get_parameters_list_as_json(prod_dict=self.query_dictionary))
