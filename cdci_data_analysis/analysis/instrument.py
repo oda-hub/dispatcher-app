@@ -543,10 +543,10 @@ class Instrument:
         l.append({'prod_dict':self.query_dictionary})
 
         for _query in self._queries_list:
-            if isinstance(_query,SourceQuery) and add_src_query==False:
+            if isinstance(_query,SourceQuery) and not add_src_query:
                 continue
 
-            if isinstance(_query,InstrumentQuery) and add_instr_query==False:
+            if isinstance(_query,InstrumentQuery) and not add_instr_query:
                 continue
 
             if isinstance(_query, ProductQuery) and prod_name is not None and _query.name==self.query_dictionary[prod_name]:
