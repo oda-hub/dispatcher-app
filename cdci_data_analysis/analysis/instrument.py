@@ -521,7 +521,9 @@ class Instrument:
                 continue
 
             if par_name in _query.par_names:
-                # TODO: this picks the last one if there are many?..
+                if p is not None:
+                    self.logger.warning('Same parameter name %s in several queries. '
+                                        'Will return parameter from the last query')
                 p  =  _query.get_par_by_name(par_name)
 
         if p is None:

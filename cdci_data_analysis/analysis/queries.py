@@ -114,14 +114,19 @@ class BaseQuery(object):
     def _build_parameters_list(self,_list):
 
         _l = []
+        _names = []
         if _list is None:
             pass
         else:
-
             for p in _list:
                 if isinstance(p, Parameter):
+                    if p.name in _names:
+                        raise RuntimeError('Parameter type %s have duplicate name %s in the query %s',
+                                           p.__class__.__name__, p.name, self)
                     _l.append(p)
+                    _names.append(p.name)
                 else:
+                    # TODO: what is p in this case?
                     _l.extend(p.to_list())
         return _l
 
