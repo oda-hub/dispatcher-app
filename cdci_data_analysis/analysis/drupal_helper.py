@@ -907,17 +907,18 @@ def get_source_astrophysical_entity_info_by_source_and_alternative_name(product_
         -> Optional[list]:
     # get from the drupal the relative id
     headers = get_drupal_request_headers(gallery_jwt_token)
+    output_get = {}
 
-    # the URL-reserved characters should be quoted eg GX 1+4 -> GX%201%2B4
-    # TODO to verify if this approach also for the other requestes
-    params = {"src_name": source_name.strip(),
-              "_format": "hal_json"}
+    if source_name is not None:
+        # TODO to verify if quoting is needed eg GX 1+4 -> GX%201%2B4
+        params = {"src_name": source_name.strip(),
+                  "_format": "hal_json"}
 
-    log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/all_sources",
-                                     headers=headers,
-                                     params=params,
-                                     sentry_dsn=sentry_dsn)
-    output_get = analyze_drupal_output(log_res, operation_performed="retrieving the astrophysical entity information")
+        log_res = execute_drupal_request(f"{product_gallery_url}/astro_entities/all_sources",
+                                         headers=headers,
+                                         params=params,
+                                         sentry_dsn=sentry_dsn)
+        output_get = analyze_drupal_output(log_res, operation_performed="retrieving the astrophysical entity information")
 
     return output_get
 
