@@ -330,11 +330,10 @@ and if this is not what you expected, you probably need to modify the request pa
 
     email_data = {
         'oda_site': {
-            #TODO: get from config
-            'site_name': 'University of Geneva',
+            'site_name': config.site_name,
             'frontend_url': config.products_url,
-            'contact': 'contact@odahub.io',
-            'manual_reference': 'possibly-non-site-specific-link',
+            'contact': config.contact_email_address,
+            'manual_reference': config.email_manual_reference,
         },
         'request': {
             'job_id': job_id,
@@ -352,7 +351,6 @@ and if this is not what you expected, you probably need to modify the request pa
             'permanent_url': permanent_url,
         }
     }
-
     template = env.get_template('email.html')
     email_body_html = template.render(**email_data)
 
