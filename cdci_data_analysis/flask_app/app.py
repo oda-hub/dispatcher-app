@@ -767,33 +767,10 @@ def get_astro_entity_info_by_source_name():
     logger.info("request.files: %s ", request.files)
 
     app_config = app.config.get('conf')
-    # token = request.args.get('token', None)
-    # secret_key = app_config.secret_key
-    #
-    # output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-    #                                                               action="getting the info of an astro entity from the product gallery")
-    #
-    # if output_code is not None:
-    #     if output is None or not isinstance(output, str):
-    #         output = 'Error while validating the token'
-    #     return make_response(output, output_code)
-    #
-    # decoded_token = output
-    #
-    # par_dic = request.values.to_dict()
-    # par_dic.pop('token')
 
     sentry_dsn = sentry.sentry_url
 
-    gallery_secret_key = app_config.product_gallery_secret_key
     product_gallery_url = app_config.product_gallery_url
-    # user_email = tokenHelper.get_token_user_email_address(decoded_token)
-    # user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
-    #                                                     user_email=user_email,
-    #                                                     sentry_dsn=sentry_dsn)
-    # update the token
-    # gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
-
     src_name = request.args.get('src_name', None)
 
     source_entity_info = drupal_helper.get_source_astrophysical_entity_info_by_source_and_alternative_name(product_gallery_url,
@@ -816,9 +793,7 @@ def get_astro_entity_info_by_source_name():
 
         refactored_astro_entity_info['url_preview'] = os.path.join(product_gallery_url, f'node/{nid}/preview')
 
-    output_obj = json.dumps(refactored_astro_entity_info)
-
-    return output_obj
+    return refactored_astro_entity_info
 
 
 
