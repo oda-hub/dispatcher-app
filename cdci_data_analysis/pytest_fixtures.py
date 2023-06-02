@@ -379,8 +379,8 @@ dispatcher:
         bind_port: 8011
     email_options:
         smtp_server: 'localhost'
-        site_name: 'University of Geneva',
-        manual_reference: 'possibly-non-site-specific-link',
+        site_name: 'University of Geneva'
+        manual_reference: 'possibly-non-site-specific-link'
         sender_email_address: 'team@odahub.io'
         contact_email_address: 'contact@odahub.io'
         cc_receivers_email_addresses: ['team@odahub.io']

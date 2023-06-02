@@ -51,7 +51,7 @@ dispatcher:
         # site name
         site_name: 'University of Geneva'
         # manual reference
-        manual_reference: 'possibly-non-site-specific-link',
+        manual_reference: 'possibly-non-site-specific-link'
         # list of address to be put in cc
         cc_receivers_email_addresses: [ 'team@odahub.io' ]
         # list of address to be put in bcc
