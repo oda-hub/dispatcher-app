@@ -30,8 +30,8 @@ import numpy as np
 
 
 @pytest.mark.fast
-@pytest.mark.parametrize("add_duplicate", [True, False])
-def test_repeating_parameters(add_duplicate):
+@pytest.mark.parametrize("same_query", [True, False])
+def test_repeating_parameters(caplog, same_query):
     src_query = SourceQuery("src_query")
 
     instr_query = InstrumentQuery(
@@ -46,34 +46,31 @@ def test_repeating_parameters(add_duplicate):
     )
     p2 = Name(value="default-name", name="duplicate-name")
 
-    if add_duplicate:
+    if same_query:
         parameters_list = [p1, p2]
+        with pytest.raises(RuntimeError):
+            product_query = ProductQuery("test_product_query", parameters_list=parameters_list)
     else:
-        parameters_list = [p1]
+        product_query1 = ProductQuery("test_product_query1", parameters_list=[p1])
+        product_query2 = ProductQuery("test_product_query2", parameters_list=[p2])
+        
+        query_dictionary = {"prod1": "test_product_query1",
+                            "prod2": "test_product_query2",}
 
-    product_query = ProductQuery("test_product_query", parameters_list=parameters_list)
-
-    query_dictionary = {"numerical": "numerical_parameters_dummy_query"}
-
-    instrument = Instrument(
-        "empty-async",
-        src_query=src_query,
-        instrumet_query=instr_query,
-        product_queries_list=[product_query],
-        query_dictionary=query_dictionary,
-        data_server_query_class=None,
-    )
-
-    # TODO: this is current behavior. This is hardly desirable. It should be fixed eventually.
-    if add_duplicate:
+        instrument = Instrument(
+            "empty-async",
+            src_query=src_query,
+            instrumet_query=instr_query,
+            product_queries_list=[product_query1, product_query2],
+            query_dictionary=query_dictionary,
+            data_server_query_class=None,
+        )
+        
+        assert instrument.get_par_by_name("duplicate-name", prod_name='prod1') == p1
+        assert instrument.get_par_by_name("duplicate-name", prod_name='prod2') == p2
+        
         assert instrument.get_par_by_name("duplicate-name") == p2
-        assert instrument.get_par_by_name("duplicate-name") != p1
-        assert [p["field name"] for p in product_query.par_dictionary_list] == [
-            "duplicate-name",
-            "duplicate-name",
-        ]
-    else:
-        assert instrument.get_par_by_name("duplicate-name") == p1
+        assert 'Same parameter name' in caplog.text
 
 @pytest.mark.fast
 def test_input_prod_list():
