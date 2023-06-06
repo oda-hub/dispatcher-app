@@ -229,6 +229,9 @@ class ConfigEnv(object):
                                      disp_dict.get('soft_minimum_folder_age_days', 5),
                                      disp_dict.get('hard_minimum_folder_age_days', 30),
                                      disp_dict['email_options']['smtp_server'],
+                                     disp_dict['email_options']['site_name'],
+                                     disp_dict['email_options']['manual_reference'],
+                                     disp_dict['email_options']['contact_email_address'],
                                      disp_dict['email_options']['sender_email_address'],
                                      disp_dict['email_options']['cc_receivers_email_addresses'],
                                      disp_dict['email_options']['bcc_receivers_email_addresses'],
@@ -293,6 +296,9 @@ class ConfigEnv(object):
                             soft_minimum_folder_age_days,
                             hard_minimum_folder_age_days,
                             smtp_server,
+                            site_name,
+                            manual_reference,
+                            contact_email_address,
                             sender_email_address,
                             cc_receivers_email_addresses,
                             bcc_receivers_email_addresses,
@@ -329,6 +335,9 @@ class ConfigEnv(object):
         self.soft_minimum_folder_age_days = soft_minimum_folder_age_days
         self.hard_minimum_folder_age_days = hard_minimum_folder_age_days
         self.smtp_server = smtp_server
+        self.site_name = site_name
+        self.manual_reference = manual_reference
+        self.contact_email_address = contact_email_address
         self.sender_email_address = sender_email_address
         self.cc_receivers_email_addresses = cc_receivers_email_addresses
         self.bcc_receivers_email_addresses = bcc_receivers_email_addresses
