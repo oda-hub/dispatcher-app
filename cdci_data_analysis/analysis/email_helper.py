@@ -333,7 +333,7 @@ and if this is not what you expected, you probably need to modify the request pa
             'site_name': config.site_name,
             'frontend_url': config.products_url,
             'contact': config.contact_email_address,
-            'manual_reference': config.email_manual_reference,
+            'manual_reference': config.manual_reference,
         },
         'request': {
             'job_id': job_id,
