@@ -46,6 +46,12 @@ dispatcher:
         smtp_server_password: SMTP_SERVER_PASSWORD
         # address from which the email should be sent from
         sender_email_address: 'team@odahub.io'
+        # contact email address for "contact us" link
+        contact_email_address: 'contact@odahub.io'
+        # site name
+        site_name: 'University of Geneva'
+        # manual reference
+        manual_reference: 'possibly-non-site-specific-link'
         # list of address to be put in cc
         cc_receivers_email_addresses: [ 'team@odahub.io' ]
         # list of address to be put in bcc
