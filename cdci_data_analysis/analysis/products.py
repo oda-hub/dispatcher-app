@@ -426,7 +426,8 @@ class LightCurveProduct(BaseQueryProduct):
                 dy=dy[:max_bins]
             warning='!!! WARNING Number of bins displayed are limited to %d, actual number of bins is %d'%(max_bins,actual_size)
             title=f'{title}\n {warning}' if title is not None else warning
-        x = x - int(x.min())
+        if np.size(x) > 0:
+            x = x - int(x.min())
 
         sp=ScatterPlot(w=600,h=600,x_label=x_label,y_label=y_label,title=title)
         sp.add_errorbar(x,y,yerr=dy,xerr=dx)
