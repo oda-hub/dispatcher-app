@@ -413,11 +413,12 @@ class InstrumentQueryBackEnd:
             secret_key = app_config.secret_key
             output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
                                                                           action="getting the list of instrument")
-            decoded_token = tokenHelper.get_decoded_token(token, secret_key)
-            roles = tokenHelper.get_token_roles(decoded_token)
-            email = tokenHelper.get_token_user_email_address(decoded_token)
             if output_code is not None:
                 return make_response(output, output_code)
+            else:
+                decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+                roles = tokenHelper.get_token_roles(decoded_token)
+                email = tokenHelper.get_token_user_email_address(decoded_token)
 
         out_instrument_list = []
         for instrument_factory in importer.instrument_factory_list:
