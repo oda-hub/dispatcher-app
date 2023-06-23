@@ -15,7 +15,7 @@ json_tricks
 flask-restx
 six
 werkzeug
-python-shell-colors
+python-shell-colors==0.2.1
 logging_tree
 celery
 redis
