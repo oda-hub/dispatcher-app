@@ -36,7 +36,7 @@ install_req = [
     "flask-restx",
     "six",
     "werkzeug==2.0.3",
-    "python-shell-colors",
+    "python-shell-colors==0.2.1",
     "logging_tree",
     "celery",
     "redis",
