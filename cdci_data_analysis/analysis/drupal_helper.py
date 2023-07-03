@@ -1066,7 +1066,7 @@ def post_revolution_processing_log_to_gallery(product_gallery_url, gallery_jwt_t
     # set the type of content to post
     body_gallery_article_node["_links"]["type"]["href"] = os.path.join(product_gallery_url,
                                                                        body_gallery_article_node["_links"]["type"][
-                                                                           "href"], 'data_product')
+                                                                           "href"], 'revolution_processing_log')
 
     # set the initial body content
     body_gallery_article_node["body"][0]["value"] = ''
@@ -1077,7 +1077,7 @@ def post_revolution_processing_log_to_gallery(product_gallery_url, gallery_jwt_t
             "target_id": user_id_product_creator
         }]
 
-    # body_gallery_article_node["title"]["value"] = "revnumber_status_log"
+    body_gallery_article_node["title"]["value"] = "_".join(["revolution_processing_log", str(uuid.uuid4())])
 
     # let's go through the kwargs and if any overwrite some values for the product to post
     for k, v in kwargs.items():
@@ -1091,7 +1091,7 @@ def post_revolution_processing_log_to_gallery(product_gallery_url, gallery_jwt_t
     headers = get_drupal_request_headers(gallery_jwt_token)
 
     logger.info("posting a new revolution-processing-log")
-    log_res = execute_drupal_request(os.path.join(product_gallery_url, 'node', ),
+    log_res = execute_drupal_request(os.path.join(product_gallery_url, 'node'),
                                      method='post',
                                      data=json.dumps(body_gallery_article_node),
                                      headers=headers,
