@@ -926,6 +926,34 @@ def post_product_to_gallery():
     return output_post
 
 
+@app.route('/post_revolution_processing_log_to_gallery', methods=['POST'])
+def post_revolution_processing_log_to_gallery():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post revolution processing log on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
+                                                        disp_conf=app_config,
+                                                        files=request.files,
+                                                        **par_dic)
+
+    return output_post
+
+
 @app.route('/report_incident', methods=['POST'])
 def report_incident():
     logger.info("request.args: %s ", request.args)
