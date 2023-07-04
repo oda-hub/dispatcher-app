@@ -2599,6 +2599,7 @@ def test_revolution_processing_log_gallery_post(dispatcher_live_fixture_with_gal
     params = {
         'content_type': 'revolution_processing_log',
         'revolution_number': 1,
+        'sbatch_job_id': "155111",
         'log': 'test log',
         'type': 'success',
         'token': encoded_token
@@ -2616,6 +2617,9 @@ def test_revolution_processing_log_gallery_post(dispatcher_live_fixture_with_gal
 
     assert 'field_log' in drupal_res_obj
     assert drupal_res_obj['field_log'][0]['value'] == params['log']
+
+    assert 'field_sbatch_job_id' in drupal_res_obj
+    assert drupal_res_obj['field_sbatch_job_id'][0]['value'] == params['sbatch_job_id']
 
     assert 'field_revolution_number' in drupal_res_obj
     assert drupal_res_obj['field_revolution_number'][0]['value'] == params['revolution_number']

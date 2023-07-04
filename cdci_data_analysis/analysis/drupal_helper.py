@@ -1079,15 +1079,13 @@ def post_revolution_processing_log_to_gallery(product_gallery_url, gallery_jwt_t
 
     body_gallery_article_node["title"]["value"] = "_".join(["revolution_processing_log", str(uuid.uuid4())])
 
-    # let's go through the kwargs and if any overwrite some values for the product to post
     for k, v in kwargs.items():
-        # assuming the name of the field in drupal starts always with field_
+        # the machine name of the field in drupal starts always with field_
         field_name = str.lower('field_' + k)
         body_gallery_article_node[field_name] = [{
             "value": v
         }]
 
-        # finally, post the data product to the gallery
     headers = get_drupal_request_headers(gallery_jwt_token)
 
     logger.info("posting a new revolution-processing-log")
