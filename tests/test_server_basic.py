@@ -2581,6 +2581,54 @@ def test_product_gallery_post_period_of_observation(dispatcher_live_fixture_with
 
 
 @pytest.mark.test_drupal
+def test_revolution_processing_log_gallery_post(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    dispatcher_fetch_dummy_products('default')
+
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    params = {
+        'content_type': 'revolution_processing_log',
+        'revolution_number': 1,
+        'sbatch_job_id': "155111",
+        'log': 'test log',
+        'type': 'success',
+        'token': encoded_token
+    }
+
+    c = requests.post(os.path.join(server, "post_revolution_processing_log_to_gallery"),
+                      params={**params},
+                      )
+
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    assert 'title' in drupal_res_obj
+
+    assert 'field_log' in drupal_res_obj
+    assert drupal_res_obj['field_log'][0]['value'] == params['log']
+
+    assert 'field_sbatch_job_id' in drupal_res_obj
+    assert drupal_res_obj['field_sbatch_job_id'][0]['value'] == params['sbatch_job_id']
+
+    assert 'field_revolution_number' in drupal_res_obj
+    assert drupal_res_obj['field_revolution_number'][0]['value'] == params['revolution_number']
+
+    assert 'field_type' in drupal_res_obj
+    assert drupal_res_obj['field_type'][0]['value'] == params['type']
+
+
+@pytest.mark.test_drupal
 @pytest.mark.parametrize("provide_job_id", [True, False])
 @pytest.mark.parametrize("provide_instrument", [True, False])
 @pytest.mark.parametrize("provide_product_type", [True, False])

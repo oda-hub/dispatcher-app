@@ -43,6 +43,7 @@ class ContentType(Enum):
     DATA_PRODUCT = auto()
     OBSERVATION = auto()
     ASTROPHYSICAL_ENTITY = auto()
+    REVOLUTION_PROCESSING_LOG = auto()
 
 
 def analyze_drupal_output(drupal_output, operation_performed=None):
@@ -460,6 +461,13 @@ def post_content_to_gallery(decoded_token,
                                                            timezone=timezone,
                                                            sentry_dsn=sentry_dsn,
                                                            **par_dic)
+    elif content_type == content_type.REVOLUTION_PROCESSING_LOG:
+        user_id_product_creator = par_dic.pop('user_id_product_creator')
+        output_content_post = post_revolution_processing_log_to_gallery(product_gallery_url=product_gallery_url,
+                                                                        gallery_jwt_token=gallery_jwt_token,
+                                                                        user_id_product_creator=user_id_product_creator,
+                                                                        sentry_dsn=sentry_dsn,
+                                                                        **par_dic)
     elif content_type == content_type.OBSERVATION:
         # TODO build the body to send to the gallery in more automated fashion (like done for the data-product)
         t1 = kwargs.pop('T1', None)
@@ -1047,6 +1055,48 @@ def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttim
                                                   observation_information_message_timezone_warning
 
     return observation_drupal_id, observation_information_message, output_post
+
+
+def post_revolution_processing_log_to_gallery(product_gallery_url, gallery_jwt_token,
+                                              user_id_product_creator=None,
+                                              sentry_dsn=None,
+                                              **kwargs):
+    body_gallery_article_node = copy.deepcopy(body_article_product_gallery.body_node)
+
+    # set the type of content to post
+    body_gallery_article_node["_links"]["type"]["href"] = os.path.join(product_gallery_url,
+                                                                       body_gallery_article_node["_links"]["type"][
+                                                                           "href"], 'revolution_processing_log')
+
+    # set the initial body content
+    body_gallery_article_node["body"][0]["value"] = ''
+
+    # set the user id of the author of the data product
+    if user_id_product_creator is not None:
+        body_gallery_article_node["uid"] = [{
+            "target_id": user_id_product_creator
+        }]
+
+    body_gallery_article_node["title"]["value"] = "_".join(["revolution_processing_log", str(uuid.uuid4())])
+
+    for k, v in kwargs.items():
+        # the machine name of the field in drupal starts always with field_
+        field_name = str.lower('field_' + k)
+        body_gallery_article_node[field_name] = [{
+            "value": v
+        }]
+
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    logger.info("posting a new revolution-processing-log")
+    log_res = execute_drupal_request(os.path.join(product_gallery_url, 'node'),
+                                     method='post',
+                                     data=json.dumps(body_gallery_article_node),
+                                     headers=headers,
+                                     sentry_dsn=sentry_dsn)
+    output_post = analyze_drupal_output(log_res, operation_performed="posting a new revolution processing log to the gallery")
+
+    return output_post
 
 
 def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
