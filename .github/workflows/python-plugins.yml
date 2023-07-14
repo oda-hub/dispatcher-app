@@ -78,6 +78,5 @@ jobs:
       env: 
         ODA_ONTOLOGY_PATH: ../tests/oda-ontology.ttl
       run: |
-        curl -o $ODA_ONTOLOGY_PATH https://raw.githubusercontent.com/oda-hub/ontology/ecdf2a61f87aac13ae7a96c0f3dad960312adae4/ontology.ttl
         cd plugin && DISPATCHER_MOCK_KB=yes python -m pytest tests -sv --full-trace --log-cli-level=DEBUG 
     
