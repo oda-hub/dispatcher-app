@@ -72,6 +72,7 @@ jobs:
           pip install -r plugin-test-req.txt; 
         fi        
         pip install -e  ./plugin[test]
+        curl -o tests/oda-ontology.ttl https://raw.githubusercontent.com/oda-hub/ontology/ecdf2a61f87aac13ae7a96c0f3dad960312adae4/ontology.ttl
     
     - name: Test ${{ matrix.plugin-name }} plugin with pytest
       env: 
