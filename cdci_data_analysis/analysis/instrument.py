@@ -75,7 +75,8 @@ non_parameter_args = ['instrument',
                       'job_id',
                       'async_dispatcher',
                       'allow_unknown_args',
-                      'catalog_selected_objects']
+                      'catalog_selected_objects',
+                      'run_asynch']
 # NOTE: arguments are passed in the request to the dispatcher
 # some arguments are used to set the values of the analysis parameters
 # the parameter is a subclass of Parameter and may use several arguments to set it's value
