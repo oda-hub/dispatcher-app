@@ -529,25 +529,24 @@ class ProductQuery(BaseQuery):
 
         query_out = QueryOutput()
         #status=0
-        message=''
-        debug_message=''
+        
+        messages = {}
+        messages['message']=''
+        messages['debug_message']=''
         msg_str = '--> start get product query',query_type
         # print(msg_str)
         logger.info(msg_str)
-        backend_comment=''
-        backend_warning=''
+        messages['comment']=''
+        messages['warning']=''
         try:
             if query_type != 'Dummy':
                 q = self.get_data_server_query(instrument,config)
 
                 res, data_server_query_out = q.run_query(call_back_url=job.get_call_back_url(), run_asynch=run_asynch, logger=logger)
 
-                if 'comment' in data_server_query_out.status_dictionary.keys():
-                    backend_comment=data_server_query_out.status_dictionary['comment']
-
-                if 'warning' in data_server_query_out.status_dictionary.keys():
-                    backend_warning=data_server_query_out.status_dictionary['warning']
-
+                for field in ['message', 'debug_message', 'comment', 'warning']:
+                    if field in data_server_query_out.status_dictionary.keys():
+                        messages[field]=data_server_query_out.status_dictionary[field]
 
                 status = data_server_query_out.get_status()
                 job_status = data_server_query_out.get_job_status()
@@ -574,7 +573,7 @@ class ProductQuery(BaseQuery):
 
                 job.set_done()
             #DONE
-            query_out.set_done(message=message, debug_message=str(debug_message),job_status=job.status,status=status,comment=backend_comment,warning=backend_warning)
+            query_out.set_done(message=messages['message'], debug_message=str(messages['debug_message']),job_status=job.status,status=status,comment=messages['comment'],warning=messages['warning'])
             #print('-->', query_out.status_dictionary)
         except RequestNotUnderstood as e:
             logger.error("passing request issue: %s", e)
@@ -592,14 +591,14 @@ class ProductQuery(BaseQuery):
                 raise
 
             e_message = getattr(e, 'message', '')
-            debug_message = repr(e) + ' : ' + getattr(e, 'debug_message', '')
+            messages['debug_message'] = repr(e) + ' : ' + getattr(e, 'debug_message', '')
 
             query_out.set_failed('get_dataserver_products found job failed',
                                  logger=logger,
                                  sentry_dsn=sentry_dsn,
                                  excep=e,
                                  e_message=e_message,
-                                 debug_message=debug_message)
+                                 debug_message=messages['debug_message'])
             # TODO to use this approach when we will refactor the handling of exceptions
             # raise InternalError(e_message)
 
