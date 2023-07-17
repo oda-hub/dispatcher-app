@@ -472,17 +472,26 @@ def test_query_restricted_instrument(dispatcher_live_fixture):
 
 
 @pytest.mark.fast
+@pytest.mark.parametrize("include_args", [True, False])
 def test_instrument_list_redirection_external_products_url(dispatcher_live_fixture_with_external_products_url,
-                                                           dispatcher_test_conf_with_external_products_url):
+                                                           dispatcher_test_conf_with_external_products_url,
+                                                           include_args):
     server = dispatcher_live_fixture_with_external_products_url
 
     logger.info("constructed server: %s", server)
 
-    c = requests.get(os.path.join(server, "api/instr-list"), allow_redirects=False)
+    url_request = os.path.join(server, "api/instr-list")
+
+    if include_args:
+        url_request += '?a=4566&token=aaaaaaaaaa'
+
+    c = requests.get(url_request, allow_redirects=False)
 
     assert c.status_code == 302
     redirection_header_location_url = c.headers["Location"]
     redirection_url = os.path.join(dispatcher_test_conf_with_external_products_url['products_url'], 'dispatch-data/instr-list')
+    if include_args:
+        redirection_url += '?a=4566&token=aaaaaaaaaa'
     assert redirection_url == redirection_header_location_url
 
 
