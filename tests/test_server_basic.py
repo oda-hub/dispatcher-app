@@ -497,18 +497,28 @@ def test_instrument_list_redirection_external_products_url(dispatcher_live_fixtu
 
 @pytest.mark.fast
 @pytest.mark.parametrize("allow_redirect", [True, False])
+@pytest.mark.parametrize("include_args", [True, False])
 def test_instrument_list_redirection_no_custom_products_url(dispatcher_live_fixture_no_products_url,
-                                                        allow_redirect):
+                                                        allow_redirect, include_args):
     server = dispatcher_live_fixture_no_products_url
 
     logger.info("constructed server: %s", server)
 
-    c = requests.get(os.path.join(server, "api/instr-list"), allow_redirects=allow_redirect)
+    url_request = os.path.join(server, "api/instr-list")
+
+    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
+    if include_args:
+        url_request += '?a=4566&token=' + encoded_token
+
+    c = requests.get(url_request, allow_redirects=allow_redirect)
 
     if not allow_redirect:
         assert c.status_code == 302
         redirection_header_location_url = c.headers["Location"]
-        assert redirection_header_location_url == os.path.join(server, 'instr-list')
+        redirection_url = os.path.join(server, 'instr-list')
+        if include_args:
+            redirection_url += '?a=4566&token=' + encoded_token
+        assert redirection_header_location_url == redirection_url
     else:
         assert c.status_code == 200
 
