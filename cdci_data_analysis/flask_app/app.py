@@ -100,6 +100,10 @@ def run_api_instr_list():
 
     if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url):
         redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/instr-list')
+        if request.args:
+            args_request = urlencode(request.args)
+            redirection_url = f'{redirection_url}?{args_request}'
+
     else:
         parsed_request_url = urlparse(request.url)
         path_request_url = parsed_request_url.path.replace('/api', '')
