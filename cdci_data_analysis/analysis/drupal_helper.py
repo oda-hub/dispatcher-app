@@ -841,7 +841,7 @@ def get_all_revolutions(product_gallery_url, gallery_jwt_token, sentry_dsn=None)
                                      headers=headers,
                                      sentry_dsn=sentry_dsn)
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving all the revolutions from the product gallery")
-    if isinstance(output_get, list):
+    if isinstance(output_get, list) and len(output_get) >= 1:
         entities = list(obj['title'] for obj in output_get)
 
     return entities
@@ -971,7 +971,7 @@ def get_observation_yaml_attachments_by_observation_title(product_gallery_url, g
                                      sentry_dsn=sentry_dsn)
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the observation attachments")
 
-    if output_get is not None and isinstance(output_get, list):
+    if output_get is not None and isinstance(output_get, list) and len(output_get) >= 1:
         # TODO might be needed if a better formatting of the output is needed
         # if 'file_content' in output_get[0]:
         #     splitted_content_list = output_get[0]['file_content'].split('{"single_file_content": "')
