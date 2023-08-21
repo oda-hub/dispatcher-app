@@ -46,7 +46,7 @@ from .data_server_dispatcher import (EmptyProductQuery,
 # duplicated with jemx, but this staticmethod makes it complex.
 # this all should be done commonly, for all parameters - limits are common thing
 from ...analysis.exceptions import RequestNotUnderstood
-from ...analysis.parameters import SpectralBoundary, Angle, Energy, Integer, Float, String
+from ...analysis.parameters import SpectralBoundary, Angle, Energy, Integer, Float, String, Boolean
 
 
 
@@ -68,6 +68,10 @@ def my_instr_factory():
 
     empty_query = EmptyProductQuery('empty_parameters_dummy_query',)
     failing_query = FailingProductQuery('failing_parameters_dummy_query', )
+    # let's build a simple parameter to its list
+    b = Boolean(value=False, name='b')
+    boolean_query = DataServerParametricQuery('boolean_parameters_dummy_query',
+                                             parameters_list=[b])
     # let's build a simple parameter to its list
     p = BoundaryFloat(value=10., name='p', units='W',)
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
@@ -101,6 +105,7 @@ def my_instr_factory():
     # nor product, only a simple query that does not return anything
     query_dictionary['dummy'] = 'empty_parameters_dummy_query'
     query_dictionary['numerical'] = 'numerical_parameters_dummy_query'
+    query_dictionary['boolean'] = 'boolean_parameters_dummy_query'
     query_dictionary['failing'] = 'failing_parameters_dummy_query'
     query_dictionary['parametrical'] = 'parametrical_parameters_dummy_query'
     query_dictionary['echo'] = 'echo_parameters_dummy_query'
@@ -109,9 +114,10 @@ def my_instr_factory():
     return Instrument('empty',
                       src_query=src_query,
                       instrumet_query=instr_query,
-                      product_queries_list=[empty_query, 
-                                            numerical_query, 
-                                            failing_query, 
+                      product_queries_list=[empty_query,
+                                            boolean_query,
+                                            numerical_query,
+                                            failing_query,
                                             parametrical_query, 
                                             echo_param_query, 
                                             restricted_param_query],
