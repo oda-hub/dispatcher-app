@@ -199,6 +199,14 @@ def get_first_submitted_email_time(scratch_dir):
     if len(submitted_email_files) >= 1:
         f_name, f_ext = os.path.splitext(os.path.basename(submitted_email_files[0]))
         first_submitted_email_time = float(f_name.split('_')[3])
+    try:
+        datetime.fromtimestamp(float(first_submitted_email_time))
+    except (ValueError, OverflowError) as e:
+        logger.warning(f'Error when extracting the time of the first submitted email.'
+                       f'The value extracted {first_submitted_email_time} raised the following error:\n{e}')
+        first_submitted_email_time = None
+        sentry.capture_message(f'Error when extracting the time of the first submitted email.'
+                       f'The value extracted {first_submitted_email_time} raised the following error:\n{e}')
 
     return first_submitted_email_time
 
