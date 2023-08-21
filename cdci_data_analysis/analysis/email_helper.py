@@ -53,7 +53,7 @@ def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
             return datetime.fromtimestamp(float(timestamp_or_string)).strftime("%Y-%m-%d %H:%M:%S")
         except OverflowError as oe:
             logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_or_string}:\n{oe}')
-            raise EMailNotSent(f"email not sent: {e}")
+            raise EMailNotSent(f"email not sent: {oe}")
 
     return timestamp_or_string
 
