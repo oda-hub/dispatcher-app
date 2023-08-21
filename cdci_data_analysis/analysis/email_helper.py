@@ -182,7 +182,7 @@ def check_scw_list_length(
         return False
 
 
-def get_first_submitted_email_time(job_id, scratch_dir):
+def get_first_submitted_email_time(scratch_dir):
     first_submitted_email_time = None
     submitted_email_pattern = os.path.join(
         scratch_dir,

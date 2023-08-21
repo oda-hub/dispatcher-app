@@ -1050,7 +1050,7 @@ class InstrumentQueryBackEnd:
                                                             url=self.app.config['conf'].products_url + "/dispatch-data"
                                                             )
                 time_request = time_original_request
-                time_request_first_submitted = email_helper.get_first_submitted_email_time(self.job_id, self.scratch_dir)
+                time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
                 if time_request_first_submitted is not None:
                     time_request = time_request_first_submitted
 
@@ -1835,7 +1835,7 @@ class InstrumentQueryBackEnd:
                                                                         url=self.app.config['conf'].products_url + "/dispatch-data"
                                                                         )
                             time_request = self.time_request
-                            time_request_first_submitted = email_helper.get_first_submitted_email_time(self.job_id, self.scratch_dir)
+                            time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
                             if time_request_first_submitted is not None:
                                 time_request = time_request_first_submitted
 
