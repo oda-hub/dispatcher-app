@@ -200,8 +200,8 @@ def get_first_submitted_email_time(scratch_dir):
         f_name_split = f_name.split('_')
         if len(f_name_split) == 4:
             try:
-                first_submitted_email_time_obj = validate_time(f_name_split[3])
-                first_submitted_email_time = first_submitted_email_time_obj.timestamp()
+                validate_time(f_name_split[3])
+                first_submitted_email_time = float(f_name_split[3])
             except (ValueError, OverflowError, TypeError) as e:
                 logger.warning(f'Error when extracting the time of the first submitted email.'
                                f'The value extracted {first_submitted_email_time} raised the following error:\n{e}')
@@ -518,8 +518,6 @@ def store_status_email_info(message, status, scratch_dir, sending_time=None, fir
         sending_time = time_.time()
     if first_submitted_time is None:
         first_submitted_time = sending_time
-
-
 
     email_file_name = f'email_{status}_{str(sending_time)}_{str(first_submitted_time)}.email'
 
