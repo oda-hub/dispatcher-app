@@ -198,7 +198,7 @@ def get_first_submitted_email_time(scratch_dir):
     if len(submitted_email_files) >= 1:
         f_name, f_ext = os.path.splitext(os.path.basename(submitted_email_files[0]))
         f_name_split = f_name.split('_')
-        if len(f_name_split) == 3:
+        if len(f_name_split) == 4:
             try:
                 first_submitted_email_time = f_name_split[3]
                 validate_time(first_submitted_email_time)
