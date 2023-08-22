@@ -1015,6 +1015,7 @@ def test_email_submitted_faulty_time_request(dispatcher_live_fixture, dispatcher
 
     jdata = c.json()
     time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
     assert jdata['exit_status']['job_status'] == 'submitted'
     assert jdata['exit_status']['email_status'] == 'email sent'
 
@@ -1027,6 +1028,12 @@ def test_email_submitted_faulty_time_request(dispatcher_live_fixture, dispatcher
     email_file_split_name, email_file_split_ext = os.path.splitext(os.path.basename(list_email_files[0]))
     email_file_split = email_file_split_name.split('_')
     assert float(email_file_split[3]) == time_request
+
+    msg = dispatcher_local_mail_server.local_smtp_output[0]
+    msg_data = email.message_from_string(msg['data'])
+    assert msg_data[
+               'Subject'] == f"[ODA][submitted] dummy requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+
     email_file_split[3] = str(faulty_first_submitted_email_time)
     faulty_email_file_name = "_".join(email_file_split)
 
@@ -1054,6 +1061,7 @@ def test_email_submitted_faulty_time_request(dispatcher_live_fixture, dispatcher
     jdata = c.json()
 
     time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
 
     assert jdata['exit_status']['job_status'] == 'submitted'
     assert jdata['exit_status']['email_status'] == 'email sent'
@@ -1068,6 +1076,11 @@ def test_email_submitted_faulty_time_request(dispatcher_live_fixture, dispatcher
     assert len(f_name_splited) == 4
     assert float(f_name.split('_')[3]) == time_request
 
+    msg = dispatcher_local_mail_server.local_smtp_output[-1]
+    msg_data = email.message_from_string(msg['data'])
+    assert msg_data[
+               'Subject'] == f"[ODA][submitted] dummy requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+
     # let the interval time pass, so that a new email si sent
     time.sleep(5)
 
@@ -1079,6 +1092,7 @@ def test_email_submitted_faulty_time_request(dispatcher_live_fixture, dispatcher
     jdata = c.json()
 
     time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
 
     assert jdata['exit_status']['job_status'] == 'submitted'
     assert jdata['exit_status']['email_status'] == 'email sent'
@@ -1092,6 +1106,11 @@ def test_email_submitted_faulty_time_request(dispatcher_live_fixture, dispatcher
     f_name_splited = f_name.split('_')
     assert len(f_name_splited) == 4
     assert float(f_name.split('_')[3]) == time_request
+
+    msg = dispatcher_local_mail_server.local_smtp_output[-1]
+    msg_data = email.message_from_string(msg['data'])
+    assert msg_data[
+               'Subject'] == f"[ODA][submitted] dummy requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
 
 
 @pytest.mark.not_safe_parallel
