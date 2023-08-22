@@ -46,7 +46,7 @@ class EMailNotSent(BadRequest):
 def validate_time(timestamp_to_validate):
     try:
         datetime_obj = datetime.fromtimestamp(float(timestamp_to_validate))
-    except (ValueError, OverflowError, TypeError) as e:
+    except (ValueError, OverflowError, TypeError, OSError) as e:
         logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_to_validate}:\n{e}')
         raise
     return datetime_obj
@@ -55,7 +55,7 @@ def validate_time(timestamp_to_validate):
 def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
     try:
         timestamp_or_string = validate_time(timestamp_or_string).strftime("%Y-%m-%d %H:%M:%S")
-    except (ValueError, OverflowError, TypeError) as e:
+    except (ValueError, OverflowError, TypeError, OSError) as e:
         logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_or_string}:\n{e}')
         raise EMailNotSent(f"Email not sent: {e}")
 
@@ -202,7 +202,7 @@ def get_first_submitted_email_time(scratch_dir):
             try:
                 validate_time(f_name_split[3])
                 first_submitted_email_time = float(f_name_split[3])
-            except (ValueError, OverflowError, TypeError) as e:
+            except (ValueError, OverflowError, TypeError, OSError) as e:
                 logger.warning(f'Error when extracting the time of the first submitted email.'
                                f'The value extracted {first_submitted_email_time} raised the following error:\n{e}')
                 first_submitted_email_time = None
