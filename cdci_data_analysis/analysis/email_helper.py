@@ -42,23 +42,22 @@ class MultipleDoneEmail(BadRequest):
 class EMailNotSent(BadRequest):
     pass
 
+
+def validate_time(timestamp_to_validate):
+    try:
+        datetime_obj = datetime.fromtimestamp(float(timestamp_to_validate))
+    except (ValueError, OverflowError, TypeError) as e:
+        logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_to_validate}:\n{e}')
+        raise
+    return datetime_obj
+
+
 def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
     try:
-        timestamp_or_string = float(timestamp_or_string)
-    except ValueError:
-        pass
-
-    if isinstance(timestamp_or_string, float):
-        try:
-            timestamp_or_string = datetime.fromtimestamp(float(timestamp_or_string)).strftime("%Y-%m-%d %H:%M:%S")
-        except OverflowError as oe:
-            logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_or_string}:\n{oe}')
-            raise EMailNotSent(f"email not sent: {oe}")
-    else:
-        logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_or_string}:'
-                       f'format not valid')
-        raise EMailNotSent(f"email not sent: Error when constructing the datetime object from the "
-                           f"timestamp {timestamp_or_string}: format not valid")
+        timestamp_or_string = validate_time(timestamp_or_string).strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, OverflowError, TypeError) as e:
+        logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_or_string}:\n{e}')
+        raise EMailNotSent(f"Email not sent: {e}")
 
     return timestamp_or_string
 
@@ -201,8 +200,8 @@ def get_first_submitted_email_time(scratch_dir):
         f_name_split = f_name.split('_')
         if len(f_name_split) == 3:
             try:
-                first_submitted_email_time = float(f_name_split[3])
-                datetime.fromtimestamp(first_submitted_email_time)
+                first_submitted_email_time = f_name_split[3]
+                validate_time(first_submitted_email_time)
             except (ValueError, OverflowError, TypeError) as e:
                 logger.warning(f'Error when extracting the time of the first submitted email.'
                                f'The value extracted {first_submitted_email_time} raised the following error:\n{e}')
@@ -519,6 +518,8 @@ def store_status_email_info(message, status, scratch_dir, sending_time=None, fir
         sending_time = time_.time()
     if first_submitted_time is None:
         first_submitted_time = sending_time
+
+
 
     email_file_name = f'email_{status}_{str(sending_time)}_{str(first_submitted_time)}.email'
 
