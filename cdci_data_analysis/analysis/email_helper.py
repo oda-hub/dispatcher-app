@@ -199,9 +199,9 @@ def get_first_submitted_email_time(scratch_dir):
         f_name, f_ext = os.path.splitext(os.path.basename(submitted_email_files[0]))
         f_name_split = f_name.split('_')
         if len(f_name_split) == 4:
-            first_submitted_email_time = f_name_split[3]
             try:
-                validate_time(first_submitted_email_time)
+                first_submitted_email_time_obj = validate_time(f_name_split[3])
+                first_submitted_email_time = first_submitted_email_time_obj.timestamp()
             except (ValueError, OverflowError, TypeError) as e:
                 logger.warning(f'Error when extracting the time of the first submitted email.'
                                f'The value extracted {first_submitted_email_time} raised the following error:\n{e}')
@@ -217,7 +217,7 @@ def get_first_submitted_email_time(scratch_dir):
                            f'the name of the email file has been found not properly formatted, therefore, '
                            f'the time of the first submitted email could not be extracted.')
 
-    return float(first_submitted_email_time)
+    return first_submitted_email_time
 
 
 def send_incident_report_email(
