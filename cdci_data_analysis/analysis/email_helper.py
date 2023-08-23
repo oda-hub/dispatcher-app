@@ -42,14 +42,22 @@ class MultipleDoneEmail(BadRequest):
 class EMailNotSent(BadRequest):
     pass
 
+
+def validate_time(timestamp_to_validate):
+    try:
+        datetime_obj = datetime.fromtimestamp(float(timestamp_to_validate))
+    except (ValueError, OverflowError, TypeError, OSError) as e:
+        logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_to_validate}:\n{e}')
+        raise
+    return datetime_obj
+
+
 def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
     try:
-        timestamp_or_string = float(timestamp_or_string)
-    except ValueError:
-        pass
-
-    if isinstance(timestamp_or_string, float):
-        return datetime.fromtimestamp(float(timestamp_or_string)).strftime("%Y-%m-%d %H:%M:%S")
+        timestamp_or_string = validate_time(timestamp_or_string).strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, OverflowError, TypeError, OSError) as e:
+        logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_or_string}:\n{e}')
+        raise EMailNotSent(f"Email not sent: {e}")
 
     return timestamp_or_string
 
@@ -178,7 +186,7 @@ def check_scw_list_length(
         return False
 
 
-def get_first_submitted_email_time(job_id, scratch_dir):
+def get_first_submitted_email_time(scratch_dir):
     first_submitted_email_time = None
     submitted_email_pattern = os.path.join(
         scratch_dir,
@@ -189,7 +197,25 @@ def get_first_submitted_email_time(job_id, scratch_dir):
 
     if len(submitted_email_files) >= 1:
         f_name, f_ext = os.path.splitext(os.path.basename(submitted_email_files[0]))
-        first_submitted_email_time = float(f_name.split('_')[3])
+        f_name_split = f_name.split('_')
+        if len(f_name_split) == 4:
+            try:
+                validate_time(f_name_split[3])
+                first_submitted_email_time = float(f_name_split[3])
+            except (ValueError, OverflowError, TypeError, OSError) as e:
+                logger.warning(f'Error when extracting the time of the first submitted email.'
+                               f'The value extracted {first_submitted_email_time} raised the following error:\n{e}')
+                first_submitted_email_time = None
+                sentry.capture_message(f'Error when extracting the time of the first submitted email.'
+                               f'The value extracted {first_submitted_email_time} raised the following error:\n{e}')
+        else:
+            logger.warning(f'Error when extracting the time of the first submitted email: '
+                           f'the name of the email file has been found not properly formatted, therefore, '
+                           f'the time of the first submitted email could not be extracted.')
+            first_submitted_email_time = None
+            sentry.capture_message(f'Error when extracting the time of the first submitted email: '
+                           f'the name of the email file has been found not properly formatted, therefore, '
+                           f'the time of the first submitted email could not be extracted.')
 
     return first_submitted_email_time
 

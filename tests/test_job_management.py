@@ -976,6 +976,144 @@ def test_email_run_analysis_callback(gunicorn_dispatcher_long_living_fixture, di
 
 
 @pytest.mark.not_safe_parallel
+def test_email_submitted_faulty_time_request(dispatcher_live_fixture, dispatcher_local_mail_server):
+    # remove all the current scratch folders
+    dir_list = glob.glob('scratch_*')
+    [shutil.rmtree(d) for d in dir_list]
+
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # email content in plain text and html format
+    smtp_server_log = dispatcher_local_mail_server.local_smtp_output_json_fn
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "tem": 0,
+        "intsub": 5
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    # this should return status submitted, so email sent
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+
+    jdata = c.json()
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    # taken from the sentry log
+    faulty_first_submitted_email_time = 325666656000000000
+
+    list_email_files = glob.glob(os.path.join(dispatcher_job_state.email_history_folder, f'email_submitted_*.email'))
+    assert len(list_email_files) == 1
+
+    email_file_split_name, email_file_split_ext = os.path.splitext(os.path.basename(list_email_files[0]))
+    email_file_split = email_file_split_name.split('_')
+    assert float(email_file_split[3]) == time_request
+
+    msg = dispatcher_local_mail_server.local_smtp_output[0]
+    msg_data = email.message_from_string(msg['data'])
+    assert msg_data[
+               'Subject'] == f"[ODA][submitted] dummy requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+
+    email_file_split[3] = str(faulty_first_submitted_email_time)
+    faulty_email_file_name = "_".join(email_file_split)
+
+    os.rename(list_email_files[0], os.path.join(os.path.dirname(list_email_files[0]),faulty_email_file_name + email_file_split_ext))
+
+    # let the interval time pass, so that a new email si sent
+    time.sleep(5)
+    # re-submit the very same request, in order to produce a sequence of submitted status
+    # and verify not a sequence of emails are generated
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        session_id=dispatcher_job_state.session_id,
+        job_id=dispatcher_job_state.job_id,
+        token=encoded_token
+    )
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    list_email_files = glob.glob(os.path.join(dispatcher_job_state.email_history_folder, f'email_submitted_*.email'))
+    assert len(list_email_files) == 2
+
+    submitted_email_files = sorted(list_email_files, key=os.path.getmtime)
+
+    f_name, f_ext = os.path.splitext(os.path.basename(submitted_email_files[-1]))
+    f_name_splited = f_name.split('_')
+    assert len(f_name_splited) == 4
+    assert float(f_name.split('_')[3]) == time_request
+
+    msg = dispatcher_local_mail_server.local_smtp_output[-1]
+    msg_data = email.message_from_string(msg['data'])
+    assert msg_data[
+               'Subject'] == f"[ODA][submitted] dummy requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+
+    # let the interval time pass, so that a new email si sent
+    time.sleep(5)
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    list_email_files = glob.glob(os.path.join(dispatcher_job_state.email_history_folder, f'email_submitted_*.email'))
+    assert len(list_email_files) == 3
+
+    submitted_email_files = sorted(list_email_files, key=os.path.getmtime)
+
+    f_name, f_ext = os.path.splitext(os.path.basename(submitted_email_files[-1]))
+    f_name_splited = f_name.split('_')
+    assert len(f_name_splited) == 4
+    assert float(f_name.split('_')[3]) == time_request
+
+    msg = dispatcher_local_mail_server.local_smtp_output[-1]
+    msg_data = email.message_from_string(msg['data'])
+    assert msg_data[
+               'Subject'] == f"[ODA][submitted] dummy requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+
+
+@pytest.mark.not_safe_parallel
 def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail_server):
     # remove all the current scratch folders
     dir_list = glob.glob('scratch_*')
