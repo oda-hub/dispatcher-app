@@ -28,7 +28,6 @@ import string
 import json
 import logging
 
-from ..flask_app.sentry import sentry
 import yaml
 
 import numpy as np
@@ -219,7 +218,8 @@ class Instrument:
                 p = _query
 
         if p is None:
-            raise Warning('query', prod_name, 'not found')
+            sentry.capture_message(f'query for the product {prod_name} not found')
+            raise Warning(f'query for the product {prod_name} not found')
 
         return p
 
@@ -267,6 +267,7 @@ class Instrument:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='',
                                                  additional=': '+getattr(e, 'message', ''))
+            sentry.capture_message(f'{error_message}\n{e}')
             raise RequestNotUnderstood(error_message)
         except Exception as e:
             error_message = error_message.format(step=step,
@@ -478,6 +479,7 @@ class Instrument:
 
     def get_product_query_name(self, product_type):
         if product_type not in self.query_dictionary:
+            sentry.capture_message(f'product type {product_type} not in query_dictionary {self.query_dictionary}')
             raise Exception(f"product type {product_type} not in query_dictionary {self.query_dictionary}")
         else:
             return self.query_dictionary[product_type]
@@ -602,6 +604,7 @@ class Instrument:
             self.logger.warning('duplicates in parameters_name_list: %s', l)
         return l
 
+    # TODO this seems not being used anywhere on the dispatcher, can it be removed?
     def set_pars_from_form(self,par_dic,logger=None,verbose=False,sentry_dsn=None):
         #print('---------------------------------------------')
         #print('setting form paramters')
