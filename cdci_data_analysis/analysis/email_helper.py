@@ -528,14 +528,14 @@ def store_status_email_info(message, status, scratch_dir, sending_time=None, fir
                                    f'The value {sending_time} raised the following error:\n{e}')
 
     if first_submitted_time is None:
-        first_submitted_time = current_time
+        first_submitted_time = sending_time
     else:
         try:
             validate_time(first_submitted_time)
         except (ValueError, OverflowError, TypeError, OSError) as e:
             logger.warning(f'Error when writing the email content on a file, the first submitted time is not valid.'
                            f'The value {first_submitted_time} raised the following error:\n{e}')
-            first_submitted_time = current_time
+            first_submitted_time = sending_time
             sentry.capture_message(f'Error when writing the email content on a file, the first submitted time is not valid.'
                                    f'The value {first_submitted_time} raised the following error:\n{e}')
 
