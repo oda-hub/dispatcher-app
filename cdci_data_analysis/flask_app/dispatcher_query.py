@@ -1328,9 +1328,9 @@ class InstrumentQueryBackEnd:
 
     def get_existing_job_ID_path(self, wd):
         # exist same job_ID, different session ID
-        dir_list = glob.glob('*_jid_%s' % (self.job_id))
+        dir_list = glob.glob(f'*_jid_{self.job_id}')
         # print('dirs',dir_list)
-        if dir_list != []:
+        if dir_list:
             dir_list = [d for d in dir_list if 'aliased' not in d]
 
         if len(dir_list) == 1:
@@ -1340,7 +1340,8 @@ class InstrumentQueryBackEnd:
                 alias_dir = None
 
         elif len(dir_list) > 1:
-            raise RuntimeError('found two non aliased identical job_id')
+            sentry.capture_message('Found two non aliased identical job_id')
+            raise RuntimeError('Found two non aliased identical job_id')
 
         else:
             alias_dir = None
