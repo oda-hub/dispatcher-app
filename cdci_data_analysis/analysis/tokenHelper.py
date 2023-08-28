@@ -88,6 +88,7 @@ def refresh_token(token, secret_key, refresh_interval):
             logger.warning(
                 f'Error when refreshing the token, the new value is invalid:\n{e}')
             # the range of values supported by the platform is commonly to be restricted to years in 1970 through 2038
+            # but it might vary, this should accommodate the majority
             refreshed_token_exp = 2177449199
 
         refreshed_token_payload = {

@@ -801,7 +801,7 @@ def test_refresh_token(dispatcher_live_fixture, dispatcher_test_conf, refresh_in
     }
 
     if refresh_interval == "exp_too_high":
-        token_payload["exp"] = 253402297199
+        token_payload["exp"] = 25340229700000
         refresh_interval_to_apply = 1
     else:
         refresh_interval_to_apply = refresh_interval
