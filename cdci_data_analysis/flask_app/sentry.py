@@ -1,5 +1,6 @@
 import logging
 import sentry_sdk
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ class Sentry:
                     traces_sample_rate=0.1,
                     debug=False,
                     max_breadcrumbs=10,
+                    environment=os.getenv("ODA_SENTRY_ENV", "production")
                 )
             except Exception as e:
                 logger.warning("can not setup sentry with URL %s due to %s", self.sentry_url, e)
