@@ -512,12 +512,32 @@ def send_email(smtp_server,
 
 def store_status_email_info(message, status, scratch_dir, sending_time=None, first_submitted_time=None):
     path_email_history_folder = os.path.join(scratch_dir, 'email_history')
+    current_time = time_.time()
     if not os.path.exists(path_email_history_folder):
         os.makedirs(path_email_history_folder)
     if sending_time is None:
-        sending_time = time_.time()
+        sending_time = current_time
+    else:
+        try:
+            validate_time(sending_time)
+        except (ValueError, OverflowError, TypeError, OSError) as e:
+            logger.warning(f'Error when writing the email content on a file, the sending time is not valid.'
+                           f'The value {sending_time} raised the following error:\n{e}')
+            sending_time = current_time
+            sentry.capture_message(f'Error when writing the email content on a file, the sending time is not valid.'
+                                   f'The value {sending_time} raised the following error:\n{e}')
+
     if first_submitted_time is None:
         first_submitted_time = sending_time
+    else:
+        try:
+            validate_time(first_submitted_time)
+        except (ValueError, OverflowError, TypeError, OSError) as e:
+            logger.warning(f'Error when writing the email content on a file, the first submitted time is not valid.'
+                           f'The value {first_submitted_time} raised the following error:\n{e}')
+            first_submitted_time = sending_time
+            sentry.capture_message(f'Error when writing the email content on a file, the first submitted time is not valid.'
+                                   f'The value {first_submitted_time} raised the following error:\n{e}')
 
     email_file_name = f'email_{status}_{str(sending_time)}_{str(first_submitted_time)}.email'
 
@@ -570,7 +590,17 @@ def log_email_sending_info(logger, status, time_request, scratch_dir, job_id, ad
     path_email_history_folder = os.path.join(scratch_dir, 'email_history')
     if not os.path.exists(path_email_history_folder):
         os.makedirs(path_email_history_folder)
-    history_info_obj = dict(time=timestamp2isot(time_request),
+
+    try:
+        time_request_str = validate_time(time_request).strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, OverflowError, TypeError, OSError) as e:
+        logger.warning(f'Error when extracting logging the sending info of an email.'
+                       f'The time value {time_request} raised the following error:\n{e}')
+        time_request_str = datetime.fromtimestamp(time_.time()).strftime("%Y-%m-%d %H:%M:%S")
+        sentry.capture_message(f'Error when extracting logging the sending info of an email.'
+                               f'The time value {time_request} raised the following error:\n{e}')
+
+    history_info_obj = dict(time=time_request_str,
                             status=status,
                             job_id=job_id)
     if additional_info_obj is not None:
