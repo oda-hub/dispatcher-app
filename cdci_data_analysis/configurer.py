@@ -220,6 +220,7 @@ class ConfigEnv(object):
             self.set_conf_dispatcher(disp_dict['bind_options']['bind_host'],
                                      disp_dict['bind_options']['bind_port'],
                                      disp_dict['sentry_url'],
+                                     disp_dict.get('sentry_environment', 'production'),
                                      disp_dict['logstash_host'],
                                      disp_dict['logstash_port'],
                                      products_url,
@@ -287,6 +288,7 @@ class ConfigEnv(object):
                             bind_host,
                             bind_port,
                             sentry_url,
+                            sentry_environment,
                             logstash_host,
                             logstash_port,
                             products_url,
@@ -326,6 +328,7 @@ class ConfigEnv(object):
         self.bind_host = bind_host
         self.bind_port = bind_port
         self.sentry_url = sentry_url
+        self.sentry_environment = sentry_environment
         self.logstash_host = logstash_host
         self.logstash_port = logstash_port
         self.products_url = products_url
