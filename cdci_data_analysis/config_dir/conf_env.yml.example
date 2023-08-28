@@ -14,7 +14,8 @@ dispatcher:
     # register on sentry.io and  put here url for reporting issues!
     # optional, but should be enforcable in "strict" mode
     sentry_url:
-    
+    sentry_environment: production
+
     # can be ignored, install your own (https://www.elastic.co/logstash) or use external https://logz.io/
     # optional, but may be be enforcable in "strict" mode
     logstash_host: 
