@@ -368,6 +368,7 @@ dispatcher:
     products_url: PRODUCTS_URL
     dispatcher_callback_url_base: http://0.0.0.0:8011
     sentry_url: "https://2ba7e5918358439485632251fa73658c@sentry.io/1467382"
+    sentry_environment: "production"
     logstash_host: 
     logstash_port: 
     secret_key: 'secretkey_test'
