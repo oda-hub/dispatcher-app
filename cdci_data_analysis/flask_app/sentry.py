@@ -38,6 +38,7 @@ class Sentry:
                     traces_sample_rate=0.1,
                     debug=False,
                     max_breadcrumbs=10,
+                    environment=getattr(self.app.config.get('conf'), 'sentry_environment', 'production')
                 )
             except Exception as e:
                 logger.warning("can not setup sentry with URL %s due to %s", self.sentry_url, e)
