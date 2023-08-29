@@ -322,34 +322,33 @@ class Instrument:
                         'information from a completed job')
             status_details_output_obj['status'] = 'dispatcher_exception'
             status_details_output_obj['exception_message'] = str(de)
-            sentry.capture_message((f'Dispatcher-related exception detected when retrieving additional '
-                                    f'information from a completed job '
-                                    f'{de}'))
+            sentry.capture_message(f'Dispatcher-related exception detected when retrieving additional '
+                                   f'information from a completed job:\n{de}')
         except ConnectionError as ce:
             logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
                         'A connection error has been detected when retrieving additional information '
                         f'from a completed job: {ce}')
             status_details_output_obj['status'] = 'connection_error'
             status_details_output_obj['exception_message'] = str(ce)
-            sentry.capture_message((f'ConnectionError detected when retrieving additional '
-                                    f'information from a completed job '
-                                    f'{ce}'))
+            sentry.capture_message(f'ConnectionError detected when retrieving additional '
+                                   f'information from a completed job:\n{ce}')
         except Unauthorized as ue:
             detail_message = ""
             status_details_output_obj['status'] = 'authorization_error'
             if 'The token provided is expired' in ue.message:
-                detail_message = "expired"
+                detail_message = ('It looks like the token has expired before the job completion, and therefore the request cannot be completed.\n'
+                                  'The result might however be complete or mostly ready, please resubmit it using a token with longer validity.')
                 status_details_output_obj['status'] = 'expired_token'
+            # TODO probably not really needed ... ?
             elif 'The token provided is not valid' in ue.message:
-                detail_message = "not valid"
+                detail_message = ('It looks like the provided token is not valid, and therefore the request cannot be completed.\n'
+                                  'The result might however be complete or mostly ready, please resubmit it using a valid token.')
                 status_details_output_obj['status'] = 'invalid_token'
             logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
-                        f'A {detail_message} token has been provided, and therefore the request cannot be completed.\n'
-                        'Please check your request before submitting it.')
+                        f'{detail_message}\n')
             status_details_output_obj['exception_message'] = str(ue)
-            sentry.capture_message((f'Authorization-related exception detected when retrieving additional '
-                                    f'information from a completed job '
-                                    f'{ue}'))
+            sentry.capture_message(f'Authorization-related exception detected when retrieving additional '
+                                   f'information from a completed job:\n{ue}')
         except RemoteException as re:
             if 'unable to complete API call' in re.message:
                 logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
@@ -371,8 +370,8 @@ class Instrument:
                 status_details_output_obj['status'] = 'empty_product'
                 status_details_output_obj['exception_message'] = re.message + '\n' + re.debug_message
 
-            sentry.capture_message((f'RemoteException detected when retrieving additional '
-                                    f'information from a completed job {re}'))
+            sentry.capture_message(f'RemoteException detected when retrieving additional '
+                                   f'information from a completed job:\n{re}')
 
         return status_details_output_obj
 
