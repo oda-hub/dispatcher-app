@@ -27,6 +27,7 @@ from bs4 import BeautifulSoup
 
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
 from ..analysis.hash import make_hash
+from ..analysis.time_helper import validate_time
 
 from datetime import datetime
 
@@ -41,15 +42,6 @@ class MultipleDoneEmail(BadRequest):
 
 class EMailNotSent(BadRequest):
     pass
-
-
-def validate_time(timestamp_to_validate):
-    try:
-        datetime_obj = datetime.fromtimestamp(float(timestamp_to_validate))
-    except (ValueError, OverflowError, TypeError, OSError) as e:
-        logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_to_validate}:\n{e}')
-        raise
-    return datetime_obj
 
 
 def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
