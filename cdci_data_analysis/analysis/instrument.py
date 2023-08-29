@@ -42,7 +42,7 @@ from .io_helper import upload_file
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
 from ..flask_app.sentry import sentry
 
-from oda_api.api import DispatcherAPI, RemoteException, DispatcherException, DispatcherNotAvailable, UnexpectedDispatcherStatusCode, RequestNotUnderstood as RequestNotUnderstoodOdaApi
+from oda_api.api import DispatcherAPI, RemoteException, Unauthorized, DispatcherException, DispatcherNotAvailable, UnexpectedDispatcherStatusCode, RequestNotUnderstood as RequestNotUnderstoodOdaApi
 
 __author__ = "Andrea Tramacere"
 
@@ -318,7 +318,7 @@ class Instrument:
                 UnexpectedDispatcherStatusCode,
                 RequestNotUnderstoodOdaApi) as de:
             logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
-                        'A exception regarding the dispatcher has been returned by the oda_api when retrieving '
+                        'An exception regarding the dispatcher has been returned by the oda_api when retrieving '
                         'information from a completed job')
             status_details_output_obj['status'] = 'dispatcher_exception'
             status_details_output_obj['exception_message'] = str(de)
@@ -334,6 +334,22 @@ class Instrument:
             sentry.capture_message((f'ConnectionError detected when retrieving additional '
                                     f'information from a completed job '
                                     f'{ce}'))
+        except Unauthorized as ue:
+            detail_message = ""
+            status_details_output_obj['status'] = 'authorization_error'
+            if 'The token provided is expired' in ue.message:
+                detail_message = "expired"
+                status_details_output_obj['status'] = 'expired_token'
+            elif 'The token provided is not valid' in ue.message:
+                detail_message = "not valid"
+                status_details_output_obj['status'] = 'invalid_token'
+            logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
+                        f'A {detail_message} token has been provided, and therefore the request cannot be completed.\n'
+                        'Please check your request before submitting it.')
+            status_details_output_obj['exception_message'] = str(ue)
+            sentry.capture_message((f'Authorization-related exception detected when retrieving additional '
+                                    f'information from a completed job '
+                                    f'{ue}'))
         except RemoteException as re:
             if 'unable to complete API call' in re.message:
                 logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
