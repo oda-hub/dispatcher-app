@@ -293,8 +293,7 @@ class Instrument:
     def get_status_details(self,
                            par_dic,
                            config=None,
-                           logger=None,
-                           sentry_dsn=None):
+                           logger=None):
         if logger is None:
             logger = self.get_logger()
 
@@ -345,7 +344,7 @@ class Instrument:
                                   'The result might however be complete or mostly ready, please resubmit it using a valid token.')
                 status_details_output_obj['status'] = 'invalid_token'
             logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
-                        f'{detail_message}\n')
+                        f'{detail_message}')
             status_details_output_obj['exception_message'] = str(ue)
             sentry.capture_message(f'Authorization-related exception detected when retrieving additional '
                                    f'information from a completed job:\n{ue}')
