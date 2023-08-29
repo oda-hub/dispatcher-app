@@ -789,7 +789,7 @@ def test_modify_token(dispatcher_live_fixture, tem_value, tem_key_name):
             assert token_payload == payload_returned_token
 
 
-@pytest.mark.parametrize("refresh_interval", [500000, 604800, 1000000])
+@pytest.mark.parametrize("refresh_interval", [500000, 604800, 1000000, "exp_too_high"])
 def test_refresh_token(dispatcher_live_fixture, dispatcher_test_conf, refresh_interval):
     server = dispatcher_live_fixture
 
@@ -799,24 +799,34 @@ def test_refresh_token(dispatcher_live_fixture, dispatcher_test_conf, refresh_in
         **default_token_payload,
         "roles": "refresh-tokens"
     }
+
+    if refresh_interval == "exp_too_high":
+        token_payload["exp"] = 25340229700000
+        refresh_interval_to_apply = 1
+    else:
+        refresh_interval_to_apply = refresh_interval
+
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
     params = {
         'token': encoded_token,
         'query_status': 'new',
-        'refresh_interval': refresh_interval
+        'refresh_interval': refresh_interval_to_apply
     }
 
     c = requests.post(server + "/refresh_token", params=params)
 
-    if refresh_interval > dispatcher_test_conf['token_max_refresh_interval']:
+    if refresh_interval_to_apply > dispatcher_test_conf['token_max_refresh_interval']:
         jdata = c.json()
         assert jdata['error_message'] == 'Request not authorized'
         assert jdata['debug_message'] == 'The refresh interval requested exceeds the maximum allowed, please provide a value which is lower than 604800 seconds'
     else:
         token_update = {
-            "exp": default_token_payload["exp"] + refresh_interval
+            "exp": default_token_payload["exp"] + refresh_interval_to_apply
         }
+
+        if refresh_interval == "exp_too_high":
+            token_update["exp"] = 2177449199
 
         token_payload.update(token_update)
 
