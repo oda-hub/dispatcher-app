@@ -26,6 +26,7 @@ from cdci_data_analysis.analysis import tokenHelper
 from ..analysis.exceptions import RequestNotUnderstood, InternalError, RequestNotAuthorized
 from ..flask_app.templates import body_article_product_gallery
 from ..app_logging import app_logging
+from ..analysis.time_helper import format_time
 
 default_algorithm = 'HS256'
 
@@ -713,14 +714,6 @@ def build_gallery_observation_node(product_gallery_url,
         }]
 
     return body_gallery_observation_node
-
-
-def format_time(time_str, tz_to_apply):
-    # format the time fields, from the format request
-    t_parsed = parser.parse(time_str, ignoretz=True)
-    t_formatted = t_parsed.astimezone(tz_to_apply).strftime('%Y-%m-%dT%H:%M:%S%z')
-
-    return t_formatted
 
 
 def post_observation(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,

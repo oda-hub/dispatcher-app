@@ -7,7 +7,7 @@ from typing import Tuple, Optional, Union
 from cdci_data_analysis.analysis.exceptions import BadRequest
 from cdci_data_analysis.flask_app.schemas import EmailOptionsTokenSchema
 from cdci_data_analysis.app_logging import app_logging
-from cdci_data_analysis.analysis.email_helper import validate_time
+from cdci_data_analysis.analysis.time_helper import validate_time
 
 default_algorithm = 'HS256'
 logger = app_logging.getLogger('tokenHelper')
@@ -88,10 +88,8 @@ def refresh_token(token, secret_key, refresh_interval):
             logger.warning(
                 f'Error when refreshing the token, the new value is invalid:\n{e}')
             # the range of values supported by the platform is commonly to be restricted to years in 1970 through 2038
-            if refresh_interval > 0:
-                refreshed_token_exp = 2177449199
-            elif refresh_interval < 0:
-                refreshed_token_exp = 0
+            # but it might vary, this should accommodate the majority
+            refreshed_token_exp = 2177449199
 
         refreshed_token_payload = {
             'exp': refreshed_token_exp
