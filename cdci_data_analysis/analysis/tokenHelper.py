@@ -7,7 +7,7 @@ from typing import Tuple, Optional, Union
 from cdci_data_analysis.analysis.exceptions import BadRequest
 from cdci_data_analysis.flask_app.schemas import EmailOptionsTokenSchema
 from cdci_data_analysis.app_logging import app_logging
-from cdci_data_analysis.analysis.email_helper import validate_time
+from cdci_data_analysis.analysis.time_helper import validate_time
 
 default_algorithm = 'HS256'
 logger = app_logging.getLogger('tokenHelper')
