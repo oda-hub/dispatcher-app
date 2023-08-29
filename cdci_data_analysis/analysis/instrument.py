@@ -42,7 +42,7 @@ from .io_helper import upload_file
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
 from ..flask_app.sentry import sentry
 
-from oda_api.api import DispatcherAPI, RemoteException, DispatcherException, DispatcherNotAvailable, UnexpectedDispatcherStatusCode, RequestNotUnderstood as RequestNotUnderstoodOdaApi
+from oda_api.api import DispatcherAPI, RemoteException, Unauthorized, DispatcherException, DispatcherNotAvailable, UnexpectedDispatcherStatusCode, RequestNotUnderstood as RequestNotUnderstoodOdaApi
 
 __author__ = "Andrea Tramacere"
 
@@ -293,8 +293,7 @@ class Instrument:
     def get_status_details(self,
                            par_dic,
                            config=None,
-                           logger=None,
-                           sentry_dsn=None):
+                           logger=None):
         if logger is None:
             logger = self.get_logger()
 
@@ -318,22 +317,38 @@ class Instrument:
                 UnexpectedDispatcherStatusCode,
                 RequestNotUnderstoodOdaApi) as de:
             logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
-                        'A exception regarding the dispatcher has been returned by the oda_api when retrieving '
+                        'An exception regarding the dispatcher has been returned by the oda_api when retrieving '
                         'information from a completed job')
             status_details_output_obj['status'] = 'dispatcher_exception'
             status_details_output_obj['exception_message'] = str(de)
-            sentry.capture_message((f'Dispatcher-related exception detected when retrieving additional '
-                                    f'information from a completed job '
-                                    f'{de}'))
+            sentry.capture_message(f'Dispatcher-related exception detected when retrieving additional '
+                                   f'information from a completed job:\n{de}')
         except ConnectionError as ce:
             logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
                         'A connection error has been detected when retrieving additional information '
                         f'from a completed job: {ce}')
             status_details_output_obj['status'] = 'connection_error'
             status_details_output_obj['exception_message'] = str(ce)
-            sentry.capture_message((f'ConnectionError detected when retrieving additional '
-                                    f'information from a completed job '
-                                    f'{ce}'))
+            sentry.capture_message(f'ConnectionError detected when retrieving additional '
+                                   f'information from a completed job:\n{ce}')
+        except Unauthorized as ue:
+            detail_message = ""
+            status_details_output_obj['status'] = 'authorization_error'
+            if 'The token provided is expired' in ue.message:
+                detail_message = ('It looks like the token has expired before the job completion, and therefore the request cannot be completed.\n'
+                                  'The result might however be complete or mostly ready, please resubmit it using a token with longer validity.')
+                status_details_output_obj['status'] = 'expired_token'
+            # TODO probably not really needed ... ?
+            elif 'The token provided is not valid' in ue.message:
+                detail_message = ('It looks like the provided token is not valid, and therefore the request cannot be completed.\n'
+                                  'The result might however be complete or mostly ready, please resubmit it using a valid token.')
+                status_details_output_obj['status'] = 'invalid_token'
+            logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
+                        f'{detail_message}\n'
+                        f'For more information you can contact us at the contact@odahub.io email address or using the dedicated form.')
+            status_details_output_obj['exception_message'] = str(ue)
+            sentry.capture_message(f'Authorization-related exception detected when retrieving additional '
+                                   f'information from a completed job:\n{ue}')
         except RemoteException as re:
             if 'unable to complete API call' in re.message:
                 logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
@@ -355,8 +370,8 @@ class Instrument:
                 status_details_output_obj['status'] = 'empty_product'
                 status_details_output_obj['exception_message'] = re.message + '\n' + re.debug_message
 
-            sentry.capture_message((f'RemoteException detected when retrieving additional '
-                                    f'information from a completed job {re}'))
+            sentry.capture_message(f'RemoteException detected when retrieving additional '
+                                   f'information from a completed job:\n{re}')
 
         return status_details_output_obj
 
