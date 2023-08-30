@@ -964,6 +964,8 @@ def get_observation_yaml_attachments_by_observation_title(product_gallery_url, g
                                      sentry_dsn=sentry_dsn)
     output_get = analyze_drupal_output(log_res, operation_performed="retrieving the observation attachments")
 
+    yaml_attachment = {}
+
     if output_get is not None and isinstance(output_get, list) and len(output_get) >= 1:
         # TODO might be needed if a better formatting of the output is needed
         # if 'file_content' in output_get[0]:
@@ -972,9 +974,9 @@ def get_observation_yaml_attachments_by_observation_title(product_gallery_url, g
         #         if splitted_content != '':
         #             if splitted_content.strip()
         #             yaml.parse(splitted_content)
-        return output_get[0]
+        yaml_attachment = output_get[0]
 
-    return output_get
+    return yaml_attachment
 
 
 def get_observation_drupal_id(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
