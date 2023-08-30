@@ -2,11 +2,12 @@ import logging
 import sentry_sdk
 import os
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 class Sentry:
     def __init__(self) -> None:
         self._app = None
+        self.logger = logging.getLogger(repr(self))
 
     @property
     def app(self):
@@ -26,6 +27,7 @@ class Sentry:
         
         return self._sentry_url
 
+    @property
     def have_sentry(self):
         if self.sentry_url is None:
             return False
@@ -42,17 +44,16 @@ class Sentry:
                     environment=getattr(self.app.config.get('conf'), 'sentry_environment', 'production')
                 )
             except Exception as e:
-                logger.warning("can not setup sentry with URL %s due to %s", self.sentry_url, e)
+                self.logger.warning("can not setup sentry with URL %s due to %s", self.sentry_url, e)
 
             return True
 
-    def capture_message(self, message: str, logger=None):
+    def capture_message(self, message: str):
         if self.have_sentry:
-            if logger is not None:
-                logger.warning(message)
+            self.logger.warning(message)
 
             sentry_sdk.capture_message(message)
         else:
-            logger.warning("sentry not used, dropping %s", message)
+            self.logger.warning("sentry not used, dropping %s", message)
 
 sentry = Sentry()
