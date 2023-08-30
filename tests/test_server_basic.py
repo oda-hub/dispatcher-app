@@ -2494,6 +2494,28 @@ def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_f
 
 
 @pytest.mark.test_drupal
+def test_product_gallery_get_not_existing_period_of_observation_attachments(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    c = requests.get(os.path.join(server, "get_observation_attachments"),
+                     params={'title': 'rev. aaaaa',
+                             'token': encoded_token}
+                     )
+
+    assert c.status_code == 200
+    assert c.json() == {}
+
+
+@pytest.mark.test_drupal
 @pytest.mark.parametrize("obsid", [1960001, ["1960001", "1960002", "1960003"]])
 @pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "time_range_no_timezone_limits", "time_range_with_timezone", "new_time_range"])
 @pytest.mark.parametrize("include_title", [True, False])
