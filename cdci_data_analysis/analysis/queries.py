@@ -587,7 +587,7 @@ class ProductQuery(BaseQuery):
 
         except Exception as e:
             logger.exception("failed to get query products")
-            e_message = f'Connection with the backend (instrument: {instrument.name}, product: {self.name}) failed!\n{repr(e)}'
+            e_message = f"Error when getting query products (instrument: {instrument.name}, product: {self.name}):\n{repr(e)}"
 
             if hasattr(e, 'debug_message') and e.debug_message is not None:
                 debug_message = e.debug_message
@@ -605,7 +605,7 @@ class ProductQuery(BaseQuery):
                                  e_message=e_message,
                                  debug_message=debug_message)
 
-            raise InternalError(f"Error when getting query products ((instrument: {instrument.name}, product: {self.name})).\n {repr(e)}")
+            raise InternalError(e_message)
 
         logger.info('--> data_server_query_status %d' % query_out.get_status())
         logger.info('--> end product query ')
