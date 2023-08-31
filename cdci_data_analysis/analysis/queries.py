@@ -657,6 +657,7 @@ class ProductQuery(BaseQuery):
             #status=1
             job.set_failed()
             # FAILED
+            sentry.capture_exception(e)
             process_products_query_out.set_failed('product processing',
                                                   extra_message='product processing failed',
                                                   logger=logger,
