@@ -632,13 +632,6 @@ class InstrumentQueryBackEnd:
 
         return _logger
 
-    # def set_sentry_sdk(self, sentry_dsn=None):
-    #     if sentry_dsn is not None:
-    #         if sentry.sentry_url != sentry_dsn:
-    #             raise NotImplementedError
-    #
-    #     self.sentry_dsn = sentry.sentry_url
-
     def get_current_ip(self):
         return socket.gethostbyname(socket.gethostname())
 
