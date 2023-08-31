@@ -444,7 +444,6 @@ class ProductQuery(BaseQuery):
 
             query_out.set_failed('dataserver communication test',
                                  logger=logger,
-                                 sentry_dsn=sentry_dsn,
                                  excep=e,
                                  e_message=e_message,
                                  debug_message=debug_message)
@@ -726,7 +725,6 @@ class ProductQuery(BaseQuery):
                                                            job,
                                                            logger=logger,
                                                            config=config,
-                                                           sentry_dsn=sentry_dsn,
                                                            api=api,
                                                            backend_comment=backend_comment,
                                                            backend_warning=backend_warning)

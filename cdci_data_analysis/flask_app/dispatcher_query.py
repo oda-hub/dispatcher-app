@@ -259,8 +259,7 @@ class InstrumentQueryBackEnd:
                             request=request,
                             temp_dir=self.temp_dir,
                             verbose=verbose,
-                            use_scws=self.use_scws,
-                            sentry_dsn=self.sentry_dsn
+                            use_scws=self.use_scws
                         )
                         self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
 
@@ -1798,7 +1797,6 @@ class InstrumentQueryBackEnd:
                                                           config=self.config_data_server,
                                                           query_type=query_type,
                                                           logger=self.logger,
-                                                          sentry_dsn=self.sentry_dsn,
                                                           verbose=verbose,
                                                           dry_run=dry_run,
                                                           api=api,
