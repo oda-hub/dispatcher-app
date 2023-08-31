@@ -105,7 +105,7 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
 generalized_email_patterns = {
     'time_request_str': [
         r'(because at )([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.*?)( \()',
-        '(first requested at )(.*? .*?)( job_id:)'
+        '(requested at )(.*? .*?)( job_id:)'
     ],
     'token_exp_time_str': [
         '(and will be valid until )(.*? .*?)(.<br>)'
@@ -421,7 +421,7 @@ def validate_email_content(
     if state_title is None:
         state_title = state
 
-    assert msg['Subject'] == f"[ODA][{state_title}] {product} first requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+    assert msg['Subject'] == f"[ODA][{state_title}] {product} requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
     assert msg['From'] == 'team@odahub.io'
     assert msg['To'] == 'mtm@mtmco.net'
     assert msg['CC'] == ", ".join(['team@odahub.io'])
@@ -963,7 +963,7 @@ def test_email_run_analysis_callback(gunicorn_dispatcher_long_living_fixture, di
     if encoded_token is None:
         assert r.text == 'A token must be provided.'
     else:
-        assert r.text == ("Unfortunately, your privileges are not sufficient for this type of request.\n"
+        assert r.text == ("Unfortunately, your privileges are not sufficient to inspect the state for a given job_id.\n"
                           "Your privilege roles include ['general'], but the following roles are"
                           " missing: job manager.")
 
@@ -973,6 +973,144 @@ def test_email_run_analysis_callback(gunicorn_dispatcher_long_living_fixture, di
     logger.info('dispatcher_state_report: %s', dispatcher_state_report)
 
     assert len(dispatcher_state_report['records']) > 0
+
+
+@pytest.mark.not_safe_parallel
+def test_email_submitted_faulty_time_request(dispatcher_live_fixture, dispatcher_local_mail_server):
+    # remove all the current scratch folders
+    dir_list = glob.glob('scratch_*')
+    [shutil.rmtree(d) for d in dir_list]
+
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # email content in plain text and html format
+    smtp_server_log = dispatcher_local_mail_server.local_smtp_output_json_fn
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "tem": 0,
+        "intsub": 5
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    # this should return status submitted, so email sent
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+
+    jdata = c.json()
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    # taken from the sentry log
+    faulty_first_submitted_email_time = 325666656000000000
+
+    list_email_files = glob.glob(os.path.join(dispatcher_job_state.email_history_folder, f'email_submitted_*.email'))
+    assert len(list_email_files) == 1
+
+    email_file_split_name, email_file_split_ext = os.path.splitext(os.path.basename(list_email_files[0]))
+    email_file_split = email_file_split_name.split('_')
+    assert float(email_file_split[3]) == time_request
+
+    msg = dispatcher_local_mail_server.local_smtp_output[0]
+    msg_data = email.message_from_string(msg['data'])
+    assert msg_data[
+               'Subject'] == f"[ODA][submitted] dummy requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+
+    email_file_split[3] = str(faulty_first_submitted_email_time)
+    faulty_email_file_name = "_".join(email_file_split)
+
+    os.rename(list_email_files[0], os.path.join(os.path.dirname(list_email_files[0]),faulty_email_file_name + email_file_split_ext))
+
+    # let the interval time pass, so that a new email si sent
+    time.sleep(5)
+    # re-submit the very same request, in order to produce a sequence of submitted status
+    # and verify not a sequence of emails are generated
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        session_id=dispatcher_job_state.session_id,
+        job_id=dispatcher_job_state.job_id,
+        token=encoded_token
+    )
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    list_email_files = glob.glob(os.path.join(dispatcher_job_state.email_history_folder, f'email_submitted_*.email'))
+    assert len(list_email_files) == 2
+
+    submitted_email_files = sorted(list_email_files, key=os.path.getmtime)
+
+    f_name, f_ext = os.path.splitext(os.path.basename(submitted_email_files[-1]))
+    f_name_splited = f_name.split('_')
+    assert len(f_name_splited) == 4
+    assert float(f_name.split('_')[3]) == time_request
+
+    msg = dispatcher_local_mail_server.local_smtp_output[-1]
+    msg_data = email.message_from_string(msg['data'])
+    assert msg_data[
+               'Subject'] == f"[ODA][submitted] dummy requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+
+    # let the interval time pass, so that a new email si sent
+    time.sleep(5)
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    list_email_files = glob.glob(os.path.join(dispatcher_job_state.email_history_folder, f'email_submitted_*.email'))
+    assert len(list_email_files) == 3
+
+    submitted_email_files = sorted(list_email_files, key=os.path.getmtime)
+
+    f_name, f_ext = os.path.splitext(os.path.basename(submitted_email_files[-1]))
+    f_name_splited = f_name.split('_')
+    assert len(f_name_splited) == 4
+    assert float(f_name.split('_')[3]) == time_request
+
+    msg = dispatcher_local_mail_server.local_smtp_output[-1]
+    msg_data = email.message_from_string(msg['data'])
+    assert msg_data[
+               'Subject'] == f"[ODA][submitted] dummy requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
 
 
 @pytest.mark.not_safe_parallel
@@ -1020,6 +1158,9 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
     assert jdata['exit_status']['email_status'] == 'email sent'
+
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
 
     # check the email in the email folders, and that the first one was produced
     
@@ -1072,7 +1213,20 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
     
     dispatcher_job_state.assert_email(state="submitted", number=2)
     dispatcher_local_mail_server.assert_email_number(2)
-    
+
+    # check the time in the title and filename is still the one of the first request
+    for msg in dispatcher_local_mail_server.local_smtp_output:
+        msg_data = email.message_from_string(msg['data'])
+        assert msg_data[
+                   'Subject'] == f"[ODA][submitted] dummy requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+
+    list_email_files = glob.glob(os.path.join(dispatcher_job_state.email_history_folder, f'email_submitted_*.email'))
+    assert len(list_email_files) == 2
+    for email_file in list_email_files:
+        f_name, f_ext = os.path.splitext(os.path.basename(email_file))
+        f_name_splited = f_name.split('_')
+        assert len(f_name_splited) == 4
+        assert float(f_name.split('_')[3]) == time_request
 
     # let the interval time pass again, so that a new email si sent
     time.sleep(5)
@@ -1087,6 +1241,19 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
 
     # check the email in the email folders, and that the first one was produced
     dispatcher_local_mail_server.assert_email_number(3)
+
+    # check the time in the title and filename is still the one of the first request
+    for msg in dispatcher_local_mail_server.local_smtp_output:
+        msg_data = email.message_from_string(msg['data'])
+        assert msg_data[
+                   'Subject'] == f"[ODA][submitted] dummy requested at {time_request_str} job_id: {dispatcher_job_state.job_id[:8]}"
+    list_email_files = glob.glob(os.path.join(dispatcher_job_state.email_history_folder, f'email_submitted_*.email'))
+    assert len(list_email_files) == 3
+    for email_file in list_email_files:
+        f_name, f_ext = os.path.splitext(os.path.basename(email_file))
+        f_name_splited = f_name.split('_')
+        assert len(f_name_splited) == 4
+        assert float(f_name.split('_')[3]) == time_request
 
 
 @pytest.mark.not_safe_parallel
@@ -2150,6 +2317,7 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
             instrument="empty-async",
             product_type="numerical",
             token=encoded_token,
+            allow_unknown_args=True,
         )
 
     # this kind of parameters never really happen, and we should be alerted
@@ -2320,14 +2488,13 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
     else:
         expected_query_status = None
         expected_status_code = 400
-        error_message = (f'[ InstrumentQueryBackEnd : empty-async ] constructor failed: '
-                         f'Input values did not match the format class {time_format}:\n')
         if time_format == 'isot':
-            error_message += 'ValueError: Time 57818 does not match isot format'
+            par, val = ('T1', time_combinations[0]) if isinstance(time_combinations[0], float) else ('T2', time_combinations[1])
+            error_message = f'Parameter {par} wrong value {val}: can\'t be parsed as Time of isot format'
         else:
-            error_message += f'TypeError: for {time_format} class, input should be (long) doubles, string, ' \
-                             f'or Decimal, and second values are only allowed for (long) doubles.'
-
+            par, val = ('T1', time_combinations[0]) if isinstance(time_combinations[0], str) else ('T2', time_combinations[1])
+            error_message = f'Parameter {par} wrong value {val}: can\'t be parsed as Time of mjd format'
+            
     # this should return status submitted, so email sent
     jdata = ask(server,
                 dict_param,
@@ -2378,6 +2545,87 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
     else:
         assert jdata["error_message"] == error_message
 
+
+@pytest.mark.parametrize("number_folders_to_delete", [1, 8])
+@pytest.mark.parametrize("soft_minimum_age_days", ["not_provided", 1, 5])
+@pytest.mark.parametrize("dispatcher_live_fixture", [("hard_minimum_folder_age_days", None),
+                                                     ("hard_minimum_folder_age_days", 1),
+                                                     ("hard_minimum_folder_age_days", 15),
+                                                     ("hard_minimum_folder_age_days", 60)], indirect=True)
+def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_minimum_age_days):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    token_payload = {
+        **default_token_payload,
+        "roles": ['space manager'],
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    expired_token = {
+        **default_token_payload,
+        "roles": ['space manager'],
+        "exp": int(time.time()) - 15
+    }
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    number_analysis_to_run = 8
+
+    for i in range(number_analysis_to_run):
+        ask(server,
+            params,
+            expected_query_status=["done"],
+            max_time_s=150
+            )
+
+    list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key=os.path.getmtime)
+
+    current_time = time.time()
+    one_month_secs = 60 * 60 * 24 * 30
+    if soft_minimum_age_days != 'not_provided':
+        soft_minimum_age_days_secs = soft_minimum_age_days * 60 *60 * 24
+    else:
+        soft_minimum_age_days_secs = one_month_secs
+
+    for scratch_dir in list_scratch_dir[0: number_folders_to_delete]:
+        # set folders to be deleted
+        os.utime(scratch_dir, (current_time, current_time - soft_minimum_age_days_secs))
+        analysis_parameters_path = os.path.join(scratch_dir, 'analysis_parameters.json')
+        with open(analysis_parameters_path) as analysis_parameters_file:
+            dict_analysis_parameters = json.load(analysis_parameters_file)
+        dict_analysis_parameters['token'] = expired_token
+        with open(analysis_parameters_path, 'w') as dict_analysis_parameters_outfile:
+            my_json_str = json.dumps(dict_analysis_parameters, indent=4)
+            dict_analysis_parameters_outfile.write(u'%s' % my_json_str)
+
+
+    params = {
+        'token': encoded_token,
+        'soft_minimum_age_days': soft_minimum_age_days
+    }
+
+    if soft_minimum_age_days == 'not_provided':
+        params.pop('soft_minimum_age_days')
+
+    c = requests.get(os.path.join(server, "free-up-space"), params=params)
+
+    jdata = c.json()
+
+    assert 'output_status' in jdata
+
+    assert jdata['output_status'] == f"Removed {number_folders_to_delete} scratch directories"
+
+    assert len(glob.glob("scratch_sid_*_jid_*")) == number_analysis_to_run - number_folders_to_delete
 
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
@@ -2438,7 +2686,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
         if 'job manager' not in roles:
             lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
             error_message = (
-                f'Unfortunately, your privileges are not sufficient for this type of request.\n'
+                f'Unfortunately, your privileges are not sufficient to inspect the state for a given job_id.\n'
                 f'Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}.'
             )
 

@@ -33,13 +33,13 @@ import logging
 
 from astropy.time import Time as astropyTime
 from astropy.time import TimeDelta as astropyTimeDelta
-
-from astropy.coordinates import Angle as astropyAngle
+from astropy import units as apy_u 
 
 import numpy as np
 
 from typing import Union
 from inspect import signature
+from .exceptions import RequestNotUnderstood
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ class ParameterGroup(object):
         self._check_pars(par_list)
         self.exclusive = True
 
-        self.msk = np.ones(len(par_list), dtype=np.bool)
+        self.msk = np.ones(len(par_list), dtype=bool)
 
         if exclusive:
             self.msk[::] = False
@@ -203,8 +203,11 @@ class Parameter:
 
                  check_value=None,
                  allowed_values=None,
+                 min_value = None,
+                 max_value = None,
                  **kwargs
                  ):
+        
         if len(kwargs) > 0:
             logger.error("possibily programming error: class %s initialized with extra arguments %s",
                          self, kwargs)
@@ -220,7 +223,9 @@ class Parameter:
                 par_default_format is not None and par_default_format != '':
             par_format = par_default_format
 
-        self.check_value = check_value
+        if check_value is not None:
+            logger.warning('Passing check_value to class constructor is deprecated. Override .check_value() method instead.')
+            self._deprecated_check_value = check_value
 
         if allowed_units is not None:
             # handles case of []
@@ -240,14 +245,28 @@ class Parameter:
         self._allowed_values = allowed_values
         self._allowed_types = allowed_types
         self.name = name
-        self.units = units
         self.default_units = default_units
+        self.units = units
         self.units_name = units_name
         self.default_type = default_type
         self.par_format=par_format
         self.par_default_format=par_default_format
         self.par_format_name=par_format_name
+        self._min_value = min_value
+        self._max_value = max_value
+        self._bound_units = self.units
         self.value = value
+
+
+        self._arg_list = [self.name]
+        if par_format_name is not None:
+            self._arg_list.append(par_format_name)
+        if units_name is not None:
+            self._arg_list.append(units_name)
+        
+    @property
+    def argument_names_list(self):
+        return self._arg_list[:]
 
     @property
     def name(self):
@@ -266,17 +285,35 @@ class Parameter:
     @value.setter
     def value(self, v):
         if v is not None:
-            if self.check_value is not None:
-                self.check_value(v, units=self.units, name=self.name, par_format=self.par_format)
+            if isinstance(v, str):
+                v = v.strip()
+
+            try:
+                self.set_par_internal_value(v)
+            except ValueError as e:
+                raise RequestNotUnderstood(f'Parameter {self.name} wrong value {v}. {e}')
+            except Exception:
+                raise
+
+            self.check_value()
+            
+            if self._deprecated_check_value is not None:
+                kwargs = { kw: getattr(self, kw) for kw in ('units', 'name', 'par_format') 
+                          if kw in signature(self._deprecated_check_value).parameters }        
+                self._deprecated_check_value(v, **kwargs)
+           
+            if self._min_value is not None or self._max_value is not None:
+                self.check_bounds()
+                
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
-                    raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
-            if isinstance(v, str):
-                self._value = v.strip()
-            else:
-                self._value = v
+                    raise RequestNotUnderstood(f'Parameter {self.name} wrong value {v}: not in allowed {self._allowed_values}')
         else:
             self._value = None
+
+    def set_par_internal_value(self, value):
+        # This method may be overrided and used to set both self._value and internal units- or format- aware representation
+        self._value = value
 
     @property
     def default_units(self):
@@ -306,6 +343,9 @@ class Parameter:
 
     @units.setter
     def units(self, units):
+        if units is None and self.default_units is not None:
+            logger.warning(f'Units not set for {self.name}, using default units: {self.default_units}')
+            units = self.default_units
         if units is not None and self._allowed_units is not None:
             self.check_units(units, self._allowed_units, self.name)
 
@@ -364,7 +404,15 @@ class Parameter:
     def get_value_in_default_format(self):
         return self.get_value_in_format(self.par_default_format)
 
-    def get_value_in_format(self, units):
+    def get_value_in_format(self, format):
+        logger.warning(f'no explict conversion implemented for the parameter {self.name}, '
+                       f'the non converted value is returned')
+        return self.value
+    
+    def get_value_in_default_units(self):
+        return self.get_value_in_units(self.default_units)
+
+    def get_value_in_units(self, units):
         logger.warning(f'no explict conversion implemented for the parameter {self.name}, '
                        f'the non converted value is returned')
         return self.value
@@ -387,87 +435,182 @@ class Parameter:
             raise RuntimeError(f'wrong type for par: {name}, found: {par_type}, allowed: {allowed}')
 
     @staticmethod
-    def check_value(val, units=None, name=None, par_format=None):
+    def _deprecated_check_value(val, units=None, name=None, par_format=None):
         pass
-
-    def reprJSON(self):
-        return dict(name=self.name, units=self.units, value=self.value)
     
+    def check_bounds(self):
+        raise NotImplementedError(f"Parameter {self.name} doesn't support min_value/max_value check")
+    
+    def check_value(self):
+        pass
+            
+    def reprJSONifiable(self):
+        # produces json-serialisable list
+        reprjson = [dict(name=self.name, units=self.units, value=self.value)]
+        restrictions = {}
+        if self._allowed_values is not None:
+            restrictions['allowed_values'] = self._allowed_values
+        if getattr(self, '_min_value', None) is not None:
+            restrictions['min_value'] = self._min_value
+        if getattr(self, '_max_value', None) is not None:
+            restrictions['max_value'] = self._max_value
+        if restrictions:
+            reprjson[0]['restrictions'] = restrictions
+        if self.par_format_name is not None:
+            reprjson.append(dict(name=self.par_format_name, units="str", value=self.par_format))
+        return reprjson
 
     @classmethod
     def matches_owl_uri(cls, owl_uri: str) -> bool:
-        return owl_uri in getattr(cls, "owl_uris", [])
+        return owl_uri in getattr(cls, "owl_uris", ())
 
     @classmethod
     def from_owl_uri(cls,
                      owl_uri,
+                     extra_ttl = None,
+                     ontology_path = None, 
                      **kwargs):
-        # TODO: what about units?
+        from .ontology import Ontology
 
-        possible_parameter_interpretations = []
-
-        for x in subclasses_recursive(cls):
-            logger.debug("searching for class with owl_uri=%s, found %s", owl_uri, x)
-            if x.matches_owl_uri(owl_uri):
-                logger.info("will construct %s by url %s", x, owl_uri)
-                call_kwargs = {}
-                call_signature = signature(x)
-                for par_name, par_value in kwargs.items():
-                    if par_name in call_signature.parameters:
-                        call_kwargs[par_name] = par_value
-                    else:
-                        logger.error("parameter %s with value %s not used to construct %s and will be discarded for the instantiation, available parameters %s",
-                                     par_name, par_value, x, call_signature)
-                try:
-                    possible_parameter_interpretations.append(x(**call_kwargs))
-                except Exception as e:
-                    logger.exception(("owl_uri %s matches Parameter %s, but the Parameter constructor failed! "
-                                      "Possibly a programming error, or/and unspecified subclass"), owl_uri, x)
-
-        n_interpretations = len(possible_parameter_interpretations)
+        if ontology_path:
+            onto = Ontology(ontology_path)
+            if extra_ttl is not None:
+                onto.parse_extra_triples(extra_ttl)
+            parameter_hierarchy = onto.get_parameter_hierarchy(owl_uri)
+            par_format = onto.get_parameter_format(owl_uri)
+            par_unit = onto.get_parameter_unit(owl_uri)
+            min_value, max_value = onto.get_limits(owl_uri)
+            allowed_values = onto.get_allowed_values(owl_uri)            
+        else:
+            logger.warning('Ontology path not set in Parameter.from_owl_uri(). '
+                           'Trying to find parameter which have %s directly set. '
+                           'extra_ttl will be ignored ', owl_uri)
+            parameter_hierarchy = [ owl_uri ]
+            par_format = par_unit = allowed_values = min_value = max_value = None
         
-        logger.info('found %s interpretations for type %s: %s',
-                    n_interpretations,
-                    owl_uri,
-                    possible_parameter_interpretations)
+        for owl_superclass_uri in parameter_hierarchy:
+            for python_subclass in subclasses_recursive(cls):
+                logger.debug("searching for class with owl_uri=%s, found %s", owl_superclass_uri, python_subclass)
+                if python_subclass.matches_owl_uri(owl_superclass_uri):
+                    logger.info("will construct %s by owl_uri %s", python_subclass, owl_superclass_uri)
+                    call_kwargs = {}
+                    call_signature = signature(python_subclass)                   
+                    
+                    for restr, overr_kw, kw_name in [(par_format, 'format_kw', 'par_format'), 
+                                                     (par_format, 'default_format_kw', 'par_default_format'),
+                                                     (par_unit, 'units_kw', 'units'), 
+                                                     (par_unit, 'default_units_kw', 'default_units'),
+                                                     (min_value, 'notexist', 'min_value'), 
+                                                     (max_value, 'notexist', 'max_value'),
+                                                     (allowed_values, 'notexist', 'allowed_values')]:
+                        if restr is not None:
+                            par_kw = getattr(python_subclass, overr_kw, kw_name)
+                            if par_kw in call_signature.parameters:
+                                call_kwargs[par_kw] = restr
+                            else:
+                                logger.error(("according to ontology, owl_uri %s parameter have %s=%s "
+                                            "but %s doesn't have such keyword, "
+                                            "so it will be discarded for the instantiation"),
+                                            owl_uri, par_kw, restr, python_subclass)
+                    
+                    for par_name, par_value in kwargs.items():
+                        if par_name in call_signature.parameters:
+                            if par_name in call_kwargs.keys(): 
+                                logger.warning("overriding ontology-derived value of the %s keyword of %s with explicitly set value %s",
+                                               par_name, python_subclass, par_value)
+                            call_kwargs[par_name] = par_value
+                        else:
+                            logger.error(("parameter %s with value %s not used to construct %s "
+                                          "and will be discarded for the instantiation, available parameters %s"),
+                                        par_name, par_value, python_subclass, call_signature)
+                    try:
+                        parameter_interpretation = python_subclass(**call_kwargs)
+                        return parameter_interpretation
+                    except Exception as e:
+                        logger.exception(("owl_uri %s matches Parameter %s, but the Parameter constructor failed! "
+                                          "Possibly a programming error"), 
+                                         owl_superclass_uri, python_subclass)
 
-        if n_interpretations == 0:
-            logger.warning(('Unknown owl type uri %s or failed to construct any parameter. '
-                            'Creating basic Parameter object.'), owl_uri)
-            possible_parameter_interpretations.append(cls(**kwargs))
-        elif n_interpretations > 1:
-            # this is likely to happen with subclasses and it can be ok
-            logger.info("picking the first one (the most general one) out of are multiple interpretations of type uri %s: %s",
-                        owl_uri, possible_parameter_interpretations)
-
-        return possible_parameter_interpretations[0]
+        logger.warning(('Unknown owl type uri %s or failed to construct any parameter. '
+                        'Creating basic Parameter object.'), owl_uri)
+        return cls(**kwargs)
 
 class String(Parameter):
-    owl_uris = ["http://www.w3.org/2001/XMLSchema#str"]
+    owl_uris = ("http://www.w3.org/2001/XMLSchema#str", "http://odahub.io/ontology#String")
     
-    def __init__(self, value=None, name_format='str', name=None):
+    def __init__(self, value=None, name_format='str', name=None, allowed_values = None):
 
         _allowed_units = ['str']
         super().__init__(value=value,
                          units=name_format,
                          check_value=self.check_name_value,
                          name=name,
-                         allowed_units=_allowed_units)
+                         allowed_units=_allowed_units,
+                         allowed_values=allowed_values)
 
     @staticmethod
     def check_name_value(value, units=None, name=None, par_format=None):
         pass
 
 class Name(String):
-    owl_uris = ["http://odahub.io/ontology#AstrophysicalObject"]
+    owl_uris = String.owl_uris + ("http://odahub.io/ontology#AstrophysicalObject",)
 
-class Float(Parameter):
-    owl_uris = ["http://www.w3.org/2001/XMLSchema#float"]
-    def __init__(self, value=None, units=None, name=None, allowed_units=None, default_units=None, check_value=None):
+class NumericParameter(Parameter):
+    owl_uris = ("http://odahub.io/ontology#NumericParameter")
 
-        if check_value is None:
-            check_value = self.check_float_value
 
+    def set_par_internal_value(self, value):
+        if value is not None and value != '':
+            self._value = self.default_type(value) 
+            if self.units is not None:
+                u = getattr(apy_u, self.units)
+                self._quantity = self._value * u
+            else:
+                self._quantity = self._value
+        else:
+            self._value = None
+            self._quantity = None
+    
+    def get_value_in_units(self, units):
+        if units is None:
+            return self.value
+        if self._quantity is None:
+            return None
+        u = getattr(apy_u, units)
+        return self._quantity.to_value(u)
+    
+    def get_default_value(self):
+        return self.get_value_in_default_units()
+    
+    def check_bounds(self):
+        if self._min_value is not None:
+            min_value = float(self._min_value)
+            if self.get_value_in_units(self._bound_units) < min_value:
+                raise RequestNotUnderstood((f'Parameter {self.name} wrong value '
+                                            f'{self.get_value_in_units(self._bound_units)}'
+                                            f'{self._bound_units if self._bound_units is not None else ""}: '
+                                            f'should be greater or equal than {min_value}'))
+        if self._max_value is not None:
+            max_value = float(self._max_value)
+            if self.get_value_in_units(self._bound_units) > max_value:
+                raise RequestNotUnderstood((f'Parameter {self.name} wrong value '
+                                            f'{self.get_value_in_units(self._bound_units)}'
+                                            f'{self._bound_units if self._bound_units is not None else ""}: '
+                                            f'should be lower or equal than {max_value}'))
+
+class Float(NumericParameter):
+    owl_uris = ("http://www.w3.org/2001/XMLSchema#float", "http://odahub.io/ontology#Float")
+    def __init__(self, 
+                 value=None, 
+                 units=None, 
+                 name=None, 
+                 allowed_units=None, 
+                 default_units=None, 
+                 check_value=None, 
+                 min_value= None,
+                 max_value = None,
+                 units_name = None):
+       
         super().__init__(value=value,
                          units=units,
                          check_value=check_value,
@@ -476,107 +619,51 @@ class Float(Parameter):
                          default_type=float,
                          # TODO added for consistency with Integer
                          allowed_types=[float],
-                         allowed_units=allowed_units)
-
-    @property
-    def value(self):
-        return self._v
-
-    @value.setter
-    def value(self, v):
-        if v is not None and v != '':
-            self.check_value(v, name=self.name, units=self.units)
-            self._v = float(v)
-        else:
-            self._v = None
-
-    def get_value_in_units(self, units):
-        logger.warning(f'no explict conversion implemented for the parameter {self.name}, '
-                       f'the non converted value is returned')
-        return self.value
-
-    def get_value_in_default_units(self):
-        self.check_value(self.value, name=self.name, units=self.units)
-        return float(self.value) if self.value is not None else None
-
-    def get_default_value(self):
-        return self.get_value_in_default_units()
-
-    @staticmethod
-    def check_float_value(value, units=None, name=None):
-        if value is None or value == '':
-            pass
-        else:
-            try:
-                float(value)
-            except:
-                raise RuntimeError(f'the Float parameter {name} cannot be assigned the value {value} '
-                                   f'of type {type(value).__name__}')
+                         allowed_units=allowed_units,
+                         min_value=min_value,
+                         max_value=max_value,
+                         units_name = units_name)
 
 
-class Integer(Parameter):
-    owl_uris = "http://www.w3.org/2001/XMLSchema#int"
 
-    def __init__(self, value=None, units=None, name=None, check_value=None):
+class Integer(NumericParameter):
+    owl_uris = ("http://www.w3.org/2001/XMLSchema#int", "http://odahub.io/ontology#Integer")
 
-        _allowed_units = None
-
-        if check_value is None:
-            check_value = self.check_int_value
-
+    def __init__(self, 
+                 value=None, 
+                 units=None, 
+                 name=None, 
+                 check_value=None, 
+                 min_value = None, 
+                 max_value = None,
+                 units_name = None,
+                 default_units = None,
+                 allowed_units = None):
+        
         super().__init__(value=value,
                          units=units,
+                         default_units = default_units,
                          check_value=check_value,
                          default_type=int,
                          allowed_types=[int],
                          name=name,
-                         allowed_units=_allowed_units)
+                         allowed_units=allowed_units,
+                         min_value = min_value,
+                         max_value = max_value,
+                         units_name = units_name)
 
-    @property
-    def value(self):
-        return self._v
-
-    @value.setter
-    def value(self, v):
-        if v is not None and v != '':
-            self.check_value(v, name=self.name, units=self.units)
-            self._v = int(v)
-        else:
-            self._v = None
-
-    def get_value_in_default_units(self):
-        self.check_value(self.value, name=self.name, units=self.units)
-        return int(self.value) if self.value is not None else None
-
-    @staticmethod
-    def check_int_value(value, units=None, name=None):
-        # print('check type of ',name,'value', value, 'type',type(value))
-        if value is None or value == '':
-            pass
-        else:
-            if isinstance(value, float):
-                message = f'{value} is an invalid value for {name} since it cannot be used as an Integer'
-                logger.error(message)
-                raise RuntimeError(message)
-            try:
-                int(value)
-            except:
-                raise RuntimeError(f'the Integer parameter {name} cannot be assigned the value {value} '
-                                   f'of type {type(value).__name__}')
-
+    def set_par_internal_value(self, value):
+        if isinstance(value, float):
+            message = f'{value} is an invalid value for {self.name} since it cannot be used as an Integer'
+            logger.error(message)
+            raise RequestNotUnderstood(message)
+        return super().set_par_internal_value(value)
 
 class Time(Parameter):
-    # TODO:
-    # here, we should only keep TimeInstant, and use https://odahub.io/ontology/ontology.ttl
-    # to derive relations between sub-classes specified by the user but not relevant for construction
-    # of this class.
-    # reading the rdf should be done with thread-safe caching to avoid frequent requests
-
-    owl_uris = ["http://odahub.io/ontology#TimeInstant",
-                "http://odahub.io/ontology#StartTime",
-                "http://odahub.io/ontology#EndTime"]
-
-    def __init__(self, value=None, T_format='isot', name=None, Time_format_name=None, par_default_format='isot'):
+    owl_uris = ("http://odahub.io/ontology#TimeInstant",)
+    format_kw = 'T_format'
+    
+    def __init__(self, value=None, T_format='isot', name=None, Time_format_name='T_format', par_default_format='isot'):
 
         super().__init__(value=value,
                          par_format=T_format,
@@ -606,23 +693,31 @@ class Time(Parameter):
     @property
     def value(self):
         return self._astropy_time.value
-
+    
     @value.setter
     def value(self, v):
-        par_format = self.par_format
-        self._set_time(v, par_format=par_format)
+        super(self.__class__, self.__class__).value.fset(self, v)
 
-    def _set_time(self, value, par_format):
-        self._astropy_time = astropyTime(value, format=par_format)
+    def set_par_internal_value(self, value):
+        try:
+            self._astropy_time = astropyTime(value, format=self.par_format)
+        except ValueError as e:
+            raise RequestNotUnderstood(f'Parameter {self.name} wrong value {value}: can\'t be parsed as Time of {self.par_format} format')
         self._value = value
 
 
 # TODO: redefine time-timedelta relation
 # it is confusing that TimeDelta derives from Time.  
 # https://github.com/astropy/astropy/blob/main/astropy/time/core.py#L379
+# NOTE: added deprecation warning and introduced TimeInterval 
 class TimeDelta(Time):
+    owl_uris = ("http://odahub.io/ontology#TimeDeltaIsDeprecated",) 
+    format_kw = 'delta_T_format'
+    
     def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None, par_default_format='sec'):
-
+        logging.warning(('TimeDelta parameter is deprecated. '
+                         'It derives from Time, which is confusing. '
+                         'Consider using TimeInterval parameter.'))
         super().__init__(value=value,
                          T_format=delta_T_format,
                          Time_format_name=delta_T_format_name,
@@ -642,11 +737,38 @@ class TimeDelta(Time):
         self._set_time(v, format=units)
 
     def _set_time(self, value, format):
-        self._astropy_time_delta = astropyTimeDelta(value, format=format)
+        try:
+            self._astropy_time_delta = astropyTimeDelta(value, format=format)
+        except ValueError as e:
+            raise RequestNotUnderstood(f'Parameter {self.name} wrong value {value}: can\'t be parsed as TimeDelta of {format} format')
+
         self._value = value
 
+class TimeInterval(Float):
+    owl_uris = ("http://odahub.io/ontology#TimeInterval",) 
+    
+    def __init__(self, 
+                 value=None, 
+                 units='s', 
+                 name=None, 
+                 default_units='s', 
+                 min_value=None, 
+                 max_value=None,
+                 units_name = None):
+
+        _allowed_units = ['s', 'minute', 'hour', 'day', 'year']
+        super().__init__(value=value,
+                         units=units,
+                         default_units=default_units,
+                         name=name,
+                         min_value=min_value,
+                         max_value=max_value,
+                         units_name = units_name,
+                         allowed_units=_allowed_units)
 
 class InputProdList(Parameter):
+    owl_uris = ('http://odahub.io/ontology#InputProdList',)
+    
     # TODO removal of the leading underscore cannot be done for compatibility with the plugins
     def __init__(self, value=None, _format='names_list', name: str = None):
         _allowed_units = ['names_list']
@@ -685,11 +807,11 @@ class InputProdList(Parameter):
     @value.setter
     def value(self, v):
         if v is not None:
-            if self.check_value is not None:
-                self.check_value(v, par_format=self.par_format, name=self.name)
+            if self._deprecated_check_value is not None:
+                self._deprecated_check_value(v, par_format=self.par_format, name=self.name)
             if self._allowed_values is not None:
                 if v not in self._allowed_values:
-                    raise RuntimeError(f'value {v} not allowed, allowed= {self._allowed_values}')
+                    raise RequestNotUnderstood(f'Parameter {self.name} wrong value {v}: not in allowed {self._allowed_values}')
             if v == [''] or v is None or str(v) == '':
                 self._value = ['']
             else:
@@ -710,87 +832,136 @@ class InputProdList(Parameter):
 
 
 class Angle(Float):
-    owl_uris = ["http://odahub.io/ontology#PointOfInterestRA", "http://odahub.io/ontology#PointOfInterestDEC"]
+    owl_uris = ("http://odahub.io/ontology#Angle")
     
-    def __init__(self, value=None, units=None, default_units='deg', name=None):
+    def __init__(self, 
+                 value=None, 
+                 units=None, 
+                 default_units='deg', 
+                 name=None, 
+                 min_value = None, 
+                 max_value = None,
+                 units_name = None):
 
         super().__init__(value=value,
                          units=units,
                          # TODO can we safely make this assumption?
                          default_units=default_units,
                          name=name,
-                         allowed_units=None)
-
-    def get_value_in_default_units(self):
-        return self.get_value_in_units(self.default_units)
-
-    def get_value_in_units(self, units) -> Union[str, float, None]:
-        return getattr(self._astropy_angle, units)
-
-    @property
-    def value(self):
-        return self._astropy_angle.value
-
-    @value.setter
-    def value(self, v, units=None):
-        if units is None:
-            units = self.units
-
-        self._set_angle(v, units=units)
-
-    def _set_angle(self, value, units):
-        if value == '' or value is None:
-            pass
-        else:
-            self._astropy_angle = astropyAngle(value, unit=units)
-            self._value = self._astropy_angle.value
+                         allowed_units=None,
+                         min_value = min_value,
+                         max_value = max_value,
+                         units_name = units_name)
 
 
 class Energy(Float):
-    def __init__(self, value=None, E_units='keV', name=None, check_value=None):
-        if check_value is None:
-            check_value = self.check_energy_value
+    owl_uris = ("http://odahub.io/ontology#Energy", "http://odahub.io/ontology#Frequency")
+    units_kw = 'E_units'
+    
+    def __init__(self, 
+                 value=None, 
+                 E_units='keV', 
+                 default_units='keV',
+                 name=None, 
+                 check_value=None, 
+                 min_value = None, 
+                 max_value = None,
+                 units_name = None):
 
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
 
         super().__init__(value=value,
                          units=E_units,
-                         default_units='keV',
+                         default_units=default_units,
                          check_value=check_value,
                          name=name,
-                         allowed_units=_allowed_units)
-
-    # TODO re-introduced for retro-compatibility
-    @staticmethod
-    def check_energy_value(value, units=None, name=None):
-        Float.check_float_value(value, units=units, name=name)
-
+                         allowed_units=_allowed_units,
+                         min_value = min_value,
+                         max_value = max_value,
+                         units_name = units_name)
 
 class SpectralBoundary(Energy):
-    pass
-
+    def __init__(self, 
+                 value=None, 
+                 E_units='keV', 
+                 default_units='keV', 
+                 name=None, 
+                 check_value=None, 
+                 min_value=None, 
+                 max_value=None, 
+                 units_name=None):
+    
+        # retro-compatibility with integral plugin
+        if check_value is None:
+            check_value = self.check_energy_value
+    
+        super().__init__(value=value, 
+                         E_units=E_units, 
+                         default_units=default_units, 
+                         name=name, 
+                         check_value=check_value, 
+                         min_value=min_value, 
+                         max_value=max_value, 
+                         units_name=units_name)
+        
+    @staticmethod
+    def check_energy_value(value, units, name): 
+        pass #the new-style check is anyway called before
+        
 
 class DetectionThreshold(Float):
-    def __init__(self, value=None, units='sigma', name=None):
+    owl_uris = ("http://odahub.io/ontology#DetectionThreshold",)    
+    def __init__(self, value=None, units='sigma', name=None, min_value = None, max_value = None):
         _allowed_units = ['sigma']
 
         super().__init__(value=value,
                          units=units,
-                         # TODO to check if it's correct
-                         check_value=self.check_float_value,
+                         check_value=None,
                          name=name,
-                         allowed_units=_allowed_units)
+                         allowed_units=_allowed_units,
+                         min_value = min_value,
+                         max_value = max_value)
 
+    # 'sigma' is not astropy unit, so need to override methods
+    def get_value_in_units(self, units):
+        return self.value
+    
+    def set_par_internal_value(self, value):
+        if value is not None and value != '':
+            self._value = self.default_type(value) 
+        else:
+            self._value = None
 
 class UserCatalog(Parameter):
     def __init__(self, value=None, name_format='str', name=None):
         _allowed_units = ['str']
         super().__init__(value=value,
                          par_format=name_format,
-                         check_value=self.check_name_value,
+                         check_value=None,
                          name=name,
                          allowed_units=_allowed_units)
 
-    @staticmethod
-    def check_name_value(value, units=None, name=None, par_format=None):
-        pass
+class Boolean(Parameter):
+    owl_uris = ('http://www.w3.org/2001/XMLSchema#bool',"http://odahub.io/ontology#Boolean")
+    
+    def __init__(self, value=None, name=None):
+
+        self._true_rep = ['True', 'true', 'yes', '1', True]
+        self._false_rep = ['False', 'false', 'no', '0', False]
+        super().__init__(value=value,
+                         name=name,
+                         allowed_values=self._true_rep+self._false_rep
+                         )
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, v):
+        if v in self._false_rep:
+            self._value = False
+        elif v in self._true_rep:
+            self._value = True
+        else:
+            raise RequestNotUnderstood(f'Wrong value for boolean parameter {self.name}')

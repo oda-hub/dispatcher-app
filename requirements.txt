@@ -15,7 +15,7 @@ json_tricks
 flask-restx
 six
 werkzeug
-python-shell-colors
+python-shell-colors==0.2.1
 logging_tree
 celery
 redis
@@ -36,3 +36,4 @@ MarkupSafe==2.0.1
 # TODO: needed by some plugins: migrate
 simple_logger
 matplotlib
+validators==0.20.0

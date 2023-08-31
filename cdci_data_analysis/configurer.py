@@ -64,7 +64,7 @@ class DataServerConf:
 
         if allowed_keys is None:
             #temporary hardcode smth to preserve interface
-            allowed_optional_keys = ['data_server_cache']
+            allowed_optional_keys = ['data_server_cache', 'restricted_access']
 
             # preserving interface requires listing these keys, currently provided by all plugins (to be updated)
             allowed_optional_keys += ['data_server_remote_cache', 'dispatcher_mnt_point']
@@ -220,13 +220,19 @@ class ConfigEnv(object):
             self.set_conf_dispatcher(disp_dict['bind_options']['bind_host'],
                                      disp_dict['bind_options']['bind_port'],
                                      disp_dict['sentry_url'],
+                                     disp_dict.get('sentry_environment', 'production'),
                                      disp_dict['logstash_host'],
                                      disp_dict['logstash_port'],
                                      products_url,
                                      disp_dict['dispatcher_callback_url_base'],
                                      disp_dict['secret_key'],
                                      disp_dict.get('token_max_refresh_interval', 604800),
+                                     disp_dict.get('soft_minimum_folder_age_days', 5),
+                                     disp_dict.get('hard_minimum_folder_age_days', 30),
                                      disp_dict['email_options']['smtp_server'],
+                                     disp_dict['email_options'].get('site_name', 'University of Geneva'),
+                                     disp_dict['email_options'].get('manual_reference', 'possibly-non-site-specific-link'),
+                                     disp_dict['email_options'].get('contact_email_address', 'contact@odahub.io'),
                                      disp_dict['email_options']['sender_email_address'],
                                      disp_dict['email_options']['cc_receivers_email_addresses'],
                                      disp_dict['email_options']['bcc_receivers_email_addresses'],
@@ -248,7 +254,7 @@ class ConfigEnv(object):
                                      disp_dict.get('product_gallery_options', {}).get('converttime_revnum_service_url', 'https://www.astro.unige.ch/mmoda/dispatch-data/gw/timesystem/api/v1.0/converttime/UTC/{}/REVNUM'),
                                      disp_dict.get('renku_options', {}).get('renku_gitlab_repository_url', None),
                                      disp_dict.get('renku_options', {}).get('renku_base_project_url', None),
-                                     disp_dict.get('renku_options', {}).get('ssh_key_path', None)
+                                     disp_dict.get('renku_options', {}).get('ssh_key_path', None),
                                      )
 
         # not used?
@@ -282,13 +288,19 @@ class ConfigEnv(object):
                             bind_host,
                             bind_port,
                             sentry_url,
+                            sentry_environment,
                             logstash_host,
                             logstash_port,
                             products_url,
                             dispatcher_callback_url_base,
                             secret_key,
                             token_max_refresh_interval,
+                            soft_minimum_folder_age_days,
+                            hard_minimum_folder_age_days,
                             smtp_server,
+                            site_name,
+                            manual_reference,
+                            contact_email_address,
                             sender_email_address,
                             cc_receivers_email_addresses,
                             bcc_receivers_email_addresses,
@@ -309,20 +321,26 @@ class ConfigEnv(object):
                             converttime_revnum_service_url,
                             renku_gitlab_repository_url,
                             renku_base_project_url,
-                            renku_gitlab_ssh_key_path
+                            renku_gitlab_ssh_key_path,
                             ):
         # Generic to dispatcher
         #print(dispatcher_url, dispatcher_port)
         self.bind_host = bind_host
         self.bind_port = bind_port
         self.sentry_url = sentry_url
+        self.sentry_environment = sentry_environment
         self.logstash_host = logstash_host
         self.logstash_port = logstash_port
         self.products_url = products_url
         self.dispatcher_callback_url_base = dispatcher_callback_url_base
         self.secret_key = secret_key
         self.token_max_refresh_interval = token_max_refresh_interval
+        self.soft_minimum_folder_age_days = soft_minimum_folder_age_days
+        self.hard_minimum_folder_age_days = hard_minimum_folder_age_days
         self.smtp_server = smtp_server
+        self.site_name = site_name
+        self.manual_reference = manual_reference
+        self.contact_email_address = contact_email_address
         self.sender_email_address = sender_email_address
         self.cc_receivers_email_addresses = cc_receivers_email_addresses
         self.bcc_receivers_email_addresses = bcc_receivers_email_addresses

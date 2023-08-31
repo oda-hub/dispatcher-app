@@ -1,8 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
 import os
-from builtins import (bytes, str, open, super, range,
-                      zip, round, input, int, pow, object, map, zip)
 import shutil
 import tempfile
 
@@ -31,6 +29,7 @@ from .plot_tools import Image, ScatterPlot, GridPlot
 
 from oda_api.data_products import NumpyDataProduct, NumpyDataUnit
 
+from ..flask_app.sentry import sentry
 from oda_api.api import DispatcherAPI
 from .parameters import *
 from .io_helper import FilePath
@@ -194,8 +193,7 @@ class QueryOutput(object):
                         logger.error('unable to represent %s due to %s, setting blank', excep, e)
                         e_message = ''
         
-        if sentry_dsn is not None:
-            sentry_sdk.capture_message(e_message)
+        sentry.capture_message(e_message)
 
         logger.error('set_query_exception with %s (%s) during %s', e_message, debug_message, failed_operation)
                         
@@ -417,7 +415,7 @@ class LightCurveProduct(BaseQueryProduct):
                       x_label='', y_label='',
                       title=None, max_bins=1E4):
         warning = ''
-        max_bins = np.int(max_bins)
+        max_bins = int(max_bins)
         if np.size(x) > max_bins:
             actual_size = np.size(x)
             x=x[:max_bins]
@@ -427,8 +425,9 @@ class LightCurveProduct(BaseQueryProduct):
             if dy is not None:
                 dy=dy[:max_bins]
             warning='!!! WARNING Number of bins displayed are limited to %d, actual number of bins is %d'%(max_bins,actual_size)
-            title=title+'\n %s'%warning
-        x = x - np.int(x.min())
+            title=f'{title}\n {warning}' if title is not None else warning
+        if np.size(x) > 0:
+            x = x - int(x.min())
 
         sp=ScatterPlot(w=600,h=600,x_label=x_label,y_label=y_label,title=title)
         sp.add_errorbar(x,y,yerr=dy,xerr=dx)
@@ -646,7 +645,7 @@ class SpectralFitProduct(BaseQueryProduct):
             if len(p) != 2:
                 raise RuntimeError('Malformed par string') 
             else:
-                i = np.int(p[0])
+                i = int(p[0])
             pars_dict[i] = p[1]
         return pars_dict
 

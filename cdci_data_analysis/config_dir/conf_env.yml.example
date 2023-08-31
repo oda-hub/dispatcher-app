@@ -14,7 +14,8 @@ dispatcher:
     # register on sentry.io and  put here url for reporting issues!
     # optional, but should be enforcable in "strict" mode
     sentry_url:
-    
+    sentry_environment: production
+
     # can be ignored, install your own (https://www.elastic.co/logstash) or use external https://logz.io/
     # optional, but may be be enforcable in "strict" mode
     logstash_host: 
@@ -22,6 +23,10 @@ dispatcher:
     
     # used for token validation
     secret_key:  YOUR_VERY_OWN_SECRET_KEY
+
+    # used when scratch folders needs to be deleted
+    soft_minimum_folder_age_days:
+    hard_minimum_folder_age_days:
 
     # maximum interval allowed during token refreshing
     token_max_refresh_interval: 604800
@@ -42,6 +47,12 @@ dispatcher:
         smtp_server_password: SMTP_SERVER_PASSWORD
         # address from which the email should be sent from
         sender_email_address: 'team@odahub.io'
+        # contact email address for "contact us" link
+        contact_email_address: 'contact@odahub.io'
+        # site name
+        site_name: 'University of Geneva'
+        # manual reference
+        manual_reference: 'possibly-non-site-specific-link'
         # list of address to be put in cc
         cc_receivers_email_addresses: [ 'team@odahub.io' ]
         # list of address to be put in bcc

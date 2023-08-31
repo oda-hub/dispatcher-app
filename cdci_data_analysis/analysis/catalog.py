@@ -52,7 +52,7 @@ def _selector(func,arr,mask):
 class BasicCatalog(object):
     def __init__(self,src_names,lon,lat,significance,unit='deg',frame='FK5',_selected=None,_table=None):
 
-        self.selected = np.ones(len(src_names), dtype=np.bool)
+        self.selected = np.ones(len(src_names), dtype=bool)
 
         if _selected is not None:
             self.selected = False
@@ -222,7 +222,7 @@ class BasicCatalog(object):
             lat =table[table.meta['LAT_NAME']]
             unit = table.meta['COORD_UNIT']
             cat= cls(src_names,lon,lat,significance,_table=table,unit=unit,frame=frame)
-        except:
+        except Exception as e:
             raise RuntimeError('Table in fits file is not valid to build Catalog')
 
         return  cat
