@@ -65,8 +65,7 @@ class DataServerQuery:
                            instrument: Instrument=None,
                            query_type='Real',
                            logger=None,
-                           config=None,
-                           sentry_dsn=None) -> QueryOutput:
+                           config=None) -> QueryOutput:
         query_out = QueryOutput()
         query_out.set_done(message="mock ok message!", debug_message="mock ok debug_message")
         return query_out

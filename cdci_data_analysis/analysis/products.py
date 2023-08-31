@@ -109,7 +109,6 @@ class QueryOutput(object):
                    logger=None,
                    excep=None,
                    status=1,
-                   sentry_dsn=None,
                    job_status=None,
                    e_message=None,
                    debug_message=''):
@@ -122,7 +121,6 @@ class QueryOutput(object):
                                  logger_prepend_str=logger_prepend_str,
                                  logger=logger,
                                  status=status,
-                                 sentry_dsn=sentry_dsn,
                                  job_status=job_status,
                                  e_message=e_message,
                                  debug_message=debug_message)
@@ -171,7 +169,6 @@ class QueryOutput(object):
                             logger_prepend_str='==>',
                             logger=None,
                             status=1,
-                            sentry_dsn=None,
                             job_status=None,
                             e_message=None,
                             debug_message=''):

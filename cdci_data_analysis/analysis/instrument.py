@@ -242,8 +242,7 @@ class Instrument:
                            request,
                            temp_dir,
                            verbose,
-                           use_scws,
-                           sentry_dsn=None):
+                           use_scws):
         error_message = 'Error while {step} {temp_dir_content_msg}{additional}'
         # TODO probably exception handling can be further improved and/or optmized
         try:
@@ -386,7 +385,6 @@ class Instrument:
                   query_type='Real',
                   verbose=False,
                   logger=None,
-                  sentry_dsn=None,
                   dry_run=False,
                   api=False,
                   decoded_token=None,
@@ -399,7 +397,7 @@ class Instrument:
         self._current_par_dic=par_dic
 
         # # set pars values from the input parameters
-        # query_out = self.set_pars_from_form(par_dic, verbose=verbose, sentry_dsn=sentry_dsn)
+        # query_out = self.set_pars_from_form(par_dic, verbose=verbose)
         query_out = QueryOutput()
         query_out.set_done()
         if verbose:
@@ -432,7 +430,6 @@ class Instrument:
                                                     query_type=query_type,
                                                     config=config,
                                                     logger=logger,
-                                                    sentry_dsn=sentry_dsn,
                                                     api=api)
                     if query_out.status_dictionary['status'] == 0:
                         if 'comment' in query_out.status_dictionary.keys():
@@ -475,13 +472,12 @@ class Instrument:
                                          message=message,
                                          e_message=e_message,
                                          logger=logger,
-                                         sentry_dsn=sentry_dsn,
                                          excep=e)
 
                 except Exception as e: # we shall not do that
                     logger.error("run_query failed: %s", e)
                     # logger.error("run_query failed: %s", traceback.format_exc())
-                    query_out.set_failed(product_type, logger=logger, sentry_dsn=sentry_dsn, excep=e)
+                    query_out.set_failed(product_type, logger=logger, excep=e)
 
         # adding query parameters to final products
         # TODO: this can be misleading since it's the parameters actually used
@@ -620,7 +616,7 @@ class Instrument:
         return l
 
     # TODO this seems not being used anywhere on the dispatcher, can it be removed?
-    def set_pars_from_form(self,par_dic,logger=None,verbose=False,sentry_dsn=None):
+    def set_pars_from_form(self,par_dic,logger=None,verbose=False):
         #print('---------------------------------------------')
         #print('setting form paramters')
         q=QueryOutput()
@@ -637,7 +633,6 @@ class Instrument:
         except RequestNotUnderstood as e:
            q.set_failed(f"please adjust request parameters: {e.message}",
                         logger=logger,
-                        sentry_dsn=sentry_dsn,
                         excep=e)
 
         except Exception as e:
@@ -647,7 +642,6 @@ class Instrument:
 
             q.set_failed(m,
                          logger=logger,
-                         sentry_dsn=sentry_dsn,
                          excep=e)
             #status=1
             #error_message= 'error in form parameter'
