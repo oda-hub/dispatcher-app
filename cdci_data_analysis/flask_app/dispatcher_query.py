@@ -6,6 +6,7 @@ Created on Wed May 10 10:55:20 2017
 @author: andrea tramcere
 """
 import os
+import time
 from builtins import (open, str, range,
                       object)
 
@@ -31,24 +32,26 @@ import gzip
 import socket
 import logstash
 import shutil
-import typing
 import jwt
 import re
-import sentry_sdk
+import logging
+import json
+import typing
 
 from ..plugins import importer
-from ..analysis.queries import * # TODO: evil wildcard import
+from ..analysis.queries import SourceQuery
 from ..analysis import tokenHelper, email_helper
 from ..analysis.instrument import params_not_to_be_included
 from ..analysis.hash import make_hash
 from ..analysis.hash import default_kw_black_list
 from ..analysis.job_manager import job_factory
-from ..analysis.io_helper import FilePath
+from ..analysis.io_helper import FilePath, format_size
 from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.exceptions import BadRequest, APIerror, MissingRequestParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut, InternalError
 from . import tasks
+from ..flask_app.sentry import sentry
 
 from oda_api.api import DispatcherAPI
 
@@ -144,8 +147,7 @@ class InstrumentQueryBackEnd:
                 if 'job_id' in self.par_dic:
                     self.job_id = self.par_dic['job_id']
                 else:
-                    if getattr(self, 'sentry_dsn', None) is not None:
-                        sentry_sdk.capture_message("job_id not present during a call_back")
+                    sentry.capture_message("job_id not present during a call_back")
                     raise RequestNotUnderstood("job_id must be present during a call_back")
             if data_server_call_back:
                 # this can be set since it's a call_back and job_id and session_id are available
@@ -174,6 +176,8 @@ class InstrumentQueryBackEnd:
             # In that case, validation is needed
             self.public = True
             self.token = None
+            email=None
+            roles=None
             self.decoded_token = None
             if 'token' in self.par_dic.keys() and self.par_dic['token'] not in ["", "None", None]:
                 self.token = self.par_dic['token']
@@ -182,7 +186,9 @@ class InstrumentQueryBackEnd:
                 self.log_query_progression("before validate_query_from_token")
                 try:
                     if self.validate_query_from_token():
-                        pass
+                        roles = tokenHelper.get_token_roles(self.decoded_token)
+                        email = tokenHelper.get_token_user_email_address(self.decoded_token)
+
                 except jwt.exceptions.ExpiredSignatureError as e:
                     logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event': 'token-expired'})
                     message = ("The token provided is expired, please try to logout and login again. "
@@ -190,8 +196,7 @@ class InstrumentQueryBackEnd:
                                "and resubmit you request.")
                     if data_server_call_back:
                         message = "The token provided is expired, please resubmit you request with a valid token."
-                        if getattr(self, 'sentry_dsn', None) is not None:
-                            sentry_sdk.capture_message(message)
+                        sentry.capture_message(message)
 
                     raise RequestNotAuthorized(message)
                 except jwt.exceptions.InvalidSignatureError as e:
@@ -201,8 +206,7 @@ class InstrumentQueryBackEnd:
                                "and resubmit you request.")
                     if data_server_call_back:
                         message = "The token provided is expired, please resubmit you request with a valid token."
-                        if getattr(self, 'sentry_dsn', None) is not None:
-                            sentry_sdk.capture_message(message)
+                        sentry.capture_message(message)
 
                     raise RequestNotAuthorized(message)
 
@@ -227,7 +231,7 @@ class InstrumentQueryBackEnd:
 
             if get_meta_data:
                 self.logger.info("get_meta_data request: no scratch_dir")
-                self.set_instrument(self.instrument_name)
+                self.set_instrument(self.instrument_name, roles, email)
                 # TODO
                 # decide if it is worth to add the logger also in this case
                 #self.set_scratch_dir(self.par_dic['session_id'], verbose=verbose)
@@ -239,13 +243,12 @@ class InstrumentQueryBackEnd:
                 # self.set_sentry_client()
                 # TODO is also the case of call_back to handle ?
                 if not data_server_call_back:
-                    self.set_instrument(self.instrument_name)
+                    self.set_instrument(self.instrument_name, roles, email)
                     verbose = self.par_dic.get('verbose', 'False') == 'True'
                     try:
                         self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
                     except Exception as e:
-                        if getattr(self, 'sentry_dsn', None) is not None:
-                            sentry_sdk.capture_message(f"problem creating temp directory: {e}")
+                        sentry.capture_message(f"problem creating temp directory: {e}")
 
                         raise InternalError("we have encountered an internal error! "
                                             "Our team is notified and is working on it. We are sorry! "
@@ -260,6 +263,7 @@ class InstrumentQueryBackEnd:
                             sentry_dsn=self.sentry_dsn
                         )
                         self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
+
                 # TODO: if not callback!
                 # if 'query_status' not in self.par_dic:
                 #    raise MissingRequestParameter('no query_status!')
@@ -321,39 +325,126 @@ class InstrumentQueryBackEnd:
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
 
     @staticmethod
+    def free_up_space(app):
+        token = request.args.get('token', None)
+
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
+
+        output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                      required_roles=['space manager'],
+                                                                      action="free_up space on the server")
+
+        if output_code is not None:
+            return make_response(output, output_code)
+
+        current_time_secs = time.time()
+        hard_minimum_folder_age_days = app_config.hard_minimum_folder_age_days
+        # let's pass the minimum age the folders to be deleted should have
+        soft_minimum_folder_age_days = request.args.get('soft_minimum_age_days', None)
+        if soft_minimum_folder_age_days is None or isinstance(soft_minimum_folder_age_days, int):
+            soft_minimum_folder_age_days = app_config.soft_minimum_folder_age_days
+        else:
+            soft_minimum_folder_age_days = int(soft_minimum_folder_age_days)
+
+        list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key=os.path.getmtime)
+        list_scratch_dir_to_delete = []
+
+        for scratch_dir in list_scratch_dir:
+            scratch_dir_age_days = (current_time_secs - os.path.getmtime(scratch_dir)) / (60 * 60 * 24)
+            if scratch_dir_age_days >= hard_minimum_folder_age_days:
+                list_scratch_dir_to_delete.append(scratch_dir)
+            elif scratch_dir_age_days >= soft_minimum_folder_age_days:
+                analysis_parameters_path = os.path.join(scratch_dir, 'analysis_parameters.json')
+                with open(analysis_parameters_path) as analysis_parameters_file:
+                    dict_analysis_parameters = json.load(analysis_parameters_file)
+                token = dict_analysis_parameters.get('token', None)
+                token_expired = False
+                if token is not None and token['exp'] < current_time_secs:
+                    token_expired = True
+
+                job_monitor_path = os.path.join(scratch_dir, 'job_monitor.json')
+                with open(job_monitor_path, 'r') as jm_file:
+                    monitor = json.load(jm_file)
+                    job_status = monitor['status']
+                    job_id = monitor['job_id']
+                if job_status == 'done' and (token is None or token_expired):
+                    list_scratch_dir_to_delete.append(scratch_dir)
+                else:
+                    incomplete_job_alert_message = f"The job {job_id} is yet to complete despite being older "\
+                                                   f"than {soft_minimum_folder_age_days} days. This has been detected "\
+                                                   f"while checking for deletion the folder {scratch_dir}."
+
+                    logger.info(incomplete_job_alert_message)
+                    sentry.capture_message(incomplete_job_alert_message)
+            else:
+                break
+
+        pre_clean_space_stats = shutil.disk_usage(os.getcwd())
+        pre_clean_available_space =  format_size(pre_clean_space_stats.free, format_returned='M')
+
+        logger.info(f"Number of scratch folder before clean-up: {len(list_scratch_dir)}.\n"
+                    f"The available amount of space is {pre_clean_available_space}")
+
+        for d in list_scratch_dir_to_delete:
+            shutil.rmtree(d)
+
+        post_clean_space_space = shutil.disk_usage(os.getcwd())
+        post_clean_available_space = format_size(post_clean_space_space.free, format_returned='M')
+
+        list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"))
+        logger.info(f"Number of scratch folder after clean-up: {len(list_scratch_dir)}.\n"
+                    f"Removed {len(list_scratch_dir_to_delete)} scratch directories, "
+                    f"and now the available amount of space is {post_clean_available_space}")
+
+        result_scratch_dir_deletion = f"Removed {len(list_scratch_dir_to_delete)} scratch directories"
+        logger.info(result_scratch_dir_deletion)
+
+        return jsonify(dict(output_status=result_scratch_dir_deletion))
+
+    @staticmethod
+    def get_user_specific_instrument_list(app):
+        token = request.args.get('token', None)
+
+        roles = []
+        email = None
+        if token is not None:
+            app_config = app.config.get('conf')
+            secret_key = app_config.secret_key
+            output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                          action="getting the list of instrument")
+            if output_code is not None:
+                return make_response(output, output_code)
+            else:
+                decoded_token = tokenHelper.get_decoded_token(token, secret_key)
+                roles = tokenHelper.get_token_roles(decoded_token)
+                email = tokenHelper.get_token_user_email_address(decoded_token)
+
+        out_instrument_list = []
+        for instrument_factory in importer.instrument_factory_list:
+            instrument = instrument_factory()
+
+            if instrument.instrumet_query.check_instrument_access(roles, email):
+                out_instrument_list.append(instrument.name)
+
+        return jsonify(out_instrument_list)
+
+
+    @staticmethod
     def inspect_state(app):
         token = request.args.get('token', None)
-        if token is None:
-            # TODO what about using the RequestNotAuthorized exception?
-            # raise RequestNotAuthorized("A token must be provided.")
-            return make_response('A token must be provided.'), 403
-        try:
-            secret_key = app.config.get('conf').secret_key
-            decoded_token = tokenHelper.get_decoded_token(token, secret_key)
-            logger.info("==> token %s", decoded_token)
-        except jwt.exceptions.ExpiredSignatureError:
-            # raise RequestNotAuthorized("The token provided is expired.")
-            return make_response('The token provided is expired.'), 403
-        except jwt.exceptions.InvalidTokenError:
-            # raise RequestNotAuthorized("The token provided is not valid.")
-            return make_response('The token provided is not valid.'), 403
+
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
+        output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                      required_roles=['job manager'],
+                                                                      action="inspect the state for a given job_id")
+
+        if output_code is not None:
+            return make_response(output, output_code)
 
         recent_days = request.args.get('recent_days', 3, type=float)
         job_id = request.args.get('job_id', None)
-
-        roles = tokenHelper.get_token_roles(decoded_token)
-
-        required_roles = ['job manager']
-        # no need to have both, one of those two is sufficient
-        if not any(item in roles for item in required_roles):
-            lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
-            message = (
-                f"Unfortunately, your privileges are not sufficient for this type of request.\n"
-                f"Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}."
-            )
-            # raise RequestNotAuthorized(message=message)
-            return make_response(message), 403
-
         records = []
 
         for scratch_dir in glob.glob("scratch_sid_*_jid_*"):
@@ -545,19 +636,11 @@ class InstrumentQueryBackEnd:
         return _logger
 
     def set_sentry_sdk(self, sentry_dsn=None):
-
         if sentry_dsn is not None:
-            sentry_sdk.init(
-                dsn=sentry_dsn,
-                # Set traces_sample_rate to 1.0 to capture 100%
-                # of transactions for performance monitoring.
-                # We recommend adjusting this value in production.
-                traces_sample_rate=1.0,
-                debug=True,
-                max_breadcrumbs=50,
-            )
+            if sentry.sentry_url != sentry_dsn:
+                raise NotImplementedError
 
-        self.sentry_dsn = sentry_dsn
+        self.sentry_dsn = sentry.sentry_url
 
     def get_current_ip(self):
         return socket.gethostbyname(socket.gethostname())
@@ -822,8 +905,12 @@ class InstrumentQueryBackEnd:
 
             tmp_dir, target_file = self.prepare_download(
                 file_list, file_name, self.scratch_dir)
-            return send_from_directory(directory=tmp_dir, path=target_file, attachment_filename=target_file,
-                                       as_attachment=True)
+            try:
+                return send_from_directory(directory=tmp_dir, path=target_file, attachment_filename=target_file,
+                                        as_attachment=True)
+            except Exception as e:
+                return send_from_directory(directory=tmp_dir, filename=target_file, attachment_filename=target_file,
+                                           as_attachment=True)
         except RequestNotAuthorized as e:
             return self.build_response_failed('oda_api permissions failed',
                                               e.message,
@@ -864,7 +951,7 @@ class InstrumentQueryBackEnd:
         else:
             prod_name = None
         if hasattr(self, 'instrument'):
-            _l = self.instrument.get_parameters_name_list(prod_name=prod_name)
+            _l = self.instrument.get_arguments_name_list(prod_name=prod_name)
             if 'user_catalog' in _l:
                 _l.remove('user_catalog')
         else:
@@ -948,11 +1035,12 @@ class InstrumentQueryBackEnd:
                 status_details = None
                 if status == 'done':
                     # set instrument
-                    self.set_instrument(self.instrument_name)
+                    roles = tokenHelper.get_token_roles(self.decoded_token)
+                    email = tokenHelper.get_token_user_email_address(self.decoded_token)
+                    self.set_instrument(self.instrument_name, roles, email)
                     status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
                                                                         config=self.config,
-                                                                        logger=self.logger,
-                                                                        sentry_dsn=self.sentry_dsn)
+                                                                        logger=self.logger)
                 # build the products URL and get also the original requested product
                 products_url = self.generate_products_url(self.config.products_url,
                                                                     request_par_dict=original_request_par_dic)
@@ -960,6 +1048,11 @@ class InstrumentQueryBackEnd:
                 email_api_code = DispatcherAPI.set_api_code(original_request_par_dic,
                                                             url=self.app.config['conf'].products_url + "/dispatch-data"
                                                             )
+                time_request = time_original_request
+                time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
+                if time_request_first_submitted is not None:
+                    time_request = time_request_first_submitted
+
                 email_helper.send_job_email(
                     config=self.config,
                     logger=self.logger,
@@ -971,7 +1064,7 @@ class InstrumentQueryBackEnd:
                     status_details=status_details,
                     instrument=self.instrument_name,
                     product_type=product_type,
-                    time_request=time_original_request,
+                    time_request=time_request,
                     request_url=products_url,
                     # products_url is frontend URL, clickable by users.
                     # dispatch-data is how frontend is referring to the dispatcher, it's fixed in frontend-astrooda code
@@ -991,16 +1084,14 @@ class InstrumentQueryBackEnd:
                                         full_dict=self.par_dic,
                                         email_status='multiple completion email detected')
             logging.warning(f'repeated sending of completion email detected: {e}')
-            if self.sentry_dsn is not None:
-                sentry_sdk.capture_message(f'sending email failed {e}')
+            sentry.capture_message(f'sending email failed {e}')
 
         except email_helper.EMailNotSent as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
                                         email_status='sending email failed')
             logging.warning(f'email sending failed: {e}')
-            if self.sentry_dsn is not None:
-                sentry_sdk.capture_message(f'sending email failed {e}')
+            sentry.capture_message(f'sending email failed {e}')
 
         except MissingRequestParameter as e:
             job.write_dataserver_status(status_dictionary_value=status,
@@ -1106,6 +1197,13 @@ class InstrumentQueryBackEnd:
         if query_out is not None:
             out_dict['products'] = query_out.prod_dictionary
             out_dict['exit_status'] = query_out.status_dictionary
+            if getattr(self.instrument, 'unknown_arguments_name_list', []):
+                if len(self.instrument.unknown_arguments_name_list) == 1:
+                    comment = f'Please note that argument {self.instrument.unknown_arguments_name_list[0]} is not used'
+                else:
+                    comment = f'Please note that arguments {", ".join(self.instrument.unknown_arguments_name_list)} are not used'
+                out_dict['exit_status']['comment'] = \
+                    out_dict['exit_status']['comment'] + ' ' + comment if out_dict['exit_status']['comment'] else comment
 
         if job_monitor is not None:
             out_dict['job_monitor'] = job_monitor
@@ -1159,10 +1257,12 @@ class InstrumentQueryBackEnd:
 
         return out_dict
 
-    def set_instrument(self, instrument_name):
+    def set_instrument(self, instrument_name, roles, email):
+
         known_instruments = []
 
         new_instrument = None
+        no_access = False
         # TODO to get rid of the mock instrument option, we now have the empty instrument
         if instrument_name == 'mock':
             new_instrument = 'mock'
@@ -1170,12 +1270,18 @@ class InstrumentQueryBackEnd:
             for instrument_factory in importer.instrument_factory_list:
                 instrument = instrument_factory()
                 if instrument.name == instrument_name:
-                    new_instrument = instrument  # multiple assignment? TODO
+                    if instrument.instrumet_query.check_instrument_access(roles, email):
+                        new_instrument = instrument  # multiple assignment? TODO
+                    else:
+                        no_access = True
 
                 known_instruments.append(instrument.name)
-
         if new_instrument is None:
-            raise InstrumentNotRecognized(f'instrument: "{instrument_name}", known: {known_instruments}')
+            if no_access:
+                raise RequestNotAuthorized(f"Unfortunately, your priviledges are not sufficient "
+                                           f"to make the request for this instrument.\n")
+            else:
+                raise InstrumentNotRecognized(f'instrument: "{instrument_name}", known: {known_instruments}')
         else:
             self.instrument = new_instrument
 
@@ -1221,9 +1327,9 @@ class InstrumentQueryBackEnd:
 
     def get_existing_job_ID_path(self, wd):
         # exist same job_ID, different session ID
-        dir_list = glob.glob('*_jid_%s' % (self.job_id))
+        dir_list = glob.glob(f'*_jid_{self.job_id}')
         # print('dirs',dir_list)
-        if dir_list != []:
+        if dir_list:
             dir_list = [d for d in dir_list if 'aliased' not in d]
 
         if len(dir_list) == 1:
@@ -1233,7 +1339,8 @@ class InstrumentQueryBackEnd:
                 alias_dir = None
 
         elif len(dir_list) > 1:
-            raise RuntimeError('found two non aliased identical job_id')
+            sentry.capture_message('Found two non aliased identical job_id')
+            raise RuntimeError('Found two non aliased identical job_id')
 
         else:
             alias_dir = None
@@ -1727,6 +1834,11 @@ class InstrumentQueryBackEnd:
                             email_api_code = DispatcherAPI.set_api_code(self.par_dic,
                                                                         url=self.app.config['conf'].products_url + "/dispatch-data"
                                                                         )
+                            time_request = self.time_request
+                            time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
+                            if time_request_first_submitted is not None:
+                                time_request = time_request_first_submitted
+
                             email_helper.send_job_email(
                                 config=self.app.config['conf'],
                                 logger=self.logger,
@@ -1737,7 +1849,7 @@ class InstrumentQueryBackEnd:
                                 status=query_new_status,
                                 instrument=self.instrument.name,
                                 product_type=product_type,
-                                time_request=self.time_request,
+                                time_request=time_request,
                                 request_url=products_url,
                                 api_code=email_api_code,
                                 scratch_dir=self.scratch_dir)
@@ -1747,8 +1859,7 @@ class InstrumentQueryBackEnd:
                         except email_helper.EMailNotSent as e:
                             query_out.set_status_field('email_status', 'sending email failed')
                             logging.warning(f'email sending failed: {e}')
-                            if self.sentry_dsn is not None:
-                                sentry_sdk.capture_message(f'sending email failed {e.message}')
+                            sentry.capture_message(f'sending email failed {e.message}')
                 else:
                     query_new_status = 'failed'
                     job.set_failed()

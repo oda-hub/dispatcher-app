@@ -6,23 +6,26 @@ Created on Wed May 10 10:55:20 2017
 @author: Andrea Tramcere, Volodymyr Savchenko
 """
 import glob
-import json
-import re
 import string
 import random
 import hashlib
-import jwt
-import sentry_sdk
+import json
+import os
+import string
+import random
+import hashlib
+import validators
+
+import logging
 
 from raven.contrib.flask import Sentry
-from sentry_sdk.integrations.flask import FlaskIntegration
-from flask import jsonify, send_from_directory, redirect, Response, Flask, request, make_response, g
+from flask import jsonify, send_from_directory, redirect, Response, Flask, request, make_response, g, url_for
 
 # restx not really used
-from flask_restx import Api, Resource, reqparse
+from flask_restx import Api, Resource
 
 import time as _time
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper, email_helper
 from .logstash import logstash_message
@@ -39,6 +42,7 @@ from ..analysis.exceptions import APIerror, MissingRequestParameter
 from ..app_logging import app_logging
 
 from ..analysis.json import CustomJSONEncoder
+from .sentry import sentry
 
 from cdci_data_analysis import __version__
 import oda_api
@@ -51,6 +55,8 @@ logger = app_logging.getLogger('flask_app')
 app = Flask(__name__,
             static_url_path=os.path.abspath('./'),
             static_folder='/static')
+
+sentry.app = app
 
 app.json_encoder = CustomJSONEncoder
 
@@ -89,8 +95,23 @@ def run_api_parameters():
 
 @app.route("/api/instr-list")
 def run_api_instr_list():
-    query = InstrumentQueryBackEnd(app, get_meta_data=True)
-    return query.get_instr_list()
+    logger.warning('\nThe endpoint \'/api/instr-list\' is deprecated and you will be automatically redirected to the '
+                   '\'/instr-list\' endpoint. Please use this one in the future.\n')
+
+    if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url):
+        redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/instr-list')
+        if request.args:
+            args_request = urlencode(request.args)
+            redirection_url = f'{redirection_url}?{args_request}'
+
+    else:
+        parsed_request_url = urlparse(request.url)
+        path_request_url = parsed_request_url.path.replace('/api', '')
+
+        parsed_request_url = parsed_request_url._replace(path=path_request_url)
+        redirection_url = parsed_request_url.geturl()
+
+    return redirect(redirection_url)
 
 
 @app.route('/meta-data')
@@ -246,77 +267,106 @@ def refresh_token():
     return query.token
 
 
+@app.route('/free-up-space', methods=['POST', 'GET'])
+def free_up_space():
+    free_up_result_data_obj = InstrumentQueryBackEnd.free_up_space(app)
+    return free_up_result_data_obj
+
+
 @app.route('/inspect-state', methods=['POST', 'GET'])
 def inspect_state():
-    logger.info("request.args: %s ", request.args)
-
     state_data_obj = InstrumentQueryBackEnd.inspect_state(app)
     return state_data_obj
+
+
+@app.route('/instr-list')
+def instr_list():
+    instrument_list = InstrumentQueryBackEnd.get_user_specific_instrument_list(app)
+    return instrument_list
 
 
 @app.route('/push-renku-branch', methods=['POST'])
 def push_renku_branch():
     logger.info("request.args: %s ", request.args)
 
-    token = request.args.get('token', None)
-    app_config = app.config.get('conf')
-    secret_key = app_config.secret_key
+    try:
 
-    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                  required_roles=['renku contributor'],
-                                                                  action="perform this operation")
+        token = request.args.get('token', None)
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
 
-    if output_code is not None:
-        return make_response(output, output_code)
-    decoded_token = output
+        output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                      required_roles=['renku contributor'],
+                                                                      action="perform this operation")
 
-    user_name = tokenHelper.get_token_user(decoded_token)
-    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+        if output_code is not None:
+            return make_response(output, output_code)
+        decoded_token = output
 
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
-    # TODO check job_id is provided with the request
-    job_id = par_dic.pop('job_id')
-    api_code = None
-    request_dict = None
-    # Get the API code to push to the new renku branch
-    scratch_dir_pattern = f'scratch_sid_*_jid_{job_id}*'
-    list_scratch_folders = glob.glob(scratch_dir_pattern)
-    if len(list_scratch_folders) >= 1:
-        query_output_json_content_original = json.load(open(list_scratch_folders[0] + '/query_output.json'))
-        prod_dict = query_output_json_content_original['prod_dictionary']
-        # remove parameters that should not be shared (eg token)
-        api_code = prod_dict.pop('api_code', None)
-        request_dict = prod_dict.pop('analysis_parameters', None)
+        user_name = tokenHelper.get_token_user(decoded_token)
+        user_email = tokenHelper.get_token_user_email_address(decoded_token)
 
-    renku_gitlab_repository_url = app_config.renku_gitlab_repository_url
-    renku_gitlab_ssh_key_path = app_config.renku_gitlab_ssh_key_path
-    renku_base_project_url = app_config.renku_base_project_url
-    products_url = app_config.products_url
+        par_dic = request.values.to_dict()
+        par_dic.pop('token')
+        # TODO check job_id is provided with the request
+        job_id = par_dic.pop('job_id')
+        api_code = None
+        request_dict = None
+        # Get the API code to push to the new renku branch
+        scratch_dir_pattern = f'scratch_sid_*_jid_{job_id}*'
+        list_scratch_folders = glob.glob(scratch_dir_pattern)
+        if len(list_scratch_folders) >= 1:
+            with open(os.path.join(list_scratch_folders[0], 'query_output.json')) as q_out_f:
+                query_output_json_content_original = json.load(q_out_f)
 
-    renku_logger = logger.getChild('push_renku_branch')
-    renku_logger.info('renku_gitlab_repository_url: %s', renku_gitlab_repository_url)
-    renku_logger.info('renku_base_project_url: %s', renku_base_project_url)
-    renku_logger.info('renku_gitlab_ssh_key_path: %s', renku_gitlab_ssh_key_path)
-    renku_logger.info('user_name: %s', user_name)
-    renku_logger.info('user_email: %s', user_email)
+            prod_dict = query_output_json_content_original['prod_dictionary']
+            # remove parameters that should not be shared (eg token)
+            api_code = prod_dict.pop('api_code', None)
+            request_dict = prod_dict.pop('analysis_parameters', None)
+        else:
+            error_message = f"Error while posting data in the renku branch: " \
+                            f"no scratch folder was found with the given job_id :{job_id}"
+            raise RequestNotUnderstood(error_message)
 
-    if api_code is not None:
-        api_code_url = renku_helper.push_api_code(api_code=api_code,
-                                                  job_id=job_id,
-                                                  renku_gitlab_repository_url=renku_gitlab_repository_url,
-                                                  renku_base_project_url=renku_base_project_url,
-                                                  renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path,
-                                                  user_name=user_name, user_email=user_email,
-                                                  products_url=products_url, request_dict=request_dict)
+        renku_gitlab_repository_url = app_config.renku_gitlab_repository_url
+        renku_gitlab_ssh_key_path = app_config.renku_gitlab_ssh_key_path
+        renku_base_project_url = app_config.renku_base_project_url
+        products_url = app_config.products_url
 
-        return api_code_url
+        renku_logger = logger.getChild('push_renku_branch')
+        renku_logger.info('renku_gitlab_repository_url: %s', renku_gitlab_repository_url)
+        renku_logger.info('renku_base_project_url: %s', renku_base_project_url)
+        renku_logger.info('renku_gitlab_ssh_key_path: %s', renku_gitlab_ssh_key_path)
+        renku_logger.info('user_name: %s', user_name)
+        renku_logger.info('user_email: %s', user_email)
 
-    else:
-        raise RequestNotUnderstood(message="Request data not found",
-                                   payload={'error_message': 'error while posting data in the renku branch: '
-                                                             'api_code was not found, '
-                                                             'perhaps wrong job_id was passed?'})
+        if api_code is not None:
+            api_code_url = renku_helper.push_api_code(api_code=api_code,
+                                                      token=token,
+                                                      job_id=job_id,
+                                                      renku_gitlab_repository_url=renku_gitlab_repository_url,
+                                                      renku_base_project_url=renku_base_project_url,
+                                                      renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path,
+                                                      user_name=user_name, user_email=user_email,
+                                                      products_url=products_url,
+                                                      request_dict=request_dict)
+
+            return api_code_url
+
+        else:
+            error_message = "Error while posting data in the renku branch: api_code was not found, " \
+                            "perhaps wrong job_id was passed?"
+            raise RequestNotUnderstood(error_message)
+
+    except Exception as e:
+        error_message = f"Exception in push-renku-branch: {repr(e)}, {traceback.format_exc()}"
+        logging.getLogger().error(error_message)
+
+        sentry.capture_message(f'exception while posting on the renku branch: {str(e)}')
+        
+        raise RequestNotUnderstood(message="Error while posting on the renku branch",
+                                   payload={'error_message': error_message})
+
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
@@ -364,28 +414,11 @@ def run_analysis():
     except APIerror as e:
         raise
     except Exception as e:
-        logging.getLogger().error("exception in run_analysis: %s %s",
-                                  repr(e), traceback.format_exc())
-        print("exception in run_analysis: %s %s",
-              repr(e), traceback.format_exc())
-        sentry_url = getattr(app.config.get('conf'), 'sentry_url', None)
-        if sentry_url is not None:
-            sentry_sdk.init(
-                dsn=sentry_url,
-                # Set traces_sample_rate to 1.0 to capture 100%
-                # of transactions for performance monitoring.
-                # We recommend adjusting this value in production.
-                traces_sample_rate=1.0,
-                debug=True,
-                max_breadcrumbs=50,
-            )
-            sentry_sdk.capture_message(f'exception in run_analysis: {str(e)}')
-        else:
-            logger.warning("sentry not used")
+        sentry.capture_message(f"exception in run_analysis: {repr(e)} {traceback.format_exc()}")
 
         raise UnknownDispatcherException('request not valid',
-                           status_code=500,
-                           payload={'error_message': str(e), **common_exception_payload()})
+                                         status_code=500,
+                                         payload={'error_message': str(e), **common_exception_payload()})
 
 
 # or flask-marshmellow
@@ -489,7 +522,7 @@ def output_html(data, code, headers=None):
 @ns_conf.route('/product/<path:path>', methods=['GET', 'POST'])
 # @app.route('/product/<path:path>',methods=['GET','POST'])
 class Product(Resource):
-    @api.doc(responses={410: 'problem with local file delivery'}, params={'path': 'the file path to be served'})
+    # @api.doc(responses={410: 'problem with local file delivery'}, params={'path': 'the file path to be served'})
     def get(self, path):
         """
         serves a locally stored file
@@ -566,13 +599,16 @@ def get_list_terms():
         return make_response(output, output_code)
     decoded_token = output
 
+    sentry_dsn = sentry.sentry_url
+
     group = request.args.get('group', None)
     parent = request.args.get('parent', None)
 
     list_terms = drupal_helper.get_list_terms(disp_conf=app_config,
                                               group=group,
                                               parent=parent,
-                                              decoded_token=decoded_token)
+                                              decoded_token=decoded_token,
+                                              sentry_dsn=sentry_dsn)
 
     output_request = json.dumps(list_terms)
 
@@ -594,17 +630,247 @@ def get_parents_term():
         return make_response(output, output_code)
     decoded_token = output
 
+    sentry_dsn = sentry.sentry_url
+
     group = request.args.get('group', None)
     term = request.args.get('term', None)
 
     list_parents = drupal_helper.get_parents_term(disp_conf=app_config,
                                                   term=term,
                                                   group=group,
-                                                  decoded_token=decoded_token)
+                                                  decoded_token=decoded_token,
+                                                  sentry_dsn=sentry_dsn)
 
     output_request = json.dumps(list_parents)
 
     return output_request
+
+
+@app.route('/get_observation_attachments', methods=['GET'])
+def get_observation_attachments():
+    logger.info("request.args: %s ", request.args)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    sentry_dsn = sentry.sentry_url
+
+    gallery_secret_key = app_config.product_gallery_secret_key
+    product_gallery_url = app_config.product_gallery_url
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
+                                                        user_email=user_email,
+                                                        sentry_dsn=sentry_dsn)
+    gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+
+    observation_title = par_dic.pop('title', None)
+
+    output_get = drupal_helper.get_observation_yaml_attachments_by_observation_title(
+        product_gallery_url, gallery_jwt_token,
+        observation_title=observation_title,
+        sentry_dsn=sentry_dsn
+        )
+
+    return output_get
+
+
+@app.route('/get_all_revs', methods=['GET'])
+def get_all_revs():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="getting all the revolutions from the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    sentry_dsn = sentry.sentry_url
+
+    gallery_secret_key = app_config.product_gallery_secret_key
+    product_gallery_url = app_config.product_gallery_url
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
+                                                        user_email=user_email,
+                                                        sentry_dsn=sentry_dsn)
+    # update the token
+    gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+
+    output_get = drupal_helper.get_all_revolutions(product_gallery_url=product_gallery_url,
+                                                   gallery_jwt_token=gallery_jwt_token,
+                                                   sentry_dsn=sentry_dsn)
+
+    output_list = json.dumps(output_get)
+
+    return output_list
+
+
+@app.route('/get_all_astro_entities', methods=['GET'])
+def get_all_astro_entities():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="getting all the astro entities from the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    sentry_dsn = sentry.sentry_url
+
+    gallery_secret_key = app_config.product_gallery_secret_key
+    product_gallery_url = app_config.product_gallery_url
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
+                                                        user_email=user_email,
+                                                        sentry_dsn=sentry_dsn)
+    # update the token
+    gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+
+    output_get = drupal_helper.get_all_source_astrophysical_entities(product_gallery_url=product_gallery_url,
+                                                                     gallery_jwt_token=gallery_jwt_token,
+                                                                     sentry_dsn=sentry_dsn)
+    output_list = json.dumps(output_get)
+
+    return output_list
+
+
+@app.route('/get_astro_entity_info_by_source_name', methods=['GET'])
+def get_astro_entity_info_by_source_name():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    app_config = app.config.get('conf')
+
+    sentry_dsn = sentry.sentry_url
+
+    product_gallery_url = app_config.product_gallery_url
+    src_name = request.args.get('src_name', None)
+
+    source_entity_info = drupal_helper.get_source_astrophysical_entity_info_by_source_and_alternative_name(product_gallery_url,
+                                                                                                          gallery_jwt_token=None,
+                                                                                                          source_name=src_name,
+                                                                                                          sentry_dsn=sentry_dsn)
+
+    refactored_astro_entity_info = {}
+    astro_entity_info = {}
+    if len(source_entity_info) >= 1:
+        astro_entity_info = source_entity_info[0]
+
+    for k, v in astro_entity_info.items():
+        refactored_key = k
+        if k.startswith('field_'):
+            refactored_key = k.replace('field_', '')
+        refactored_astro_entity_info[refactored_key] = v
+    if 'nid' in astro_entity_info:
+        nid =  astro_entity_info['nid']
+
+        refactored_astro_entity_info['url_preview'] = os.path.join(product_gallery_url, f'node/{nid}/preview')
+
+    return refactored_astro_entity_info
+
+
+
+@app.route('/get_data_product_list_by_source_name', methods=['GET'])
+def get_data_product_list_by_source_name():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="getting all the astro entities from the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    sentry_dsn = sentry.sentry_url
+
+    gallery_secret_key = app_config.product_gallery_secret_key
+    product_gallery_url = app_config.product_gallery_url
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
+                                                        user_email=user_email,
+                                                        sentry_dsn=sentry_dsn)
+    # update the token
+    gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+
+    src_name = request.args.get('src_name', None)
+
+    output_get = drupal_helper.get_data_product_list_by_source_name(product_gallery_url=product_gallery_url,
+                                                                     gallery_jwt_token=gallery_jwt_token,
+                                                                    src_name=src_name,
+                                                                    sentry_dsn=sentry_dsn)
+    output_list = json.dumps(output_get)
+
+    return output_list
+
+
+
+@app.route('/post_astro_entity_to_gallery', methods=['POST'])
+def post_astro_entity_to_gallery():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
+                                                        content_type="astrophysical_entity",
+                                                        disp_conf=app_config,
+                                                        files=request.files,
+                                                        **par_dic)
+
+    return output_post
 
 
 @app.route('/post_observation_to_gallery', methods=['POST'])
@@ -664,6 +930,34 @@ def post_product_to_gallery():
     return output_post
 
 
+@app.route('/post_revolution_processing_log_to_gallery', methods=['POST'])
+def post_revolution_processing_log_to_gallery():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post revolution processing log on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
+                                                        disp_conf=app_config,
+                                                        files=request.files,
+                                                        **par_dic)
+
+    return output_post
+
+
 @app.route('/report_incident', methods=['POST'])
 def report_incident():
     logger.info("request.args: %s ", request.args)
@@ -673,17 +967,7 @@ def report_incident():
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
-    sentry_dsn = getattr(app_config, 'sentry_url', None)
-    if sentry_dsn is not None:
-        sentry_sdk.init(
-            dsn=sentry_dsn,
-            # Set traces_sample_rate to 1.0 to capture 100%
-            # of transactions for performance monitoring.
-            # We recommend adjusting this value in production.
-            traces_sample_rate=1.0,
-            debug=True,
-            max_breadcrumbs=50,
-        )
+    sentry_dsn = sentry.sentry_url
 
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key)
 
@@ -712,21 +996,9 @@ def report_incident():
         report_incident_status = 'incident report email successfully sent'
     except email_helper.EMailNotSent as e:
         report_incident_status = 'sending email failed'
-        logging.warning(f'email sending failed: {e}')
-        sentry_url = getattr(app.config.get('conf'), 'sentry_url', None)
-        if sentry_url is not None:
-            sentry_sdk.init(
-                dsn=sentry_url,
-                # Set traces_sample_rate to 1.0 to capture 100%
-                # of transactions for performance monitoring.
-                # We recommend adjusting this value in production.
-                traces_sample_rate=1.0,
-                debug=True,
-                max_breadcrumbs=50,
-            )
-            sentry_sdk.capture_message(f'sending email failed {e}')
-        else:
-            logger.warning("sentry not used")
+        logging.warning(f'email sending failed: {e}')        
+        sentry.capture_message(f'sending email failed {e}')
+
     except MissingRequestParameter as e:
         report_incident_status = 'sending email failed'
         logging.warning(f'parameter missing during call back: {e}')
@@ -739,7 +1011,7 @@ def report_incident():
 @ns_conf.route('/js9/<path:path>', methods=['GET', 'POST'])
 # @app.route('/js9/<path:path>',methods=['GET','POST'])
 class JS9(Resource):
-    @api.doc(responses={410: 'problem with  js9 library'}, params={'path': 'the file path for the JS9 library'})
+    # @api.doc(responses={410: 'problem with  js9 library'}, params={'path': 'the file path for the JS9 library'})
     def get(self, path):
         """
         serves the js9 library
@@ -761,7 +1033,7 @@ class JS9(Resource):
 
 @ns_conf.route('/get_js9_plot')
 class GetJS9Plot(Resource):
-    @api.doc(responses={410: 'problem with js9 image generation'}, params={'file_path': 'the file path', 'ext_id': 'extension id'})
+    # @api.doc(responses={410: 'problem with js9 image generation'}, params={'file_path': 'the file path', 'ext_id': 'extension id'})
     def get(self):
         """
         returns the js9 image display
@@ -812,7 +1084,7 @@ class TestJS9Plot(Resource):
     """
     tests js9 with a predefined file
     """
-    @api.doc(responses={410: 'problem with js9 image generation'})
+    # @api.doc(responses={410: 'problem with js9 image generation'})
     def get(self):
         try:
             img = Image(None, None)

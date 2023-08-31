@@ -24,12 +24,34 @@ import json
 from collections import OrderedDict
 
 import sentry_sdk
+import decorator 
+import numpy as np
 
-from .parameters import *
+
+from .parameters import (Parameter, 
+                         ParameterGroup, 
+                         ParameterRange, 
+                         ParameterTuple,
+                         Name,
+                         Angle,
+                         Time,
+                         InputProdList,
+                         UserCatalog,
+                         DetectionThreshold,
+                         Float,
+                         TimeDelta,
+                         
+                         # these are not used here but wildcard-imported from this module by integral plugin
+                         SpectralBoundary,
+                         Integer
+                         )
 from .products import SpectralFitProduct, QueryOutput, QueryProductList, ImageProduct
 from .io_helper import FilePath
 from .exceptions import RequestNotUnderstood, UnfortunateRequestResults, BadRequest, InternalError
 import traceback
+
+logger = logging.getLogger(__name__)
+
 
 @decorator.decorator
 def check_is_base_query(func,prod_list,*args, **kwargs):
@@ -92,15 +114,28 @@ class BaseQuery(object):
     def _build_parameters_list(self,_list):
 
         _l = []
+        _names = []
         if _list is None:
             pass
         else:
-
             for p in _list:
                 if isinstance(p, Parameter):
+                    if p.name in _names:
+                        raise RuntimeError('Parameter type %s have duplicate name %s in the query %s',
+                                           p.__class__.__name__, p.name, self)
                     _l.append(p)
+                    if p.name is not None:
+                        _names.append(p.name)
                 else:
-                    _l.extend(p.to_list())
+                    # parametertuple
+                    pars = p.to_list()
+                    for x in pars:
+                        if x.name in _names:
+                            raise RuntimeError('Parameter type %s have duplicate name %s in the query %s',
+                                               p.__class__.__name__, p.name, self)
+                    
+                    _l.extend(pars)
+                    _names.extend([x.name for x in pars if x.name is not None])
         return _l
 
     def show_parameters_list(self):
@@ -242,18 +277,30 @@ class BaseQuery(object):
         else:
             return l
 
-    def get_parameters_list_as_json(self,prod_dict=None):
+    def get_parameters_list_as_json(self,**kwargs):
         l=[ {'query_name':self.name}]
 
         for par in self._parameters_list:
-            l.append(par.reprJSON())
-
-        return json.dumps(l)
+            l.extend(par.reprJSONifiable())
+        l1 = self._remove_duplicates_from_par_list(l)
+        return json.dumps(l1)
 
     # Check if the given query cn be executed given a list of roles extracted from the token
     def check_query_roles(self, roles, par_dic):
         results = dict(authorization=True, needed_roles=[])
         return results
+    
+    @staticmethod
+    def _remove_duplicates_from_par_list(l):
+        seen = set()
+        l1 = []
+        for x in l:
+            if (x.get('name') is None) or not (x.get('name') in seen):
+                l1.append(x)
+            else:
+                logger.info('removed duplicate %s', x.get('name'))
+            seen.add(x.get('name'))        
+        return l1
 
 
 class SourceQuery(BaseQuery):
@@ -283,6 +330,7 @@ class InstrumentQuery(BaseQuery):
     def __init__(self,
                  name,
                  extra_parameters_list=[],
+                 restricted_access=False,
                  input_prod_list_name=None,
                  input_prod_value=None,
                  catalog_name=None,
@@ -296,6 +344,7 @@ class InstrumentQuery(BaseQuery):
 
         self.input_prod_list_name = input_prod_list_name
         self.catalog_name = catalog_name
+        self.restricted_access = restricted_access
 
         parameters_list=[catalog, input_prod_list, selected_catalog]
 
@@ -304,6 +353,11 @@ class InstrumentQuery(BaseQuery):
 
         super(InstrumentQuery, self).__init__(name,parameters_list)
 
+    def check_instrument_access(self, roles=None, email=None):
+        if roles is None:
+            roles = []
+
+        return (self.restricted_access and 'oda workflow developer' in roles) or not self.restricted_access
 
 class ProductQuery(BaseQuery):
     def __init__(self,
@@ -330,7 +384,7 @@ class ProductQuery(BaseQuery):
         traceback.print_stack()
         raise RuntimeError(f'{self}: get_data_server_query needs to be implemented in derived class')
 
-    def get_parameters_list_as_json(self,prod_dict=None):
+    def get_parameters_list_as_json(self, prod_dict=None):
 
         l=[ {'query_name':self.name}]
         prod_name=None
@@ -344,10 +398,10 @@ class ProductQuery(BaseQuery):
             l.append({'product_name': self.name})
 
         for par in self._parameters_list:
-            l.append(par.reprJSON())
-
-        print(l)
-        return json.dumps(l)
+            l.extend(par.reprJSONifiable())
+        
+        l1 = self._remove_duplicates_from_par_list(l)
+        return json.dumps(l1)
 
     def get_prod_by_name(self,name):
         return self.query_prod_list.get_prod_by_name(name)
@@ -475,25 +529,24 @@ class ProductQuery(BaseQuery):
 
         query_out = QueryOutput()
         #status=0
-        message=''
-        debug_message=''
+        
+        messages = {}
+        messages['message']=''
+        messages['debug_message']=''
         msg_str = '--> start get product query',query_type
         # print(msg_str)
         logger.info(msg_str)
-        backend_comment=''
-        backend_warning=''
+        messages['comment']=''
+        messages['warning']=''
         try:
             if query_type != 'Dummy':
                 q = self.get_data_server_query(instrument,config)
 
                 res, data_server_query_out = q.run_query(call_back_url=job.get_call_back_url(), run_asynch=run_asynch, logger=logger)
 
-                if 'comment' in data_server_query_out.status_dictionary.keys():
-                    backend_comment=data_server_query_out.status_dictionary['comment']
-
-                if 'warning' in data_server_query_out.status_dictionary.keys():
-                    backend_warning=data_server_query_out.status_dictionary['warning']
-
+                for field in ['message', 'debug_message', 'comment', 'warning']:
+                    if field in data_server_query_out.status_dictionary.keys():
+                        messages[field]=data_server_query_out.status_dictionary[field]
 
                 status = data_server_query_out.get_status()
                 job_status = data_server_query_out.get_job_status()
@@ -520,7 +573,7 @@ class ProductQuery(BaseQuery):
 
                 job.set_done()
             #DONE
-            query_out.set_done(message=message, debug_message=str(debug_message),job_status=job.status,status=status,comment=backend_comment,warning=backend_warning)
+            query_out.set_done(message=messages['message'], debug_message=str(messages['debug_message']),job_status=job.status,status=status,comment=messages['comment'],warning=messages['warning'])
             #print('-->', query_out.status_dictionary)
         except RequestNotUnderstood as e:
             logger.error("passing request issue: %s", e)
@@ -538,14 +591,14 @@ class ProductQuery(BaseQuery):
                 raise
 
             e_message = getattr(e, 'message', '')
-            debug_message = repr(e) + ' : ' + getattr(e, 'debug_message', '')
+            messages['debug_message'] = repr(e) + ' : ' + getattr(e, 'debug_message', '')
 
             query_out.set_failed('get_dataserver_products found job failed',
                                  logger=logger,
                                  sentry_dsn=sentry_dsn,
                                  excep=e,
                                  e_message=e_message,
-                                 debug_message=debug_message)
+                                 debug_message=messages['debug_message'])
             # TODO to use this approach when we will refactor the handling of exceptions
             # raise InternalError(e_message)
 

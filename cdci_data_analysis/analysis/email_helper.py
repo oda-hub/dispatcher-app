@@ -6,7 +6,7 @@ from collections import OrderedDict
 from urllib.parse import urlencode
 import typing
 
-import sentry_sdk
+from ..flask_app.sentry import sentry
 
 from ..analysis import tokenHelper
 import smtplib
@@ -27,6 +27,7 @@ from bs4 import BeautifulSoup
 
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
 from ..analysis.hash import make_hash
+from ..analysis.time_helper import validate_time
 
 from datetime import datetime
 
@@ -42,14 +43,13 @@ class MultipleDoneEmail(BadRequest):
 class EMailNotSent(BadRequest):
     pass
 
+
 def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
     try:
-        timestamp_or_string = float(timestamp_or_string)
-    except ValueError:
-        pass
-
-    if isinstance(timestamp_or_string, float):
-        return datetime.fromtimestamp(float(timestamp_or_string)).strftime("%Y-%m-%d %H:%M:%S")
+        timestamp_or_string = validate_time(timestamp_or_string).strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, OverflowError, TypeError, OSError) as e:
+        logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_or_string}:\n{e}')
+        raise EMailNotSent(f"Email not sent: {e}")
 
     return timestamp_or_string
 
@@ -178,6 +178,40 @@ def check_scw_list_length(
         return False
 
 
+def get_first_submitted_email_time(scratch_dir):
+    first_submitted_email_time = None
+    submitted_email_pattern = os.path.join(
+        scratch_dir,
+        'email_history',
+        'email_submitted_*.email'
+    )
+    submitted_email_files = sorted(glob.glob(submitted_email_pattern), key=os.path.getmtime)
+
+    if len(submitted_email_files) >= 1:
+        f_name, f_ext = os.path.splitext(os.path.basename(submitted_email_files[0]))
+        f_name_split = f_name.split('_')
+        if len(f_name_split) == 4:
+            try:
+                validate_time(f_name_split[3])
+                first_submitted_email_time = float(f_name_split[3])
+            except (ValueError, OverflowError, TypeError, OSError) as e:
+                logger.warning(f'Error when extracting the time of the first submitted email.'
+                               f'The value extracted {first_submitted_email_time} raised the following error:\n{e}')
+                first_submitted_email_time = None
+                sentry.capture_message(f'Error when extracting the time of the first submitted email.'
+                               f'The value extracted {first_submitted_email_time} raised the following error:\n{e}')
+        else:
+            logger.warning(f'Error when extracting the time of the first submitted email: '
+                           f'the name of the email file has been found not properly formatted, therefore, '
+                           f'the time of the first submitted email could not be extracted.')
+            first_submitted_email_time = None
+            sentry.capture_message(f'Error when extracting the time of the first submitted email: '
+                           f'the name of the email file has been found not properly formatted, therefore, '
+                           f'the time of the first submitted email could not be extracted.')
+
+    return first_submitted_email_time
+
+
 def send_incident_report_email(
         config,
         job_id,
@@ -293,8 +327,7 @@ and if this is not what you expected, you probably need to modify the request pa
             status_details_title = 'finished: with empty product'
         # TODO observe the other possible error detected exceptions,and extend the status detail message for the email
         else:
-            if sentry_dsn is not None:
-                sentry_sdk.capture_message(f'unexpected status_details content before sending email: {status_details}')
+            sentry.capture_message(f'unexpected status_details content before sending email: {status_details}')
             raise NotImplementedError
 
     # TODO: enable this sometimes
@@ -315,11 +348,10 @@ and if this is not what you expected, you probably need to modify the request pa
 
     email_data = {
         'oda_site': {
-            #TODO: get from config
-            'site_name': 'University of Geneva',
+            'site_name': config.site_name,
             'frontend_url': config.products_url,
-            'contact': 'contact@odahub.io',
-            'manual_reference': 'possibly-non-site-specific-link',
+            'contact': config.contact_email_address,
+            'manual_reference': config.manual_reference,
         },
         'request': {
             'job_id': job_id,
@@ -337,7 +369,6 @@ and if this is not what you expected, you probably need to modify the request pa
             'permanent_url': permanent_url,
         }
     }
-
     template = env.get_template('email.html')
     email_body_html = template.render(**email_data)
 
@@ -366,7 +397,7 @@ and if this is not what you expected, you probably need to modify the request pa
                          attachment=api_code_email_attachment,
                          sentry_dsn=sentry_dsn)
 
-    store_status_email_info(message, status, scratch_dir, sending_time=sending_time)
+    store_status_email_info(message, status, scratch_dir, sending_time=sending_time, first_submitted_time=time_request)
 
     return message
 
@@ -460,10 +491,9 @@ def send_email(smtp_server,
 
                 store_not_sent_email(email_body_html, scratch_dir, sending_time=sending_time)
 
-                if sentry_dsn is not None:
-                    sentry_sdk.capture_message((f'multiple attempts to send an email with title {email_subject} '
-                                                f'have been detected, the following error has been generated:\n"'
-                                                f'{e}'))
+                sentry.capture_message((f'multiple attempts to send an email with title {email_subject} '
+                                        f'have been detected, the following error has been generated:\n"'
+                                        f'{e}'))
 
                 raise EMailNotSent(f"email not sent: {e}")
 
@@ -472,14 +502,39 @@ def send_email(smtp_server,
                 server.quit()
 
 
-def store_status_email_info(message, status, scratch_dir, sending_time=None):
-    path_email_history_folder = scratch_dir + '/email_history'
+def store_status_email_info(message, status, scratch_dir, sending_time=None, first_submitted_time=None):
+    path_email_history_folder = os.path.join(scratch_dir, 'email_history')
+    current_time = time_.time()
     if not os.path.exists(path_email_history_folder):
         os.makedirs(path_email_history_folder)
     if sending_time is None:
-        sending_time = time_.time()
+        sending_time = current_time
+    else:
+        try:
+            validate_time(sending_time)
+        except (ValueError, OverflowError, TypeError, OSError) as e:
+            logger.warning(f'Error when writing the email content on a file, the sending time is not valid.'
+                           f'The value {sending_time} raised the following error:\n{e}')
+            sending_time = current_time
+            sentry.capture_message(f'Error when writing the email content on a file, the sending time is not valid.'
+                                   f'The value {sending_time} raised the following error:\n{e}')
+
+    if first_submitted_time is None:
+        first_submitted_time = sending_time
+    else:
+        try:
+            validate_time(first_submitted_time)
+        except (ValueError, OverflowError, TypeError, OSError) as e:
+            logger.warning(f'Error when writing the email content on a file, the first submitted time is not valid.'
+                           f'The value {first_submitted_time} raised the following error:\n{e}')
+            first_submitted_time = sending_time
+            sentry.capture_message(f'Error when writing the email content on a file, the first submitted time is not valid.'
+                                   f'The value {first_submitted_time} raised the following error:\n{e}')
+
+    email_file_name = f'email_{status}_{str(sending_time)}_{str(first_submitted_time)}.email'
+
     # record the email just sent in a dedicated file
-    with open(path_email_history_folder + '/email_' + status + '_' + str(sending_time) +'.email', 'w+') as outfile:
+    with open(os.path.join(path_email_history_folder, email_file_name), 'w+') as outfile:
         outfile.write(message.as_string())
 
 
@@ -527,7 +582,17 @@ def log_email_sending_info(logger, status, time_request, scratch_dir, job_id, ad
     path_email_history_folder = os.path.join(scratch_dir, 'email_history')
     if not os.path.exists(path_email_history_folder):
         os.makedirs(path_email_history_folder)
-    history_info_obj = dict(time=timestamp2isot(time_request),
+
+    try:
+        time_request_str = validate_time(time_request).strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, OverflowError, TypeError, OSError) as e:
+        logger.warning(f'Error when extracting logging the sending info of an email.'
+                       f'The time value {time_request} raised the following error:\n{e}')
+        time_request_str = datetime.fromtimestamp(time_.time()).strftime("%Y-%m-%d %H:%M:%S")
+        sentry.capture_message(f'Error when extracting logging the sending info of an email.'
+                               f'The time value {time_request} raised the following error:\n{e}')
+
+    history_info_obj = dict(time=time_request_str,
                             status=status,
                             job_id=job_id)
     if additional_info_obj is not None:
@@ -606,9 +671,9 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
         if status != 'submitted':
             status_ok = False
             logger.info(f'status {status} not a valid one for sending an email after a run_query')
-            if sentry_dsn is not None and sentry_for_email_sending_check:
-                sentry_sdk.capture_message((f'an email sending attempt has been detected at the completion '
-                                            f'of the run_query method with the status: {status}'))
+            if sentry_for_email_sending_check:
+                sentry.capture_message((f'an email sending attempt has been detected at the completion '
+                                        f'of the run_query method with the status: {status}'))
 
         # send submitted mail, status update
         sending_ok = email_sending_job_submitted and interval_ok and status_ok
@@ -687,9 +752,9 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
         # not valid status
         else:
             logger.info(f'status {status} not a valid one for sending an email after a callback')
-            if sentry_dsn is not None and sentry_for_email_sending_check:
-                sentry_sdk.capture_message((f'an email sending attempt has been detected at the completion '
-                                            f'of the run_query method with the status: {status}'))
+            if sentry_for_email_sending_check:
+                sentry.capture_message((f'an email sending attempt has been detected at the completion '
+                                        f'of the run_query method with the status: {status}'))
     else:
         logger.info(f'an email will not be sent because a token was not provided')
 

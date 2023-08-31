@@ -36,7 +36,7 @@ install_req = [
     "flask-restx",
     "six",
     "werkzeug==2.0.3",
-    "python-shell-colors",
+    "python-shell-colors==0.2.1",
     "logging_tree",
     "celery",
     "redis",
@@ -47,11 +47,16 @@ install_req = [
     "GitPython",
     "nbformat",
     "giturlparse",
-    "sentry-sdk"
+    "sentry-sdk",
+    "validators"
 ]
 
 test_req = [
     'psutil',
+]
+
+onto_req = [
+    'rdflib',
 ]
 
 packs = find_packages()
@@ -77,6 +82,7 @@ setup(name='cdci_data_analysis',
       include_package_data=True,
       install_requires=install_req,
       extras_require={
-          'test': test_req
+          'test': test_req,
+          'ontology': onto_req
       }
       )

@@ -57,19 +57,21 @@ if os.environ.get('DISPATCHER_DEBUG_MODE', 'no') == 'yes':
     cdci_plugins_dict['dummy_plugin'] = importlib.import_module('.dummy_plugin', 'cdci_data_analysis.plugins')
 
 def build_instrument_factory_list():
+    activate_plugins = os.environ.get('DISPATCHER_PLUGINS', 'auto')
     instr_factory_list = []
     
     for plugin_name in cdci_plugins_dict:
-        logger.info("found plugin: %s", plugin_name)
+        if activate_plugins == 'auto' or plugin_name in activate_plugins:   
+            logger.info("found plugin: %s", plugin_name)
 
-        try:
-            e = importlib.import_module('.exposer', cdci_plugins_dict[plugin_name].__name__)
-            instr_factory_list.extend(e.instr_factory_list)
-            logger.info(render('{GREEN}imported plugin: %s{/}'), plugin_name)
+            try:
+                e = importlib.import_module('.exposer', cdci_plugins_dict[plugin_name].__name__)
+                instr_factory_list.extend(e.instr_factory_list)
+                logger.info(render('{GREEN}imported plugin: %s{/}'), plugin_name)
 
-        except Exception as e:
-            logger.error('failed to import %s: %s', plugin_name,e )
-            traceback.print_exc()
+            except Exception as e:
+                logger.error('failed to import %s: %s', plugin_name,e )
+                traceback.print_exc()
     return instr_factory_list
 
 instrument_factory_list = build_instrument_factory_list()

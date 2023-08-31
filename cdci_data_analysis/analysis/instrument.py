@@ -20,7 +20,6 @@ Module API
 
 from __future__ import absolute_import, division, print_function
 
-import itertools
 import os
 from builtins import (bytes, str, open, super, range,
                       zip, round, input, int, pow, object, map, zip)
@@ -29,7 +28,6 @@ import string
 import json
 import logging
 
-import sentry_sdk
 import yaml
 
 import numpy as np
@@ -42,8 +40,9 @@ from .products import QueryOutput
 from .queries import ProductQuery, SourceQuery, InstrumentQuery
 from .io_helper import upload_file
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
+from ..flask_app.sentry import sentry
 
-from oda_api.api import DispatcherAPI, RemoteException, DispatcherException, DispatcherNotAvailable, UnexpectedDispatcherStatusCode, RequestNotUnderstood as RequestNotUnderstoodOdaApi
+from oda_api.api import DispatcherAPI, RemoteException, Unauthorized, DispatcherException, DispatcherNotAvailable, UnexpectedDispatcherStatusCode, RequestNotUnderstood as RequestNotUnderstoodOdaApi
 
 __author__ = "Andrea Tramacere"
 
@@ -63,6 +62,25 @@ __author__ = "Andrea Tramacere"
 # TODO: this is not preserved between requests, and is not thread safe. Why not pass it in class instances?
 params_not_to_be_included = ['user_catalog',]
 
+non_parameter_args = ['instrument', 
+                      'query_status', 
+                      'query_type', 
+                      'product_type', 
+                      'session_id', 
+                      'token',
+                      'api',
+                      'oda_api_version',
+                      'off_line',
+                      'job_id',
+                      'async_dispatcher',
+                      'allow_unknown_args',
+                      'catalog_selected_objects',
+                      'run_asynch']
+# NOTE: arguments are passed in the request to the dispatcher
+# some arguments are used to set the values of the analysis parameters
+# the parameter is a subclass of Parameter and may use several arguments to set it's value
+# some arguments may be used to set values of several parameters 
+# (e.g. for Time(name='T1') and Time(name='T2') arguments will be T1, T2, T_format)
 
 class DataServerQueryClassNotSet(Exception):
     pass
@@ -79,7 +97,8 @@ class Instrument:
                  data_serve_conf_file=None,
                  product_queries_list=None,
                  data_server_query_class=None,
-                 query_dictionary={}):
+                 query_dictionary={},
+                 allow_unknown_arguments=False):
 
         # name
         self.name = instr_name
@@ -105,6 +124,8 @@ class Instrument:
         self.input_product_query=input_product_query
 
         self.query_dictionary = query_dictionary
+        
+        self.allow_unknown_arguments = allow_unknown_arguments
 
     def __repr__(self):
         return f"[ {self.__class__.__name__} : {self.name} ]"
@@ -126,8 +147,8 @@ class Instrument:
     def _check_names(self):
         pass
 
-    def set_pars_from_dic(self, par_dic, verbose=False):
-        product_type = par_dic.get('product_type', None)
+    def set_pars_from_dic(self, arg_dic, verbose=False):
+        product_type = arg_dic.get('product_type', None)
         if product_type is not None:
             query_name = self.get_product_query_name(product_type)
             query_obj = self.get_query_by_name(query_name)
@@ -139,41 +160,52 @@ class Instrument:
         else:
             param_list = [par for _query in self._queries_list for par in _query.parameters]
 
-        updated_par_dic = par_dic.copy()
+        updated_arg_dic = arg_dic.copy()
         
         for par in param_list:
             self.logger.info("before normalizing, set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
-                             par, par.name, par.value, par_dic.get(par.name, None))
+                             par, par.name, par.value, arg_dic.get(par.name, None))
 
             # this is required because in some cases a parameter is set without a name (eg UserCatalog),
             # or they don't have to set (eg scw_list)
             if par.name is not None and par.name not in params_not_to_be_included:
                 # set the value for par to a default format,
                 # or to a default value if this is not included within the request
-                updated_par_dic[par.name] = par.set_value_from_form(par_dic, verbose=verbose)
+                updated_arg_dic[par.name] = par.set_value_from_form(arg_dic, verbose=verbose)
 
                 if par.units_name is not None:
                     if par.default_units is not None:
-                        updated_par_dic[par.units_name] = par.default_units
+                        updated_arg_dic[par.units_name] = par.default_units
                     else:
                         raise InternalError("Error when setting the parameter %s: "
                                             "default unit not specified" % par.name)
                 if par.par_format_name is not None:
                     if par.par_default_format is not None:
-                        updated_par_dic[par.par_format_name] = par.par_default_format
+                        updated_arg_dic[par.par_format_name] = par.par_default_format
                     else:
                         raise InternalError("Error when setting the parameter %s: "
                                             "default format not specified" % par.name)
-                else:
-                    self.logger.warning("units_name for the parameter %s not specified", par.name)
 
             self.logger.info("after normalizing, set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
-                             par, par.name, par.value, par_dic.get(par.name, None))
+                             par, par.name, par.value, arg_dic.get(par.name, None))
 
             if par.name == "scw_list":
                 self.logger.info("set_pars_from_dic>> scw_list is %s", par.value)
 
-        return updated_par_dic
+        if arg_dic.get('allow_unknown_args', None):
+            self.allow_unknown_arguments = arg_dic.get('allow_unknown_args', 'False') == 'True'
+        known_argument_names = non_parameter_args + self.get_arguments_name_list()
+        self.unknown_arguments_name_list = []
+        for k in list(updated_arg_dic.keys()):
+            if k not in known_argument_names:
+                if not self.allow_unknown_arguments:
+                    updated_arg_dic.pop(k) 
+                    self.logger.warning("argument '%s' is in the request but not used by instrument '%s', removing it", k, self.name)
+                    self.unknown_arguments_name_list.append(k)
+                else:
+                    self.logger.warning("argument '%s' not defined for instrument '%s'", k, self.name)
+        
+        return updated_arg_dic
 
     def set_par(self,par_name,value):
         p=self.get_par_by_name(par_name)
@@ -186,7 +218,8 @@ class Instrument:
                 p = _query
 
         if p is None:
-            raise Warning('query', prod_name, 'not found')
+            sentry.capture_message(f'query for the product {prod_name} not found')
+            raise Warning(f'query for the product {prod_name} not found')
 
         return p
 
@@ -234,6 +267,7 @@ class Instrument:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='',
                                                  additional=': '+getattr(e, 'message', ''))
+            sentry.capture_message(f'{error_message}\n{e}')
             raise RequestNotUnderstood(error_message)
         except Exception as e:
             error_message = error_message.format(step=step,
@@ -241,8 +275,7 @@ class Instrument:
                                                  f', content of the temporary directory is {os.listdir(temp_dir)}',
                                                  additional='')
 
-            if sentry_dsn is not None:
-                sentry_sdk.capture_message(f'{error_message}\n{e}')
+            sentry.capture_message(f'{error_message}\n{e}')
 
             raise RequestNotUnderstood(error_message)
 
@@ -260,8 +293,7 @@ class Instrument:
     def get_status_details(self,
                            par_dic,
                            config=None,
-                           logger=None,
-                           sentry_dsn=None):
+                           logger=None):
         if logger is None:
             logger = self.get_logger()
 
@@ -285,24 +317,38 @@ class Instrument:
                 UnexpectedDispatcherStatusCode,
                 RequestNotUnderstoodOdaApi) as de:
             logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
-                        'A exception regarding the dispatcher has been returned by the oda_api when retrieving '
+                        'An exception regarding the dispatcher has been returned by the oda_api when retrieving '
                         'information from a completed job')
             status_details_output_obj['status'] = 'dispatcher_exception'
-            status_details_output_obj['exception_message'] = de
-            if sentry_dsn is not None:
-                sentry_sdk.capture_message((f'Dispatcher-related exception detected when retrieving additional '
-                                            f'information from a completed job '
-                                            f'{de}'))
+            status_details_output_obj['exception_message'] = str(de)
+            sentry.capture_message(f'Dispatcher-related exception detected when retrieving additional '
+                                   f'information from a completed job:\n{de}')
         except ConnectionError as ce:
             logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
                         'A connection error has been detected when retrieving additional information '
                         f'from a completed job: {ce}')
             status_details_output_obj['status'] = 'connection_error'
-            status_details_output_obj['exception_message'] = ce
-            if sentry_dsn is not None:
-                sentry_sdk.capture_message((f'ConnectionError detected when retrieving additional '
-                                            f'information from a completed job '
-                                            f'{ce}'))
+            status_details_output_obj['exception_message'] = str(ce)
+            sentry.capture_message(f'ConnectionError detected when retrieving additional '
+                                   f'information from a completed job:\n{ce}')
+        except Unauthorized as ue:
+            detail_message = ""
+            status_details_output_obj['status'] = 'authorization_error'
+            if 'The token provided is expired' in ue.message:
+                detail_message = ('It looks like the token has expired before the job completion, and therefore the request cannot be completed.\n'
+                                  'The result might however be complete or mostly ready, please resubmit it using a token with longer validity.')
+                status_details_output_obj['status'] = 'expired_token'
+            # TODO probably not really needed ... ?
+            elif 'The token provided is not valid' in ue.message:
+                detail_message = ('It looks like the provided token is not valid, and therefore the request cannot be completed.\n'
+                                  'The result might however be complete or mostly ready, please resubmit it using a valid token.')
+                status_details_output_obj['status'] = 'invalid_token'
+            logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
+                        f'{detail_message}\n'
+                        f'For more information you can contact us at the contact@odahub.io email address or using the dedicated form.')
+            status_details_output_obj['exception_message'] = str(ue)
+            sentry.capture_message(f'Authorization-related exception detected when retrieving additional '
+                                   f'information from a completed job:\n{ue}')
         except RemoteException as re:
             if 'unable to complete API call' in re.message:
                 logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
@@ -323,9 +369,9 @@ class Instrument:
 
                 status_details_output_obj['status'] = 'empty_product'
                 status_details_output_obj['exception_message'] = re.message + '\n' + re.debug_message
-            if sentry_dsn is not None:
-                sentry_sdk.capture_message((f'RemoteException detected when retrieving additional '
-                                            f'information from a completed job {re}'))
+
+            sentry.capture_message(f'RemoteException detected when retrieving additional '
+                                   f'information from a completed job:\n{re}')
 
         return status_details_output_obj
 
@@ -448,9 +494,11 @@ class Instrument:
 
     def get_product_query_name(self, product_type):
         if product_type not in self.query_dictionary:
+            sentry.capture_message(f'product type {product_type} not in query_dictionary {self.query_dictionary}')
             raise Exception(f"product type {product_type} not in query_dictionary {self.query_dictionary}")
         else:
             return self.query_dictionary[product_type]
+
 
     def check_instrument_query_role(self, query_obj, product_type, roles, par_dic):
         results = query_obj.check_query_roles(roles, par_dic)
@@ -474,23 +522,30 @@ class Instrument:
         else:
             return True
 
-    def get_html_draw(self, prod_name, image,image_header,catalog=None,**kwargs):
-        return self.get_query_by_name(prod_name).get_html_draw( image,image_header,catalog=catalog,**kwargs)
+    def get_html_draw(self, prod_name, image, image_header, catalog=None, **kwargs):
+        return self.get_query_by_name(prod_name).get_html_draw(image, image_header, catalog=catalog, **kwargs)
 
-    #def get_par_by_name(self,par_name, validate=False):
-    def get_par_by_name(self,par_name):
+    def get_par_by_name(self, par_name, add_src_query=True, add_instr_query=True, prod_name=None):
         p=None
-
+        
         for _query in self._queries_list:
+            if isinstance(_query, SourceQuery) and not add_src_query:
+                continue
+            
+            if isinstance(_query, InstrumentQuery) and not add_instr_query:
+                continue
+            
+            if isinstance(_query, ProductQuery) and prod_name is not None and _query.name!=self.query_dictionary[prod_name]:
+                continue
+
             if par_name in _query.par_names:
-                # TODO: this picks the last one if there are many?..
+                if p is not None:
+                    self.logger.warning('Same parameter name %s in several queries. '
+                                        'Will return parameter from the last query')
                 p  =  _query.get_par_by_name(par_name)
 
         if p is None:
             raise Warning('parameter', par_name, 'not found')
-
-     #   if validate and hasattr(p, 'check_value'):
-     #       p.check_value(p.value)
 
         return p
 
@@ -502,36 +557,26 @@ class Instrument:
             _query.show_parameters_list()
         print("-------------")
 
-    def get_parameters_list_as_json(self,add_src_query=True,add_instr_query=True,prod_name=None):
+    def get_parameters_list_as_json(self, add_src_query=True, add_instr_query=True, prod_name=None):
 
         l=[{'instrumet':self.name}]
         l.append({'prod_dict':self.query_dictionary})
-        #print('--> dict',self.query_dictionary)
-
 
         for _query in self._queries_list:
-            _add_query = True
-            if isinstance(_query,SourceQuery) and add_src_query==False:
-                _add_query=False
-                #print('src',_query.name)
+            if isinstance(_query,SourceQuery) and not add_src_query:
+                continue
 
-            if isinstance(_query,InstrumentQuery) and add_instr_query==False:
-                _add_query=False
-            #print('isntr', _query.name)
+            if isinstance(_query,InstrumentQuery) and not add_instr_query:
+                continue
 
-            if isinstance(_query, ProductQuery) and prod_name is not None and _query.name==self.query_dictionary[prod_name]:
-                _add_query = True
-                #print('prd', _query.name,prod_name)
-            elif isinstance(_query, ProductQuery) and prod_name is not None and _query.name!=self.query_dictionary[prod_name]:
-                #print('prd', _query.name, prod_name)
-                _add_query = False
+            if isinstance(_query, ProductQuery) and prod_name is not None and _query.name!=self.query_dictionary[prod_name]:
+                continue
 
-            if _add_query == True:
-                l.append(_query.get_parameters_list_as_json(prod_dict=self.query_dictionary))
+            l.append(_query.get_parameters_list_as_json(prod_dict=self.query_dictionary))
 
         return l
-
-    def get_parameters_name_list(self, prod_name=None):
+    
+    def get_parameters_list(self, prod_name=None):
         l = []
         _add_query = False
         for _query in self._queries_list:
@@ -554,12 +599,27 @@ class Instrument:
                 # print('prd', _query.name, prod_name)
                 _add_query = False
 
-            if _add_query == True:
-                for _par in _query._parameters_list:
-                    l.append(_par.name)
+            if _add_query:
+                l.extend(_query._parameters_list)
 
         return l
+    
+    def get_arguments_name_list(self, prod_name=None):
+        l = []
+        for par in self.get_parameters_list(prod_name = prod_name):
+            l.extend(par.argument_names_list)
+        l = list(dict.fromkeys(l)) # remove duplicates preserving order
+        return l
+        
+    def get_parameters_name_list(self, prod_name=None):
+        l = []
+        for par in self.get_parameters_list(prod_name = prod_name):
+            l.append(par.name)
+        if len(l) > len(set(l)):
+            self.logger.warning('duplicates in parameters_name_list: %s', l)
+        return l
 
+    # TODO this seems not being used anywhere on the dispatcher, can it be removed?
     def set_pars_from_form(self,par_dic,logger=None,verbose=False,sentry_dsn=None):
         #print('---------------------------------------------')
         #print('setting form paramters')

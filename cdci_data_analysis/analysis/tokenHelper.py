@@ -1,10 +1,13 @@
 import jwt
 import oda_api.token
+
 from marshmallow import ValidationError
+from typing import Tuple, Optional, Union
 
 from cdci_data_analysis.analysis.exceptions import BadRequest
 from cdci_data_analysis.flask_app.schemas import EmailOptionsTokenSchema
 from cdci_data_analysis.app_logging import app_logging
+from cdci_data_analysis.analysis.time_helper import validate_time
 
 default_algorithm = 'HS256'
 logger = app_logging.getLogger('tokenHelper')
@@ -12,12 +15,13 @@ logger = app_logging.getLogger('tokenHelper')
 
 def get_token_roles(decoded_token):
     # extract role(s)
-    if isinstance(decoded_token['roles'], str):
-        roles = decoded_token['roles'].split(',') if 'roles' in decoded_token else []
-        roles[:] = [r.strip() for r in roles]
-    elif isinstance(decoded_token['roles'], list):
-        roles = decoded_token['roles'] if 'roles' in decoded_token else []
-        roles[:] = [r.strip() for r in roles]
+    roles = None
+    if 'roles' in decoded_token:
+        if isinstance(decoded_token['roles'], str):
+            roles = decoded_token['roles'].split(',')
+        elif isinstance(decoded_token['roles'], list):
+            roles = decoded_token['roles']
+        roles = [r.strip() for r in roles]
     return roles
 
 
@@ -76,8 +80,19 @@ def get_decoded_token(token, secret_key, validate_token=True):
 def refresh_token(token, secret_key, refresh_interval):
     def refresh_token_exp_time(token_payload):
 
+        refreshed_token_exp = token_payload['exp'] + refresh_interval
+
+        try:
+            validate_time(refreshed_token_exp)
+        except (ValueError, OverflowError, TypeError, OSError) as e:
+            logger.warning(
+                f'Error when refreshing the token, the new value is invalid:\n{e}')
+            # the range of values supported by the platform is commonly to be restricted to years in 1970 through 2038
+            # but it might vary, this should accommodate the majority
+            refreshed_token_exp = 2177449199
+
         refreshed_token_payload = {
-            'exp': token_payload['exp'] + refresh_interval
+            'exp': refreshed_token_exp
         }
 
         new_payload = token_payload.copy()
@@ -110,7 +125,7 @@ def update_token_email_options(token, secret_key, new_options):
     return updated_token
 
 
-def validate_token_from_request(token, secret_key, required_roles=None, action=""):
+def validate_token_from_request(token, secret_key, required_roles=None, action="") -> Tuple[Union[str, dict, None], Optional[int]]:
     if token is None:
         return 'A token must be provided.', 403
     try:

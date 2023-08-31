@@ -24,8 +24,8 @@ import string
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
-from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, generate_notebook_filename
-from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id
+from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, create_new_notebook_with_code, generate_nb_hash, create_renku_ini_config_obj, generate_ini_file_hash
+from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id, get_source_astrophysical_entity_id_by_source_name
 from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
 
 # logger
@@ -55,6 +55,10 @@ default_params = dict(
                     async_dispatcher=False
                  )
 
+specific_args = ['osa_version', 'E1_keV', 'E2_keV', 'max_pointings', 'radius']
+def remove_args_from_dic(arg_dic, remove_keys):
+    for key in remove_keys:
+        arg_dic.pop(key, None)
 
 default_exp_time = int(time.time()) + 5000
 default_token_payload = dict(
@@ -128,14 +132,14 @@ def test_empty_request(dispatcher_live_fixture):
                    params={},
                 )
 
-    print("content:", c.text)
+    print("test_empty_request content output:", c.text)
 
     jdata=c.json()
 
     assert c.status_code == 400
 
     # parameterize this
-    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-semi-async']) or \
+    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-semi-async', 'empty-development']) or \
            jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"
@@ -396,6 +400,248 @@ def test_download_products_public(dispatcher_long_living_fixture, empty_products
     assert data_downloaded == empty_products_files_fixture['content']
 
 
+def test_query_restricted_instrument(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+
+    logger.info("constructed server: %s", server)
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty-development',
+    }
+
+    jdata = ask(server,
+                params,
+                expected_status_code=403,
+                expected_query_status=None,
+                max_time_s=150
+                )
+
+    assert jdata["debug_message"] == ""
+    assert jdata["error_message"] == "Unfortunately, your priviledges are not sufficient to make the request for this instrument.\n"
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "roles": "oda workflow developer"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty-development',
+        'token': encoded_token
+    }
+
+    ask(server,
+        params,
+        expected_query_status=["done"],
+        max_time_s=50
+        )
+
+    token_payload = {
+        **default_token_payload,
+        "roles": "general"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty-development',
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_status_code=403,
+                expected_query_status=None,
+                max_time_s=150
+                )
+
+    assert jdata["debug_message"] == ""
+    assert jdata["error_message"] == "Unfortunately, your priviledges are not sufficient to make the request for this instrument.\n"
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize("include_args", [True, False])
+def test_instrument_list_redirection_external_products_url(dispatcher_live_fixture_with_external_products_url,
+                                                           dispatcher_test_conf_with_external_products_url,
+                                                           include_args):
+    server = dispatcher_live_fixture_with_external_products_url
+
+    logger.info("constructed server: %s", server)
+
+    url_request = os.path.join(server, "api/instr-list")
+
+    if include_args:
+        url_request += '?a=4566&token=aaaaaaaaaa'
+
+    c = requests.get(url_request, allow_redirects=False)
+
+    assert c.status_code == 302
+    redirection_header_location_url = c.headers["Location"]
+    redirection_url = os.path.join(dispatcher_test_conf_with_external_products_url['products_url'], 'dispatch-data/instr-list')
+    if include_args:
+        redirection_url += '?a=4566&token=aaaaaaaaaa'
+    assert redirection_url == redirection_header_location_url
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize("allow_redirect", [True, False])
+@pytest.mark.parametrize("include_args", [True, False])
+def test_instrument_list_redirection_no_custom_products_url(dispatcher_live_fixture_no_products_url,
+                                                        allow_redirect, include_args):
+    server = dispatcher_live_fixture_no_products_url
+
+    logger.info("constructed server: %s", server)
+
+    url_request = os.path.join(server, "api/instr-list")
+
+    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
+    if include_args:
+        url_request += '?a=4566&token=' + encoded_token
+
+    c = requests.get(url_request, allow_redirects=allow_redirect)
+
+    if not allow_redirect:
+        assert c.status_code == 302
+        redirection_header_location_url = c.headers["Location"]
+        redirection_url = os.path.join(server, 'instr-list')
+        if include_args:
+            redirection_url += '?a=4566&token=' + encoded_token
+        assert redirection_header_location_url == redirection_url
+    else:
+        assert c.status_code == 200
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize("allow_redirect", [True, False])
+def test_instrument_list_redirection(dispatcher_live_fixture, allow_redirect):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    c = requests.get(os.path.join(server, "api/instr-list"), allow_redirects=allow_redirect)
+
+    if not allow_redirect:
+        assert c.status_code == 302
+        redirection_header_location_url = c.headers["Location"]
+        assert redirection_header_location_url == os.path.join(server, 'instr-list')
+    else:
+        assert c.status_code == 200
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize("endpoint_url", ["instr-list", "api/instr-list"])
+def test_per_user_instrument_list(dispatcher_live_fixture, endpoint_url):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    c = requests.get(os.path.join(server, endpoint_url))
+
+    assert c.status_code == 200
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert not 'empty-development' in jdata
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "roles": "oda workflow developer"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    c = requests.get(os.path.join(server, endpoint_url), params={"token": encoded_token})
+
+    assert c.status_code == 200
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert 'empty-development' in jdata
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "roles": "general"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    c = requests.get(os.path.join(server, endpoint_url), params={"token": encoded_token})
+
+    assert c.status_code == 200
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert not 'empty-development' in jdata
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize("endpoint_url", ["instr-list", "api/instr-list"])
+def test_per_user_instrument_list_no_custom_products_url(dispatcher_live_fixture, endpoint_url):
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    c = requests.get(os.path.join(server, endpoint_url))
+        
+    assert c.status_code == 200
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert not 'empty-development' in jdata
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "roles": "oda workflow developer"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    c = requests.get(os.path.join(server, endpoint_url), params={"token": encoded_token})
+
+    assert c.status_code == 200
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert 'empty-development' in jdata
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "roles": "general"
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    c = requests.get(os.path.join(server, endpoint_url), params={"token": encoded_token})
+
+    assert c.status_code == 200
+
+    jdata = c.json()
+
+    assert isinstance(jdata, list)
+    assert not 'empty-development' in jdata
+
+
 @pytest.mark.fast
 def test_download_products_authorized_user(dispatcher_live_fixture, empty_products_user_files_fixture):
     server = dispatcher_live_fixture
@@ -543,7 +789,7 @@ def test_modify_token(dispatcher_live_fixture, tem_value, tem_key_name):
             assert token_payload == payload_returned_token
 
 
-@pytest.mark.parametrize("refresh_interval", [500000, 604800, 1000000])
+@pytest.mark.parametrize("refresh_interval", [500000, 604800, 1000000, "exp_too_high"])
 def test_refresh_token(dispatcher_live_fixture, dispatcher_test_conf, refresh_interval):
     server = dispatcher_live_fixture
 
@@ -553,24 +799,34 @@ def test_refresh_token(dispatcher_live_fixture, dispatcher_test_conf, refresh_in
         **default_token_payload,
         "roles": "refresh-tokens"
     }
+
+    if refresh_interval == "exp_too_high":
+        token_payload["exp"] = 25340229700000
+        refresh_interval_to_apply = 1
+    else:
+        refresh_interval_to_apply = refresh_interval
+
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
     params = {
         'token': encoded_token,
         'query_status': 'new',
-        'refresh_interval': refresh_interval
+        'refresh_interval': refresh_interval_to_apply
     }
 
     c = requests.post(server + "/refresh_token", params=params)
 
-    if refresh_interval > dispatcher_test_conf['token_max_refresh_interval']:
+    if refresh_interval_to_apply > dispatcher_test_conf['token_max_refresh_interval']:
         jdata = c.json()
         assert jdata['error_message'] == 'Request not authorized'
         assert jdata['debug_message'] == 'The refresh interval requested exceeds the maximum allowed, please provide a value which is lower than 604800 seconds'
     else:
         token_update = {
-            "exp": default_token_payload["exp"] + refresh_interval
+            "exp": default_token_payload["exp"] + refresh_interval_to_apply
         }
+
+        if refresh_interval == "exp_too_high":
+            token_update["exp"] = 2177449199
 
         token_payload.update(token_update)
 
@@ -917,7 +1173,7 @@ def test_scws_list_file(dispatcher_live_fixture):
         'instrument': 'empty',
         'p': 5.,
         'use_scws': 'user_file',
-        'token': encoded_token
+        'token': encoded_token,
     }
 
     file_path = DispatcherJobState.create_p_value_file(p_value=5)
@@ -958,6 +1214,7 @@ def test_scws_list_file(dispatcher_live_fixture):
         "p_list": ["5"],
         "sub": "mtm@mtmco.net"}
     )
+    remove_args_from_dic(restricted_par_dic, specific_args)
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
@@ -1031,6 +1288,7 @@ def test_catalog_file(dispatcher_live_fixture, correct_format):
                 'src_name': '1E 1740.7-2942',
             }
         )
+        remove_args_from_dic(restricted_par_dic, specific_args)
         calculated_job_id = make_hash(restricted_par_dic)
 
         assert job_id == calculated_job_id
@@ -1087,7 +1345,8 @@ def test_user_catalog(dispatcher_live_fixture, correct_format, catalog_selected_
         'instrument': 'empty',
         'selected_catalog': json.dumps(selected_catalog_dict),
         'catalog_selected_objects': catalog_selected_objects,
-        'token': encoded_token
+        'token': encoded_token,
+        'allow_unknown_args': True
     }
 
     jdata = ask(server,
@@ -1392,6 +1651,7 @@ def test_image(dispatcher_live_fixture):
             'sub': 'mtm@mtmco.net',
         }
     )
+    remove_args_from_dic(restricted_par_dic, specific_args)
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
@@ -1420,6 +1680,7 @@ def test_default_values(dispatcher_live_fixture, additional_parameter):
 
     if additional_parameter:
         params['additional_param'] = 'no_value'
+        params['allow_unknown_args'] = True
 
     jdata = ask(server,
                 params,
@@ -1452,6 +1713,7 @@ def test_default_values(dispatcher_live_fixture, additional_parameter):
                                                                     'T2': '2017-03-06T15:32:27.000',
                                                                     'T_format': 'isot'
                                                                     })
+    remove_args_from_dic(restricted_par_dic, specific_args)
     calculated_job_id = make_hash(restricted_par_dic)
 
     assert job_id == calculated_job_id
@@ -1567,6 +1829,8 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
         assert 'DEC' in resolved_obj
         assert 'RA' in resolved_obj
         assert 'entity_portal_link' in resolved_obj
+        assert 'object_ids' in resolved_obj
+        assert 'object_type' in resolved_obj
 
         assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
         assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery["product_gallery_options"]["entities_portal_url"]\
@@ -1682,9 +1946,8 @@ def test_converttime_revnum(dispatcher_live_fixture_with_gallery, time_to_conver
 
 
 @pytest.mark.test_drupal
-@pytest.mark.parametrize("obsid", [1960001, ["1960001", "1960002", "1960003"]])
-@pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone", "time_range_no_timezone_limits", "time_range_with_timezone", "new_time_range", "observation_id"])
-def test_product_gallery_data_product_with_period_of_observation(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, timerange_parameters, obsid):
+@pytest.mark.parametrize("timerange_parameters", ["time_range_no_timezone_same_time", "time_range_no_timezone", "time_range_no_timezone_limits", "time_range_with_timezone", "new_time_range", "observation_id"])
+def test_product_gallery_data_product_with_period_of_observation(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, timerange_parameters):
     server = dispatcher_live_fixture_with_gallery
 
     logger.info("constructed server: %s", server)
@@ -1700,10 +1963,8 @@ def test_product_gallery_data_product_with_period_of_observation(dispatcher_live
         'content_type': 'data_product',
         'product_title': 'Test observation range',
         'token': encoded_token,
-        'obsid': obsid
+        'obsid': '1960001,1960002,1960003'
     }
-    if isinstance(obsid, list):
-        params['obsid'] = ','.join(obsid)
 
     file_obj = {'yaml_file_0': open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'rb')}
 
@@ -1712,6 +1973,9 @@ def test_product_gallery_data_product_with_period_of_observation(dispatcher_live
     if timerange_parameters == 'time_range_no_timezone':
         params['T1'] = '2022-07-21T00:29:47'
         params['T2'] = '2022-07-23T05:29:11'
+    elif timerange_parameters == 'time_range_no_timezone_same_time':
+        params['T1'] = '2023-02-10T01:17:00'
+        params['T2'] = '2023-02-10T01:17:00'
     elif timerange_parameters == 'time_range_no_timezone_limits':
         params['T1'] = '2021-02-01T00:00:00'
         params['T2'] = '2021-03-31T23:59:59'
@@ -1757,13 +2021,6 @@ def test_product_gallery_data_product_with_period_of_observation(dispatcher_live
     obs_per_field_timerange = drupal_res_obs_info_obj['field_timerange']
     obs_per_title = drupal_res_obs_info_obj['title'][0]['value']
 
-    assert 'field_obsid' in drupal_res_obs_info_obj
-    if isinstance(obsid, list):
-        for single_obsid in obsid:
-            assert drupal_res_obs_info_obj['field_obsid'][obsid.index(single_obsid)]['value'] == single_obsid
-    else:
-        assert drupal_res_obs_info_obj['field_obsid'][0]['value'] == str(obsid)
-
     link_field_field_attachments = os.path.join(
         dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
         'rest/relation/node/observation/field_attachments')
@@ -1773,7 +2030,7 @@ def test_product_gallery_data_product_with_period_of_observation(dispatcher_live
     obs_per_field_timerange_end_no_timezone = parser.parse(obs_per_field_timerange[0]['end_value']).strftime(
         '%Y-%m-%dT%H:%M:%S')
 
-    if timerange_parameters in ['time_range_no_timezone', 'time_range_with_timezone', 'new_time_range', 'time_range_no_timezone_limits']:
+    if timerange_parameters in ['time_range_no_timezone', 'time_range_with_timezone', 'new_time_range', 'time_range_no_timezone_limits', 'time_range_no_timezone_same_time']:
         parsed_t1_no_timezone = parser.parse(params['T1']).strftime('%Y-%m-%dT%H:%M:%S')
         parsed_t2_no_timezone = parser.parse(params['T2']).strftime('%Y-%m-%dT%H:%M:%S')
         assert obs_per_field_timerange_start_no_timezone == parsed_t1_no_timezone
@@ -1870,8 +2127,8 @@ def test_product_gallery_post_period_of_observation_with_revnum(dispatcher_live_
 
 
 @pytest.mark.test_drupal
-@pytest.mark.parametrize("force_creation_new", [True, False])
-def test_product_gallery_update_period_of_observation(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, force_creation_new):
+@pytest.mark.parametrize("update_astro_entity", [True, False])
+def test_product_gallery_update_new_astrophysical_entity(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, update_astro_entity):
     server = dispatcher_live_fixture_with_gallery
 
     logger.info("constructed server: %s", server)
@@ -1885,11 +2142,93 @@ def test_product_gallery_update_period_of_observation(dispatcher_live_fixture_wi
 
     params = {
         'token': encoded_token,
-        'title': 'test observation' + '_' + str(uuid.uuid4()),
-        'T1': '2022-07-21T00:29:47',
-        'T2': '2022-07-23T05:29:11',
-        'update_observation': True,
-        'create_new': force_creation_new
+        'src_name': 'test astro entity' + '_' + str(uuid.uuid4()),
+        'update_astro_entity': update_astro_entity
+    }
+
+    c = requests.post(os.path.join(server, "post_astro_entity_to_gallery"),
+                      params={**params},
+                      )
+
+    drupal_res_obj = c.json()
+    if update_astro_entity:
+        assert c.status_code == 400
+        assert 'drupal_helper_error_message' in drupal_res_obj
+        assert 'error while updating astrophysical and entity product: no correspondent entity could be found with the provided name' \
+               in drupal_res_obj['drupal_helper_error_message']
+    else:
+        assert c.status_code == 200
+        assert drupal_res_obj['title'][0]['value'] == params['src_name']
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("auto_update", [True, False])
+def test_product_gallery_update_existing_astrophysical_entity(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, auto_update):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'token': encoded_token,
+        'src_name': 'GX 1+4',
+        'source_dec': -24,
+        'update_astro_entity': True
+    }
+
+    c = requests.post(os.path.join(server, "post_astro_entity_to_gallery"),
+                      params={**params},
+                      )
+
+    assert c.status_code == 200
+    drupal_res_obj = c.json()
+    assert drupal_res_obj['field_source_dec'][0]['value'] == params['source_dec']
+
+    params = {
+        'token': encoded_token,
+        'src_name': 'GX 1+4',
+        'source_dec': -24.9,
+        'update_astro_entity': True,
+        'auto_update': auto_update
+    }
+
+    c = requests.post(os.path.join(server, "post_astro_entity_to_gallery"),
+                      params={**params},
+                      )
+
+    assert c.status_code == 200
+    drupal_res_obj = c.json()
+    if auto_update:
+        assert drupal_res_obj['field_source_dec'][0]['value'] != params['source_dec']
+    else:
+        assert drupal_res_obj['field_source_dec'][0]['value'] == params['source_dec']
+
+
+@pytest.mark.test_drupal
+def test_product_gallery_get_all_revs(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    now = datetime.now()
+
+    params = {
+        'token': encoded_token,
+        'title': "rev. test",
+        'T1': (now - timedelta(days=random.randint(30, 150))).strftime('%Y-%m-%dT%H:%M:%S'),
+        'T2': now.strftime('%Y-%m-%dT%H:%M:%S')
     }
 
     c = requests.post(os.path.join(server, "post_observation_to_gallery"),
@@ -1898,12 +2237,282 @@ def test_product_gallery_update_period_of_observation(dispatcher_live_fixture_wi
 
     assert c.status_code == 200
 
+    c = requests.get(os.path.join(server, "get_all_revs"),
+                     params={'token': encoded_token}
+                     )
+
+    assert c.status_code == 200
     drupal_res_obj = c.json()
 
-    if force_creation_new:
-        assert drupal_res_obj['title'][0]['value'] == params['title']
+    assert isinstance(drupal_res_obj, list)
+    assert params['title'] in drupal_res_obj
+
+
+@pytest.mark.test_drupal
+def test_product_gallery_get_all_astro_entities(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'token': encoded_token,
+        'src_name': 'test astro entity' + '_' + str(uuid.uuid4())
+    }
+
+    c = requests.post(os.path.join(server, "post_astro_entity_to_gallery"),
+                      params={**params},
+                      )
+
+    assert c.status_code == 200
+
+    c = requests.get(os.path.join(server, "get_all_astro_entities"),
+                     params={'token': encoded_token}
+                     )
+
+    assert c.status_code == 200
+    drupal_res_obj = c.json()
+
+    assert isinstance(drupal_res_obj, list)
+    assert any(src['title'] == params['src_name'] for src in drupal_res_obj)
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("source_name", ["new", "known"])
+def test_product_gallery_get_data_products_list_for_given_source(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_name):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    if source_name == 'new':
+        source_name = 'test astro entity' + '_' + str(uuid.uuid4())
+        # let's create a source
+        source_params = {
+            'token': encoded_token,
+            'src_name': source_name
+        }
+
+        c = requests.post(os.path.join(server, "post_astro_entity_to_gallery"),
+                          params={**source_params},
+                          )
+
+        assert c.status_code == 200
+
+        # let's post a product with the source just created
+        product_params = {
+            'instrument': 'empty',
+            'ra': 150,
+            'dec': 350,
+            'src_name': source_name,
+            'content_type': 'data_product',
+            'token': encoded_token,
+            'insert_new_source': True
+        }
+        c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                          params={**product_params}
+                          )
+
+        assert c.status_code == 200
+
+        params = {
+            'token': encoded_token,
+            'src_name': source_name
+        }
+        c = requests.get(os.path.join(server, "get_data_product_list_by_source_name"),
+                         params=params
+                         )
+
+        assert c.status_code == 200
+        drupal_res_obj = c.json()
+
+        assert isinstance(drupal_res_obj, list)
+
+        assert len(drupal_res_obj) == 1
+        assert 'ra' in drupal_res_obj[0]
+        assert float(drupal_res_obj[0]['ra']) == float(product_params['ra'])
+        assert 'dec' in drupal_res_obj[0]
+        assert float(drupal_res_obj[0]['dec']) == float(product_params['dec'])
     else:
+        source_name = "V404 Cyg"
+        params = {
+            'token': encoded_token,
+            'src_name': source_name
+        }
+        c = requests.get(os.path.join(server, "get_data_product_list_by_source_name"),
+                         params=params
+                         )
+
+        assert c.status_code == 200
+        drupal_res_obj_source_name = c.json()
+        assert isinstance(drupal_res_obj_source_name, list)
+
+        source_name = "1RXS J202405.3+335157"
+        params = {
+            'token': encoded_token,
+            'src_name': source_name
+        }
+        c = requests.get(os.path.join(server, "get_data_product_list_by_source_name"),
+                         params=params
+                         )
+
+        assert c.status_code == 200
+        drupal_res_obj_alternative_name = c.json()
+        assert isinstance(drupal_res_obj_alternative_name, list)
+
+        assert len(drupal_res_obj_alternative_name) == len(drupal_res_obj_source_name)
+
+        # Create sets of dictionaries
+        set1 = set(map(lambda d: frozenset(d.items()), drupal_res_obj_source_name))
+        set2 = set(map(lambda d: frozenset(d.items()), drupal_res_obj_alternative_name))
+
+        # Find the differences
+        diff1 = set1 - set2
+        diff2 = set2 - set1
+
+        assert diff2 == set()
+        assert diff1 == set()
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("source_name", ["known", "unknown"])
+@pytest.mark.parametrize("anonymous", ["known", "unknown"])
+def test_product_gallery_astro_entity_info(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_name, anonymous):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    if source_name == 'unknown':
+        source_name = 'test astro entity' + '_' + str(uuid.uuid4())
+
+        params = {
+            'src_name': source_name
+        }
+        if not anonymous:
+            params['token'] = encoded_token
+
+        c = requests.get(os.path.join(server, "get_astro_entity_info_by_source_name"),
+                         params=params
+                         )
+
+        assert c.status_code == 200
+        drupal_res_obj = c.json()
+
         assert drupal_res_obj == {}
+
+    else:
+        source_name = "V404 Cyg"
+        params = {
+            'src_name': source_name
+        }
+
+        if not anonymous:
+            params['token'] = encoded_token
+
+        c = requests.get(os.path.join(server, "get_astro_entity_info_by_source_name"),
+                         params=params
+                         )
+
+        assert c.status_code == 200
+        drupal_res_obj_source_name = c.json()
+        assert 'source_ra' in drupal_res_obj_source_name
+        assert 'source_dec' in drupal_res_obj_source_name
+        assert 'alternative_names_long_str' in drupal_res_obj_source_name
+        assert 'title' in drupal_res_obj_source_name
+        assert 'url' in drupal_res_obj_source_name
+        assert 'url_preview' in drupal_res_obj_source_name
+        assert 'nid' in drupal_res_obj_source_name
+
+
+@pytest.mark.test_drupal
+def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    now = datetime.now()
+
+    params = {
+        'token': encoded_token,
+        'obsid': "1960001, 1960002, 1960003",
+        'title': "test observation title",
+        'T1': (now - timedelta(days=random.randint(30, 150))).strftime('%Y-%m-%dT%H:%M:%S'),
+        'T2': now.strftime('%Y-%m-%dT%H:%M:%S')
+    }
+
+    with open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'rb') as yaml_test_fn:
+        file_obj = {'yaml_file_0': yaml_test_fn}
+
+
+        c = requests.post(os.path.join(server, "post_observation_to_gallery"),
+                          params={**params},
+                          files=file_obj
+                          )
+
+    assert c.status_code == 200
+
+    c = requests.get(os.path.join(server, "get_observation_attachments"),
+                     params={'title': 'test observation title',
+                             'token': encoded_token}
+                     )
+
+    assert c.status_code == 200
+    drupal_res_obj = c.json()
+
+    assert 'file_path' in drupal_res_obj
+    assert 'file_content' in drupal_res_obj
+
+    with open('observation_yaml_dummy_files/obs_rev_2542.yaml', 'r') as f_yaml_file_yaml_file_content_obs_rev_2542:
+        yaml_file_content_obs_rev_2542 = f_yaml_file_yaml_file_content_obs_rev_2542.read()
+
+    assert yaml_file_content_obs_rev_2542 in drupal_res_obj['file_content']
+
+
+@pytest.mark.test_drupal
+def test_product_gallery_get_not_existing_period_of_observation_attachments(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    c = requests.get(os.path.join(server, "get_observation_attachments"),
+                     params={'title': 'rev. aaaaa',
+                             'token': encoded_token}
+                     )
+
+    assert c.status_code == 200
+    assert c.json() == {}
 
 
 @pytest.mark.test_drupal
@@ -1999,6 +2608,7 @@ def test_product_gallery_post_period_of_observation(dispatcher_live_fixture_with
     if timerange_parameters == 'new_time_range':
         assert 'field_rev1' in drupal_res_obs_info_obj
         assert 'field_rev2' in drupal_res_obs_info_obj
+        assert 'field_span_rev' in drupal_res_obs_info_obj
         revnum1_input = get_revnum(service_url=dispatcher_test_conf_with_gallery['product_gallery_options']['converttime_revnum_service_url'],
                                    time_to_convert=params['T1'])
         assert drupal_res_obs_info_obj['field_rev1'][0]['value'] == revnum1_input['revnum']
@@ -2009,6 +2619,7 @@ def test_product_gallery_post_period_of_observation(dispatcher_live_fixture_with
         observations_range = get_observations_for_time_range(dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
                                                              gallery_jwt_token,
                                                              t1=params['T1'], t2=params['T2'])
+        assert drupal_res_obs_info_obj['field_span_rev'][0]['value'] == revnum2_input['revnum'] - revnum1_input['revnum']
         assert len(observations_range) == 1
         times = observations_range[0]['field_timerange'].split('--')
         t_start = parser.parse(times[0]).strftime('%Y-%m-%dT%H:%M:%S')
@@ -2018,6 +2629,54 @@ def test_product_gallery_post_period_of_observation(dispatcher_live_fixture_with
 
     if include_title:
         assert drupal_res_obs_info_obj['title'][0]['value'] == params['title']
+
+
+@pytest.mark.test_drupal
+def test_revolution_processing_log_gallery_post(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    dispatcher_fetch_dummy_products('default')
+
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    params = {
+        'content_type': 'revolution_processing_log',
+        'revolution_number': 1,
+        'sbatch_job_id': "155111",
+        'log': 'test log',
+        'type': 'success',
+        'token': encoded_token
+    }
+
+    c = requests.post(os.path.join(server, "post_revolution_processing_log_to_gallery"),
+                      params={**params},
+                      )
+
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    assert 'title' in drupal_res_obj
+
+    assert 'field_log' in drupal_res_obj
+    assert drupal_res_obj['field_log'][0]['value'] == params['log']
+
+    assert 'field_sbatch_job_id' in drupal_res_obj
+    assert drupal_res_obj['field_sbatch_job_id'][0]['value'] == params['sbatch_job_id']
+
+    assert 'field_revolution_number' in drupal_res_obj
+    assert drupal_res_obj['field_revolution_number'][0]['value'] == params['revolution_number']
+
+    assert 'field_type' in drupal_res_obj
+    assert drupal_res_obj['field_type'][0]['value'] == params['type']
 
 
 @pytest.mark.test_drupal
@@ -2196,24 +2855,38 @@ def test_post_data_product_with_multiple_sources(dispatcher_live_fixture_with_ga
 
     source_name = None
     entity_portal_link = None
+    object_ids = None
+    object_type = None
+    source_coord = None
     if type_source == "single":
         source_name = "GX 1+4"
         entity_portal_link = "http://cdsportal.u-strasbg.fr/?target=GX%201%204"
+        object_ids = [["GX 1+4", "GX 99", "Test"]]
+        object_type = ["Symbiotic"]
+        source_coord = [{"source_ra": 263.00897166666664, "source_dec": -24.74559138888889}]
     elif type_source == "list":
         source_name = 'GX 1+4, Crab, unknown_src, unknown_src_no_link'
         entity_portal_link = "http://cdsportal.u-strasbg.fr/?target=GX%201%204, http://cdsportal.u-strasbg.fr/?target=Crab, , link"
+        object_ids = [["GX 1+4", "GX 99", "Test"], ["Crab", "GX 99", "Test"], [], ["unknown_src_no_link", "unknown source 1", "unknown source 2", "unknown source 3", "GX 1+4"]]
+        object_type = ["Symbiotic", "SNRemnant", "", "Test"]
+        source_coord = [{"source_ra": 263.00897166666664, "source_dec": -24.74559138888889},
+                        {"source_ra": 83.63333333333331, "source_dec": 22.013333333333332},
+                        {},
+                        {"source_ra": 11.11, "source_dec": 43.89}]
 
     params = {
         'instrument': 'isgri',
         'src_name': source_name,
-        'entity_portal_link': entity_portal_link,
+        'entity_portal_link_list': entity_portal_link,
+        'object_ids_list': json.dumps(object_ids),
+        'source_coord_list': json.dumps(source_coord),
+        'object_type_list': json.dumps(object_type),
         'product_type': 'isgri_lc',
         'content_type': 'data_product',
         'product_title': "product with multiple sources",
         'token': encoded_token,
         'insert_new_source': insert_new_source
     }
-
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
                       params={**params}
                       )
@@ -2231,6 +2904,45 @@ def test_post_data_product_with_multiple_sources(dispatcher_live_fixture_with_ga
             assert len(drupal_res_obj['_links'][link_field_describes_astro_entity]) == 1
         elif type_source == "list":
             assert len(drupal_res_obj['_links'][link_field_describes_astro_entity]) == len(source_name.split(','))
+            user_id_product_creator = get_user_id(
+                product_gallery_url=dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                user_email=token_payload['sub'])
+            gallery_jwt_token = generate_gallery_jwt_token(
+                dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_secret_key'],
+                user_id=user_id_product_creator)
+            source_entity_id = get_source_astrophysical_entity_id_by_source_name(
+                dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                gallery_jwt_token,
+                source_name="unknown_src_no_link")
+            assert source_entity_id is not None
+
+            link_source = os.path.join(
+                dispatcher_test_conf_with_gallery['product_gallery_options']['product_gallery_url'],
+                f'node/{source_entity_id}?_format=hal_json')
+
+            header_request = get_drupal_request_headers(gallery_jwt_token)
+            response_obs_info = execute_drupal_request(link_source, headers=header_request)
+
+            drupal_res_source_info_obj = response_obs_info.json()
+
+            assert 'field_alternative_names_long_str' in drupal_res_source_info_obj
+            field_alternative_names_long_str_splitted = drupal_res_source_info_obj['field_alternative_names_long_str'][0]['value'].split(',')
+            assert len(field_alternative_names_long_str_splitted) == 5
+            assert field_alternative_names_long_str_splitted[0] == 'unknown_src_no_link'
+            assert field_alternative_names_long_str_splitted[1] == 'unknown source 1'
+            assert field_alternative_names_long_str_splitted[2] == 'unknown source 2'
+            assert field_alternative_names_long_str_splitted[3] == 'unknown source 3'
+            assert field_alternative_names_long_str_splitted[4] == 'GX 1+4'
+
+            assert 'field_source_ra' in drupal_res_source_info_obj
+            assert drupal_res_source_info_obj['field_source_ra'][0]['value'] == source_coord[3]['source_ra']
+            assert 'field_source_dec' in drupal_res_source_info_obj
+            assert drupal_res_source_info_obj['field_source_dec'][0]['value'] == source_coord[3]['source_dec']
+            assert 'field_link' in drupal_res_source_info_obj
+            assert drupal_res_source_info_obj['field_link'][0]['value'] == 'link'
+            assert 'field_object_type' in drupal_res_source_info_obj
+            assert drupal_res_source_info_obj['field_object_type'][0]['value'] == 'Test'
+
     else:
         assert link_field_describes_astro_entity not in drupal_res_obj['_links']
 
@@ -2378,6 +3090,7 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
     assert len(drupal_res_obj['_links'][link_fits_file_id]) == 1
 
 
+
 @pytest.mark.test_drupal
 def test_product_gallery_error_message(dispatcher_live_fixture_with_gallery):
     dispatcher_fetch_dummy_products('default')
@@ -2433,7 +3146,7 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
         "roles": "general, renku contributor",
     }
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-    p = 7
+    p = 7.5
 
     if not existing_branch:
         p += random.random()
@@ -2491,25 +3204,32 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     repo_path = get_repo_path(repo_url)
     renku_project_url = f'{renku_base_project_url}/{repo_path}'
 
-
     # validate content pushed
     repo = clone_renku_repo(repo_url, renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path)
 
-    assert check_job_id_branch_is_present(repo, job_id)
-
-    repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}')
-    repo.git.pull("--set-upstream", repo.remote().name, str(repo.head.ref))
-    api_code_file_name = generate_notebook_filename(job_id=job_id)
-
-    assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}&commit={repo.head.commit.hexsha}&notebook={api_code_file_name}"
-
+    api_code_file_name = 'api_code.ipynb'
     api_code_file_path = os.path.join(repo.working_dir, api_code_file_name)
 
     extracted_api_code = DispatcherJobState.extract_api_code(session_id, job_id)
     token_pattern = r"[\'\"]token[\'\"]:\s*?[\'\"].*?[\'\"]"
-    extracted_api_code = re.sub(token_pattern, '# "token": getpass.getpass(),', extracted_api_code, flags=re.DOTALL)
+    extracted_api_code = "import os\n\n" + re.sub(token_pattern, '"token": os.environ[\'ODA_TOKEN\'],', extracted_api_code, flags=re.DOTALL)
 
-    extracted_api_code = 'import getpass\n\n' + extracted_api_code
+    nb_obj = create_new_notebook_with_code(extracted_api_code)
+    notebook_hash = generate_nb_hash(nb_obj)
+
+    config_ini_obj = create_renku_ini_config_obj(repo, api_code_file_name)
+    config_ini_hash = generate_ini_file_hash(config_ini_obj)
+
+    repo = checkout_branch_renku_repo(repo, branch_name=f'mmoda_request_{job_id}_{notebook_hash}_{config_ini_hash}', pull=True)
+
+    assert check_job_id_branch_is_present(repo, job_id, notebook_hash, config_ini_hash)
+
+    assert c.text == f"{renku_project_url}/sessions/new?autostart=1&branch=mmoda_request_{job_id}_{notebook_hash}_{config_ini_hash}" \
+                     f"&commit={repo.head.commit.hexsha}" \
+                     f"&env[ODA_TOKEN]={encoded_token}"
+                     # f"&notebook={api_code_file_name}" \
+
+    logger.info("Renku url: %s", c.text)
 
     assert os.path.exists(api_code_file_path)
     parsed_notebook = nbf.read(api_code_file_path, 4)
@@ -2517,13 +3237,17 @@ def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_te
     assert parsed_notebook.cells[0].source == "# Notebook automatically generated from MMODA"
     assert parsed_notebook.cells[1].source == extracted_api_code
 
-    assert repo.head.reference.commit.message is not None
     request_url = generate_commit_request_url(products_url, request_dict)
-    commit_message = (f"Stored API code of MMODA request by {token_payload['name']} for a {request_dict['product_type']}"
+    notebook_commit_message = (f"Stored API code of MMODA request by {token_payload['name']} for a {request_dict['product_type']}"
                       f" from the instrument {request_dict['instrument']}"
                       f"\nthe original request was generated via {request_url}\n"
                       "to retrieve the result please follow the link")
-    assert repo.head.reference.commit.message == commit_message
+
+    git_notebook_commit_msg = list(repo.iter_commits(paths=api_code_file_name))[0].message
+    config_file_commit_msg = list(repo.iter_commits(paths='.renku/renku.ini'))[0].message
+
+    assert git_notebook_commit_msg == notebook_commit_message
+    assert config_file_commit_msg == 'Update Renku config file with starting notebook'
 
     shutil.rmtree(repo.working_dir)
 
@@ -2543,7 +3267,8 @@ def test_param_value(dispatcher_live_fixture):
                            'energ': 2.0,
                            'T1': 57818.560277777775,
                            'T2': 57819.560277777775,
-                           'T_format': 'mjd'},
+                           'T_format': 'mjd',
+                           'energy_units': 'MeV'},
                   )
     
     assert c.status_code == 200
@@ -2557,8 +3282,124 @@ def test_param_value(dispatcher_live_fixture):
     # in the products it instead remains in deg
     assert jdata['products']['echo']['ang_deg'] == 2
 
-    assert jdata['products']['analysis_parameters']['energ'] == 2
+    assert jdata['products']['analysis_parameters']['energ'] == 2000
+    assert jdata['products']['analysis_parameters']['energy_units'] == 'keV'
     assert jdata['products']['echo']['energ'] == 2
 
     assert jdata['products']['analysis_parameters']['T1'] == '2017-03-06T13:26:48.000'
+    assert jdata['products']['analysis_parameters']['T_format'] == 'isot'
     assert jdata['products']['echo']['T1'] == 57818.560277777775
+
+@pytest.mark.fast
+def test_unknown_argument(dispatcher_live_fixture):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+
+    c = requests.get(server + "/run_analysis",
+                   params={'instrument': 'empty',
+                           'product_type': 'dummy',
+                           'query_status': 'new',
+                           'query_type': 'Real',
+                           'unknown': 2.0},
+                  )
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+    
+    assert re.match(r'Please note that arguments?.*unknown.*not used', jdata['exit_status']['comment'])
+    assert 'T_format' not in jdata['exit_status']['comment']
+    assert 'unknown' not in jdata['products']['analysis_parameters'].keys()
+    assert 'unknown' not in jdata['products']['api_code']
+    
+@pytest.mark.fast
+def test_catalog_selected_objects_accepted(dispatcher_live_fixture):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+
+    c = requests.get(server + "/run_analysis",
+                   params={'instrument': 'empty',
+                           'product_type': 'dummy',
+                           'query_status': 'new',
+                           'query_type': 'Real',
+                           'catalog_selected_objects': '0, 1'},
+                  )
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+    
+    assert not re.match(r'Please note that arguments?.*catalog_selected_objects.*not used', jdata['exit_status']['comment'])
+    assert 'catalog_selected_objects' in jdata['products']['analysis_parameters'].keys()
+    assert 'catalog_selected_objects' in jdata['products']['api_code']
+    
+@pytest.mark.fast
+def test_parameter_bounds_metadata(dispatcher_live_fixture):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+    
+    c = requests.get(server + '/meta-data',
+                     params={'instrument': 'empty'})
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+    
+    metadata = [json.loads(x) for x in jdata[0] if isinstance(x, str)]
+    restricted_meta = [x for x in metadata if x[0]['query_name'] == 'restricted_parameters_dummy_query'][0]
+    def meta_for_par(parname):
+        return [x for x in restricted_meta if x.get('name', None) == parname][0]
+    
+    assert meta_for_par('bounded_int_par')['restrictions'] == {'min_value': 2, 'max_value': 8}
+    assert meta_for_par('bounded_float_par')['restrictions'] == {'min_value': 2.2, 'max_value': 7.7}
+    assert meta_for_par('string_select_par')['restrictions'] == {'allowed_values': ['spam', 'eggs', 'ham']}
+    
+@pytest.mark.fast
+def test_restricted_parameters_good_request(dispatcher_live_fixture):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+    
+    good_par = {'instrument': 'empty',
+                'product_type': 'restricted',
+                'query_status': 'new',
+                'query_type': 'Real',
+                'bounded_int_par': 6,
+                'bounded_float_par': 6.1,
+                'string_select_par': 'ham'
+                }
+    
+    c = requests.get(server + '/run_analysis',
+                     params = good_par)
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+    assert jdata['exit_status']['status'] == 0
+    assert jdata['exit_status']['job_status'] == 'done'
+    # check parameters were actually set to proper values
+    assert jdata['products']['echo']['bounded_int_par'] == 6
+    assert jdata['products']['echo']['bounded_float_par'] == 6.1
+    assert jdata['products']['echo']['string_select_par'] == 'ham'
+
+@pytest.mark.fast
+@pytest.mark.parametrize("par_name,par_value", (('bounded_int_par', 40), 
+                                           ('bounded_float_par', -10.), 
+                                           ('string_select_par', 'foo')))
+def test_restricted_parameter_bad_request(dispatcher_live_fixture, par_name, par_value):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+    
+    good_par = {'instrument': 'empty',
+                  'product_type': 'restricted',
+                  'query_status': 'new',
+                  'query_type': 'Real',
+                  }
+    
+    c = requests.get(server + '/run_analysis',
+                     params = {**good_par,
+                               par_name: par_value})
+    
+    assert c.status_code == 400
+    print("content:", c.text)
+    jdata=c.json()
+    assert jdata['error'].startswith( f'RequestNotUnderstood():Parameter {par_name} wrong value' )
