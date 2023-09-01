@@ -23,8 +23,7 @@ import time as _time
 import json
 from collections import OrderedDict
 
-import sentry_sdk
-import decorator 
+import decorator
 import numpy as np
 
 
@@ -624,7 +623,6 @@ class ProductQuery(BaseQuery):
                               query_type='Real',
                               logger=None,
                               config=None,
-                              sentry_dsn=None,
                               api=False,
                               backend_warning='',
                               backend_comment='',
@@ -782,7 +780,7 @@ class PostProcessProductQuery(ProductQuery):
     def process_product(self,instrument,job, config=None,out_dir=None,**kwargs):
         raise RuntimeError('this method has to be implemented in the derived class')
 
-    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None,api=False,**kwargs):
+    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,api=False,**kwargs):
         if logger is None:
             logger = self.get_logger()
 
@@ -807,7 +805,6 @@ class PostProcessProductQuery(ProductQuery):
             process_product_query_out.set_failed('product post processing',
                                  extra_message='product post processing failed',
                                  logger=logger,
-                                 sentry_dsn=sentry_dsn,
                                  excep=e)
 
 
@@ -818,12 +815,12 @@ class PostProcessProductQuery(ProductQuery):
 
         return process_product_query_out
 
-    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_dsn=None,api=False):
+    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,api=False):
 
         if logger is None:
             logger = self.get_logger()
 
-        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir,sentry_dsn=sentry_dsn,api=api)
+        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir,api=api)
         if query_out.status_dictionary['status'] == 0:
             job.set_done()
         else:
