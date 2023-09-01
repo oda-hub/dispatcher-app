@@ -521,7 +521,7 @@ class ProductQuery(BaseQuery):
             input_prod_list=[]
             query_out.set_products(['input_prod_list', 'len_prod_list'], [input_prod_list, len(input_prod_list)])
 
-            raise
+            raise InternalError(e_message)
 
         logger.info('--> test has products status %d' % query_out.get_status())
         logger.info('--> end test has products test')
@@ -654,14 +654,17 @@ class ProductQuery(BaseQuery):
             process_products_query_out.set_done( message=message, debug_message=str(debug_message), job_status=job.status,status=status,comment=backend_comment,warning=backend_warning)
 
         except Exception as e:
+            e_message = f"Error when processing query products (instrument: {instrument.name}, product: {self.name}):\n{repr(e)}"
             #status=1
             job.set_failed()
             # FAILED
             sentry.capture_exception(e)
             process_products_query_out.set_failed('product processing',
                                                   extra_message='product processing failed',
+                                                  e_message=e_message,
                                                   logger=logger,
                                                   excep=e)
+            raise InternalError(e_message)
 
         logger.info('==>prod_process_status %d' % process_products_query_out.get_status())
         logger.info('--> end product process')
