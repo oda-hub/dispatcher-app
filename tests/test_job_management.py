@@ -1588,10 +1588,7 @@ def test_status_details_email_done(gunicorn_dispatcher_live_fixture, dispatcher_
     # check the additional status details within the email
     assert 'email_status_details' in jdata
     assert jdata['email_status_details'] == {
-        'exception_message': 'Instrument: empty, product: failing failed!\n'
-                             'Error when getting query products (instrument: empty, '
-                             'product: failing_parameters_dummy_query):\n'
-                             'InternalError()',
+        'exception_message': 'failing query\nInstrument: empty, product: failing failed!\n',
         'status': 'empty_product'
     }
 
