@@ -56,4 +56,13 @@ class Sentry:
         else:
             self.logger.warning("sentry not used, dropping %s", message)
 
+    def capture_exception(self, ex: Exception):
+        if self.have_sentry:
+            self.logger.warning(repr(ex))
+
+            sentry_sdk.capture_exception(ex)
+        else:
+            self.logger.warning("sentry not used, dropping %s", repr(ex))
+
+
 sentry = Sentry()

@@ -128,8 +128,6 @@ class InstrumentQueryBackEnd:
 
         self.app = app
 
-        self.set_sentry_sdk(getattr(self.app.config.get('conf'), 'sentry_url', None))
-
         try:
             if par_dic is None:
                 self.set_args(request, verbose=verbose)
@@ -259,8 +257,7 @@ class InstrumentQueryBackEnd:
                             request=request,
                             temp_dir=self.temp_dir,
                             verbose=verbose,
-                            use_scws=self.use_scws,
-                            sentry_dsn=self.sentry_dsn
+                            use_scws=self.use_scws
                         )
                         self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
 
@@ -635,13 +632,6 @@ class InstrumentQueryBackEnd:
 
         return _logger
 
-    def set_sentry_sdk(self, sentry_dsn=None):
-        if sentry_dsn is not None:
-            if sentry.sentry_url != sentry_dsn:
-                raise NotImplementedError
-
-        self.sentry_dsn = sentry.sentry_url
-
     def get_current_ip(self):
         return socket.gethostbyname(socket.gethostname())
 
@@ -986,9 +976,6 @@ class InstrumentQueryBackEnd:
 
     def run_call_back(self, status_kw_name='action') -> typing.Tuple[str, typing.Union[QueryOutput, None]]:
         self.config, self.config_data_server = self.set_config()
-
-        if self.config.sentry_url is not None:
-            self.set_sentry_sdk(self.config.sentry_url)
 
         self.instrument_name = self.par_dic.get('instrument_name', '')
 
@@ -1569,9 +1556,6 @@ class InstrumentQueryBackEnd:
 
             config, self.config_data_server = None, None
         else:
-            if config.sentry_url is not None:
-                self.set_sentry_sdk(config.sentry_url)
-
             self.config = config
 
     def run_query(self, off_line=False, disp_conf=None):
@@ -1798,7 +1782,6 @@ class InstrumentQueryBackEnd:
                                                           config=self.config_data_server,
                                                           query_type=query_type,
                                                           logger=self.logger,
-                                                          sentry_dsn=self.sentry_dsn,
                                                           verbose=verbose,
                                                           dry_run=dry_run,
                                                           api=api,
