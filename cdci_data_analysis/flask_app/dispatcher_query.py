@@ -1735,6 +1735,36 @@ class InstrumentQueryBackEnd:
                     job_monitor = job.updated_dataserver_monitor()
                     print('==>ALIASING switched off for Dummy query')
 
+            if job_monitor['status'] != 'done' and job_monitor['status'] != 'failed' and query_status != 'new':
+                # check the last time status was updated and in case re-submit the request
+                last_modified_monitor = job.get_latest_monitor_mtime()
+                if last_modified_monitor - time_.time() >= 30*60:
+                    # re-submit
+                    try:
+                        self.log_query_progression("before instrument.run_query")
+                        self.logger.info('will run_query with self.par_dic: %s', self.par_dic)
+                        query_out = self.instrument.run_query(product_type,
+                                                              self.par_dic,
+                                                              request,
+                                                              self,  # this will change?
+                                                              job,  # this will change
+                                                              run_asynch,
+                                                              out_dir=self.scratch_dir,
+                                                              config=self.config_data_server,
+                                                              query_type=query_type,
+                                                              logger=self.logger,
+                                                              sentry_dsn=self.sentry_dsn,
+                                                              verbose=verbose,
+                                                              dry_run=dry_run,
+                                                              api=api,
+                                                              decoded_token=self.decoded_token)
+                        self.log_query_progression("after instrument.run_query")
+                    except RequestNotAuthorized as e:
+                        return self.build_response_failed('oda_api permissions failed',
+                                                          e.message,
+                                                          status_code=e.status_code,
+                                                          debug_message=e.debug_message)
+
         if job_is_aliased == True and query_status == 'ready':
             original_work_dir = job.work_dir
             job.work_dir = alias_workdir
