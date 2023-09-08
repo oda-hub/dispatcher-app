@@ -1738,11 +1738,12 @@ class InstrumentQueryBackEnd:
             if job_monitor['status'] != 'done' and job_monitor['status'] != 'failed' and query_status != 'new':
                 # check the last time status was updated and in case re-submit the request
                 last_modified_monitor = job.get_latest_monitor_mtime()
-                if last_modified_monitor - time_.time() >= 30*60:
+                resubmit_timeout = self.app.config['conf'].resubmit_timeout
+                if last_modified_monitor - time_.time() >= resubmit_timeout:
                     # re-submit
                     try:
-                        self.log_query_progression("before instrument.run_query")
-                        self.logger.info('will run_query with self.par_dic: %s', self.par_dic)
+                        self.log_query_progression("before re-submission of instrument.run_query")
+                        self.logger.info('will re-submit with self.par_dic: %s', self.par_dic)
                         query_out = self.instrument.run_query(product_type,
                                                               self.par_dic,
                                                               request,
@@ -1758,12 +1759,67 @@ class InstrumentQueryBackEnd:
                                                               dry_run=dry_run,
                                                               api=api,
                                                               decoded_token=self.decoded_token)
-                        self.log_query_progression("after instrument.run_query")
+                        self.log_query_progression("after re-submission of instrument.run_query")
                     except RequestNotAuthorized as e:
                         return self.build_response_failed('oda_api permissions failed',
                                                           e.message,
                                                           status_code=e.status_code,
                                                           debug_message=e.debug_message)
+
+                    if query_out.status_dictionary['status'] == 0:
+                        if job.status == 'done':
+                            query_new_status = 'done'
+                        elif job.status == 'failed':
+                            query_new_status = 'failed'
+                        else:
+                            query_new_status = 'submitted'
+                            job.set_submitted()
+
+                        if email_helper.is_email_to_send_run_query(self.logger,
+                                                                   query_new_status,
+                                                                   self.time_request,
+                                                                   self.scratch_dir,
+                                                                   self.job_id,
+                                                                   self.app.config['conf'],
+                                                                   decoded_token=self.decoded_token):
+                            try:
+                                products_url = self.generate_products_url(self.app.config.get('conf').products_url,
+                                                                          self.par_dic)
+                                email_api_code = DispatcherAPI.set_api_code(self.par_dic,
+                                                                            url=self.app.config[
+                                                                                    'conf'].products_url + "/dispatch-data"
+                                                                            )
+                                time_request = self.time_request
+                                time_request_first_submitted = email_helper.get_first_submitted_email_time(
+                                    self.scratch_dir)
+                                if time_request_first_submitted is not None:
+                                    time_request = time_request_first_submitted
+
+                                email_helper.send_job_email(
+                                    config=self.app.config['conf'],
+                                    logger=self.logger,
+                                    decoded_token=self.decoded_token,
+                                    token=self.token,
+                                    job_id=self.job_id,
+                                    session_id=self.par_dic['session_id'],
+                                    status=query_new_status,
+                                    instrument=self.instrument.name,
+                                    product_type=product_type,
+                                    time_request=time_request,
+                                    request_url=products_url,
+                                    api_code=email_api_code,
+                                    scratch_dir=self.scratch_dir)
+
+                                # store an additional information about the sent email
+                                query_out.set_status_field('email_status', 'email sent')
+                            except email_helper.EMailNotSent as e:
+                                query_out.set_status_field('email_status', 'sending email failed')
+                                logging.warning(f'email sending failed: {e}')
+                                sentry.capture_message(f'sending email failed {e.message}')
+                    else:
+                        job.set_failed()
+
+                    job.write_dataserver_status()
 
         if job_is_aliased == True and query_status == 'ready':
             original_work_dir = job.work_dir
