@@ -1043,6 +1043,7 @@ class InstrumentQueryBackEnd:
                                                                         logger=self.logger)
                 self.send_query_new_status_email(product_type,
                                                  status,
+                                                 time_request=time_original_request,
                                                  status_details=status_details,
                                                  instrument_name=self.instrument_name,
                                                  arg_par_dic=original_request_par_dic)
@@ -1570,9 +1571,12 @@ class InstrumentQueryBackEnd:
     def send_query_new_status_email(self,
                                 product_type,
                                 query_new_status,
+                                time_request=None,
                                 instrument_name=None,
                                 status_details=None,
                                 arg_par_dic=None):
+        if time_request is None:
+            time_request = self.time_request
         if instrument_name is None:
             instrument_name = self.instrument.name
         if arg_par_dic is None:
@@ -1582,7 +1586,6 @@ class InstrumentQueryBackEnd:
         email_api_code = DispatcherAPI.set_api_code(arg_par_dic,
                                                     url=os.path.join(self.config.products_url, "dispatch-data")
                                                     )
-        time_request = self.time_request
         time_request_first_submitted = email_helper.get_first_submitted_email_time(
             self.scratch_dir)
         if time_request_first_submitted is not None:
