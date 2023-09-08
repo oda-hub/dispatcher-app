@@ -1041,7 +1041,11 @@ class InstrumentQueryBackEnd:
                     status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
                                                                         config=self.config,
                                                                         logger=self.logger)
-                self.send_query_new_status_email(product_type, status, instrument_name=self.instrument_name, arg_par_dic=original_request_par_dic)
+                self.send_query_new_status_email(product_type,
+                                                 status,
+                                                 status_details=status_details,
+                                                 instrument_name=self.instrument_name,
+                                                 arg_par_dic=original_request_par_dic)
 
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
@@ -1567,6 +1571,7 @@ class InstrumentQueryBackEnd:
                                 product_type,
                                 query_new_status,
                                 instrument_name=None,
+                                status_details=None,
                                 arg_par_dic=None):
         if instrument_name is None:
             instrument_name = self.instrument.name
@@ -1591,6 +1596,7 @@ class InstrumentQueryBackEnd:
             job_id=self.job_id,
             session_id=self.par_dic['session_id'],
             status=query_new_status,
+            status_details=status_details,
             instrument=instrument_name,
             product_type=product_type,
             time_request=time_request,
