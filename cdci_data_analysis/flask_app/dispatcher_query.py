@@ -1574,6 +1574,22 @@ class InstrumentQueryBackEnd:
 
             self.config = config
 
+    def instrument_run_query(self, product_type, job, run_asynch, query_type, verbose, dry_run, api):
+        return self.instrument.run_query(product_type,
+                                         self.par_dic,
+                                         self,  # this will change?
+                                         job,  # this will change
+                                         run_asynch,
+                                         out_dir=self.scratch_dir,
+                                         config=self.config_data_server,
+                                         query_type=query_type,
+                                         logger=self.logger,
+                                         sentry_dsn=self.sentry_dsn,
+                                         verbose=verbose,
+                                         dry_run=dry_run,
+                                         api=api,
+                                         decoded_token=self.decoded_token)
+
     def run_query(self, off_line=False, disp_conf=None):
         """
         this is the principal function to respond to the requests
@@ -1744,21 +1760,13 @@ class InstrumentQueryBackEnd:
                     try:
                         self.log_query_progression("before re-submission of instrument.run_query")
                         self.logger.info('will re-submit with self.par_dic: %s', self.par_dic)
-                        query_out = self.instrument.run_query(product_type,
-                                                              self.par_dic,
-                                                              request,
-                                                              self,  # this will change?
-                                                              job,  # this will change
+                        query_out = self.instrument_run_query(product_type,
+                                                              job,
                                                               run_asynch,
-                                                              out_dir=self.scratch_dir,
-                                                              config=self.config_data_server,
-                                                              query_type=query_type,
-                                                              logger=self.logger,
-                                                              sentry_dsn=self.sentry_dsn,
-                                                              verbose=verbose,
-                                                              dry_run=dry_run,
-                                                              api=api,
-                                                              decoded_token=self.decoded_token)
+                                                              query_type,
+                                                              verbose,
+                                                              dry_run,
+                                                              api)
                         self.log_query_progression("after re-submission of instrument.run_query")
                     except RequestNotAuthorized as e:
                         # TODO why is it an oda_api related response ?
@@ -1875,21 +1883,13 @@ class InstrumentQueryBackEnd:
                 try:
                     self.log_query_progression("before instrument.run_query")
                     self.logger.info('will run_query with self.par_dic: %s', self.par_dic)
-                    query_out = self.instrument.run_query(product_type,
-                                                          self.par_dic,
-                                                          request,
-                                                          self,  # this will change?
-                                                          job,  # this will change
-                                                          run_asynch,
-                                                          out_dir=self.scratch_dir,
-                                                          config=self.config_data_server,
-                                                          query_type=query_type,
-                                                          logger=self.logger,
-                                                          sentry_dsn=self.sentry_dsn,
-                                                          verbose=verbose,
-                                                          dry_run=dry_run,
-                                                          api=api,
-                                                          decoded_token=self.decoded_token)
+                    query_out = self.instrument_run_query(product_type,
+                                                              job,
+                                                              run_asynch,
+                                                              query_type,
+                                                              verbose,
+                                                              dry_run,
+                                                              api)
                     self.log_query_progression("after instrument.run_query")                                                          
                 except RequestNotAuthorized as e:
                     # TODO why is it an oda_api related response ?
