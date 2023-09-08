@@ -1574,7 +1574,7 @@ class InstrumentQueryBackEnd:
             arg_par_dic = self.par_dic
         products_url = self.generate_products_url(self.config.products_url,
                                                   arg_par_dic)
-        email_api_code = DispatcherAPI.set_api_code(self.par_dic,
+        email_api_code = DispatcherAPI.set_api_code(arg_par_dic,
                                                     url=os.path.join(self.config.products_url, "dispatch-data")
                                                     )
         time_request = self.time_request
