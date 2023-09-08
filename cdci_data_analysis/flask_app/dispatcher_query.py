@@ -1041,36 +1041,7 @@ class InstrumentQueryBackEnd:
                     status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
                                                                         config=self.config,
                                                                         logger=self.logger)
-                # build the products URL and get also the original requested product
-                products_url = self.generate_products_url(self.config.products_url,
-                                                                    request_par_dict=original_request_par_dic)
-
-                email_api_code = DispatcherAPI.set_api_code(original_request_par_dic,
-                                                            url=self.app.config['conf'].products_url + "/dispatch-data"
-                                                            )
-                time_request = time_original_request
-                time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
-                if time_request_first_submitted is not None:
-                    time_request = time_request_first_submitted
-
-                email_helper.send_job_email(
-                    config=self.config,
-                    logger=self.logger,
-                    decoded_token=self.decoded_token,
-                    token=self.token,
-                    job_id=self.job_id,
-                    session_id=self.par_dic['session_id'],
-                    status=status,
-                    status_details=status_details,
-                    instrument=self.instrument_name,
-                    product_type=product_type,
-                    time_request=time_request,
-                    request_url=products_url,
-                    # products_url is frontend URL, clickable by users.
-                    # dispatch-data is how frontend is referring to the dispatcher, it's fixed in frontend-astrooda code
-                    api_code=email_api_code,
-                    scratch_dir=self.scratch_dir,
-                    )
+                self.send_query_new_status_email(product_type, status, arg_par_dic=original_request_par_dic)
 
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
@@ -1575,6 +1546,7 @@ class InstrumentQueryBackEnd:
             self.config = config
 
     def instrument_run_query(self, product_type, job, run_asynch, query_type, verbose, dry_run, api):
+
         return self.instrument.run_query(product_type,
                                          self.par_dic,
                                          self,  # this will change?
@@ -1589,6 +1561,39 @@ class InstrumentQueryBackEnd:
                                          dry_run=dry_run,
                                          api=api,
                                          decoded_token=self.decoded_token)
+
+    def send_query_new_status_email(self,
+                                product_type,
+                                query_new_status,
+                                arg_par_dic=None):
+        if arg_par_dic is None:
+            arg_par_dic = self.par_dic
+        products_url = self.generate_products_url(self.config.products_url,
+                                                  arg_par_dic)
+        email_api_code = DispatcherAPI.set_api_code(self.par_dic,
+                                                    url=os.path.join(self.config.products_url, "dispatch-data")
+                                                    )
+        time_request = self.time_request
+        time_request_first_submitted = email_helper.get_first_submitted_email_time(
+            self.scratch_dir)
+        if time_request_first_submitted is not None:
+            time_request = time_request_first_submitted
+
+        email_helper.send_job_email(
+            config=self.config,
+            logger=self.logger,
+            decoded_token=self.decoded_token,
+            token=self.token,
+            job_id=self.job_id,
+            session_id=self.par_dic['session_id'],
+            status=query_new_status,
+            instrument=self.instrument.name,
+            product_type=product_type,
+            time_request=time_request,
+            request_url=products_url,
+            api_code=email_api_code,
+            scratch_dir=self.scratch_dir)
+
 
     def run_query(self, off_line=False, disp_conf=None):
         """
@@ -1792,33 +1797,7 @@ class InstrumentQueryBackEnd:
                                                                    self.app.config['conf'],
                                                                    decoded_token=self.decoded_token):
                             try:
-                                products_url = self.generate_products_url(self.app.config.get('conf').products_url,
-                                                                          self.par_dic)
-                                email_api_code = DispatcherAPI.set_api_code(self.par_dic,
-                                                                            url=self.app.config[
-                                                                                    'conf'].products_url + "/dispatch-data"
-                                                                            )
-                                time_request = self.time_request
-                                time_request_first_submitted = email_helper.get_first_submitted_email_time(
-                                    self.scratch_dir)
-                                if time_request_first_submitted is not None:
-                                    time_request = time_request_first_submitted
-
-                                email_helper.send_job_email(
-                                    config=self.app.config['conf'],
-                                    logger=self.logger,
-                                    decoded_token=self.decoded_token,
-                                    token=self.token,
-                                    job_id=self.job_id,
-                                    session_id=self.par_dic['session_id'],
-                                    status=query_new_status,
-                                    instrument=self.instrument.name,
-                                    product_type=product_type,
-                                    time_request=time_request,
-                                    request_url=products_url,
-                                    api_code=email_api_code,
-                                    scratch_dir=self.scratch_dir)
-
+                                self.send_query_new_status_email(product_type, query_new_status)
                                 # store an additional information about the sent email
                                 query_out.set_status_field('email_status', 'email sent')
                             except email_helper.EMailNotSent as e:
@@ -1884,12 +1863,12 @@ class InstrumentQueryBackEnd:
                     self.log_query_progression("before instrument.run_query")
                     self.logger.info('will run_query with self.par_dic: %s', self.par_dic)
                     query_out = self.instrument_run_query(product_type,
-                                                              job,
-                                                              run_asynch,
-                                                              query_type,
-                                                              verbose,
-                                                              dry_run,
-                                                              api)
+                                                          job,
+                                                          run_asynch,
+                                                          query_type,
+                                                          verbose,
+                                                          dry_run,
+                                                          api)
                     self.log_query_progression("after instrument.run_query")                                                          
                 except RequestNotAuthorized as e:
                     # TODO why is it an oda_api related response ?
@@ -1917,31 +1896,7 @@ class InstrumentQueryBackEnd:
                                                                self.app.config['conf'],
                                                                decoded_token=self.decoded_token):
                         try:
-                            products_url = self.generate_products_url(self.app.config.get('conf').products_url,
-                                                                                    self.par_dic)
-                            email_api_code = DispatcherAPI.set_api_code(self.par_dic,
-                                                                        url=self.app.config['conf'].products_url + "/dispatch-data"
-                                                                        )
-                            time_request = self.time_request
-                            time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
-                            if time_request_first_submitted is not None:
-                                time_request = time_request_first_submitted
-
-                            email_helper.send_job_email(
-                                config=self.app.config['conf'],
-                                logger=self.logger,
-                                decoded_token=self.decoded_token,
-                                token=self.token,
-                                job_id=self.job_id,
-                                session_id=self.par_dic['session_id'],
-                                status=query_new_status,
-                                instrument=self.instrument.name,
-                                product_type=product_type,
-                                time_request=time_request,
-                                request_url=products_url,
-                                api_code=email_api_code,
-                                scratch_dir=self.scratch_dir)
-
+                            self.send_query_new_status_email(product_type, query_new_status)
                             # store an additional information about the sent email
                             query_out.set_status_field('email_status', 'email sent')
                         except email_helper.EMailNotSent as e:
