@@ -1761,6 +1761,7 @@ class InstrumentQueryBackEnd:
                                                               decoded_token=self.decoded_token)
                         self.log_query_progression("after re-submission of instrument.run_query")
                     except RequestNotAuthorized as e:
+                        # TODO why is it an oda_api related response ?
                         return self.build_response_failed('oda_api permissions failed',
                                                           e.message,
                                                           status_code=e.status_code,
@@ -1891,6 +1892,7 @@ class InstrumentQueryBackEnd:
                                                           decoded_token=self.decoded_token)
                     self.log_query_progression("after instrument.run_query")                                                          
                 except RequestNotAuthorized as e:
+                    # TODO why is it an oda_api related response ?
                     return self.build_response_failed('oda_api permissions failed',
                                                       e.message,
                                                       status_code=e.status_code,
