@@ -1041,7 +1041,7 @@ class InstrumentQueryBackEnd:
                     status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
                                                                         config=self.config,
                                                                         logger=self.logger)
-                self.send_query_new_status_email(product_type, status, arg_par_dic=original_request_par_dic)
+                self.send_query_new_status_email(product_type, status, instrument_name=self.instrument_name, arg_par_dic=original_request_par_dic)
 
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
@@ -1562,10 +1562,14 @@ class InstrumentQueryBackEnd:
                                          api=api,
                                          decoded_token=self.decoded_token)
 
+
     def send_query_new_status_email(self,
                                 product_type,
                                 query_new_status,
+                                instrument_name=None,
                                 arg_par_dic=None):
+        if instrument_name is None:
+            instrument_name = self.instrument.name
         if arg_par_dic is None:
             arg_par_dic = self.par_dic
         products_url = self.generate_products_url(self.config.products_url,
@@ -1587,7 +1591,7 @@ class InstrumentQueryBackEnd:
             job_id=self.job_id,
             session_id=self.par_dic['session_id'],
             status=query_new_status,
-            instrument=self.instrument.name,
+            instrument=instrument_name,
             product_type=product_type,
             time_request=time_request,
             request_url=products_url,
