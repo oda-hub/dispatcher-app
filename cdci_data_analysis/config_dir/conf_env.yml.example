@@ -31,6 +31,9 @@ dispatcher:
     # maximum interval allowed during token refreshing
     token_max_refresh_interval: 604800
 
+    # timeout to re-submit the request
+    resubmit_timeout: 1800
+
     # where the dispatcher binds, will be used for the flask app at start-up
     # host and port are well distinguished for clarity
     # necessary
