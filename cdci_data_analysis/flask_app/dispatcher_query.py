@@ -1737,8 +1737,6 @@ class InstrumentQueryBackEnd:
             original_work_dir = job.work_dir
             job.work_dir = alias_workdir
 
-            # set also the new file_path for the job object ?
-            job._set_file_path(file_name=job.file_name, work_dir=job.work_dir)
 
             self.logger.info(
                 '\033[32m==> ALIASING to %s\033[0m', alias_workdir)
@@ -1823,6 +1821,8 @@ class InstrumentQueryBackEnd:
                     else:
                         job.set_failed()
 
+                    # set also the new file_path for the job object ?
+                    job._set_file_path(file_name=job.file_name, work_dir=job.work_dir)
                     job.write_dataserver_status()
 
         if job_is_aliased == True and query_status == 'ready':
