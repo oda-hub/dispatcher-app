@@ -442,6 +442,19 @@ def dispatcher_test_conf_with_external_products_url_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
+def dispatcher_test_conf_no_resubmit_timeout_fn(dispatcher_test_conf_fn):
+    fn = dispatcher_test_conf_fn
+    with open(fn, "r+") as f:
+        data = f.read()
+        data = re.sub('(\s+resubmit_timeout:).*\n', '\n    resubmit_timeout: 0\n', data)
+        f.seek(0)
+        f.write(data)
+        f.truncate()
+
+    yield fn
+
+
+@pytest.fixture
 def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
     fn = "test-dispatcher-conf-with-gallery.yaml"
 
@@ -502,6 +515,12 @@ def dispatcher_test_conf_no_products_url(dispatcher_test_conf_no_products_url_fn
 @pytest.fixture
 def dispatcher_test_conf_with_external_products_url(dispatcher_test_conf_with_external_products_url_fn):
     with open(dispatcher_test_conf_with_external_products_url_fn) as yaml_f:
+        loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
+    yield loaded_yaml['dispatcher']
+
+
+def dispatcher_test_conf_with_no_resubmit_timeout(dispatcher_test_conf_with_no_resubmit_timeout_fn):
+    with open(dispatcher_test_conf_with_no_resubmit_timeout_fn) as yaml_f:
         loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
     yield loaded_yaml['dispatcher']
 
@@ -851,6 +870,19 @@ def dispatcher_live_fixture_with_external_products_url(pytestconfig, dispatcher_
 @pytest.fixture
 def dispatcher_live_fixture_with_renku_options(pytestconfig, dispatcher_test_conf_with_renku_options_fn, dispatcher_debug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_renku_options_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_no_resubmit_timeout(pytestconfig, dispatcher_test_conf_no_resubmit_timeout_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_no_resubmit_timeout_fn)
 
     service = dispatcher_state['url']
     pid = dispatcher_state['pid']

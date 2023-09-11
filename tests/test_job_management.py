@@ -591,10 +591,61 @@ def get_expected_products_url(dict_param,
     return possibly_compressed_request_url
 
 
+def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
+    server = dispatcher_live_fixture_no_resubmit_timeout
+    DispatcherJobState.remove_scratch_folders()
+    DataServerQuery.set_status('submitted')
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    # these parameters define request content
+    base_dict_param = dict(
+        instrument="empty-async",
+        product_type="dummy",
+        query_type="real",
+    )
+
+    dict_param = dict(
+        query_status="new",
+        token=encoded_token,
+        **base_dict_param
+    )
+
+    # this should return status submitted, so email sent
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    print(json.dumps(c.json(), sort_keys=True, indent=4))
+
+    assert c.status_code == 200
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+
+    # this should return status submitted, so email sent
+    dict_param['job_id'] = dispatcher_job_state.job_id
+    dict_param['query_status'] = 'submitted'
+    DataServerQuery.set_status('done')
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'ready'
+
+
 def test_validation_job_id(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     DispatcherJobState.remove_scratch_folders()
-
+    DataServerQuery.set_status('submitted')
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
