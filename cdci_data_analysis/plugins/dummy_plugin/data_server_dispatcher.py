@@ -104,34 +104,27 @@ class DataServerQuery:
         
         status = self.decide_status() 
         if status == "submitted":
-            # set done to submitted?
             query_out.set_done(message="job submitted mock",
                             debug_message="no message really",
                             job_status='submitted',
                             comment="mock comment",
                             warning="mock warning")
-
         if status == "progress":
-            # set done to submitted?
             query_out.set_done(message="job progress mock",
                                debug_message="no message really",
                                job_status='progress',
                                comment="mock comment",
                                warning="mock warning")
         elif status == "done":
-            # set done to submitted?
             query_out.set_done(message="job done mock",
                             debug_message="no message really",
                             job_status='done',
                             comment="mock comment",
                             warning="mock warning")
         elif status == "failed":
-            # set done to submitted?
             query_out.set_failed(message="job failed mock",
                             debug_message="no message really",
-                            job_status='failed',
-                            comment="mock comment",
-                            warning="mock warning")
+                            job_status='failed')
         else:
             NotImplementedError
 
