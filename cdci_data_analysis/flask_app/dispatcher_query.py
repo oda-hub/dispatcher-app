@@ -1737,6 +1737,9 @@ class InstrumentQueryBackEnd:
             original_work_dir = job.work_dir
             job.work_dir = alias_workdir
 
+            # set also the new file_path for the job object ?
+            job._set_file_path(file_name=job.file_name, work_dir=job.work_dir)
+
             self.logger.info(
                 '\033[32m==> ALIASING to %s\033[0m', alias_workdir)
 
@@ -1773,7 +1776,7 @@ class InstrumentQueryBackEnd:
                 # check the last time status was updated and in case re-submit the request
                 last_modified_monitor = job.get_latest_monitor_mtime()
                 resubmit_timeout = self.app.config['conf'].resubmit_timeout
-                if last_modified_monitor - time_.time() >= resubmit_timeout:
+                if time_.time() - last_modified_monitor >= resubmit_timeout:
                     # re-submit
                     try:
                         self.log_query_progression("before re-submission of instrument.run_query")

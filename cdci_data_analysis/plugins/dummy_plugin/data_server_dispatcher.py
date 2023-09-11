@@ -110,6 +110,14 @@ class DataServerQuery:
                             job_status='submitted',
                             comment="mock comment",
                             warning="mock warning")
+
+        if status == "progress":
+            # set done to submitted?
+            query_out.set_done(message="job progress mock",
+                               debug_message="no message really",
+                               job_status='progress',
+                               comment="mock comment",
+                               warning="mock warning")
         elif status == "done":
             # set done to submitted?
             query_out.set_done(message="job done mock",

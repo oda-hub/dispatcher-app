@@ -294,7 +294,7 @@ class OsaJob(Job):
 
     def get_latest_monitor_mtime(self):
         last_modified_time = None
-        job_monitor_path = os.path.join(self.work_dir, 'job_monitor*.json')
+        job_monitor_path = os.path.join(self.work_dir, 'job_monitor.json')
         if os.path.exists(job_monitor_path):
             last_modified_time = os.path.getmtime(job_monitor_path)
         return last_modified_time
