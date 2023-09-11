@@ -322,7 +322,7 @@ class OsaJob(Job):
             try:
                 with open(job_file, 'r') as infile:
                     try:
-                        self.monitor = json.load(infile, encoding='utf-8')
+                        self.monitor = json.load(infile)
                     except Exception as e:
                         # happens in py3.9 at least
                         infile.seek(0)
