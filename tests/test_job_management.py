@@ -633,7 +633,7 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
     dict_param['job_id'] = dispatcher_job_state.job_id
     dict_param['query_status'] = 'submitted'
     DataServerQuery.set_status('')
-
+    #
     c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
                      )

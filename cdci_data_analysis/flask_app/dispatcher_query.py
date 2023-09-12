@@ -1773,6 +1773,7 @@ class InstrumentQueryBackEnd:
             if job_monitor['status'] != 'done' and job_monitor['status'] != 'failed' and query_status != 'new':
                 # check the last time status was updated and in case re-submit the request
                 last_modified_monitor = job.get_latest_monitor_mtime()
+                self.logger.info(f'last modify at the job monitor status file at {last_modified_monitor}')
                 resubmit_timeout = self.app.config['conf'].resubmit_timeout
                 if time_.time() - last_modified_monitor >= resubmit_timeout:
                     # re-submit
@@ -1823,7 +1824,8 @@ class InstrumentQueryBackEnd:
 
                     # set also the new file_path for the job object ?
                     job._set_file_path(file_name=job.file_name, work_dir=job.work_dir)
-                    job.write_dataserver_status()
+                    if query_status != query_new_status:
+                        job.write_dataserver_status()
 
         if job_is_aliased and query_status == 'ready':
             original_work_dir = job.work_dir
@@ -1976,7 +1978,7 @@ class InstrumentQueryBackEnd:
             self.logger.info(
                 '==============================> query done <==============================')
 
-        if not job_is_aliased:
+        if not job_is_aliased and query_status != query_new_status:
             job.write_dataserver_status()
 
         if not self.async_dispatcher:
