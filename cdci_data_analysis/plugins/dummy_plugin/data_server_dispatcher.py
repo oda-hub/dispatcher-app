@@ -132,6 +132,36 @@ class DataServerQuery:
         return None, query_out
 
 
+class DataServerLogSubmitQuery(DataServerQuery):
+
+    def run_query(self, *args, **kwargs):
+        logger.warn('fake run_query in %s with %s, %s', self, args, kwargs)
+
+        query_out = QueryOutput()
+
+        current_status = self.get_status()
+
+        if current_status == '':
+            # request sent to the backend
+            self.set_status("submitted")
+            query_out.set_done(message="job submitted mock",
+                               debug_message="no message really",
+                               job_status="submitted",
+                               comment="mock comment",
+                               warning="mock warning")
+
+        elif current_status == "submitted":
+            self.set_status("")
+            query_out.set_done(message="job submitted mock",
+                            debug_message="no message really",
+                            job_status='submitted',
+                            comment="mock comment",
+                            warning="mock warning")
+
+
+        return None, query_out
+
+
 class DataServerQuerySemiAsync(DataServerQuery):
     def __init__(self, config=None, instrument=None):
         self.instrument = instrument
@@ -228,6 +258,13 @@ class EmptyProductQuery(ProductQuery):
         # return True
         results = dict(authorization=True, needed_roles=[])
         return results
+
+
+class EmptyLogSubmitProductQuery(EmptyProductQuery):
+
+    def get_data_server_query(self, instrument: Instrument, config=None):
+        q = DataServerLogSubmitQuery()
+        return q
 
 
 class FailingProductQuery(EmptyProductQuery):

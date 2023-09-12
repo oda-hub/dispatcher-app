@@ -591,11 +591,11 @@ def get_expected_products_url(dict_param,
     return possibly_compressed_request_url
 
 
-# TODO is it a realistic-scenario test?
+@pytest.mark.not_safe_parallel
 def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
     server = dispatcher_live_fixture_no_resubmit_timeout
     DispatcherJobState.remove_scratch_folders()
-    DataServerQuery.set_status('submitted')
+    DataServerQuery.set_status('')
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
@@ -607,8 +607,8 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
     # these parameters define request content
     base_dict_param = dict(
         instrument="empty-async",
-        product_type="dummy",
-        query_type="real",
+        product_type="dummy-log-submit",
+        query_type="Real",
     )
 
     dict_param = dict(
@@ -627,9 +627,12 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
+    assert DataServerQuery.get_status() == 'submitted'
 
+    # resubmit the job before the timeout expires
     dict_param['job_id'] = dispatcher_job_state.job_id
     dict_param['query_status'] = 'submitted'
+    DataServerQuery.set_status('')
 
     c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
@@ -638,19 +641,18 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
     assert c.status_code == 200
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
+    assert DataServerQuery.get_status() == ''
 
-    # this should return status submitted, so email sent
-    dict_param['job_id'] = dispatcher_job_state.job_id
-    dict_param['query_status'] = 'submitted'
-    DataServerQuery.set_status('done')
-
+    # resubmit the job after the timeout expired
+    time.sleep(10.5)
     c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
                      )
 
     assert c.status_code == 200
     jdata = c.json()
-    assert jdata['exit_status']['job_status'] == 'ready'
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert DataServerQuery.get_status() == 'submitted'
 
 
 def test_validation_job_id(dispatcher_live_fixture):

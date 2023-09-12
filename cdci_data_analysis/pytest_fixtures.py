@@ -446,7 +446,7 @@ def dispatcher_test_conf_no_resubmit_timeout_fn(dispatcher_test_conf_fn):
     fn = dispatcher_test_conf_fn
     with open(fn, "r+") as f:
         data = f.read()
-        data = re.sub('(\s+resubmit_timeout:).*\n', '\n    resubmit_timeout: 0\n', data)
+        data = re.sub('(\s+resubmit_timeout:).*\n', '\n    resubmit_timeout: 10\n', data)
         f.seek(0)
         f.write(data)
         f.truncate()
