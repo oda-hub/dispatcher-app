@@ -151,12 +151,18 @@ class DataServerLogSubmitQuery(DataServerQuery):
                                warning="mock warning")
 
         elif current_status == "submitted":
-            self.set_status("")
             query_out.set_done(message="job submitted mock",
-                            debug_message="no message really",
-                            job_status='submitted',
-                            comment="mock comment",
-                            warning="mock warning")
+                               debug_message="no message really",
+                               job_status='submitted',
+                               comment="mock comment",
+                               warning="mock warning")
+
+        elif current_status == "done":
+            query_out.set_done(message="job done mock",
+                               debug_message="no message really",
+                               job_status='done',
+                               comment="mock comment",
+                               warning="mock warning")
 
 
         return None, query_out
@@ -264,6 +270,7 @@ class EmptyLogSubmitProductQuery(EmptyProductQuery):
 
     def get_data_server_query(self, instrument: Instrument, config=None):
         q = DataServerLogSubmitQuery()
+        self.input_param_scw_list = instrument.get_par_by_name('scw_list').value
         return q
 
 

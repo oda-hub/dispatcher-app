@@ -654,6 +654,17 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
     assert jdata['exit_status']['job_status'] == 'submitted'
     assert DataServerQuery.get_status() == 'submitted'
 
+    # resubmit the job to get job ready
+    DataServerQuery.set_status('done')
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'ready'
+
 
 def test_validation_job_id(dispatcher_live_fixture):
     server = dispatcher_live_fixture
