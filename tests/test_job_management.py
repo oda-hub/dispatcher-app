@@ -616,7 +616,6 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
         **base_dict_param
     )
 
-    # this should return status submitted, so email sent
     c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
                      )
@@ -625,6 +624,19 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
 
     assert c.status_code == 200
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+
+    # this should return status submitted, so email sent
+    dict_param['job_id'] = dispatcher_job_state.job_id
+    dict_param['query_status'] = 'submitted'
+    # DataServerQuery.set_status('done')
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
 
