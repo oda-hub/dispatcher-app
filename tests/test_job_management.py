@@ -591,6 +591,7 @@ def get_expected_products_url(dict_param,
     return possibly_compressed_request_url
 
 
+# TODO is it a realistic-scenario test?
 def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
     server = dispatcher_live_fixture_no_resubmit_timeout
     DispatcherJobState.remove_scratch_folders()
@@ -627,10 +628,8 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
 
-    # this should return status submitted, so email sent
     dict_param['job_id'] = dispatcher_job_state.job_id
     dict_param['query_status'] = 'submitted'
-    # DataServerQuery.set_status('done')
 
     c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
