@@ -350,13 +350,13 @@ class OsaJob(Job):
 
         print(f"found {n_progress} PROGRESS entries in {len(job_files_list)} job_files ({work_dir}/job_monitor*.json)")
 
-        if progress is True:
+        if progress:
             self.monitor['status'] = 'progress'
 
-        if job_done == True:
+        if job_done:
             self.monitor['status'] = 'done'
 
-        if job_failed == True:
+        if job_failed:
             self.monitor['status'] = 'failed'
 
         self.monitor['full_report_dict_list']=full_report_dict_list
