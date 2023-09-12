@@ -1697,7 +1697,7 @@ class InstrumentQueryBackEnd:
         else:
             self.logger.info('==> async dispatcher operation NOT requested')
 
-        if self.instrument.asynch == False:
+        if not self.instrument.asynch:
             run_asynch = False
 
         if alias_workdir is not None and run_asynch:
@@ -1837,12 +1837,6 @@ class InstrumentQueryBackEnd:
         if job_is_aliased:
             delta_limit = 600
 
-            # try:
-            #     raise NotImplementedError
-            #     # this never worked since time_ was introduced, but it makes no difference
-            #     delta = self.get_file_mtime(
-            #         alias_workdir + '/' + 'job_monitor.json') - time_.time()
-            # except:
             delta = delta_limit+1
 
             if delta > delta_limit:
