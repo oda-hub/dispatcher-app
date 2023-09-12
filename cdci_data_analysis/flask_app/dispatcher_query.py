@@ -1825,7 +1825,7 @@ class InstrumentQueryBackEnd:
                     job._set_file_path(file_name=job.file_name, work_dir=job.work_dir)
                     job.write_dataserver_status()
 
-        if job_is_aliased == True and query_status == 'ready':
+        if job_is_aliased and query_status == 'ready':
             original_work_dir = job.work_dir
             job.work_dir = alias_workdir
 
@@ -1834,16 +1834,16 @@ class InstrumentQueryBackEnd:
             job_monitor = job.updated_dataserver_monitor()
             self.logger.info('==>ALIASING switched off for status ready')
 
-        if job_is_aliased == True:
+        if job_is_aliased:
             delta_limit = 600
 
-            try:
-                raise NotImplementedError
-                # this never worked since time_ was introduced, but it makes no difference
-                delta = self.get_file_mtime(
-                    alias_workdir + '/' + 'job_monitor.json') - time_.time()
-            except:
-                delta = delta_limit+1
+            # try:
+            #     raise NotImplementedError
+            #     # this never worked since time_ was introduced, but it makes no difference
+            #     delta = self.get_file_mtime(
+            #         alias_workdir + '/' + 'job_monitor.json') - time_.time()
+            # except:
+            delta = delta_limit+1
 
             if delta > delta_limit:
                 original_work_dir = job.work_dir
