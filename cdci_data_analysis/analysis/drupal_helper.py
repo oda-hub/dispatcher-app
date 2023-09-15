@@ -844,8 +844,8 @@ def get_data_product_list_with_conditions(product_gallery_url, gallery_jwt_token
                                           src_name=None,
                                           instrument_name=None,
                                           product_type=None,
-                                          e1=None, e2=None,
-                                          rev1=None, rev2=None,
+                                          e1_kev_value=None, e2_kev_value=None,
+                                          rev1_value=None, rev2_value=None,
                                           sentry_dsn=None) -> Optional[list]:
     headers = get_drupal_request_headers(gallery_jwt_token)
     product_list = []
@@ -867,11 +867,28 @@ def get_data_product_list_with_conditions(product_gallery_url, gallery_jwt_token
     if product_type is None:
         product_type = "all"
 
+    request_url = f"{product_gallery_url}/data_products/source_products_conditions/{instrument_name}/{product_type}/{source_entity_id}"
+
+    params = {"_format": "hal_json"}
+
+    if e1_kev_value is not None:
+        params["field_e1_kev_value"] = e1_kev_value
+
+    if e2_kev_value is not None:
+        params["field_e2_kev_value"] = e2_kev_value
+
+    if rev1_value is not None:
+        params["field_rev1_value"] = rev1_value
+
+    if rev2_value is not None:
+        params["field_rev2_value"] = rev2_value
+
     if source_entity_id is not None:
-        log_res = execute_drupal_request(f"{product_gallery_url}/data_products/source_products_conditions/{instrument_name}/{product_type}/{source_entity_id}",
+        log_res = execute_drupal_request(request_url,
+                                         params=params,
                                          headers=headers,
                                          sentry_dsn=sentry_dsn)
-        output_get = analyze_drupal_output(log_res, operation_performed="retrieving the astrophysical entity information")
+        output_get = analyze_drupal_output(log_res, operation_performed="retrieving list of data products with conditions")
         if isinstance(output_get, list):
             for obj in output_get:
                 refactored_obj = {}
