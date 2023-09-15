@@ -2325,7 +2325,9 @@ def test_product_gallery_get_data_products_list_with_conditions(dispatcher_live_
             'src_name': source_name,
             'content_type': 'data_product',
             'token': encoded_token,
-            'insert_new_source': True
+            'insert_new_source': True,
+            'T1': '2022-07-21T00:29:47',
+            'T2': '2022-08-23T05:29:11'
         }
         c = requests.post(os.path.join(server, "post_product_to_gallery"),
                           params={**product_params}
@@ -2340,16 +2342,23 @@ def test_product_gallery_get_data_products_list_with_conditions(dispatcher_live_
             'product_type': product_type_query
         }
         if include_products_fields_conditions:
-            for e1_kev, e2_kev in [
-                (100, 350),
-                (50, 400),
-                (200, 350),
-                (200, 350),
-                (50, 300),
+            for e1_kev, e2_kev, rev1, rev2 in [
+                (100, 350, 2528, 2540),
+                (100, 350, 2526, 2541),
+                (100, 350, 2529, 2539),
+                (100, 350, 2529, 2541),
+                (100, 350, 2527, 2539),
+                (50, 400, 2528, 2540),
+                (200, 350, 2528, 2540),
+                (200, 350, 2528, 2540),
+                (50, 300, 2528, 2540),
             ]:
                 logger.info(f"testing with e1_kev_value {e1_kev}, e2_kev_value {e2_kev}")
                 params['e1_kev_value'] = e1_kev
                 params['e2_kev_value'] = e2_kev
+
+                params['rev1_value'] = rev1
+                params['rev2_value'] = rev2
 
                 c = requests.get(os.path.join(server, "get_data_product_list_with_conditions"),
                                  params=params
@@ -2359,7 +2368,7 @@ def test_product_gallery_get_data_products_list_with_conditions(dispatcher_live_
                 drupal_res_obj = c.json()
                 assert isinstance(drupal_res_obj, list)
 
-                if e1_kev > 100 or e2_kev < 350:
+                if e1_kev > 100 or e2_kev < 350 or rev1 > 2528 or rev2 < 2540:
                     assert len(drupal_res_obj) == 0
                 else:
                     assert len(drupal_res_obj) == 1
