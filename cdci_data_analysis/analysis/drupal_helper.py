@@ -874,9 +874,7 @@ def get_data_product_list_with_conditions(product_gallery_url, gallery_jwt_token
     for k, v in kwargs.items():
         # the machine name of the field in drupal starts by default with field_
         field_name = str.lower('field_' + k)
-        params[field_name] = [{
-            "value": v
-        }]
+        params[field_name] = v
 
     if source_entity_id is not None:
         log_res = execute_drupal_request(request_url,
