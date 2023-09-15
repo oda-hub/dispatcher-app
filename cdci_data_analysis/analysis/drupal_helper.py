@@ -842,8 +842,6 @@ def get_all_revolutions(product_gallery_url, gallery_jwt_token, sentry_dsn=None)
 
 def get_data_product_list_with_conditions(product_gallery_url, gallery_jwt_token,
                                           src_name=None,
-                                          instrument_name=None,
-                                          product_type=None,
                                           sentry_dsn=None,
                                           **kwargs
                                           ) -> Optional[list]:
@@ -861,13 +859,7 @@ def get_data_product_list_with_conditions(product_gallery_url, gallery_jwt_token
         if len(source_entity_list) >= 1:
             source_entity_id = source_entity_list[0]['nid']
 
-    if instrument_name is None:
-        instrument_name = "all"
-
-    if product_type is None:
-        product_type = "all"
-
-    request_url = f"{product_gallery_url}/data_products/source_products_conditions/{instrument_name}/{product_type}/{source_entity_id}"
+    request_url = f"{product_gallery_url}/data_products/source_products_conditions/{source_entity_id}"
 
     params = {"_format": "hal_json"}
 
