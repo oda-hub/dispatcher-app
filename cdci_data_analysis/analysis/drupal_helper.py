@@ -844,9 +844,9 @@ def get_data_product_list_with_conditions(product_gallery_url, gallery_jwt_token
                                           src_name=None,
                                           instrument_name=None,
                                           product_type=None,
-                                          e1_kev_value=None, e2_kev_value=None,
-                                          rev1_value=None, rev2_value=None,
-                                          sentry_dsn=None) -> Optional[list]:
+                                          sentry_dsn=None,
+                                          **kwargs
+                                          ) -> Optional[list]:
     headers = get_drupal_request_headers(gallery_jwt_token)
     product_list = []
     if src_name is None:
@@ -871,17 +871,12 @@ def get_data_product_list_with_conditions(product_gallery_url, gallery_jwt_token
 
     params = {"_format": "hal_json"}
 
-    if e1_kev_value is not None:
-        params["field_e1_kev_value"] = e1_kev_value
-
-    if e2_kev_value is not None:
-        params["field_e2_kev_value"] = e2_kev_value
-
-    if rev1_value is not None:
-        params["field_rev1_value"] = rev1_value
-
-    if rev2_value is not None:
-        params["field_rev2_value"] = rev2_value
+    for k, v in kwargs.items():
+        # the machine name of the field in drupal starts by default with field_
+        field_name = str.lower('field_' + k)
+        params[field_name] = [{
+            "value": v
+        }]
 
     if source_entity_id is not None:
         log_res = execute_drupal_request(request_url,

@@ -805,7 +805,8 @@ def get_data_product_list_with_conditions():
     logger.info("request.args: %s ", request.args)
     logger.info("request.files: %s ", request.files)
 
-    token = request.args.get('token', None)
+    par_dic = request.values.to_dict()
+    token = par_dic.pop('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -816,9 +817,6 @@ def get_data_product_list_with_conditions():
     if output_code is not None:
         return make_response(output, output_code)
     decoded_token = output
-
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
 
     sentry_dsn = sentry.sentry_url
 
@@ -831,22 +829,17 @@ def get_data_product_list_with_conditions():
     # update the token
     gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
 
-    src_name = request.args.get('src_name', None)
-    instrument_name = request.args.get('instrument_name', None)
-    product_type = request.args.get('product_type', None)
-    e1_kev_value = request.args.get('e1_kev_value', None)
-    e2_kev_value = request.args.get('e2_kev_value', None)
-    rev1_value = request.args.get('rev1_value', None)
-    rev2_value = request.args.get('rev2_value', None)
+    src_name = par_dic.pop('src_name', None)
+    instrument_name = par_dic.pop('instrument_name', None)
+    product_type = par_dic.pop('product_type', None)
 
     output_get = drupal_helper.get_data_product_list_with_conditions(product_gallery_url=product_gallery_url,
                                                                      gallery_jwt_token=gallery_jwt_token,
                                                                      src_name=src_name,
                                                                      instrument_name=instrument_name,
                                                                      product_type=product_type,
-                                                                     e1_kev_value=e1_kev_value, e2_kev_value=e2_kev_value,
-                                                                     rev1_value=rev1_value, rev2_value=rev2_value,
-                                                                     sentry_dsn=sentry_dsn)
+                                                                     sentry_dsn=sentry_dsn,
+                                                                     **par_dic)
     output_list = json.dumps(output_get)
 
     return output_list
