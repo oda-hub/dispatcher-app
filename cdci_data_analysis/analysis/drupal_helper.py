@@ -840,11 +840,11 @@ def get_all_revolutions(product_gallery_url, gallery_jwt_token, sentry_dsn=None)
     return entities
 
 
-def get_data_product_list_with_conditions(product_gallery_url, gallery_jwt_token,
-                                          src_name=None,
-                                          sentry_dsn=None,
-                                          **kwargs
-                                          ) -> Optional[list]:
+def get_data_product_list_by_source_name_with_conditions(product_gallery_url, gallery_jwt_token,
+                                                         src_name=None,
+                                                         sentry_dsn=None,
+                                                         **kwargs
+                                                         ) -> Optional[list]:
     headers = get_drupal_request_headers(gallery_jwt_token)
     product_list = []
     if src_name is None:

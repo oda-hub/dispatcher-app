@@ -800,8 +800,8 @@ def get_astro_entity_info_by_source_name():
     return refactored_astro_entity_info
 
 
-@app.route('/get_data_product_list_with_conditions', methods=['GET'])
-def get_data_product_list_with_conditions():
+@app.route('/get_data_product_list_by_source_name_with_conditions', methods=['GET'])
+def get_data_product_list_by_source_name_with_conditions():
     logger.info("request.args: %s ", request.args)
     logger.info("request.files: %s ", request.files)
 
@@ -831,11 +831,11 @@ def get_data_product_list_with_conditions():
 
     src_name = par_dic.pop('src_name', None)
 
-    output_get = drupal_helper.get_data_product_list_with_conditions(product_gallery_url=product_gallery_url,
-                                                                     gallery_jwt_token=gallery_jwt_token,
-                                                                     src_name=src_name,
-                                                                     sentry_dsn=sentry_dsn,
-                                                                     **par_dic)
+    output_get = drupal_helper.get_data_product_list_by_source_name_with_conditions(product_gallery_url=product_gallery_url,
+                                                                                    gallery_jwt_token=gallery_jwt_token,
+                                                                                    src_name=src_name,
+                                                                                    sentry_dsn=sentry_dsn,
+                                                                                    **par_dic)
     output_list = json.dumps(output_get)
 
     return output_list
