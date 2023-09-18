@@ -583,14 +583,13 @@ class ProductQuery(BaseQuery):
             # TODO: could we avoid these? they make error tracking hard
             # TODO we could use the very same approach used when test_communication fails
             logger.exception("failed to get query products")
-            e_message = repr(e) + '\n' + getattr(e, 'message', '') + '\n' + getattr(e, 'debug_message', '')
 
             #status=1
             job.set_failed()
             if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
                 raise
-
-            e_message = getattr(e, 'message', '')
+            exception_message = getattr(e, 'message', '')
+            e_message = f'Failed when getting query products for job {job.job_id}:\n{exception_message}'
             messages['debug_message'] = repr(e) + ' : ' + getattr(e, 'debug_message', '')
 
             query_out.set_failed('get_dataserver_products found job failed',
