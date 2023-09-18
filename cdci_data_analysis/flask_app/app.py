@@ -840,6 +840,7 @@ def get_data_product_list_with_conditions():
     return output_list
 
 
+# TODO to refactor using get_data_product_list_with_conditions
 @app.route('/get_data_product_list_by_source_name', methods=['GET'])
 def get_data_product_list_by_source_name():
     logger.info("request.args: %s ", request.args)
@@ -874,7 +875,7 @@ def get_data_product_list_by_source_name():
     src_name = request.args.get('src_name', None)
 
     output_get = drupal_helper.get_data_product_list_by_source_name(product_gallery_url=product_gallery_url,
-                                                                     gallery_jwt_token=gallery_jwt_token,
+                                                                    gallery_jwt_token=gallery_jwt_token,
                                                                     src_name=src_name,
                                                                     sentry_dsn=sentry_dsn)
     output_list = json.dumps(output_get)
