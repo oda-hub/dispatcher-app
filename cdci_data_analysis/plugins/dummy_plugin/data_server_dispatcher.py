@@ -197,6 +197,7 @@ class EmptyProductQuery(ProductQuery):
         return [p]
 
     def test_communication(self,
+                           job,
                            instrument: Instrument,
                            query_type='Real',
                            logger=None,

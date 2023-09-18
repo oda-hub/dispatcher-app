@@ -406,7 +406,7 @@ class ProductQuery(BaseQuery):
     def get_prod_by_name(self,name):
         return self.query_prod_list.get_prod_by_name(name)
 
-    def test_communication(self, instrument, job, query_type='Real', logger=None, config=None, sentry_dsn=None):
+    def test_communication(self, instrument, job=None, query_type='Real', logger=None, config=None, sentry_dsn=None):
         if logger is None:
             logger = self.get_logger()
 
@@ -431,7 +431,10 @@ class ProductQuery(BaseQuery):
             query_out.set_done(message=message, debug_message=str(debug_message),status=status)
 
         except ConnectionError as e:
-            e_message = f'Connection with the backend (instrument: {instrument.name}, product: {self.name}, job_id: {job.job_id}) failed!\n' + repr(e)
+            job_id_message = ''
+            if job is not None:
+                job_id_message = f', job_id: {job.job_id}'
+            e_message = f'Connection with the backend (instrument: {instrument.name}, product: {self.name}{job_id_message}) failed!\n' + repr(e)
 
             if hasattr(e, 'debug_message') and e.debug_message is not None:
                 debug_message = e.debug_message
@@ -460,7 +463,7 @@ class ProductQuery(BaseQuery):
 
         return query_out
 
-    def test_has_products(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None):
+    def test_has_products(self,instrument,job=None,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None):
         if logger is None:
             logger = self.get_logger()
 
