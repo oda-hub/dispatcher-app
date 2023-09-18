@@ -1789,8 +1789,7 @@ class InstrumentQueryBackEnd:
                                                               api)
                         self.log_query_progression("after re-submission of instrument.run_query")
                     except RequestNotAuthorized as e:
-                        # TODO why is it an oda_api related response ?
-                        return self.build_response_failed('oda_api permissions failed',
+                        return self.build_response_failed(f'permissions exception when executing job {job.job_id}',
                                                           e.message,
                                                           status_code=e.status_code,
                                                           debug_message=e.debug_message)
@@ -1883,8 +1882,7 @@ class InstrumentQueryBackEnd:
                                                           api)
                     self.log_query_progression("after instrument.run_query")                                                          
                 except RequestNotAuthorized as e:
-                    # TODO why is it an oda_api related response ?
-                    return self.build_response_failed('oda_api permissions failed',
+                    return self.build_response_failed(f'permissions exception when executing job {job.job_id}',
                                                       e.message,
                                                       status_code=e.status_code,
                                                       debug_message=e.debug_message)
