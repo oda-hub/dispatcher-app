@@ -449,7 +449,7 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
             f.write(f_default.read())
 
         f.write('\n    product_gallery_options:'
-                '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/gallery-dev"'
+                '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/galleryd"'
                 f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"'
                 '\n        product_gallery_timezone: "Europe/Zurich"'
                 '\n        name_resolver_url: "https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}"'
@@ -468,7 +468,7 @@ def dispatcher_test_conf_with_gallery_no_resolver_fn(dispatcher_test_conf_fn):
             f.write(f_default.read())
 
         f.write('\n    product_gallery_options:'
-                '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/gallery-dev"'
+                '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/galleryd"'
                 '\n        product_gallery_timezone: "Europe/Zurich"'
                 f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"')
 
