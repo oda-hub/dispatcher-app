@@ -840,6 +840,52 @@ def get_all_revolutions(product_gallery_url, gallery_jwt_token, sentry_dsn=None)
     return entities
 
 
+def get_data_product_list_by_source_name_with_conditions(product_gallery_url, gallery_jwt_token,
+                                                         sentry_dsn=None,
+                                                         **kwargs
+                                                         ) -> Optional[list]:
+    headers = get_drupal_request_headers(gallery_jwt_token)
+    product_list = []
+    # if src_name is None:
+    #     source_entity_id = "all"
+    # else:
+    #     source_entity_list = get_source_astrophysical_entity_info_by_source_and_alternative_name(product_gallery_url,
+    #                                                                                          gallery_jwt_token,
+    #                                                                                          source_name=src_name,
+    #                                                                                          sentry_dsn=sentry_dsn)
+
+        # source_entity_id = None
+        # if len(source_entity_list) >= 1:
+        #     source_entity_id = source_entity_list[0]['nid']
+
+    request_url = f"{product_gallery_url}/data_products/source_products_conditions"
+
+    params = {"_format": "hal_json"}
+
+    for k, v in kwargs.items():
+        # the machine name of the field in drupal starts by default with field_
+        field_name = str.lower('field_' + k)
+        params[field_name] = v
+
+    # if source_entity_id is not None:
+    log_res = execute_drupal_request(request_url,
+                                     params=params,
+                                     headers=headers,
+                                     sentry_dsn=sentry_dsn)
+    output_get = analyze_drupal_output(log_res, operation_performed="retrieving list of data products with conditions")
+    if isinstance(output_get, list):
+        for obj in output_get:
+            refactored_obj = {}
+            for k, v in obj.items():
+                refactored_key = k
+                if k.startswith('field_'):
+                    refactored_key = k.replace('field_', '')
+                refactored_obj[refactored_key] = v
+            product_list.append(refactored_obj)
+
+    return product_list
+
+
 def get_data_product_list_by_source_name(product_gallery_url, gallery_jwt_token, src_name=None, sentry_dsn=None) -> Optional[list]:
     product_list = []
     if src_name is None:

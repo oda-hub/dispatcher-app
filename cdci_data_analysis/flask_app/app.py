@@ -800,7 +800,47 @@ def get_astro_entity_info_by_source_name():
     return refactored_astro_entity_info
 
 
+@app.route('/get_data_product_list_with_conditions', methods=['GET'])
+def get_data_product_list_with_conditions():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
 
+    par_dic = request.values.to_dict()
+    token = par_dic.pop('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="getting all the astro entities from the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    sentry_dsn = sentry.sentry_url
+
+    gallery_secret_key = app_config.product_gallery_secret_key
+    product_gallery_url = app_config.product_gallery_url
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
+                                                        user_email=user_email,
+                                                        sentry_dsn=sentry_dsn)
+    # update the token
+    gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+
+    # src_name = par_dic.pop('src_name', None)
+
+    output_get = drupal_helper.get_data_product_list_by_source_name_with_conditions(product_gallery_url=product_gallery_url,
+                                                                                    gallery_jwt_token=gallery_jwt_token,
+                                                                                    sentry_dsn=sentry_dsn,
+                                                                                    **par_dic)
+    output_list = json.dumps(output_get)
+
+    return output_list
+
+
+# TODO to refactor using get_data_product_list_with_conditions
 @app.route('/get_data_product_list_by_source_name', methods=['GET'])
 def get_data_product_list_by_source_name():
     logger.info("request.args: %s ", request.args)
@@ -835,7 +875,7 @@ def get_data_product_list_by_source_name():
     src_name = request.args.get('src_name', None)
 
     output_get = drupal_helper.get_data_product_list_by_source_name(product_gallery_url=product_gallery_url,
-                                                                     gallery_jwt_token=gallery_jwt_token,
+                                                                    gallery_jwt_token=gallery_jwt_token,
                                                                     src_name=src_name,
                                                                     sentry_dsn=sentry_dsn)
     output_list = json.dumps(output_get)

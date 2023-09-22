@@ -2284,6 +2284,159 @@ def test_product_gallery_get_all_astro_entities(dispatcher_live_fixture_with_gal
 
 
 @pytest.mark.test_drupal
+@pytest.mark.parametrize("source_name", ["new", "known", "unknown"])
+@pytest.mark.parametrize("include_products_fields_conditions", [True, False])
+def test_product_gallery_get_data_products_list_with_conditions(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_name, include_products_fields_conditions):
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    instrument_name = 'isgri'
+    product_type = 'isgri_image'
+    instrument_query = 'isgri'
+    product_type_query = 'image'
+
+    if source_name == 'new':
+        source_name = 'test astro entity' + '_' + str(uuid.uuid4())
+        # let's create a source
+        source_params = {
+            'token': encoded_token,
+            'src_name': source_name
+        }
+
+        c = requests.post(os.path.join(server, "post_astro_entity_to_gallery"),
+                          params={**source_params},
+                          )
+
+        assert c.status_code == 200
+
+        # let's post a product with the source just created
+        product_params = {
+            'instrument': instrument_name,
+            'product_type': product_type,
+            'E1_keV': 150,
+            'E2_keV': 350,
+            'src_name': source_name,
+            'content_type': 'data_product',
+            'token': encoded_token,
+            'insert_new_source': True,
+            'T1': '2022-07-21T00:29:47',
+            'T2': '2022-08-23T05:29:11'
+        }
+        c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                          params={**product_params}
+                          )
+
+        assert c.status_code == 200
+
+        params = {
+            'token': encoded_token,
+            'src_name': source_name,
+            'instrument_name': instrument_query,
+            'product_type': product_type_query
+        }
+        if include_products_fields_conditions:
+            for e1_kev, e2_kev, rev1, rev2 in [
+                (100, 350, 2528, 2540),
+                (100, 350, 2526, 2541),
+                (100, 350, 2529, 2539),
+                (100, 350, 2529, 2541),
+                (100, 350, 2527, 2539),
+                (50, 400, 2528, 2540),
+                (200, 350, 2528, 2540),
+                (200, 350, 2528, 2540),
+                (50, 300, 2528, 2540),
+            ]:
+                logger.info(f"testing with e1_kev_value {e1_kev}, e2_kev_value {e2_kev}")
+                params['e1_kev_value'] = e1_kev
+                params['e2_kev_value'] = e2_kev
+
+                params['rev1_value'] = rev1
+                params['rev2_value'] = rev2
+
+                c = requests.get(os.path.join(server, "get_data_product_list_with_conditions"),
+                                 params=params
+                                 )
+
+                assert c.status_code == 200
+                drupal_res_obj = c.json()
+                assert isinstance(drupal_res_obj, list)
+
+                if e1_kev > 100 or e2_kev < 350 or rev1 > 2528 or rev2 < 2540:
+                    assert len(drupal_res_obj) == 0
+                else:
+                    assert len(drupal_res_obj) == 1
+        else:
+            c = requests.get(os.path.join(server, "get_data_product_list_with_conditions"),
+                             params=params
+                             )
+
+            assert c.status_code == 200
+            drupal_res_obj = c.json()
+            assert isinstance(drupal_res_obj, list)
+            assert len(drupal_res_obj) == 1
+    elif source_name == 'unknown':
+        source_name = "aaaaaaaaaaaaaaaaa"
+        params = {
+            'token': encoded_token,
+            'src_name': source_name
+        }
+        c = requests.get(os.path.join(server, "get_data_product_list_with_conditions"),
+                         params=params
+                         )
+
+        assert c.status_code == 200
+        drupal_res_obj = c.json()
+        assert isinstance(drupal_res_obj, list)
+        assert len(drupal_res_obj) == 0
+    else:
+        source_name = "V404 Cyg"
+        params = {
+            'token': encoded_token,
+            'src_name': source_name
+        }
+        c = requests.get(os.path.join(server, "get_data_product_list_with_conditions"),
+                         params=params
+                         )
+
+        assert c.status_code == 200
+        drupal_res_obj_source_name = c.json()
+        assert isinstance(drupal_res_obj_source_name, list)
+
+        source_name = "1RXS J202405.3+335157"
+        params = {
+            'token': encoded_token,
+            'src_name': source_name
+        }
+        c = requests.get(os.path.join(server, "get_data_product_list_with_conditions"),
+                         params=params
+                         )
+
+        assert c.status_code == 200
+        drupal_res_obj_alternative_name = c.json()
+        assert isinstance(drupal_res_obj_alternative_name, list)
+
+        assert len(drupal_res_obj_alternative_name) == len(drupal_res_obj_source_name)
+
+        # Create sets of dictionaries
+        set1 = set(map(lambda d: frozenset(d.items()), drupal_res_obj_source_name))
+        set2 = set(map(lambda d: frozenset(d.items()), drupal_res_obj_alternative_name))
+
+        # Find the differences
+        diff1 = set1 - set2
+        diff2 = set2 - set1
+
+        assert diff2 == set()
+        assert diff1 == set()
+
+
+@pytest.mark.test_drupal
 @pytest.mark.parametrize("source_name", ["new", "known"])
 def test_product_gallery_get_data_products_list_for_given_source(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_name):
     server = dispatcher_live_fixture_with_gallery
