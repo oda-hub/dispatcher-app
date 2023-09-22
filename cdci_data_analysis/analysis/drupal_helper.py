@@ -846,17 +846,6 @@ def get_data_product_list_by_source_name_with_conditions(product_gallery_url, ga
                                                          ) -> Optional[list]:
     headers = get_drupal_request_headers(gallery_jwt_token)
     product_list = []
-    # if src_name is None:
-    #     source_entity_id = "all"
-    # else:
-    #     source_entity_list = get_source_astrophysical_entity_info_by_source_and_alternative_name(product_gallery_url,
-    #                                                                                          gallery_jwt_token,
-    #                                                                                          source_name=src_name,
-    #                                                                                          sentry_dsn=sentry_dsn)
-
-        # source_entity_id = None
-        # if len(source_entity_list) >= 1:
-        #     source_entity_id = source_entity_list[0]['nid']
 
     request_url = f"{product_gallery_url}/data_products/source_products_conditions"
 
