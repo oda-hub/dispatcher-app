@@ -150,3 +150,19 @@ def validate_token_from_request(token, secret_key, required_roles=None, action="
         return message, 403
 
     return decoded_token, None
+
+
+def get_token_matrix_matrix_user_room_id(decoded_token):
+    return decoded_token.get('mxroomid', None)
+
+
+def get_token_user_submitted_matrix_message(decoded_token):
+    return decoded_token.get('mxsub', None)
+
+
+def get_token_user_sending_submitted_interval_matrix_message(decoded_token):
+    return decoded_token.get('mxintsub', None)
+
+
+def get_token_user_done_matrix_message(decoded_token):
+    return decoded_token.get('mxdone', None)
