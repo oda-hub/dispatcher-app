@@ -3,10 +3,15 @@ import logging
 import os
 import requests
 import glob
+import json
 
 from ..analysis import tokenHelper
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
+from ..analysis.hash import make_hash
+from ..analysis.time_helper import validate_time
 from ..flask_app.sentry import sentry
+
+from datetime import datetime
 
 logger = logging.getLogger()
 
@@ -180,4 +185,30 @@ def is_message_to_send_callback(logger, status, time_original_request, scratch_d
     time_check = time_.time()
     sentry_for_email_sending_check = config.sentry_for_email_sending_check
 
+
+def log_matrix_message_sending_info(logger, status, time_request, scratch_dir, job_id, additional_info_obj=None):
+    matrix_message_history_dir = os.path.join(scratch_dir, 'matrix_message_history')
+    if not os.path.exists(matrix_message_history_dir):
+        os.makedirs(matrix_message_history_dir)
+
+    try:
+        time_request_str = validate_time(time_request).strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, OverflowError, TypeError, OSError) as e:
+        logger.warning(f'Error when extracting logging the sending info of an email.'
+                       f'The time value {time_request} raised the following error:\n{e}')
+        time_request_str = datetime.fromtimestamp(time_.time()).strftime("%Y-%m-%d %H:%M:%S")
+        sentry.capture_message(f'Error when extracting logging the sending info of an email.'
+                               f'The time value {time_request} raised the following error:\n{e}')
+
+    history_info_obj = dict(time=time_request_str,
+                            status=status,
+                            job_id=job_id)
+    if additional_info_obj is not None:
+        history_info_obj['additional_information'] = additional_info_obj
+    history_info_obj_hash = make_hash(history_info_obj)
+    matrix_message_history_log_fn = os.path.join(matrix_message_history_dir, f'matrix_message_history_log_{status}_{time_request}_{history_info_obj_hash}.log')
+    with open(matrix_message_history_log_fn, 'w') as outfile:
+        outfile.write(json.dumps(history_info_obj, indent=4))
+
+    logger.info(f"logging matrix message for job id {job_id} sending attempt into {matrix_message_history_log_fn} file")
 
