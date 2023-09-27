@@ -40,7 +40,7 @@ import typing
 
 from ..plugins import importer
 from ..analysis.queries import SourceQuery
-from ..analysis import tokenHelper, email_helper
+from ..analysis import tokenHelper, email_helper, matrix_helper
 from ..analysis.instrument import params_not_to_be_included
 from ..analysis.hash import make_hash
 from ..analysis.hash import default_kw_black_list
@@ -1820,6 +1820,44 @@ class InstrumentQueryBackEnd:
                     else:
                         query_new_status = 'submitted'
                         job.set_submitted()
+
+                    if matrix_helper.is_message_to_send_run_query(query_new_status,
+                                                                  self.time_request,
+                                                                  self.scratch_dir,
+                                                                  self.job_id,
+                                                                  self.app.config['conf'],
+                                                                  decoded_token=self.decoded_token):
+                        try:
+                            products_url = self.generate_products_url(self.app.config.get('conf').products_url,
+                                                                      self.par_dic)
+                            email_api_code = DispatcherAPI.set_api_code(self.par_dic,
+                                                                        url=self.app.config[
+                                                                                'conf'].products_url + "/dispatch-data"
+                                                                        )
+                            time_request = self.time_request
+                            time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
+                            if time_request_first_submitted is not None:
+                                time_request = time_request_first_submitted
+
+                            matrix_helper.send_job_message(
+                                config=self.app.config['conf'],
+                                decoded_token=self.decoded_token,
+                                token=self.token,
+                                job_id=self.job_id,
+                                session_id=self.par_dic['session_id'],
+                                status=query_new_status,
+                                instrument=self.instrument.name,
+                                product_type=product_type,
+                                time_request=time_request,
+                                request_url=products_url,
+                                api_code=email_api_code,
+                                scratch_dir=self.scratch_dir)
+
+                            query_out.set_status_field('matrix_message_status', 'matrix message sent')
+                        except matrix_helper.MatrixMsgNotSent as e:
+                            query_out.set_status_field('matrix_message_status', 'sending matrix message failed')
+                            logging.warning(f'matrix message sending failed: {e}')
+                            sentry.capture_message(f'sending matrix message failed {e.message}')
 
                     if email_helper.is_email_to_send_run_query(self.logger,
                                                                query_new_status,

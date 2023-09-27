@@ -92,14 +92,13 @@ def send_job_message(
         permanent_url = True
 
     matrix_server_url = config.matrix_server_url
-    matrix_sender_alias = config.matrix_sender_alias
+    matrix_sender_access_token = config.matrix_sender_access_token
     receiver_room_id = tokenHelper.get_token_user_matrix_room_id(decoded_token)
 
     matrix_message_data = {
         'oda_site': {
             'site_name': config.site_name,
             'frontend_url': config.products_url,
-            'contact': config.contact_email_address,
             'manual_reference': config.manual_reference,
         },
         'request': {
@@ -122,7 +121,7 @@ def send_job_message(
     message_text = textify_matrix_message(message_body_html)
 
     send_message(url_server=matrix_server_url,
-                 sender_alias=matrix_sender_alias,
+                 sender_access_token=matrix_sender_access_token,
                  room_id=receiver_room_id,
                  message_text=message_text,
                  message_body_html=message_body_html
@@ -134,7 +133,7 @@ def send_job_message(
 
 def send_message(
         url_server,
-        sender_alias,
+        sender_access_token,
         room_id,
         message_text,
         message_body_html,
@@ -143,7 +142,7 @@ def send_message(
     url = f'{url_server}/_matrix/client/r0/rooms/' + room_id + '/send/m.room.message'
 
     headers = {
-        'Authorization': ' '.join(['Bearer', sender_alias]),
+        'Authorization': ' '.join(['Bearer', sender_access_token]),
         'Content-type': 'application/json'
     }
 
@@ -166,7 +165,7 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
     log_additional_info_obj = {}
     sending_ok = False
     time_check = time_.time()
-    sentry_for_email_sending_check = config.sentry_for_email_sending_check
+    sentry_for_matrix_message_sending_check = config.sentry_for_matrix_message_sending_check
     # get total request duration
     if decoded_token:
         # in case the job is just submitted and was not submitted before, at least since some time
@@ -230,7 +229,7 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
         if status != 'submitted':
             status_ok = False
             logger.info(f'status {status} not a valid one for sending a message on matrix after a run_query')
-            if sentry_for_email_sending_check:
+            if sentry_for_matrix_message_sending_check:
                 sentry.capture_message((f'an attempt to send a message on the via matrix for the job {job_id} '
                                         f'has been detected at the completion '
                                         f'of the run_query method with the status: {status}'))
@@ -255,7 +254,7 @@ def is_message_to_send_callback(status, time_original_request, scratch_dir, conf
     log_additional_info_obj = {}
     sending_ok = False
     time_check = time_.time()
-    sentry_for_email_sending_check = config.sentry_for_email_sending_check
+    sentry_for_matrix_message_sending_check = config.sentry_for_matrix_message_sending_check
 
 
 def log_matrix_message_sending_info(status, time_request, scratch_dir, job_id, additional_info_obj=None):

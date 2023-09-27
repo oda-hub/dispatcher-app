@@ -245,6 +245,11 @@ class ConfigEnv(object):
                                      disp_dict['email_options'].get('sentry_for_email_sending_check', False),
                                      disp_dict['email_options'].get('incident_report_email_options', {}).get('incident_report_sender_email_address', None),
                                      disp_dict['email_options'].get('incident_report_email_options', {}).get('incident_report_receivers_email_addresses', None),
+                                     disp_dict['matrix_options']['matrix_server_url'],
+                                     disp_dict['matrix_options']['matrix_sender_access_token'],
+                                     disp_dict['email_options'].get('matrix_message_sending_job_submitted', True),
+                                     disp_dict['email_options']['matrix_message_sending_job_submitted_default_interval'],
+                                     disp_dict['matrix_options'].get('sentry_for_matrix_message_sending_check', False),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_url', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_secret_key', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_timezone',
@@ -313,6 +318,11 @@ class ConfigEnv(object):
                             sentry_for_email_sending_check,
                             incident_report_sender_email_address,
                             incident_report_receivers_email_addresses,
+                            matrix_server_url,
+                            matrix_sender_access_token,
+                            matrix_message_sending_job_submitted,
+                            matrix_message_sending_job_submitted_default_interval,
+                            sentry_for_matrix_message_sending_check,
                             product_gallery_url,
                             product_gallery_secret_key,
                             product_gallery_timezone,
@@ -353,6 +363,11 @@ class ConfigEnv(object):
         self.sentry_for_email_sending_check = sentry_for_email_sending_check
         self.incident_report_sender_email_address = incident_report_sender_email_address
         self.incident_report_receivers_email_addresses = incident_report_receivers_email_addresses
+        self.matrix_server_url = matrix_server_url
+        self.matrix_sender_access_token = matrix_sender_access_token
+        self.matrix_message_sending_job_submitted = matrix_message_sending_job_submitted
+        self.matrix_message_sending_job_submitted_default_interval = matrix_message_sending_job_submitted_default_interval
+        self.sentry_for_matrix_message_sending_check = sentry_for_matrix_message_sending_check
         self.product_gallery_url = product_gallery_url
         self.product_gallery_secret_key = product_gallery_secret_key
         self.product_gallery_timezone = product_gallery_timezone

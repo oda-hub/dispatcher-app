@@ -74,6 +74,20 @@ dispatcher:
         # enable the sending of a sentry message in case a not valid condition for the sending an email is met
         sentry_for_email_sending_check: False
 
+    # matrix related configurations: a user might want to receive a message on his matrix personal room, or another room he chooses
+    matrix_options:
+        # matrix server url
+        matrix_server_url: MATRIX_SERVER_URL
+        # access token of the sender account, from which the messages will be sent from
+        matrix_sender_access_token: MATRIX_SENDER_ACCESS_TOKEN
+        # enable/disable sending of messages via matrix in case of a submitted job status
+        matrix_message_sending_job_submitted: True
+        # amount of time (in seconds) elapsed from the sending of the last message on matrix
+        # for when a request has been submitted
+        matrix_message_sending_job_submitted_default_interval: 5
+        # enable the sending of a sentry message in case a not valid condition for the sending a message on matrix is met
+        sentry_for_matrix_message_sending_check: False
+
     # product gallery related set of options
     # in case no integration with the product gallery is provided, these options will be ignored
     product_gallery_options:
