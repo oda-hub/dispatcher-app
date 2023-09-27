@@ -10,10 +10,11 @@ from ..analysis.exceptions import BadRequest, MissingRequestParameter
 from ..analysis.hash import make_hash
 from ..analysis.time_helper import validate_time
 from ..flask_app.sentry import sentry
+from ..app_logging import app_logging
 
 from datetime import datetime
 
-logger = logging.getLogger()
+logger = app_logging.getLogger('matrix_helper')
 
 num_msgs_sending_max_tries = 5
 msg_sending_retry_sleep_s = .5
@@ -26,7 +27,6 @@ def send_incident_report_message(
         config,
         job_id,
         session_id,
-        logger,
         decoded_token,
         incident_content=None,
         incident_time=None,
@@ -40,7 +40,6 @@ def send_incident_report_message(
 
 def send_job_message(
         config,
-        logger,
         decoded_token,
         token,
         job_id,
@@ -64,7 +63,6 @@ def send_message(
         room_id, # from config and token
         message_text,
         message_body_html,
-        logger
 ):
     logger.info(f"Sending message to the room id: {room_id}")
     url = f'{url_server}/_matrix/client/r0/rooms/' + room_id + '/send/m.room.message'
@@ -88,7 +86,7 @@ def send_message(
     return res
 
 
-def is_message_to_send_run_query(logger, status, time_original_request, scratch_dir, job_id, config, decoded_token=None):
+def is_message_to_send_run_query(status, time_original_request, scratch_dir, job_id, config, decoded_token=None):
 
     log_additional_info_obj = {}
     sending_ok = False
@@ -166,8 +164,7 @@ def is_message_to_send_run_query(logger, status, time_original_request, scratch_
         sending_ok = matrix_message_sending_job_submitted and interval_ok and status_ok
         if sending_ok:
             log_additional_info_obj['check_result_message'] = 'the email will be sent'
-            log_matrix_message_sending_info(logger=logger,
-                                            status=status,
+            log_matrix_message_sending_info(status=status,
                                             time_request=time_check,
                                             scratch_dir=scratch_dir,
                                             job_id=job_id,
@@ -179,14 +176,14 @@ def is_message_to_send_run_query(logger, status, time_original_request, scratch_
     return sending_ok
 
 
-def is_message_to_send_callback(logger, status, time_original_request, scratch_dir, config, job_id, decoded_token=None, sentry_dsn=None):
+def is_message_to_send_callback(status, time_original_request, scratch_dir, config, job_id, decoded_token=None):
     log_additional_info_obj = {}
     sending_ok = False
     time_check = time_.time()
     sentry_for_email_sending_check = config.sentry_for_email_sending_check
 
 
-def log_matrix_message_sending_info(logger, status, time_request, scratch_dir, job_id, additional_info_obj=None):
+def log_matrix_message_sending_info(status, time_request, scratch_dir, job_id, additional_info_obj=None):
     matrix_message_history_dir = os.path.join(scratch_dir, 'matrix_message_history')
     if not os.path.exists(matrix_message_history_dir):
         os.makedirs(matrix_message_history_dir)
