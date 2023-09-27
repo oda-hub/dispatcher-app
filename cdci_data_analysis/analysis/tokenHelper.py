@@ -152,7 +152,7 @@ def validate_token_from_request(token, secret_key, required_roles=None, action="
     return decoded_token, None
 
 
-def get_token_matrix_matrix_user_room_id(decoded_token):
+def get_token_user_matrix_room_id(decoded_token):
     return decoded_token.get('mxroomid', None)
 
 

@@ -36,8 +36,6 @@ def send_incident_report_message(
     sending_time = time_.time()
 
 
-
-
 def send_job_message(
         config,
         decoded_token,
@@ -51,16 +49,31 @@ def send_job_message(
         time_request=None,
         request_url="",
         api_code="",
-        scratch_dir=None,
-        sentry_dsn=None):
+        scratch_dir=None):
     sending_time = time_.time()
+
+    matrix_server_url = config.matrix_server_url
+    matrix_sender_alias = config.matrix_sender_alias
+    receiver_room_id = tokenHelper.get_token_user_matrix_room_id(decoded_token)
+
+    message_text = None
+    message_body_html = None
+
+    send_message(url_server=matrix_server_url,
+                 sender_alias=matrix_sender_alias,
+                 room_id=receiver_room_id,
+                 message_text=message_text,
+                 message_body_html=message_body_html
+                 )
+
+    store_status_matrix_message_info(message, status, scratch_dir, sending_time=sending_time, first_submitted_time=time_request)
 
 
 
 def send_message(
         url_server,
-        sender_alias, # from config
-        room_id, # from config and token
+        sender_alias,
+        room_id,
         message_text,
         message_body_html,
 ):
@@ -184,9 +197,9 @@ def is_message_to_send_callback(status, time_original_request, scratch_dir, conf
 
 
 def log_matrix_message_sending_info(status, time_request, scratch_dir, job_id, additional_info_obj=None):
-    matrix_message_history_dir = os.path.join(scratch_dir, 'matrix_message_history')
-    if not os.path.exists(matrix_message_history_dir):
-        os.makedirs(matrix_message_history_dir)
+    matrix_message_history_folder = os.path.join(scratch_dir, 'matrix_message_history')
+    if not os.path.exists(matrix_message_history_folder):
+        os.makedirs(matrix_message_history_folder)
 
     try:
         time_request_str = validate_time(time_request).strftime("%Y-%m-%d %H:%M:%S")
@@ -203,9 +216,49 @@ def log_matrix_message_sending_info(status, time_request, scratch_dir, job_id, a
     if additional_info_obj is not None:
         history_info_obj['additional_information'] = additional_info_obj
     history_info_obj_hash = make_hash(history_info_obj)
-    matrix_message_history_log_fn = os.path.join(matrix_message_history_dir, f'matrix_message_history_log_{status}_{time_request}_{history_info_obj_hash}.log')
+    matrix_message_history_log_fn = os.path.join(matrix_message_history_folder, f'matrix_message_history_log_{status}_{time_request}_{history_info_obj_hash}.log')
     with open(matrix_message_history_log_fn, 'w') as outfile:
         outfile.write(json.dumps(history_info_obj, indent=4))
 
     logger.info(f"logging matrix message for job id {job_id} sending attempt into {matrix_message_history_log_fn} file")
 
+
+def store_status_matrix_message_info(message, status, scratch_dir, sending_time=None, first_submitted_time=None):
+    current_time = time_.time()
+    matrix_message_history_folder = os.path.join(scratch_dir, 'matrix_message_history')
+    if not os.path.exists(matrix_message_history_folder):
+        os.makedirs(matrix_message_history_folder)
+
+    if sending_time is None:
+        sending_time = current_time
+    else:
+        try:
+            validate_time(sending_time)
+        except (ValueError, OverflowError, TypeError, OSError) as e:
+            logger.warning(f'Error when writing the content of a message meant to be sent over matrix on a file,'
+                           f' the sending time is not valid.'
+                           f'The value {sending_time} raised the following error:\n{e}')
+            sending_time = current_time
+            sentry.capture_message(f'Error when writing the content of a message meant to be sent over matrix on a file,'
+                                   f' the sending time is not valid.'
+                                   f'The value {sending_time} raised the following error:\n{e}')
+
+    if first_submitted_time is None:
+        first_submitted_time = sending_time
+    else:
+        try:
+            validate_time(first_submitted_time)
+        except (ValueError, OverflowError, TypeError, OSError) as e:
+            logger.warning(f'Error when writing  the content of a message meant to be sent over matrix,'
+                           f' the first submitted time is not valid.'
+                           f'The value {first_submitted_time} raised the following error:\n{e}')
+            first_submitted_time = sending_time
+            sentry.capture_message(f'Error when writing the content of a message meant to be sent over matrix,'
+                                   f' the first submitted time is not valid.'
+                                   f'The value {first_submitted_time} raised the following error:\n{e}')
+
+    email_file_name = f'email_{status}_{str(sending_time)}_{str(first_submitted_time)}.email'
+
+    # record the email just sent in a dedicated file
+    with open(os.path.join(matrix_message_history_folder, email_file_name), 'w+') as outfile:
+        outfile.write(message.as_string())
