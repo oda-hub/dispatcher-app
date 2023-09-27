@@ -4,6 +4,7 @@ import os
 import requests
 import glob
 import json
+import re
 
 from ..analysis import tokenHelper
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
@@ -13,6 +14,9 @@ from ..flask_app.sentry import sentry
 from ..app_logging import app_logging
 
 from datetime import datetime
+from jinja2 import Environment, FileSystemLoader
+from bs4 import BeautifulSoup
+from urllib import parse
 
 logger = app_logging.getLogger('matrix_helper')
 
@@ -21,6 +25,17 @@ msg_sending_retry_sleep_s = .5
 
 class MatrixMsgNotSent(BadRequest):
     pass
+
+
+def textify_matrix_message(html):
+    html = re.sub('<a href=(.*?)>(.*?)</a>', r'\2: \1', html)
+
+    soup = BeautifulSoup(html)
+
+    for elem in soup.find_all(["a", "p", "div", "h3", "br"]):
+        elem.replace_with(elem.text + "\n\n")
+
+    return soup.get_text()
 
 
 def send_incident_report_message(
@@ -52,12 +67,59 @@ def send_job_message(
         scratch_dir=None):
     sending_time = time_.time()
 
+    status_details_message = None
+    if status_details is not None and status_details['status'] != 'successful':
+        if status_details['status'] == 'empty_product' or status_details['status'] == 'empty_result':
+            status_details_message = '''Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty product</b>.
+    To the best of our knowledge, no unexpected errors occurred during processing,
+    and if this is not what you expected, you probably need to modify the request parameters.<br>'''
+        else:
+            sentry.capture_message(f'unexpected status_details content before sending a message on matrix: {status_details}')
+            raise NotImplementedError
+
+    # TODO to be adapted depending on the restrictions of the matrix platform
+    if len(request_url) > 2000:
+        possibly_compressed_request_url = ""
+        permanent_url = False
+    elif 2000 > len(request_url) > 600:
+        possibly_compressed_request_url = \
+            config.products_url + \
+            "/dispatch-data/resolve-job-url?" + \
+            parse.urlencode(dict(job_id=job_id, session_id=session_id, token=token))
+        permanent_url = False
+    else:
+        possibly_compressed_request_url = request_url
+        permanent_url = True
+
     matrix_server_url = config.matrix_server_url
     matrix_sender_alias = config.matrix_sender_alias
     receiver_room_id = tokenHelper.get_token_user_matrix_room_id(decoded_token)
 
-    message_text = None
-    message_body_html = None
+    matrix_message_data = {
+        'oda_site': {
+            'site_name': config.site_name,
+            'frontend_url': config.products_url,
+            'contact': config.contact_email_address,
+            'manual_reference': config.manual_reference,
+        },
+        'request': {
+            'job_id': job_id,
+            'status': status,
+            'status_details_message': status_details_message,
+            'instrument': instrument,
+            'product_type': product_type,
+            'time_request': time_request,
+            'request_url': possibly_compressed_request_url,
+            'api_code': api_code,
+            'decoded_token': decoded_token,
+            'permanent_url': permanent_url,
+        }
+    }
+
+    env = Environment(loader=FileSystemLoader(f'{os.path.dirname(__file__)}/../flask_app/templates/'))
+    template = env.get_template('matrix_message.text')
+    message_body_html = template.render(**matrix_message_data)
+    message_text = textify_matrix_message(message_body_html)
 
     send_message(url_server=matrix_server_url,
                  sender_alias=matrix_sender_alias,

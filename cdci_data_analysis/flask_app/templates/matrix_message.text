@@ -1,0 +1,53 @@
+Dear User,<br>
+<br>
+you receive this message because at {{ request.time_request | timestamp2isot }} ( {{ request.time_request | humanize_age  }} ago ) you submitted a request <br>
+for a {{ request.product_type }} from the service provided by {{ oda_site.site_name }}<br>
+available at the URL {{ oda_site.frontend_url }}.<br>
+<br>
+{% if request.status == "submitted" %}
+The request has been submitted, and once products will be ready, you will receive a new message.<br>
+{% elif request.status == "done" %}
+The platform have <b>finished</b> processing your request.<br>
+{% if request.status_details_message %}
+{{ request.status_details_message }}
+{% endif %}
+
+{% elif request.status == "failed" %}
+Your request has <b>failed<b>. Sorry for that! You will be further contacted by our team.<br>
+{% endif %}
+<br>
+{% if request.request_url != "" %}
+You can inspect the status of your job using the following <a href="{{ request.request_url }}">url</a>.<br>
+{% if request.permanent_url %}
+Note that this url is permanent, and can be used to refer to the results as long as the service exists.<br>
+{% else %}
+Note that this url is <b>NOT</b> permanent, and will be valid until {{ request.decoded_token.exp | timestamp2isot }}.<br>
+{% endif %}
+Such link is intended for the recipient of this message, please do <b>NOT</b> share it, since this might contain sensitive information.<br>
+<br>
+{% else %}
+You can retrieve the results by repeating the request.
+Unfortunately, due to a known issue with very large requests, a URL with the selected request parameters could not be generated.
+This might be fixed in a future release. You can retrieve your products by repeating the request.
+{% endif -%}
+You can also retrieve the result by repeating the request (either with frontend or with the python API query at the end of this message.).<br>
+<br>
+In case you have questions or issues you can contact us at <a href="mailto:{{ oda_site.contact }}">this message</a> or reply to the current message.<br>
+<br>
+Kind regards,<br>
+<br>
+The ODA team.<br>
+<br>
+
+<br>
+Python API code:<br>
+<br>
+<div style="background-color: lightgray; display: inline-block; padding: 5px;">
+{{ request.api_code | e | replace("\n", "<br>\n") }}
+</div>
+<br>
+<br>
+Note that this code contains your private token. Be careful how you share it!<br>
+This token is short-lived, and will expire in {{ request.decoded_token.exp | humanize_future }}.<br>
+To learn how to get a new token, please refer to <a href="{{ oda_site.manual_reference }}">these instructions</a>.<br>
+<br>

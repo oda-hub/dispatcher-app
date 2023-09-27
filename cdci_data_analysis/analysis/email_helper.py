@@ -362,6 +362,7 @@ and if this is not what you expected, you probably need to modify the request pa
             'product_type': product_type,
             'time_request': time_request,
             'request_url': possibly_compressed_request_url,
+            # TODO to be removed ?
             'api_code_no_token': api_code_no_token,
             'api_code': api_code,
             'api_code_too_long': api_code_too_long,
