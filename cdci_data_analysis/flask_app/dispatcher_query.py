@@ -1821,6 +1821,14 @@ class InstrumentQueryBackEnd:
                         query_new_status = 'submitted'
                         job.set_submitted()
 
+                    products_url = self.generate_products_url(self.app.config.get('conf').products_url, self.par_dic)
+                    email_api_code = DispatcherAPI.set_api_code(self.par_dic,
+                                                                url=os.path.join(self.app.config['conf'].products_url, "dispatch-data"))
+                    time_request = self.time_request
+                    time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
+                    if time_request_first_submitted is not None:
+                        time_request = time_request_first_submitted
+
                     if matrix_helper.is_message_to_send_run_query(query_new_status,
                                                                   self.time_request,
                                                                   self.scratch_dir,
@@ -1828,16 +1836,16 @@ class InstrumentQueryBackEnd:
                                                                   self.app.config['conf'],
                                                                   decoded_token=self.decoded_token):
                         try:
-                            products_url = self.generate_products_url(self.app.config.get('conf').products_url,
-                                                                      self.par_dic)
-                            email_api_code = DispatcherAPI.set_api_code(self.par_dic,
-                                                                        url=self.app.config[
-                                                                                'conf'].products_url + "/dispatch-data"
-                                                                        )
-                            time_request = self.time_request
-                            time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
-                            if time_request_first_submitted is not None:
-                                time_request = time_request_first_submitted
+                            # products_url = self.generate_products_url(self.app.config.get('conf').products_url,
+                            #                                           self.par_dic)
+                            # email_api_code = DispatcherAPI.set_api_code(self.par_dic,
+                            #                                             url=self.app.config[
+                            #                                                     'conf'].products_url + "/dispatch-data"
+                            #                                             )
+                            # time_request = self.time_request
+                            # time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
+                            # if time_request_first_submitted is not None:
+                            #     time_request = time_request_first_submitted
 
                             matrix_helper.send_job_message(
                                 config=self.app.config['conf'],
@@ -1867,15 +1875,15 @@ class InstrumentQueryBackEnd:
                                                                self.app.config['conf'],
                                                                decoded_token=self.decoded_token):
                         try:
-                            products_url = self.generate_products_url(self.app.config.get('conf').products_url,
-                                                                                    self.par_dic)
-                            email_api_code = DispatcherAPI.set_api_code(self.par_dic,
-                                                                        url=self.app.config['conf'].products_url + "/dispatch-data"
-                                                                        )
-                            time_request = self.time_request
-                            time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
-                            if time_request_first_submitted is not None:
-                                time_request = time_request_first_submitted
+                            # products_url = self.generate_products_url(self.app.config.get('conf').products_url,
+                            #                                                         self.par_dic)
+                            # email_api_code = DispatcherAPI.set_api_code(self.par_dic,
+                            #                                             url=self.app.config['conf'].products_url + "/dispatch-data"
+                            #                                             )
+                            # time_request = self.time_request
+                            # time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
+                            # if time_request_first_submitted is not None:
+                            #     time_request = time_request_first_submitted
 
                             email_helper.send_job_email(
                                 config=self.app.config['conf'],

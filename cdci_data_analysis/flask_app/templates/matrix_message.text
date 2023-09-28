@@ -40,13 +40,12 @@ The ODA team.<br>
 <br>
 
 <br>
-Python API code:<br>
+Python API code:
 <br>
-<div style="background-color: lightgray; display: inline-block; padding: 5px;">
-{{ request.api_code | e | replace("\n", "<br>\n") }}
-</div>
-<br>
-<br>
+<pre>
+<code class="language-python"><div style="background-color: lightgray;">{{ request.api_code }}</div></code>
+</pre>
+
 Note that this code contains your private token. Be careful how you share it!<br>
 This token is short-lived, and will expire in {{ request.decoded_token.exp | humanize_future }}.<br>
 To learn how to get a new token, please refer to <a href="{{ oda_site.manual_reference }}">these instructions</a>.<br>

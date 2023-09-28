@@ -1,12 +1,13 @@
 import time as time_
-import logging
 import os
 import requests
 import glob
 import json
 import re
+import typing
 
 from ..analysis import tokenHelper
+from ..analysis.email_helper import humanize_age, humanize_future
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
 from ..analysis.hash import make_hash
 from ..analysis.time_helper import validate_time
@@ -25,6 +26,16 @@ msg_sending_retry_sleep_s = .5
 
 class MatrixMsgNotSent(BadRequest):
     pass
+
+
+def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
+    try:
+        timestamp_or_string = validate_time(timestamp_or_string).strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, OverflowError, TypeError, OSError) as e:
+        logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_or_string}:\n{e}')
+        raise MatrixMsgNotSent(f"Matrix message not sent: {e}")
+
+    return timestamp_or_string
 
 
 def textify_matrix_message(html):
@@ -116,18 +127,23 @@ def send_job_message(
     }
 
     env = Environment(loader=FileSystemLoader(f'{os.path.dirname(__file__)}/../flask_app/templates/'))
+
+    env.filters['timestamp2isot'] = timestamp2isot
+    env.filters['humanize_age'] = humanize_age
+    env.filters['humanize_future'] = humanize_future
+
     template = env.get_template('matrix_message.text')
     message_body_html = template.render(**matrix_message_data)
     message_text = textify_matrix_message(message_body_html)
 
-    send_message(url_server=matrix_server_url,
-                 sender_access_token=matrix_sender_access_token,
-                 room_id=receiver_room_id,
-                 message_text=message_text,
-                 message_body_html=message_body_html
-                 )
+    message_data = send_message(url_server=matrix_server_url,
+                                sender_access_token=matrix_sender_access_token,
+                                room_id=receiver_room_id,
+                                message_text=message_text,
+                                message_body_html=message_body_html
+                                )
 
-    store_status_matrix_message_info(message, status, scratch_dir, sending_time=sending_time, first_submitted_time=time_request)
+    store_status_matrix_message_info(message_data, status, scratch_dir, sending_time=sending_time, first_submitted_time=time_request)
 
 
 
@@ -139,25 +155,25 @@ def send_message(
         message_body_html,
 ):
     logger.info(f"Sending message to the room id: {room_id}")
-    url = f'{url_server}/_matrix/client/r0/rooms/' + room_id + '/send/m.room.message'
+    url = os.path.join(url_server, f'_matrix/client/r0/rooms/{room_id}/send/m.room.message')
 
     headers = {
         'Authorization': ' '.join(['Bearer', sender_access_token]),
         'Content-type': 'application/json'
     }
 
-    data = {
+    message_data = {
         'body': message_text,
         'format': 'org.matrix.custom.html',
         'formatted_body': message_body_html,
         'msgtype': 'm.text'
     }
 
-    res = requests.post(url, json=data, headers=headers)
+    res = requests.post(url, json=message_data, headers=headers)
 
     logger.info("Message successfully sent")
 
-    return res
+    return message_data
 
 
 def is_message_to_send_run_query(status, time_original_request, scratch_dir, job_id, config, decoded_token=None):
@@ -169,7 +185,7 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
     # get total request duration
     if decoded_token:
         # in case the job is just submitted and was not submitted before, at least since some time
-        logger.info("considering email sending, status: %s, time_original_request: %s", status, time_original_request)
+        logger.info("considering sending a messge on matrix, status: %s, time_original_request: %s", status, time_original_request)
 
         matrix_message_sending_job_submitted = tokenHelper.get_token_user_submitted_matrix_message(decoded_token)
         info_parameter = 'extracted from token'
@@ -181,7 +197,7 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
         log_additional_info_obj['matrix_message_sending_job_submitted'] = f'{matrix_message_sending_job_submitted}, {info_parameter}'
         logger.info("matrix_message_sending_job_submitted: %s", matrix_message_sending_job_submitted)
 
-        # get the amount of time passed from when the last email was sent
+        # get the amount of time passed from when the last message on matrix was sent
         interval_ok = True
 
         matrix_message_sending_job_submitted_interval = tokenHelper.get_token_user_sending_submitted_interval_matrix_message(
@@ -205,7 +221,7 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
         # find all
         submitted_matrix_message_pattern = os.path.join(
             matrix_message_history_dirs_same_job_id,
-            'matrix_message_submitted_*.msg'
+            'matrix_message_submitted_*.json'
         )
         submitted_matrix_message_files = glob.glob(submitted_matrix_message_pattern)
         logger.info("submitted_matrix_message_files: %s as %s", len(submitted_matrix_message_files), submitted_matrix_message_pattern)
@@ -237,7 +253,7 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
         # send submitted mail, status update
         sending_ok = matrix_message_sending_job_submitted and interval_ok and status_ok
         if sending_ok:
-            log_additional_info_obj['check_result_message'] = 'the email will be sent'
+            log_additional_info_obj['check_result_message'] = 'the message on matrix will be sent'
             log_matrix_message_sending_info(status=status,
                                             time_request=time_check,
                                             scratch_dir=scratch_dir,
@@ -245,7 +261,7 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
                                             additional_info_obj=log_additional_info_obj
                                             )
     else:
-        logger.info(f'an email will not be sent because a token was not provided')
+        logger.info(f'a message on matrix will not be sent because a token was not provided')
 
     return sending_ok
 
@@ -265,10 +281,10 @@ def log_matrix_message_sending_info(status, time_request, scratch_dir, job_id, a
     try:
         time_request_str = validate_time(time_request).strftime("%Y-%m-%d %H:%M:%S")
     except (ValueError, OverflowError, TypeError, OSError) as e:
-        logger.warning(f'Error when extracting logging the sending info of an email.'
+        logger.warning(f'Error when extracting logging the sending info of a message on matrix.'
                        f'The time value {time_request} raised the following error:\n{e}')
         time_request_str = datetime.fromtimestamp(time_.time()).strftime("%Y-%m-%d %H:%M:%S")
-        sentry.capture_message(f'Error when extracting logging the sending info of an email.'
+        sentry.capture_message(f'Error when extracting logging the sending info of a message on matrix.'
                                f'The time value {time_request} raised the following error:\n{e}')
 
     history_info_obj = dict(time=time_request_str,
@@ -318,8 +334,8 @@ def store_status_matrix_message_info(message, status, scratch_dir, sending_time=
                                    f' the first submitted time is not valid.'
                                    f'The value {first_submitted_time} raised the following error:\n{e}')
 
-    email_file_name = f'email_{status}_{str(sending_time)}_{str(first_submitted_time)}.email'
+    matrix_message_file_name = f'matrix_message_{status}_{str(sending_time)}_{str(first_submitted_time)}.json'
 
-    # record the email just sent in a dedicated file
-    with open(os.path.join(matrix_message_history_folder, email_file_name), 'w+') as outfile:
-        outfile.write(message.as_string())
+    # record the matrix_message just sent in a dedicated file
+    with open(os.path.join(matrix_message_history_folder, matrix_message_file_name), 'w+') as outfile:
+        outfile.write(json.dumps(message, indent=4))

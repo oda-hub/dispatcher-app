@@ -396,6 +396,12 @@ dispatcher:
         incident_report_email_options:
             incident_report_sender_email_address: 'postmaster@in.odahub.io'
             incident_report_receivers_email_addresses: ['team@odahub.io']
+    matrix_options:
+        matrix_server_url: "https://matrix-client.matrix.org/"
+        matrix_sender_access_token: "syt_YmFybmkuZ2FicmllbGU_izksRCiUdtrZXHeFAcka_1suCvt"
+        matrix_message_sending_job_submitted: True
+        matrix_message_sending_job_submitted_default_interval: 5
+        sentry_for_matrix_message_sending_check: False
     """)
 
     yield fn
