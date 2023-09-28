@@ -42,9 +42,7 @@ The ODA team.<br>
 <br>
 Python API code:
 <br>
-<pre>
-<code class="language-python"><div style="background-color: lightgray;">{{ request.api_code }}</div></code>
-</pre>
+<pre><code class="language-python"><div style="background-color: lightgray;">{{ request.api_code }}</div></code></pre>
 
 Note that this code contains your private token. Be careful how you share it!<br>
 This token is short-lived, and will expire in {{ request.decoded_token.exp | humanize_future }}.<br>
