@@ -651,7 +651,7 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
                 'email_submitted_*.email'
             )
         submitted_email_files = glob.glob(submitted_email_pattern)
-        logger.info("submitted_email_files: %s as %s", len(submitted_email_files), submitted_email_pattern)
+        logger.info("submitted_email_files: %s as %s", len(submitted_email_files), submitted_email_files)
         log_additional_info_obj['submitted_email_files'] = submitted_email_files
 
         if len(submitted_email_files) >= 1:
