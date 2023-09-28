@@ -472,7 +472,9 @@ def dispatcher_test_conf_with_matrix_options_fn(dispatcher_test_conf_fn):
                 f'\n        matrix_sender_access_token: "{os.getenv("MATRIX_SENDER_ACCESS_TOKEN", "matrix_sender_access_token")}"'
                 '\n        matrix_message_sending_job_submitted: True'
                 '\n        matrix_message_sending_job_submitted_default_interval: 5'
-                '\n        sentry_for_matrix_message_sending_check: False')
+                '\n        sentry_for_matrix_message_sending_check: False'
+                '\n        matrix_message_sending_timeout_default_threshold: 1800'
+                '\n        matrix_message_sending_timeout: True')
 
     yield fn
 
@@ -667,6 +669,51 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
 
     dispatcher_state_fn = tmp_path.format(
         hashlib.md5(open(dispatcher_test_conf_fn, "rb").read()).hexdigest()[:8]
+    )
+
+    if os.path.exists(dispatcher_state_fn):
+        dispatcher_state = json.load(open(dispatcher_state_fn))
+        logger.info("\033[31mfound dispatcher state: %s\033[0m", dispatcher_state)
+
+        status_code = None
+
+        try:
+            r = requests.get(dispatcher_state['url'] + "/run_analysis")
+            logger.info("dispatcher returns: %s, %s", r.status_code, r.text)
+            logger.info("dispatcher response: %s %s", r.status_code, r.text)
+            if r.status_code in [200, 400]:
+                logger.info("dispatcher is live and responsive")
+                return dispatcher_state['url']
+            status_code = r.status_code
+        except requests.exceptions.ConnectionError as e:
+            logger.warning("\033[31mdispatcher connection failed %s\033[0m", e)
+
+        logger.warning("\033[31mdispatcher is dead or unresponsive: %s\033[0m", status_code)
+    else:
+        logger.info("\033[31mdoes not exist!\033[0m")
+
+    gunicorn = False
+    if os.environ.get('GUNICORN_DISPATCHER', 'no') == 'yes':
+        gunicorn = True
+
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=gunicorn)
+    json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
+    return dispatcher_state['url']
+
+
+@pytest.fixture
+def gunicorn_dispatcher_long_living_fixture_with_matrix_options(gunicorn_tmp_path, gunicorn_dispatcher, dispatcher_long_living_fixture_with_matrix_options):
+    yield dispatcher_long_living_fixture_with_matrix_options
+
+
+@pytest.fixture
+def dispatcher_long_living_fixture_with_matrix_options(pytestconfig, dispatcher_test_conf_with_matrix_options_fn, dispatcher_debug):
+    tmp_path = "/tmp/dispatcher-test-fixture-state-{}.json"
+    if os.environ.get('GUNICORN_TMP_PATH', None) is not None:
+        tmp_path = os.environ.get('GUNICORN_TMP_PATH')
+
+    dispatcher_state_fn = tmp_path.format(
+        hashlib.md5(open(dispatcher_test_conf_with_matrix_options_fn, "rb").read()).hexdigest()[:8]
         )
 
     if os.path.exists(dispatcher_state_fn):
@@ -694,7 +741,7 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
     if os.environ.get('GUNICORN_DISPATCHER', 'no') == 'yes':
         gunicorn = True
 
-    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=gunicorn)
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_matrix_options_fn, gunicorn=gunicorn)
     json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
     return dispatcher_state['url']
 

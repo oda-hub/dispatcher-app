@@ -87,6 +87,11 @@ dispatcher:
         matrix_message_sending_job_submitted_default_interval: 5
         # enable the sending of a sentry message in case a not valid condition for the sending a message on matrix is met
         sentry_for_matrix_message_sending_check: False
+        # amount of time (in seconds) elapsed from the issuing of the request,
+        # that will trigger the sending of a message via matrix when the request is complete, if this time is exceeded
+        matrix_message_sending_timeout_default_threshold: 1800
+        # enable the sending of a message via matrix when a request is ''done'', and this took long to complete
+        matrix_message_sending_timeout: True
 
     # product gallery related set of options
     # in case no integration with the product gallery is provided, these options will be ignored
