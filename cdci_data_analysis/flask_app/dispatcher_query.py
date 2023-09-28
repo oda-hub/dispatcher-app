@@ -1017,6 +1017,59 @@ class InstrumentQueryBackEnd:
         logger.warn('-----> set status to %s', status)
 
         try:
+            original_request_par_dic = self.get_request_par_dic()
+            product_type = original_request_par_dic['product_type']
+        except KeyError as e:
+            raise MissingRequestParameter(repr(e))
+        # get more info regarding the status of the request
+        status_details = None
+        if status == 'done':
+            # set instrument
+            roles = tokenHelper.get_token_roles(self.decoded_token)
+            email = tokenHelper.get_token_user_email_address(self.decoded_token)
+            self.set_instrument(self.instrument_name, roles, email)
+            status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
+                                                                config=self.config,
+                                                                logger=self.logger)
+        # build the products URL and get also the original requested product
+        products_url = self.generate_products_url(self.config.products_url,
+                                                  request_par_dict=original_request_par_dic)
+
+        email_api_code = DispatcherAPI.set_api_code(original_request_par_dic,
+                                                    url=self.app.config['conf'].products_url + "/dispatch-data"
+                                                    )
+        time_request = time_original_request
+        time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
+        if time_request_first_submitted is not None:
+            time_request = time_request_first_submitted
+
+        try:
+            if matrix_helper.is_message_to_send_callback(status,
+                                                         time_original_request,
+                                                          self.scratch_dir,
+                                                          self.job_id,
+                                                          self.app.config['conf'],
+                                                          decoded_token=self.decoded_token):
+                matrix_helper.send_job_message(
+                    config=self.app.config['conf'],
+                    decoded_token=self.decoded_token,
+                    token=self.token,
+                    job_id=self.job_id,
+                    session_id=self.par_dic['session_id'],
+                    status=status,
+                    instrument=self.instrument.name,
+                    status_details=status_details,
+                    product_type=product_type,
+                    time_request=time_request,
+                    request_url=products_url,
+                    api_code=email_api_code,
+                    scratch_dir=self.scratch_dir)
+
+                job.write_dataserver_status(status_dictionary_value=status,
+                                            full_dict=self.par_dic,
+                                            email_status='matrix message sent',
+                                            email_status_details=status_details)
+
             # TODO for a future implementation
             # self.validate_job_id()
             if email_helper.is_email_to_send_callback(self.logger,
@@ -1026,33 +1079,6 @@ class InstrumentQueryBackEnd:
                                                       self.app.config['conf'],
                                                       self.job_id,
                                                       decoded_token=self.decoded_token):
-                try:
-                    original_request_par_dic = self.get_request_par_dic()
-                    product_type = original_request_par_dic['product_type']
-                except KeyError as e:
-                    raise MissingRequestParameter(repr(e))
-                # get more info regarding the status of the request
-                status_details = None
-                if status == 'done':
-                    # set instrument
-                    roles = tokenHelper.get_token_roles(self.decoded_token)
-                    email = tokenHelper.get_token_user_email_address(self.decoded_token)
-                    self.set_instrument(self.instrument_name, roles, email)
-                    status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
-                                                                        config=self.config,
-                                                                        logger=self.logger)
-                # build the products URL and get also the original requested product
-                products_url = self.generate_products_url(self.config.products_url,
-                                                                    request_par_dict=original_request_par_dic)
-
-                email_api_code = DispatcherAPI.set_api_code(original_request_par_dic,
-                                                            url=self.app.config['conf'].products_url + "/dispatch-data"
-                                                            )
-                time_request = time_original_request
-                time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
-                if time_request_first_submitted is not None:
-                    time_request = time_request_first_submitted
-
                 email_helper.send_job_email(
                     config=self.config,
                     logger=self.logger,
@@ -1078,6 +1104,13 @@ class InstrumentQueryBackEnd:
                                             email_status_details=status_details)
             else:
                 job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+
+        except matrix_helper.MatrixMessageNotSent as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        email_status='sending message via matrix failed')
+            logging.warning(f'matrix message sending failed: {e}')
+            sentry.capture_message(f'sending matrix message failed {e.message}')
 
         except email_helper.MultipleDoneEmail as e:
             job.write_dataserver_status(status_dictionary_value=status,
