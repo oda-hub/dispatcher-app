@@ -250,6 +250,8 @@ class ConfigEnv(object):
                                      disp_dict['matrix_options'].get('matrix_message_sending_job_submitted', True),
                                      disp_dict['matrix_options']['matrix_message_sending_job_submitted_default_interval'],
                                      disp_dict['matrix_options'].get('sentry_for_matrix_message_sending_check', False),
+                                     disp_dict['matrix_options']['matrix_message_sending_timeout_default_threshold'],
+                                     disp_dict['matrix_options']['matrix_message_sending_timeout'],
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_url', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_secret_key', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_timezone',
@@ -323,6 +325,8 @@ class ConfigEnv(object):
                             matrix_message_sending_job_submitted,
                             matrix_message_sending_job_submitted_default_interval,
                             sentry_for_matrix_message_sending_check,
+                            matrix_message_sending_timeout_default_threshold,
+                            matrix_message_sending_timeout,
                             product_gallery_url,
                             product_gallery_secret_key,
                             product_gallery_timezone,
@@ -368,6 +372,8 @@ class ConfigEnv(object):
         self.matrix_message_sending_job_submitted = matrix_message_sending_job_submitted
         self.matrix_message_sending_job_submitted_default_interval = matrix_message_sending_job_submitted_default_interval
         self.sentry_for_matrix_message_sending_check = sentry_for_matrix_message_sending_check
+        self.matrix_message_sending_timeout_default_threshold = matrix_message_sending_timeout_default_threshold
+        self.matrix_message_sending_timeout = matrix_message_sending_timeout
         self.product_gallery_url = product_gallery_url
         self.product_gallery_secret_key = product_gallery_secret_key
         self.product_gallery_timezone = product_gallery_timezone
