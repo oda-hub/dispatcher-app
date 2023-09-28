@@ -1023,7 +1023,7 @@ class InstrumentQueryBackEnd:
             raise MissingRequestParameter(repr(e))
         # get more info regarding the status of the request
         status_details = None
-        if status == 'done':
+        if status == 'done' and self.decoded_token is not None:
             # set instrument
             roles = tokenHelper.get_token_roles(self.decoded_token)
             email = tokenHelper.get_token_user_email_address(self.decoded_token)
@@ -1038,18 +1038,19 @@ class InstrumentQueryBackEnd:
         email_api_code = DispatcherAPI.set_api_code(original_request_par_dic,
                                                     url=self.app.config['conf'].products_url + "/dispatch-data"
                                                     )
-        time_request = time_original_request
-        time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
-        if time_request_first_submitted is not None:
-            time_request = time_request_first_submitted
 
         try:
             if matrix_helper.is_message_to_send_callback(status,
                                                          time_original_request,
                                                           self.scratch_dir,
-                                                          self.job_id,
                                                           self.app.config['conf'],
+                                                          self.job_id,
                                                           decoded_token=self.decoded_token):
+                time_request = time_original_request
+                time_request_first_submitted = matrix_helper.get_first_submitted_matrix_message_time(self.scratch_dir)
+                if time_request_first_submitted is not None:
+                    time_request = time_request_first_submitted
+
                 matrix_helper.send_job_message(
                     config=self.app.config['conf'],
                     decoded_token=self.decoded_token,
@@ -1057,7 +1058,7 @@ class InstrumentQueryBackEnd:
                     job_id=self.job_id,
                     session_id=self.par_dic['session_id'],
                     status=status,
-                    instrument=self.instrument.name,
+                    instrument=self.instrument_name,
                     status_details=status_details,
                     product_type=product_type,
                     time_request=time_request,
@@ -1067,8 +1068,8 @@ class InstrumentQueryBackEnd:
 
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
-                                            email_status='matrix message sent',
-                                            email_status_details=status_details)
+                                            matrix_message_status='matrix message sent',
+                                            matrix_message_status_details=status_details)
 
             # TODO for a future implementation
             # self.validate_job_id()
@@ -1079,6 +1080,11 @@ class InstrumentQueryBackEnd:
                                                       self.app.config['conf'],
                                                       self.job_id,
                                                       decoded_token=self.decoded_token):
+                time_request = time_original_request
+                time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
+                if time_request_first_submitted is not None:
+                    time_request = time_request_first_submitted
+
                 email_helper.send_job_email(
                     config=self.config,
                     logger=self.logger,
@@ -1857,10 +1863,6 @@ class InstrumentQueryBackEnd:
                     products_url = self.generate_products_url(self.app.config.get('conf').products_url, self.par_dic)
                     email_api_code = DispatcherAPI.set_api_code(self.par_dic,
                                                                 url=os.path.join(self.app.config['conf'].products_url, "dispatch-data"))
-                    time_request = self.time_request
-                    time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
-                    if time_request_first_submitted is not None:
-                        time_request = time_request_first_submitted
 
                     if matrix_helper.is_message_to_send_run_query(query_new_status,
                                                                   self.time_request,
@@ -1869,16 +1871,10 @@ class InstrumentQueryBackEnd:
                                                                   self.app.config['conf'],
                                                                   decoded_token=self.decoded_token):
                         try:
-                            # products_url = self.generate_products_url(self.app.config.get('conf').products_url,
-                            #                                           self.par_dic)
-                            # email_api_code = DispatcherAPI.set_api_code(self.par_dic,
-                            #                                             url=self.app.config[
-                            #                                                     'conf'].products_url + "/dispatch-data"
-                            #                                             )
-                            # time_request = self.time_request
-                            # time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
-                            # if time_request_first_submitted is not None:
-                            #     time_request = time_request_first_submitted
+                            time_request = self.time_request
+                            time_request_first_submitted = matrix_helper.get_first_submitted_matrix_message_time(self.scratch_dir)
+                            if time_request_first_submitted is not None:
+                                time_request = time_request_first_submitted
 
                             matrix_helper.send_job_message(
                                 config=self.app.config['conf'],
@@ -1908,15 +1904,11 @@ class InstrumentQueryBackEnd:
                                                                self.app.config['conf'],
                                                                decoded_token=self.decoded_token):
                         try:
-                            # products_url = self.generate_products_url(self.app.config.get('conf').products_url,
-                            #                                                         self.par_dic)
-                            # email_api_code = DispatcherAPI.set_api_code(self.par_dic,
-                            #                                             url=self.app.config['conf'].products_url + "/dispatch-data"
-                            #                                             )
-                            # time_request = self.time_request
-                            # time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
-                            # if time_request_first_submitted is not None:
-                            #     time_request = time_request_first_submitted
+
+                            time_request = self.time_request
+                            time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
+                            if time_request_first_submitted is not None:
+                                time_request = time_request_first_submitted
 
                             email_helper.send_job_email(
                                 config=self.app.config['conf'],
