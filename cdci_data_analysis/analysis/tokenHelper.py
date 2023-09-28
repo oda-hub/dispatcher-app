@@ -165,4 +165,17 @@ def get_token_user_sending_submitted_interval_matrix_message(decoded_token):
 
 
 def get_token_user_done_matrix_message(decoded_token):
-    return decoded_token.get('mxdone', None)
+    return decoded_token.get('mxdone', True)
+
+
+def get_token_user_fail_matrix_message(decoded_token):
+    return decoded_token.get('mxfail', True)
+
+
+def get_token_user_timeout_threshold_matrix_message(decoded_token):
+    return decoded_token.get('tmx', None)
+
+
+def get_token_user_sending_timeout_matrix_message(decoded_token):
+    return decoded_token.get('mxstout', None)
+

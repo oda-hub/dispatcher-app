@@ -28,6 +28,9 @@ class MatrixMessageNotSent(BadRequest):
     pass
 
 
+class MultipleDoneMatrixMessage(BadRequest):
+    pass
+
 def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
     try:
         timestamp_or_string = validate_time(timestamp_or_string).strftime("%Y-%m-%d %H:%M:%S")
@@ -204,7 +207,7 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
     # get total request duration
     if decoded_token:
         # in case the job is just submitted and was not submitted before, at least since some time
-        logger.info("considering sending a messge on matrix, status: %s, time_original_request: %s", status, time_original_request)
+        logger.info("considering sending a message on matrix, status: %s, time_original_request: %s", status, time_original_request)
 
         matrix_message_sending_job_submitted = tokenHelper.get_token_user_submitted_matrix_message(decoded_token)
         info_parameter = 'extracted from token'
@@ -290,6 +293,77 @@ def is_message_to_send_callback(status, time_original_request, scratch_dir, conf
     sending_ok = False
     time_check = time_.time()
     sentry_for_matrix_message_sending_check = config.sentry_for_matrix_message_sending_check
+
+    if decoded_token:
+        # in case the request was long and 'done'
+        logger.info(f"considering sending a message on matrix, status: {status}, time_original_request: {time_original_request}")
+
+        if status == 'done':
+            # get total request duration
+            if time_original_request:
+                duration_query = time_check - float(time_original_request)
+                log_additional_info_obj['query_duration'] = duration_query
+            else:
+                logger.info(f'time_original_request not available')
+                raise MissingRequestParameter('original request time not available')
+
+            timeout_threshold_matrix_message = tokenHelper.get_token_user_timeout_threshold_matrix_message(decoded_token)
+            info_parameter = 'extracted from token'
+            if timeout_threshold_matrix_message is None:
+                # set it to the default value, from the configuration
+                timeout_threshold_matrix_message = config.matrix_message_sending_timeout_default_threshold
+                info_parameter = 'extracted from the configuration'
+
+            log_additional_info_obj['timeout_threshold_matrix_message'] = f'{timeout_threshold_matrix_message}, {info_parameter}'
+            logger.info(f"timeout_threshold_matrix_message: {timeout_threshold_matrix_message}")
+
+            matrix_message_sending_timeout = tokenHelper.get_token_user_sending_timeout_matrix_message(decoded_token)
+            info_parameter = 'extracted from token'
+            if matrix_message_sending_timeout is None:
+                matrix_message_sending_timeout = config.matrix_message_sending_timeout
+                info_parameter = 'extracted from the configuration'
+
+            log_additional_info_obj['matrix_message_sending_timeout'] = f'{matrix_message_sending_timeout}, {info_parameter}'
+            logger.info("matrix_message_sending_timeout: %s", matrix_message_sending_timeout)
+
+            logger.info("duration_query > timeout_threshold_matrix_message %s", duration_query > timeout_threshold_matrix_message)
+            logger.info("matrix_message_sending_timeout and duration_query > timeout_threshold_matrix_message %s",
+                        matrix_message_sending_timeout and duration_query > timeout_threshold_matrix_message)
+
+            done_matrix_message_files = glob.glob(f'scratch_*_jid_{job_id}*/matrix_message_history/matrix_message_done_*')
+            log_additional_info_obj['done_matrix_message_files'] = done_matrix_message_files
+            if len(done_matrix_message_files) >= 1:
+                logger.info("the message cannot be sent via matrix because the number of done messages sent is too high: %s", len(done_matrix_message_files))
+                raise MultipleDoneMatrixMessage("multiple completion matrix messages detected")
+
+            sending_ok = tokenHelper.get_token_user_done_matrix_message(decoded_token) and matrix_message_sending_timeout and \
+                         duration_query > timeout_threshold_matrix_message
+
+        # or if failed
+        elif status == 'failed':
+            matrix_message_sending_failed = tokenHelper.get_token_user_fail_matrix_message(decoded_token)
+            log_additional_info_obj['matrix_message_sending_failed'] = matrix_message_sending_failed
+            sending_ok = matrix_message_sending_failed
+
+        # not valid status
+        else:
+            logger.info(f'status {status} not a valid one for sending a message via matrix after a callback')
+            if sentry_for_matrix_message_sending_check:
+                sentry.capture_message((f'an attempt in sending a message using matrix has been detected at the completion '
+                                        f'of the run_query method with the status: {status}'))
+    else:
+        logger.info(f'a message via matrix will not be sent because a token was not provided')
+
+    if sending_ok:
+        log_additional_info_obj['check_result_message'] = 'the message will be sent via matrix'
+        log_matrix_message_sending_info(status=status,
+                                        time_request=time_check,
+                                        scratch_dir=scratch_dir,
+                                        job_id=job_id,
+                                        additional_info_obj=log_additional_info_obj
+                                        )
+
+    return sending_ok
 
 
 def log_matrix_message_sending_info(status, time_request, scratch_dir, job_id, additional_info_obj=None):
