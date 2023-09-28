@@ -37,12 +37,11 @@ In case you have questions or issues you can contact us at <a href="mailto:{{ od
 Kind regards,<br>
 <br>
 The ODA team.<br>
-<br>
 
 <br>
-Python API code:
+Python API code:<br>
 <br>
-<pre><code class="language-python"><div style="background-color: lightgray;">{{ request.api_code }}</div></code></pre>
+<pre><code class="language-python"><div>{{ request.api_code }}</div></code></pre>
 
 Note that this code contains your private token. Be careful how you share it!<br>
 This token is short-lived, and will expire in {{ request.decoded_token.exp | humanize_future }}.<br>
