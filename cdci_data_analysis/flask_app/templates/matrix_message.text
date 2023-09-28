@@ -12,7 +12,7 @@ The platform have <b>finished</b> processing your request.<br>
 {% endif %}
 
 {% elif request.status == "failed" %}
-Your request has <b>failed<b>. Sorry for that! You will be further contacted by our team.<br>
+Your request has <b>failed</b>. Sorry for that! You will be further contacted by our team.<br>
 {% endif %}
 <br>
 {% if request.request_url != "" %}
