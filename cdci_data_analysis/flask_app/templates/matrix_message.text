@@ -1,8 +1,7 @@
 Dear User,<br>
 <br>
-you receive this message because at {{ request.time_request | timestamp2isot }} ( {{ request.time_request | humanize_age  }} ago ) you submitted a request <br>
-for a {{ request.product_type }} from the service provided by {{ oda_site.site_name }}<br>
-available at the URL {{ oda_site.frontend_url }}.<br>
+you receive this message because at {{ request.time_request | timestamp2isot }} ( {{ request.time_request | humanize_age  }} ago ) you submitted a request
+for a {{ request.product_type }} from the service provided by {{ oda_site.site_name }} available at the URL {{ oda_site.frontend_url }}.<br>
 <br>
 {% if request.status == "submitted" %}
 The request has been submitted, and once products will be ready, you will receive a new message.<br>

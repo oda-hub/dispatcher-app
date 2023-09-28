@@ -1,27 +1,12 @@
-import shutil
-from urllib import parse
-
 import pytest
 import requests
 import json
 import os
-import re
 import time
 import jwt
 import logging
-import email
-from urllib.parse import parse_qs, urlencode, urlparse
-import glob
 
-from collections import OrderedDict
-
-from cdci_data_analysis.analysis.catalog import BasicCatalog
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, ask
-from cdci_data_analysis.analysis.email_helper import textify_email
-from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
-
-from oda_api.api import RemoteException
-from datetime import datetime
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState
 
 logger = logging.getLogger(__name__)
 # symmetric shared secret for the decoding of the token
@@ -39,15 +24,16 @@ default_token_payload = dict(
 )
 
 
+@pytest.mark.test_matrix
 @pytest.mark.parametrize("default_values", [True, False])
 @pytest.mark.parametrize("time_original_request_none", [False])
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'private-no-matrix-message'])
-def test_matrix_message_run_analysis_callback(dispatcher_live_fixture,
+def test_matrix_message_run_analysis_callback(dispatcher_live_fixture_with_matrix_options,
                                               default_values, request_cred, time_original_request_none):
     from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
     DataServerQuery.set_status('submitted')
 
-    server = dispatcher_live_fixture
+    server = dispatcher_live_fixture_with_matrix_options
 
     DispatcherJobState.remove_scratch_folders()
 

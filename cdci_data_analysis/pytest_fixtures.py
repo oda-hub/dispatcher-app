@@ -396,12 +396,6 @@ dispatcher:
         incident_report_email_options:
             incident_report_sender_email_address: 'postmaster@in.odahub.io'
             incident_report_receivers_email_addresses: ['team@odahub.io']
-    matrix_options:
-        matrix_server_url: "https://matrix-client.matrix.org/"
-        matrix_sender_access_token: "syt_YmFybmkuZ2FicmllbGU_izksRCiUdtrZXHeFAcka_1suCvt"
-        matrix_message_sending_job_submitted: True
-        matrix_message_sending_job_submitted_default_interval: 5
-        sentry_for_matrix_message_sending_check: False
     """)
 
     yield fn
@@ -466,6 +460,24 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
+def dispatcher_test_conf_with_matrix_options_fn(dispatcher_test_conf_fn):
+    fn = "test-dispatcher-conf-with-matrix-options.yaml"
+
+    with open(fn, "w") as f:
+        with open(dispatcher_test_conf_fn) as f_default:
+            f.write(f_default.read())
+
+        f.write('\n    matrix_options:'
+                '\n        matrix_server_url: "https://matrix-client.matrix.org/"'
+                f'\n        matrix_sender_access_token: "{os.getenv("MATRIX_SENDER_ACCESS_TOKEN", "matrix_sender_access_token")}"'
+                '\n        matrix_message_sending_job_submitted: True'
+                '\n        matrix_message_sending_job_submitted_default_interval: 5'
+                '\n        sentry_for_matrix_message_sending_check: False')
+
+    yield fn
+
+
+@pytest.fixture
 def dispatcher_test_conf_with_gallery_no_resolver_fn(dispatcher_test_conf_fn):
     fn = "test-dispatcher-conf-with-gallery.yaml"
 
@@ -515,6 +527,10 @@ def dispatcher_test_conf_with_external_products_url(dispatcher_test_conf_with_ex
 def dispatcher_test_conf_with_gallery(dispatcher_test_conf_with_gallery_fn):
     yield yaml.load(open(dispatcher_test_conf_with_gallery_fn), Loader=yaml.SafeLoader)['dispatcher']
 
+
+@pytest.fixture
+def dispatcher_test_conf_with_matrix_options(dispatcher_test_conf_with_matrix_options_fn):
+    yield yaml.load(open(dispatcher_test_conf_with_matrix_options_fn), Loader=yaml.SafeLoader)['dispatcher']
 
 @pytest.fixture
 def dispatcher_test_conf_with_gallery_no_resolver(dispatcher_test_conf_with_gallery_no_resolver_fn):
@@ -804,6 +820,19 @@ def dispatcher_live_fixture_empty_sentry(pytestconfig, dispatcher_test_conf_empt
 @pytest.fixture
 def dispatcher_live_fixture_with_gallery(pytestconfig, dispatcher_test_conf_with_gallery_fn, dispatcher_debug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_gallery_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_with_matrix_options(pytestconfig, dispatcher_test_conf_with_matrix_options_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_matrix_options_fn)
 
     service = dispatcher_state['url']
     pid = dispatcher_state['pid']
