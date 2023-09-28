@@ -52,6 +52,41 @@ def textify_matrix_message(html):
     return soup.get_text()
 
 
+
+def get_first_submitted_matrix_message_time(scratch_dir):
+    first_submitted_matrix_message_time = None
+    submitted_matrix_message_pattern = os.path.join(
+        scratch_dir,
+        'matrix_message_history',
+        'matrix_message_submitted_*.json'
+    )
+    submitted_matrix_message_files = sorted(glob.glob(submitted_matrix_message_pattern), key=os.path.getmtime)
+    logger.info(f"get_first_submitted_matrix_message_time, files: {submitted_matrix_message_files}")
+    if len(submitted_matrix_message_files) >= 1:
+        f_name, f_ext = os.path.splitext(os.path.basename(submitted_matrix_message_files[0]))
+        f_name_split = f_name.split('_')
+        if len(f_name_split) == 5:
+            try:
+                validate_time(f_name_split[4])
+                first_submitted_matrix_message_time = float(f_name_split[4])
+            except (ValueError, OverflowError, TypeError, OSError) as e:
+                logger.warning(f'Error when extracting the time of the first message submitted via matrix.'
+                               f'The value extracted {first_submitted_matrix_message_time} raised the following error:\n{e}')
+                first_submitted_matrix_message_time = None
+                sentry.capture_message(f'Error when extracting the time of the first message submitted via matrix.'
+                               f'The value extracted {first_submitted_matrix_message_time} raised the following error:\n{e}')
+        else:
+            logger.warning(f'Error when extracting the time of the first message submitted via matrix: '
+                           f'the name of the message file has been found not properly formatted, therefore, '
+                           f'the time of the first message submitted via matrix could not be extracted.')
+            first_submitted_matrix_message_time = None
+            sentry.capture_message(f'Error when extracting the time of the first message submitted via matrix: '
+                           f'the name of the message file has been found not properly formatted, therefore, '
+                           f'the time of the first message submitted via matrix could not be extracted.')
+
+    return first_submitted_matrix_message_time
+
+
 def send_incident_report_message(
         config,
         job_id,
@@ -82,6 +117,7 @@ def send_job_message(
     sending_time = time_.time()
 
     status_details_message = None
+
     if status_details is not None and status_details['status'] != 'successful':
         if status_details['status'] == 'empty_product' or status_details['status'] == 'empty_result':
             status_details_message = '''Unfortunately, after a quick automated assessment of the request, it has been found that it contains an <b>empty product</b>.
@@ -89,6 +125,7 @@ def send_job_message(
     and if this is not what you expected, you probably need to modify the request parameters.<br>'''
         else:
             sentry.capture_message(f'unexpected status_details content before sending a message on matrix: {status_details}')
+            logger.warning(f'unexpected status_details content before sending a message on matrix: {status_details}')
             raise NotImplementedError
 
     # TODO to be adapted depending on the restrictions of the matrix platform
@@ -246,15 +283,15 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
             'matrix_message_submitted_*.json'
         )
         submitted_matrix_message_files = glob.glob(submitted_matrix_message_pattern)
-        logger.info("submitted_matrix_message_files: %s as %s", len(submitted_matrix_message_files), submitted_matrix_message_pattern)
+        logger.info("submitted_matrix_message_files: %s as %s", len(submitted_matrix_message_files), submitted_matrix_message_files)
         log_additional_info_obj['submitted_matrix_message_files'] = submitted_matrix_message_files
 
         if len(submitted_matrix_message_files) >= 1:
             times = []
             for f in submitted_matrix_message_files:
                 f_name, f_ext = os.path.splitext(os.path.basename(f))
-                if f_ext == '.msg' and f_name:
-                    times.append(float(f_name.split('_')[2]))
+                if f_ext == '.json' and f_name:
+                    times.append(float(f_name.split('_')[3]))
 
             time_last_matrix_message_submitted_sent = max(times)
             time_from_last_submitted_matrix_message = time_check - float(time_last_matrix_message_submitted_sent)
@@ -342,6 +379,7 @@ def is_message_to_send_callback(status, time_original_request, scratch_dir, conf
         # or if failed
         elif status == 'failed':
             matrix_message_sending_failed = tokenHelper.get_token_user_fail_matrix_message(decoded_token)
+            logger.info("matrix_message_sending_failed: %s", matrix_message_sending_failed)
             log_additional_info_obj['matrix_message_sending_failed'] = matrix_message_sending_failed
             sending_ok = matrix_message_sending_failed
 
@@ -356,6 +394,7 @@ def is_message_to_send_callback(status, time_original_request, scratch_dir, conf
 
     if sending_ok:
         log_additional_info_obj['check_result_message'] = 'the message will be sent via matrix'
+        logger.info(f"the message will be sent via matrix with a status: {status}")
         log_matrix_message_sending_info(status=status,
                                         time_request=time_check,
                                         scratch_dir=scratch_dir,
