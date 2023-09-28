@@ -24,7 +24,7 @@ logger = app_logging.getLogger('matrix_helper')
 num_msgs_sending_max_tries = 5
 msg_sending_retry_sleep_s = .5
 
-class MatrixMsgNotSent(BadRequest):
+class MatrixMessageNotSent(BadRequest):
     pass
 
 
@@ -33,7 +33,7 @@ def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
         timestamp_or_string = validate_time(timestamp_or_string).strftime("%Y-%m-%d %H:%M:%S")
     except (ValueError, OverflowError, TypeError, OSError) as e:
         logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_or_string}:\n{e}')
-        raise MatrixMsgNotSent(f"Matrix message not sent: {e}")
+        raise MatrixMessageNotSent(f"Matrix message not sent: {e}")
 
     return timestamp_or_string
 
@@ -171,7 +171,26 @@ def send_message(
 
     res = requests.post(url, json=message_data, headers=headers)
 
+    if res.status_code not in [200, 201, 204]:
+        try:
+            response_json = res.json()
+            error_msg = response_json['error']
+        except json.decoder.JSONDecodeError:
+            error_msg = res.text
+        logger.warning(f"there seems to be some problem in sending a message via matrix:\n"
+                       f"the requested url {url} lead to the error {error_msg}, "
+                       "this might be due to an error in the url or the page requested no longer exists, "
+                       "please check it and try to issue again the request")
+        matrix_error_message = error_msg
+
+        sentry.capture_message(f'issue in sending a message via matrix, the requested url {url} lead to the error '
+                               f'{matrix_error_message}')
+        raise MatrixMessageNotSent('issue when performing a request to the product gallery',
+                               status_code=res.status_code,
+                                payload={'matrix_error_message': matrix_error_message})
+
     logger.info("Message successfully sent")
+
 
     return message_data
 

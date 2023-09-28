@@ -1862,7 +1862,7 @@ class InstrumentQueryBackEnd:
                                 scratch_dir=self.scratch_dir)
 
                             query_out.set_status_field('matrix_message_status', 'matrix message sent')
-                        except matrix_helper.MatrixMsgNotSent as e:
+                        except matrix_helper.MatrixMessageNotSent as e:
                             query_out.set_status_field('matrix_message_status', 'sending matrix message failed')
                             logging.warning(f'matrix message sending failed: {e}')
                             sentry.capture_message(f'sending matrix message failed {e.message}')
