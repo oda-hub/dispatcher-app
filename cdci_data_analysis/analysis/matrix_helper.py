@@ -232,8 +232,8 @@ def send_message(
         sentry.capture_message(f'issue in sending a message via matrix, the requested url {url} lead to the error '
                                f'{matrix_error_message}')
         raise MatrixMessageNotSent('issue when performing a request to the product gallery',
-                               status_code=res.status_code,
-                                payload={'matrix_error_message': matrix_error_message})
+                                   status_code=res.status_code,
+                                   payload={'matrix_error_message': matrix_error_message})
 
     res_data = {
         "res_content": res.json(),
