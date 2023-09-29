@@ -6,6 +6,7 @@ import time
 import jwt
 import logging
 import re
+import ast
 
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState
 
@@ -16,7 +17,7 @@ secret_key = 'secretkey_test'
 default_exp_time = int(time.time()) + 5000
 default_token_payload = dict(
     sub="mtm@mtmco.net",
-    mxroomid="!ftvnEnntbXuonXjiIB:matrix.org",
+    mxroomid="!eplWxXpvZcTgyQXhzC:matrix.org",
     user_id="@barni.gabriele:matrix.org",
     name="mmeharga",
     roles="general",
@@ -125,13 +126,13 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
         assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
         assert 'matrix_message_status_details' in jdata['exit_status']
         matrix_message_event_id_obj = json.loads(jdata['exit_status']['matrix_message_status_details'])
-        assert 'event_id' in matrix_message_event_id_obj
+        assert 'event_id' in matrix_message_event_id_obj['res_content']
 
-        matrix_message_event_id_obj = matrix_message_event_id_obj['event_id']
+        matrix_message_event_id_obj = matrix_message_event_id_obj['res_content']['event_id']
 
         validate_matrix_message_content(
             dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=token_payload['mxroomid'],
-                                                                              event_id=matrix_message_event_id_obj),
+                                                                             event_id=matrix_message_event_id_obj),
             'submitted',
             room_id=token_payload['mxroomid'],
             event_id=matrix_message_event_id_obj,
@@ -144,194 +145,192 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
             dispatcher_live_fixture=None,
         )
 
-    # # for the call_back(s) in case the time of the original request is not provided
-    # if time_original_request_none:
-    #     time_request = None
-    #     time_request_str = 'None'
-    #
-    # for i in range(5):
-    #     # imitating what a backend would do
-    #     current_action = 'progress' if i > 2 else 'main_done'
-    #     c = requests.get(os.path.join(server, "call_back"),
-    #                      params=dict(
-    #                          job_id=dispatcher_job_state.job_id,
-    #                          session_id=dispatcher_job_state.session_id,
-    #                          instrument_name="empty-async",
-    #                          action=current_action,
-    #                          node_id=f'node_{i}',
-    #                          message='progressing',
-    #                          token=encoded_token,
-    #                          time_original_request=time_request
-    #                      ))
-    #     assert dispatcher_job_state.load_job_state_record(f'node_{i}', "progressing")['full_report_dict'][
-    #                'action'] == current_action
-    #
-    #     c = requests.get(os.path.join(server, "run_analysis"),
-    #                      params=dict(
-    #                          query_status="submitted",  # whether query is new or not, this should work
-    #                          query_type="Real",
-    #                          instrument="empty-async",
-    #                          product_type="dummy",
-    #                          async_dispatcher=False,
-    #                          session_id=dispatcher_job_state.session_id,
-    #                          job_id=dispatcher_job_state.job_id,
-    #                          token=encoded_token
-    #                      ))
-    #     assert c.json()['query_status'] == 'progress'  # always progress!
-    #
-    # # we should now find progress records
-    # c = requests.get(os.path.join(server, "run_analysis"),
-    #                  {**dict_param,
-    #                   "query_status": "submitted",
-    #                   "job_id": job_id,
-    #                   "session_id": session_id,
-    #                   }
-    #                  )
-    #
-    # assert c.status_code == 200
-    # jdata = c.json()
-    #
-    # assert len(jdata['job_monitor']['full_report_dict_list']) == 6
-    # assert [c['action'] for c in jdata['job_monitor']['full_report_dict_list']] == [
-    #     'main_done', 'main_done', 'main_done', 'progress', 'progress', 'progress']
-    #
-    # c = requests.get(os.path.join(server, "call_back"),
-    #                  params=dict(
-    #                      job_id=dispatcher_job_state.job_id,
-    #                      session_id=dispatcher_job_state.session_id,
-    #                      instrument_name="empty-async",
-    #                      action='main_incorrect_status',
-    #                      node_id=f'node_{i + 1}',
-    #                      message='progressing',
-    #                      token=encoded_token,
-    #                      time_original_request=time_request
-    #                  ))
-    # assert c.status_code == 200
-    #
-    # c = requests.get(os.path.join(server, "run_analysis"),
-    #                  {
-    #                      **dict_param,
-    #                      "query_status": "submitted",
-    #                      "job_id": job_id,
-    #                      "session_id": session_id,
-    #                  }
-    #                  )
-    # assert c.status_code == 200
-    # assert c.json()['query_status'] == 'progress'
-    #
-    # # this does nothing special
-    # c = requests.get(os.path.join(server, "call_back"),
-    #                  params=dict(
-    #                      job_id=dispatcher_job_state.job_id,
-    #                      session_id=dispatcher_job_state.session_id,
-    #                      instrument_name="empty-async",
-    #                      action='ready',
-    #                      node_id='node_ready',
-    #                      message='ready',
-    #                      token=encoded_token,
-    #                      time_original_request=time_request
-    #                  ))
-    #
-    # DataServerQuery.set_status('done')
-    #
-    # # this triggers email
-    # c = requests.get(os.path.join(server, "call_back"),
-    #                  params=dict(
-    #                      job_id=dispatcher_job_state.job_id,
-    #                      session_id=dispatcher_job_state.session_id,
-    #                      instrument_name="empty-async",
-    #                      action='done',
-    #                      node_id='node_final',
-    #                      message='done',
-    #                      token=encoded_token,
-    #                      time_original_request=time_request
-    #                  ))
-    #
-    # assert c.status_code == 200
-    #
-    # # TODO build a test that effectively test both paths
-    # jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
-    #
-    # if token_none or not expect_matrix_message:
-    #     assert 'matrix_message_status' not in jdata
-    #
-    # elif time_original_request_none:
-    #     assert 'matrix_message_status' in jdata
-    #
-    # elif default_values:
-    #     assert 'matrix_message_status' not in jdata
-    #
-    # else:
-    #     assert jdata['matrix_message_status'] == 'matrix message sent'
-    #
-    #     # # check the email in the email folders, and that the first one was produced
-    #     # dispatcher_job_state.assert_email(state="done")
-    #
-    #     # # check the email in the log files
-    #     # validate_email_content(
-    #     #     dispatcher_local_mail_server.get_email_record(1),
-    #     #     'done',
-    #     #     dispatcher_job_state,
-    #     #     time_request_str=time_request_str,
-    #     #     dispatcher_live_fixture=server,
-    #     # )
-    #
-    # # this also triggers email (simulate a failed request)
-    # c = requests.get(os.path.join(server, "call_back"),
-    #                  params={
-    #                      'job_id': dispatcher_job_state.job_id,
-    #                      'session_id': dispatcher_job_state.session_id,
-    #                      'instrument_name': "empty-async",
-    #                      'action': 'failed',
-    #                      'node_id': 'node_failed',
-    #                      'message': 'failed',
-    #                      'token': encoded_token,
-    #                      'time_original_request': time_request
-    #                  })
-    #
-    # assert c.status_code == 200
-    #
-    # jdata = dispatcher_job_state.load_job_state_record('node_failed', 'failed')
-    #
-    # if token_none or not expect_matrix_message:
-    #     # email not supposed to be sent for public request
-    #     assert 'matrix_message_status' not in jdata
-    # else:
-    #     assert jdata['matrix_message_status'] == 'matrix message sent'
-    #
-    #     # # check the email in the email folders, and that the first one was produced
-    #     # if default_values or time_original_request_none:
-    #     #     dispatcher_job_state.assert_email('failed', comment="expected one email in total, failed")
-    #     #     dispatcher_local_mail_server.assert_email_number(2)
-    #     # else:
-    #     #     dispatcher_job_state.assert_email('failed', comment="expected two emails in total, second failed")
-    #     #     dispatcher_local_mail_server.assert_email_number(3)
-    #     #
-    #     # validate_email_content(
-    #     #     dispatcher_local_mail_server.get_email_record(-1),
-    #     #     'failed',
-    #     #     dispatcher_job_state,
-    #     #     time_request_str=time_request_str,
-    #     #     dispatcher_live_fixture=server,
-    #     # )
-    #
-    # # TODO this will rewrite the value of the time_request in the query output, but it shouldn't be a problem?
-    # # This is not complete since DataServerQuery never returns done
-    # c = requests.get(os.path.join(server, "run_analysis"),
-    #                  params=dict(
-    #                      query_status="ready",  # whether query is new or not, this should work
-    #                      query_type="Real",
-    #                      instrument="empty-async",
-    #                      product_type="dummy",
-    #                      async_dispatcher=False,
-    #                      session_id=dispatcher_job_state.session_id,
-    #                      job_id=dispatcher_job_state.job_id,
-    #                      token=encoded_token
-    #                  ))
-    #
-    # logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
-    #
-    # assert c.status_code == 200
+    # for the call_back(s) in case the time of the original request is not provided
+    if time_original_request_none:
+        time_request = None
+        time_request_str = 'None'
+
+    for i in range(5):
+        # imitating what a backend would do
+        current_action = 'progress' if i > 2 else 'main_done'
+        c = requests.get(os.path.join(server, "call_back"),
+                         params=dict(
+                             job_id=dispatcher_job_state.job_id,
+                             session_id=dispatcher_job_state.session_id,
+                             instrument_name="empty-async",
+                             action=current_action,
+                             node_id=f'node_{i}',
+                             message='progressing',
+                             token=encoded_token,
+                             time_original_request=time_request
+                         ))
+        assert dispatcher_job_state.load_job_state_record(f'node_{i}', "progressing")['full_report_dict'][
+                   'action'] == current_action
+
+        c = requests.get(os.path.join(server, "run_analysis"),
+                         params=dict(
+                             query_status="submitted",  # whether query is new or not, this should work
+                             query_type="Real",
+                             instrument="empty-async",
+                             product_type="dummy",
+                             async_dispatcher=False,
+                             session_id=dispatcher_job_state.session_id,
+                             job_id=dispatcher_job_state.job_id,
+                             token=encoded_token
+                         ))
+        assert c.json()['query_status'] == 'progress'  # always progress!
+
+    # we should now find progress records
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     {**dict_param,
+                      "query_status": "submitted",
+                      "job_id": job_id,
+                      "session_id": session_id,
+                      }
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+
+    assert len(jdata['job_monitor']['full_report_dict_list']) == 6
+    assert [c['action'] for c in jdata['job_monitor']['full_report_dict_list']] == [
+        'main_done', 'main_done', 'main_done', 'progress', 'progress', 'progress']
+
+    c = requests.get(os.path.join(server, "call_back"),
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action='main_incorrect_status',
+                         node_id=f'node_{i + 1}',
+                         message='progressing',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+    assert c.status_code == 200
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     {
+                         **dict_param,
+                         "query_status": "submitted",
+                         "job_id": job_id,
+                         "session_id": session_id,
+                     }
+                     )
+    assert c.status_code == 200
+    assert c.json()['query_status'] == 'progress'
+
+    # this does nothing special
+    c = requests.get(os.path.join(server, "call_back"),
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action='ready',
+                         node_id='node_ready',
+                         message='ready',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+
+    DataServerQuery.set_status('done')
+
+    # this triggers a message via matrix
+    c = requests.get(os.path.join(server, "call_back"),
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action='done',
+                         node_id='node_final',
+                         message='done',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+
+    assert c.status_code == 200
+
+    jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
+
+    if token_none or not expect_matrix_message:
+        assert 'matrix_message_status' not in jdata
+
+    elif time_original_request_none:
+        assert 'matrix_message_status' in jdata
+
+    elif default_values:
+        assert 'matrix_message_status' not in jdata
+
+    else:
+        assert 'matrix_message_status' in jdata
+        assert jdata['matrix_message_status'] == 'matrix message sent'
+        assert 'matrix_message_status_details' in jdata
+        matrix_message_event_id_obj = json.loads(jdata['matrix_message_status_details'])
+        assert 'event_id' in matrix_message_event_id_obj['res_content']
+
+        matrix_message_event_id_obj = matrix_message_event_id_obj['res_content']['event_id']
+        # check the email in the email folders, and that the first one was produced
+        dispatcher_job_state.assert_matrix_message(state="done")
+
+        validate_matrix_message_content(
+            dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=token_payload['mxroomid'],
+                                                                              event_id=matrix_message_event_id_obj),
+            'done',
+            room_id=token_payload['mxroomid'],
+            event_id=matrix_message_event_id_obj,
+            user_id=token_payload['user_id'],
+            dispatcher_job_state=dispatcher_job_state,
+            time_request_str=time_request_str,
+            dispatcher_live_fixture=server
+        )
+
+    # this also triggers email (simulate a failed request)
+    c = requests.get(os.path.join(server, "call_back"),
+                     params={
+                         'job_id': dispatcher_job_state.job_id,
+                         'session_id': dispatcher_job_state.session_id,
+                         'instrument_name': "empty-async",
+                         'action': 'failed',
+                         'node_id': 'node_failed',
+                         'message': 'failed',
+                         'token': encoded_token,
+                         'time_original_request': time_request
+                     })
+
+    assert c.status_code == 200
+
+    jdata = dispatcher_job_state.load_job_state_record('node_failed', 'failed')
+
+    if token_none or not expect_matrix_message:
+        # email not supposed to be sent for public request
+        assert 'matrix_message_status' not in jdata
+        assert 'matrix_message_status_details' not in jdata
+    else:
+        assert 'matrix_message_status' in jdata
+        assert jdata['matrix_message_status'] == 'matrix message sent'
+        assert 'matrix_message_status_details' in jdata
+        matrix_message_event_id_obj = json.loads(jdata['matrix_message_status_details'])
+        assert 'event_id' in matrix_message_event_id_obj['res_content']
+
+        matrix_message_event_id_obj = matrix_message_event_id_obj['res_content']['event_id']
+
+        # check the email in the email folders, and that the first one was produced
+        if default_values or time_original_request_none:
+            dispatcher_job_state.assert_matrix_message('failed', comment="expected one email in total, failed")
+        else:
+            dispatcher_job_state.assert_matrix_message('failed', comment="expected two emails in total, second failed")
+
+        validate_matrix_message_content(
+            dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=token_payload['mxroomid'],
+                                                                             event_id=matrix_message_event_id_obj),
+            'failed',
+            room_id=token_payload['mxroomid'],
+            event_id=matrix_message_event_id_obj,
+            user_id=token_payload['user_id'],
+            dispatcher_job_state=dispatcher_job_state,
+            time_request_str=time_request_str,
+            dispatcher_live_fixture=server
+        )
 
 
 def validate_matrix_message_content(
@@ -392,6 +391,7 @@ def validate_matrix_message_content(
                 dispatcher_live_fixture,
                 product_type=product
             )
+            assert products_url in message_record['content']['body']
         else:
             assert re.search(f'<a href="(.*)">url</a>', message_record['content']['formatted_body'], re.M) is None
 
@@ -404,25 +404,6 @@ def validate_matrix_message_content(
     else:
         assert "Please note the API code for this query was too large to embed it in the email text. Instead," \
                " we attach it as a python script." in message_record['content']['body']
-
-    # for part in msg.walk():
-    #
-    #
-    #         fn = store_email(content_text_html,
-    #                          state=state,
-    #                          time_request_str=time_request_str,
-    #                          products_url=products_url,
-    #                          variation_suffixes=variation_suffixes)
-    #
-    #     if content_text is not None:
-    #         assert re.search(f'Dear User', content_text, re.IGNORECASE)
-    #         assert re.search(f'Kind Regards', content_text, re.IGNORECASE)
-    #
-    #         with open("email.text", "w") as f:
-    #             f.write(content_text)
-    #
-    #         if products_url is not None and products_url != "":
-    #             assert products_url in content_text
 
 
 def matrix_message_args_to_filename(**matrix_message_args):

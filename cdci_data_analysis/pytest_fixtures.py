@@ -1388,9 +1388,17 @@ class DispatcherJobState:
     def email_history_folder(self) -> str:
         return f'{self.scratch_dir}/email_history'
 
+    @property
+    def matrix_message_history_folder(self) -> str:
+        return f'{self.scratch_dir}/matrix_message_history'
+
     def assert_email(self, state, number=1, comment=""):
         list_email_files = glob.glob(self.email_history_folder + f'/email_{state}_*.email')
         assert len(list_email_files) == number, f"expected {number} emails, found {len(list_email_files)}: {list_email_files} in {self.email_history_folder}; {comment}"
+
+    def assert_matrix_message(self, state, number=1, comment=""):
+        list_matrix_message_files = glob.glob(self.matrix_message_history_folder + f'/matrix_message_{state}_*.json')
+        assert len(list_matrix_message_files) == number, f"expected {number} of matrix messages, found {len(list_matrix_message_files)}: {list_matrix_message_files} in {self.matrix_message_history_folder}; {comment}"
 
     def load_job_state_record(self, state, message):
         return json.load(open(f'{self.scratch_dir}/job_monitor_{state}_{message}_.json'))
