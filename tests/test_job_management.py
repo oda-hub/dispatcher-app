@@ -10,10 +10,8 @@ import time
 import jwt
 import logging
 import email
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlencode
 import glob
-
-from collections import OrderedDict
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, ask
@@ -554,41 +552,41 @@ def validate_incident_email_content(
                 assert ignore_html_patterns(reference_email) == ignore_html_patterns(content_text_html)
 
 
-def get_expected_products_url(dict_param,
-                              session_id,
-                              token,
-                              job_id):
-    dict_param_complete = dict_param.copy()    
-    dict_param_complete.pop("token", None)
-    dict_param_complete.pop("session_id", None)
-    dict_param_complete.pop("job_id", None)
-
-    assert 'session_id' not in dict_param_complete
-    assert 'job_id' not in dict_param_complete
-    assert 'token' not in dict_param_complete
-
-    for key, value in dict(dict_param_complete).items():
-        if value is None:
-            dict_param_complete.pop(key)
-        elif type(value) == list:
-            dict_param_complete[key] = ",".join(value)
-
-    dict_param_complete = OrderedDict({
-        k: dict_param_complete[k] for k in sorted(dict_param_complete.keys())
-    })
-
-    products_url = '%s?%s' % ('PRODUCTS_URL', urlencode(dict_param_complete))
-
-    if len(products_url) > 2000:
-        possibly_compressed_request_url = ""
-    elif 2000 > len(products_url) > 600:
-        possibly_compressed_request_url = \
-            "PRODUCTS_URL/dispatch-data/resolve-job-url?" + \
-            parse.urlencode(dict(job_id=job_id, session_id=session_id, token=token))
-    else:
-        possibly_compressed_request_url = products_url
-
-    return possibly_compressed_request_url
+# def get_expected_products_url(dict_param,
+#                               session_id,
+#                               token,
+#                               job_id):
+#     dict_param_complete = dict_param.copy()
+#     dict_param_complete.pop("token", None)
+#     dict_param_complete.pop("session_id", None)
+#     dict_param_complete.pop("job_id", None)
+#
+#     assert 'session_id' not in dict_param_complete
+#     assert 'job_id' not in dict_param_complete
+#     assert 'token' not in dict_param_complete
+#
+#     for key, value in dict(dict_param_complete).items():
+#         if value is None:
+#             dict_param_complete.pop(key)
+#         elif type(value) == list:
+#             dict_param_complete[key] = ",".join(value)
+#
+#     dict_param_complete = OrderedDict({
+#         k: dict_param_complete[k] for k in sorted(dict_param_complete.keys())
+#     })
+#
+#     products_url = '%s?%s' % ('PRODUCTS_URL', urlencode(dict_param_complete))
+#
+#     if len(products_url) > 2000:
+#         possibly_compressed_request_url = ""
+#     elif 2000 > len(products_url) > 600:
+#         possibly_compressed_request_url = \
+#             "PRODUCTS_URL/dispatch-data/resolve-job-url?" + \
+#             parse.urlencode(dict(job_id=job_id, session_id=session_id, token=token))
+#     else:
+#         possibly_compressed_request_url = products_url
+#
+#     return possibly_compressed_request_url
 
 
 def test_validation_job_id(dispatcher_live_fixture):
@@ -739,10 +737,10 @@ def test_email_run_analysis_callback(gunicorn_dispatcher_long_living_fixture, di
                             'T_format': 'isot'
                             }
 
-    products_url = get_expected_products_url(completed_dict_param,
-                                             token=encoded_token,
-                                             session_id=session_id,
-                                             job_id=job_id)
+    products_url = DispatcherJobState.get_expected_products_url(completed_dict_param,
+                                                                token=encoded_token,
+                                                                session_id=session_id,
+                                                                job_id=job_id)
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
     assert 'time_request' in jdata
@@ -1603,10 +1601,10 @@ def test_status_details_email_done(gunicorn_dispatcher_live_fixture, dispatcher_
                             'T_format': 'isot'
                             }
 
-    products_url = get_expected_products_url(completed_dict_param,
-                                             session_id=dispatcher_job_state.session_id,
-                                             job_id=dispatcher_job_state.job_id,
-                                             token=encoded_token)
+    products_url = DispatcherJobState.get_expected_products_url(completed_dict_param,
+                                                                session_id=dispatcher_job_state.session_id,
+                                                                job_id=dispatcher_job_state.job_id,
+                                                                token=encoded_token)
 
     # check the email in the log files
     validate_email_content(
@@ -1796,7 +1794,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture,
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
-    short_url = get_expected_products_url(dict_param, session_id=session_id, job_id=job_id, token=encoded_token)
+    short_url = DispatcherJobState.get_expected_products_url(dict_param, session_id=session_id, job_id=job_id, token=encoded_token)
 
     if short_url != "":
         assert short_url in email_data
@@ -1871,7 +1869,7 @@ def test_email_link_job_resolution(dispatcher_long_living_fixture,
     session_id = jdata['session_id']
     job_id = jdata['job_monitor']['job_id']
 
-    expected_products_url = get_expected_products_url(dict_param, session_id=session_id, token=encoded_token, job_id=job_id)
+    expected_products_url = DispatcherJobState.get_expected_products_url(dict_param, session_id=session_id, token=encoded_token, job_id=job_id)
 
     if expired_token:
         # let make sure the token used for the previous request expires
@@ -1995,10 +1993,10 @@ def test_email_catalog(dispatcher_long_living_fixture,
                             'T2': '2017-03-06T15:32:27.000',
                             }
 
-    products_url = get_expected_products_url(completed_dict_param,
-                                             session_id=dispatcher_job_state.session_id,
-                                             job_id=dispatcher_job_state.job_id,
-                                             token=encoded_token)
+    products_url = DispatcherJobState.get_expected_products_url(completed_dict_param,
+                                                                session_id=dispatcher_job_state.session_id,
+                                                                job_id=dispatcher_job_state.job_id,
+                                                                token=encoded_token)
     # email validation
     validate_catalog_email_content(message_record=dispatcher_local_mail_server.get_email_record(),
                                    products_url=products_url,
@@ -2189,10 +2187,10 @@ def test_email_scws_list(gunicorn_dispatcher_long_living_fixture,
                                 'T_format': 'isot'
                                 }
 
-        products_url = get_expected_products_url(completed_dict_param,
-                                                 session_id=dispatcher_job_state.session_id,
-                                                 job_id=dispatcher_job_state.job_id,
-                                                 token=encoded_token)
+        products_url = DispatcherJobState.get_expected_products_url(completed_dict_param,
+                                                                    session_id=dispatcher_job_state.session_id,
+                                                                    job_id=dispatcher_job_state.job_id,
+                                                                    token=encoded_token)
 
         print("excpected products url:", products_url)
 
@@ -2351,10 +2349,10 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
                             'T_format': 'isot'
                             }
 
-    products_url = get_expected_products_url(completed_dict_param,
-                                             session_id=dispatcher_job_state.session_id,
-                                             job_id=dispatcher_job_state.job_id,
-                                             token=encoded_token)
+    products_url = DispatcherJobState.get_expected_products_url(completed_dict_param,
+                                                                session_id=dispatcher_job_state.session_id,
+                                                                job_id=dispatcher_job_state.job_id,
+                                                                token=encoded_token)
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
     assert 'time_request' in jdata
@@ -2520,10 +2518,10 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
                                 'T_format': 'isot'
                                 }
 
-        products_url = get_expected_products_url(completed_dict_param,
-                                                 token=encoded_token,
-                                                 session_id=session_id,
-                                                 job_id=job_id)
+        products_url = DispatcherJobState.get_expected_products_url(completed_dict_param,
+                                                                    token=encoded_token,
+                                                                    session_id=session_id,
+                                                                    job_id=job_id)
         assert jdata['exit_status']['job_status'] == 'submitted'
         # get the original time the request was made
         assert 'time_request' in jdata

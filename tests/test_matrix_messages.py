@@ -93,23 +93,20 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
 
     assert jdata['query_status'] == "submitted"
 
-    # session_id = jdata['session_id']
-    # job_id = jdata['job_monitor']['job_id']
-    #
-    # completed_dict_param = {**dict_param,
-    #                         'use_scws': 'no',
-    #                         'src_name': '1E 1740.7-2942',
-    #                         'RA': 265.97845833,
-    #                         'DEC': -29.74516667,
-    #                         'T1': '2017-03-06T13:26:48.000',
-    #                         'T2': '2017-03-06T15:32:27.000',
-    #                         'T_format': 'isot'
-    #                         }
+    completed_dict_param = {**dict_param,
+                            'use_scws': 'no',
+                            'src_name': '1E 1740.7-2942',
+                            'RA': 265.97845833,
+                            'DEC': -29.74516667,
+                            'T1': '2017-03-06T13:26:48.000',
+                            'T2': '2017-03-06T15:32:27.000',
+                            'T_format': 'isot'
+                            }
 
-    # products_url = get_expected_products_url(completed_dict_param,
-    #                                          token=encoded_token,
-    #                                          session_id=session_id,
-    #                                          job_id=job_id)
+    products_url = DispatcherJobState.get_expected_products_url(completed_dict_param,
+                                                                token=encoded_token,
+                                                                session_id=session_id,
+                                                                job_id=job_id)
     assert jdata['exit_status']['job_status'] == 'submitted'
     # get the original time the request was made
     assert 'time_request' in jdata
