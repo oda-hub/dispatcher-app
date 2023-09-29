@@ -9,6 +9,9 @@ from cdci_data_analysis.analysis.exceptions import BadRequest
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.hash import make_hash
 from cdci_data_analysis.configurer import ConfigEnv
+from cdci_data_analysis.analysis.email_helper import textify_email
+
+from oda_api.api import RemoteException
 
 import re
 import json
@@ -1057,6 +1060,120 @@ class DispatcherJobState:
     """
     manages state stored in scratch_* directories
     """
+
+    # we want to be able to view, in browser, fully formed emails. So storing templates does not do.
+    # but every test will generate them a bit differently, due to time embedded in them
+    # so just this time recored should be adapted for every test
+
+    generalized_patterns = {
+        'time_request_str': [
+            r'(because at )([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.*?)( \()',
+            '(requested at )(.*? .*?)( job_id:)'
+        ],
+        'token_exp_time_str': [
+            '(and will be valid until )(.*? .*?)(.<br>)'
+        ],
+        'products_url': [
+            '(href=")(.*?)(">url)',
+        ],
+        'job_id': [
+            '(job_id: )(.*?)(<)'
+        ],
+    }
+
+    ignore_patterns = [
+        r'\( .*?ago \)',
+        r'&#34;token&#34;:.*?,',
+        r'"token":.*?,',
+        r'expire in .*? .*?\.'
+    ]
+
+    api_attachment_ignore_attachment_patterns = [
+        r"(\'|\")token(\'|\"):.*?,"
+    ]
+
+    generalized_incident_patterns = {
+        'job_id': [
+            '(job_id</span>: )(.*?)(<)',
+            '(job_id: )(.*?)(</title>)'
+        ],
+        'session_id': [
+            '(session_id</span>: )(.*?)(<)'
+        ],
+        'incident_time': [
+            '(Incident time</span>: )(.*?)(<)',
+            '( Incident at )(.*)( job_id)'
+        ],
+        'incident_report': [
+            '(Incident details</h3>\n\n    <div style="background-color: lightgray; display: inline-block; padding: 5px;">)(.*?)(</div>)',
+        ],
+        'user_email_address': [
+            '(user email address</span>: )(.*?)(<)'
+        ]
+    }
+
+    # ignore patterns which we are too lazy to substitute
+    @classmethod
+    def ignore_html_patterns(cls, html_content):
+        for pattern in cls.ignore_patterns:
+            html_content = re.sub(pattern, "<IGNORES>", html_content, flags=re.DOTALL)
+
+        return html_content
+
+    @staticmethod
+    def extract_api_code_from_text(text):
+        r = re.search('<div.*?>(.*?)</div>', text, flags=re.DOTALL)
+        if r:
+            return textify_email(r.group(1))
+        else:
+            with open("no-api-code-problem.html", "w") as f:
+                f.write(text)
+            raise RuntimeError("no api code in the email!")
+
+    @staticmethod
+    def validate_api_code(api_code, dispatcher_live_fixture, product_type='dummy'):
+        if dispatcher_live_fixture is not None:
+            api_code = api_code.replace("<br>", "")
+            api_code = api_code.replace("PRODUCTS_URL/dispatch-data", dispatcher_live_fixture)
+
+            my_globals = {}
+            if product_type == 'failing':
+                with pytest.raises(RemoteException):
+                    exec(api_code, my_globals)
+            else:
+                exec(api_code, my_globals)
+                assert my_globals['data_collection']
+                my_globals['data_collection'].show()
+
+    @staticmethod
+    def validate_products_url(url, dispatcher_live_fixture, product_type='dummy'):
+        if dispatcher_live_fixture is not None:
+            # this is URL to frontend; it's not really true that it is passed the same way to dispatcher in all cases
+            # in particular, catalog seems to be passed differently!
+            url = url.replace("PRODUCTS_URL", dispatcher_live_fixture + "/run_analysis")
+
+            r = requests.get(url)
+
+            assert r.status_code == 200
+
+            jdata = r.json()
+
+            if product_type == 'failing':
+                assert jdata['exit_status']['status'] == 1
+                assert jdata['exit_status']['job_status'] == 'unknown'
+            else:
+                assert jdata['exit_status']['status'] == 0
+                assert jdata['exit_status']['job_status'] == 'done'
+
+    @staticmethod
+    def extract_products_url(text):
+        r = re.search('<a href="(.*?)">url</a>', text, flags=re.DOTALL)
+        if r:
+            return r.group(1)
+        else:
+            with open("no-url-problem.html", "w") as f:
+                f.write(text)
+            return ''
 
     @staticmethod
     def get_expected_products_url(dict_param,
