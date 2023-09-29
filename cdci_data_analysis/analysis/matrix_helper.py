@@ -176,14 +176,19 @@ def send_job_message(
     message_body_html = template.render(**matrix_message_data)
     message_text = textify_matrix_message(message_body_html)
 
-    message_data = send_message(url_server=matrix_server_url,
+    res_data = send_message(url_server=matrix_server_url,
                                 sender_access_token=matrix_sender_access_token,
                                 room_id=receiver_room_id,
                                 message_text=message_text,
                                 message_body_html=message_body_html
                                 )
 
+    message_data = res_data['message_data']
+    res_content = res_data['res_content']
+
     store_status_matrix_message_info(message_data, status, scratch_dir, sending_time=sending_time, first_submitted_time=time_request)
+
+    return res_content
 
 
 
@@ -229,10 +234,14 @@ def send_message(
                                status_code=res.status_code,
                                 payload={'matrix_error_message': matrix_error_message})
 
+    res_data = {
+        "res_content": res.json(),
+        "message_data": message_data
+    }
+
     logger.info("Message successfully sent")
 
-
-    return message_data
+    return res_data
 
 
 def is_message_to_send_run_query(status, time_original_request, scratch_dir, job_id, config, decoded_token=None):

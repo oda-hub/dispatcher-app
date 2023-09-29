@@ -256,9 +256,6 @@ def dispatcher_local_mail_server(pytestconfig, dispatcher_test_conf):
                 self.assert_email_number(N)
 
             return self.local_smtp_output[i]
-            
-            
-
 
 
     class CustomHandler:
@@ -311,6 +308,44 @@ def dispatcher_local_mail_server(pytestconfig, dispatcher_test_conf):
 
     print("will stop the mail server")
     controller.stop()
+
+
+@pytest.fixture
+def dispatcher_local_matrix_message_server(dispatcher_test_conf_with_matrix_options):
+
+    class MatrixMessageController:
+        def __init__(self,
+                     matrix_server_url=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_server_url'],
+                     matrix_sender_access_token=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']):
+            self.matrix_server_url = matrix_server_url
+            self.matrix_sender_access_token = matrix_sender_access_token
+
+        def get_matrix_message_record(self, room_id, event_id=None):
+            logger.info(f"Getting messages from the room id: {room_id}")
+
+            headers = {
+                'Authorization': ' '.join(['Bearer', self.matrix_sender_access_token]),
+                'Content-type': 'application/json'
+            }
+
+            if event_id is not None:
+                url = os.path.join(self.matrix_server_url, f'_matrix/client/v3/rooms/{room_id}/event/{event_id}')
+                res = requests.get(url, headers=headers)
+            else:
+                url = os.path.join(self.matrix_server_url, f'_matrix/client/r0/rooms/{room_id}/messages')
+                params = {
+                    'filter': {'type': 'm.room.message'},
+                    'limit': 150
+                }
+                res = requests.get(url, headers=headers, params=params)
+
+            return res.json()
+
+    matrix_message_controller = MatrixMessageController(
+        matrix_server_url=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_server_url'],
+        matrix_sender_access_token=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']
+    )
+    yield matrix_message_controller
 
 
 @pytest.fixture

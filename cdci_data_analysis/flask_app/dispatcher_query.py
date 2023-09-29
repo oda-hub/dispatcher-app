@@ -1051,7 +1051,7 @@ class InstrumentQueryBackEnd:
                 if time_request_first_submitted is not None:
                     time_request = time_request_first_submitted
 
-                matrix_helper.send_job_message(
+                res_content = matrix_helper.send_job_message(
                     config=self.app.config['conf'],
                     decoded_token=self.decoded_token,
                     token=self.token,
@@ -1066,10 +1066,16 @@ class InstrumentQueryBackEnd:
                     api_code=email_api_code,
                     scratch_dir=self.scratch_dir)
 
+                matrix_message_status_details = {
+                    "res_data": json.dumps(res_content)
+                }
+                if status_details is not None:
+                    matrix_message_status_details['status_details'] = status_details
+
                 job.write_dataserver_status(status_dictionary_value=status,
                                             full_dict=self.par_dic,
                                             matrix_message_status='matrix message sent',
-                                            matrix_message_status_details=status_details)
+                                            matrix_message_status_details=matrix_message_status_details)
 
             # TODO for a future implementation
             # self.validate_job_id()
@@ -1876,7 +1882,7 @@ class InstrumentQueryBackEnd:
                             if time_request_first_submitted is not None:
                                 time_request = time_request_first_submitted
 
-                            matrix_helper.send_job_message(
+                            res_content = matrix_helper.send_job_message(
                                 config=self.app.config['conf'],
                                 decoded_token=self.decoded_token,
                                 token=self.token,
@@ -1890,7 +1896,10 @@ class InstrumentQueryBackEnd:
                                 api_code=email_api_code,
                                 scratch_dir=self.scratch_dir)
 
+                            matrix_message_status_details = json.dumps(res_content)
+
                             query_out.set_status_field('matrix_message_status', 'matrix message sent')
+                            query_out.set_status_field('matrix_message_status_details', matrix_message_status_details)
                         except matrix_helper.MatrixMessageNotSent as e:
                             query_out.set_status_field('matrix_message_status', 'sending matrix message failed')
                             logging.warning(f'matrix message sending failed: {e}')
