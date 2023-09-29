@@ -52,7 +52,8 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
                      "mxsub": True,
                      "mssub": False,
                      "msdone": False,
-                     "msfail": False
+                     "msfail": False,
+                     "mxroomid": dispatcher_local_matrix_message_server.room_id
                      }
 
     if token_none:
@@ -331,6 +332,7 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
             time_request_str=time_request_str,
             dispatcher_live_fixture=server
         )
+
 
 
 def validate_matrix_message_content(

@@ -30,6 +30,7 @@ import copy
 import time
 import hashlib
 import glob
+import uuid
 
 from threading import Thread
 from collections import OrderedDict
@@ -322,6 +323,58 @@ def dispatcher_local_matrix_message_server(dispatcher_test_conf_with_matrix_opti
                      matrix_sender_access_token=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']):
             self.matrix_server_url = matrix_server_url
             self.matrix_sender_access_token = matrix_sender_access_token
+            self.room_id = self.create_room()
+
+        def create_room(self):
+            url = os.path.join(self.matrix_server_url, f'_matrix/client/v3/createRoom')
+            headers = {
+                'Authorization': ' '.join(['Bearer', self.matrix_sender_access_token]),
+                'Content-type': 'application/json'
+            }
+            room_data = {
+                'name': 'test room' + '_' + str(uuid.uuid4())[:8],
+                'visibility': 'private'
+            }
+
+            res = requests.post(url, json=room_data, headers=headers)
+
+            if res.status_code == 200:
+                res_content = res.json()
+                return res_content['room_id']
+
+            return None
+
+        def leave_room(self):
+            url = os.path.join(self.matrix_server_url, f'_matrix/client/v3/rooms/{self.room_id}/leave')
+            headers = {
+                'Authorization': ' '.join(['Bearer', self.matrix_sender_access_token]),
+                'Content-type': 'application/json'
+            }
+
+            res = requests.post(url, headers=headers)
+
+            if res.status_code == 200:
+                res_content = res.json()
+                if res_content == {}:
+                    return True
+
+            return False
+
+        def forget_room(self):
+            url = os.path.join(self.matrix_server_url, f'_matrix/client/v3/rooms/{self.room_id}/forget')
+            headers = {
+                'Authorization': ' '.join(['Bearer', self.matrix_sender_access_token]),
+                'Content-type': 'application/json'
+            }
+
+            res = requests.post(url, headers=headers)
+
+            if res.status_code == 200:
+                res_content = res.json()
+                if res_content == {}:
+                    return True
+
+            return False
 
         def get_matrix_message_record(self, room_id, event_id=None):
             logger.info(f"Getting messages from the room id: {room_id}")
@@ -349,6 +402,8 @@ def dispatcher_local_matrix_message_server(dispatcher_test_conf_with_matrix_opti
         matrix_sender_access_token=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']
     )
     yield matrix_message_controller
+    matrix_message_controller.leave_room()
+    matrix_message_controller.forget_room()
 
 
 @pytest.fixture
