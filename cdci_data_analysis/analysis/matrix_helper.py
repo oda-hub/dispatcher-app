@@ -150,6 +150,7 @@ def send_job_message(
         'oda_site': {
             'site_name': config.site_name,
             'frontend_url': config.products_url,
+            'contact': config.contact_email_address,
             'manual_reference': config.manual_reference,
         },
         'request': {
@@ -172,7 +173,7 @@ def send_job_message(
     env.filters['humanize_age'] = humanize_age
     env.filters['humanize_future'] = humanize_future
 
-    template = env.get_template('matrix_message.text')
+    template = env.get_template('html_matrix_message.html')
     message_body_html = template.render(**matrix_message_data)
     message_text = textify_matrix_message(message_body_html)
 
