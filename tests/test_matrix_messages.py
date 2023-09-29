@@ -17,6 +17,7 @@ default_exp_time = int(time.time()) + 5000
 default_token_payload = dict(
     sub="mtm@mtmco.net",
     mxroomid="!ftvnEnntbXuonXjiIB:matrix.org",
+    user_id="@barni.gabriele:matrix.org",
     name="mmeharga",
     roles="general",
     exp=default_exp_time,
@@ -24,64 +25,18 @@ default_token_payload = dict(
     mxintsub=5
 )
 
-generalized_matrix_message_patterns = {
-    'time_request_str': [
-        r'(because at )([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.*?)( \()',
-        '(requested at )(.*? .*?)( job_id:)'
-    ],
-    'token_exp_time_str': [
-        '(and will be valid until )(.*? .*?)(.<br>)'
-    ],
-    'products_url': [
-        '(href=")(.*?)(">url)',
-    ],
-    'job_id': [
-        '(job_id: )(.*?)(<)'
-    ],
-}
-
-generalized_incident_matrix_message_patterns = {
-    'job_id': [
-        '(job_id</span>: )(.*?)(<)',
-        '(job_id: )(.*?)(</title>)'
-    ],
-    'session_id': [
-        '(session_id</span>: )(.*?)(<)'
-    ],
-    'incident_time': [
-        '(Incident time</span>: )(.*?)(<)',
-        '( Incident at )(.*)( job_id)'
-    ],
-    'incident_report': [
-        '(Incident details</h3>\n\n    <div style="background-color: lightgray; display: inline-block; padding: 5px;">)(.*?)(</div>)',
-    ],
-    'user_email_address': [
-        '(user email address</span>: )(.*?)(<)'
-    ]
-}
-
-ignore_matrix_message_patterns = [
-    r'\( .*?ago \)',
-    r'&#34;token&#34;:.*?,',
-    r'expire in .*? .*?\.'
-]
-
-api_attachment_ignore_attachment_patterns = [
-    r"(\'|\")token(\'|\"):.*?,"
-]
-
 
 @pytest.mark.test_matrix
 @pytest.mark.parametrize("default_values", [True, False])
 @pytest.mark.parametrize("time_original_request_none", [False])
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'private-no-matrix-message'])
-def test_matrix_message_run_analysis_callback(dispatcher_live_fixture_with_matrix_options,
+def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fixture_with_matrix_options,
                                               dispatcher_local_matrix_message_server,
                                               default_values, request_cred, time_original_request_none):
     from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
     DataServerQuery.set_status('submitted')
 
-    server = dispatcher_live_fixture_with_matrix_options
+    server = gunicorn_dispatcher_long_living_fixture_with_matrix_options
 
     DispatcherJobState.remove_scratch_folders()
 
@@ -178,9 +133,13 @@ def test_matrix_message_run_analysis_callback(dispatcher_live_fixture_with_matri
             dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=token_payload['mxroomid'],
                                                                               event_id=matrix_message_event_id_obj),
             'submitted',
-            dispatcher_job_state,
+            room_id=token_payload['mxroomid'],
+            event_id=matrix_message_event_id_obj,
+            user_id=token_payload['user_id'],
+            dispatcher_job_state=dispatcher_job_state,
             variation_suffixes=["dummy"],
             time_request_str=time_request_str,
+            request_params=dict_param,
             products_url=products_url,
             dispatcher_live_fixture=None,
         )
@@ -388,8 +347,7 @@ def validate_matrix_message_content(
         request_params: dict = None,
         expect_api_code=True,
         variation_suffixes=None,
-        require_reference_email=False,
-        state_title=None
+        require_reference_email=False
 ):
     if variation_suffixes is None:
         variation_suffixes = []
@@ -398,16 +356,15 @@ def validate_matrix_message_content(
         variation_suffixes.append("no-api-code")
 
     reference_matrix_message = get_reference_matrix_message(state=state,
-                                                   time_request_str=time_request_str,
-                                                   products_url=products_url,
-                                                   job_id=dispatcher_job_state.job_id[:8],
-                                                   variation_suffixes=variation_suffixes,
-                                                   require=require_reference_email
-                                                   )
+                                                            time_request_str=time_request_str,
+                                                            products_url=products_url,
+                                                            job_id=dispatcher_job_state.job_id[:8],
+                                                            variation_suffixes=variation_suffixes,
+                                                            require=require_reference_email
+                                                            )
 
     if request_params is None:
         request_params = {}
-
     product = request_params.get('product_type', 'dummy')
 
     assert message_record['room_id'] == room_id
@@ -420,55 +377,42 @@ def validate_matrix_message_content(
     assert message_record['content']['format'] == 'org.matrix.custom.html'
     assert message_record['content']['msgtype'] == 'm.text'
 
-    # assert message_record['content']['body'] == 'org.matrix.custom.html'
-    # assert message_record['content']['formatted_body'] == 'm.text'
+    assert re.search(f'Dear User', message_record['content']['body'], re.IGNORECASE)
+    assert re.search(f'Kind Regards', message_record['content']['body'], re.IGNORECASE)
+
+    if reference_matrix_message is not None:
+        assert (DispatcherJobState.ignore_html_patterns(reference_matrix_message) ==
+                DispatcherJobState.ignore_html_patterns(message_record['content']['formatted_body']))
+
+    if products_url is not None:
+        if products_url != "":
+            assert re.search(f'<a href="(.*)">.*?</a>', message_record['content']['formatted_body'], re.M).group(1) == products_url
+            DispatcherJobState.validate_products_url(
+                DispatcherJobState.extract_products_url(message_record['content']['formatted_body']),
+                dispatcher_live_fixture,
+                product_type=product
+            )
+        else:
+            assert re.search(f'<a href="(.*)">url</a>', message_record['content']['formatted_body'], re.M) is None
+
+    if expect_api_code:
+        DispatcherJobState.validate_api_code(
+            DispatcherJobState.extract_api_code_from_text(message_record['content']['formatted_body']),
+            dispatcher_live_fixture,
+            product_type=product
+        )
+    else:
+        assert "Please note the API code for this query was too large to embed it in the email text. Instead," \
+               " we attach it as a python script." in message_record['content']['body']
 
     # for part in msg.walk():
-    #     content_text = None
-    #     content_disposition = str(part.get("Content-Disposition"))
-    #     content_type = part.get_content_type()
     #
-    #     if content_type == 'text/plain':
-    #         content_text_plain = part.get_payload().replace('\r', '').strip()
-    #         content_text = content_text_plain
-    #     elif content_type == 'text/html':
-    #         content_text_html = part.get_payload().replace('\r', '').strip()
-    #         content_text = content_text_html
-    #
-    #         if products_url is not None:
-    #             if products_url != "":
-    #                 assert re.search(f'<a href="(.*)">.*?</a>', content_text_html, re.M).group(1) == products_url
-    #             else:
-    #                 assert re.search(f'<a href="(.*)">url</a>', content_text_html, re.M) == None
     #
     #         fn = store_email(content_text_html,
     #                          state=state,
     #                          time_request_str=time_request_str,
     #                          products_url=products_url,
     #                          variation_suffixes=variation_suffixes)
-    #
-    #         if reference_email is not None:
-    #             open("adapted_reference.html", "w").write(ignore_html_patterns(reference_email))
-    #             assert ignore_html_patterns(reference_email) == ignore_html_patterns(
-    #                 content_text_html), f"please inspect {fn} and possibly copy it to {fn.replace('to_review', 'reference')}"
-    #
-    #         if expect_api_code:
-    #             validate_api_code(
-    #                 extract_api_code(content_text_html),
-    #                 dispatcher_live_fixture,
-    #                 product_type=product
-    #             )
-    #         else:
-    #             open("content.txt", "w").write(content_text)
-    #             assert "Please note the API code for this query was too large to embed it in the email text. Instead," \
-    #                    " we attach it as a python script." in content_text
-    #
-    #         if products_url != "":
-    #             validate_products_url(
-    #                 extract_products_url(content_text_html),
-    #                 dispatcher_live_fixture,
-    #                 product_type=product
-    #             )
     #
     #     if content_text is not None:
     #         assert re.search(f'Dear User', content_text, re.IGNORECASE)
@@ -487,7 +431,7 @@ def matrix_message_args_to_filename(**matrix_message_args):
     if suffix != "":
         suffix = "-" + suffix
 
-    fn = "tests/{matrix_message_collection}_emails/{state}{suffix}.html".format(suffix=suffix, **matrix_message_args)
+    fn = "tests/{matrix_message_collection}_matrix_messages/{state}{suffix}.html".format(suffix=suffix, **matrix_message_args)
     os.makedirs(os.path.dirname(fn), exist_ok=True)
     return fn
 
@@ -506,7 +450,7 @@ def get_reference_matrix_message(**matrix_message_args):
 
 def adapt_html(html_content, patterns=None, **matrix_message_args,):
     if patterns is None:
-        patterns = generalized_matrix_message_patterns
+        patterns = DispatcherJobState.generalized_patterns
     for arg, patterns in patterns.items():
         if arg in matrix_message_args and matrix_message_args[arg] is not None:
             for pattern in patterns:
