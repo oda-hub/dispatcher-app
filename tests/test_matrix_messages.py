@@ -6,7 +6,7 @@ import time
 import jwt
 import logging
 import re
-import ast
+import glob
 
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState
 
@@ -25,6 +25,113 @@ default_token_payload = dict(
     mxsub=True,
     mxintsub=5
 )
+
+
+def validate_matrix_message_content(
+        message_record,
+        state: str,
+        room_id:str,
+        event_id:str,
+        user_id:str,
+        dispatcher_job_state: DispatcherJobState,
+        time_request_str: str = None,
+        products_url=None,
+        dispatcher_live_fixture=None,
+        request_params: dict = None,
+        expect_api_code=True,
+        variation_suffixes=None,
+        require_reference_email=False
+):
+    if variation_suffixes is None:
+        variation_suffixes = []
+
+    if not expect_api_code:
+        variation_suffixes.append("no-api-code")
+
+    reference_matrix_message = get_reference_matrix_message(state=state,
+                                                            time_request_str=time_request_str,
+                                                            products_url=products_url,
+                                                            job_id=dispatcher_job_state.job_id[:8],
+                                                            variation_suffixes=variation_suffixes,
+                                                            require=require_reference_email
+                                                            )
+
+    if request_params is None:
+        request_params = {}
+    product = request_params.get('product_type', 'dummy')
+
+    assert message_record['room_id'] == room_id
+    assert message_record['user_id'] == user_id
+    assert message_record['type'] == 'm.room.message'
+    assert message_record['event_id'] == event_id
+
+    assert 'content' in message_record
+
+    assert message_record['content']['format'] == 'org.matrix.custom.html'
+    assert message_record['content']['msgtype'] == 'm.text'
+
+    assert re.search(f'Dear User', message_record['content']['body'], re.IGNORECASE)
+    assert re.search(f'Kind Regards', message_record['content']['body'], re.IGNORECASE)
+
+    if reference_matrix_message is not None:
+        assert (DispatcherJobState.ignore_html_patterns(reference_matrix_message) ==
+                DispatcherJobState.ignore_html_patterns(message_record['content']['formatted_body']))
+
+    if products_url is not None:
+        if products_url != "":
+            assert re.search(f'<a href="(.*)">.*?</a>', message_record['content']['formatted_body'], re.M).group(1) == products_url
+            DispatcherJobState.validate_products_url(
+                DispatcherJobState.extract_products_url(message_record['content']['formatted_body']),
+                dispatcher_live_fixture,
+                product_type=product
+            )
+            assert products_url in message_record['content']['body']
+        else:
+            assert re.search(f'<a href="(.*)">url</a>', message_record['content']['formatted_body'], re.M) is None
+
+    if expect_api_code:
+        DispatcherJobState.validate_api_code(
+            DispatcherJobState.extract_api_code_from_text(message_record['content']['formatted_body']),
+            dispatcher_live_fixture,
+            product_type=product
+        )
+    else:
+        assert "Please note the API code for this query was too large to embed it in the email text. Instead," \
+               " we attach it as a python script." in message_record['content']['body']
+
+
+def matrix_message_args_to_filename(**matrix_message_args):
+    suffix = "-".join(matrix_message_args.get('variation_suffixes', []))
+
+    if suffix != "":
+        suffix = "-" + suffix
+
+    fn = "tests/{matrix_message_collection}_matrix_messages/{state}{suffix}.html".format(suffix=suffix, **matrix_message_args)
+    os.makedirs(os.path.dirname(fn), exist_ok=True)
+    return fn
+
+
+def get_reference_matrix_message(**matrix_message_args):
+    fn = os.path.abspath(matrix_message_args_to_filename(**{**matrix_message_args, 'matrix_message_collection': 'reference'}))
+    try:
+        html_content = open(fn).read()
+        return adapt_html(html_content, **matrix_message_args)
+    except FileNotFoundError:
+        if matrix_message_args.get('require', False):
+            raise
+        else:
+            return None
+
+
+def adapt_html(html_content, patterns=None, **matrix_message_args,):
+    if patterns is None:
+        patterns = DispatcherJobState.generalized_patterns
+    for arg, patterns in patterns.items():
+        if arg in matrix_message_args and matrix_message_args[arg] is not None:
+            for pattern in patterns:
+                html_content = re.sub(pattern, r"\g<1>" + matrix_message_args[arg] + r"\g<3>", html_content)
+
+    return html_content
 
 
 @pytest.mark.test_matrix
@@ -334,109 +441,195 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
         )
 
 
+@pytest.mark.test_matrix
+@pytest.mark.not_safe_parallel
+def test_matrix_message_submitted_same_job(dispatcher_live_fixture_with_matrix_options, dispatcher_local_matrix_message_server):
+    # remove all the current scratch folders
+    DispatcherJobState.remove_scratch_folders()
 
-def validate_matrix_message_content(
-        message_record,
-        state: str,
-        room_id:str,
-        event_id:str,
-        user_id:str,
-        dispatcher_job_state: DispatcherJobState,
-        time_request_str: str = None,
-        products_url=None,
-        dispatcher_live_fixture=None,
-        request_params: dict = None,
-        expect_api_code=True,
-        variation_suffixes=None,
-        require_reference_email=False
-):
-    if variation_suffixes is None:
-        variation_suffixes = []
+    server = dispatcher_live_fixture_with_matrix_options
+    logger.info("constructed server: %s", server)
 
-    if not expect_api_code:
-        variation_suffixes.append("no-api-code")
-
-    reference_matrix_message = get_reference_matrix_message(state=state,
-                                                            time_request_str=time_request_str,
-                                                            products_url=products_url,
-                                                            job_id=dispatcher_job_state.job_id[:8],
-                                                            variation_suffixes=variation_suffixes,
-                                                            require=require_reference_email
-                                                            )
-
-    if request_params is None:
-        request_params = {}
-    product = request_params.get('product_type', 'dummy')
-
-    assert message_record['room_id'] == room_id
-    assert message_record['user_id'] == user_id
-    assert message_record['type'] == 'm.room.message'
-    assert message_record['event_id'] == event_id
-
-    assert 'content' in message_record
-
-    assert message_record['content']['format'] == 'org.matrix.custom.html'
-    assert message_record['content']['msgtype'] == 'm.text'
-
-    assert re.search(f'Dear User', message_record['content']['body'], re.IGNORECASE)
-    assert re.search(f'Kind Regards', message_record['content']['body'], re.IGNORECASE)
-
-    if reference_matrix_message is not None:
-        assert (DispatcherJobState.ignore_html_patterns(reference_matrix_message) ==
-                DispatcherJobState.ignore_html_patterns(message_record['content']['formatted_body']))
-
-    if products_url is not None:
-        if products_url != "":
-            assert re.search(f'<a href="(.*)">.*?</a>', message_record['content']['formatted_body'], re.M).group(1) == products_url
-            DispatcherJobState.validate_products_url(
-                DispatcherJobState.extract_products_url(message_record['content']['formatted_body']),
-                dispatcher_live_fixture,
-                product_type=product
-            )
-            assert products_url in message_record['content']['body']
-        else:
-            assert re.search(f'<a href="(.*)">url</a>', message_record['content']['formatted_body'], re.M) is None
-
-    if expect_api_code:
-        DispatcherJobState.validate_api_code(
-            DispatcherJobState.extract_api_code_from_text(message_record['content']['formatted_body']),
-            dispatcher_live_fixture,
-            product_type=product
-        )
-    else:
-        assert "Please note the API code for this query was too large to embed it in the email text. Instead," \
-               " we attach it as a python script." in message_record['content']['body']
+    token_payload = {**default_token_payload,
+                     "mxintsub": 20,
+                     "mxstout": True,
+                     "mxroomid": dispatcher_local_matrix_message_server.room_id
+                     }
 
 
-def matrix_message_args_to_filename(**matrix_message_args):
-    suffix = "-".join(matrix_message_args.get('variation_suffixes', []))
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
-    if suffix != "":
-        suffix = "-" + suffix
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
 
-    fn = "tests/{matrix_message_collection}_matrix_messages/{state}{suffix}.html".format(suffix=suffix, **matrix_message_args)
-    os.makedirs(os.path.dirname(fn), exist_ok=True)
-    return fn
+    # this should return status submitted, so email sent
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
 
+    assert c.status_code == 200
 
-def get_reference_matrix_message(**matrix_message_args):
-    fn = os.path.abspath(matrix_message_args_to_filename(**{**matrix_message_args, 'matrix_message_collection': 'reference'}))
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+
+    assert 'matrix_message_status' in jdata['exit_status']
+    assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
+    assert 'matrix_message_status_details' in jdata['exit_status']
+    matrix_message_event_id_obj = json.loads(jdata['exit_status']['matrix_message_status_details'])
+    assert 'event_id' in matrix_message_event_id_obj['res_content']
+
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    dispatcher_job_state.assert_matrix_message(state="submitted")
+
+    # re-submit the very same request, in order to produce a sequence of submitted status
+    # and verify not a sequence of emails are generated
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        session_id=dispatcher_job_state.session_id,
+        job_id=dispatcher_job_state.job_id,
+        token=encoded_token
+    )
+
+    for i in range(3):
+        c = requests.get(os.path.join(server, "run_analysis"),
+                         dict_param
+                         )
+
+        assert c.status_code == 200
+        jdata = c.json()
+        assert jdata['exit_status']['job_status'] == 'submitted'
+        assert 'matrix_message_status' not in jdata['exit_status']
+
+        # check the matrix message in the matrix messages folders, and that only the first one was produced
+        dispatcher_job_state.assert_matrix_message(state="submitted", number=1)
+
+    # let the interval time pass, so that a new message is sent on matrix
+    time.sleep(20)
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+
     try:
-        html_content = open(fn).read()
-        return adapt_html(html_content, **matrix_message_args)
-    except FileNotFoundError:
-        if matrix_message_args.get('require', False):
-            raise
-        else:
-            return None
+        assert jdata['exit_status']['job_status'] == 'submitted'
+        assert 'matrix_message_status' in jdata['exit_status']
+        assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
+    except KeyError:
+        logger.error(json.dumps(jdata, indent=4, sort_keys=True))
+        raise
+
+    # check the matrix message in the matrix messages folders, and that a second one has been sent
+    dispatcher_job_state.assert_matrix_message(state="submitted", number=2)
+
+    list_matrix_message_files = glob.glob(os.path.join(dispatcher_job_state.matrix_message_history_folder, f'matrix_message_submitted_*.json'))
+    assert len(list_matrix_message_files) == 2
+    for matrix_message_file in list_matrix_message_files:
+        f_name, f_ext = os.path.splitext(os.path.basename(matrix_message_file))
+        f_name_splited = f_name.split('_')
+        assert len(f_name_splited) == 5
+        assert float(f_name.split('_')[4]) == time_request
+
+    # let the interval time pass again, so that a new message is sent on matrix
+    time.sleep(20)
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+
+    assert 'matrix_message_status' in jdata['exit_status']
+    assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
+
+    list_matrix_message_files = glob.glob(os.path.join(dispatcher_job_state.matrix_message_history_folder, f'matrix_message_submitted_*.json'))
+    assert len(list_matrix_message_files) == 3
+    for email_file in list_matrix_message_files:
+        f_name, f_ext = os.path.splitext(os.path.basename(email_file))
+        f_name_splited = f_name.split('_')
+        assert len(f_name_splited) == 5
+        assert float(f_name.split('_')[4]) == time_request
 
 
-def adapt_html(html_content, patterns=None, **matrix_message_args,):
-    if patterns is None:
-        patterns = DispatcherJobState.generalized_patterns
-    for arg, patterns in patterns.items():
-        if arg in matrix_message_args and matrix_message_args[arg] is not None:
-            for pattern in patterns:
-                html_content = re.sub(pattern, r"\g<1>" + matrix_message_args[arg] + r"\g<3>", html_content)
+@pytest.mark.test_matrix
+@pytest.mark.not_safe_parallel
+def test_email_unnecessary_job_id(dispatcher_live_fixture, dispatcher_local_mail_server):
+    # remove all the current scratch folders
+    DispatcherJobState.remove_scratch_folders()
 
-    return html_content
+    server = dispatcher_live_fixture
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        job_id="something-else"
+    )
+
+    # this should return status submitted, so email sent
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+
+    assert c.status_code == 400
+
+    jdata = c.json()
+    assert 'unnecessarily' in jdata['error']
+    assert dict_param['job_id'] in jdata['error']
+
+
+@pytest.mark.test_matrix
+@pytest.mark.not_safe_parallel
+def test_email_submitted_frontend_like_job_id(dispatcher_live_fixture, dispatcher_local_mail_server):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # email content in plain text and html format
+    smtp_server_log = dispatcher_local_mail_server.local_smtp_output_json_fn
+
+    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token,
+        job_id=""
+    )
+
+    # this should return status submitted, so email sent
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['email_status'] == 'email sent'
+
+    # check the email in the email folders, and that the first one was produced
+
+    dispatcher_job_state.assert_email(state="submitted")
+    dispatcher_local_mail_server.assert_email_number(1)
+
