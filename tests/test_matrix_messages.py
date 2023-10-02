@@ -443,7 +443,8 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
 
 @pytest.mark.test_matrix
 @pytest.mark.not_safe_parallel
-def test_matrix_message_submitted_same_job(dispatcher_live_fixture_with_matrix_options, dispatcher_local_matrix_message_server):
+def test_matrix_message_submitted_same_job(dispatcher_live_fixture_with_matrix_options,
+                                           dispatcher_local_matrix_message_server):
     # remove all the current scratch folders
     DispatcherJobState.remove_scratch_folders()
 
@@ -567,44 +568,18 @@ def test_matrix_message_submitted_same_job(dispatcher_live_fixture_with_matrix_o
 
 @pytest.mark.test_matrix
 @pytest.mark.not_safe_parallel
-def test_email_unnecessary_job_id(dispatcher_live_fixture, dispatcher_local_mail_server):
-    # remove all the current scratch folders
+def test_matrix_message_submitted_frontend_like_job_id(dispatcher_live_fixture_with_matrix_options,
+                                                       dispatcher_local_matrix_message_server):
     DispatcherJobState.remove_scratch_folders()
 
-    server = dispatcher_live_fixture
-
-    dict_param = dict(
-        query_status="new",
-        query_type="Real",
-        instrument="empty-async",
-        product_type="dummy",
-        job_id="something-else"
-    )
-
-    # this should return status submitted, so email sent
-    c = requests.get(server + "/run_analysis",
-                     dict_param
-                     )
-
-    assert c.status_code == 400
-
-    jdata = c.json()
-    assert 'unnecessarily' in jdata['error']
-    assert dict_param['job_id'] in jdata['error']
-
-
-@pytest.mark.test_matrix
-@pytest.mark.not_safe_parallel
-def test_email_submitted_frontend_like_job_id(dispatcher_live_fixture, dispatcher_local_mail_server):
-    DispatcherJobState.remove_scratch_folders()
-
-    server = dispatcher_live_fixture
+    server = dispatcher_live_fixture_with_matrix_options
     logger.info("constructed server: %s", server)
 
-    # email content in plain text and html format
-    smtp_server_log = dispatcher_local_mail_server.local_smtp_output_json_fn
+    token_payload = {**default_token_payload,
+                     "mxroomid": dispatcher_local_matrix_message_server.room_id
+                     }
 
-    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
     dict_param = dict(
         query_status="new",
@@ -616,7 +591,7 @@ def test_email_submitted_frontend_like_job_id(dispatcher_live_fixture, dispatche
     )
 
     # this should return status submitted, so email sent
-    c = requests.get(server + "/run_analysis",
+    c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
                      )
 
@@ -626,10 +601,7 @@ def test_email_submitted_frontend_like_job_id(dispatcher_live_fixture, dispatche
 
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'submitted'
-    assert jdata['exit_status']['email_status'] == 'email sent'
+    assert 'matrix_message_status' in jdata['exit_status']
+    assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
 
-    # check the email in the email folders, and that the first one was produced
-
-    dispatcher_job_state.assert_email(state="submitted")
-    dispatcher_local_mail_server.assert_email_number(1)
-
+    dispatcher_job_state.assert_matrix_message(state="submitted")
