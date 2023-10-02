@@ -322,7 +322,7 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
         # send submitted mail, status update
         sending_ok = matrix_message_sending_job_submitted and interval_ok and status_ok
         if sending_ok:
-            log_additional_info_obj['check_result_message'] = 'the message on matrix will be sent'
+            log_additional_info_obj['check_result_message'] = 'the message will be sent via matrix'
             log_matrix_message_sending_info(status=status,
                                             time_request=time_check,
                                             scratch_dir=scratch_dir,
