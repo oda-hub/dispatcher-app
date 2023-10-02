@@ -96,9 +96,6 @@ def validate_matrix_message_content(
             dispatcher_live_fixture,
             product_type=product
         )
-    else:
-        assert "Please note the API code for this query was too large to embed it in the email text. Instead," \
-               " we attach it as a python script." in message_record['content']['body']
 
 
 def matrix_message_args_to_filename(**matrix_message_args):
@@ -190,7 +187,7 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
         token=encoded_token
     )
 
-    # this should return status submitted, so email sent
+    # this should return status submitted, so matrix message sent
     c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
                      )
@@ -227,7 +224,7 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
 
     if token_none or not expect_matrix_message:
-        # email not supposed to be sent for public request
+        # matrix message not supposed to be sent for public request
         assert 'matrix_message_status' not in jdata
     else:
         assert 'matrix_message_status' in jdata['exit_status']
@@ -378,7 +375,7 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
         assert 'event_id' in matrix_message_event_id_obj['res_content']
 
         matrix_message_event_id_obj = matrix_message_event_id_obj['res_content']['event_id']
-        # check the email in the email folders, and that the first one was produced
+        # check the matrix message in the matrix message folders, and that the first one was produced
         dispatcher_job_state.assert_matrix_message(state="done")
 
         validate_matrix_message_content(
@@ -394,7 +391,7 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
             require_reference_matrix_message=True
         )
 
-    # this also triggers email (simulate a failed request)
+    # this also triggers matrix message (simulate a failed request)
     c = requests.get(os.path.join(server, "call_back"),
                      params={
                          'job_id': dispatcher_job_state.job_id,
@@ -412,7 +409,7 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
     jdata = dispatcher_job_state.load_job_state_record('node_failed', 'failed')
 
     if token_none or not expect_matrix_message:
-        # email not supposed to be sent for public request
+        # matrix message not supposed to be sent for public request
         assert 'matrix_message_status' not in jdata
         assert 'matrix_message_status_details' not in jdata
     else:
@@ -424,11 +421,11 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
 
         matrix_message_event_id_obj = matrix_message_event_id_obj['res_content']['event_id']
 
-        # check the email in the email folders, and that the first one was produced
+        # check the matrix message in the matrix message folders, and that the first one was produced
         if default_values or time_original_request_none:
-            dispatcher_job_state.assert_matrix_message('failed', comment="expected one email in total, failed")
+            dispatcher_job_state.assert_matrix_message('failed', comment="expected one matrix message in total, failed")
         else:
-            dispatcher_job_state.assert_matrix_message('failed', comment="expected two emails in total, second failed")
+            dispatcher_job_state.assert_matrix_message('failed', comment="expected two matrix message in total, second failed")
 
         validate_matrix_message_content(
             dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=token_payload['mxroomid'],
@@ -473,7 +470,7 @@ def test_matrix_message_submitted_same_job(dispatcher_live_fixture_with_matrix_o
         token=encoded_token
     )
 
-    # this should return status submitted, so email sent
+    # this should return status submitted, so matrix message sent
     c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
                      )
@@ -497,7 +494,7 @@ def test_matrix_message_submitted_same_job(dispatcher_live_fixture_with_matrix_o
     dispatcher_job_state.assert_matrix_message(state="submitted")
 
     # re-submit the very same request, in order to produce a sequence of submitted status
-    # and verify not a sequence of emails are generated
+    # and verify not a sequence of matrix messages are generated
     dict_param = dict(
         query_status="new",
         query_type="Real",
@@ -564,8 +561,8 @@ def test_matrix_message_submitted_same_job(dispatcher_live_fixture_with_matrix_o
 
     list_matrix_message_files = glob.glob(os.path.join(dispatcher_job_state.matrix_message_history_folder, f'matrix_message_submitted_*.json'))
     assert len(list_matrix_message_files) == 3
-    for email_file in list_matrix_message_files:
-        f_name, f_ext = os.path.splitext(os.path.basename(email_file))
+    for matrix_message_file in list_matrix_message_files:
+        f_name, f_ext = os.path.splitext(os.path.basename(matrix_message_file))
         f_name_splited = f_name.split('_')
         assert len(f_name_splited) == 5
         assert float(f_name.split('_')[4]) == time_request
@@ -641,7 +638,7 @@ def test_matrix_message_submitted_multiple_requests(dispatcher_live_fixture_with
 
     DataServerQuery.set_status('submitted')
 
-    # this should return status submitted, so email sent
+    # this should return status submitted, so matrix message sent
     c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
                      )
@@ -656,7 +653,7 @@ def test_matrix_message_submitted_multiple_requests(dispatcher_live_fixture_with
     assert 'matrix_message_status' in jdata['exit_status']
     assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
 
-    # check the email in the matrix-messages folders, and that the first one was produced
+    # check the messages in the matrix-message folder, and that the first one was produced
     dispatcher_job_state.assert_matrix_message('submitted')
 
     dict_param = dict(
@@ -680,7 +677,7 @@ def test_matrix_message_submitted_multiple_requests(dispatcher_live_fixture_with
     # jobs will be aliased
     dispatcher_job_state.assert_matrix_message('submitted')
 
-    # let the interval time pass, so that a new email is sent
+    # let the interval time pass, so that a new matrix message is sent
     time.sleep(30)
     c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
@@ -706,15 +703,18 @@ def test_matrix_message_submitted_multiple_requests(dispatcher_live_fixture_with
 
 @pytest.mark.test_matrix
 @pytest.mark.not_safe_parallel
-def test_email_done(gunicorn_dispatcher_live_fixture, dispatcher_local_mail_server):
+def test_matrix_message_done(gunicorn_dispatcher_long_living_fixture_with_matrix_options,
+                             dispatcher_local_matrix_message_server):
     DispatcherJobState.remove_scratch_folders()
+    DataServerQuery.set_status('submitted')
 
-    server = gunicorn_dispatcher_live_fixture
+    server = gunicorn_dispatcher_long_living_fixture_with_matrix_options
     logger.info("constructed server: %s", server)
 
     token_payload = {
         **default_token_payload,
-        "tem": 0
+        "mxroomid": dispatcher_local_matrix_message_server.room_id,
+        "tmx": 0
     }
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
@@ -727,8 +727,8 @@ def test_email_done(gunicorn_dispatcher_live_fixture, dispatcher_local_mail_serv
         token=encoded_token
     )
 
-    # this should return status submitted, so email sent
-    c = requests.get(server + "/run_analysis",
+    # this should return status submitted, so matrix message sent
+    c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
                      )
 
@@ -737,24 +737,24 @@ def test_email_done(gunicorn_dispatcher_live_fixture, dispatcher_local_mail_serv
 
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
 
-    # check the email in the email folders, and that the first one was produced
-    email_history_log_files = glob.glob(
-        os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
-    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
-    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
-        history_log_content = json.loads(email_history_log_content_fn.read())
-        logger.info("content email history logging: %s", history_log_content)
+    # check the matrix_messages log in the matrix-message folders, and that the first one was produced
+    matrix_message_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'matrix_message_history', 'matrix_message_history_log_*.log'))
+    latest_file_matrix_message_history_log_file = max(matrix_message_history_log_files, key=os.path.getctime)
+    with open(latest_file_matrix_message_history_log_file) as matrix_message_history_log_content_fn:
+        history_log_content = json.loads(matrix_message_history_log_content_fn.read())
+        logger.info("content matrix message history logging: %s", history_log_content)
         assert history_log_content['job_id'] == dispatcher_job_state.job_id
         assert history_log_content['status'] == 'submitted'
-        assert isinstance(history_log_content['additional_information']['submitted_email_files'], list)
-        assert len(history_log_content['additional_information']['submitted_email_files']) == 0
-        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
+        assert isinstance(history_log_content['additional_information']['submitted_matrix_message_files'], list)
+        assert len(history_log_content['additional_information']['submitted_matrix_message_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the message will be sent via matrix'
 
     time_request = jdata['time_request']
 
     DataServerQuery.set_status('done')
 
-    c = requests.get(server + "/call_back",
+    c = requests.get(os.path.join(server, "call_back"),
                      params=dict(
                          job_id=dispatcher_job_state.job_id,
                          session_id=dispatcher_job_state.session_id,
@@ -768,25 +768,25 @@ def test_email_done(gunicorn_dispatcher_live_fixture, dispatcher_local_mail_serv
     assert c.status_code == 200
 
     jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
-    assert 'email_status' in jdata
-    assert jdata['email_status'] == 'email sent'
+    assert 'matrix_message_status' in jdata
+    assert jdata['matrix_message_status'] == 'matrix message sent'
 
-    # check the email in the email folders, and that the first one was produced
-    email_history_log_files = glob.glob(
-        os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
-    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
-    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
-        history_log_content = json.loads(email_history_log_content_fn.read())
-        logger.info("content email history logging: %s", history_log_content)
+    # check the matrix message in the matrix-message folders, and that the first one was produced
+    matrix_message_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'matrix_message_history', 'matrix_message_history_log_*.log'))
+    latest_file_matrix_message_history_log_file = max(matrix_message_history_log_files, key=os.path.getctime)
+    with open(latest_file_matrix_message_history_log_file) as matrix_message_history_log_content_fn:
+        history_log_content = json.loads(matrix_message_history_log_content_fn.read())
+        logger.info("content matrix-message history logging: %s", history_log_content)
         assert history_log_content['job_id'] == dispatcher_job_state.job_id
         assert history_log_content['status'] == 'done'
-        assert isinstance(history_log_content['additional_information']['done_email_files'], list)
-        assert len(history_log_content['additional_information']['done_email_files']) == 0
-        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
+        assert isinstance(history_log_content['additional_information']['done_matrix_message_files'], list)
+        assert len(history_log_content['additional_information']['done_matrix_message_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the message will be sent via matrix'
 
-    # a number of done call_backs, but none should trigger the email sending since this already happened
+    # a number of done call_backs, but none should trigger the matrix message sending since this already happened
     for i in range(3):
-        c = requests.get(server + "/call_back",
+        c = requests.get(os.path.join(server, "call_back"),
                          params=dict(
                              job_id=dispatcher_job_state.job_id,
                              session_id=dispatcher_job_state.session_id,
@@ -801,22 +801,20 @@ def test_email_done(gunicorn_dispatcher_live_fixture, dispatcher_local_mail_serv
 
         jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
 
-        assert 'email_status' in jdata
-        assert jdata['email_status'] == 'multiple completion email detected'
+        assert 'matrix_message_status' in jdata
+        assert jdata['matrix_message_status'] == 'multiple completion matrix message detected'
 
-    # check the email in the email folders, and that the first one was produced
+    dispatcher_job_state.assert_matrix_message("submitted")
+    dispatcher_job_state.assert_matrix_message("done")
 
-    dispatcher_job_state.assert_email("submitted")
-    dispatcher_job_state.assert_email("done")
-
-    email_history_log_files = glob.glob(
-        os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
-    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
-    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
-        history_log_content = json.loads(email_history_log_content_fn.read())
-        logger.info("content email history logging: %s", history_log_content)
+    matrix_message_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'matrix_message_history', 'matrix_message_history_log_*.log'))
+    latest_file_matrix_message_history_log_file = max(matrix_message_history_log_files, key=os.path.getctime)
+    with open(latest_file_matrix_message_history_log_file) as matrix_message_history_log_content_fn:
+        history_log_content = json.loads(matrix_message_history_log_content_fn.read())
+        logger.info("content matrix message history logging: %s", history_log_content)
         assert history_log_content['job_id'] == dispatcher_job_state.job_id
         assert history_log_content['status'] == 'done'
-        assert isinstance(history_log_content['additional_information']['done_email_files'], list)
-        assert len(history_log_content['additional_information']['done_email_files']) == 0
-        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
+        assert isinstance(history_log_content['additional_information']['done_matrix_message_files'], list)
+        assert len(history_log_content['additional_information']['done_matrix_message_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the message will be sent via matrix'
