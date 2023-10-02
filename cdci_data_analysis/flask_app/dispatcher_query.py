@@ -1125,6 +1125,14 @@ class InstrumentQueryBackEnd:
             logging.warning(f'matrix message sending failed: {e}')
             sentry.capture_message(f'sending matrix message failed {e.message}')
 
+        except matrix_helper.MultipleDoneMatrixMessage as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        matrix_message_status='multiple completion matrix message detected',
+                                        matrix_message_status_details=e.payload)
+            logging.warning(f'repeated sending of completion matrix message detected: {e}')
+            sentry.capture_message(f'sending matrix message failed {e.message}')
+
         except email_helper.MultipleDoneEmail as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
