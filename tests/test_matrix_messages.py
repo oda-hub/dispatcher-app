@@ -8,7 +8,7 @@ import logging
 import re
 import glob
 
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask
 from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
 
 logger = logging.getLogger(__name__)
@@ -818,3 +818,103 @@ def test_matrix_message_done(gunicorn_dispatcher_long_living_fixture_with_matrix
         assert isinstance(history_log_content['additional_information']['done_matrix_message_files'], list)
         assert len(history_log_content['additional_information']['done_matrix_message_files']) == 0
         assert history_log_content['additional_information']['check_result_message'] == 'the message will be sent via matrix'
+
+
+@pytest.mark.test_matrix
+@pytest.mark.not_safe_parallel
+def test_status_details_matrix_message_done(gunicorn_dispatcher_long_living_fixture_with_matrix_options,
+                                            dispatcher_local_matrix_message_server):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = gunicorn_dispatcher_long_living_fixture_with_matrix_options
+    logger.info("constructed server: %s", server)
+
+    token_payload = {
+        **default_token_payload,
+        "mxroomid": dispatcher_local_matrix_message_server.room_id,
+        "tmx": 0
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'failing',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status='failed'
+                )
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    DataServerQuery.set_status('done')
+
+    c = requests.get(os.path.join(server, "call_back"),
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         # necessary to use the empty-async instrument otherwise a OsaJob would not be instantiated and
+                         # TODO is the list of instruments for creating OsaJob objects within the job_factory complete?
+                         instrument_name="empty-async",
+                         action='done',
+                         node_id='node_final',
+                         message='done',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+    assert c.status_code == 200
+
+    jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
+    assert 'matrix_message_status' in jdata
+    assert jdata['matrix_message_status'] == 'matrix message sent'
+
+    # check the additional status details within the email
+    assert 'matrix_message_status_details' in jdata
+    matrix_message_event_id_obj = json.loads(jdata['matrix_message_status_details'])
+    assert matrix_message_event_id_obj['status_details'] == {
+        'exception_message': 'failing query\nInstrument: empty, product: failing failed!\n',
+        'status': 'empty_product'
+    }
+
+    completed_dict_param = {**params,
+                            'p_list': '[]',
+                            'use_scws': 'no',
+                            'src_name': '1E 1740.7-2942',
+                            'RA': 265.97845833,
+                            'DEC': -29.74516667,
+                            'T1': '2017-03-06T13:26:48.000',
+                            'T2': '2017-03-06T15:32:27.000',
+                            'T_format': 'isot'
+                            }
+
+    products_url = DispatcherJobState.get_expected_products_url(completed_dict_param,
+                                                                session_id=dispatcher_job_state.session_id,
+                                                                job_id=dispatcher_job_state.job_id,
+                                                                token=encoded_token)
+
+    matrix_message_event_id_obj = matrix_message_event_id_obj['res_content']['event_id']
+
+    # check the email in the log files
+    validate_matrix_message_content(
+        dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=token_payload['mxroomid'],
+                                                                         event_id=matrix_message_event_id_obj),
+        'done',
+        room_id=token_payload['mxroomid'],
+        event_id=matrix_message_event_id_obj,
+        user_id=token_payload['user_id'],
+        dispatcher_job_state=dispatcher_job_state,
+        variation_suffixes=["failing"],
+        time_request_str=time_request_str,
+        products_url=products_url,
+        request_params=params,
+        dispatcher_live_fixture=server,
+    )
+
