@@ -9,6 +9,7 @@ import re
 import glob
 
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState
+from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
 
 logger = logging.getLogger(__name__)
 # symmetric shared secret for the decoding of the token
@@ -141,7 +142,6 @@ def adapt_html(html_content, patterns=None, **matrix_message_args,):
 def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fixture_with_matrix_options,
                                               dispatcher_local_matrix_message_server,
                                               default_values, request_cred, time_original_request_none):
-    from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
     DataServerQuery.set_status('submitted')
 
     server = gunicorn_dispatcher_long_living_fixture_with_matrix_options
@@ -610,3 +610,213 @@ def test_matrix_message_submitted_frontend_like_job_id(dispatcher_live_fixture_w
     assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
 
     dispatcher_job_state.assert_matrix_message(state="submitted")
+
+
+@pytest.mark.test_matrix
+@pytest.mark.not_safe_parallel
+def test_matrix_message_submitted_multiple_requests(dispatcher_live_fixture_with_matrix_options,
+                                                    dispatcher_local_matrix_message_server):
+
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_live_fixture_with_matrix_options
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token with high threshold
+    token_payload = {
+        **default_token_payload,
+        "mxintsub": 30,
+        "mxroomid": dispatcher_local_matrix_message_server.room_id
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    DataServerQuery.set_status('submitted')
+
+    # this should return status submitted, so email sent
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+    assert c.status_code == 200
+
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+
+    jdata = c.json()
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert 'matrix_message_status' in jdata['exit_status']
+    assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
+
+    # check the email in the matrix-messages folders, and that the first one was produced
+    dispatcher_job_state.assert_matrix_message('submitted')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    for i in range(5):
+        c = requests.get(os.path.join(server, "run_analysis"),
+                         dict_param
+                         )
+
+        assert c.status_code == 200
+        jdata = c.json()
+        assert jdata['exit_status']['job_status'] == 'submitted'
+        assert 'matrix_message_status' not in jdata['exit_status']
+
+    # jobs will be aliased
+    dispatcher_job_state.assert_matrix_message('submitted')
+
+    # let the interval time pass, so that a new email is sent
+    time.sleep(30)
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert 'matrix_message_status' in jdata['exit_status']
+    assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
+
+    session_id = jdata['session_id']
+
+    # check the matrix messages in the matrix-messages folders, and that the first one was produced
+    assert os.path.exists(f'scratch_sid_{session_id}_jid_{dispatcher_job_state.job_id}_aliased')
+    list_matrix_message_files_last_request = glob.glob(
+        f'scratch_sid_{session_id}_jid_{dispatcher_job_state.job_id}_aliased/matrix_message_history/matrix_message_submitted_*.json')
+    assert len(list_matrix_message_files_last_request) == 1
+    list_overall_matrix_message_files = glob.glob(
+        f'scratch_sid_*_jid_{dispatcher_job_state.job_id}*/matrix_message_history/matrix_message_submitted_*.json')
+    assert len(list_overall_matrix_message_files) == 2
+
+
+@pytest.mark.test_matrix
+@pytest.mark.not_safe_parallel
+def test_email_done(gunicorn_dispatcher_live_fixture, dispatcher_local_mail_server):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = gunicorn_dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    token_payload = {
+        **default_token_payload,
+        "tem": 0
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    # this should return status submitted, so email sent
+    c = requests.get(server + "/run_analysis",
+                     dict_param
+                     )
+
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+    jdata = c.json()
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+
+    # check the email in the email folders, and that the first one was produced
+    email_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
+        history_log_content = json.loads(email_history_log_content_fn.read())
+        logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'submitted'
+        assert isinstance(history_log_content['additional_information']['submitted_email_files'], list)
+        assert len(history_log_content['additional_information']['submitted_email_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
+
+    time_request = jdata['time_request']
+
+    DataServerQuery.set_status('done')
+
+    c = requests.get(server + "/call_back",
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action='done',
+                         node_id='node_final',
+                         message='done',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+    assert c.status_code == 200
+
+    jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
+    assert 'email_status' in jdata
+    assert jdata['email_status'] == 'email sent'
+
+    # check the email in the email folders, and that the first one was produced
+    email_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
+        history_log_content = json.loads(email_history_log_content_fn.read())
+        logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'done'
+        assert isinstance(history_log_content['additional_information']['done_email_files'], list)
+        assert len(history_log_content['additional_information']['done_email_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
+
+    # a number of done call_backs, but none should trigger the email sending since this already happened
+    for i in range(3):
+        c = requests.get(server + "/call_back",
+                         params=dict(
+                             job_id=dispatcher_job_state.job_id,
+                             session_id=dispatcher_job_state.session_id,
+                             instrument_name="empty-async",
+                             action='done',
+                             node_id='node_final',
+                             message='done',
+                             token=encoded_token,
+                             time_original_request=time_request
+                         ))
+        assert c.status_code == 200
+
+        jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
+
+        assert 'email_status' in jdata
+        assert jdata['email_status'] == 'multiple completion email detected'
+
+    # check the email in the email folders, and that the first one was produced
+
+    dispatcher_job_state.assert_email("submitted")
+    dispatcher_job_state.assert_email("done")
+
+    email_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'email_history') + '/email_history_log_*.log')
+    latest_file_email_history_log_file = max(email_history_log_files, key=os.path.getctime)
+    with open(latest_file_email_history_log_file) as email_history_log_content_fn:
+        history_log_content = json.loads(email_history_log_content_fn.read())
+        logger.info("content email history logging: %s", history_log_content)
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert history_log_content['status'] == 'done'
+        assert isinstance(history_log_content['additional_information']['done_email_files'], list)
+        assert len(history_log_content['additional_information']['done_email_files']) == 0
+        assert history_log_content['additional_information']['check_result_message'] == 'the email will be sent'
