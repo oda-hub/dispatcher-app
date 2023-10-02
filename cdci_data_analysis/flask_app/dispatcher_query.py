@@ -1028,6 +1028,7 @@ class InstrumentQueryBackEnd:
             roles = tokenHelper.get_token_roles(self.decoded_token)
             email = tokenHelper.get_token_user_email_address(self.decoded_token)
             self.set_instrument(self.instrument_name, roles, email)
+            # TODO to be included in a separate field, specific for the job status, and not bound to the email/matrix message
             status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
                                                                 config=self.config,
                                                                 logger=self.logger)
