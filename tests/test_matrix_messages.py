@@ -448,8 +448,10 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
 @pytest.mark.not_safe_parallel
 def test_matrix_message_submitted_same_job(dispatcher_live_fixture_with_matrix_options,
                                            dispatcher_local_matrix_message_server):
+    from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
     # remove all the current scratch folders
     DispatcherJobState.remove_scratch_folders()
+    DataServerQuery.set_status('submitted')
 
     server = dispatcher_live_fixture_with_matrix_options
     logger.info("constructed server: %s", server)
