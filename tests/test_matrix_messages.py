@@ -40,7 +40,7 @@ def validate_matrix_message_content(
         request_params: dict = None,
         expect_api_code=True,
         variation_suffixes=None,
-        require_reference_email=False
+        require_reference_matrix_message=False
 ):
     if variation_suffixes is None:
         variation_suffixes = []
@@ -53,7 +53,7 @@ def validate_matrix_message_content(
                                                             products_url=products_url,
                                                             job_id=dispatcher_job_state.job_id[:8],
                                                             variation_suffixes=variation_suffixes,
-                                                            require=require_reference_email
+                                                            require=require_reference_matrix_message
                                                             )
 
     if request_params is None:
@@ -251,6 +251,7 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
             request_params=dict_param,
             products_url=products_url,
             dispatcher_live_fixture=None,
+            require_reference_matrix_message=True
         )
 
     # for the call_back(s) in case the time of the original request is not provided
@@ -389,7 +390,8 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
             user_id=token_payload['user_id'],
             dispatcher_job_state=dispatcher_job_state,
             time_request_str=time_request_str,
-            dispatcher_live_fixture=server
+            dispatcher_live_fixture=server,
+            require_reference_matrix_message=True
         )
 
     # this also triggers email (simulate a failed request)
@@ -437,7 +439,8 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
             user_id=token_payload['user_id'],
             dispatcher_job_state=dispatcher_job_state,
             time_request_str=time_request_str,
-            dispatcher_live_fixture=server
+            dispatcher_live_fixture=server,
+            require_reference_matrix_message=True
         )
 
 
@@ -590,7 +593,7 @@ def test_matrix_message_submitted_frontend_like_job_id(dispatcher_live_fixture_w
         job_id=""
     )
 
-    # this should return status submitted, so email sent
+    # this should return status submitted, so a message on matrix sent
     c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
                      )

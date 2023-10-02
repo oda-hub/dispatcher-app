@@ -402,8 +402,8 @@ def dispatcher_local_matrix_message_server(dispatcher_test_conf_with_matrix_opti
         matrix_sender_access_token=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']
     )
     yield matrix_message_controller
-    matrix_message_controller.leave_room()
-    matrix_message_controller.forget_room()
+    # matrix_message_controller.leave_room()
+    # matrix_message_controller.forget_room()
 
 
 @pytest.fixture
