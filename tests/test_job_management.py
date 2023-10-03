@@ -379,8 +379,7 @@ def validate_incident_email_content(
         dispatcher_job_state: DispatcherJobState,
         incident_time_str: str = None,
         incident_report_str: str = None,
-        decoded_token = None,
-        attachment=False
+        decoded_token = None
 ):
 
     assert message_record['mail_from'] == dispatcher_test_conf['email_options']['incident_report_email_options']['incident_report_sender_email_address']

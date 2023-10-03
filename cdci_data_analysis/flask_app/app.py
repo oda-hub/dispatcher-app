@@ -1044,16 +1044,20 @@ def report_incident():
         logging.warning(f'parameter missing during call back: {e}')
 
     try:
-        matrix_helper.send_incident_report_message(
+        res_content = matrix_helper.send_incident_report_message(
             config=app_config,
             job_id=job_id,
             session_id=session_id,
             decoded_token=decoded_token,
             incident_content=incident_content,
             incident_time=incident_time,
-            scratch_dir=scratch_dir)
+            scratch_dir=scratch_dir
+        )
 
-        report_incident_status['martix_message_report_status'] = 'incident report email successfully sent'
+        report_incident_status['martix_message_report_status'] = 'incident report message successfully sent via matrix'
+        report_incident_status['martix_message_report_status_details'] = {
+            "res_content": res_content
+        }
     except matrix_helper.MatrixMessageNotSent as e:
         report_incident_status['martix_message_report_status'] = 'sending message via matrix failed'
         logging.warning(f'message sending via matrix failed: {e}')

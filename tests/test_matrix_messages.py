@@ -98,6 +98,52 @@ def validate_matrix_message_content(
         )
 
 
+def validate_incident_matrix_message_content(
+        message_record,
+        room_id:str,
+        event_id:str,
+        user_id:str,
+        dispatcher_job_state: DispatcherJobState,
+        incident_time_str: str = None,
+        incident_report_str: str = None,
+        decoded_token = None
+):
+
+    user_email_address = ""
+    if decoded_token is not None:
+        user_email_address = decoded_token.get('sub', None)
+
+    reference_matrix_message = get_incident_report_matrix_message(incident_time=incident_time_str,
+                                                                  job_id=dispatcher_job_state.job_id,
+                                                                  session_id=dispatcher_job_state.session_id,
+                                                                  incident_report=incident_report_str,
+                                                                  user_email_address=user_email_address
+                                                                  )
+
+    assert message_record['room_id'] == room_id
+    assert message_record['user_id'] == user_id
+    assert message_record['type'] == 'm.room.message'
+    assert message_record['event_id'] == event_id
+
+    assert 'content' in message_record
+
+    assert message_record['content']['format'] == 'org.matrix.custom.html'
+    assert message_record['content']['msgtype'] == 'm.text'
+
+
+    if reference_matrix_message is not None:
+        assert (DispatcherJobState.ignore_html_patterns(reference_matrix_message) ==
+                DispatcherJobState.ignore_html_patterns(message_record['content']['formatted_body']))
+
+    assert re.search('A new incident has been reported to the dispatcher. More information can ben found below.', message_record['content']['body'], re.IGNORECASE)
+    assert re.search('Execution details', message_record['content']['body'], re.IGNORECASE)
+    assert re.search('Incident details', message_record['content']['body'], re.IGNORECASE)
+    assert re.search(f'job_id: {dispatcher_job_state.job_id}', message_record['content']['body'], re.IGNORECASE)
+    assert re.search(f'session_id: {dispatcher_job_state.session_id}', message_record['content']['body'], re.IGNORECASE)
+    assert re.search(f'user email address: {user_email_address}', message_record['content']['body'], re.IGNORECASE)
+    assert re.search(incident_report_str, message_record['content']['body'], re.IGNORECASE)
+
+
 def matrix_message_args_to_filename(**matrix_message_args):
     suffix = "-".join(matrix_message_args.get('variation_suffixes', []))
 
@@ -119,6 +165,16 @@ def get_reference_matrix_message(**matrix_message_args):
             raise
         else:
             return None
+
+
+def get_incident_report_matrix_message(**matrix_message_args):
+    fn = os.path.join('reference_matrix_messages', 'incident_report.html')
+
+    try:
+        html_content = open(fn).read()
+        return adapt_html(html_content, patterns=DispatcherJobState.generalized_incident_patterns, **matrix_message_args)
+    except FileNotFoundError:
+        return None
 
 
 def adapt_html(html_content, patterns=None, **matrix_message_args,):
@@ -918,3 +974,89 @@ def test_status_details_matrix_message_done(gunicorn_dispatcher_long_living_fixt
         dispatcher_live_fixture=server,
     )
 
+
+@pytest.mark.test_matrix
+@pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
+def test_incident_report(dispatcher_live_fixture_with_matrix_options,
+                         dispatcher_local_matrix_message_server,
+                         dispatcher_test_conf,
+                         request_cred):
+    server = dispatcher_live_fixture_with_matrix_options
+
+    logger.info("constructed server: %s", server)
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+    }
+    encoded_token = None
+    decoded_token = None
+    error_message = None
+
+    if request_cred == 'invalid_token':
+        # an invalid (encoded) token, just a string
+        encoded_token = 'invalid_token'
+        error_message = 'The token provided is not valid.'
+    elif request_cred == 'public':
+        error_message = 'A token must be provided.'
+    elif request_cred == 'valid_token':
+        decoded_token = {
+            **default_token_payload,
+            "mxroomid": dispatcher_local_matrix_message_server.room_id
+        }
+        encoded_token = jwt.encode(decoded_token, secret_key, algorithm='HS256')
+        params['token'] = encoded_token
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    scratch_dir_fn_list = glob.glob(f'scratch_sid_{dispatcher_job_state.session_id}_jid_{dispatcher_job_state.job_id}*')
+    scratch_dir_fn = max(scratch_dir_fn_list, key=os.path.getctime)
+
+    incident_content = 'test incident'
+
+    # for the email we only use the first 8 characters
+    c = requests.post(os.path.join(server, "report_incident"),
+                      params=dict(
+                          job_id=dispatcher_job_state.job_id,
+                          session_id=dispatcher_job_state.session_id,
+                          token=encoded_token,
+                          incident_content=incident_content,
+                          incident_time=time_request,
+                          scratch_dir=scratch_dir_fn
+                      ))
+
+    if request_cred != 'valid_token':
+        # email not supposed to be sent for public request
+        assert c.status_code == 403
+        assert c.text == error_message
+    else:
+        jdata_incident_report = c.json()
+
+        assert 'martix_message_report_status' in jdata_incident_report
+        assert jdata_incident_report['martix_message_report_status'] == 'incident report message successfully sent via matrix'
+        assert 'martix_message_report_status_details' in jdata_incident_report
+        assert 'res_content' in jdata_incident_report['martix_message_report_status_details']
+        assert 'event_id' in jdata_incident_report['martix_message_report_status_details']['res_content']
+        matrix_message_event_id = jdata_incident_report['martix_message_report_status_details']['res_content']['event_id']
+
+        validate_incident_matrix_message_content(
+            dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=decoded_token['mxroomid'],
+                                                                             event_id=matrix_message_event_id),
+            event_id=matrix_message_event_id,
+            room_id=decoded_token['mxroomid'],
+            user_id=decoded_token['user_id'],
+            dispatcher_job_state=dispatcher_job_state,
+            incident_time_str=time_request_str,
+            incident_report_str=incident_content,
+            decoded_token=decoded_token
+        )
