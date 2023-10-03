@@ -806,12 +806,14 @@ def dispatcher_long_living_fixture_with_matrix_options(pytestconfig, dispatcher_
     if os.environ.get('GUNICORN_TMP_PATH', None) is not None:
         tmp_path = os.environ.get('GUNICORN_TMP_PATH')
 
-    dispatcher_state_fn = tmp_path.format(
-        hashlib.md5(open(dispatcher_test_conf_with_matrix_options_fn, "rb").read()).hexdigest()[:8]
-        )
+    with open(dispatcher_test_conf_with_matrix_options_fn, "rb") as dispatcher_test_conf_with_matrix_options_fn_f:
+        dispatcher_state_fn = tmp_path.format(
+            hashlib.md5(dispatcher_test_conf_with_matrix_options_fn_f.read()).hexdigest()[:8]
+            )
 
     if os.path.exists(dispatcher_state_fn):
-        dispatcher_state = json.load(open(dispatcher_state_fn))
+        with open(dispatcher_state_fn) as dispatcher_state_fn_f:
+            dispatcher_state = json.load(dispatcher_state_fn_f)
         logger.info("\033[31mfound dispatcher state: %s\033[0m", dispatcher_state)
 
         status_code = None
@@ -836,7 +838,8 @@ def dispatcher_long_living_fixture_with_matrix_options(pytestconfig, dispatcher_
         gunicorn = True
 
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_matrix_options_fn, gunicorn=gunicorn)
-    json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
+    with open(dispatcher_state_fn, "w") as dispatcher_state_fn_f:
+        json.dump(dispatcher_state, dispatcher_state_fn_f)
     return dispatcher_state['url']
 
 
