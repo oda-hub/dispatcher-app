@@ -1083,8 +1083,8 @@ class InstrumentQueryBackEnd:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
                                         call_back_status=f'issue when {step}')
-            logging.warning(f'issue when {step}')
-            sentry.capture_message(f'issue when {step}')
+            logging.warning(f'issue when {step}: {e}')
+            sentry.capture_message(f'issue when {step}: {e}')
 
         try:
             if is_message_to_send:
@@ -1129,13 +1129,6 @@ class InstrumentQueryBackEnd:
             logging.warning(f'matrix message sending failed: {e}')
             sentry.capture_message(f'sending matrix message failed {e.message}')
 
-        except matrix_helper.MultipleDoneMatrixMessage as e:
-            job.write_dataserver_status(status_dictionary_value=status,
-                                        full_dict=self.par_dic,
-                                        matrix_message_status='multiple completion matrix message detected',
-                                        matrix_message_status_details=e.payload)
-            logging.warning(f'repeated sending of completion matrix message detected: {e}')
-            sentry.capture_message(f'sending matrix message failed {e.message}')
         except MissingRequestParameter as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
@@ -1176,13 +1169,6 @@ class InstrumentQueryBackEnd:
                                             email_status_details=status_details)
             else:
                 job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
-
-        except email_helper.MultipleDoneEmail as e:
-            job.write_dataserver_status(status_dictionary_value=status,
-                                        full_dict=self.par_dic,
-                                        email_status='multiple completion email detected')
-            logging.warning(f'repeated sending of completion email detected: {e}')
-            sentry.capture_message(f'sending email failed {e}')
 
         except email_helper.EMailNotSent as e:
             job.write_dataserver_status(status_dictionary_value=status,

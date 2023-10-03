@@ -584,13 +584,9 @@ def test_matrix_message_submitted_same_job(dispatcher_live_fixture_with_matrix_o
     assert c.status_code == 200
     jdata = c.json()
 
-    try:
-        assert jdata['exit_status']['job_status'] == 'submitted'
-        assert 'matrix_message_status' in jdata['exit_status']
-        assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
-    except KeyError:
-        logger.error(json.dumps(jdata, indent=4, sort_keys=True))
-        raise
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert 'matrix_message_status' in jdata['exit_status']
+    assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
 
     # check the matrix message in the matrix messages folders, and that a second one has been sent
     dispatcher_job_state.assert_matrix_message(state="submitted", number=2)
