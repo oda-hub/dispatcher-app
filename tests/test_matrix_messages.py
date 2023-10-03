@@ -171,7 +171,8 @@ def get_incident_report_matrix_message(**matrix_message_args):
     fn = os.path.join('reference_matrix_messages', 'incident_report.html')
 
     try:
-        html_content = open(fn).read()
+        with open(fn) as fn_f:
+            html_content = fn_f.read()
         return adapt_html(html_content, patterns=DispatcherJobState.generalized_incident_patterns, **matrix_message_args)
     except FileNotFoundError:
         return None
