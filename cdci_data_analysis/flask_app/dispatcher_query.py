@@ -1077,7 +1077,26 @@ class InstrumentQueryBackEnd:
                                             full_dict=self.par_dic,
                                             matrix_message_status='matrix message sent',
                                             matrix_message_status_details=json.dumps(matrix_message_status_details))
+            else:
+                job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
 
+        except matrix_helper.MatrixMessageNotSent as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        matrix_message_status='sending message via matrix failed',
+                                        matrix_message_status_details=e.payload)
+            logging.warning(f'matrix message sending failed: {e}')
+            sentry.capture_message(f'sending matrix message failed {e.message}')
+
+        except matrix_helper.MultipleDoneMatrixMessage as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        matrix_message_status='multiple completion matrix message detected',
+                                        matrix_message_status_details=e.payload)
+            logging.warning(f'repeated sending of completion matrix message detected: {e}')
+            sentry.capture_message(f'sending matrix message failed {e.message}')
+
+        try:
             # TODO for a future implementation
             # self.validate_job_id()
             if email_helper.is_email_to_send_callback(self.logger,
@@ -1117,22 +1136,6 @@ class InstrumentQueryBackEnd:
                                             email_status_details=status_details)
             else:
                 job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
-
-        except matrix_helper.MatrixMessageNotSent as e:
-            job.write_dataserver_status(status_dictionary_value=status,
-                                        full_dict=self.par_dic,
-                                        matrix_message_status='sending message via matrix failed',
-                                        matrix_message_status_details=e.payload)
-            logging.warning(f'matrix message sending failed: {e}')
-            sentry.capture_message(f'sending matrix message failed {e.message}')
-
-        except matrix_helper.MultipleDoneMatrixMessage as e:
-            job.write_dataserver_status(status_dictionary_value=status,
-                                        full_dict=self.par_dic,
-                                        matrix_message_status='multiple completion matrix message detected',
-                                        matrix_message_status_details=e.payload)
-            logging.warning(f'repeated sending of completion matrix message detected: {e}')
-            sentry.capture_message(f'sending matrix message failed {e.message}')
 
         except email_helper.MultipleDoneEmail as e:
             job.write_dataserver_status(status_dictionary_value=status,
