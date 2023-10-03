@@ -859,7 +859,7 @@ def test_matrix_message_done(gunicorn_dispatcher_long_living_fixture_with_matrix
         jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
 
         assert 'matrix_message_status' in jdata
-        assert jdata['matrix_message_status'] == 'multiple completion matrix message detected'
+        assert jdata['matrix_message_status'] == 'attempted repeated sending of matrix message detected'
 
     dispatcher_job_state.assert_matrix_message("submitted")
     dispatcher_job_state.assert_matrix_message("done")
