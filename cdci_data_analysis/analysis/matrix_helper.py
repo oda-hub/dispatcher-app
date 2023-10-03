@@ -236,12 +236,26 @@ def send_job_message(
 
 
 def send_message(
-        url_server,
-        sender_access_token,
-        room_id,
-        message_text,
-        message_body_html,
+        url_server=None,
+        sender_access_token=None,
+        room_id=None,
+        message_text=None,
+        message_body_html=None,
 ):
+
+    if url_server is None:
+        logger.info('matrix url server not available')
+        raise MissingRequestParameter('matrix url server not available')
+    if sender_access_token is None:
+        logger.info('matrix sender_access_token not available')
+        raise MissingRequestParameter('matrix sender_access_token not available')
+    if room_id is None:
+        logger.info('matrix room_id not available')
+        raise MissingRequestParameter('matrix room_id not available')
+    if message_text is None or message_body_html is None:
+        logger.info('matrix message not available')
+        raise MissingRequestParameter('matrix message not available')
+
     logger.info(f"Sending message to the room id: {room_id}")
     url = os.path.join(url_server, f'_matrix/client/r0/rooms/{room_id}/send/m.room.message')
 
