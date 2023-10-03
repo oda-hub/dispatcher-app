@@ -1020,6 +1020,8 @@ class InstrumentQueryBackEnd:
         product_type = None
         products_url = None
         email_api_code = None
+        is_email_to_send = False
+        is_message_to_send = False
         try:
             step = 'checking if an email can be sent'
             is_message_to_send = matrix_helper.is_message_to_send_callback(status,
@@ -1028,6 +1030,14 @@ class InstrumentQueryBackEnd:
                                                           self.app.config['conf'],
                                                           self.job_id,
                                                           decoded_token=self.decoded_token)
+        except matrix_helper.MultipleDoneMatrixMessage as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        matrix_message_status='attempted repeated sending of matrix message detected')
+            logging.warning(f'attempted repeated sending of completion matrix message detected: {e}')
+            sentry.capture_message(f'attempted repeated sending of completion matrix message detected: {e}')
+
+        try:
             step = 'checking if a message can  be sent via matrix'
             is_email_to_send = email_helper.is_email_to_send_callback(self.logger,
                                                       status,
@@ -1036,6 +1046,13 @@ class InstrumentQueryBackEnd:
                                                       self.app.config['conf'],
                                                       self.job_id,
                                                       decoded_token=self.decoded_token)
+        except email_helper.MultipleDoneEmail as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        email_status='attempted repeated sending of completion email detected')
+            logging.warning(f'attempted repeated sending of completion email detected: {e}')
+            sentry.capture_message(f'attempted repeated sending of completion email detected: {e}')
+        try:
             if is_email_to_send or is_message_to_send:
                 step = 'extracting the original request dictionary'
                 original_request_par_dic = self.get_request_par_dic()
@@ -1065,16 +1082,12 @@ class InstrumentQueryBackEnd:
         except (TypeError, KeyError) as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
-                                        call_back_status=f'issuen when {step}')
-            logging.warning(f'matrix message sending failed: {e}')
-            sentry.capture_message(f'sending matrix message failed {e.message}')
+                                        call_back_status=f'issue when {step}')
+            logging.warning(f'issue when {step}')
+            sentry.capture_message(f'issue when {step}')
+
         try:
-            if matrix_helper.is_message_to_send_callback(status,
-                                                         time_original_request,
-                                                          self.scratch_dir,
-                                                          self.app.config['conf'],
-                                                          self.job_id,
-                                                          decoded_token=self.decoded_token):
+            if is_message_to_send:
                 time_request = time_original_request
                 time_request_first_submitted = matrix_helper.get_first_submitted_matrix_message_time(self.scratch_dir)
                 if time_request_first_submitted is not None:
@@ -1132,13 +1145,7 @@ class InstrumentQueryBackEnd:
         try:
             # TODO for a future implementation
             # self.validate_job_id()
-            if email_helper.is_email_to_send_callback(self.logger,
-                                                      status,
-                                                      time_original_request,
-                                                      self.scratch_dir,
-                                                      self.app.config['conf'],
-                                                      self.job_id,
-                                                      decoded_token=self.decoded_token):
+            if is_email_to_send:
                 time_request = time_original_request
                 time_request_first_submitted = email_helper.get_first_submitted_email_time(self.scratch_dir)
                 if time_request_first_submitted is not None:

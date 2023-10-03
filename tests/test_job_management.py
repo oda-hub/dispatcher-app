@@ -823,6 +823,8 @@ def test_email_submitted_faulty_time_request(dispatcher_live_fixture, dispatcher
     dir_list = glob.glob('scratch_*')
     [shutil.rmtree(d) for d in dir_list]
 
+    DataServerQuery.set_status('submitted')
+
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
@@ -963,6 +965,8 @@ def test_email_submitted_same_job(dispatcher_live_fixture, dispatcher_local_mail
 
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
+
+    DataServerQuery.set_status('submitted')
 
     # email content in plain text and html format
     smtp_server_log = dispatcher_local_mail_server.local_smtp_output_json_fn
@@ -1113,6 +1117,8 @@ def test_email_unnecessary_job_id(dispatcher_live_fixture, dispatcher_local_mail
         job_id="something-else"
     )
 
+    DataServerQuery.set_status('submitted')
+
     # this should return status submitted, so email sent
     c = requests.get(server + "/run_analysis",
                      dict_param
@@ -1260,6 +1266,7 @@ def test_email_submitted_multiple_requests(dispatcher_live_fixture, dispatcher_l
 @pytest.mark.not_safe_parallel
 def test_email_done(gunicorn_dispatcher_live_fixture, dispatcher_local_mail_server):
     DispatcherJobState.remove_scratch_folders()
+    DataServerQuery.set_status('submitted')
     
     server = gunicorn_dispatcher_live_fixture
     logger.info("constructed server: %s", server)
@@ -1354,7 +1361,7 @@ def test_email_done(gunicorn_dispatcher_live_fixture, dispatcher_local_mail_serv
         jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
         
         assert 'email_status' in jdata
-        assert jdata['email_status'] == 'multiple completion email detected'
+        assert jdata['email_status'] == 'attempted repeated sending of completion email detected'
 
     # check the email in the email folders, and that the first one was produced
 
