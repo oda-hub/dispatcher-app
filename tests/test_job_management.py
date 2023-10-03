@@ -2655,7 +2655,7 @@ def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, 
     else:
         jdata_incident_report = c.json()
 
-        assert 'report_incident_status' in jdata_incident_report
+        assert 'email_report_status' in jdata_incident_report
 
         validate_incident_email_content(
             dispatcher_local_mail_server.get_email_record(),
