@@ -433,43 +433,6 @@ def validate_incident_email_content(
                 assert DispatcherJobState.ignore_html_patterns(reference_email) == DispatcherJobState.ignore_html_patterns(content_text_html)
 
 
-# def get_expected_products_url(dict_param,
-#                               session_id,
-#                               token,
-#                               job_id):
-#     dict_param_complete = dict_param.copy()
-#     dict_param_complete.pop("token", None)
-#     dict_param_complete.pop("session_id", None)
-#     dict_param_complete.pop("job_id", None)
-#
-#     assert 'session_id' not in dict_param_complete
-#     assert 'job_id' not in dict_param_complete
-#     assert 'token' not in dict_param_complete
-#
-#     for key, value in dict(dict_param_complete).items():
-#         if value is None:
-#             dict_param_complete.pop(key)
-#         elif type(value) == list:
-#             dict_param_complete[key] = ",".join(value)
-#
-#     dict_param_complete = OrderedDict({
-#         k: dict_param_complete[k] for k in sorted(dict_param_complete.keys())
-#     })
-#
-#     products_url = '%s?%s' % ('PRODUCTS_URL', urlencode(dict_param_complete))
-#
-#     if len(products_url) > 2000:
-#         possibly_compressed_request_url = ""
-#     elif 2000 > len(products_url) > 600:
-#         possibly_compressed_request_url = \
-#             "PRODUCTS_URL/dispatch-data/resolve-job-url?" + \
-#             parse.urlencode(dict(job_id=job_id, session_id=session_id, token=token))
-#     else:
-#         possibly_compressed_request_url = products_url
-#
-#     return possibly_compressed_request_url
-
-
 def test_validation_job_id(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     DispatcherJobState.remove_scratch_folders()
