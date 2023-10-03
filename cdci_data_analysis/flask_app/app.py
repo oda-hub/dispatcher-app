@@ -27,7 +27,7 @@ from flask_restx import Api, Resource
 import time as _time
 from urllib.parse import urlencode, urlparse
 
-from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper, email_helper
+from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper, email_helper, matrix_helper
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError
@@ -1014,7 +1014,7 @@ def report_incident():
     if output_code is not None:
         return make_response(output, output_code)
     decoded_token = output
-
+    report_incident_status = {}
     par_dic = request.values.to_dict()
     job_id = par_dic.get('job_id')
     session_id = par_dic.get('session_id')
@@ -1033,19 +1033,39 @@ def report_incident():
             scratch_dir=scratch_dir,
             sentry_dsn=sentry_dsn
         )
-        report_incident_status = 'incident report email successfully sent'
+        report_incident_status['email_report_status'] = 'incident report email successfully sent'
     except email_helper.EMailNotSent as e:
-        report_incident_status = 'sending email failed'
+        report_incident_status['email_report_status'] = 'sending email failed'
         logging.warning(f'email sending failed: {e}')        
         sentry.capture_message(f'sending email failed {e}')
 
     except MissingRequestParameter as e:
-        report_incident_status = 'sending email failed'
+        report_incident_status['email_report_status'] = 'sending email failed'
         logging.warning(f'parameter missing during call back: {e}')
 
-    response = jsonify({'report_incident_status': report_incident_status})
+    try:
+        matrix_helper.send_incident_report_message(
+            config=app_config,
+            job_id=job_id,
+            session_id=session_id,
+            decoded_token=decoded_token,
+            incident_content=incident_content,
+            incident_time=incident_time,
+            scratch_dir=scratch_dir)
 
-    return response
+        report_incident_status['martix_message_report_status'] = 'incident report email successfully sent'
+    except matrix_helper.MatrixMessageNotSent as e:
+        report_incident_status['martix_message_report_status'] = 'sending message via matrix failed'
+        logging.warning(f'message sending via matrix failed: {e}')
+        sentry.capture_message(f'message sending via matrix failed {e}')
+
+    except MissingRequestParameter as e:
+        report_incident_status['martix_message_report_status'] = 'sending message via matrix failed'
+        logging.warning(f'parameter missing during call back: {e}')
+
+    # response = jsonify({'report_incident_status': report_incident_status})
+
+    return report_incident_status
 
 
 @ns_conf.route('/js9/<path:path>', methods=['GET', 'POST'])

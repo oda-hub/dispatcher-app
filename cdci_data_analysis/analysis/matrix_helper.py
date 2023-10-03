@@ -94,10 +94,52 @@ def send_incident_report_message(
         decoded_token,
         incident_content=None,
         incident_time=None,
-        scratch_dir=None,
-        sentry_dsn=None):
+        scratch_dir=None):
 
     sending_time = time_.time()
+
+    env = Environment(loader=FileSystemLoader('%s/../flask_app/templates/' % os.path.dirname(__file__)))
+    env.filters['timestamp2isot'] = timestamp2isot
+    env.filters['humanize_age'] = humanize_age
+    env.filters['humanize_future'] = humanize_future
+
+    matrix_server_url = config.matrix_server_url
+    matrix_sender_access_token = config.matrix_sender_access_token
+    receiver_room_id = tokenHelper.get_token_user_matrix_room_id(decoded_token)
+
+    matrix_message_data = {
+        'request': {
+            'job_id': job_id,
+            'session_id': session_id,
+            'incident_time': incident_time,
+            'decoded_token': decoded_token,
+        },
+        'content': incident_content
+    }
+
+    template = env.get_template('incident_report_matrix_message.html')
+    message_body_html = template.render(**matrix_message_data)
+    message_text = textify_matrix_message(message_body_html)
+
+    # TODO to understand about the line length limit in matrix (if there is any)
+    # if invalid_email_line_length(email_text) or invalid_email_line_length(email_body_html):
+    #     open("debug_email_lines_too_long.html", "w").write(email_body_html)
+    #     open("debug_email_lines_too_long.text", "w").write(email_text)
+    #     raise MatrixMessageNotSent(f"message not sent on matrix, lines too long!")
+
+    res_data = send_message(url_server=matrix_server_url,
+                            sender_access_token=matrix_sender_access_token,
+                            room_id=receiver_room_id,
+                            message_text=message_text,
+                            message_body_html=message_body_html
+                            )
+
+    message_data = res_data['message_data']
+    res_content = res_data['res_content']
+
+    store_incident_report_matrix_message(message_data, scratch_dir, sending_time=sending_time)
+
+    return res_content
 
 
 def send_job_message(
@@ -480,4 +522,15 @@ def store_status_matrix_message_info(message, status, scratch_dir, sending_time=
 
     # record the matrix_message just sent in a dedicated file
     with open(os.path.join(matrix_message_history_folder, matrix_message_file_name), 'w+') as outfile:
+        outfile.write(json.dumps(message, indent=4))
+
+
+def store_incident_report_matrix_message(message, scratch_dir, sending_time=None):
+    matrix_message_history_folder_path = os.path.join(scratch_dir, 'matrix_message_history')
+    if not os.path.exists(matrix_message_history_folder_path):
+        os.makedirs(matrix_message_history_folder_path)
+    if sending_time is None:
+        sending_time = time_.time()
+    # record the message just sent via matrix in a dedicated file
+    with open(os.path.join(matrix_message_history_folder_path, 'indident_report_email_' + str(sending_time) + '.json'), 'w+') as outfile:
         outfile.write(json.dumps(message, indent=4))
