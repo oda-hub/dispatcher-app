@@ -1613,8 +1613,8 @@ def test_example_config_with_matrix_options(dispatcher_test_conf_with_matrix_opt
         os.path.dirname(cdci_data_analysis.__file__),
         "config_dir/conf_env.yml.example"
     )
-
-    example_config = yaml.load(open(example_config_fn), Loader=yaml.SafeLoader)['dispatcher']
+    with open(example_config_fn) as example_config_fn_f:
+        example_config = yaml.load(example_config_fn_f, Loader=yaml.SafeLoader)['dispatcher']
     example_config.pop('product_gallery_options', None)
 
     mapper = lambda x, y: ".".join(map(str, x))
