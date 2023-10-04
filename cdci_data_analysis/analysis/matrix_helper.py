@@ -215,7 +215,7 @@ def send_job_message(
     env.filters['humanize_age'] = humanize_age
     env.filters['humanize_future'] = humanize_future
 
-    template = env.get_template('html_matrix_message.html')
+    template = env.get_template('matrix_message.html')
     message_body_html = template.render(**matrix_message_data)
     message_text = textify_matrix_message(message_body_html)
     res_data = send_message(url_server=matrix_server_url,
