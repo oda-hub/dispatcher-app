@@ -1064,21 +1064,21 @@ class InstrumentQueryBackEnd:
                     # set instrument
                     roles = tokenHelper.get_token_roles(self.decoded_token)
                     email = tokenHelper.get_token_user_email_address(self.decoded_token)
+                    step = 'when setting the instrument'
                     self.set_instrument(self.instrument_name, roles, email)
-                    step = 'extracting when setting the instrument'
                     # TODO to be included in a separate field, specific for the job status, and not bound to the email/matrix message
+                    step = 'extracting the status details'
                     status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
                                                                         config=self.config,
                                                                         logger=self.logger)
-                    step = 'extracting the status details'
                 # build the products URL and get also the original requested product
+                step = 'extracting the products url'
                 products_url = self.generate_products_url(self.config.products_url,
                                                           request_par_dict=original_request_par_dic)
-                step = 'extracting the products url'
+                step = 'extracting the api code'
                 email_api_code = DispatcherAPI.set_api_code(original_request_par_dic,
                                                             url=self.app.config['conf'].products_url + "/dispatch-data"
                                                             )
-                step = 'extracting the api code'
         except (TypeError, KeyError) as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
