@@ -151,6 +151,7 @@ class InstrumentQueryBackEnd:
                     raise RequestNotUnderstood("job_id must be present during a call_back")
             if data_server_call_back:
                 # this can be set since it's a call_back and job_id and session_id are available
+                print(f"before setting scratch_dir: job_id: {self.par_dic['job_id']} callback: {data_server_call_back}, resolve_job_url: {resolve_job_url}")
                 self.set_scratch_dir(session_id=self.par_dic['session_id'], job_id=self.par_dic['job_id'])
                 self.set_scws_call_back_related_params()
             else:
@@ -242,9 +243,10 @@ class InstrumentQueryBackEnd:
                 # TODO why here and not at the beginning ?
                 # self.set_sentry_client()
                 # TODO is also the case of call_back to handle ?
+                temp_job_id = None
                 if not data_server_call_back:
                     self.set_instrument(self.instrument_name, roles, email)
-                    # verbose = self.par_dic.get('verbose', 'False') == 'True'
+                    verbose = self.par_dic.get('verbose', 'False') == 'True'
                     # try:
                     #     self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
                     # except Exception as e:
@@ -279,15 +281,15 @@ class InstrumentQueryBackEnd:
 
                         # let's generate a temporary job_id used for the creation of the scratch_dir
                         self.generate_job_id()
-                        temp_job_id = self.job_id
                     else:
                         if 'job_id' not in self.par_dic:
                             raise RequestNotUnderstood(
                                 f"job_id must be present if query_status != \"new\" (it is \"{query_status}\")")
 
                         self.job_id = self.par_dic['job_id']
+                    temp_job_id = self.job_id
+                    print(f"temp_jpb_id set to: {temp_job_id}")
 
-                # verbose = self.par_dic.get('verbose', 'False') == 'True'
                 self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
                 if not data_server_call_back:
                     try:
@@ -319,7 +321,6 @@ class InstrumentQueryBackEnd:
 
                         # let's generate the definitive job_id
                         self.generate_job_id()
-                        self.update_scratch_dir_job_id(old_job_id=temp_job_id)
 
                         if provided_job_id is not None and self.job_id != provided_job_id:
                             raise RequestNotUnderstood((
@@ -332,6 +333,8 @@ class InstrumentQueryBackEnd:
                                 f"job_id must be present if query_status != \"new\" (it is \"{query_status}\")")
 
                         self.job_id = self.par_dic['job_id']
+                    # self.update_scratch_dir_job_id(old_job_id=temp_job_id)
+                    self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
 
                 self.log_query_progression("before move_temp_content")
                 self.move_temp_content()
@@ -762,7 +765,7 @@ class InstrumentQueryBackEnd:
             wd=FilePath(file_dir=wd).path)
         if alias_workdir is not None:
             wd = wd+'_aliased'
-
+        print(f"creating scratch_dir: {wd}")
         wd = FilePath(file_dir=wd)
         wd.mkdir()
         self.scratch_dir = wd.path
@@ -794,9 +797,11 @@ class InstrumentQueryBackEnd:
         if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir) \
                 and os.path.exists(self.scratch_dir):
             if old_job_id is not None:
-                new_scratch_dir_name = self.scratch_dir.replace(old_job_id, self.job_id)
+                new_scratch_dir_name = self.scratch_dir.replace('_jid_' + old_job_id, '_jid_' + self.job_id)
+                new_temp_dir_name =  self.temp_dir.replace('_jid_' + old_job_id, '_jid_' + self.job_id)
                 os.rename(self.scratch_dir, new_scratch_dir_name)
                 self.scratch_dir = new_scratch_dir_name
+                self.temp_dir = new_temp_dir_name
 
 
     def clear_temp_dir(self):
@@ -1384,6 +1389,7 @@ class InstrumentQueryBackEnd:
 
         elif len(dir_list) > 1:
             sentry.capture_message('Found two non aliased identical job_id')
+            print(f'Found two non aliased identical job_id, dir_list: {dir_list}')
             raise RuntimeError('Found two non aliased identical job_id')
 
         else:
