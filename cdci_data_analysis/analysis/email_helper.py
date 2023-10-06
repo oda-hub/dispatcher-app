@@ -391,7 +391,7 @@ and if this is not what you expected, you probably need to modify the request pa
                          logger=logger,
                          attachment=api_code_email_attachment)
 
-    store_status_email_info(message, status, scratch_dir, sending_time=sending_time, first_submitted_time=time_request)
+    store_status_email_info(message, status, scratch_dir, logger, sending_time=sending_time, first_submitted_time=time_request)
 
     return message
 
