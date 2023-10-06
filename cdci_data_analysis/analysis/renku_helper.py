@@ -7,7 +7,7 @@ import shutil
 import giturlparse
 import copy
 
-from git import Repo, Actor
+from git import Repo, Actor, RemoteProgress
 from configparser import ConfigParser
 
 from ..app_logging import app_logging
@@ -16,6 +16,13 @@ from .email_helper import generate_products_url_from_par_dict
 from .hash import make_hash
 
 logger = app_logging.getLogger('renku_helper')
+progress_logger = app_logging.getLogger('progress_git_commands_renku_helper')
+
+
+class MyProgressPrinter(RemoteProgress):
+    def update(self, op_code, cur_count, max_count=None, message=""):
+        message = message or "NO MESSAGE"
+        progress_logger.info(f"op_code: {op_code}, cur_count: {cur_count}, max_count: {max_count}, message: {message}")
 
 
 def push_api_code(api_code,
@@ -161,7 +168,7 @@ def clone_renku_repo(renku_repository_url, repo_dir=None, renku_gitlab_ssh_key_p
     # TODO or store known hosts on build/boot
     git_ssh_cmd = f'ssh -i {renku_gitlab_ssh_key_path} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
 
-    repo = Repo.clone_from(renku_repository_url, repo_dir, branch='master', env=dict(GIT_SSH_COMMAND=git_ssh_cmd))
+    repo = Repo.clone_from(renku_repository_url, repo_dir, branch='master', env=dict(GIT_SSH_COMMAND=git_ssh_cmd), progress=MyProgressPrinter())
 
     logger.info(f'repository {renku_repository_url} successfully cloned')
 
