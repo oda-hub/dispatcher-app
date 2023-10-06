@@ -23,7 +23,7 @@ import json
 from jinja2 import Environment, FileSystemLoader
 from bs4 import BeautifulSoup
 
-
+from ..app_logging import app_logging
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
 from ..analysis.hash import make_hash
 from ..analysis.time_helper import validate_time
@@ -33,6 +33,7 @@ from datetime import datetime
 num_email_sending_max_tries = 5
 email_sending_retry_sleep_s = .5
 
+email_helper_logger = app_logging.getLogger('email_helper')
 
 class MultipleDoneEmail(BadRequest):
     pass
@@ -41,11 +42,11 @@ class EMailNotSent(BadRequest):
     pass
 
 
-def timestamp2isot(timestamp_or_string: typing.Union[str, float], logger):
+def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
     try:
         timestamp_or_string = validate_time(timestamp_or_string).strftime("%Y-%m-%d %H:%M:%S")
     except (ValueError, OverflowError, TypeError, OSError) as e:
-        logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_or_string}:\n{e}')
+        email_helper_logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_or_string}:\n{e}')
         raise EMailNotSent(f"Email not sent: {e}")
 
     return timestamp_or_string
@@ -293,9 +294,9 @@ def send_job_email(
 
     # api_code = adapt_line_length_api_code(api_code, line_break="\n", add_line_continuation="\\")
     api_code_no_token = re.sub('"token": ".*?"', '"token": "<PLEASE-INSERT-YOUR-TOKEN-HERE>"', api_code)
-    api_code_no_token = wrap_python_code(api_code_no_token)
+    api_code_no_token = wrap_python_code(api_code_no_token, logger)
 
-    api_code = wrap_python_code(api_code)
+    api_code = wrap_python_code(api_code, logger)
     api_code_too_long = invalid_email_line_length(api_code) or invalid_email_line_length(api_code_no_token)
 
     api_code_email_attachment = None
