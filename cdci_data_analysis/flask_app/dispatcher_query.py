@@ -244,7 +244,52 @@ class InstrumentQueryBackEnd:
                 # TODO is also the case of call_back to handle ?
                 if not data_server_call_back:
                     self.set_instrument(self.instrument_name, roles, email)
-                    verbose = self.par_dic.get('verbose', 'False') == 'True'
+                    # verbose = self.par_dic.get('verbose', 'False') == 'True'
+                    # try:
+                    #     self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
+                    # except Exception as e:
+                    #     sentry.capture_message(f"problem creating temp directory: {e}")
+                    #
+                    #     raise InternalError("we have encountered an internal error! "
+                    #                         "Our team is notified and is working on it. We are sorry! "
+                    #                         "When we find a solution we will try to reach you", status_code=500)
+                    # if self.instrument is not None and not isinstance(self.instrument, str):
+                    #     self.instrument.parse_inputs_files(
+                    #         par_dic=self.par_dic,
+                    #         request=request,
+                    #         temp_dir=self.temp_dir,
+                    #         verbose=verbose,
+                    #         use_scws=self.use_scws,
+                    #         sentry_dsn=self.sentry_dsn
+                    #     )
+                    #     self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
+
+                # TODO: if not callback!
+                # if 'query_status' not in self.par_dic:
+                #    raise MissingRequestParameter('no query_status!')
+
+                if not (data_server_call_back or resolve_job_url):
+                    query_status = self.par_dic['query_status']
+                    self.job_id = None
+                    if query_status == 'new':
+                        # this will overwrite any job_id provided, it should be validated or ignored
+                        #if 'job_id' in self.par_dic:
+                        #    self.job_id = self.par_dic['job_id']
+                        #    self.validate_job_id()
+
+                        # let's generate a temporary job_id used for the creation of the scratch_dir
+                        self.generate_job_id()
+                        temp_job_id = self.job_id
+                    else:
+                        if 'job_id' not in self.par_dic:
+                            raise RequestNotUnderstood(
+                                f"job_id must be present if query_status != \"new\" (it is \"{query_status}\")")
+
+                        self.job_id = self.par_dic['job_id']
+
+                # verbose = self.par_dic.get('verbose', 'False') == 'True'
+                self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
+                if not data_server_call_back:
                     try:
                         self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
                     except Exception as e:
@@ -263,25 +308,18 @@ class InstrumentQueryBackEnd:
                             sentry_dsn=self.sentry_dsn
                         )
                         self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
-
-                # TODO: if not callback!
-                # if 'query_status' not in self.par_dic:
-                #    raise MissingRequestParameter('no query_status!')
-
+                # update the job_id
                 if not (data_server_call_back or resolve_job_url):
                     query_status = self.par_dic['query_status']
                     self.job_id = None
                     if query_status == 'new':
-                        # this will overwrite any job_id provided, it should be validated or ignored
-                        #if 'job_id' in self.par_dic:
-                        #    self.job_id = self.par_dic['job_id']
-                        #    self.validate_job_id()
-
                         provided_job_id = self.par_dic.get('job_id', None)
                         if provided_job_id == "": # frontend sends this
                             provided_job_id = None
 
+                        # let's generate the definitive job_id
                         self.generate_job_id()
+                        self.update_scratch_dir_job_id(old_job_id=temp_job_id)
 
                         if provided_job_id is not None and self.job_id != provided_job_id:
                             raise RequestNotUnderstood((
@@ -294,9 +332,6 @@ class InstrumentQueryBackEnd:
                                 f"job_id must be present if query_status != \"new\" (it is \"{query_status}\")")
 
                         self.job_id = self.par_dic['job_id']
-
-                self.set_scratch_dir(
-                    self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
 
                 self.log_query_progression("before move_temp_content")
                 self.move_temp_content()
@@ -745,7 +780,7 @@ class InstrumentQueryBackEnd:
         if job_id is not None:
             suffix += '_jid_'+job_id
 
-        td = tempfile.mkdtemp(suffix=suffix)
+        td = tempfile.mkdtemp(suffix=suffix, dir=self.scratch_dir)
         self.temp_dir = td
 
     def move_temp_content(self):
@@ -754,6 +789,15 @@ class InstrumentQueryBackEnd:
             for f in os.listdir(self.temp_dir):
                 file_full_path = os.path.join(self.temp_dir, f)
                 shutil.copy(file_full_path, self.scratch_dir)
+
+    def update_scratch_dir_job_id(self, old_job_id=None):
+        if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir) \
+                and os.path.exists(self.scratch_dir):
+            if old_job_id is not None:
+                new_scratch_dir_name = self.scratch_dir.replace(old_job_id, self.job_id)
+                os.rename(self.scratch_dir, new_scratch_dir_name)
+                self.scratch_dir = new_scratch_dir_name
+
 
     def clear_temp_dir(self):
         if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
