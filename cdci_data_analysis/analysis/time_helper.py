@@ -3,7 +3,7 @@ from datetime import datetime
 
 from ..app_logging import app_logging
 
-logger = app_logging.getLogger('drupal_helper')
+logger = app_logging.getLogger('time_helper')
 
 def validate_time(timestamp_to_validate):
     try:
