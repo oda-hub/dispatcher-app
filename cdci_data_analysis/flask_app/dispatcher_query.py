@@ -128,6 +128,8 @@ class InstrumentQueryBackEnd:
 
         self.app = app
 
+        temp_scratch_dir=None
+
         self.set_sentry_sdk(getattr(self.app.config.get('conf'), 'sentry_url', None))
 
         try:
@@ -285,12 +287,11 @@ class InstrumentQueryBackEnd:
                                 f"job_id must be present if query_status != \"new\" (it is \"{query_status}\")")
 
                         self.job_id = self.par_dic['job_id']
-                    temp_job_id = self.job_id
-                    print(f"temp_jpb_id set to: {temp_job_id}")
 
                 verbose = self.par_dic.get('verbose', 'False') == 'True'
                 # let's generate a temporary scratch_dir using the temporary job_id
                 self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
+                # temp_job_id = self.job_id
                 temp_scratch_dir = self.scratch_dir
                 if not data_server_call_back:
                     try:
