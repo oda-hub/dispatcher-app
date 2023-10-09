@@ -243,10 +243,8 @@ class InstrumentQueryBackEnd:
                 # TODO why here and not at the beginning ?
                 # self.set_sentry_client()
                 # TODO is also the case of call_back to handle ?
-                temp_job_id = None
                 if not data_server_call_back:
                     self.set_instrument(self.instrument_name, roles, email)
-                    verbose = self.par_dic.get('verbose', 'False') == 'True'
                     # try:
                     #     self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
                     # except Exception as e:
@@ -290,7 +288,10 @@ class InstrumentQueryBackEnd:
                     temp_job_id = self.job_id
                     print(f"temp_jpb_id set to: {temp_job_id}")
 
+                verbose = self.par_dic.get('verbose', 'False') == 'True'
+                # let's generate a temporary scratch_dir using the temporary job_id
                 self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
+                temp_scratch_dir = self.scratch_dir
                 if not data_server_call_back:
                     try:
                         self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
@@ -334,6 +335,7 @@ class InstrumentQueryBackEnd:
 
                         self.job_id = self.par_dic['job_id']
                     # self.update_scratch_dir_job_id(old_job_id=temp_job_id)
+                    # let's set the scratch_dir with the updated job_id
                     self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
 
                 self.log_query_progression("before move_temp_content")
@@ -357,7 +359,7 @@ class InstrumentQueryBackEnd:
         finally:
             self.logger.info("==> clean-up temporary directory")
             self.log_query_progression("before clear_temp_dir")
-            self.clear_temp_dir()
+            self.clear_temp_dir(temp_scratch_dir=temp_scratch_dir)
             self.log_query_progression("after clear_temp_dir")
             
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
@@ -804,9 +806,11 @@ class InstrumentQueryBackEnd:
                 self.temp_dir = new_temp_dir_name
 
 
-    def clear_temp_dir(self):
+    def clear_temp_dir(self, temp_scratch_dir=None):
         if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
+        if temp_scratch_dir is not None and os.path.exists(temp_scratch_dir):
+            shutil.rmtree(temp_scratch_dir)
 
     def prepare_download(self, file_list, file_name, scratch_dir):
         file_name = file_name.replace(' ', '_')
