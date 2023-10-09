@@ -270,6 +270,7 @@ class InstrumentQueryBackEnd:
                 # if 'query_status' not in self.par_dic:
                 #    raise MissingRequestParameter('no query_status!')
 
+                verbose = self.par_dic.get('verbose', 'False') == 'True'
                 if not (data_server_call_back or resolve_job_url):
                     query_status = self.par_dic['query_status']
                     self.job_id = None
@@ -288,11 +289,10 @@ class InstrumentQueryBackEnd:
 
                         self.job_id = self.par_dic['job_id']
 
-                verbose = self.par_dic.get('verbose', 'False') == 'True'
-                # let's generate a temporary scratch_dir using the temporary job_id
-                self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
-                # temp_job_id = self.job_id
-                temp_scratch_dir = self.scratch_dir
+                    # let's generate a temporary scratch_dir using the temporary job_id
+                    self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
+                    # temp_job_id = self.job_id
+                    temp_scratch_dir = self.scratch_dir
                 if not data_server_call_back:
                     try:
                         self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
@@ -810,7 +810,7 @@ class InstrumentQueryBackEnd:
     def clear_temp_dir(self, temp_scratch_dir=None):
         if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
-        if temp_scratch_dir is not None and os.path.exists(temp_scratch_dir):
+        if temp_scratch_dir is not None and temp_scratch_dir != self.scratch_dir and os.path.exists(temp_scratch_dir):
             shutil.rmtree(temp_scratch_dir)
 
     def prepare_download(self, file_list, file_name, scratch_dir):
