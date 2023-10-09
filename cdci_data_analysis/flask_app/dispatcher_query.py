@@ -247,24 +247,6 @@ class InstrumentQueryBackEnd:
                 # TODO is also the case of call_back to handle ?
                 if not data_server_call_back:
                     self.set_instrument(self.instrument_name, roles, email)
-                    # try:
-                    #     self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
-                    # except Exception as e:
-                    #     sentry.capture_message(f"problem creating temp directory: {e}")
-                    #
-                    #     raise InternalError("we have encountered an internal error! "
-                    #                         "Our team is notified and is working on it. We are sorry! "
-                    #                         "When we find a solution we will try to reach you", status_code=500)
-                    # if self.instrument is not None and not isinstance(self.instrument, str):
-                    #     self.instrument.parse_inputs_files(
-                    #         par_dic=self.par_dic,
-                    #         request=request,
-                    #         temp_dir=self.temp_dir,
-                    #         verbose=verbose,
-                    #         use_scws=self.use_scws,
-                    #         sentry_dsn=self.sentry_dsn
-                    #     )
-                    #     self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
 
                 # TODO: if not callback!
                 # if 'query_status' not in self.par_dic:
@@ -335,7 +317,7 @@ class InstrumentQueryBackEnd:
                                 f"job_id must be present if query_status != \"new\" (it is \"{query_status}\")")
 
                         self.job_id = self.par_dic['job_id']
-                    # self.update_scratch_dir_job_id(old_job_id=temp_job_id)
+
                 # let's set the scratch_dir with the updated job_id
                 self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
 
@@ -797,17 +779,6 @@ class InstrumentQueryBackEnd:
             for f in os.listdir(self.temp_dir):
                 file_full_path = os.path.join(self.temp_dir, f)
                 shutil.copy(file_full_path, self.scratch_dir)
-
-    def update_scratch_dir_job_id(self, old_job_id=None):
-        if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir) \
-                and os.path.exists(self.scratch_dir):
-            if old_job_id is not None:
-                new_scratch_dir_name = self.scratch_dir.replace('_jid_' + old_job_id, '_jid_' + self.job_id)
-                new_temp_dir_name =  self.temp_dir.replace('_jid_' + old_job_id, '_jid_' + self.job_id)
-                os.rename(self.scratch_dir, new_scratch_dir_name)
-                self.scratch_dir = new_scratch_dir_name
-                self.temp_dir = new_temp_dir_name
-
 
     def clear_temp_dir(self, temp_scratch_dir=None):
         if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
