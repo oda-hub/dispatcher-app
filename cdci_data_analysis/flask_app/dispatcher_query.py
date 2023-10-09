@@ -289,10 +289,10 @@ class InstrumentQueryBackEnd:
 
                         self.job_id = self.par_dic['job_id']
 
-                    # let's generate a temporary scratch_dir using the temporary job_id
-                    self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
-                    # temp_job_id = self.job_id
-                    temp_scratch_dir = self.scratch_dir
+                # let's generate a temporary scratch_dir using the temporary job_id
+                self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
+                # temp_job_id = self.job_id
+                temp_scratch_dir = self.scratch_dir
                 if not data_server_call_back:
                     try:
                         self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
@@ -336,8 +336,8 @@ class InstrumentQueryBackEnd:
 
                         self.job_id = self.par_dic['job_id']
                     # self.update_scratch_dir_job_id(old_job_id=temp_job_id)
-                    # let's set the scratch_dir with the updated job_id
-                    self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
+                # let's set the scratch_dir with the updated job_id
+                self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
 
                 self.log_query_progression("before move_temp_content")
                 self.move_temp_content()
@@ -785,8 +785,10 @@ class InstrumentQueryBackEnd:
 
         if job_id is not None:
             suffix += '_jid_'+job_id
-
-        td = tempfile.mkdtemp(suffix=suffix, dir=self.scratch_dir)
+        temp_parent_dir = '.'
+        if hasattr(self, 'scratch_dir'):
+            temp_parent_dir = self.scratch_dir
+        td = tempfile.mkdtemp(suffix=suffix, dir=temp_parent_dir)
         self.temp_dir = td
 
     def move_temp_content(self):
