@@ -128,7 +128,7 @@ class InstrumentQueryBackEnd:
 
         self.app = app
 
-        temp_scratch_dir=None
+        temp_scratch_dir = None
 
         self.set_sentry_sdk(getattr(self.app.config.get('conf'), 'sentry_url', None))
 
@@ -257,11 +257,6 @@ class InstrumentQueryBackEnd:
                     query_status = self.par_dic['query_status']
                     self.job_id = None
                     if query_status == 'new':
-                        # this will overwrite any job_id provided, it should be validated or ignored
-                        #if 'job_id' in self.par_dic:
-                        #    self.job_id = self.par_dic['job_id']
-                        #    self.validate_job_id()
-
                         # let's generate a temporary job_id used for the creation of the scratch_dir
                         self.generate_job_id()
                     else:
