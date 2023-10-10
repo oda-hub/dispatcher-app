@@ -1007,8 +1007,6 @@ def report_incident():
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
-    sentry_dsn = sentry.sentry_url
-
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key)
 
     if output_code is not None:
@@ -1030,8 +1028,7 @@ def report_incident():
             decoded_token=decoded_token,
             incident_content=incident_content,
             incident_time=incident_time,
-            scratch_dir=scratch_dir,
-            sentry_dsn=sentry_dsn
+            scratch_dir=scratch_dir
         )
         report_incident_status = 'incident report email successfully sent'
     except email_helper.EMailNotSent as e:
