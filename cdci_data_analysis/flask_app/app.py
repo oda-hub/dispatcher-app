@@ -1030,7 +1030,8 @@ def report_incident():
             decoded_token=decoded_token,
             incident_content=incident_content,
             incident_time=incident_time,
-            scratch_dir=scratch_dir
+            scratch_dir=scratch_dir,
+            sentry_dsn=sentry_dsn
         )
         report_incident_status = 'incident report email successfully sent'
     except email_helper.EMailNotSent as e:
