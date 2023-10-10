@@ -220,8 +220,7 @@ def send_incident_report_email(
         decoded_token,
         incident_content=None,
         incident_time=None,
-        scratch_dir=None,
-        sentry_dsn=None):
+        scratch_dir=None):
 
     sending_time = time_.time()
 
@@ -264,8 +263,7 @@ def send_incident_report_email(
                          scratch_dir=scratch_dir,
                          smtp_server_password=config.smtp_server_password,
                          sending_time=sending_time,
-                         logger=logger,
-                         sentry_dsn=sentry_dsn)
+                         logger=logger)
 
     store_incident_report_email_info(message, scratch_dir, sending_time=sending_time)
 
@@ -286,8 +284,7 @@ def send_job_email(
         time_request=None,
         request_url="",
         api_code="",
-        scratch_dir=None,
-        sentry_dsn=None):
+        scratch_dir=None):
     sending_time = time_.time()
 
     # let's get the needed email template;
@@ -394,8 +391,7 @@ and if this is not what you expected, you probably need to modify the request pa
                          sending_time=sending_time,
                          scratch_dir=scratch_dir,
                          logger=logger,
-                         attachment=api_code_email_attachment,
-                         sentry_dsn=sentry_dsn)
+                         attachment=api_code_email_attachment)
 
     store_status_email_info(message, status, scratch_dir, logger, sending_time=sending_time, first_submitted_time=time_request)
 
@@ -416,8 +412,7 @@ def send_email(smtp_server,
                logger,
                sending_time=None,
                scratch_dir=None,
-               attachment=None,
-               sentry_dsn=None
+               attachment=None
                ):
 
     server = None
@@ -605,7 +600,7 @@ def log_email_sending_info(logger, status, time_request, scratch_dir, job_id, ad
     logger.info(f"logging email sending attempt into {email_history_log_fn} file")
 
 
-def is_email_to_send_run_query(logger, status, time_original_request, scratch_dir, job_id, config, decoded_token=None, sentry_dsn=None):
+def is_email_to_send_run_query(logger, status, time_original_request, scratch_dir, job_id, config, decoded_token=None):
     log_additional_info_obj = {}
     sending_ok = False
     time_check = time_.time()
@@ -692,7 +687,7 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
     return sending_ok
 
 
-def is_email_to_send_callback(logger, status, time_original_request, scratch_dir, config, job_id, decoded_token=None, sentry_dsn=None):
+def is_email_to_send_callback(logger, status, time_original_request, scratch_dir, config, job_id, decoded_token=None):
     log_additional_info_obj = {}
     sending_ok = False
     time_check = time_.time()
