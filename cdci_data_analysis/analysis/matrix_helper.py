@@ -19,7 +19,7 @@ from jinja2 import Environment, FileSystemLoader
 from bs4 import BeautifulSoup
 from urllib import parse
 
-logger = app_logging.getLogger('matrix_helper')
+matrix_helper_logger = app_logging.getLogger('matrix_helper')
 
 num_msgs_sending_max_tries = 5
 msg_sending_retry_sleep_s = .5
@@ -35,7 +35,7 @@ def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
     try:
         timestamp_or_string = validate_time(timestamp_or_string).strftime("%Y-%m-%d %H:%M:%S")
     except (ValueError, OverflowError, TypeError, OSError) as e:
-        logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_or_string}:\n{e}')
+        matrix_helper_logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_or_string}:\n{e}')
         raise MatrixMessageNotSent(f"Matrix message not sent: {e}")
 
     return timestamp_or_string
@@ -61,7 +61,7 @@ def get_first_submitted_matrix_message_time(scratch_dir):
         'matrix_message_submitted_*.json'
     )
     submitted_matrix_message_files = sorted(glob.glob(submitted_matrix_message_pattern), key=os.path.getmtime)
-    logger.info(f"get_first_submitted_matrix_message_time, files: {submitted_matrix_message_files}")
+    matrix_helper_logger.info(f"get_first_submitted_matrix_message_time, files: {submitted_matrix_message_files}")
     if len(submitted_matrix_message_files) >= 1:
         f_name, f_ext = os.path.splitext(os.path.basename(submitted_matrix_message_files[0]))
         f_name_split = f_name.split('_')
@@ -70,13 +70,13 @@ def get_first_submitted_matrix_message_time(scratch_dir):
                 validate_time(f_name_split[4])
                 first_submitted_matrix_message_time = float(f_name_split[4])
             except (ValueError, OverflowError, TypeError, OSError) as e:
-                logger.warning(f'Error when extracting the time of the first message submitted via matrix.'
+                matrix_helper_logger.warning(f'Error when extracting the time of the first message submitted via matrix.'
                                f'The value extracted {first_submitted_matrix_message_time} raised the following error:\n{e}')
                 first_submitted_matrix_message_time = None
                 sentry.capture_message(f'Error when extracting the time of the first message submitted via matrix.'
                                f'The value extracted {first_submitted_matrix_message_time} raised the following error:\n{e}')
         else:
-            logger.warning(f'Error when extracting the time of the first message submitted via matrix: '
+            matrix_helper_logger.warning(f'Error when extracting the time of the first message submitted via matrix: '
                            f'the name of the message file has been found not properly formatted, therefore, '
                            f'the time of the first message submitted via matrix could not be extracted.')
             first_submitted_matrix_message_time = None
@@ -167,7 +167,7 @@ def send_job_message(
     and if this is not what you expected, you probably need to modify the request parameters.<br>'''
         else:
             sentry.capture_message(f'unexpected status_details content before sending a message on matrix: {status_details}')
-            logger.warning(f'unexpected status_details content before sending a message on matrix: {status_details}')
+            matrix_helper_logger.warning(f'unexpected status_details content before sending a message on matrix: {status_details}')
             raise NotImplementedError
 
     # TODO to be adapted depending on the restrictions of the matrix platform
@@ -243,19 +243,19 @@ def send_message(
 ):
 
     if url_server is None:
-        logger.info('matrix url server not available')
+        matrix_helper_logger.info('matrix url server not available')
         raise MissingRequestParameter('matrix url server not available')
     if sender_access_token is None:
-        logger.info('matrix sender_access_token not available')
+        matrix_helper_logger.info('matrix sender_access_token not available')
         raise MissingRequestParameter('matrix sender_access_token not available')
     if room_id is None:
-        logger.info('matrix room_id not available')
+        matrix_helper_logger.info('matrix room_id not available')
         raise MissingRequestParameter('matrix room_id not available')
     if message_text is None or message_body_html is None:
-        logger.info('matrix message not available')
+        matrix_helper_logger.info('matrix message not available')
         raise MissingRequestParameter('matrix message not available')
 
-    logger.info(f"Sending message to the room id: {room_id}")
+    matrix_helper_logger.info(f"Sending message to the room id: {room_id}")
     url = os.path.join(url_server, f'_matrix/client/r0/rooms/{room_id}/send/m.room.message')
 
     headers = {
@@ -278,7 +278,7 @@ def send_message(
             error_msg = response_json['error']
         except json.decoder.JSONDecodeError:
             error_msg = res.text
-        logger.warning(f"there seems to be some problem in sending a message via matrix:\n"
+        matrix_helper_logger.warning(f"there seems to be some problem in sending a message via matrix:\n"
                        f"the requested url {url} lead to the error {error_msg}, "
                        "this might be due to an error in the url or the page requested no longer exists, "
                        "please check it and try to issue again the request")
@@ -295,7 +295,7 @@ def send_message(
         "message_data": message_data
     }
 
-    logger.info("Message successfully sent")
+    matrix_helper_logger.info("Message successfully sent")
 
     return res_data
 
@@ -309,7 +309,7 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
     # get total request duration
     if decoded_token:
         # in case the job is just submitted and was not submitted before, at least since some time
-        logger.info("considering sending a message on matrix, status: %s, time_original_request: %s", status, time_original_request)
+        matrix_helper_logger.info("considering sending a message on matrix, status: %s, time_original_request: %s", status, time_original_request)
 
         matrix_message_sending_job_submitted = tokenHelper.get_token_user_submitted_matrix_message(decoded_token)
         info_parameter = 'extracted from token'
@@ -319,7 +319,7 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
             info_parameter = 'extracted from the configuration'
 
         log_additional_info_obj['matrix_message_sending_job_submitted'] = f'{matrix_message_sending_job_submitted}, {info_parameter}'
-        logger.info("matrix_message_sending_job_submitted: %s", matrix_message_sending_job_submitted)
+        matrix_helper_logger.info("matrix_message_sending_job_submitted: %s", matrix_message_sending_job_submitted)
 
         # get the amount of time passed from when the last message on matrix was sent
         interval_ok = True
@@ -332,15 +332,15 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
             matrix_message_sending_job_submitted_interval = config.matrix_message_sending_job_submitted_default_interval
             info_parameter = 'extracted from the configuration'
 
-        logger.info("matrix_message_sending_job_submitted_interval: %s", matrix_message_sending_job_submitted_interval)
+        matrix_helper_logger.info("matrix_message_sending_job_submitted_interval: %s", matrix_message_sending_job_submitted_interval)
         log_additional_info_obj[
             'matrix_message_sending_job_submitted_interval'] = f'{matrix_message_sending_job_submitted_interval}, {info_parameter}'
 
         matrix_message_history_dir = os.path.join(scratch_dir, 'matrix_message_history')
-        logger.info("matrix_message_history_dir: %s", matrix_message_history_dir)
+        matrix_helper_logger.info("matrix_message_history_dir: %s", matrix_message_history_dir)
 
         matrix_message_history_dirs_same_job_id = f"scratch_*_{job_id}*/matrix_message_history"
-        logger.info("matrix_message_history_dirs_same_job_id: %s", matrix_message_history_dirs_same_job_id)
+        matrix_helper_logger.info("matrix_message_history_dirs_same_job_id: %s", matrix_message_history_dirs_same_job_id)
 
         # find all
         submitted_matrix_message_pattern = os.path.join(
@@ -348,7 +348,7 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
             'matrix_message_submitted_*.json'
         )
         submitted_matrix_message_files = glob.glob(submitted_matrix_message_pattern)
-        logger.info("submitted_matrix_message_files: %s as %s", len(submitted_matrix_message_files), submitted_matrix_message_files)
+        matrix_helper_logger.info("submitted_matrix_message_files: %s as %s", len(submitted_matrix_message_files), submitted_matrix_message_files)
         log_additional_info_obj['submitted_matrix_message_files'] = submitted_matrix_message_files
 
         if len(submitted_matrix_message_files) >= 1:
@@ -362,13 +362,13 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
             time_from_last_submitted_matrix_message = time_check - float(time_last_matrix_message_submitted_sent)
             interval_ok = time_from_last_submitted_matrix_message > matrix_message_sending_job_submitted_interval
 
-        logger.info("interval_ok: %s", interval_ok)
+        matrix_helper_logger.info("interval_ok: %s", interval_ok)
         log_additional_info_obj['interval_ok'] = interval_ok
 
         status_ok = True
         if status != 'submitted':
             status_ok = False
-            logger.info(f'status {status} not a valid one for sending a message on matrix after a run_query')
+            matrix_helper_logger.info(f'status {status} not a valid one for sending a message on matrix after a run_query')
             if sentry_for_matrix_message_sending_check:
                 sentry.capture_message((f'an attempt to send a message on the via matrix for the job {job_id} '
                                         f'has been detected at the completion '
@@ -385,7 +385,7 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
                                             additional_info_obj=log_additional_info_obj
                                             )
     else:
-        logger.info(f'a message on matrix will not be sent because a token was not provided')
+        matrix_helper_logger.info(f'a message on matrix will not be sent because a token was not provided')
 
     return sending_ok
 
@@ -398,7 +398,7 @@ def is_message_to_send_callback(status, time_original_request, scratch_dir, conf
 
     if decoded_token:
         # in case the request was long and 'done'
-        logger.info(f"considering sending a message on matrix, status: {status}, time_original_request: {time_original_request}")
+        matrix_helper_logger.info(f"considering sending a message on matrix, status: {status}, time_original_request: {time_original_request}")
 
         if status == 'done':
             # get total request duration
@@ -406,7 +406,7 @@ def is_message_to_send_callback(status, time_original_request, scratch_dir, conf
                 duration_query = time_check - float(time_original_request)
                 log_additional_info_obj['query_duration'] = duration_query
             else:
-                logger.info(f'time_original_request not available')
+                matrix_helper_logger.info(f'time_original_request not available')
                 raise MissingRequestParameter('original request time not available')
 
             timeout_threshold_matrix_message = tokenHelper.get_token_user_timeout_threshold_matrix_message(decoded_token)
@@ -417,7 +417,7 @@ def is_message_to_send_callback(status, time_original_request, scratch_dir, conf
                 info_parameter = 'extracted from the configuration'
 
             log_additional_info_obj['timeout_threshold_matrix_message'] = f'{timeout_threshold_matrix_message}, {info_parameter}'
-            logger.info(f"timeout_threshold_matrix_message: {timeout_threshold_matrix_message}")
+            matrix_helper_logger.info(f"timeout_threshold_matrix_message: {timeout_threshold_matrix_message}")
 
             matrix_message_sending_timeout = tokenHelper.get_token_user_sending_timeout_matrix_message(decoded_token)
             info_parameter = 'extracted from token'
@@ -426,16 +426,16 @@ def is_message_to_send_callback(status, time_original_request, scratch_dir, conf
                 info_parameter = 'extracted from the configuration'
 
             log_additional_info_obj['matrix_message_sending_timeout'] = f'{matrix_message_sending_timeout}, {info_parameter}'
-            logger.info("matrix_message_sending_timeout: %s", matrix_message_sending_timeout)
+            matrix_helper_logger.info("matrix_message_sending_timeout: %s", matrix_message_sending_timeout)
 
-            logger.info("duration_query > timeout_threshold_matrix_message %s", duration_query > timeout_threshold_matrix_message)
-            logger.info("matrix_message_sending_timeout and duration_query > timeout_threshold_matrix_message %s",
+            matrix_helper_logger.info("duration_query > timeout_threshold_matrix_message %s", duration_query > timeout_threshold_matrix_message)
+            matrix_helper_logger.info("matrix_message_sending_timeout and duration_query > timeout_threshold_matrix_message %s",
                         matrix_message_sending_timeout and duration_query > timeout_threshold_matrix_message)
 
             done_matrix_message_files = glob.glob(f'scratch_*_jid_{job_id}*/matrix_message_history/matrix_message_done_*')
             log_additional_info_obj['done_matrix_message_files'] = done_matrix_message_files
             if len(done_matrix_message_files) >= 1:
-                logger.info("the message cannot be sent via matrix because the number of done messages sent is too high: %s", len(done_matrix_message_files))
+                matrix_helper_logger.info("the message cannot be sent via matrix because the number of done messages sent is too high: %s", len(done_matrix_message_files))
                 raise MultipleDoneMatrixMessage("multiple completion matrix messages detected")
 
             sending_ok = tokenHelper.get_token_user_done_matrix_message(decoded_token) and matrix_message_sending_timeout and \
@@ -444,22 +444,22 @@ def is_message_to_send_callback(status, time_original_request, scratch_dir, conf
         # or if failed
         elif status == 'failed':
             matrix_message_sending_failed = tokenHelper.get_token_user_fail_matrix_message(decoded_token)
-            logger.info("matrix_message_sending_failed: %s", matrix_message_sending_failed)
+            matrix_helper_logger.info("matrix_message_sending_failed: %s", matrix_message_sending_failed)
             log_additional_info_obj['matrix_message_sending_failed'] = matrix_message_sending_failed
             sending_ok = matrix_message_sending_failed
 
         # not valid status
         else:
-            logger.info(f'status {status} not a valid one for sending a message via matrix after a callback')
+            matrix_helper_logger.info(f'status {status} not a valid one for sending a message via matrix after a callback')
             if sentry_for_matrix_message_sending_check:
                 sentry.capture_message((f'an attempt in sending a message using matrix has been detected at the completion '
                                         f'of the run_query method with the status: {status}'))
     else:
-        logger.info(f'a message via matrix will not be sent because a token was not provided')
+        matrix_helper_logger.info(f'a message via matrix will not be sent because a token was not provided')
 
     if sending_ok:
         log_additional_info_obj['check_result_message'] = 'the message will be sent via matrix'
-        logger.info(f"the message will be sent via matrix with a status: {status}")
+        matrix_helper_logger.info(f"the message will be sent via matrix with a status: {status}")
         log_matrix_message_sending_info(status=status,
                                         time_request=time_check,
                                         scratch_dir=scratch_dir,
@@ -478,7 +478,7 @@ def log_matrix_message_sending_info(status, time_request, scratch_dir, job_id, a
     try:
         time_request_str = validate_time(time_request).strftime("%Y-%m-%d %H:%M:%S")
     except (ValueError, OverflowError, TypeError, OSError) as e:
-        logger.warning(f'Error when extracting logging the sending info of a message on matrix.'
+        matrix_helper_logger.warning(f'Error when extracting logging the sending info of a message on matrix.'
                        f'The time value {time_request} raised the following error:\n{e}')
         time_request_str = datetime.fromtimestamp(time_.time()).strftime("%Y-%m-%d %H:%M:%S")
         sentry.capture_message(f'Error when extracting logging the sending info of a message on matrix.'
@@ -494,7 +494,7 @@ def log_matrix_message_sending_info(status, time_request, scratch_dir, job_id, a
     with open(matrix_message_history_log_fn, 'w') as outfile:
         outfile.write(json.dumps(history_info_obj, indent=4))
 
-    logger.info(f"logging matrix message for job id {job_id} sending attempt into {matrix_message_history_log_fn} file")
+    matrix_helper_logger.info(f"logging matrix message for job id {job_id} sending attempt into {matrix_message_history_log_fn} file")
 
 
 def store_status_matrix_message_info(message, status, scratch_dir, sending_time=None, first_submitted_time=None):
@@ -509,7 +509,7 @@ def store_status_matrix_message_info(message, status, scratch_dir, sending_time=
         try:
             validate_time(sending_time)
         except (ValueError, OverflowError, TypeError, OSError) as e:
-            logger.warning(f'Error when writing the content of a message meant to be sent over matrix on a file,'
+            matrix_helper_logger.warning(f'Error when writing the content of a message meant to be sent over matrix on a file,'
                            f' the sending time is not valid.'
                            f'The value {sending_time} raised the following error:\n{e}')
             sending_time = current_time
@@ -523,7 +523,7 @@ def store_status_matrix_message_info(message, status, scratch_dir, sending_time=
         try:
             validate_time(first_submitted_time)
         except (ValueError, OverflowError, TypeError, OSError) as e:
-            logger.warning(f'Error when writing  the content of a message meant to be sent over matrix,'
+            matrix_helper_logger.warning(f'Error when writing  the content of a message meant to be sent over matrix,'
                            f' the first submitted time is not valid.'
                            f'The value {first_submitted_time} raised the following error:\n{e}')
             first_submitted_time = sending_time
