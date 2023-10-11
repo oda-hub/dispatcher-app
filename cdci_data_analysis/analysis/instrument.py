@@ -434,7 +434,7 @@ class Instrument:
                                                     config=config,
                                                     logger=logger,
                                                     sentry_dsn=sentry_dsn,
-                                                    report_progress=return_progress,
+                                                    return_progress=return_progress,
                                                     api=api)
                     if query_out.status_dictionary['status'] == 0:
                         if 'comment' in query_out.status_dictionary.keys():
