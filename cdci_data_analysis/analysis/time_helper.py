@@ -3,13 +3,13 @@ from datetime import datetime
 
 from ..app_logging import app_logging
 
-logger = app_logging.getLogger('drupal_helper')
+time_helper_logger = app_logging.getLogger('time_helper')
 
 def validate_time(timestamp_to_validate):
     try:
         datetime_obj = datetime.fromtimestamp(float(timestamp_to_validate))
     except (ValueError, OverflowError, TypeError, OSError) as e:
-        logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_to_validate}:\n{e}')
+        time_helper_logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_to_validate}:\n{e}')
         raise
     return datetime_obj
 
