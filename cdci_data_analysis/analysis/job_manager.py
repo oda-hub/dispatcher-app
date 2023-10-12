@@ -181,6 +181,8 @@ class Job(object):
                                 full_dict=None,
                                 email_status=None,
                                 email_status_details=None,
+                                matrix_message_status=None,
+                                matrix_message_status_details=None,
                                 call_back_status=None):
         # TODO: write to specific name coming for call_back
 
@@ -201,6 +203,12 @@ class Job(object):
 
         if email_status_details is not None:
             self.monitor['email_status_details'] = email_status_details
+
+        if matrix_message_status is not None:
+            self.monitor['matrix_message_status'] = matrix_message_status
+
+        if matrix_message_status_details is not None:
+            self.monitor['matrix_message_status_details'] = matrix_message_status_details
 
         if call_back_status is not None:
             self.monitor['call_back_status'] = call_back_status
