@@ -220,32 +220,35 @@ def send_job_message(
     template = env.get_template('matrix_message.html')
     message_body_html = template.render(**matrix_message_data)
     message_text = textify_matrix_message(message_body_html)
-    res_data_message_token_user = send_message(url_server=matrix_server_url,
-                                               sender_access_token=matrix_sender_access_token,
-                                               room_id=receiver_room_id,
-                                               message_text=message_text,
-                                               message_body_html=message_body_html
-                                               )
-    message_data_token_user = res_data_message_token_user['message_data']
-    res_content_token_user = res_data_message_token_user['res_content']
-
     res_content = {
-        'res_content_token_user': res_content_token_user,
         'res_content_cc_users': []
     }
 
     message_data = {
-        'message_data_token_user': message_data_token_user,
         'message_data_cc_users': []
     }
+    if receiver_room_id is not None:
+        res_data_message_token_user = send_message(url_server=matrix_server_url,
+                                                   sender_access_token=matrix_sender_access_token,
+                                                   room_id=receiver_room_id,
+                                                   message_text=message_text,
+                                                   message_body_html=message_body_html
+                                                   )
+        message_data_token_user = res_data_message_token_user['message_data']
+        res_content_token_user = res_data_message_token_user['res_content']
+        message_data['message_data_token_user'] = message_data_token_user
+        res_content['res_content_token_user'] = res_content_token_user
+    else:
+        matrix_helper_logger.warning('a matrix message could not be sent to the token user as no personal room id was '
+                                     'provided within the token')
 
-    for cc_room_id in cc_receivers_room_id:
+    for cc_receiver_room_id in cc_receivers_room_id:
         res_data_message_cc_user = send_message(url_server=matrix_server_url,
-                                sender_access_token=matrix_sender_access_token,
-                                room_id=cc_room_id,
-                                message_text=message_text,
-                                message_body_html=message_body_html
-                                )
+                                                sender_access_token=matrix_sender_access_token,
+                                                room_id=cc_receiver_room_id,
+                                                message_text=message_text,
+                                                message_body_html=message_body_html
+                                                )
         message_data_cc_user = res_data_message_cc_user['message_data']
         message_data['message_data_cc_users'].append(message_data_cc_user)
         res_content_cc_user = res_data_message_cc_user['res_content']
@@ -265,14 +268,6 @@ def send_message(
         message_text=None,
         message_body_html=None,
 ):
-
-    if url_server is None:
-        matrix_helper_logger.info('matrix url server not available')
-        raise MissingRequestParameter('matrix url server not available')
-    if sender_access_token is None:
-        matrix_helper_logger.info('matrix sender_access_token not available')
-        raise MissingRequestParameter('matrix sender_access_token not available')
-
     matrix_helper_logger.info(f"Sending message to the room id: {room_id}")
     url = os.path.join(url_server, f'_matrix/client/r0/rooms/{room_id}/send/m.room.message')
 
@@ -318,12 +313,31 @@ def send_message(
     return res_data
 
 
+def is_matrix_config_ok(config):
+    if config.matrix_server_url is None:
+        matrix_helper_logger.info('matrix url server not available')
+        return False
+    if config.matrix_sender_access_token is None:
+        matrix_helper_logger.info('matrix sender_access_token not available')
+        return False
+    return True
+
+
 def is_message_to_send_run_query(status, time_original_request, scratch_dir, job_id, config, decoded_token=None):
 
     log_additional_info_obj = {}
     sending_ok = False
+    config_ok = is_matrix_config_ok(config)
     time_check = time_.time()
     sentry_for_matrix_message_sending_check = config.sentry_for_matrix_message_sending_check
+
+    if config.matrix_server_url is None:
+        matrix_helper_logger.info('matrix url server not available')
+        config_ok = False
+    if config.matrix_sender_access_token is None:
+        matrix_helper_logger.info('matrix sender_access_token not available')
+        config_ok = False
+
     # get total request duration
     if decoded_token:
         # in case the job is just submitted and was not submitted before, at least since some time
@@ -405,7 +419,7 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
     else:
         matrix_helper_logger.info(f'a message on matrix will not be sent because a token was not provided')
 
-    return sending_ok
+    return sending_ok and config_ok
 
 
 def is_matrix_config_present(config):
@@ -422,6 +436,7 @@ def is_matrix_config_present(config):
 def is_message_to_send_callback(status, time_original_request, scratch_dir, config, job_id, decoded_token=None):
     log_additional_info_obj = {}
     sending_ok = False
+    config_ok = is_matrix_config_ok(config)
     time_check = time_.time()
     sentry_for_matrix_message_sending_check = config.sentry_for_matrix_message_sending_check
 
@@ -496,7 +511,7 @@ def is_message_to_send_callback(status, time_original_request, scratch_dir, conf
                                         additional_info_obj=log_additional_info_obj
                                         )
 
-    return sending_ok
+    return sending_ok and config_ok
 
 
 def log_matrix_message_sending_info(status, time_request, scratch_dir, job_id, additional_info_obj=None):
