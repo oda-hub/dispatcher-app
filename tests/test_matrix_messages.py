@@ -970,15 +970,15 @@ def test_status_details_matrix_message_done(gunicorn_dispatcher_long_living_fixt
                                                                 job_id=dispatcher_job_state.job_id,
                                                                 token=encoded_token)
 
-    matrix_message_event_id_obj = matrix_message_event_id_obj['res_content']['event_id']
+    matrix_message_event_id = matrix_message_event_id_obj['res_content']['res_content_token_user']['event_id']
 
     # check the email in the log files
     validate_matrix_message_content(
         dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=token_payload['mxroomid'],
-                                                                         event_id=matrix_message_event_id_obj),
+                                                                         event_id=matrix_message_event_id),
         'done',
         room_id=token_payload['mxroomid'],
-        event_id=matrix_message_event_id_obj,
+        event_id=matrix_message_event_id,
         user_id=token_payload['user_id'],
         dispatcher_job_state=dispatcher_job_state,
         variation_suffixes=["failing"],
