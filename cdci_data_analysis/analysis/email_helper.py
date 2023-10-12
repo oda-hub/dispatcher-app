@@ -359,6 +359,7 @@ and if this is not what you expected, you probably need to modify the request pa
             'product_type': product_type,
             'time_request': time_request,
             'request_url': possibly_compressed_request_url,
+            # TODO to be removed ?
             'api_code_no_token': api_code_no_token,
             'api_code': api_code,
             'api_code_too_long': api_code_too_long,
@@ -645,7 +646,7 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
                 'email_submitted_*.email'
             )
         submitted_email_files = glob.glob(submitted_email_pattern)
-        logger.info("submitted_email_files: %s as %s", len(submitted_email_files), submitted_email_pattern)
+        logger.info("submitted_email_files: %s as %s", len(submitted_email_files), submitted_email_files)
         log_additional_info_obj['submitted_email_files'] = submitted_email_files
 
         if len(submitted_email_files) >= 1:
