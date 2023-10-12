@@ -102,7 +102,6 @@ def validate_incident_matrix_message_content(
         message_record,
         room_id:str,
         event_id:str,
-        user_id:str,
         dispatcher_job_state: DispatcherJobState,
         incident_time_str: str = None,
         incident_report_str: str = None,
@@ -121,7 +120,6 @@ def validate_incident_matrix_message_content(
                                                                   )
 
     assert message_record['room_id'] == room_id
-    assert message_record['user_id'] == user_id
     assert message_record['type'] == 'm.room.message'
     assert message_record['event_id'] == event_id
 
@@ -1061,6 +1059,7 @@ def test_matrix_message_and_email(gunicorn_dispatcher_long_living_fixture_with_m
 @pytest.mark.test_matrix
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
 def test_incident_report(dispatcher_live_fixture_with_matrix_options,
+                         dispatcher_test_conf_with_matrix_options,
                          dispatcher_local_matrix_message_server,
                          dispatcher_test_conf,
                          request_cred):
@@ -1129,15 +1128,16 @@ def test_incident_report(dispatcher_live_fixture_with_matrix_options,
         assert jdata_incident_report['martix_message_report_status'] == 'incident report message successfully sent via matrix'
         assert 'martix_message_report_status_details' in jdata_incident_report
         assert 'res_content' in jdata_incident_report['martix_message_report_status_details']
-        assert 'event_id' in jdata_incident_report['martix_message_report_status_details']['res_content']
-        matrix_message_event_id = jdata_incident_report['martix_message_report_status_details']['res_content']['event_id']
+        assert 'res_content_incident_reports' in jdata_incident_report['martix_message_report_status_details']['res_content']
+        assert len(jdata_incident_report['martix_message_report_status_details']['res_content']['res_content_incident_reports']) == 1
+        assert 'event_id' in jdata_incident_report['martix_message_report_status_details']['res_content']['res_content_incident_reports'][0]
+        matrix_message_event_id = jdata_incident_report['martix_message_report_status_details']['res_content']['res_content_incident_reports'][0]['event_id']
 
         validate_incident_matrix_message_content(
-            dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=decoded_token['mxroomid'],
+            dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_incident_report_receivers_room_ids'][0],
                                                                              event_id=matrix_message_event_id),
             event_id=matrix_message_event_id,
-            room_id=decoded_token['mxroomid'],
-            user_id=decoded_token['user_id'],
+            room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_incident_report_receivers_room_ids'][0],
             dispatcher_job_state=dispatcher_job_state,
             incident_time_str=time_request_str,
             incident_report_str=incident_content,
