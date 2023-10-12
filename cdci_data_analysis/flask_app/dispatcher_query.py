@@ -1058,6 +1058,11 @@ class InstrumentQueryBackEnd:
                                         matrix_message_status='attempted repeated sending of matrix message detected')
             logging.warning(f'attempted repeated sending of completion matrix message detected: {e}')
             sentry.capture_message(f'attempted repeated sending of completion matrix message detected: {e}')
+        except MissingRequestParameter as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        call_back_status=f'parameter missing when checking if a message via matrix could be sent: {e.message}')
+            logging.warning(f'parameter missing when checking if a message via matrix could be sent: {e.message}')
 
         try:
             step = 'checking if an email can be sent'
@@ -1074,6 +1079,12 @@ class InstrumentQueryBackEnd:
                                         email_status='attempted repeated sending of completion email detected')
             logging.warning(f'attempted repeated sending of completion email detected: {e}')
             sentry.capture_message(f'attempted repeated sending of completion email detected: {e}')
+        except MissingRequestParameter as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        call_back_status=f'parameter missing when checking if an could be sent: {e.message}')
+            logging.warning(f'parameter missing when checking if an could be sent: {e.message}')
+
         try:
             if is_email_to_send or is_message_to_send:
                 step = 'extracting the original request dictionary'
@@ -1151,12 +1162,6 @@ class InstrumentQueryBackEnd:
             logging.warning(f'matrix message sending failed: {e}')
             sentry.capture_message(f'sending matrix message failed {e.message}')
 
-        except MissingRequestParameter as e:
-            job.write_dataserver_status(status_dictionary_value=status,
-                                        full_dict=self.par_dic,
-                                        call_back_status=f'parameter missing when sending a message via matrix: {e.message}')
-            logging.warning(f'parameter missing when sending a message via matrix: {e.message}')
-
         try:
             # TODO for a future implementation
             # self.validate_job_id()
@@ -1199,11 +1204,6 @@ class InstrumentQueryBackEnd:
             logging.warning(f'email sending failed: {e}')
             sentry.capture_message(f'sending email failed {e}')
 
-        except MissingRequestParameter as e:
-            job.write_dataserver_status(status_dictionary_value=status,
-                                        full_dict=self.par_dic,
-                                        call_back_status=f'parameter missing when sending an email: {e.message}')
-            logging.warning(f'parameter missing when sending an email: {e.message}')
         # TODO for a future implementation
         # except RequestNotAuthorized as e:
         #     job.write_dataserver_status(status_dictionary_value=status,
