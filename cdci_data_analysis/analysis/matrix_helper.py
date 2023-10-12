@@ -188,6 +188,8 @@ def send_job_message(
     matrix_sender_access_token = config.matrix_sender_access_token
     receiver_room_id = tokenHelper.get_token_user_matrix_room_id(decoded_token)
 
+    cc_receivers_room_id = config.matrix_server_url
+
     matrix_message_data = {
         'oda_site': {
             'site_name': config.site_name,
@@ -219,8 +221,16 @@ def send_job_message(
     message_body_html = template.render(**matrix_message_data)
     message_text = textify_matrix_message(message_body_html)
     res_data = send_message(url_server=matrix_server_url,
+                            sender_access_token=matrix_sender_access_token,
+                            room_id=receiver_room_id,
+                            message_text=message_text,
+                            message_body_html=message_body_html
+                            )
+
+    for cc_room_id in cc_receivers_room_id:
+        res_data = send_message(url_server=matrix_server_url,
                                 sender_access_token=matrix_sender_access_token,
-                                room_id=receiver_room_id,
+                                room_id=cc_room_id,
                                 message_text=message_text,
                                 message_body_html=message_body_html
                                 )

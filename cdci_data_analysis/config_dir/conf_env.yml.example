@@ -80,6 +80,8 @@ dispatcher:
         matrix_server_url: MATRIX_SERVER_URL
         # access token of the sender account, from which the messages will be sent from
         matrix_sender_access_token: MATRIX_SENDER_ACCESS_TOKEN
+        # list of room ids to which the matrix message should be sent
+        matrix_cc_receivers_room_id: []
         # enable/disable sending of messages via matrix in case of a submitted job status
         matrix_message_sending_job_submitted: True
         # amount of time (in seconds) elapsed from the sending of the last message on matrix

@@ -564,6 +564,7 @@ def dispatcher_test_conf_with_matrix_options_fn(dispatcher_test_conf_fn):
         f.write('\n    matrix_options:'
                 '\n        matrix_server_url: "https://matrix-client.matrix.org/"'
                 f'\n        matrix_sender_access_token: "{os.getenv("MATRIX_SENDER_ACCESS_TOKEN", "matrix_sender_access_token")}"'
+                '\n        matrix_cc_receivers_room_id: []'
                 '\n        matrix_message_sending_job_submitted: True'
                 '\n        matrix_message_sending_job_submitted_default_interval: 5'
                 '\n        sentry_for_matrix_message_sending_check: False'

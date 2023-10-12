@@ -247,6 +247,7 @@ class ConfigEnv(object):
                                      disp_dict['email_options'].get('incident_report_email_options', {}).get('incident_report_receivers_email_addresses', None),
                                      disp_dict.get('matrix_options', {}).get('matrix_server_url', None),
                                      disp_dict.get('matrix_options', {}).get('matrix_sender_access_token', None),
+                                     disp_dict.get('matrix_options', {}).get('matrix_cc_receivers_room_id', []),
                                      disp_dict.get('matrix_options', {}).get('matrix_message_sending_job_submitted', True),
                                      disp_dict.get('matrix_options', {}).get('matrix_message_sending_job_submitted_default_interval', 1800),
                                      disp_dict.get('matrix_options', {}).get('sentry_for_matrix_message_sending_check', False),
@@ -322,6 +323,7 @@ class ConfigEnv(object):
                             incident_report_receivers_email_addresses,
                             matrix_server_url,
                             matrix_sender_access_token,
+                            matrix_cc_receivers_room_id,
                             matrix_message_sending_job_submitted,
                             matrix_message_sending_job_submitted_default_interval,
                             sentry_for_matrix_message_sending_check,
@@ -369,6 +371,7 @@ class ConfigEnv(object):
         self.incident_report_receivers_email_addresses = incident_report_receivers_email_addresses
         self.matrix_server_url = matrix_server_url
         self.matrix_sender_access_token = matrix_sender_access_token
+        self.matrix_cc_receivers_room_id = matrix_cc_receivers_room_id
         self.matrix_message_sending_job_submitted = matrix_message_sending_job_submitted
         self.matrix_message_sending_job_submitted_default_interval = matrix_message_sending_job_submitted_default_interval
         self.sentry_for_matrix_message_sending_check = sentry_for_matrix_message_sending_check
