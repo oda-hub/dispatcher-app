@@ -220,23 +220,37 @@ def send_job_message(
     template = env.get_template('matrix_message.html')
     message_body_html = template.render(**matrix_message_data)
     message_text = textify_matrix_message(message_body_html)
-    res_data = send_message(url_server=matrix_server_url,
-                            sender_access_token=matrix_sender_access_token,
-                            room_id=receiver_room_id,
-                            message_text=message_text,
-                            message_body_html=message_body_html
-                            )
+    res_data_message_token_user = send_message(url_server=matrix_server_url,
+                                               sender_access_token=matrix_sender_access_token,
+                                               room_id=receiver_room_id,
+                                               message_text=message_text,
+                                               message_body_html=message_body_html
+                                               )
+    message_data_token_user = res_data_message_token_user['message_data']
+    res_content_token_user = res_data_message_token_user['res_content']
+
+    res_content = {
+        'res_content_token_user': res_content_token_user,
+        'res_content_cc_users': []
+    }
+
+    message_data = {
+        'message_data_token_user': message_data_token_user,
+        'message_data_cc_users': []
+    }
 
     for cc_room_id in cc_receivers_room_id:
-        res_data = send_message(url_server=matrix_server_url,
+        res_data_message_cc_user = send_message(url_server=matrix_server_url,
                                 sender_access_token=matrix_sender_access_token,
                                 room_id=cc_room_id,
                                 message_text=message_text,
                                 message_body_html=message_body_html
                                 )
+        message_data_cc_user = res_data_message_cc_user['message_data']
+        message_data['message_data_cc_users'].append(message_data_cc_user)
+        res_content_cc_user = res_data_message_cc_user['res_content']
+        res_content['res_content_cc_users'].append(res_content_cc_user)
 
-    message_data = res_data['message_data']
-    res_content = res_data['res_content']
 
     store_status_matrix_message_info(message_data, status, scratch_dir, sending_time=sending_time, first_submitted_time=time_request)
 
