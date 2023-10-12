@@ -258,12 +258,6 @@ def send_message(
     if sender_access_token is None:
         matrix_helper_logger.info('matrix sender_access_token not available')
         raise MissingRequestParameter('matrix sender_access_token not available')
-    if room_id is None:
-        matrix_helper_logger.info('matrix room_id not available')
-        raise MissingRequestParameter('matrix room_id not available')
-    if message_text is None or message_body_html is None:
-        matrix_helper_logger.info('matrix message not available')
-        raise MissingRequestParameter('matrix message not available')
 
     matrix_helper_logger.info(f"Sending message to the room id: {room_id}")
     url = os.path.join(url_server, f'_matrix/client/r0/rooms/{room_id}/send/m.room.message')
@@ -398,6 +392,17 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
         matrix_helper_logger.info(f'a message on matrix will not be sent because a token was not provided')
 
     return sending_ok
+
+
+def is_matrix_config_present(config):
+    url_server = config.matrix_server_url
+    sender_access_token = config.matrix_sender_access_token
+
+    if url_server is None or sender_access_token is None:
+        matrix_helper_logger.info('matrix url server not available')
+        return False
+
+    return True
 
 
 def is_message_to_send_callback(status, time_original_request, scratch_dir, config, job_id, decoded_token=None):
