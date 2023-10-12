@@ -284,13 +284,18 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
         # matrix message not supposed to be sent for public request
         assert 'matrix_message_status' not in jdata
     else:
+
         assert 'matrix_message_status' in jdata['exit_status']
         assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
         assert 'matrix_message_status_details' in jdata['exit_status']
-        matrix_message_event_id_obj = json.loads(jdata['exit_status']['matrix_message_status_details'])
-        assert 'event_id' in matrix_message_event_id_obj['res_content']
+        matrix_message_status_details_obj = json.loads(jdata['exit_status']['matrix_message_status_details'])
+        assert 'res_content' in matrix_message_status_details_obj
+        assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
+        assert matrix_message_status_details_obj['res_content']['res_content_cc_users'] == []
+        assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
+        assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_token_user']
 
-        matrix_message_event_id_obj = matrix_message_event_id_obj['res_content']['event_id']
+        matrix_message_event_id_obj = matrix_message_status_details_obj['res_content']['res_content_token_user']['event_id']
 
         validate_matrix_message_content(
             dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=token_payload['mxroomid'],
@@ -428,10 +433,14 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
         assert 'matrix_message_status' in jdata
         assert jdata['matrix_message_status'] == 'matrix message sent'
         assert 'matrix_message_status_details' in jdata
-        matrix_message_event_id_obj = json.loads(jdata['matrix_message_status_details'])
-        assert 'event_id' in matrix_message_event_id_obj['res_content']
+        matrix_message_status_details_obj = json.loads(jdata['matrix_message_status_details'])
+        assert 'res_content' in matrix_message_status_details_obj
+        assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
+        assert matrix_message_status_details_obj['res_content']['res_content_cc_users'] == []
+        assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
+        assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_token_user']
 
-        matrix_message_event_id_obj = matrix_message_event_id_obj['res_content']['event_id']
+        matrix_message_event_id_obj = matrix_message_status_details_obj['res_content']['res_content_token_user']['event_id']
         # check the matrix message in the matrix message folders, and that the first one was produced
         dispatcher_job_state.assert_matrix_message(state="done")
 
@@ -473,10 +482,14 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
         assert 'matrix_message_status' in jdata
         assert jdata['matrix_message_status'] == 'matrix message sent'
         assert 'matrix_message_status_details' in jdata
-        matrix_message_event_id_obj = json.loads(jdata['matrix_message_status_details'])
-        assert 'event_id' in matrix_message_event_id_obj['res_content']
+        matrix_message_status_details_obj = json.loads(jdata['matrix_message_status_details'])
+        assert 'res_content' in matrix_message_status_details_obj
+        assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
+        assert matrix_message_status_details_obj['res_content']['res_content_cc_users'] == []
+        assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
+        assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_token_user']
 
-        matrix_message_event_id_obj = matrix_message_event_id_obj['res_content']['event_id']
+        matrix_message_event_id_obj = matrix_message_status_details_obj['res_content']['res_content_token_user']['event_id']
 
         # check the matrix message in the matrix message folders, and that the first one was produced
         if default_values or time_original_request_none:
@@ -542,8 +555,12 @@ def test_matrix_message_submitted_same_job(dispatcher_live_fixture_with_matrix_o
     assert 'matrix_message_status' in jdata['exit_status']
     assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
     assert 'matrix_message_status_details' in jdata['exit_status']
-    matrix_message_event_id_obj = json.loads(jdata['exit_status']['matrix_message_status_details'])
-    assert 'event_id' in matrix_message_event_id_obj['res_content']
+    matrix_message_status_details_obj = json.loads(jdata['exit_status']['matrix_message_status_details'])
+    assert 'res_content' in matrix_message_status_details_obj
+    assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
+    assert matrix_message_status_details_obj['res_content']['res_content_cc_users'] == []
+    assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
+    assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_token_user']
 
     time_request = jdata['time_request']
     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
