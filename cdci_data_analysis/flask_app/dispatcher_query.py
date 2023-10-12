@@ -1968,10 +1968,6 @@ class InstrumentQueryBackEnd:
                             query_out.set_status_field('matrix_message_status_details', e.payload)
                             logging.warning(f'matrix message sending failed: {e}')
                             sentry.capture_message(f'sending matrix message failed {e.message}')
-                        except MissingRequestParameter as e:
-                            query_out.set_status_field('matrix_message_status', 'sending matrix message failed')
-                            query_out.set_status_field('matrix_message_status_details', e.payload)
-                            logging.warning(f'parameter missing when sending a message via matrix: {e.message}')
 
                     if email_helper.is_email_to_send_run_query(self.logger,
                                                                query_new_status,
