@@ -188,7 +188,7 @@ def send_job_message(
     matrix_sender_access_token = config.matrix_sender_access_token
     receiver_room_id = tokenHelper.get_token_user_matrix_room_id(decoded_token)
 
-    cc_receivers_room_id = config.matrix_server_url
+    cc_receivers_room_id = config.matrix_cc_receivers_room_id
 
     matrix_message_data = {
         'oda_site': {
