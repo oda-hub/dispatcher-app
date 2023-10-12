@@ -106,6 +106,7 @@ def send_incident_report_message(
     matrix_server_url = config.matrix_server_url
     matrix_sender_access_token = config.matrix_sender_access_token
     receiver_room_id = tokenHelper.get_token_user_matrix_room_id(decoded_token)
+    cc_receivers_room_id = config.matrix_cc_receivers_room_id
 
     matrix_message_data = {
         'request': {
@@ -126,16 +127,39 @@ def send_incident_report_message(
     #     open("debug_email_lines_too_long.html", "w").write(email_body_html)
     #     open("debug_email_lines_too_long.text", "w").write(email_text)
     #     raise MatrixMessageNotSent(f"message not sent on matrix, lines too long!")
+    res_content = {
+        'res_content_cc_users': []
+    }
 
-    res_data = send_message(url_server=matrix_server_url,
-                            sender_access_token=matrix_sender_access_token,
-                            room_id=receiver_room_id,
-                            message_text=message_text,
-                            message_body_html=message_body_html
-                            )
+    message_data = {
+        'message_data_cc_users': []
+    }
+    if receiver_room_id is not None:
+        res_data_message_token_user = send_message(url_server=matrix_server_url,
+                                                   sender_access_token=matrix_sender_access_token,
+                                                   room_id=receiver_room_id,
+                                                   message_text=message_text,
+                                                   message_body_html=message_body_html
+                                                   )
+        message_data_token_user = res_data_message_token_user['message_data']
+        res_content_token_user = res_data_message_token_user['res_content']
+        message_data['message_data_token_user'] = message_data_token_user
+        res_content['res_content_token_user'] = res_content_token_user
+    else:
+        matrix_helper_logger.warning('a matrix message could not be sent to the token user as no personal room id was '
+                                     'provided within the token')
 
-    message_data = res_data['message_data']
-    res_content = res_data['res_content']
+    for cc_receiver_room_id in cc_receivers_room_id:
+        res_data_message_cc_user = send_message(url_server=matrix_server_url,
+                                                sender_access_token=matrix_sender_access_token,
+                                                room_id=cc_receiver_room_id,
+                                                message_text=message_text,
+                                                message_body_html=message_body_html
+                                                )
+        message_data_cc_user = res_data_message_cc_user['message_data']
+        message_data['message_data_cc_users'].append(message_data_cc_user)
+        res_content_cc_user = res_data_message_cc_user['res_content']
+        res_content['res_content_cc_users'].append(res_content_cc_user)
 
     store_incident_report_matrix_message(message_data, scratch_dir, sending_time=sending_time)
 
