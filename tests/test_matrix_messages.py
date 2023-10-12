@@ -555,10 +555,12 @@ def test_matrix_message_submitted_same_job(dispatcher_live_fixture_with_matrix_o
     assert 'matrix_message_status_details' in jdata['exit_status']
     matrix_message_status_details_obj = json.loads(jdata['exit_status']['matrix_message_status_details'])
     assert 'res_content' in matrix_message_status_details_obj
-    assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
-    assert matrix_message_status_details_obj['res_content']['res_content_cc_users'] == []
     assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
     assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_token_user']
+    assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
+    assert isinstance(matrix_message_status_details_obj['res_content']['res_content_cc_users'], list)
+    assert len(matrix_message_status_details_obj['res_content']['res_content_cc_users']) == 1
+    assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_cc_users'][0]
 
     time_request = jdata['time_request']
     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))

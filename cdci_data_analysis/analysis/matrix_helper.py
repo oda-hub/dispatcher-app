@@ -235,7 +235,7 @@ def send_job_message(
     message_data = {
         'message_data_cc_users': []
     }
-    if receiver_room_id is not None:
+    if receiver_room_id is not None and receiver_room_id != "":
         res_data_message_token_user = send_message(url_server=matrix_server_url,
                                                    sender_access_token=matrix_sender_access_token,
                                                    room_id=receiver_room_id,
@@ -251,22 +251,22 @@ def send_job_message(
                                      'provided within the token')
 
     for cc_receiver_room_id in cc_receivers_room_id:
-        res_data_message_cc_user = send_message(url_server=matrix_server_url,
-                                                sender_access_token=matrix_sender_access_token,
-                                                room_id=cc_receiver_room_id,
-                                                message_text=message_text,
-                                                message_body_html=message_body_html
-                                                )
-        message_data_cc_user = res_data_message_cc_user['message_data']
-        message_data['message_data_cc_users'].append(message_data_cc_user)
-        res_content_cc_user = res_data_message_cc_user['res_content']
-        res_content['res_content_cc_users'].append(res_content_cc_user)
+        if cc_receiver_room_id is not None and cc_receiver_room_id != "":
+            res_data_message_cc_user = send_message(url_server=matrix_server_url,
+                                                    sender_access_token=matrix_sender_access_token,
+                                                    room_id=cc_receiver_room_id,
+                                                    message_text=message_text,
+                                                    message_body_html=message_body_html
+                                                    )
+            message_data_cc_user = res_data_message_cc_user['message_data']
+            message_data['message_data_cc_users'].append(message_data_cc_user)
+            res_content_cc_user = res_data_message_cc_user['res_content']
+            res_content['res_content_cc_users'].append(res_content_cc_user)
 
 
     store_status_matrix_message_info(message_data, status, scratch_dir, sending_time=sending_time, first_submitted_time=time_request)
 
     return res_content
-
 
 
 def send_message(
@@ -300,14 +300,14 @@ def send_message(
         except json.decoder.JSONDecodeError:
             error_msg = res.text
         matrix_helper_logger.warning(f"there seems to be some problem in sending a message via matrix:\n"
-                       f"the requested url {url} lead to the error {error_msg}, "
-                       "this might be due to an error in the url or the page requested no longer exists, "
-                       "please check it and try to issue again the request")
+                                     f"the requested url {url} lead to the error {error_msg}, "
+                                     "this might be due to an error in the url or the page requested no longer exists, "
+                                     "please check it and try to issue again the request")
         matrix_error_message = error_msg
 
         sentry.capture_message(f'issue in sending a message via matrix, the requested url {url} lead to the error '
                                f'{matrix_error_message}')
-        raise MatrixMessageNotSent('issue when performing a request to the product gallery',
+        raise MatrixMessageNotSent('issue in sending a message via matrix',
                                    status_code=res.status_code,
                                    payload={'matrix_error_message': matrix_error_message})
 
