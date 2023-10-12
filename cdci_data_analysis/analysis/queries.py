@@ -677,8 +677,7 @@ class ProductQuery(BaseQuery):
                   config=None, 
                   logger=None,
                   sentry_dsn=None,
-                  api=False,
-                  return_progress=False):
+                  api=False):
 
         # print ('--> running query for ',instrument.name,'with config',config)
         if logger is None:
