@@ -315,19 +315,19 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
                 require_reference_matrix_message=True
             )
 
-        assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
-        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_cc_users'], list)
-        assert len(matrix_message_status_details_obj['res_content']['res_content_cc_users']) == 1
-        assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_cc_users'][0]
+        assert 'res_content_bcc_users' in matrix_message_status_details_obj['res_content']
+        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_bcc_users'], list)
+        assert len(matrix_message_status_details_obj['res_content']['res_content_bcc_users']) == 1
+        assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_bcc_users'][0]
 
-        matrix_cc_message_event_id_obj = matrix_message_status_details_obj['res_content']['res_content_cc_users'][0]['event_id']
+        matrix_bcc_message_event_id_obj = matrix_message_status_details_obj['res_content']['res_content_bcc_users'][0]['event_id']
 
         validate_matrix_message_content(
-            dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_cc_receivers_room_ids'][0],
-                                                                             event_id=matrix_cc_message_event_id_obj),
+            dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_bcc_receivers_room_ids'][0],
+                                                                             event_id=matrix_bcc_message_event_id_obj),
             'submitted',
-            room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_cc_receivers_room_ids'][0],
-            event_id=matrix_cc_message_event_id_obj,
+            room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_bcc_receivers_room_ids'][0],
+            event_id=matrix_bcc_message_event_id_obj,
             user_id=token_payload['user_id'],
             dispatcher_job_state=dispatcher_job_state,
             variation_suffixes=["dummy"],
@@ -460,9 +460,9 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
         assert 'matrix_message_status_details' in jdata
         matrix_message_status_details_obj = json.loads(jdata['matrix_message_status_details'])
         assert 'res_content' in matrix_message_status_details_obj
-        assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
-        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_cc_users'], list)
-        assert len(matrix_message_status_details_obj['res_content']['res_content_cc_users']) == 1
+        assert 'res_content_bcc_users' in matrix_message_status_details_obj['res_content']
+        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_bcc_users'], list)
+        assert len(matrix_message_status_details_obj['res_content']['res_content_bcc_users']) == 1
 
         if request_cred == 'private-no-room-id':
             assert 'res_content_token_user' not in matrix_message_status_details_obj['res_content']
@@ -486,7 +486,7 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
                 require_reference_matrix_message=True
             )
 
-        matrix_cc_message_event_id_obj = matrix_message_status_details_obj['res_content']['res_content_cc_users'][0][
+        matrix_bcc_message_event_id_obj = matrix_message_status_details_obj['res_content']['res_content_bcc_users'][0][
             'event_id']
 
         # check the matrix message in the matrix message folders, and that the first one was produced
@@ -494,11 +494,11 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
 
         validate_matrix_message_content(
             dispatcher_local_matrix_message_server.get_matrix_message_record(
-                room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_cc_receivers_room_ids'][0],
-                event_id=matrix_cc_message_event_id_obj),
+                room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_bcc_receivers_room_ids'][0],
+                event_id=matrix_bcc_message_event_id_obj),
             'done',
-            room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_cc_receivers_room_ids'][0],
-            event_id=matrix_cc_message_event_id_obj,
+            room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_bcc_receivers_room_ids'][0],
+            event_id=matrix_bcc_message_event_id_obj,
             user_id=token_payload['user_id'],
             dispatcher_job_state=dispatcher_job_state,
             time_request_str=time_request_str,
@@ -533,9 +533,9 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
         assert 'matrix_message_status_details' in jdata
         matrix_message_status_details_obj = json.loads(jdata['matrix_message_status_details'])
         assert 'res_content' in matrix_message_status_details_obj
-        assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
-        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_cc_users'], list)
-        assert len(matrix_message_status_details_obj['res_content']['res_content_cc_users']) == 1
+        assert 'res_content_bcc_users' in matrix_message_status_details_obj['res_content']
+        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_bcc_users'], list)
+        assert len(matrix_message_status_details_obj['res_content']['res_content_bcc_users']) == 1
         if request_cred == 'private-no-room-id':
             assert 'res_content_token_user' not in matrix_message_status_details_obj['res_content']
         else:
@@ -612,10 +612,10 @@ def test_matrix_message_submitted_same_job(dispatcher_live_fixture_with_matrix_o
     assert 'res_content' in matrix_message_status_details_obj
     assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
     assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_token_user']
-    assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
-    assert isinstance(matrix_message_status_details_obj['res_content']['res_content_cc_users'], list)
-    assert len(matrix_message_status_details_obj['res_content']['res_content_cc_users']) == 1
-    assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_cc_users'][0]
+    assert 'res_content_bcc_users' in matrix_message_status_details_obj['res_content']
+    assert isinstance(matrix_message_status_details_obj['res_content']['res_content_bcc_users'], list)
+    assert len(matrix_message_status_details_obj['res_content']['res_content_bcc_users']) == 1
+    assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_bcc_users'][0]
 
     time_request = jdata['time_request']
     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
@@ -1206,7 +1206,7 @@ def test_incident_report(dispatcher_live_fixture_with_matrix_options,
 @pytest.mark.parametrize("default_values", [True, False])
 @pytest.mark.parametrize("time_original_request_none", [False])
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'private-no-matrix-message', 'private-no-room-id'])
-def test_matrix_message_run_analysis_callback_no_room_ids(dispatcher_no_cc_matrix_room_ids,
+def test_matrix_message_run_analysis_callback_no_room_ids(dispatcher_no_bcc_matrix_room_ids,
                                                           gunicorn_dispatcher_long_living_fixture_with_matrix_options,
                                                           dispatcher_test_conf_with_matrix_options,
                                                           dispatcher_local_matrix_message_server,
@@ -1331,9 +1331,9 @@ def test_matrix_message_run_analysis_callback_no_room_ids(dispatcher_no_cc_matri
                 require_reference_matrix_message=True
             )
 
-        assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
-        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_cc_users'], list)
-        assert len(matrix_message_status_details_obj['res_content']['res_content_cc_users']) == 0
+        assert 'res_content_bcc_users' in matrix_message_status_details_obj['res_content']
+        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_bcc_users'], list)
+        assert len(matrix_message_status_details_obj['res_content']['res_content_bcc_users']) == 0
 
     # for the call_back(s) in case the time of the original request is not provided
     if time_original_request_none:
@@ -1457,9 +1457,9 @@ def test_matrix_message_run_analysis_callback_no_room_ids(dispatcher_no_cc_matri
         assert 'matrix_message_status_details' in jdata
         matrix_message_status_details_obj = json.loads(jdata['matrix_message_status_details'])
         assert 'res_content' in matrix_message_status_details_obj
-        assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
-        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_cc_users'], list)
-        assert len(matrix_message_status_details_obj['res_content']['res_content_cc_users']) == 0
+        assert 'res_content_bcc_users' in matrix_message_status_details_obj['res_content']
+        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_bcc_users'], list)
+        assert len(matrix_message_status_details_obj['res_content']['res_content_bcc_users']) == 0
 
         if request_cred == 'private-no-room-id':
             assert 'res_content_token_user' not in matrix_message_status_details_obj['res_content']
@@ -1513,9 +1513,9 @@ def test_matrix_message_run_analysis_callback_no_room_ids(dispatcher_no_cc_matri
         assert 'matrix_message_status_details' in jdata
         matrix_message_status_details_obj = json.loads(jdata['matrix_message_status_details'])
         assert 'res_content' in matrix_message_status_details_obj
-        assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
-        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_cc_users'], list)
-        assert len(matrix_message_status_details_obj['res_content']['res_content_cc_users']) == 0
+        assert 'res_content_bcc_users' in matrix_message_status_details_obj['res_content']
+        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_bcc_users'], list)
+        assert len(matrix_message_status_details_obj['res_content']['res_content_bcc_users']) == 0
         if request_cred == 'private-no-room-id':
             assert 'res_content_token_user' not in matrix_message_status_details_obj['res_content']
         else:

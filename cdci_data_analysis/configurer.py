@@ -247,7 +247,7 @@ class ConfigEnv(object):
                                      disp_dict['email_options'].get('incident_report_email_options', {}).get('incident_report_receivers_email_addresses', None),
                                      disp_dict.get('matrix_options', {}).get('matrix_server_url', None),
                                      disp_dict.get('matrix_options', {}).get('matrix_sender_access_token', None),
-                                     disp_dict.get('matrix_options', {}).get('matrix_cc_receivers_room_ids', []),
+                                     disp_dict.get('matrix_options', {}).get('matrix_bcc_receivers_room_ids', []),
                                      disp_dict.get('matrix_options', {}).get('incident_report_matrix_options', {}).get('matrix_incident_report_receivers_room_ids', []),
                                      disp_dict.get('matrix_options', {}).get('incident_report_matrix_options', {}).get('matrix_incident_report_sender_personal_access_token', None),
                                      disp_dict.get('matrix_options', {}).get('matrix_message_sending_job_submitted', True),
@@ -325,7 +325,7 @@ class ConfigEnv(object):
                             incident_report_receivers_email_addresses,
                             matrix_server_url,
                             matrix_sender_access_token,
-                            matrix_cc_receivers_room_ids,
+                            matrix_bcc_receivers_room_ids,
                             matrix_incident_report_receivers_room_ids,
                             matrix_incident_report_sender_personal_access_token,
                             matrix_message_sending_job_submitted,
@@ -375,7 +375,7 @@ class ConfigEnv(object):
         self.incident_report_receivers_email_addresses = incident_report_receivers_email_addresses
         self.matrix_server_url = matrix_server_url
         self.matrix_sender_access_token = matrix_sender_access_token
-        self.matrix_cc_receivers_room_ids = matrix_cc_receivers_room_ids
+        self.matrix_bcc_receivers_room_ids = matrix_bcc_receivers_room_ids
         self.matrix_incident_report_receivers_room_ids = matrix_incident_report_receivers_room_ids
         self.matrix_incident_report_sender_personal_access_token = matrix_incident_report_sender_personal_access_token
         self.matrix_message_sending_job_submitted = matrix_message_sending_job_submitted

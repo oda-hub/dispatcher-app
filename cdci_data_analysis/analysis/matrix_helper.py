@@ -196,7 +196,7 @@ def send_job_message(
     matrix_sender_access_token = config.matrix_sender_access_token
     receiver_room_id = tokenHelper.get_token_user_matrix_room_id(decoded_token)
 
-    cc_receivers_room_ids = config.matrix_cc_receivers_room_ids
+    bcc_receivers_room_ids = config.matrix_bcc_receivers_room_ids
 
     matrix_message_data = {
         'oda_site': {
@@ -229,11 +229,11 @@ def send_job_message(
     message_body_html = template.render(**matrix_message_data)
     message_text = textify_matrix_message(message_body_html)
     res_content = {
-        'res_content_cc_users': []
+        'res_content_bcc_users': []
     }
 
     message_data = {
-        'message_data_cc_users': []
+        'message_data_bcc_users': []
     }
     if receiver_room_id is not None and receiver_room_id != "":
         res_data_message_token_user = send_message(url_server=matrix_server_url,
@@ -250,18 +250,18 @@ def send_job_message(
         matrix_helper_logger.warning('a matrix message could not be sent to the token user as no personal room id was '
                                      'provided within the token')
 
-    for cc_receiver_room_id in cc_receivers_room_ids:
-        if cc_receiver_room_id is not None and cc_receiver_room_id != "":
+    for bcc_receiver_room_id in bcc_receivers_room_ids:
+        if bcc_receiver_room_id is not None and bcc_receiver_room_id != "":
             res_data_message_cc_user = send_message(url_server=matrix_server_url,
                                                     sender_access_token=matrix_sender_access_token,
-                                                    room_id=cc_receiver_room_id,
+                                                    room_id=bcc_receiver_room_id,
                                                     message_text=message_text,
                                                     message_body_html=message_body_html
                                                     )
             message_data_cc_user = res_data_message_cc_user['message_data']
-            message_data['message_data_cc_users'].append(message_data_cc_user)
+            message_data['message_data_bcc_users'].append(message_data_cc_user)
             res_content_cc_user = res_data_message_cc_user['res_content']
-            res_content['res_content_cc_users'].append(res_content_cc_user)
+            res_content['res_content_bcc_users'].append(res_content_cc_user)
 
 
     store_status_matrix_message_info(message_data, status, scratch_dir, sending_time=sending_time, first_submitted_time=time_request)

@@ -564,7 +564,7 @@ def dispatcher_test_conf_with_matrix_options_fn(dispatcher_test_conf_fn):
         f.write('\n    matrix_options:'
                 '\n        matrix_server_url: "https://matrix-client.matrix.org/"'
                 f'\n        matrix_sender_access_token: "{os.getenv("MATRIX_SENDER_ACCESS_TOKEN", "matrix_sender_access_token")}"'
-                f'\n        matrix_cc_receivers_room_ids: ["{os.getenv("MATRIX_CC_RECEIVER_ROOM_ID", "")}"]'
+                f'\n        matrix_bcc_receivers_room_ids: ["{os.getenv("MATRIX_CC_RECEIVER_ROOM_ID", "")}"]'
                 '\n        incident_report_matrix_options:'
                 f'\n            matrix_incident_report_receivers_room_ids: ["{os.getenv("MATRIX_INCIDENT_REPORT_RECEIVER_ROOM_ID", "matrix_incident_report_receivers_room_ids")}"]'
                 f'\n            matrix_incident_report_sender_personal_access_token: "{os.getenv("MATRIX_INCIDENT_REPORT_SENDER_PERSONAL_ACCESS_TOKEN", "matrix_incident_report_sender_personal_access_token")}"'
@@ -578,7 +578,7 @@ def dispatcher_test_conf_with_matrix_options_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
-def dispatcher_no_cc_matrix_room_ids(monkeypatch):
+def dispatcher_no_bcc_matrix_room_ids(monkeypatch):
     monkeypatch.delenv('MATRIX_CC_RECEIVER_ROOM_ID', raising=False)
 
 

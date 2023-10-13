@@ -81,7 +81,7 @@ dispatcher:
         # access token of the sender account, from which the messages will be sent from
         matrix_sender_access_token: MATRIX_SENDER_ACCESS_TOKEN
         # list of additional room ids receivers towards which the message will be sent, besides the room id extracted from the token
-        matrix_cc_receivers_room_ids: ['room_id']
+        matrix_bcc_receivers_room_ids: ['room_id']
         # incident report related options, for the messages sent via matrix
         incident_report_matrix_options:
             # list of room ids receivers towards which the incident report message will be sent
