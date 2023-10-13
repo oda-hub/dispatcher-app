@@ -59,12 +59,12 @@ jobs:
 
     - name: Test fast subset with pytest
       run: |
-        python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m "not test_drupal and fast and not test_renku" --durations=0
+        python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m "not test_drupal and fast and not test_renku and not test_matrix" --durations=0
 
     - name: Test everything with pytest
       if: ${{ env.TEST_ONLY_FAST != 'true' }}
       run: |
-        python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m "not test_drupal and not test_renku" --durations=0
+        python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m "not test_drupal and not test_renku and not test_matrix" --durations=0
 
 
     # I wonder how this interacts with the Github App. But this is not only for PR. Also this does not always work
