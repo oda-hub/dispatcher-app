@@ -1061,8 +1061,8 @@ class InstrumentQueryBackEnd:
         except MissingRequestParameter as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
-                                        call_back_status=f'parameter missing when checking if a message via matrix could be sent: {e.message}')
-            logging.warning(f'parameter missing when checking if a message via matrix could be sent: {e.message}')
+                                        call_back_status=f'parameter missing when checking if a message could be sent via matrix: {e.message}')
+            logging.warning(f'parameter missing when checking if a message could be sent via matrix: {e.message}')
 
         try:
             step = 'checking if an email can be sent'
@@ -1082,8 +1082,8 @@ class InstrumentQueryBackEnd:
         except MissingRequestParameter as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
-                                        call_back_status=f'parameter missing when checking if an could be sent: {e.message}')
-            logging.warning(f'parameter missing when checking if an could be sent: {e.message}')
+                                        call_back_status=f'parameter missing when checking if an email could be sent: {e.message}')
+            logging.warning(f'parameter missing when checking if an email could be sent: {e.message}')
 
         try:
             if is_email_to_send or is_message_to_send:
