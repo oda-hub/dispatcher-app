@@ -578,6 +578,11 @@ def dispatcher_test_conf_with_matrix_options_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
+def dispatcher_no_cc_matrix_room_ids(monkeypatch):
+    monkeypatch.delenv('MATRIX_CC_RECEIVER_ROOM_ID', raising=False)
+
+
+@pytest.fixture
 def dispatcher_test_conf_with_gallery_no_resolver_fn(dispatcher_test_conf_fn):
     fn = "test-dispatcher-conf-with-gallery.yaml"
 

@@ -14,6 +14,7 @@ from cdci_data_analysis.pytest_fixtures import (
             dispatcher_long_living_fixture,
             gunicorn_dispatcher_long_living_fixture,
             dispatcher_long_living_fixture_with_matrix_options,
+            dispatcher_no_cc_matrix_room_ids,
             gunicorn_dispatcher_long_living_fixture_with_matrix_options,
             dispatcher_test_conf,
             dispatcher_test_conf_with_gallery,
