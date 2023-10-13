@@ -196,7 +196,7 @@ def send_job_message(
     matrix_sender_access_token = config.matrix_sender_access_token
     receiver_room_id = tokenHelper.get_token_user_matrix_room_id(decoded_token)
 
-    cc_receivers_room_id = config.matrix_cc_receivers_room_id
+    cc_receivers_room_ids = config.matrix_cc_receivers_room_ids
 
     matrix_message_data = {
         'oda_site': {
@@ -250,7 +250,7 @@ def send_job_message(
         matrix_helper_logger.warning('a matrix message could not be sent to the token user as no personal room id was '
                                      'provided within the token')
 
-    for cc_receiver_room_id in cc_receivers_room_id:
+    for cc_receiver_room_id in cc_receivers_room_ids:
         if cc_receiver_room_id is not None and cc_receiver_room_id != "":
             res_data_message_cc_user = send_message(url_server=matrix_server_url,
                                                     sender_access_token=matrix_sender_access_token,

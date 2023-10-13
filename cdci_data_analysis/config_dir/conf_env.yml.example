@@ -80,6 +80,14 @@ dispatcher:
         matrix_server_url: MATRIX_SERVER_URL
         # access token of the sender account, from which the messages will be sent from
         matrix_sender_access_token: MATRIX_SENDER_ACCESS_TOKEN
+        # list of additional room ids receivers towards which the message will be sent, besides the room id extracted from the token
+        matrix_cc_receivers_room_ids: ['room_id']
+        # incident report related options, for the messages sent via matrix
+        incident_report_matrix_options:
+            # list of room ids receivers towards which the incident report message will be sent
+            matrix_incident_report_receivers_room_ids: ['room_id']
+            # personal access token of the sender of the incident report
+            matrix_incident_report_sender_personal_access_token: MATRIX_INCIDENT_REPORT_SENDER_ACCESS_TOKEN
         # list of room ids to which the matrix message should be sent
         matrix_cc_receivers_room_id: []
         # enable/disable sending of messages via matrix in case of a submitted job status
