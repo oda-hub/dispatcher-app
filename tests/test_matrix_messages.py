@@ -289,7 +289,8 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
         matrix_message_status_details_obj = json.loads(jdata['exit_status']['matrix_message_status_details'])
         assert 'res_content' in matrix_message_status_details_obj
         assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
-        assert matrix_message_status_details_obj['res_content']['res_content_cc_users'] == []
+        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_cc_users'], list)
+        assert len(matrix_message_status_details_obj['res_content']['res_content_cc_users']) == 1
         assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
         assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_token_user']
 
@@ -434,7 +435,8 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
         matrix_message_status_details_obj = json.loads(jdata['matrix_message_status_details'])
         assert 'res_content' in matrix_message_status_details_obj
         assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
-        assert matrix_message_status_details_obj['res_content']['res_content_cc_users'] == []
+        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_cc_users'], list)
+        assert len(matrix_message_status_details_obj['res_content']['res_content_cc_users']) == 1
         assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
         assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_token_user']
 
@@ -483,7 +485,8 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
         matrix_message_status_details_obj = json.loads(jdata['matrix_message_status_details'])
         assert 'res_content' in matrix_message_status_details_obj
         assert 'res_content_cc_users' in matrix_message_status_details_obj['res_content']
-        assert matrix_message_status_details_obj['res_content']['res_content_cc_users'] == []
+        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_cc_users'], list)
+        assert len(matrix_message_status_details_obj['res_content']['res_content_cc_users']) == 1
         assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
         assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_token_user']
 
@@ -1136,10 +1139,10 @@ def test_incident_report(dispatcher_live_fixture_with_matrix_options,
         matrix_message_event_id = jdata_incident_report['martix_message_report_status_details']['res_content']['res_content_incident_reports'][0]['event_id']
 
         validate_incident_matrix_message_content(
-            dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_incident_report_receivers_room_ids'][0],
+            dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['incident_report_matrix_options']['matrix_incident_report_receivers_room_ids'][0],
                                                                              event_id=matrix_message_event_id),
             event_id=matrix_message_event_id,
-            room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_incident_report_receivers_room_ids'][0],
+            room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['incident_report_matrix_options']['matrix_incident_report_receivers_room_ids'][0],
             dispatcher_job_state=dispatcher_job_state,
             incident_time_str=time_request_str,
             incident_report_str=incident_content,
