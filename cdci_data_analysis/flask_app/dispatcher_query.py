@@ -1045,22 +1045,27 @@ class InstrumentQueryBackEnd:
         is_email_to_send = False
         is_message_to_send = False
         try:
-            step = 'checking if an email can be sent'
+            step = 'checking if a message can be sent via matrix'
             is_message_to_send = matrix_helper.is_message_to_send_callback(status,
-                                                         time_original_request,
-                                                          self.scratch_dir,
-                                                          self.app.config['conf'],
-                                                          self.job_id,
-                                                          decoded_token=self.decoded_token)
+                                                                           time_original_request,
+                                                                           self.scratch_dir,
+                                                                           self.app.config['conf'],
+                                                                           self.job_id,
+                                                                           decoded_token=self.decoded_token)
         except matrix_helper.MultipleDoneMatrixMessage as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
                                         matrix_message_status='attempted repeated sending of matrix message detected')
             logging.warning(f'attempted repeated sending of completion matrix message detected: {e}')
             sentry.capture_message(f'attempted repeated sending of completion matrix message detected: {e}')
+        except MissingRequestParameter as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        call_back_status=f'parameter missing when checking if a message could be sent via matrix: {e.message}')
+            logging.warning(f'parameter missing when checking if a message could be sent via matrix: {e.message}')
 
         try:
-            step = 'checking if a message can  be sent via matrix'
+            step = 'checking if an email can be sent'
             is_email_to_send = email_helper.is_email_to_send_callback(self.logger,
                                                       status,
                                                       time_original_request,
@@ -1074,6 +1079,12 @@ class InstrumentQueryBackEnd:
                                         email_status='attempted repeated sending of completion email detected')
             logging.warning(f'attempted repeated sending of completion email detected: {e}')
             sentry.capture_message(f'attempted repeated sending of completion email detected: {e}')
+        except MissingRequestParameter as e:
+            job.write_dataserver_status(status_dictionary_value=status,
+                                        full_dict=self.par_dic,
+                                        call_back_status=f'parameter missing when checking if an email could be sent: {e.message}')
+            logging.warning(f'parameter missing when checking if an email could be sent: {e.message}')
+
         try:
             if is_email_to_send or is_message_to_send:
                 step = 'extracting the original request dictionary'
@@ -1151,12 +1162,6 @@ class InstrumentQueryBackEnd:
             logging.warning(f'matrix message sending failed: {e}')
             sentry.capture_message(f'sending matrix message failed {e.message}')
 
-        except MissingRequestParameter as e:
-            job.write_dataserver_status(status_dictionary_value=status,
-                                        full_dict=self.par_dic,
-                                        call_back_status=f'parameter missing when sending a message via matrix: {e.message}')
-            logging.warning(f'parameter missing when sending a message via matrix: {e.message}')
-
         try:
             # TODO for a future implementation
             # self.validate_job_id()
@@ -1199,11 +1204,6 @@ class InstrumentQueryBackEnd:
             logging.warning(f'email sending failed: {e}')
             sentry.capture_message(f'sending email failed {e}')
 
-        except MissingRequestParameter as e:
-            job.write_dataserver_status(status_dictionary_value=status,
-                                        full_dict=self.par_dic,
-                                        call_back_status=f'parameter missing when sending an email: {e.message}')
-            logging.warning(f'parameter missing when sending an email: {e.message}')
         # TODO for a future implementation
         # except RequestNotAuthorized as e:
         #     job.write_dataserver_status(status_dictionary_value=status,
@@ -1964,11 +1964,6 @@ class InstrumentQueryBackEnd:
                             query_out.set_status_field('matrix_message_status', 'matrix message sent')
                             query_out.set_status_field('matrix_message_status_details', matrix_message_status_details)
                         except matrix_helper.MatrixMessageNotSent as e:
-                            query_out.set_status_field('matrix_message_status', 'sending matrix message failed')
-                            query_out.set_status_field('matrix_message_status_details', e.payload)
-                            logging.warning(f'matrix message sending failed: {e}')
-                            sentry.capture_message(f'sending matrix message failed {e.message}')
-                        except MissingRequestParameter as e:
                             query_out.set_status_field('matrix_message_status', 'sending matrix message failed')
                             query_out.set_status_field('matrix_message_status_details', e.payload)
                             logging.warning(f'matrix message sending failed: {e}')

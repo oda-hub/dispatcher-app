@@ -102,7 +102,6 @@ def validate_incident_matrix_message_content(
         message_record,
         room_id:str,
         event_id:str,
-        user_id:str,
         dispatcher_job_state: DispatcherJobState,
         incident_time_str: str = None,
         incident_report_str: str = None,
@@ -121,7 +120,6 @@ def validate_incident_matrix_message_content(
                                                                   )
 
     assert message_record['room_id'] == room_id
-    assert message_record['user_id'] == user_id
     assert message_record['type'] == 'm.room.message'
     assert message_record['event_id'] == event_id
 
@@ -192,8 +190,9 @@ def adapt_html(html_content, patterns=None, **matrix_message_args,):
 @pytest.mark.test_matrix
 @pytest.mark.parametrize("default_values", [True, False])
 @pytest.mark.parametrize("time_original_request_none", [False])
-@pytest.mark.parametrize("request_cred", ['public', 'private', 'private-no-matrix-message'])
+@pytest.mark.parametrize("request_cred", ['public', 'private', 'private-no-matrix-message', 'private-no-room-id'])
 def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fixture_with_matrix_options,
+                                              dispatcher_test_conf_with_matrix_options,
                                               dispatcher_local_matrix_message_server,
                                               default_values, request_cred, time_original_request_none):
     DataServerQuery.set_status('submitted')
@@ -233,6 +232,8 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
             token_payload['mxdone'] = False
             token_payload['mxfail'] = False
             expect_matrix_message = False
+        elif request_cred ==  'private-no-room-id':
+            token_payload.pop('mxroomid', None)
 
         encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
@@ -284,20 +285,49 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
         # matrix message not supposed to be sent for public request
         assert 'matrix_message_status' not in jdata
     else:
+
         assert 'matrix_message_status' in jdata['exit_status']
         assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
         assert 'matrix_message_status_details' in jdata['exit_status']
-        matrix_message_event_id_obj = json.loads(jdata['exit_status']['matrix_message_status_details'])
-        assert 'event_id' in matrix_message_event_id_obj['res_content']
+        matrix_message_status_details_obj = json.loads(jdata['exit_status']['matrix_message_status_details'])
+        assert 'res_content' in matrix_message_status_details_obj
+        if request_cred == 'private-no-room-id':
+            assert 'res_content_token_user' not in matrix_message_status_details_obj['res_content']
+        else:
+            assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
+            matrix_user_message_event_id = \
+            matrix_message_status_details_obj['res_content']['res_content_token_user']['event_id']
 
-        matrix_message_event_id_obj = matrix_message_event_id_obj['res_content']['event_id']
+            validate_matrix_message_content(
+                dispatcher_local_matrix_message_server.get_matrix_message_record(
+                    room_id=token_payload['mxroomid'],
+                    event_id=matrix_user_message_event_id),
+                'submitted',
+                room_id=token_payload['mxroomid'],
+                event_id=matrix_user_message_event_id,
+                user_id=token_payload['user_id'],
+                dispatcher_job_state=dispatcher_job_state,
+                variation_suffixes=["dummy"],
+                time_request_str=time_request_str,
+                request_params=dict_param,
+                products_url=products_url,
+                dispatcher_live_fixture=None,
+                require_reference_matrix_message=True
+            )
+
+        assert 'res_content_bcc_users' in matrix_message_status_details_obj['res_content']
+        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_bcc_users'], list)
+        assert len(matrix_message_status_details_obj['res_content']['res_content_bcc_users']) == 1
+        assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_bcc_users'][0]
+
+        matrix_bcc_message_event_id_obj = matrix_message_status_details_obj['res_content']['res_content_bcc_users'][0]['event_id']
 
         validate_matrix_message_content(
-            dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=token_payload['mxroomid'],
-                                                                             event_id=matrix_message_event_id_obj),
+            dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_bcc_receivers_room_ids'][0],
+                                                                             event_id=matrix_bcc_message_event_id_obj),
             'submitted',
-            room_id=token_payload['mxroomid'],
-            event_id=matrix_message_event_id_obj,
+            room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_bcc_receivers_room_ids'][0],
+            event_id=matrix_bcc_message_event_id_obj,
             user_id=token_payload['user_id'],
             dispatcher_job_state=dispatcher_job_state,
             variation_suffixes=["dummy"],
@@ -428,19 +458,47 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
         assert 'matrix_message_status' in jdata
         assert jdata['matrix_message_status'] == 'matrix message sent'
         assert 'matrix_message_status_details' in jdata
-        matrix_message_event_id_obj = json.loads(jdata['matrix_message_status_details'])
-        assert 'event_id' in matrix_message_event_id_obj['res_content']
+        matrix_message_status_details_obj = json.loads(jdata['matrix_message_status_details'])
+        assert 'res_content' in matrix_message_status_details_obj
+        assert 'res_content_bcc_users' in matrix_message_status_details_obj['res_content']
+        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_bcc_users'], list)
+        assert len(matrix_message_status_details_obj['res_content']['res_content_bcc_users']) == 1
 
-        matrix_message_event_id_obj = matrix_message_event_id_obj['res_content']['event_id']
+        if request_cred == 'private-no-room-id':
+            assert 'res_content_token_user' not in matrix_message_status_details_obj['res_content']
+        else:
+            assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
+            assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_token_user']
+            matrix_user_message_event_id = \
+            matrix_message_status_details_obj['res_content']['res_content_token_user']['event_id']
+
+            validate_matrix_message_content(
+                dispatcher_local_matrix_message_server.get_matrix_message_record(
+                    room_id=token_payload['mxroomid'],
+                    event_id=matrix_user_message_event_id),
+                'done',
+                room_id=token_payload['mxroomid'],
+                event_id=matrix_user_message_event_id,
+                user_id=token_payload['user_id'],
+                dispatcher_job_state=dispatcher_job_state,
+                time_request_str=time_request_str,
+                dispatcher_live_fixture=server,
+                require_reference_matrix_message=True
+            )
+
+        matrix_bcc_message_event_id_obj = matrix_message_status_details_obj['res_content']['res_content_bcc_users'][0][
+            'event_id']
+
         # check the matrix message in the matrix message folders, and that the first one was produced
         dispatcher_job_state.assert_matrix_message(state="done")
 
         validate_matrix_message_content(
-            dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=token_payload['mxroomid'],
-                                                                              event_id=matrix_message_event_id_obj),
+            dispatcher_local_matrix_message_server.get_matrix_message_record(
+                room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_bcc_receivers_room_ids'][0],
+                event_id=matrix_bcc_message_event_id_obj),
             'done',
-            room_id=token_payload['mxroomid'],
-            event_id=matrix_message_event_id_obj,
+            room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_bcc_receivers_room_ids'][0],
+            event_id=matrix_bcc_message_event_id_obj,
             user_id=token_payload['user_id'],
             dispatcher_job_state=dispatcher_job_state,
             time_request_str=time_request_str,
@@ -473,29 +531,37 @@ def test_matrix_message_run_analysis_callback(gunicorn_dispatcher_long_living_fi
         assert 'matrix_message_status' in jdata
         assert jdata['matrix_message_status'] == 'matrix message sent'
         assert 'matrix_message_status_details' in jdata
-        matrix_message_event_id_obj = json.loads(jdata['matrix_message_status_details'])
-        assert 'event_id' in matrix_message_event_id_obj['res_content']
-
-        matrix_message_event_id_obj = matrix_message_event_id_obj['res_content']['event_id']
-
-        # check the matrix message in the matrix message folders, and that the first one was produced
-        if default_values or time_original_request_none:
-            dispatcher_job_state.assert_matrix_message('failed', comment="expected one matrix message in total, failed")
+        matrix_message_status_details_obj = json.loads(jdata['matrix_message_status_details'])
+        assert 'res_content' in matrix_message_status_details_obj
+        assert 'res_content_bcc_users' in matrix_message_status_details_obj['res_content']
+        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_bcc_users'], list)
+        assert len(matrix_message_status_details_obj['res_content']['res_content_bcc_users']) == 1
+        if request_cred == 'private-no-room-id':
+            assert 'res_content_token_user' not in matrix_message_status_details_obj['res_content']
         else:
-            dispatcher_job_state.assert_matrix_message('failed', comment="expected two matrix message in total, second failed")
+            assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
+            assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_token_user']
 
-        validate_matrix_message_content(
-            dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=token_payload['mxroomid'],
-                                                                             event_id=matrix_message_event_id_obj),
-            'failed',
-            room_id=token_payload['mxroomid'],
-            event_id=matrix_message_event_id_obj,
-            user_id=token_payload['user_id'],
-            dispatcher_job_state=dispatcher_job_state,
-            time_request_str=time_request_str,
-            dispatcher_live_fixture=server,
-            require_reference_matrix_message=True
-        )
+            matrix_message_event_id_obj = matrix_message_status_details_obj['res_content']['res_content_token_user']['event_id']
+
+            # check the matrix message in the matrix message folders, and that the first one was produced
+            if default_values or time_original_request_none:
+                dispatcher_job_state.assert_matrix_message('failed', comment="expected one matrix message in total, failed")
+            else:
+                dispatcher_job_state.assert_matrix_message('failed', comment="expected two matrix message in total, second failed")
+
+            validate_matrix_message_content(
+                dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=token_payload['mxroomid'],
+                                                                                 event_id=matrix_message_event_id_obj),
+                'failed',
+                room_id=token_payload['mxroomid'],
+                event_id=matrix_message_event_id_obj,
+                user_id=token_payload['user_id'],
+                dispatcher_job_state=dispatcher_job_state,
+                time_request_str=time_request_str,
+                dispatcher_live_fixture=server,
+                require_reference_matrix_message=True
+            )
 
 
 @pytest.mark.test_matrix
@@ -542,8 +608,14 @@ def test_matrix_message_submitted_same_job(dispatcher_live_fixture_with_matrix_o
     assert 'matrix_message_status' in jdata['exit_status']
     assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
     assert 'matrix_message_status_details' in jdata['exit_status']
-    matrix_message_event_id_obj = json.loads(jdata['exit_status']['matrix_message_status_details'])
-    assert 'event_id' in matrix_message_event_id_obj['res_content']
+    matrix_message_status_details_obj = json.loads(jdata['exit_status']['matrix_message_status_details'])
+    assert 'res_content' in matrix_message_status_details_obj
+    assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
+    assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_token_user']
+    assert 'res_content_bcc_users' in matrix_message_status_details_obj['res_content']
+    assert isinstance(matrix_message_status_details_obj['res_content']['res_content_bcc_users'], list)
+    assert len(matrix_message_status_details_obj['res_content']['res_content_bcc_users']) == 1
+    assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_bcc_users'][0]
 
     time_request = jdata['time_request']
     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
@@ -953,15 +1025,15 @@ def test_status_details_matrix_message_done(gunicorn_dispatcher_long_living_fixt
                                                                 job_id=dispatcher_job_state.job_id,
                                                                 token=encoded_token)
 
-    matrix_message_event_id_obj = matrix_message_event_id_obj['res_content']['event_id']
+    matrix_message_event_id = matrix_message_event_id_obj['res_content']['res_content_token_user']['event_id']
 
     # check the email in the log files
     validate_matrix_message_content(
         dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=token_payload['mxroomid'],
-                                                                         event_id=matrix_message_event_id_obj),
+                                                                         event_id=matrix_message_event_id),
         'done',
         room_id=token_payload['mxroomid'],
-        event_id=matrix_message_event_id_obj,
+        event_id=matrix_message_event_id,
         user_id=token_payload['user_id'],
         dispatcher_job_state=dispatcher_job_state,
         variation_suffixes=["failing"],
@@ -1044,6 +1116,7 @@ def test_matrix_message_and_email(gunicorn_dispatcher_long_living_fixture_with_m
 @pytest.mark.test_matrix
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
 def test_incident_report(dispatcher_live_fixture_with_matrix_options,
+                         dispatcher_test_conf_with_matrix_options,
                          dispatcher_local_matrix_message_server,
                          dispatcher_test_conf,
                          request_cred):
@@ -1112,17 +1185,360 @@ def test_incident_report(dispatcher_live_fixture_with_matrix_options,
         assert jdata_incident_report['martix_message_report_status'] == 'incident report message successfully sent via matrix'
         assert 'martix_message_report_status_details' in jdata_incident_report
         assert 'res_content' in jdata_incident_report['martix_message_report_status_details']
-        assert 'event_id' in jdata_incident_report['martix_message_report_status_details']['res_content']
-        matrix_message_event_id = jdata_incident_report['martix_message_report_status_details']['res_content']['event_id']
+        assert 'res_content_incident_reports' in jdata_incident_report['martix_message_report_status_details']['res_content']
+        assert len(jdata_incident_report['martix_message_report_status_details']['res_content']['res_content_incident_reports']) == 1
+        assert 'event_id' in jdata_incident_report['martix_message_report_status_details']['res_content']['res_content_incident_reports'][0]
+        matrix_message_event_id = jdata_incident_report['martix_message_report_status_details']['res_content']['res_content_incident_reports'][0]['event_id']
 
         validate_incident_matrix_message_content(
-            dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=decoded_token['mxroomid'],
+            dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['incident_report_matrix_options']['matrix_incident_report_receivers_room_ids'][0],
                                                                              event_id=matrix_message_event_id),
             event_id=matrix_message_event_id,
-            room_id=decoded_token['mxroomid'],
-            user_id=decoded_token['user_id'],
+            room_id=dispatcher_test_conf_with_matrix_options['matrix_options']['incident_report_matrix_options']['matrix_incident_report_receivers_room_ids'][0],
             dispatcher_job_state=dispatcher_job_state,
             incident_time_str=time_request_str,
             incident_report_str=incident_content,
             decoded_token=decoded_token
         )
+
+
+@pytest.mark.test_matrix
+@pytest.mark.parametrize("default_values", [True, False])
+@pytest.mark.parametrize("time_original_request_none", [False])
+@pytest.mark.parametrize("request_cred", ['public', 'private', 'private-no-matrix-message', 'private-no-room-id'])
+def test_matrix_message_run_analysis_callback_no_room_ids(dispatcher_no_bcc_matrix_room_ids,
+                                                          gunicorn_dispatcher_long_living_fixture_with_matrix_options,
+                                                          dispatcher_test_conf_with_matrix_options,
+                                                          dispatcher_local_matrix_message_server,
+                                                          default_values, request_cred, time_original_request_none):
+    DataServerQuery.set_status('submitted')
+
+    server = gunicorn_dispatcher_long_living_fixture_with_matrix_options
+
+    DispatcherJobState.remove_scratch_folders()
+
+    token_none = (request_cred == 'public')
+
+    expect_matrix_message = True
+    token_payload = {**default_token_payload,
+                     "tmx": 0,
+                     "tem": 0,
+                     "mxstout": True,
+                     "mxintsub": 5,
+                     "mxsub": True,
+                     "mssub": False,
+                     "msdone": False,
+                     "msfail": False,
+                     "mxroomid": dispatcher_local_matrix_message_server.room_id
+                     }
+
+    if token_none:
+        encoded_token = None
+    else:
+        # let's generate a valid token with high threshold
+
+        if default_values:
+            token_payload.pop('tmx')
+            token_payload.pop('mxstout')
+            token_payload.pop('mxsub')
+            token_payload.pop('mxintsub')
+
+        if request_cred == 'private-no-matrix-message':
+            token_payload['mxsub'] = False
+            token_payload['mxdone'] = False
+            token_payload['mxfail'] = False
+            expect_matrix_message = False
+        elif request_cred ==  'private-no-room-id':
+            token_payload.pop('mxroomid', None)
+
+        encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    # this should return status submitted, so matrix message sent
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+    assert c.status_code == 200
+    jdata = c.json()
+
+    session_id = jdata['session_id']
+    job_id = jdata['job_monitor']['job_id']
+
+    logger.info("response from run_analysis: %s", json.dumps(jdata, indent=4))
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+
+    assert jdata['query_status'] == "submitted"
+
+    completed_dict_param = {**dict_param,
+                            'use_scws': 'no',
+                            'src_name': '1E 1740.7-2942',
+                            'RA': 265.97845833,
+                            'DEC': -29.74516667,
+                            'T1': '2017-03-06T13:26:48.000',
+                            'T2': '2017-03-06T15:32:27.000',
+                            'T_format': 'isot'
+                            }
+
+    products_url = DispatcherJobState.get_expected_products_url(completed_dict_param,
+                                                                token=encoded_token,
+                                                                session_id=session_id,
+                                                                job_id=job_id)
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    # get the original time the request was made
+    assert 'time_request' in jdata
+    # set the time the request was initiated
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    if token_none or not expect_matrix_message:
+        # matrix message not supposed to be sent for public request
+        assert 'matrix_message_status' not in jdata
+    else:
+
+        assert 'matrix_message_status' in jdata['exit_status']
+        assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
+        assert 'matrix_message_status_details' in jdata['exit_status']
+        matrix_message_status_details_obj = json.loads(jdata['exit_status']['matrix_message_status_details'])
+        assert 'res_content' in matrix_message_status_details_obj
+        if request_cred == 'private-no-room-id':
+            assert 'res_content_token_user' not in matrix_message_status_details_obj['res_content']
+        else:
+            assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
+            matrix_user_message_event_id = \
+            matrix_message_status_details_obj['res_content']['res_content_token_user']['event_id']
+
+            validate_matrix_message_content(
+                dispatcher_local_matrix_message_server.get_matrix_message_record(
+                    room_id=token_payload['mxroomid'],
+                    event_id=matrix_user_message_event_id),
+                'submitted',
+                room_id=token_payload['mxroomid'],
+                event_id=matrix_user_message_event_id,
+                user_id=token_payload['user_id'],
+                dispatcher_job_state=dispatcher_job_state,
+                variation_suffixes=["dummy"],
+                time_request_str=time_request_str,
+                request_params=dict_param,
+                products_url=products_url,
+                dispatcher_live_fixture=None,
+                require_reference_matrix_message=True
+            )
+
+        assert 'res_content_bcc_users' in matrix_message_status_details_obj['res_content']
+        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_bcc_users'], list)
+        assert len(matrix_message_status_details_obj['res_content']['res_content_bcc_users']) == 0
+
+    # for the call_back(s) in case the time of the original request is not provided
+    if time_original_request_none:
+        time_request = None
+        time_request_str = 'None'
+
+    for i in range(5):
+        # imitating what a backend would do
+        current_action = 'progress' if i > 2 else 'main_done'
+        c = requests.get(os.path.join(server, "call_back"),
+                         params=dict(
+                             job_id=dispatcher_job_state.job_id,
+                             session_id=dispatcher_job_state.session_id,
+                             instrument_name="empty-async",
+                             action=current_action,
+                             node_id=f'node_{i}',
+                             message='progressing',
+                             token=encoded_token,
+                             time_original_request=time_request
+                         ))
+        assert dispatcher_job_state.load_job_state_record(f'node_{i}', "progressing")['full_report_dict'][
+                   'action'] == current_action
+
+        c = requests.get(os.path.join(server, "run_analysis"),
+                         params=dict(
+                             query_status="submitted",  # whether query is new or not, this should work
+                             query_type="Real",
+                             instrument="empty-async",
+                             product_type="dummy",
+                             async_dispatcher=False,
+                             session_id=dispatcher_job_state.session_id,
+                             job_id=dispatcher_job_state.job_id,
+                             token=encoded_token
+                         ))
+        assert c.json()['query_status'] == 'progress'  # always progress!
+
+    # we should now find progress records
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     {**dict_param,
+                      "query_status": "submitted",
+                      "job_id": job_id,
+                      "session_id": session_id,
+                      }
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+
+    assert len(jdata['job_monitor']['full_report_dict_list']) == 6
+    assert [c['action'] for c in jdata['job_monitor']['full_report_dict_list']] == [
+        'main_done', 'main_done', 'main_done', 'progress', 'progress', 'progress']
+
+    c = requests.get(os.path.join(server, "call_back"),
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action='main_incorrect_status',
+                         node_id=f'node_{i + 1}',
+                         message='progressing',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+    assert c.status_code == 200
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     {
+                         **dict_param,
+                         "query_status": "submitted",
+                         "job_id": job_id,
+                         "session_id": session_id,
+                     }
+                     )
+    assert c.status_code == 200
+    assert c.json()['query_status'] == 'progress'
+
+    # this does nothing special
+    c = requests.get(os.path.join(server, "call_back"),
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action='ready',
+                         node_id='node_ready',
+                         message='ready',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+
+    DataServerQuery.set_status('done')
+
+    # this triggers a message via matrix
+    c = requests.get(os.path.join(server, "call_back"),
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action='done',
+                         node_id='node_final',
+                         message='done',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+
+    assert c.status_code == 200
+
+    jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
+
+    if token_none or not expect_matrix_message:
+        assert 'matrix_message_status' not in jdata
+
+    elif time_original_request_none:
+        assert 'matrix_message_status' in jdata
+
+    elif default_values:
+        assert 'matrix_message_status' not in jdata
+
+    else:
+        assert 'matrix_message_status' in jdata
+        assert jdata['matrix_message_status'] == 'matrix message sent'
+        assert 'matrix_message_status_details' in jdata
+        matrix_message_status_details_obj = json.loads(jdata['matrix_message_status_details'])
+        assert 'res_content' in matrix_message_status_details_obj
+        assert 'res_content_bcc_users' in matrix_message_status_details_obj['res_content']
+        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_bcc_users'], list)
+        assert len(matrix_message_status_details_obj['res_content']['res_content_bcc_users']) == 0
+
+        if request_cred == 'private-no-room-id':
+            assert 'res_content_token_user' not in matrix_message_status_details_obj['res_content']
+        else:
+            assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
+            assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_token_user']
+            matrix_user_message_event_id = \
+            matrix_message_status_details_obj['res_content']['res_content_token_user']['event_id']
+
+            validate_matrix_message_content(
+                dispatcher_local_matrix_message_server.get_matrix_message_record(
+                    room_id=token_payload['mxroomid'],
+                    event_id=matrix_user_message_event_id),
+                'done',
+                room_id=token_payload['mxroomid'],
+                event_id=matrix_user_message_event_id,
+                user_id=token_payload['user_id'],
+                dispatcher_job_state=dispatcher_job_state,
+                time_request_str=time_request_str,
+                dispatcher_live_fixture=server,
+                require_reference_matrix_message=True
+            )
+
+        # check the matrix message in the matrix message folders, and that the first one was produced
+        dispatcher_job_state.assert_matrix_message(state="done")
+
+    # this also triggers matrix message (simulate a failed request)
+    c = requests.get(os.path.join(server, "call_back"),
+                     params={
+                         'job_id': dispatcher_job_state.job_id,
+                         'session_id': dispatcher_job_state.session_id,
+                         'instrument_name': "empty-async",
+                         'action': 'failed',
+                         'node_id': 'node_failed',
+                         'message': 'failed',
+                         'token': encoded_token,
+                         'time_original_request': time_request
+                     })
+
+    assert c.status_code == 200
+
+    jdata = dispatcher_job_state.load_job_state_record('node_failed', 'failed')
+
+    if token_none or not expect_matrix_message:
+        # matrix message not supposed to be sent for public request
+        assert 'matrix_message_status' not in jdata
+        assert 'matrix_message_status_details' not in jdata
+    else:
+        assert 'matrix_message_status' in jdata
+        assert jdata['matrix_message_status'] == 'matrix message sent'
+        assert 'matrix_message_status_details' in jdata
+        matrix_message_status_details_obj = json.loads(jdata['matrix_message_status_details'])
+        assert 'res_content' in matrix_message_status_details_obj
+        assert 'res_content_bcc_users' in matrix_message_status_details_obj['res_content']
+        assert isinstance(matrix_message_status_details_obj['res_content']['res_content_bcc_users'], list)
+        assert len(matrix_message_status_details_obj['res_content']['res_content_bcc_users']) == 0
+        if request_cred == 'private-no-room-id':
+            assert 'res_content_token_user' not in matrix_message_status_details_obj['res_content']
+        else:
+            assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
+            assert 'event_id' in matrix_message_status_details_obj['res_content']['res_content_token_user']
+
+            matrix_message_event_id_obj = matrix_message_status_details_obj['res_content']['res_content_token_user']['event_id']
+
+            # check the matrix message in the matrix message folders, and that the first one was produced
+            if default_values or time_original_request_none:
+                dispatcher_job_state.assert_matrix_message('failed', comment="expected one matrix message in total, failed")
+            else:
+                dispatcher_job_state.assert_matrix_message('failed', comment="expected two matrix message in total, second failed")
+
+            validate_matrix_message_content(
+                dispatcher_local_matrix_message_server.get_matrix_message_record(room_id=token_payload['mxroomid'],
+                                                                                 event_id=matrix_message_event_id_obj),
+                'failed',
+                room_id=token_payload['mxroomid'],
+                event_id=matrix_message_event_id_obj,
+                user_id=token_payload['user_id'],
+                dispatcher_job_state=dispatcher_job_state,
+                time_request_str=time_request_str,
+                dispatcher_live_fixture=server,
+                require_reference_matrix_message=True
+            )

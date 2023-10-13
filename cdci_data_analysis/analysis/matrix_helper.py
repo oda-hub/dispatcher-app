@@ -104,8 +104,9 @@ def send_incident_report_message(
     env.filters['humanize_future'] = humanize_future
 
     matrix_server_url = config.matrix_server_url
-    matrix_sender_access_token = config.matrix_sender_access_token
-    receiver_room_id = tokenHelper.get_token_user_matrix_room_id(decoded_token)
+
+    incident_report_receivers_room_ids = config.matrix_incident_report_receivers_room_ids
+    incident_report_sender_personal_access_token = config.matrix_incident_report_sender_personal_access_token
 
     matrix_message_data = {
         'request': {
@@ -126,16 +127,23 @@ def send_incident_report_message(
     #     open("debug_email_lines_too_long.html", "w").write(email_body_html)
     #     open("debug_email_lines_too_long.text", "w").write(email_text)
     #     raise MatrixMessageNotSent(f"message not sent on matrix, lines too long!")
+    res_content = {
+        'res_content_incident_reports': []
+    }
 
-    res_data = send_message(url_server=matrix_server_url,
-                            sender_access_token=matrix_sender_access_token,
-                            room_id=receiver_room_id,
-                            message_text=message_text,
-                            message_body_html=message_body_html
-                            )
+    message_data = {
+        'message_data_incident_reports': []
+    }
 
-    message_data = res_data['message_data']
-    res_content = res_data['res_content']
+    for incident_report_receiver_room_id in incident_report_receivers_room_ids:
+        res_data_message_receiver = send_message(url_server=matrix_server_url,
+                                                sender_access_token=incident_report_sender_personal_access_token,
+                                                room_id=incident_report_receiver_room_id,
+                                                message_text=message_text,
+                                                message_body_html=message_body_html
+                                                )
+        message_data['message_data_incident_reports'].append(res_data_message_receiver['message_data'])
+        res_content['res_content_incident_reports'].append(res_data_message_receiver['res_content'])
 
     store_incident_report_matrix_message(message_data, scratch_dir, sending_time=sending_time)
 
@@ -188,6 +196,8 @@ def send_job_message(
     matrix_sender_access_token = config.matrix_sender_access_token
     receiver_room_id = tokenHelper.get_token_user_matrix_room_id(decoded_token)
 
+    bcc_receivers_room_ids = config.matrix_bcc_receivers_room_ids
+
     matrix_message_data = {
         'oda_site': {
             'site_name': config.site_name,
@@ -218,20 +228,45 @@ def send_job_message(
     template = env.get_template('matrix_message.html')
     message_body_html = template.render(**matrix_message_data)
     message_text = textify_matrix_message(message_body_html)
-    res_data = send_message(url_server=matrix_server_url,
-                                sender_access_token=matrix_sender_access_token,
-                                room_id=receiver_room_id,
-                                message_text=message_text,
-                                message_body_html=message_body_html
-                                )
+    res_content = {
+        'res_content_bcc_users': []
+    }
 
-    message_data = res_data['message_data']
-    res_content = res_data['res_content']
+    message_data = {
+        'message_data_bcc_users': []
+    }
+    if receiver_room_id is not None and receiver_room_id != "":
+        res_data_message_token_user = send_message(url_server=matrix_server_url,
+                                                   sender_access_token=matrix_sender_access_token,
+                                                   room_id=receiver_room_id,
+                                                   message_text=message_text,
+                                                   message_body_html=message_body_html
+                                                   )
+        message_data_token_user = res_data_message_token_user['message_data']
+        res_content_token_user = res_data_message_token_user['res_content']
+        message_data['message_data_token_user'] = message_data_token_user
+        res_content['res_content_token_user'] = res_content_token_user
+    else:
+        matrix_helper_logger.warning('a matrix message could not be sent to the token user as no personal room id was '
+                                     'provided within the token')
+
+    for bcc_receiver_room_id in bcc_receivers_room_ids:
+        if bcc_receiver_room_id is not None and bcc_receiver_room_id != "":
+            res_data_message_cc_user = send_message(url_server=matrix_server_url,
+                                                    sender_access_token=matrix_sender_access_token,
+                                                    room_id=bcc_receiver_room_id,
+                                                    message_text=message_text,
+                                                    message_body_html=message_body_html
+                                                    )
+            message_data_cc_user = res_data_message_cc_user['message_data']
+            message_data['message_data_bcc_users'].append(message_data_cc_user)
+            res_content_cc_user = res_data_message_cc_user['res_content']
+            res_content['res_content_bcc_users'].append(res_content_cc_user)
+
 
     store_status_matrix_message_info(message_data, status, scratch_dir, sending_time=sending_time, first_submitted_time=time_request)
 
     return res_content
-
 
 
 def send_message(
@@ -241,20 +276,6 @@ def send_message(
         message_text=None,
         message_body_html=None,
 ):
-
-    if url_server is None:
-        matrix_helper_logger.info('matrix url server not available')
-        raise MissingRequestParameter('matrix url server not available')
-    if sender_access_token is None:
-        matrix_helper_logger.info('matrix sender_access_token not available')
-        raise MissingRequestParameter('matrix sender_access_token not available')
-    if room_id is None:
-        matrix_helper_logger.info('matrix room_id not available')
-        raise MissingRequestParameter('matrix room_id not available')
-    if message_text is None or message_body_html is None:
-        matrix_helper_logger.info('matrix message not available')
-        raise MissingRequestParameter('matrix message not available')
-
     matrix_helper_logger.info(f"Sending message to the room id: {room_id}")
     url = os.path.join(url_server, f'_matrix/client/r0/rooms/{room_id}/send/m.room.message')
 
@@ -279,14 +300,14 @@ def send_message(
         except json.decoder.JSONDecodeError:
             error_msg = res.text
         matrix_helper_logger.warning(f"there seems to be some problem in sending a message via matrix:\n"
-                       f"the requested url {url} lead to the error {error_msg}, "
-                       "this might be due to an error in the url or the page requested no longer exists, "
-                       "please check it and try to issue again the request")
+                                     f"the requested url {url} lead to the error {error_msg}, "
+                                     "this might be due to an error in the url or the page requested no longer exists, "
+                                     "please check it and try to issue again the request")
         matrix_error_message = error_msg
 
         sentry.capture_message(f'issue in sending a message via matrix, the requested url {url} lead to the error '
                                f'{matrix_error_message}')
-        raise MatrixMessageNotSent('issue when performing a request to the product gallery',
+        raise MatrixMessageNotSent('issue in sending a message via matrix',
                                    status_code=res.status_code,
                                    payload={'matrix_error_message': matrix_error_message})
 
@@ -300,12 +321,31 @@ def send_message(
     return res_data
 
 
+def is_matrix_config_ok(config):
+    if config.matrix_server_url is None:
+        matrix_helper_logger.info('matrix url server not available')
+        return False
+    if config.matrix_sender_access_token is None:
+        matrix_helper_logger.info('matrix sender_access_token not available')
+        return False
+    return True
+
+
 def is_message_to_send_run_query(status, time_original_request, scratch_dir, job_id, config, decoded_token=None):
 
     log_additional_info_obj = {}
     sending_ok = False
+    config_ok = is_matrix_config_ok(config)
     time_check = time_.time()
     sentry_for_matrix_message_sending_check = config.sentry_for_matrix_message_sending_check
+
+    if config.matrix_server_url is None:
+        matrix_helper_logger.info('matrix url server not available')
+        config_ok = False
+    if config.matrix_sender_access_token is None:
+        matrix_helper_logger.info('matrix sender_access_token not available')
+        config_ok = False
+
     # get total request duration
     if decoded_token:
         # in case the job is just submitted and was not submitted before, at least since some time
@@ -387,12 +427,24 @@ def is_message_to_send_run_query(status, time_original_request, scratch_dir, job
     else:
         matrix_helper_logger.info(f'a message on matrix will not be sent because a token was not provided')
 
-    return sending_ok
+    return sending_ok and config_ok
+
+
+def is_matrix_config_present(config):
+    url_server = config.matrix_server_url
+    sender_access_token = config.matrix_sender_access_token
+
+    if url_server is None or sender_access_token is None:
+        matrix_helper_logger.info('matrix url server not available')
+        return False
+
+    return True
 
 
 def is_message_to_send_callback(status, time_original_request, scratch_dir, config, job_id, decoded_token=None):
     log_additional_info_obj = {}
     sending_ok = False
+    config_ok = is_matrix_config_ok(config)
     time_check = time_.time()
     sentry_for_matrix_message_sending_check = config.sentry_for_matrix_message_sending_check
 
@@ -467,7 +519,7 @@ def is_message_to_send_callback(status, time_original_request, scratch_dir, conf
                                         additional_info_obj=log_additional_info_obj
                                         )
 
-    return sending_ok
+    return sending_ok and config_ok
 
 
 def log_matrix_message_sending_info(status, time_request, scratch_dir, job_id, additional_info_obj=None):
