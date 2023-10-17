@@ -164,7 +164,7 @@ class DataServerQueryReturnProgress(DataServerQuery):
         super().__init__()
 
     def run_query(self, *args, **kwargs):
-        logger.warn('fake run_query in %s with %s, %s', self, args, kwargs)
+        logger.info(f'fake run_query that can return progress in {self} with {args} and {kwargs}')
 
         query_out = QueryOutput()
 
