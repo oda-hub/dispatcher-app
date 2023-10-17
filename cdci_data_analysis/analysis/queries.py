@@ -545,7 +545,10 @@ class ProductQuery(BaseQuery):
             if query_type != 'Dummy':
                 q = self.get_data_server_query(instrument,config)
 
-                res, data_server_query_out = q.run_query(call_back_url=job.get_call_back_url(), run_asynch=run_asynch, logger=logger, return_progress=return_progress)
+                res, data_server_query_out = q.run_query(call_back_url=job.get_call_back_url(),
+                                                         run_asynch=run_asynch,
+                                                         logger=logger,
+                                                         return_progress=return_progress)
 
                 for field in ['message', 'debug_message', 'comment', 'warning']:
                     if field in data_server_query_out.status_dictionary.keys():
