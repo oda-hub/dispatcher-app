@@ -380,6 +380,12 @@ class ProductQuery(BaseQuery):
     def get_dummy_products(self,instrument, config=None,**kwargs):
         raise RuntimeError(f'{self}: get_dummy_products needs to be implemented in derived class')
 
+    def get_progress(self):
+        raise RuntimeError(f'{self}: get_progress needs to be implemented in derived class')
+
+    def get_dummy_progress(self, instrument, config=None,**kwargs):
+        raise RuntimeError(f'{self}: get_dummy_progress needs to be implemented in derived class')
+
     def get_data_server_query(self,instrument,config=None,**kwargs):
         traceback.print_stack()
         raise RuntimeError(f'{self}: get_data_server_query needs to be implemented in derived class')
@@ -526,7 +532,36 @@ class ProductQuery(BaseQuery):
 
         return query_out
 
-    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None,api=False,return_progress=False):
+    def get_query_progress_details(self, instrument, job, query_type='Real', config=None, logger=None, scratch_dir=None, api=False):
+        if logger is None:
+            logger = self.get_logger()
+
+        query_out = QueryOutput()
+        # status=0
+
+        messages = {
+            'message': '',
+            'debug_message': '',
+            'comment': '',
+            'warning': ''
+        }
+        try:
+            if query_type != 'Dummy':
+                q = self.get_data_server_query(instrument, config)
+                q.get_progress()
+            else:
+                status = 0
+                self.query_prod_list = self.get_dummy_progress(instrument,
+                                                                       config=config,
+                                                                       out_dir=scratch_dir,
+                                                                       api=api)
+
+                job.set_done()
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            raise InternalError(f"unexpected error while getting query progress details with {instrument}, {e}")
+
+    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None,api=False):
         if logger is None:
             logger = self.get_logger()
 
@@ -714,18 +749,27 @@ class ProductQuery(BaseQuery):
                                                 config=config,
                                                 scratch_dir=scratch_dir,
                                                 sentry_dsn=sentry_dsn,
-                                                api=api,
-                                                return_progress=return_progress)
+                                                api=api)
             self._t_query_steps['after_get_query_products'] = _time.time()
 
         if query_out.status_dictionary['status'] == 0:
-            if job.status!='done':
+            if job.status != 'done':
 
                 query_out.prod_dictionary = {}
                 # TODO: add check if is asynch
                 # TODO: the asynch status will be in the qery_out class
                 # TODO: if asynch and running return proper query_out
                 # TODO: if asynch and done proceed
+
+                if return_progress:
+                    self.get_query_progress_details(instrument,
+                                                    job,
+                                                    query_type=query_type,
+                                                    logger=logger,
+                                                    config=config,
+                                                    scratch_dir=scratch_dir,
+                                                    api=api
+                                                    )
 
             else:
                 if query_out.status_dictionary['status'] == 0:

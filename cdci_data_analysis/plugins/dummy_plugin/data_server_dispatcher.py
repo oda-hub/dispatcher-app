@@ -163,7 +163,7 @@ class ReturnProgressProductQuery(ProductQuery):
     def __init__(self, name, parameters_list=None):
         if parameters_list is None:
             parameters_list = []
-        super().__init__(name, parameters_list=parameters_list)
+        super().__init__(name, return_progress=True, parameters_list=parameters_list)
 
 
     def run_query(self,
