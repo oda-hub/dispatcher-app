@@ -526,7 +526,7 @@ class ProductQuery(BaseQuery):
 
         return query_out
 
-    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None,api=False):
+    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None,api=False,return_progress=False):
         if logger is None:
             logger = self.get_logger()
 
@@ -545,7 +545,7 @@ class ProductQuery(BaseQuery):
             if query_type != 'Dummy':
                 q = self.get_data_server_query(instrument,config)
 
-                res, data_server_query_out = q.run_query(call_back_url=job.get_call_back_url(), run_asynch=run_asynch, logger=logger)
+                res, data_server_query_out = q.run_query(call_back_url=job.get_call_back_url(), run_asynch=run_asynch, logger=logger, return_progress=return_progress)
 
                 for field in ['message', 'debug_message', 'comment', 'warning']:
                     if field in data_server_query_out.status_dictionary.keys():
@@ -570,7 +570,11 @@ class ProductQuery(BaseQuery):
 
             else:
                 status=0
-                self.query_prod_list = self.get_dummy_products(instrument,config=config,out_dir=scratch_dir,api=api)
+                self.query_prod_list = self.get_dummy_products(instrument,
+                                                               config=config,
+                                                               out_dir=scratch_dir,
+                                                               api=api,
+                                                               return_progress=return_progress)
 
                 #self.query_prod_list = QueryProductList(prod_list=prod_list)
 
@@ -701,7 +705,16 @@ class ProductQuery(BaseQuery):
 
 
         if query_out.status_dictionary['status'] == 0:
-            query_out = self.get_query_products(instrument,job,run_asynch, query_type=query_type, logger=logger, config=config, scratch_dir=scratch_dir, sentry_dsn=sentry_dsn, api=api)
+            query_out = self.get_query_products(instrument,
+                                                job,
+                                                run_asynch,
+                                                query_type=query_type,
+                                                logger=logger,
+                                                config=config,
+                                                scratch_dir=scratch_dir,
+                                                sentry_dsn=sentry_dsn,
+                                                api=api,
+                                                return_progress=return_progress)
             self._t_query_steps['after_get_query_products'] = _time.time()
 
         if query_out.status_dictionary['status'] == 0:
