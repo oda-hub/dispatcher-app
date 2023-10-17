@@ -104,26 +104,21 @@ class DataServerQuery:
         
         status = self.decide_status() 
         if status == "submitted":
-            # set done to submitted?
             query_out.set_done(message="job submitted mock",
-                            debug_message="no message really",
-                            job_status='submitted',
-                            comment="mock comment",
-                            warning="mock warning")
+                               debug_message="no message really",
+                               job_status='submitted',
+                               comment="mock comment",
+                               warning="mock warning")
         elif status == "done":
-            # set done to submitted?
             query_out.set_done(message="job done mock",
-                            debug_message="no message really",
-                            job_status='done',
-                            comment="mock comment",
-                            warning="mock warning")
+                               debug_message="no message really",
+                               job_status='done',
+                               comment="mock comment",
+                               warning="mock warning")
         elif status == "failed":
-            # set done to submitted?
             query_out.set_failed(message="job failed mock",
-                            debug_message="no message really",
-                            job_status='failed',
-                            comment="mock comment",
-                            warning="mock warning")
+                                 debug_message="no message really",
+                                 job_status='failed')
         else:
             NotImplementedError
 
@@ -160,6 +155,18 @@ class DataServerQuerySemiAsync(DataServerQuery):
                                job_status='done',
                                comment="mock comment",
                                warning="mock warning")
+
+        return None, query_out
+
+
+class DataServerQueryReturnProgress(DataServerQuery):
+    def __init__(self):
+        super().__init__()
+
+    def run_query(self, *args, **kwargs):
+        logger.warn('fake run_query in %s with %s, %s', self, args, kwargs)
+
+        query_out = QueryOutput()
 
         return None, query_out
 
