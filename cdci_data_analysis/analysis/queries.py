@@ -380,9 +380,6 @@ class ProductQuery(BaseQuery):
     def get_dummy_products(self,instrument, config=None,**kwargs):
         raise RuntimeError(f'{self}: get_dummy_products needs to be implemented in derived class')
 
-    def get_progress(self):
-        raise RuntimeError(f'{self}: get_progress needs to be implemented in derived class')
-
     def get_dummy_progress(self, instrument, config=None,**kwargs):
         raise RuntimeError(f'{self}: get_dummy_progress needs to be implemented in derived class')
 
@@ -548,15 +545,14 @@ class ProductQuery(BaseQuery):
         try:
             if query_type != 'Dummy':
                 q = self.get_data_server_query(instrument, config)
-                q.get_progress()
+                res, data_server_query_out = q.get_progress()
             else:
                 status = 0
                 self.query_prod_list = self.get_dummy_progress(instrument,
-                                                                       config=config,
-                                                                       out_dir=scratch_dir,
-                                                                       api=api)
+                                                config=config,
+                                                out_dir=scratch_dir,
+                                                api=api)
 
-                job.set_done()
         except Exception as e:
             sentry_sdk.capture_exception(e)
             raise InternalError(f"unexpected error while getting query progress details with {instrument}, {e}")

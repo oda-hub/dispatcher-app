@@ -159,6 +159,26 @@ class DataServerQuerySemiAsync(DataServerQuery):
         return None, query_out
 
 
+class ReturnProgressDataServerQuery(DataServerQuery):
+    def __init__(self):
+        super().__init__()
+
+    def get_progress(self):
+
+        query_out = QueryOutput()
+        current_status = self.get_status()
+
+        query_out.set_status(
+            current_status,
+            message=f"current progress is {current_status}",
+            debug_message="no debug message really",
+            job_status=current_status,
+            comment="mock comment",
+            warning="mock warning")
+
+        return None, query_out
+
+
 class ReturnProgressProductQuery(ProductQuery):
     def __init__(self, name, parameters_list=None):
         if parameters_list is None:
