@@ -159,16 +159,32 @@ class DataServerQuerySemiAsync(DataServerQuery):
         return None, query_out
 
 
-class DataServerQueryReturnProgress(DataServerQuery):
-    def __init__(self):
-        super().__init__()
+class ReturnProgressProductQuery(ProductQuery):
+    def __init__(self, name, parameters_list=None):
+        if parameters_list is None:
+            parameters_list = []
+        super().__init__(name, parameters_list=parameters_list)
 
-    def run_query(self, *args, **kwargs):
-        logger.info(f'fake run_query that can return progress in {self} with {args} and {kwargs}')
 
-        query_out = QueryOutput()
+    def run_query(self,
+                  instrument,
+                  scratch_dir,
+                  job,
+                  run_asynch,
+                  query_type='Real',
+                  config=None,
+                  logger=None,
+                  sentry_dsn=None,
+                  api=False,
+                  return_progress=False):
+        query_out = self.process_query_product(instrument, job, logger=logger, config=config, scratch_dir=scratch_dir,
+                                               sentry_dsn=sentry_dsn, api=api)
+        if query_out.status_dictionary['status'] == 0:
+            job.set_done()
+        else:
+            job.set_failed()
 
-        return None, query_out
+        return query_out
 
 
 class EmptyProductQuery(ProductQuery):

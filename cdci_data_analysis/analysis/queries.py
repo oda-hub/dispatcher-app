@@ -526,7 +526,7 @@ class ProductQuery(BaseQuery):
 
         return query_out
 
-    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None,api=False):
+    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None,api=False,return_progress=False):
         if logger is None:
             logger = self.get_logger()
 
@@ -714,7 +714,8 @@ class ProductQuery(BaseQuery):
                                                 config=config,
                                                 scratch_dir=scratch_dir,
                                                 sentry_dsn=sentry_dsn,
-                                                api=api)
+                                                api=api,
+                                                return_progress=return_progress)
             self._t_query_steps['after_get_query_products'] = _time.time()
 
         if query_out.status_dictionary['status'] == 0:
