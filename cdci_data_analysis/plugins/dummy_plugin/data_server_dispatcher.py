@@ -163,16 +163,16 @@ class ReturnProgressDataServerQuery(DataServerQuery):
     def __init__(self):
         super().__init__()
 
-    def get_progress(self):
+    def get_progress_run(self):
 
         query_out = QueryOutput()
-        current_status = self.get_status()
+        progress_status = self.get_status()
 
         query_out.set_status(
-            current_status,
-            message=f"current progress is {current_status}",
+            progress_status,
+            message=f"current progress is {progress_status}",
             debug_message="no debug message really",
-            job_status=current_status,
+            job_status=progress_status,
             comment="mock comment",
             warning="mock warning")
 
@@ -180,32 +180,14 @@ class ReturnProgressDataServerQuery(DataServerQuery):
 
 
 class ReturnProgressProductQuery(ProductQuery):
+
     def __init__(self, name, parameters_list=None):
         if parameters_list is None:
             parameters_list = []
         super().__init__(name, return_progress=True, parameters_list=parameters_list)
 
-
-    def run_query(self,
-                  instrument,
-                  scratch_dir,
-                  job,
-                  run_asynch,
-                  query_type='Real',
-                  config=None,
-                  logger=None,
-                  sentry_dsn=None,
-                  api=False,
-                  return_progress=False):
-        query_out = self.process_query_product(instrument, job, logger=logger, config=config, scratch_dir=scratch_dir,
-                                               sentry_dsn=sentry_dsn, api=api)
-        if query_out.status_dictionary['status'] == 0:
-            job.set_done()
-        else:
-            job.set_failed()
-
-        return query_out
-
+    def get_dummy_progress_run(self, instrument, config=None,**kwargs):
+        return []
 
 class EmptyProductQuery(ProductQuery):
 

@@ -380,7 +380,7 @@ class ProductQuery(BaseQuery):
     def get_dummy_products(self,instrument, config=None,**kwargs):
         raise RuntimeError(f'{self}: get_dummy_products needs to be implemented in derived class')
 
-    def get_dummy_progress(self, instrument, config=None,**kwargs):
+    def get_dummy_progress_run(self, instrument, config=None,**kwargs):
         raise RuntimeError(f'{self}: get_dummy_progress needs to be implemented in derived class')
 
     def get_data_server_query(self,instrument,config=None,**kwargs):
@@ -529,35 +529,8 @@ class ProductQuery(BaseQuery):
 
         return query_out
 
-    def get_query_progress_details(self, instrument, job, query_type='Real', config=None, logger=None, scratch_dir=None, api=False):
-        if logger is None:
-            logger = self.get_logger()
 
-        query_out = QueryOutput()
-        # status=0
-
-        messages = {
-            'message': '',
-            'debug_message': '',
-            'comment': '',
-            'warning': ''
-        }
-        try:
-            if query_type != 'Dummy':
-                q = self.get_data_server_query(instrument, config)
-                res, data_server_query_out = q.get_progress()
-            else:
-                status = 0
-                self.query_prod_list = self.get_dummy_progress(instrument,
-                                                config=config,
-                                                out_dir=scratch_dir,
-                                                api=api)
-
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            raise InternalError(f"unexpected error while getting query progress details with {instrument}, {e}")
-
-    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None,api=False):
+    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None,api=False,return_progress=False):
         if logger is None:
             logger = self.get_logger()
 
@@ -576,9 +549,12 @@ class ProductQuery(BaseQuery):
             if query_type != 'Dummy':
                 q = self.get_data_server_query(instrument,config)
 
-                res, data_server_query_out = q.run_query(call_back_url=job.get_call_back_url(),
-                                                         run_asynch=run_asynch,
-                                                         logger=logger)
+                if return_progress:
+                    res, data_server_query_out = q.get_progress_run()
+                else:
+                    res, data_server_query_out = q.run_query(call_back_url=job.get_call_back_url(),
+                                                             run_asynch=run_asynch,
+                                                             logger=logger)
 
                 for field in ['message', 'debug_message', 'comment', 'warning']:
                     if field in data_server_query_out.status_dictionary.keys():
@@ -603,10 +579,16 @@ class ProductQuery(BaseQuery):
 
             else:
                 status=0
-                self.query_prod_list = self.get_dummy_products(instrument,
-                                                               config=config,
-                                                               out_dir=scratch_dir,
-                                                               api=api)
+                if return_progress:
+                    self.progress_query_prod_list = self.get_dummy_progress_run(instrument,
+                                                                                config=config,
+                                                                                out_dir=scratch_dir,
+                                                                                api=api)
+                else:
+                    self.query_prod_list = self.get_dummy_products(instrument,
+                                                                   config=config,
+                                                                   out_dir=scratch_dir,
+                                                                   api=api)
 
                 #self.query_prod_list = QueryProductList(prod_list=prod_list)
 
@@ -621,14 +603,18 @@ class ProductQuery(BaseQuery):
         except Exception as e:
             # TODO: could we avoid these? they make error tracking hard
             # TODO we could use the very same approach used when test_communication fails
-            logger.exception("failed to get query products")
 
             #status=1
             job.set_failed()
             if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
                 raise
             exception_message = getattr(e, 'message', '')
-            e_message = f'Failed when getting query products for job {job.job_id}:\n{exception_message}'
+            if return_progress:
+                logger.exception("failed to get progress run")
+                e_message = f'Failed when getting the progress run for job {job.job_id}:\n{exception_message}'
+            else:
+                logger.exception("failed to get query products")
+                e_message = f'Failed when getting query products for job {job.job_id}:\n{exception_message}'
             messages['debug_message'] = repr(e) + ' : ' + getattr(e, 'debug_message', '')
 
             query_out.set_failed('get_query_products found job failed',
