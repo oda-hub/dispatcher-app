@@ -193,6 +193,46 @@ def test_no_debug_mode_empty_request(dispatcher_live_fixture_no_debug_mode):
     logger.info(jdata['config'])
 
 
+def test_matrix_options_mode_empty_request(dispatcher_live_fixture_with_matrix_options):
+    server = dispatcher_live_fixture_with_matrix_options
+    print("constructed server:", server)
+
+    c=requests.get(os.path.join(server, "run_analysis"),
+                   params={},
+                )
+
+    print("content:", c.text)
+
+    jdata=c.json()
+
+    assert c.status_code == 400
+
+    assert sorted(jdata['installed_instruments']) == sorted(
+        ['empty', 'empty-async', 'empty-semi-async', 'empty-development']) or \
+           jdata['installed_instruments'] == []
+
+    # assert jdata['debug_mode'] == "no"
+    assert 'dispatcher-config' in jdata['config']
+
+    dispatcher_config = jdata['config']['dispatcher-config']
+
+    assert 'origin' in dispatcher_config
+
+    assert 'sentry_url' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'logstash_port' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'logstash_host' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'secret_key' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'smtp_server_password' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'products_url' in dispatcher_config['cfg_dict']['dispatcher']
+
+    assert 'matrix_sender_access_token' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'matrix_incident_report_sender_personal_access_token' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'matrix_bcc_receivers_room_ids' not in dispatcher_config['cfg_dict']['dispatcher']
+    assert 'matrix_incident_report_receivers_room_ids' not in dispatcher_config['cfg_dict']['dispatcher']
+
+    logger.info(jdata['config'])
+
+
 @pytest.mark.fast
 def test_same_request_different_users(dispatcher_live_fixture):
     server = dispatcher_live_fixture

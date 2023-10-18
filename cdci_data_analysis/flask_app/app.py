@@ -221,6 +221,8 @@ def common_exception_payload():
         'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),
                                                 ['sentry_url', 'logstash_host', 'logstash_port','secret_key',
                                                  'product_gallery_secret_key',
+                                                 'matrix_sender_access_token', 'matrix_incident_report_sender_personal_access_token',
+                                                 'matrix_bcc_receivers_room_ids', 'matrix_incident_report_receivers_room_ids',
                                                  'smtp_server_password'])
     }
 
