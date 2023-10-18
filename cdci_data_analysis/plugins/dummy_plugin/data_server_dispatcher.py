@@ -187,7 +187,8 @@ class ReturnProgressProductQuery(ProductQuery):
         super().__init__(name, return_progress=True, parameters_list=parameters_list)
 
     def get_dummy_progress_run(self, instrument, config=None,**kwargs):
-        return []
+        p_value = instrument.get_par_by_name('p').value
+        return [p_value]
 
 class EmptyProductQuery(ProductQuery):
 
