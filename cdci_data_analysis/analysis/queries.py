@@ -720,8 +720,6 @@ class ProductQuery(BaseQuery):
             input_prod_list=query_out.prod_dictionary['input_prod_list']
             self._t_query_steps['after_test_has_products'] = _time.time()
 
-
-
         if query_out.status_dictionary['status'] == 0:
             query_out = self.get_query_products(instrument,
                                                 job,
