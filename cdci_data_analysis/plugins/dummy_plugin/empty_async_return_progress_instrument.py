@@ -11,7 +11,6 @@ from .data_server_dispatcher import DataServerQuery, ReturnProgressProductQuery
 def my_instr_factory():
     src_query = SourceQuery('src_query')
 
-    # empty query
     instr_query = InstrumentQuery(name='empty_async_return_progress_instrument_query',
                                   input_prod_list_name='scw_list',
                                   catalog=None,
