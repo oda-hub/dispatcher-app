@@ -2563,6 +2563,12 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
         assert jdata['records'][0]['ctime'] == scratch_dir_ctime
         assert jdata['records'][0]['mtime'] == scratch_dir_mtime
 
+        assert 'email_history' in jdata['records'][0]['analysis_parameters']
+        assert 'matrix_message_history' in jdata['records'][0]['analysis_parameters']
+
+        assert len(jdata['records'][0]['analysis_parameters']['email_history']) == 0
+        assert len(jdata['records'][0]['analysis_parameters']['matrix_message_history']) == 0
+
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
 def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, dispatcher_test_conf, request_cred):
