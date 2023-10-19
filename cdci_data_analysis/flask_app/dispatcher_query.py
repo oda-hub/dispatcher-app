@@ -504,7 +504,6 @@ class InstrumentQueryBackEnd:
         if 'token' in result['analysis_parameters']:
             result['analysis_parameters']['token'] = tokenHelper.get_decoded_token(
                 result['analysis_parameters']['token'], secret_key=None, validate_token=False)
-            result['analysis_parameters']['email_history'] = []
 
         result['analysis_parameters']['email_history'] = []
         for email in glob.glob(os.path.join(scratch_dir, 'email_history/*')):
@@ -513,6 +512,15 @@ class InstrumentQueryBackEnd:
                 ctime=ctime,
                 ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(os.stat(email).st_ctime)),
                 fn=email,
+            ))
+
+        result['analysis_parameters']['matrix_message_history'] = []
+        for msg in glob.glob(os.path.join(scratch_dir, 'matrix_message_history/*')):
+            ctime = os.stat(msg).st_ctime,
+            result['analysis_parameters']['matrix_message_history'].append(dict(
+                ctime=ctime,
+                ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(os.stat(msg).st_ctime)),
+                fn=msg,
             ))
 
         result['analysis_parameters']['fits_files'] = []
