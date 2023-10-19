@@ -3,9 +3,9 @@ from __future__ import absolute_import, division, print_function
 __author__ = "Gabriele Barni"
 
 from cdci_data_analysis.analysis.instrument import Instrument
-from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float, Name
+from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float
 
-from .data_server_dispatcher import DataServerQuery, DataServerNumericQuery, ReturnProgressProductQuery
+from .data_server_dispatcher import DataServerQuery, ReturnProgressProductQuery
 
 
 def my_instr_factory():
