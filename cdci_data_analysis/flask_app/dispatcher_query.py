@@ -503,6 +503,12 @@ class InstrumentQueryBackEnd:
             logger.warning('unable to read: %s', fn)
             return {'error': f'problem reading {fn}: {repr(e)}'}
 
+        result['analysis_parameters']['session_log'] = ''
+        session_log_fn = os.path.join(scratch_dir, 'session.log')
+        if os.path.exists(session_log_fn):
+            with open(session_log_fn) as session_log_fn_f:
+                result['analysis_parameters']['session_log'] = session_log_fn_f.read()
+
         if 'token' in result['analysis_parameters']:
             result['analysis_parameters']['token'] = tokenHelper.get_decoded_token(
                 result['analysis_parameters']['token'], secret_key=None, validate_token=False)
