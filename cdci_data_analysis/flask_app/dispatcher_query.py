@@ -1950,12 +1950,14 @@ class InstrumentQueryBackEnd:
                     email_api_code = DispatcherAPI.set_api_code(self.par_dic,
                                                                 url=os.path.join(self.app.config['conf'].products_url, "dispatch-data"))
 
-                    if matrix_helper.is_message_to_send_run_query(query_new_status,
-                                                                  self.time_request,
-                                                                  self.scratch_dir,
-                                                                  self.job_id,
-                                                                  self.app.config['conf'],
-                                                                  decoded_token=self.decoded_token):
+                    if matrix_helper.is_message_to_send_run_query(
+                            self.logger,
+                            query_new_status,
+                            self.time_request,
+                            self.scratch_dir,
+                            self.job_id,
+                            self.app.config['conf'],
+                            decoded_token=self.decoded_token):
                         try:
                             time_request = self.time_request
                             time_request_first_submitted = matrix_helper.get_first_submitted_matrix_message_time(self.scratch_dir)
