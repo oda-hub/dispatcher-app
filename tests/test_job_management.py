@@ -2478,7 +2478,8 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
 
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
-def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
+@pytest.mark.parametrize("include_session_log", [True, False, None])
+def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_session_log):
     required_roles = ['job manager']
     DispatcherJobState.remove_scratch_folders()
 
@@ -2544,6 +2545,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
                      params=dict(
                          job_id=job_id[:8],
                          token=encoded_token,
+                         include_session_log=include_session_log
                      ))
 
     scratch_dir_mtime = os.stat(scratch_dir_fn).st_mtime
@@ -2568,8 +2570,10 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
 
         assert len(jdata['records'][0]['analysis_parameters']['email_history']) == 0
         assert len(jdata['records'][0]['analysis_parameters']['matrix_message_history']) == 0
-
-        assert 'session_log' in jdata['records'][0]['analysis_parameters']
+        if include_session_log:
+            assert 'session_log' in jdata['records'][0]['analysis_parameters']
+        else:
+            assert 'session_log' not in jdata['records'][0]['analysis_parameters']
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
