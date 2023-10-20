@@ -258,12 +258,14 @@ def send_job_message(
 
     for bcc_receiver_room_id in bcc_receivers_room_ids:
         if bcc_receiver_room_id is not None and bcc_receiver_room_id != "":
-            res_data_message_cc_user = send_message(url_server=matrix_server_url,
-                                                    sender_access_token=matrix_sender_access_token,
-                                                    room_id=bcc_receiver_room_id,
-                                                    message_text=message_text,
-                                                    message_body_html=message_body_html
-                                                    )
+            res_data_message_cc_user = send_message(
+                logger,
+                url_server=matrix_server_url,
+                sender_access_token=matrix_sender_access_token,
+                room_id=bcc_receiver_room_id,
+                message_text=message_text,
+                message_body_html=message_body_html
+            )
             message_data_cc_user = res_data_message_cc_user['message_data']
             message_data['message_data_bcc_users'].append(message_data_cc_user)
             res_content_cc_user = res_data_message_cc_user['res_content']

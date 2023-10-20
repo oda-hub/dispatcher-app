@@ -1968,6 +1968,7 @@ class InstrumentQueryBackEnd:
 
                             res_content = matrix_helper.send_job_message(
                                 config=self.app.config['conf'],
+                                logger=self.logger,
                                 decoded_token=self.decoded_token,
                                 token=self.token,
                                 job_id=self.job_id,
