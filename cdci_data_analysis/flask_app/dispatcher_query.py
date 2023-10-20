@@ -474,7 +474,7 @@ class InstrumentQueryBackEnd:
                     if r.group('job_id')[:8] != job_id:
                         continue
 
-                if (time_.time() - os.stat(scratch_dir).st_mtime) < recent_days * 24 * 3600:
+                if os.path.exists(scratch_dir) and (time_.time() - os.stat(scratch_dir).st_mtime) < recent_days * 24 * 3600:
                     records.append(dict(
                         mtime=os.stat(scratch_dir).st_mtime,
                         ctime=os.stat(scratch_dir).st_ctime,
