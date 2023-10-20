@@ -435,7 +435,7 @@ def is_message_to_send_run_query(logger, status, time_original_request, scratch_
 def is_message_to_send_callback(logger, status, time_original_request, scratch_dir, config, job_id, decoded_token=None):
     log_additional_info_obj = {}
     sending_ok = False
-    config_ok = is_matrix_config_ok(config)
+    config_ok = is_matrix_config_ok(logger, config)
     time_check = time_.time()
     sentry_for_matrix_message_sending_check = config.sentry_for_matrix_message_sending_check
 
