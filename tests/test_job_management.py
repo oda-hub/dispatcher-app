@@ -2569,6 +2569,8 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
         assert len(jdata['records'][0]['analysis_parameters']['email_history']) == 0
         assert len(jdata['records'][0]['analysis_parameters']['matrix_message_history']) == 0
 
+        assert 'session_log' in jdata['records'][0]['analysis_parameters']
+
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
 def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, dispatcher_test_conf, request_cred):
