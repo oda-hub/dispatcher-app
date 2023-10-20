@@ -473,16 +473,18 @@ class InstrumentQueryBackEnd:
                 if job_id is not None:
                     if r.group('job_id')[:8] != job_id:
                         continue
-
-                if os.path.exists(scratch_dir) and (time_.time() - os.stat(scratch_dir).st_mtime) < recent_days * 24 * 3600:
-                    records.append(dict(
-                        mtime=os.stat(scratch_dir).st_mtime,
-                        ctime=os.stat(scratch_dir).st_ctime,
-                        session_id=r.group('session_id'),
-                        job_id=r.group('job_id'),
-                        aliased_marker=r.group('aliased_marker'),
-                        **InstrumentQueryBackEnd.read_scratch_dir(scratch_dir)
-                    ))
+                if os.path.exists(scratch_dir):
+                    if (time_.time() - os.stat(scratch_dir).st_mtime) < recent_days * 24 * 3600:
+                        records.append(dict(
+                            mtime=os.stat(scratch_dir).st_mtime,
+                            ctime=os.stat(scratch_dir).st_ctime,
+                            session_id=r.group('session_id'),
+                            job_id=r.group('job_id'),
+                            aliased_marker=r.group('aliased_marker'),
+                            **InstrumentQueryBackEnd.read_scratch_dir(scratch_dir)
+                        ))
+                else:
+                    logger.warning(f"scratch_dir {scratch_dir} not existing, cannot be inspected")
 
         logger.info("found records: %s", len(records))
 
