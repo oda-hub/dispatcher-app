@@ -1056,7 +1056,8 @@ class InstrumentQueryBackEnd:
         is_message_to_send = False
         try:
             step = 'checking if a message can be sent via matrix'
-            is_message_to_send = matrix_helper.is_message_to_send_callback(status,
+            is_message_to_send = matrix_helper.is_message_to_send_callback(self.logger,
+                                                                           status,
                                                                            time_original_request,
                                                                            self.scratch_dir,
                                                                            self.app.config['conf'],
@@ -1077,12 +1078,12 @@ class InstrumentQueryBackEnd:
         try:
             step = 'checking if an email can be sent'
             is_email_to_send = email_helper.is_email_to_send_callback(self.logger,
-                                                      status,
-                                                      time_original_request,
-                                                      self.scratch_dir,
-                                                      self.app.config['conf'],
-                                                      self.job_id,
-                                                      decoded_token=self.decoded_token)
+                                                                      status,
+                                                                      time_original_request,
+                                                                      self.scratch_dir,
+                                                                      self.app.config['conf'],
+                                                                      self.job_id,
+                                                                      decoded_token=self.decoded_token)
         except email_helper.MultipleDoneEmail as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
@@ -1138,6 +1139,7 @@ class InstrumentQueryBackEnd:
 
                 res_content = matrix_helper.send_job_message(
                     config=self.app.config['conf'],
+                    logger=self.logger,
                     decoded_token=self.decoded_token,
                     token=self.token,
                     job_id=self.job_id,
