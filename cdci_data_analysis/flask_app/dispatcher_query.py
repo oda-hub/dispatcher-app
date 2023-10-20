@@ -463,6 +463,7 @@ class InstrumentQueryBackEnd:
 
         recent_days = request.args.get('recent_days', 3, type=float)
         job_id = request.args.get('job_id', None)
+        include_session_log = request.args.get('include_session_log', False) == 'True'
         records = []
 
         for scratch_dir in glob.glob("scratch_sid_*_jid_*"):
@@ -481,7 +482,7 @@ class InstrumentQueryBackEnd:
                             session_id=r.group('session_id'),
                             job_id=r.group('job_id'),
                             aliased_marker=r.group('aliased_marker'),
-                            **InstrumentQueryBackEnd.read_scratch_dir(scratch_dir)
+                            **InstrumentQueryBackEnd.read_scratch_dir(scratch_dir, include_session_log)
                         ))
                 else:
                     logger.warning(f"scratch_dir {scratch_dir} not existing, cannot be inspected")
@@ -492,7 +493,7 @@ class InstrumentQueryBackEnd:
         return jsonify(dict(records=records))
 
     @staticmethod
-    def read_scratch_dir(scratch_dir):
+    def read_scratch_dir(scratch_dir, include_session_log=False):
         result = {}
 
         try:
@@ -503,11 +504,12 @@ class InstrumentQueryBackEnd:
             logger.warning('unable to read: %s', fn)
             return {'error': f'problem reading {fn}: {repr(e)}'}
 
-        result['analysis_parameters']['session_log'] = ''
-        session_log_fn = os.path.join(scratch_dir, 'session.log')
-        if os.path.exists(session_log_fn):
-            with open(session_log_fn) as session_log_fn_f:
-                result['analysis_parameters']['session_log'] = session_log_fn_f.read()
+        if include_session_log:
+            result['analysis_parameters']['session_log'] = ''
+            session_log_fn = os.path.join(scratch_dir, 'session.log')
+            if os.path.exists(session_log_fn):
+                with open(session_log_fn) as session_log_fn_f:
+                    result['analysis_parameters']['session_log'] = session_log_fn_f.read()
 
         if 'token' in result['analysis_parameters']:
             result['analysis_parameters']['token'] = tokenHelper.get_decoded_token(
