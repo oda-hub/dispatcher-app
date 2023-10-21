@@ -343,8 +343,11 @@ def is_matrix_config_ok(logger, config):
 def is_message_to_send_run_query(logger, status, time_original_request, scratch_dir, job_id, config, decoded_token=None):
 
     log_additional_info_obj = {}
-    sending_ok = False
+
     config_ok = is_matrix_config_ok(logger, config)
+    logger.info(f"matrix configuration {config_ok}")
+
+    sending_ok = False
     time_check = time_.time()
     sentry_for_matrix_message_sending_check = config.sentry_for_matrix_message_sending_check
 
@@ -418,7 +421,7 @@ def is_message_to_send_run_query(logger, status, time_original_request, scratch_
 
         # send submitted mail, status update
         sending_ok = matrix_message_sending_job_submitted and interval_ok and status_ok
-        if sending_ok:
+        if sending_ok and config_ok:
             log_additional_info_obj['check_result_message'] = 'the message will be sent via matrix'
             log_matrix_message_sending_info(
                 logger,
@@ -428,6 +431,9 @@ def is_message_to_send_run_query(logger, status, time_original_request, scratch_
                 job_id=job_id,
                 additional_info_obj=log_additional_info_obj
             )
+        else:
+            logger.info(f"a message won't be sent via matrix (status: {status}, config_ok: {config_ok}, sending_ok: {sending_ok})")
+
     else:
         logger.info(f'a message on matrix will not be sent because a token was not provided')
 
@@ -436,10 +442,15 @@ def is_message_to_send_run_query(logger, status, time_original_request, scratch_
 
 def is_message_to_send_callback(logger, status, time_original_request, scratch_dir, config, job_id, decoded_token=None):
     log_additional_info_obj = {}
-    sending_ok = False
+
     config_ok = is_matrix_config_ok(logger, config)
+    logger.info(f"matrix configuration {config_ok}")
+
+    sending_ok = False
     time_check = time_.time()
     sentry_for_matrix_message_sending_check = config.sentry_for_matrix_message_sending_check
+
+
 
     if decoded_token:
         # in case the request was long and 'done'
@@ -502,7 +513,7 @@ def is_message_to_send_callback(logger, status, time_original_request, scratch_d
     else:
         logger.info(f'a message via matrix will not be sent because a token was not provided')
 
-    if sending_ok:
+    if sending_ok and config_ok:
         log_additional_info_obj['check_result_message'] = 'the message will be sent via matrix'
         logger.info(f"the message will be sent via matrix with a status: {status}")
         log_matrix_message_sending_info(
@@ -513,6 +524,8 @@ def is_message_to_send_callback(logger, status, time_original_request, scratch_d
             job_id=job_id,
             additional_info_obj=log_additional_info_obj
         )
+    else:
+        logger.info(f"a message won't be sent via matrix (status: {status}, config_ok: {config_ok}, sending_ok: {sending_ok})")
 
     return sending_ok and config_ok
 
