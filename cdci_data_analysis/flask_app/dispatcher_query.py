@@ -511,47 +511,47 @@ class InstrumentQueryBackEnd:
             result['analysis_parameters'] = f'problem reading {fn}: {repr(e)}'
 
         if include_session_log:
-            result['analysis_parameters']['session_log'] = ''
+            result['session_log'] = ''
             session_log_fn = os.path.join(scratch_dir, 'session.log')
             if os.path.exists(session_log_fn):
                 with open(session_log_fn) as session_log_fn_f:
-                    result['analysis_parameters']['session_log'] = session_log_fn_f.read()
+                    result['session_log'] = session_log_fn_f.read()
 
         if 'token' in result['analysis_parameters']:
             result['analysis_parameters']['token'] = tokenHelper.get_decoded_token(
                 result['analysis_parameters']['token'], secret_key=None, validate_token=False)
 
-        result['analysis_parameters']['email_history'] = []
+        result['email_history'] = []
         for email in glob.glob(os.path.join(scratch_dir, 'email_history/*')):
             ctime = os.stat(email).st_ctime,
-            result['analysis_parameters']['email_history'].append(dict(
+            result['email_history'].append(dict(
                 ctime=ctime,
                 ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(os.stat(email).st_ctime)),
                 fn=email,
             ))
 
-        result['analysis_parameters']['matrix_message_history'] = []
+        result['matrix_message_history'] = []
         for msg in glob.glob(os.path.join(scratch_dir, 'matrix_message_history/*')):
             ctime = os.stat(msg).st_ctime,
-            result['analysis_parameters']['matrix_message_history'].append(dict(
+            result['matrix_message_history'].append(dict(
                 ctime=ctime,
                 ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(os.stat(msg).st_ctime)),
                 fn=msg,
             ))
 
-        result['analysis_parameters']['fits_files'] = []
+        result['fits_files'] = []
         for fits_fn in glob.glob(os.path.join(scratch_dir, '*fits*')):
             ctime = os.stat(fits_fn).st_ctime
-            result['analysis_parameters']['fits_files'].append(dict(
+            result['fits_files'].append(dict(
                 ctime=ctime,
                 ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(ctime)),
                 fn=fits_fn,
             ))
 
-        result['analysis_parameters']['job_monitor'] = []
+        result['job_monitor'] = []
         for fn in glob.glob(os.path.join(scratch_dir, 'job_monitor*')):
             ctime = os.stat(fn).st_ctime
-            result['analysis_parameters']['job_monitor'].append(dict(
+            result['job_monitor'].append(dict(
                 ctime=ctime,
                 ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(ctime)),
                 fn=fn,
