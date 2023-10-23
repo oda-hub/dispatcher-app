@@ -2479,7 +2479,8 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
 @pytest.mark.parametrize("include_session_log", [True, False, None])
-def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_session_log):
+@pytest.mark.parametrize("remove_analysis_parameters_json", [True, False])
+def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_session_log, remove_analysis_parameters_json):
     required_roles = ['job manager']
     DispatcherJobState.remove_scratch_folders()
 
@@ -2521,6 +2522,8 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_se
     session_id = jdata['session_id']
 
     scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    if remove_analysis_parameters_json:
+        os.remove(os.path.join(scratch_dir_fn, "analysis_parameters.json"))
     scratch_dir_ctime = os.stat(scratch_dir_fn).st_ctime
 
     assert os.path.exists(scratch_dir_fn)
@@ -2565,15 +2568,21 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_se
         assert jdata['records'][0]['ctime'] == scratch_dir_ctime
         assert jdata['records'][0]['mtime'] == scratch_dir_mtime
 
-        assert 'email_history' in jdata['records'][0]['analysis_parameters']
-        assert 'matrix_message_history' in jdata['records'][0]['analysis_parameters']
+        assert 'analysis_parameters' in jdata['records'][0]
+        if remove_analysis_parameters_json:
+            assert jdata['records'][0]['analysis_parameters'] == f"problem reading {os.path.join(scratch_dir_fn, 'analysis_parameters.json')}: FileNotFoundError(2, 'No such file or directory')"
+        assert 'email_history' in jdata['records'][0]
+        assert 'matrix_message_history' in jdata['records'][0]
 
-        assert len(jdata['records'][0]['analysis_parameters']['email_history']) == 0
-        assert len(jdata['records'][0]['analysis_parameters']['matrix_message_history']) == 0
+        assert len(jdata['records'][0]['email_history']) == 0
+        assert len(jdata['records'][0]['matrix_message_history']) == 0
         if include_session_log:
-            assert 'session_log' in jdata['records'][0]['analysis_parameters']
+            assert 'session_log' in jdata['records'][0]
         else:
-            assert 'session_log' not in jdata['records'][0]['analysis_parameters']
+            assert 'session_log' not in jdata['records'][0]
+
+        assert 'file_list' in jdata['records'][0]
+        assert isinstance(jdata['records'][0]['file_list'], list)
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
