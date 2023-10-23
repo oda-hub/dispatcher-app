@@ -2575,6 +2575,9 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_se
         else:
             assert 'session_log' not in jdata['records'][0]['analysis_parameters']
 
+        assert 'file_list' in jdata['records'][0]
+        assert isinstance(jdata['records'][0]['file_list'], list)
+
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
 def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, dispatcher_test_conf, request_cred):
