@@ -496,13 +496,19 @@ class InstrumentQueryBackEnd:
     def read_scratch_dir(scratch_dir, include_session_log=False):
         result = {}
 
+        file_list = []
+        for f in glob.glob(os.path.join(scratch_dir, "*")):
+            file_list.append(f)
+        result['file_list'] = file_list
+
         try:
             fn = os.path.join(scratch_dir, 'analysis_parameters.json')
             result['analysis_parameters'] = json.load(open(fn))
         except Exception as e:
             # write something
             logger.warning('unable to read: %s', fn)
-            return {'error': f'problem reading {fn}: {repr(e)}'}
+            # return {'error': f'problem reading {fn}: {repr(e)}'}
+            result['analysis_parameters'] = f'problem reading {fn}: {repr(e)}'
 
         if include_session_log:
             result['analysis_parameters']['session_log'] = ''
