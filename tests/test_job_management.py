@@ -2728,7 +2728,6 @@ def test_session_log(dispatcher_live_fixture):
         token=encoded_token
     )
 
-    # this should return status submitted, so matrix message sent
     c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
                      )
