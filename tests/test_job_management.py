@@ -1601,7 +1601,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture,
     #  * make this or some other kind of URL shortener
 
     server = dispatcher_long_living_fixture
-    
+    DataServerQuery.set_status('submitted')
     DispatcherJobState.remove_scratch_folders()
 
      # let's generate a valid token with high threshold
