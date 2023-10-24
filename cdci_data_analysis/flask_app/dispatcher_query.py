@@ -6,6 +6,7 @@ Created on Wed May 10 10:55:20 2017
 @author: andrea tramcere
 """
 import os
+import pathlib
 import time
 from builtins import (open, str, range,
                       object)
@@ -638,10 +639,16 @@ class InstrumentQueryBackEnd:
 
         have_handler = False
         for handler in logger.handlers:
-            if isinstance(handler, logging.FileHandler):
-                logger.info("found FileHandler: %s : %s",
-                            handler, handler.baseFilename)
-                have_handler = True
+            if isinstance(handler, logging.FileHandler) and handler.baseFilename:
+                handler_path = pathlib.Path(handler.baseFilename)
+                if handler_path.parent.stem == scratch_dir:
+                    logger.info("found correspondent FileHandler: %s : %s",
+                                handler, handler.baseFilename)
+                    have_handler = True
+                else:
+                    logger.info("found not correspondent FileHandler: %s : %s, assigning a new one",
+                                handler, handler.baseFilename)
+                    logger.removeHandler(handler)
                 #handler.baseFilename == session_log_filename
 
         if not have_handler:
