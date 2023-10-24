@@ -2655,3 +2655,96 @@ def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, 
             incident_report_str=incident_content,
             decoded_token=decoded_token
         )
+
+
+@pytest.mark.not_safe_parallel
+def test_session_log(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    DispatcherJobState.remove_scratch_folders()
+
+    token_payload = {**default_token_payload
+                     }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        p=15,
+        token=encoded_token
+    )
+
+    # this should return status submitted, so matrix message sent
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+    assert c.status_code == 200
+    jdata = c.json()
+
+    session_id = jdata['session_id']
+    job_id = jdata['job_monitor']['job_id']
+    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    session_log_fn = os.path.join(scratch_dir_fn, 'session.log')
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+
+    assert os.path.exists(session_log_fn)
+
+    with open(session_log_fn) as session_log_fn_f:
+        session_log_content = session_log_fn_f.read()
+
+    assert '==============================> run query <==============================' in session_log_content
+    assert "'p': '15'," in session_log_content
+
+    time_request = jdata['time_request']
+
+    requests.get(os.path.join(server, "call_back"),
+                 params=dict(
+                     job_id=dispatcher_job_state.job_id,
+                     session_id=dispatcher_job_state.session_id,
+                     instrument_name="empty-async",
+                     action='progress',
+                     node_id='node_0',
+                     message='progressing',
+                     token=encoded_token,
+                     time_original_request=time_request
+                 ))
+
+    with open(session_log_fn) as session_log_fn_f:
+        session_log_content = session_log_fn_f.read()
+
+    assert '.run_call_back with args ' in session_log_content
+    assert "'p': '15'," in session_log_content
+
+    # second run_analysis within the same running session, but resulting a different scratch_dir and therefore session_log
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        p=35,
+        token=encoded_token
+    )
+
+    # this should return status submitted, so matrix message sent
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+    assert c.status_code == 200
+    jdata = c.json()
+
+    session_id = jdata['session_id']
+    job_id = jdata['job_monitor']['job_id']
+    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    session_log_fn = os.path.join(scratch_dir_fn, 'session.log')
+
+    assert os.path.exists(session_log_fn)
+
+    with open(session_log_fn) as session_log_fn_f:
+        session_log_content = session_log_fn_f.read()
+
+    assert '==============================> run query <==============================' in session_log_content
+    assert "'p': '35'," in session_log_content
+    assert "'p': '15'," not in session_log_content
