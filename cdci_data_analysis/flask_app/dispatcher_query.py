@@ -648,6 +648,7 @@ class InstrumentQueryBackEnd:
                 else:
                     logger.info("found not correspondent FileHandler: %s : %s, assigning a new one",
                                 handler, handler.baseFilename)
+                    logger.removeHandler(handler)
                 #handler.baseFilename == session_log_filename
 
         if not have_handler:
