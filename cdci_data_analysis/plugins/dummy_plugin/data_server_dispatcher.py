@@ -160,19 +160,20 @@ class DataServerQuerySemiAsync(DataServerQuery):
 
 
 class ReturnProgressDataServerQuery(DataServerQuery):
-    def __init__(self):
+    def __init__(self, config=None, instrument=None):
         super().__init__()
 
     def get_progress_run(self):
 
         query_out = QueryOutput()
-        progress_status = self.get_status()
+
+        p_value = ReturnProgressProductQuery.get_p_value()
 
         query_out.set_status(
-            progress_status,
-            message=f"current progress is {progress_status}",
+            0,
+            message=f"current p value is {p_value}",
             debug_message="no debug message really",
-            job_status=progress_status,
+            job_status="submitted",
             comment="mock comment",
             warning="mock warning")
 
@@ -202,6 +203,13 @@ class ReturnProgressProductQuery(ProductQuery):
         else:
             return 0
 
+    def get_data_server_query(self,instrument,config=None,**kwargs):
+        if instrument.data_server_query_class:
+            q = instrument.data_server_query_class(instrument=instrument, config=config)
+        else:
+            q = DataServerQuery()
+        return q
+
     def get_dummy_progress_run(self, instrument, config=None,**kwargs):
         p_value = self.get_p_value() * 5
         self.set_p_value(p_value)
@@ -215,6 +223,10 @@ class ReturnProgressProductQuery(ProductQuery):
         query_out = QueryOutput()
         query_out.prod_dictionary['p'] = prod_list[0]
         return query_out
+
+    def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
+        p_value = self.get_p_value()
+        return [p_value]
 
 class EmptyProductQuery(ProductQuery):
 
