@@ -682,6 +682,8 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
                                    job_id=job_id,
                                    additional_info_obj=log_additional_info_obj
                                    )
+        else:
+            logger.info(f"an email will not be (status: {status}, sending_ok: {sending_ok})")
     else:
         logger.info(f'an email will not be sent because a token was not provided')
 
@@ -763,5 +765,7 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
                                job_id=job_id,
                                additional_info_obj=log_additional_info_obj
                                )
+    else:
+        logger.info(f"an email will not be (status: {status}, sending_ok: {sending_ok})")
 
     return sending_ok

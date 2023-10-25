@@ -6,6 +6,7 @@ Created on Wed May 10 10:55:20 2017
 @author: andrea tramcere
 """
 import os
+import pathlib
 import time
 from builtins import (open, str, range,
                       object)
@@ -463,6 +464,7 @@ class InstrumentQueryBackEnd:
 
         recent_days = request.args.get('recent_days', 3, type=float)
         job_id = request.args.get('job_id', None)
+        include_session_log = request.args.get('include_session_log', False) == 'True'
         records = []
 
         for scratch_dir in glob.glob("scratch_sid_*_jid_*"):
@@ -473,16 +475,18 @@ class InstrumentQueryBackEnd:
                 if job_id is not None:
                     if r.group('job_id')[:8] != job_id:
                         continue
-
-                if (time_.time() - os.stat(scratch_dir).st_mtime) < recent_days * 24 * 3600:
-                    records.append(dict(
-                        mtime=os.stat(scratch_dir).st_mtime,
-                        ctime=os.stat(scratch_dir).st_ctime,
-                        session_id=r.group('session_id'),
-                        job_id=r.group('job_id'),
-                        aliased_marker=r.group('aliased_marker'),
-                        **InstrumentQueryBackEnd.read_scratch_dir(scratch_dir)
-                    ))
+                if os.path.exists(scratch_dir):
+                    if (time_.time() - os.stat(scratch_dir).st_mtime) < recent_days * 24 * 3600:
+                        records.append(dict(
+                            mtime=os.stat(scratch_dir).st_mtime,
+                            ctime=os.stat(scratch_dir).st_ctime,
+                            session_id=r.group('session_id'),
+                            job_id=r.group('job_id'),
+                            aliased_marker=r.group('aliased_marker'),
+                            **InstrumentQueryBackEnd.read_scratch_dir(scratch_dir, include_session_log)
+                        ))
+                else:
+                    logger.warning(f"scratch_dir {scratch_dir} not existing, cannot be inspected")
 
         logger.info("found records: %s", len(records))
 
@@ -490,8 +494,13 @@ class InstrumentQueryBackEnd:
         return jsonify(dict(records=records))
 
     @staticmethod
-    def read_scratch_dir(scratch_dir):
+    def read_scratch_dir(scratch_dir, include_session_log=False):
         result = {}
+
+        file_list = []
+        for f in glob.glob(os.path.join(scratch_dir, "*")):
+            file_list.append(f)
+        result['file_list'] = file_list
 
         try:
             fn = os.path.join(scratch_dir, 'analysis_parameters.json')
@@ -499,35 +508,51 @@ class InstrumentQueryBackEnd:
         except Exception as e:
             # write something
             logger.warning('unable to read: %s', fn)
-            return {'error': f'problem reading {fn}: {repr(e)}'}
+            # return {'error': f'problem reading {fn}: {repr(e)}'}
+            result['analysis_parameters'] = f'problem reading {fn}: {repr(e)}'
+
+        if include_session_log:
+            result['session_log'] = ''
+            session_log_fn = os.path.join(scratch_dir, 'session.log')
+            if os.path.exists(session_log_fn):
+                with open(session_log_fn) as session_log_fn_f:
+                    result['session_log'] = session_log_fn_f.read()
 
         if 'token' in result['analysis_parameters']:
             result['analysis_parameters']['token'] = tokenHelper.get_decoded_token(
                 result['analysis_parameters']['token'], secret_key=None, validate_token=False)
-            result['analysis_parameters']['email_history'] = []
 
-        result['analysis_parameters']['email_history'] = []
+        result['email_history'] = []
         for email in glob.glob(os.path.join(scratch_dir, 'email_history/*')):
             ctime = os.stat(email).st_ctime,
-            result['analysis_parameters']['email_history'].append(dict(
+            result['email_history'].append(dict(
                 ctime=ctime,
                 ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(os.stat(email).st_ctime)),
                 fn=email,
             ))
 
-        result['analysis_parameters']['fits_files'] = []
+        result['matrix_message_history'] = []
+        for msg in glob.glob(os.path.join(scratch_dir, 'matrix_message_history/*')):
+            ctime = os.stat(msg).st_ctime,
+            result['matrix_message_history'].append(dict(
+                ctime=ctime,
+                ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(os.stat(msg).st_ctime)),
+                fn=msg,
+            ))
+
+        result['fits_files'] = []
         for fits_fn in glob.glob(os.path.join(scratch_dir, '*fits*')):
             ctime = os.stat(fits_fn).st_ctime
-            result['analysis_parameters']['fits_files'].append(dict(
+            result['fits_files'].append(dict(
                 ctime=ctime,
                 ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(ctime)),
                 fn=fits_fn,
             ))
 
-        result['analysis_parameters']['job_monitor'] = []
+        result['job_monitor'] = []
         for fn in glob.glob(os.path.join(scratch_dir, 'job_monitor*')):
             ctime = os.stat(fn).st_ctime
-            result['analysis_parameters']['job_monitor'].append(dict(
+            result['job_monitor'].append(dict(
                 ctime=ctime,
                 ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(ctime)),
                 fn=fn,
@@ -614,10 +639,16 @@ class InstrumentQueryBackEnd:
 
         have_handler = False
         for handler in logger.handlers:
-            if isinstance(handler, logging.FileHandler):
-                logger.info("found FileHandler: %s : %s",
-                            handler, handler.baseFilename)
-                have_handler = True
+            if isinstance(handler, logging.FileHandler) and handler.baseFilename:
+                handler_path = pathlib.Path(handler.baseFilename)
+                if handler_path.parent.stem == scratch_dir:
+                    logger.info("found correspondent FileHandler: %s : %s",
+                                handler, handler.baseFilename)
+                    have_handler = True
+                else:
+                    logger.info("found not correspondent FileHandler: %s : %s, assigning a new one",
+                                handler, handler.baseFilename)
+                    logger.removeHandler(handler)
                 #handler.baseFilename == session_log_filename
 
         if not have_handler:
@@ -1046,7 +1077,8 @@ class InstrumentQueryBackEnd:
         is_message_to_send = False
         try:
             step = 'checking if a message can be sent via matrix'
-            is_message_to_send = matrix_helper.is_message_to_send_callback(status,
+            is_message_to_send = matrix_helper.is_message_to_send_callback(self.logger,
+                                                                           status,
                                                                            time_original_request,
                                                                            self.scratch_dir,
                                                                            self.app.config['conf'],
@@ -1067,12 +1099,12 @@ class InstrumentQueryBackEnd:
         try:
             step = 'checking if an email can be sent'
             is_email_to_send = email_helper.is_email_to_send_callback(self.logger,
-                                                      status,
-                                                      time_original_request,
-                                                      self.scratch_dir,
-                                                      self.app.config['conf'],
-                                                      self.job_id,
-                                                      decoded_token=self.decoded_token)
+                                                                      status,
+                                                                      time_original_request,
+                                                                      self.scratch_dir,
+                                                                      self.app.config['conf'],
+                                                                      self.job_id,
+                                                                      decoded_token=self.decoded_token)
         except email_helper.MultipleDoneEmail as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
@@ -1129,6 +1161,7 @@ class InstrumentQueryBackEnd:
 
                 res_content = matrix_helper.send_job_message(
                     config=self.app.config['conf'],
+                    logger=self.logger,
                     decoded_token=self.decoded_token,
                     token=self.token,
                     job_id=self.job_id,
@@ -2034,12 +2067,14 @@ class InstrumentQueryBackEnd:
                     email_api_code = DispatcherAPI.set_api_code(self.par_dic,
                                                                 url=os.path.join(self.app.config['conf'].products_url, "dispatch-data"))
 
-                    if matrix_helper.is_message_to_send_run_query(query_new_status,
-                                                                  self.time_request,
-                                                                  self.scratch_dir,
-                                                                  self.job_id,
-                                                                  self.app.config['conf'],
-                                                                  decoded_token=self.decoded_token):
+                    if matrix_helper.is_message_to_send_run_query(
+                            self.logger,
+                            query_new_status,
+                            self.time_request,
+                            self.scratch_dir,
+                            self.job_id,
+                            self.app.config['conf'],
+                            decoded_token=self.decoded_token):
                         try:
                             time_request = self.time_request
                             time_request_first_submitted = matrix_helper.get_first_submitted_matrix_message_time(self.scratch_dir)
@@ -2048,6 +2083,7 @@ class InstrumentQueryBackEnd:
 
                             res_content = matrix_helper.send_job_message(
                                 config=self.app.config['conf'],
+                                logger=self.logger,
                                 decoded_token=self.decoded_token,
                                 token=self.token,
                                 job_id=self.job_id,

@@ -178,7 +178,7 @@ def get_incident_report_matrix_message(**matrix_message_args):
 
 def adapt_html(html_content, patterns=None, **matrix_message_args,):
     if patterns is None:
-        patterns = DispatcherJobState.generalized_patterns
+        patterns = DispatcherJobState.generalized_matrix_patterns
     for arg, patterns in patterns.items():
         if arg in matrix_message_args and matrix_message_args[arg] is not None:
             for pattern in patterns:

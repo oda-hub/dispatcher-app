@@ -1181,6 +1181,22 @@ class DispatcherJobState:
         ],
     }
 
+    generalized_matrix_patterns = {
+        'time_request_str': [
+            r'(because at )([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.*?)( \()',
+            '(requested at )(.*? .*?)( job_id:)'
+        ],
+        'token_exp_time_str': [
+            '(and will be valid until )(.*? .*?)(.<br>)'
+        ],
+        'products_url': [
+            '(href=")(.*?)(">url)',
+        ],
+        'job_id': [
+            '(job_id: )(.*?)(\) from)'
+        ],
+    }
+
     ignore_patterns = [
         r'\( .*?ago \)',
         r'&#34;token&#34;:.*?,',
