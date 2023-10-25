@@ -584,10 +584,10 @@ class ProductQuery(BaseQuery):
             else:
                 status=0
                 if return_progress:
-                    self.progress_query_prod_list = self.get_dummy_progress_run(instrument,
-                                                                                config=config,
-                                                                                out_dir=scratch_dir,
-                                                                                api=api)
+                    self.query_prod_list = self.get_dummy_progress_run(instrument,
+                                                                       config=config,
+                                                                       out_dir=scratch_dir,
+                                                                       api=api)
                 else:
                     self.query_prod_list = self.get_dummy_products(instrument,
                                                                    config=config,
