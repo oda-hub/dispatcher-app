@@ -1047,6 +1047,7 @@ def report_incident():
             config=app_config,
             job_id=job_id,
             session_id=session_id,
+            logger=logger,
             decoded_token=decoded_token,
             incident_content=incident_content,
             incident_time=incident_time,
