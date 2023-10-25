@@ -156,7 +156,10 @@ class InstrumentQueryBackEnd:
                 # this can be set since it's a call_back and job_id and session_id are available
                 self.logger.info(f"before setting scratch_dir: job_id: {self.par_dic['job_id']} callback: {data_server_call_back}, resolve_job_url: {resolve_job_url}")
                 self.set_scratch_dir(session_id=self.par_dic['session_id'], job_id=self.par_dic['job_id'])
+                self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
+                self.logger.info(f"scratch_dir set {self.scratch_dir}, job_id: {self.par_dic['job_id']} callback: {data_server_call_back}, resolve_job_url: {resolve_job_url}")
                 self.set_scws_call_back_related_params()
+                self.logger.info(f"set_scws_call_back_related_params executed")
             else:
                 self.set_scws_related_params(request)
 
@@ -200,6 +203,7 @@ class InstrumentQueryBackEnd:
                                "and resubmit you request.")
                     if data_server_call_back:
                         message = "The token provided is expired, please resubmit you request with a valid token."
+                        self.logger.info(message)
                         sentry.capture_message(message)
 
                     raise RequestNotAuthorized(message)
@@ -210,6 +214,7 @@ class InstrumentQueryBackEnd:
                                "and resubmit you request.")
                     if data_server_call_back:
                         message = "The token provided is expired, please resubmit you request with a valid token."
+                        self.logger.info(message)
                         sentry.capture_message(message)
 
                     raise RequestNotAuthorized(message)
