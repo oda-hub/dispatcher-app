@@ -181,14 +181,40 @@ class ReturnProgressDataServerQuery(DataServerQuery):
 
 class ReturnProgressProductQuery(ProductQuery):
 
+    p_value_fn = "ReturnProgressProductQuery-current_p_value.out"
+
     def __init__(self, name, parameters_list=None):
         if parameters_list is None:
             parameters_list = []
         super().__init__(name, parameters_list=parameters_list)
 
+    @classmethod
+    def set_p_value(cls, p_value):
+        with open(cls.p_value_fn, "w") as p_value_f:
+            p_value_f.write(str(p_value))
+
+    @classmethod
+    def get_p_value(cls):
+        if os.path.exists(cls.p_value_fn):
+            with open(cls.p_value_fn) as p_value_f:
+                p_value = float(p_value_f.read())
+            return p_value
+        else:
+            return 0
+
     def get_dummy_progress_run(self, instrument, config=None,**kwargs):
-        p_value = instrument.get_par_by_name('p').value
+        p_value = self.get_p_value() * 5
+        self.set_p_value(p_value)
         return [p_value]
+
+    def get_dummy_products(self, instrument, config=None, **kwargs):
+        p_value = self.get_p_value() * 2
+        return [p_value]
+
+    def process_product_method(self, instrument, prod_list, api=False, **kw):
+        query_out = QueryOutput()
+        query_out.prod_dictionary['p'] = prod_list[0]
+        return query_out
 
 class EmptyProductQuery(ProductQuery):
 
