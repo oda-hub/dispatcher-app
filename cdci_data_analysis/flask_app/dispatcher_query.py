@@ -161,7 +161,7 @@ class InstrumentQueryBackEnd:
 
 
             self.client_name = self.par_dic.pop('client-name', 'unknown')
-            self.return_progress = self.par_dic.pop('return-progress', False) == 'True'
+            self.return_progress = self.par_dic.pop('return_progress', False) == 'True'
             if os.environ.get("DISPATCHER_ASYNC_ENABLED", "no") == "yes":  # TODO: move to config!
                 self.async_dispatcher = self.par_dic.pop(
                     'async_dispatcher', 'True') == 'True'  # why string true?? else false anyway
