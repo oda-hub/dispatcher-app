@@ -1601,7 +1601,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture,
     #  * make this or some other kind of URL shortener
 
     server = dispatcher_long_living_fixture
-    
+    DataServerQuery.set_status('submitted')
     DispatcherJobState.remove_scratch_folders()
 
      # let's generate a valid token with high threshold
@@ -2478,7 +2478,9 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
 
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
-def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
+@pytest.mark.parametrize("include_session_log", [True, False, None])
+@pytest.mark.parametrize("remove_analysis_parameters_json", [True, False])
+def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_session_log, remove_analysis_parameters_json):
     required_roles = ['job manager']
     DispatcherJobState.remove_scratch_folders()
 
@@ -2520,6 +2522,8 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
     session_id = jdata['session_id']
 
     scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    if remove_analysis_parameters_json:
+        os.remove(os.path.join(scratch_dir_fn, "analysis_parameters.json"))
     scratch_dir_ctime = os.stat(scratch_dir_fn).st_ctime
 
     assert os.path.exists(scratch_dir_fn)
@@ -2544,6 +2548,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
                      params=dict(
                          job_id=job_id[:8],
                          token=encoded_token,
+                         include_session_log=include_session_log
                      ))
 
     scratch_dir_mtime = os.stat(scratch_dir_fn).st_mtime
@@ -2563,11 +2568,21 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
         assert jdata['records'][0]['ctime'] == scratch_dir_ctime
         assert jdata['records'][0]['mtime'] == scratch_dir_mtime
 
-        assert 'email_history' in jdata['records'][0]['analysis_parameters']
-        assert 'matrix_message_history' in jdata['records'][0]['analysis_parameters']
+        assert 'analysis_parameters' in jdata['records'][0]
+        if remove_analysis_parameters_json:
+            assert jdata['records'][0]['analysis_parameters'] == f"problem reading {os.path.join(scratch_dir_fn, 'analysis_parameters.json')}: FileNotFoundError(2, 'No such file or directory')"
+        assert 'email_history' in jdata['records'][0]
+        assert 'matrix_message_history' in jdata['records'][0]
 
-        assert len(jdata['records'][0]['analysis_parameters']['email_history']) == 0
-        assert len(jdata['records'][0]['analysis_parameters']['matrix_message_history']) == 0
+        assert len(jdata['records'][0]['email_history']) == 0
+        assert len(jdata['records'][0]['matrix_message_history']) == 0
+        if include_session_log:
+            assert 'session_log' in jdata['records'][0]
+        else:
+            assert 'session_log' not in jdata['records'][0]
+
+        assert 'file_list' in jdata['records'][0]
+        assert isinstance(jdata['records'][0]['file_list'], list)
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
@@ -2640,3 +2655,95 @@ def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, 
             incident_report_str=incident_content,
             decoded_token=decoded_token
         )
+
+
+@pytest.mark.not_safe_parallel
+def test_session_log(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    DispatcherJobState.remove_scratch_folders()
+
+    token_payload = {**default_token_payload
+                     }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        p=15,
+        token=encoded_token
+    )
+
+    # this should return status submitted, so matrix message sent
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+    assert c.status_code == 200
+    jdata = c.json()
+
+    session_id = jdata['session_id']
+    job_id = jdata['job_monitor']['job_id']
+    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    session_log_fn = os.path.join(scratch_dir_fn, 'session.log')
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+
+    assert os.path.exists(session_log_fn)
+
+    with open(session_log_fn) as session_log_fn_f:
+        session_log_content = session_log_fn_f.read()
+
+    assert '==============================> run query <==============================' in session_log_content
+    assert "'p': '15'," in session_log_content
+
+    time_request = jdata['time_request']
+
+    requests.get(os.path.join(server, "call_back"),
+                 params=dict(
+                     job_id=dispatcher_job_state.job_id,
+                     session_id=dispatcher_job_state.session_id,
+                     instrument_name="empty-async",
+                     action='progress',
+                     node_id='node_0',
+                     message='progressing',
+                     token=encoded_token,
+                     time_original_request=time_request
+                 ))
+
+    with open(session_log_fn) as session_log_fn_f:
+        session_log_content = session_log_fn_f.read()
+
+    assert '.run_call_back with args ' in session_log_content
+    assert "'p': '15'," in session_log_content
+
+    # second run_analysis within the same running session, but resulting a different scratch_dir and therefore session_log
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        p=35,
+        token=encoded_token
+    )
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+    assert c.status_code == 200
+    jdata = c.json()
+
+    session_id = jdata['session_id']
+    job_id = jdata['job_monitor']['job_id']
+    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    session_log_fn = os.path.join(scratch_dir_fn, 'session.log')
+
+    assert os.path.exists(session_log_fn)
+
+    with open(session_log_fn) as session_log_fn_f:
+        session_log_content = session_log_fn_f.read()
+
+    assert '==============================> run query <==============================' in session_log_content
+    assert "'p': '35'," in session_log_content
+    assert "'p': '15'," not in session_log_content
