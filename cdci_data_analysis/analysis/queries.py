@@ -530,7 +530,17 @@ class ProductQuery(BaseQuery):
         return query_out
 
 
-    def get_query_products(self,instrument,job,run_asynch,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None,api=False,return_progress=False):
+    def get_query_products(self,
+                           instrument,
+                           job,
+                           run_asynch,
+                           query_type='Real',
+                           logger=None,
+                           config=None,
+                           scratch_dir=None,
+                           sentry_dsn=None,
+                           api=False,
+                           return_progress=False):
         if logger is None:
             logger = self.get_logger()
 
