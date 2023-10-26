@@ -32,6 +32,13 @@ an emailing system is already provided out-of-the-box, provided that a token use
 
 The platform supports now also the sending of messages via the [Matrix](https://matrix.org/) platform.
 
+All communication over Matrix happens within a room: for this reason, one must be configured 
+in order to receive the desired messages.
+
+Two options are possible:
+* direct room: where it is possible to speak directly to a particular user
+* shared room: a room solely intended to be used for messages related to the jobs updates  
+
 To enable those, a number of configuration steps are necessary:
 
 * Create a room
