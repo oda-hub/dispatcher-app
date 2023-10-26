@@ -86,8 +86,17 @@ Example, showing minimal required set of fields in token payload:
   "iss": "drupal",
   "iat": 1613662847,
   "tem": 1800,
-  "mstout": True,
-  "mssub": True
+  "mstout": true,
+  "intsub": 1800,
+  "mssub": true,
+  "msdone": true,
+  "msfail": true,
+  "mxdone": true,
+  "mxintsub": 1800,
+  "mxroomid": "!HrPEWeAGfzSDyXVBqr:matrix.org",
+  "mxstout": true,
+  "mxsub": true,
+  "tmx": 1800
 }
 ```
 

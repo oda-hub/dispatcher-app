@@ -21,3 +21,21 @@ Who's responsible?
 Andrea Tramacere, Volodymyr Savchenko
 
 Astronomy Department of the University of Geneva, Chemin d'Ecogia 16, CH-1290 Versoix, Switzerland
+
+
+Jobs updates with messages on matrix
+-----------------------------------------------
+
+In order to receive update messages regarding the status of the jobs submitted on the mmoda platform, 
+an emailing system is already provided out-of-the-box, provided that a token used 
+(this contains the user email address to which the updates will be sent).
+
+The platform supports now also the sending of messages via the [Matrix](https://matrix.org/) platform.
+
+To enable those, a number of configuration steps are necessary:
+
+* Create a room
+* Invite @mmoda-bot to it
+  * @mmoda-bot has to join the room
+* Update the token with the necessary fields
+  * Customize the token if wished
