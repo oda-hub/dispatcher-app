@@ -39,10 +39,14 @@ Two options are possible:
 * direct room: where it is possible to speak directly to a particular user
 * shared room: a room solely intended to be used for messages related to the jobs updates  
 
-To enable those, a number of configuration steps are necessary:
+To enable those, a number of configuration steps are necessary, either on the token as well as on the matrix user account.
 
-* Create a room
-* Invite @mmoda-bot to it
+Within the token:
+
+* `mxroomid` id of the room to where the messages should be sent (can be a room for direct messages, or a room used specifically for the purpose of mmoda messages)
+
+Within matrix:
+* Create a room (direct or a separate dedicated room)
+* Invite @mmoda-bot to it (in the case of a dedicated room)
   * @mmoda-bot has to join the room
-* Update the token with the necessary fields
-  * Customize the token if wished
+<!-- (TODO extend the code to support automatic joining) --> 
