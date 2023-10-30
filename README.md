@@ -51,7 +51,14 @@ Within the token:
 * `mxroomid` id of the room to where the messages should be sent (can be a room for direct messages, or a room used specifically for the purpose of mmoda messages)
 
 Within the element client:
-* Create a room (direct or a separate dedicated room) <img style="float: right;" src="img.png"><img style="float: left;" src="img_1.png">
+* Create a room (direct or a separate dedicated room) 
+
+<div align="center">
+<img align="center" src="img.png" width ="35%">
+<img align="center" src="img_1.png"  width ="35%">
+</div>
+<br clear="left"/>
+
 * Invite @mmoda-bot to it (in the case of a dedicated room)
   * @mmoda-bot has to join the room
 <!-- (TODO extend the code to support automatic joining) --> 
