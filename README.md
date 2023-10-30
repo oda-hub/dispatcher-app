@@ -41,6 +41,11 @@ Two options are possible:
 
 To enable those, a number of configuration steps are necessary, either on the token as well as on the matrix user account.
 
+For the purpose of this documentation, the matrix client element will be used (https://element.io/).
+
+Token specific configuration
+----------------------------
+
 Within the token:
 
 * `mxroomid` id of the room to where the messages should be sent (can be a room for direct messages, or a room used specifically for the purpose of mmoda messages)
