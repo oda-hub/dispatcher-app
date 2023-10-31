@@ -177,7 +177,7 @@ class ReturnProgressDataServerQuery(DataServerQuery):
             comment="mock comment",
             warning="mock warning")
 
-        return None, query_out
+        return p_value, query_out
 
 
 class ReturnProgressProductQuery(ProductQuery):
@@ -225,7 +225,7 @@ class ReturnProgressProductQuery(ProductQuery):
         return query_out
 
     def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
-        p_value = self.get_p_value()
+        p_value = res
         return [p_value]
 
 class EmptyProductQuery(ProductQuery):
