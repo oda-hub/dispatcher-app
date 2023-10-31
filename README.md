@@ -54,8 +54,8 @@ Within the element client:
 * Create a room (direct or a separate dedicated room) 
 <br/>
 <div align="center">
-<img align="center" src="img.png" width ="35%">
-<img align="center" src="img_1.png"  width ="35%">
+<img align="center" src="readme_imgs/img.png" width ="45%">
+<img align="center" src="readme_imgs/img_1.png"  width ="45%">
 </div>
 <br clear="left"/>
 
