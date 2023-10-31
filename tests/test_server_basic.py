@@ -1574,7 +1574,8 @@ def test_empty_instrument_request(dispatcher_live_fixture):
     assert jdata["exit_status"]["message"] == ""
 
 
-def test_empty_async_return_progress_instrument_request(dispatcher_live_fixture):
+@pytest.mark.parametrize("query_type", ["Dummy", "Real"])
+def test_empty_async_return_progress_instrument_request(dispatcher_live_fixture, query_type):
     server = dispatcher_live_fixture
     print("constructed server:", server)
 
@@ -1583,14 +1584,14 @@ def test_empty_async_return_progress_instrument_request(dispatcher_live_fixture)
     params = {
         **default_params,
         'product_type': 'dummy',
-        'query_type': "Dummy",
+        'query_type': query_type,
         'instrument': 'empty-async-return-progress',
         'return_progress': True
     }
 
     jdata = ask(server,
                 params,
-                expected_query_status=["done"],
+                expected_query_status=["submitted"],
                 max_time_s=50,
                 )
 
@@ -1601,9 +1602,10 @@ def test_empty_async_return_progress_instrument_request(dispatcher_live_fixture)
     assert jdata["exit_status"]["error_message"] == ""
     assert jdata["exit_status"]["message"] == ""
 
-    assert jdata["products"]["p"] == 25
+    assert jdata["products"]["p"] == 5
 
     params.pop("return_progress", None)
+    ReturnProgressProductQuery.set_p_value(15)
 
     jdata = ask(server,
                 params,
@@ -1618,7 +1620,7 @@ def test_empty_async_return_progress_instrument_request(dispatcher_live_fixture)
     assert jdata["exit_status"]["error_message"] == ""
     assert jdata["exit_status"]["message"] == ""
 
-    assert jdata["products"]["p"] == 50
+    assert jdata["products"]["p"] == 15
 
 
 def test_no_instrument(dispatcher_live_fixture):
