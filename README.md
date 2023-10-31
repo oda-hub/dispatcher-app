@@ -51,7 +51,7 @@ Within the token:
 * `mxroomid` id of the room to where the messages should be sent (can be a room for direct messages, or a room used specifically for the purpose of mmoda messages)
 
 Within the element client:
-* Create a room (direct or a separate dedicated room) 
+* Create a dedicated room 
 <br/>
 <div align="center">
 <img align="center" src="readme_imgs/img.png" width ="45%">
@@ -59,6 +59,12 @@ Within the element client:
 </div>
 <br clear="left"/>
 
-* Invite @mmoda-bot to it (in the case of a dedicated room)
-  * @mmoda-bot has to join the room
+* Invite @mmoda-bot to the room created in the previous step
+<div align="center">
+<img align="center" src="readme_imgs/img_2.png" width ="45%">
+<img align="center" src="readme_imgs/img_3.png"  width ="45%">
+</div>
+
+* @mmoda-bot has to join the room (as stated within the [client-server-api](https://spec.matrix.org/latest/client-server-api/#room-membership)), 
+and this will be automatically performed by the dispatcher 
 <!-- (TODO extend the code to support automatic joining) --> 
