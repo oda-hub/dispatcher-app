@@ -598,15 +598,16 @@ class ProductQuery(BaseQuery):
                                                                        config=config,
                                                                        out_dir=scratch_dir,
                                                                        api=api)
+                    job.set_submitted()
                 else:
                     self.query_prod_list = self.get_dummy_products(instrument,
                                                                    config=config,
                                                                    out_dir=scratch_dir,
                                                                    api=api)
+                    job.set_done()
 
                 #self.query_prod_list = QueryProductList(prod_list=prod_list)
 
-                job.set_done()
             #DONE
             query_out.set_done(message=messages['message'], debug_message=str(messages['debug_message']),job_status=job.status,status=status,comment=messages['comment'],warning=messages['warning'])
             #print('-->', query_out.status_dictionary)
@@ -661,6 +662,7 @@ class ProductQuery(BaseQuery):
                               api=False,
                               backend_warning='',
                               backend_comment='',
+                              return_progress=False,
                               **kwargs):
         if logger is None:
             logger = self.get_logger()
@@ -682,7 +684,8 @@ class ProductQuery(BaseQuery):
 
             status = process_products_query_out.get_status()
 
-            job.set_done()
+            if not return_progress:
+                job.set_done()
             #DONE
             process_products_query_out.set_done( message=message, debug_message=str(debug_message), job_status=job.status,status=status,comment=backend_comment,warning=backend_warning)
 
@@ -748,7 +751,7 @@ class ProductQuery(BaseQuery):
             self._t_query_steps['after_get_query_products'] = _time.time()
 
         if query_out.status_dictionary['status'] == 0:
-            if job.status != 'done':
+            if job.status != 'done' and not return_progress:
 
                 query_out.prod_dictionary = {}
                 # TODO: add check if is asynch
@@ -773,6 +776,7 @@ class ProductQuery(BaseQuery):
                                                            config=config,
                                                            sentry_dsn=sentry_dsn,
                                                            api=api,
+                                                           return_progress=return_progress,
                                                            backend_comment=backend_comment,
                                                            backend_warning=backend_warning)
                     self._t_query_steps['after_process_query_products'] = _time.time()
@@ -825,7 +829,7 @@ class PostProcessProductQuery(ProductQuery):
     def process_product(self,instrument,job, config=None,out_dir=None,**kwargs):
         raise RuntimeError('this method has to be implemented in the derived class')
 
-    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None,api=False,**kwargs):
+    def process_query_product(self,instrument,job,query_type='Real',logger=None,config=None,scratch_dir=None,sentry_dsn=None,api=False, return_progress=False, **kwargs):
         if logger is None:
             logger = self.get_logger()
 

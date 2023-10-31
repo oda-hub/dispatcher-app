@@ -179,6 +179,22 @@ class ReturnProgressDataServerQuery(DataServerQuery):
 
         return p_value, query_out
 
+    def run_query(self, *args, **kwargs):
+        logger.warn('fake run_query in %s with %s, %s', self, args, kwargs)
+        query_out = QueryOutput()
+
+        p_value = ReturnProgressProductQuery.get_p_value()
+
+        query_out.set_status(
+            0,
+            message=f"current p value is {p_value}",
+            debug_message="no debug message really",
+            job_status="done",
+            comment="mock comment",
+            warning="mock warning")
+
+        return p_value, query_out
+
 
 class ReturnProgressProductQuery(ProductQuery):
 
@@ -211,17 +227,18 @@ class ReturnProgressProductQuery(ProductQuery):
         return q
 
     def get_dummy_progress_run(self, instrument, config=None,**kwargs):
-        p_value = self.get_p_value() * 5
-        self.set_p_value(p_value)
-        return [p_value]
+        p_value = self.get_p_value()
+        prod_list = QueryProductList(prod_list=[p_value])
+        return prod_list
 
     def get_dummy_products(self, instrument, config=None, **kwargs):
-        p_value = self.get_p_value() * 2
-        return [p_value]
+        p_value = self.get_p_value()
+        prod_list = QueryProductList(prod_list=[p_value])
+        return prod_list
 
     def process_product_method(self, instrument, prod_list, api=False, **kw):
         query_out = QueryOutput()
-        query_out.prod_dictionary['p'] = prod_list[0]
+        query_out.prod_dictionary['p'] = prod_list.prod_list[0]
         return query_out
 
     def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
