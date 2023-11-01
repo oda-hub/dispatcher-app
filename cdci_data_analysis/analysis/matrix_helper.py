@@ -277,6 +277,44 @@ def send_job_message(
     return res_content
 
 
+def join_room(
+        logger,
+        url_server=None,
+        sender_access_token=None,
+        room_id=None,
+):
+    logger.info(f"Joining room wth id: {room_id}")
+    url = os.path.join(url_server, f'_matrix/client/v3/rooms/{room_id}/join')
+
+    headers = {
+        'Authorization': ' '.join(['Bearer', sender_access_token]),
+        'Content-type': 'application/json'
+    }
+
+    res = requests.post(url, headers=headers)
+
+    msg_response_data = None
+    if res.status_code in [403, 429]:
+        msg_response_data = res.json()
+        error_code = ""
+        if "errcode" in msg_response_data:
+            error_code = msg_response_data["errcode"]
+        error = ""
+        if "error" in msg_response_data:
+            error = msg_response_data["error"]
+        logger.info(f"Could not join the room: {room_id}, for the following reason: {error_code} - {error}")
+
+        sentry.capture_message(f"Could not join the room: {room_id}, for the following reason: {error_code}: {error}")
+        raise MatrixMessageNotSent(f"Could not join the room: {room_id}, for the following reason: {error_code}: {error}",
+                                   status_code=res.status_code,
+                                   payload={'matrix_error_message': f"{error_code} - {error}"})
+
+    elif res.status_code == 200:
+        logger.info(f"Successfully joined the room: {room_id}")
+
+    return msg_response_data
+
+
 def send_message(
         logger,
         url_server=None,
