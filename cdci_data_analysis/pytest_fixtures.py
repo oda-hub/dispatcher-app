@@ -325,6 +325,28 @@ def dispatcher_local_matrix_message_server(dispatcher_test_conf_with_matrix_opti
             self.matrix_sender_access_token = matrix_sender_access_token
             self.room_id = self.create_room()
 
+
+        def invite_to_room(self, user_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']):
+            url = os.path.join(self.matrix_server_url, f'_matrix/client/v3/rooms/{self.room_id}/invite')
+            headers = {
+                'Authorization': ' '.join(['Bearer', self.matrix_sender_access_token]),
+                'Content-type': 'application/json'
+            }
+
+            room_data = {
+                'reason': 'test',
+                'user_id': user_id
+            }
+
+            res = requests.post(url, json=room_data, headers=headers)
+
+            if res.status_code == 200:
+                res_content = res.json()
+                if res_content == {}:
+                    return True
+
+            return False
+
         def create_room(self):
             url = os.path.join(self.matrix_server_url, f'_matrix/client/v3/createRoom')
             headers = {
@@ -401,6 +423,7 @@ def dispatcher_local_matrix_message_server(dispatcher_test_conf_with_matrix_opti
         matrix_server_url=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_server_url'],
         matrix_sender_access_token=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']
     )
+    matrix_message_controller.invite_to_room()
     yield matrix_message_controller
     matrix_message_controller.leave_room()
     matrix_message_controller.forget_room()
