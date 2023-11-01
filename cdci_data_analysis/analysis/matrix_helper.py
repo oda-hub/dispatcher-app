@@ -233,44 +233,64 @@ def send_job_message(
     message_body_html = template.render(**matrix_message_data)
     message_text = textify_matrix_message(message_body_html)
     res_content = {
-        'res_content_bcc_users': []
+        'res_content_bcc_users': [],
+        'res_content_bcc_users_failed': []
     }
 
     message_data = {
         'message_data_bcc_users': []
     }
     if receiver_room_id is not None and receiver_room_id != "":
-        res_data_message_token_user = send_message(
-            logger,
-            url_server=matrix_server_url,
-            sender_access_token=matrix_sender_access_token,
-            room_id=receiver_room_id,
-            message_text=message_text,
-            message_body_html=message_body_html
-        )
-        message_data_token_user = res_data_message_token_user['message_data']
-        res_content_token_user = res_data_message_token_user['res_content']
-        message_data['message_data_token_user'] = message_data_token_user
-        res_content['res_content_token_user'] = res_content_token_user
+        try:
+            join_room(
+                logger,
+                url_server=matrix_server_url,
+                sender_access_token=matrix_sender_access_token,
+                room_id=receiver_room_id
+            )
+            res_data_message_token_user = send_message(
+                logger,
+                url_server=matrix_server_url,
+                sender_access_token=matrix_sender_access_token,
+                room_id=receiver_room_id,
+                message_text=message_text,
+                message_body_html=message_body_html
+            )
+            message_data_token_user = res_data_message_token_user['message_data']
+            res_content_token_user = res_data_message_token_user['res_content']
+            message_data['message_data_token_user'] = message_data_token_user
+            res_content['res_content_token_user'] = res_content_token_user
+        except MatrixMessageNotSent as e:
+            logger.warning(f"Issue in sending a message in the room {receiver_room_id} using matrix: {e.message}")
+            res_content['res_content_token_user_failure'] = f"Issue in sending a message in the room {receiver_room_id} using matrix: {e.message}"
     else:
         logger.warning('a matrix message could not be sent to the token user as no personal room id was '
                        'provided within the token')
 
     for bcc_receiver_room_id in bcc_receivers_room_ids:
         if bcc_receiver_room_id is not None and bcc_receiver_room_id != "":
-            res_data_message_cc_user = send_message(
-                logger,
-                url_server=matrix_server_url,
-                sender_access_token=matrix_sender_access_token,
-                room_id=bcc_receiver_room_id,
-                message_text=message_text,
-                message_body_html=message_body_html
-            )
-            message_data_cc_user = res_data_message_cc_user['message_data']
-            message_data['message_data_bcc_users'].append(message_data_cc_user)
-            res_content_cc_user = res_data_message_cc_user['res_content']
-            res_content['res_content_bcc_users'].append(res_content_cc_user)
-
+            try:
+                join_room(
+                    logger,
+                    url_server=matrix_server_url,
+                    sender_access_token=matrix_sender_access_token,
+                    room_id=bcc_receiver_room_id
+                )
+                res_data_message_cc_user = send_message(
+                    logger,
+                    url_server=matrix_server_url,
+                    sender_access_token=matrix_sender_access_token,
+                    room_id=bcc_receiver_room_id,
+                    message_text=message_text,
+                    message_body_html=message_body_html
+                )
+                message_data_cc_user = res_data_message_cc_user['message_data']
+                message_data['message_data_bcc_users'].append(message_data_cc_user)
+                res_content_cc_user = res_data_message_cc_user['res_content']
+                res_content['res_content_bcc_users'].append(res_content_cc_user)
+            except MatrixMessageNotSent as e:
+                logger.warning(f"Issue in sending a message in the room {bcc_receiver_room_id} using matrix: {e.message}")
+                res_content['res_content_bcc_users_failed'].append(f"Issue in sending a message in the room {bcc_receiver_room_id} using matrix: {e.message}")
 
     store_status_matrix_message_info(message_data, status, scratch_dir, logger, sending_time=sending_time, first_submitted_time=time_request)
 
