@@ -828,6 +828,82 @@ def test_matrix_message_submitted_multiple_requests(dispatcher_live_fixture_with
 
 @pytest.mark.test_matrix
 @pytest.mark.not_safe_parallel
+def test_matrix_message_no_invitee(gunicorn_dispatcher_long_living_fixture_with_matrix_options,
+                                   dispatcher_local_matrix_message_server):
+    DispatcherJobState.remove_scratch_folders()
+    DataServerQuery.set_status('submitted')
+
+    server = gunicorn_dispatcher_long_living_fixture_with_matrix_options
+    logger.info("constructed server: %s", server)
+
+    token_payload = {
+        **default_token_payload,
+        "mxroomid": dispatcher_local_matrix_message_server.room_id,
+        "tmx": 0
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    # this should return status submitted, so matrix message sent
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+    jdata = c.json()
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+
+    # check the matrix_messages log in the matrix-message folders, and that the first one was produced
+    matrix_message_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'matrix_message_history', 'matrix_message_history_log_*.log'))
+    latest_file_matrix_message_history_log_file = max(matrix_message_history_log_files, key=os.path.getctime)
+    with open(latest_file_matrix_message_history_log_file) as matrix_message_history_log_content_fn:
+        history_log_content = json.loads(matrix_message_history_log_content_fn.read())
+        logger.info("content matrix message history logging: %s", history_log_content)
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert isinstance(history_log_content['additional_information']['submitted_matrix_message_files'], list)
+        assert len(history_log_content['additional_information']['submitted_matrix_message_files']) == 0
+        assert history_log_content['additional_information'][
+                   'check_result_message'] == 'the message will be sent via matrix'
+
+    time_request = jdata['time_request']
+    DataServerQuery.set_status('done')
+
+    c = requests.get(os.path.join(server, "call_back"),
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action='done',
+                         node_id='node_final',
+                         message='done',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+    assert c.status_code == 200
+
+    jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
+    assert 'matrix_message_status' in jdata
+    assert jdata['matrix_message_status'] == 'sending message via matrix failed'
+    matrix_message_status_details_obj = json.loads(jdata['matrix_message_status_details'])
+    assert 'res_content' in matrix_message_status_details_obj
+    assert 'res_content_token_user_failure' in matrix_message_status_details_obj['res_content']
+    assert matrix_message_status_details_obj['res_content']['res_content_token_user_failure'] == \
+        (f"Issue in sending a message in the room {dispatcher_local_matrix_message_server.room_id} using matrix: "
+         f"Could not join the room: {dispatcher_local_matrix_message_server.room_id}, for the following reason: M_FORBIDDEN: You are not invited to this room.")
+
+
+@pytest.mark.test_matrix
+@pytest.mark.not_safe_parallel
 def test_matrix_message_done(gunicorn_dispatcher_long_living_fixture_with_matrix_options,
                              dispatcher_local_matrix_message_server):
     DispatcherJobState.remove_scratch_folders()

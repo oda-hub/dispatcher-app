@@ -421,7 +421,7 @@ def dispatcher_local_matrix_message_server(dispatcher_test_conf_with_matrix_opti
 
     matrix_message_controller = MatrixMessageController(
         matrix_server_url=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_server_url'],
-        matrix_sender_access_token=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']
+        matrix_sender_access_token=os.getenv("MATRIX_CREATOR_ACCESS_TOKEN", dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token'])
     )
     matrix_message_controller.invite_to_room(user_id=os.getenv("MATRIX_INVITEE_USER_ID", dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']))
     yield matrix_message_controller
