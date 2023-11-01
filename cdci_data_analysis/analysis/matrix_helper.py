@@ -129,7 +129,8 @@ def send_incident_report_message(
     #     open("debug_email_lines_too_long.text", "w").write(email_text)
     #     raise MatrixMessageNotSent(f"message not sent on matrix, lines too long!")
     res_content = {
-        'res_content_incident_reports': []
+        'res_content_incident_reports': [],
+        'res_content_incident_reports_failed': []
     }
 
     message_data = {
@@ -137,16 +138,30 @@ def send_incident_report_message(
     }
 
     for incident_report_receiver_room_id in incident_report_receivers_room_ids:
-        res_data_message_receiver = send_message(
-            logger,
-            url_server=matrix_server_url,
-            sender_access_token=incident_report_sender_personal_access_token,
-            room_id=incident_report_receiver_room_id,
-            message_text=message_text,
-            message_body_html=message_body_html
-        )
-        message_data['message_data_incident_reports'].append(res_data_message_receiver['message_data'])
-        res_content['res_content_incident_reports'].append(res_data_message_receiver['res_content'])
+        if incident_report_receiver_room_id is not None and incident_report_receiver_room_id != "":
+            try:
+                join_room(
+                    logger,
+                    url_server=matrix_server_url,
+                    sender_access_token=incident_report_sender_personal_access_token,
+                    room_id=incident_report_receiver_room_id
+                )
+                res_data_message_receiver = send_message(
+                    logger,
+                    url_server=matrix_server_url,
+                    sender_access_token=incident_report_sender_personal_access_token,
+                    room_id=incident_report_receiver_room_id,
+                    message_text=message_text,
+                    message_body_html=message_body_html
+                )
+                message_data['message_data_incident_reports'].append(res_data_message_receiver['message_data'])
+                res_content['res_content_incident_reports'].append(res_data_message_receiver['res_content'])
+            except MatrixMessageNotSent as e:
+                sentry.capture_message(f'message sending via matrix failed {e}')
+                logger.warning(f"Issue in sending a message in the room {incident_report_receiver_room_id} using matrix: {e.message}")
+                res_content['res_content_incident_reports_failed'].append(f"Issue in sending a message in the room {incident_report_receiver_room_id} using matrix: {e.message}")
+        else:
+            logger.warning('a incident report matrix message could not be sent as an invalid room id was provided')
 
     store_incident_report_matrix_message(message_data, scratch_dir, sending_time=sending_time)
 

@@ -1054,14 +1054,18 @@ def report_incident():
             scratch_dir=scratch_dir
         )
 
-        report_incident_status['martix_message_report_status'] = 'incident report message successfully sent via matrix'
+        matrix_message_report_status = 'incident report message successfully sent via matrix'
+        if 'res_content_token_user_failure' in res_content or len(res_content['res_content_bcc_users_failed']) > 1:
+            matrix_message_report_status = 'incident report message successfully sent via matrix failed'
+
+        report_incident_status['martix_message_report_status'] = matrix_message_report_status
         report_incident_status['martix_message_report_status_details'] = {
             "res_content": res_content
         }
-    except matrix_helper.MatrixMessageNotSent as e:
-        report_incident_status['martix_message_report_status'] = 'sending message via matrix failed'
-        logging.warning(f'message sending via matrix failed: {e}')
-        sentry.capture_message(f'message sending via matrix failed {e}')
+    # except matrix_helper.MatrixMessageNotSent as e:
+    #     report_incident_status['martix_message_report_status'] = 'sending message via matrix failed'
+    #     logging.warning(f'message sending via matrix failed: {e}')
+    #     sentry.capture_message(f'message sending via matrix failed {e}')
 
     except MissingRequestParameter as e:
         report_incident_status['martix_message_report_status'] = 'sending message via matrix failed'
