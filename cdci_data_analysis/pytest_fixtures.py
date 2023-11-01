@@ -604,6 +604,10 @@ def dispatcher_test_conf_with_matrix_options_fn(dispatcher_test_conf_fn):
 def dispatcher_no_bcc_matrix_room_ids(monkeypatch):
     monkeypatch.delenv('MATRIX_CC_RECEIVER_ROOM_ID', raising=False)
 
+@pytest.fixture
+def dispatcher_no_invitee_user_id(monkeypatch):
+    monkeypatch.delenv('MATRIX_INVITEE_USER_ID', raising=False)
+
 
 @pytest.fixture
 def dispatcher_test_conf_with_gallery_no_resolver_fn(dispatcher_test_conf_fn):
