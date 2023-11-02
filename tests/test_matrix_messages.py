@@ -1190,6 +1190,76 @@ def test_matrix_message_and_email(gunicorn_dispatcher_long_living_fixture_with_m
 
 
 @pytest.mark.test_matrix
+def test_incident_report_no_invitee(dispatcher_live_fixture_with_matrix_options,
+                                    dispatcher_test_conf_with_matrix_options,
+                                    dispatcher_local_matrix_message_server,
+                                    dispatcher_test_conf):
+    server = dispatcher_live_fixture_with_matrix_options
+
+    logger.info("constructed server: %s", server)
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+    }
+
+    decoded_token = {
+        **default_token_payload,
+        "mxroomid": dispatcher_local_matrix_message_server.room_id
+    }
+    encoded_token = jwt.encode(decoded_token, secret_key, algorithm='HS256')
+    params['token'] = encoded_token
+
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    time_request = jdata['time_request']
+    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+
+    scratch_dir_fn_list = glob.glob(f'scratch_sid_{dispatcher_job_state.session_id}_jid_{dispatcher_job_state.job_id}*')
+    scratch_dir_fn = max(scratch_dir_fn_list, key=os.path.getctime)
+
+    incident_content = 'test incident'
+
+    # for the email we only use the first 8 characters
+    c = requests.post(os.path.join(server, "report_incident"),
+                      params=dict(
+                          job_id=dispatcher_job_state.job_id,
+                          session_id=dispatcher_job_state.session_id,
+                          token=encoded_token,
+                          incident_content=incident_content,
+                          incident_time=time_request,
+                          scratch_dir=scratch_dir_fn
+                      ))
+
+    jdata_incident_report = c.json()
+
+    assert 'martix_message_report_status' in jdata_incident_report
+    assert jdata_incident_report[
+               'martix_message_report_status'] == 'sending of an incident report message via matrix failed'
+    assert 'martix_message_report_status_details' in jdata_incident_report
+    assert 'res_content' in jdata_incident_report['martix_message_report_status_details']
+    assert 'res_content_incident_reports' in jdata_incident_report['martix_message_report_status_details'][
+        'res_content']
+    assert len(jdata_incident_report['martix_message_report_status_details']['res_content'][
+                   'res_content_incident_reports']) == 0
+    assert 'res_content_incident_reports_failed' in jdata_incident_report['martix_message_report_status_details'][
+        'res_content']
+    assert len(jdata_incident_report['martix_message_report_status_details']['res_content'][
+                   'res_content_incident_reports_failed']) == 1
+    assert jdata_incident_report['martix_message_report_status_details']['res_content'][
+        'res_content_incident_reports_failed'][0] == (f'Issue in sending a message in the room {os.getenv("MATRIX_INCIDENT_REPORT_RECEIVER_ROOM_ID", "")} '
+                                                      f'using matrix: Could not join the room: {os.getenv("MATRIX_INCIDENT_REPORT_RECEIVER_ROOM_ID", "")}, '
+                                                      f'for the following reason: M_FORBIDDEN: You are not invited to this room.')
+
+@pytest.mark.test_matrix
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
 def test_incident_report(dispatcher_live_fixture_with_matrix_options,
                          dispatcher_test_conf_with_matrix_options,
@@ -1218,8 +1288,7 @@ def test_incident_report(dispatcher_live_fixture_with_matrix_options,
         error_message = 'A token must be provided.'
     elif request_cred == 'valid_token':
         decoded_token = {
-            **default_token_payload,
-            "mxroomid": dispatcher_local_matrix_message_server.room_id
+            **default_token_payload
         }
         encoded_token = jwt.encode(decoded_token, secret_key, algorithm='HS256')
         params['token'] = encoded_token

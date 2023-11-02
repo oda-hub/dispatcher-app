@@ -326,8 +326,14 @@ def dispatcher_local_matrix_message_server(dispatcher_test_conf_with_matrix_opti
             self.room_id = self.create_room()
 
 
-        def invite_to_room(self, user_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']):
-            url = os.path.join(self.matrix_server_url, f'_matrix/client/v3/rooms/{self.room_id}/invite')
+        def invite_to_room(self,
+                           room_id=None,
+                           user_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']):
+
+            if room_id is None:
+                room_id = self.room_id
+
+            url = os.path.join(self.matrix_server_url, f'_matrix/client/v3/rooms/{room_id}/invite')
             headers = {
                 'Authorization': ' '.join(['Bearer', self.matrix_sender_access_token]),
                 'Content-type': 'application/json'
@@ -423,7 +429,9 @@ def dispatcher_local_matrix_message_server(dispatcher_test_conf_with_matrix_opti
         matrix_server_url=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_server_url'],
         matrix_sender_access_token=os.getenv("MATRIX_CREATOR_ACCESS_TOKEN", dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token'])
     )
-    matrix_message_controller.invite_to_room(user_id=os.getenv("MATRIX_INVITEE_USER_ID", dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']))
+    matrix_message_controller.invite_to_room(
+        room_id=os.getenv("MATRIX_INCIDENT_REPORT_RECEIVER_ROOM_ID", matrix_message_controller.room_id),
+        user_id=os.getenv("MATRIX_INVITEE_USER_ID", dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']))
     yield matrix_message_controller
     matrix_message_controller.leave_room()
     matrix_message_controller.forget_room()
