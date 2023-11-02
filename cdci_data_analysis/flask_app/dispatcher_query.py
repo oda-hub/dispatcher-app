@@ -1151,7 +1151,6 @@ class InstrumentQueryBackEnd:
             logging.warning(f'issue when {step}: {e}')
             sentry.capture_message(f'issue when {step}: {e}')
 
-        # try:
         if is_message_to_send:
             time_request = time_original_request
             time_request_first_submitted = matrix_helper.get_first_submitted_matrix_message_time(self.scratch_dir)
@@ -1190,14 +1189,6 @@ class InstrumentQueryBackEnd:
                                         matrix_message_status_details=json.dumps(matrix_message_status_details))
         else:
             job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
-
-        # except matrix_helper.MatrixMessageNotSent as e:
-        #     job.write_dataserver_status(status_dictionary_value=status,
-        #                                 full_dict=self.par_dic,
-        #                                 matrix_message_status='sending message via matrix failed',
-        #                                 matrix_message_status_details=e.payload)
-        #     logging.warning(f'matrix message sending failed: {e}')
-        #     sentry.capture_message(f'sending matrix message failed {e.message}')
 
         try:
             # TODO for a future implementation
@@ -1977,7 +1968,7 @@ class InstrumentQueryBackEnd:
                             self.job_id,
                             self.app.config['conf'],
                             decoded_token=self.decoded_token):
-                        # try:
+
                         time_request = self.time_request
                         time_request_first_submitted = matrix_helper.get_first_submitted_matrix_message_time(self.scratch_dir)
                         if time_request_first_submitted is not None:
@@ -2009,11 +2000,6 @@ class InstrumentQueryBackEnd:
 
                         query_out.set_status_field('matrix_message_status', matrix_message_status)
                         query_out.set_status_field('matrix_message_status_details', matrix_message_status_details)
-                        # except matrix_helper.MatrixMessageNotSent as e:
-                        #     query_out.set_status_field('matrix_message_status', 'sending matrix message failed')
-                        #     query_out.set_status_field('matrix_message_status_details', e.payload)
-                        #     logging.warning(f'matrix message sending failed: {e}')
-                        #     sentry.capture_message(f'sending matrix message failed {e.message}')
 
                     if email_helper.is_email_to_send_run_query(self.logger,
                                                                query_new_status,
