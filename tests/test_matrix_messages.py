@@ -828,8 +828,8 @@ def test_matrix_message_submitted_multiple_requests(dispatcher_live_fixture_with
 
 @pytest.mark.test_matrix
 @pytest.mark.not_safe_parallel
-def test_matrix_message_no_invitee(gunicorn_dispatcher_long_living_fixture_with_matrix_options,
-                                   dispatcher_local_matrix_message_server):
+def test_matrix_message_sender_not_invited(gunicorn_dispatcher_long_living_fixture_with_matrix_options,
+                                           dispatcher_local_matrix_message_server):
     DispatcherJobState.remove_scratch_folders()
     DataServerQuery.set_status('submitted')
 
@@ -1190,10 +1190,10 @@ def test_matrix_message_and_email(gunicorn_dispatcher_long_living_fixture_with_m
 
 
 @pytest.mark.test_matrix
-def test_incident_report_no_invitee(dispatcher_live_fixture_with_matrix_options,
-                                    dispatcher_test_conf_with_matrix_options,
-                                    dispatcher_local_matrix_message_server,
-                                    dispatcher_test_conf):
+def test_incident_report_sender_not_invited(dispatcher_live_fixture_with_matrix_options,
+                                            dispatcher_test_conf_with_matrix_options,
+                                            dispatcher_local_matrix_message_server,
+                                            dispatcher_test_conf):
     server = dispatcher_live_fixture_with_matrix_options
 
     logger.info("constructed server: %s", server)
@@ -1221,7 +1221,6 @@ def test_incident_report_no_invitee(dispatcher_live_fixture_with_matrix_options,
 
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
     time_request = jdata['time_request']
-    time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
 
     scratch_dir_fn_list = glob.glob(f'scratch_sid_{dispatcher_job_state.session_id}_jid_{dispatcher_job_state.job_id}*')
     scratch_dir_fn = max(scratch_dir_fn_list, key=os.path.getctime)
