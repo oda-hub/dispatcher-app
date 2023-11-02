@@ -1055,7 +1055,7 @@ def report_incident():
         )
 
         matrix_message_report_status = 'incident report message successfully sent via matrix'
-        if len(res_content['res_content_incident_reports_failed']) > 1:
+        if len(res_content['res_content_incident_reports_failed']) >= 1:
             matrix_message_report_status = 'sending of an incident report message via matrix failed'
 
         report_incident_status['martix_message_report_status'] = matrix_message_report_status

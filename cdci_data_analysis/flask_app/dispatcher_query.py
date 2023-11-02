@@ -1180,7 +1180,7 @@ class InstrumentQueryBackEnd:
                 matrix_message_status_details['status_details'] = status_details
 
             matrix_message_status = 'matrix message sent'
-            if 'res_content_token_user_failure' in res_content or len(res_content['res_content_bcc_users_failed']) > 1:
+            if 'res_content_token_user_failure' in res_content or len(res_content['res_content_bcc_users_failed']) >= 1:
                 matrix_message_status = 'sending message via matrix failed'
 
             job.write_dataserver_status(status_dictionary_value=status,
@@ -1994,8 +1994,7 @@ class InstrumentQueryBackEnd:
                         })
 
                         matrix_message_status = 'matrix message sent'
-                        if 'res_content_token_user_failure' in res_content or len(
-                                res_content['res_content_bcc_users_failed']) > 1:
+                        if 'res_content_token_user_failure' in res_content or len(res_content['res_content_bcc_users_failed']) >= 1:
                             matrix_message_status = 'sending message via matrix failed'
 
                         query_out.set_status_field('matrix_message_status', matrix_message_status)
