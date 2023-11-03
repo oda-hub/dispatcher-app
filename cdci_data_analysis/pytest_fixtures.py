@@ -751,6 +751,7 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
         waiting_time_for_start = time.time() - started_waiting
         print(f"waiting for server to start since {waiting_time_for_start}")
         if waiting_time_for_start > timeout_sec_thread_start:
+            print(f"timeout for starting the server reached, re-starting the thread")
             kill_child_processes(p.pid, signal.SIGINT)
             os.kill(p.pid, signal.SIGINT)
             start_thread(target=follow_output)
