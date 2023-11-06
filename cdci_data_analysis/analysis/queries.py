@@ -22,8 +22,7 @@ import time as _time
 import json
 from collections import OrderedDict
 
-import sentry_sdk
-import decorator 
+import decorator
 import traceback
 import numpy as np
 
@@ -48,7 +47,6 @@ from .parameters import (Parameter,
 from .products import SpectralFitProduct, QueryOutput, QueryProductList, ImageProduct
 from .io_helper import FilePath
 from .exceptions import RequestNotUnderstood, InternalError
-from ..flask_app.sentry import sentry
 
 logger = logging.getLogger(__name__)
 
