@@ -470,7 +470,7 @@ class Instrument:
                                      'please use "provide feedback" button below. We would greatly appreciate it!\n\n'
                                      'This additional information might help:\n\n'
                                )
-                    e_message = f'Instrument: {self.name}, product: {product_type} failed!\n'
+                    e_message = f'Instrument: {self.name}, product: {product_type}\n'
                     query_out.set_failed(product_type,
                                          message=message,
                                          e_message=e_message,
