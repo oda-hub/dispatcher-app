@@ -156,7 +156,10 @@ class InstrumentQueryBackEnd:
                 # this can be set since it's a call_back and job_id and session_id are available
                 self.logger.info(f"before setting scratch_dir: job_id: {self.par_dic['job_id']} callback: {data_server_call_back}, resolve_job_url: {resolve_job_url}")
                 self.set_scratch_dir(session_id=self.par_dic['session_id'], job_id=self.par_dic['job_id'])
+                self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
+                self.logger.info(f"scratch_dir set {self.scratch_dir}, job_id: {self.par_dic['job_id']} callback: {data_server_call_back}, resolve_job_url: {resolve_job_url}")
                 self.set_scws_call_back_related_params()
+                self.logger.info(f"set_scws_call_back_related_params executed")
             else:
                 self.set_scws_related_params(request)
 
@@ -201,6 +204,7 @@ class InstrumentQueryBackEnd:
                                "and resubmit you request.")
                     if data_server_call_back:
                         message = "The token provided is expired, please resubmit you request with a valid token."
+                        self.logger.info(message)
                         sentry.capture_message(message)
 
                     raise RequestNotAuthorized(message)
@@ -211,6 +215,7 @@ class InstrumentQueryBackEnd:
                                "and resubmit you request.")
                     if data_server_call_back:
                         message = "The token provided is expired, please resubmit you request with a valid token."
+                        self.logger.info(message)
                         sentry.capture_message(message)
 
                     raise RequestNotAuthorized(message)
@@ -1152,49 +1157,44 @@ class InstrumentQueryBackEnd:
             logging.warning(f'issue when {step}: {e}')
             sentry.capture_message(f'issue when {step}: {e}')
 
-        try:
-            if is_message_to_send:
-                time_request = time_original_request
-                time_request_first_submitted = matrix_helper.get_first_submitted_matrix_message_time(self.scratch_dir)
-                if time_request_first_submitted is not None:
-                    time_request = time_request_first_submitted
+        if is_message_to_send:
+            time_request = time_original_request
+            time_request_first_submitted = matrix_helper.get_first_submitted_matrix_message_time(self.scratch_dir)
+            if time_request_first_submitted is not None:
+                time_request = time_request_first_submitted
 
-                res_content = matrix_helper.send_job_message(
-                    config=self.app.config['conf'],
-                    logger=self.logger,
-                    decoded_token=self.decoded_token,
-                    token=self.token,
-                    job_id=self.job_id,
-                    session_id=self.par_dic['session_id'],
-                    status=status,
-                    instrument=self.instrument_name,
-                    status_details=status_details,
-                    product_type=product_type,
-                    time_request=time_request,
-                    request_url=products_url,
-                    api_code=email_api_code,
-                    scratch_dir=self.scratch_dir)
+            res_content = matrix_helper.send_job_message(
+                config=self.app.config['conf'],
+                logger=self.logger,
+                decoded_token=self.decoded_token,
+                token=self.token,
+                job_id=self.job_id,
+                session_id=self.par_dic['session_id'],
+                status=status,
+                instrument=self.instrument_name,
+                status_details=status_details,
+                product_type=product_type,
+                time_request=time_request,
+                request_url=products_url,
+                api_code=email_api_code,
+                scratch_dir=self.scratch_dir)
 
-                matrix_message_status_details = {
-                    "res_content": res_content
-                }
-                if status_details is not None:
-                    matrix_message_status_details['status_details'] = status_details
+            matrix_message_status_details = {
+                "res_content": res_content
+            }
+            if status_details is not None:
+                matrix_message_status_details['status_details'] = status_details
 
-                job.write_dataserver_status(status_dictionary_value=status,
-                                            full_dict=self.par_dic,
-                                            matrix_message_status='matrix message sent',
-                                            matrix_message_status_details=json.dumps(matrix_message_status_details))
-            else:
-                job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+            matrix_message_status = 'matrix message sent'
+            if 'res_content_token_user_failure' in res_content or len(res_content['res_content_bcc_users_failed']) >= 1:
+                matrix_message_status = 'sending message via matrix failed'
 
-        except matrix_helper.MatrixMessageNotSent as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
-                                        matrix_message_status='sending message via matrix failed',
-                                        matrix_message_status_details=e.payload)
-            logging.warning(f'matrix message sending failed: {e}')
-            sentry.capture_message(f'sending matrix message failed {e.message}')
+                                        matrix_message_status=matrix_message_status,
+                                        matrix_message_status_details=json.dumps(matrix_message_status_details))
+        else:
+            job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
 
         try:
             # TODO for a future implementation
@@ -1975,37 +1975,37 @@ class InstrumentQueryBackEnd:
                             self.job_id,
                             self.app.config['conf'],
                             decoded_token=self.decoded_token):
-                        try:
-                            time_request = self.time_request
-                            time_request_first_submitted = matrix_helper.get_first_submitted_matrix_message_time(self.scratch_dir)
-                            if time_request_first_submitted is not None:
-                                time_request = time_request_first_submitted
 
-                            res_content = matrix_helper.send_job_message(
-                                config=self.app.config['conf'],
-                                logger=self.logger,
-                                decoded_token=self.decoded_token,
-                                token=self.token,
-                                job_id=self.job_id,
-                                session_id=self.par_dic['session_id'],
-                                status=query_new_status,
-                                instrument=self.instrument.name,
-                                product_type=product_type,
-                                time_request=time_request,
-                                request_url=products_url,
-                                api_code=email_api_code,
-                                scratch_dir=self.scratch_dir)
+                        time_request = self.time_request
+                        time_request_first_submitted = matrix_helper.get_first_submitted_matrix_message_time(self.scratch_dir)
+                        if time_request_first_submitted is not None:
+                            time_request = time_request_first_submitted
 
-                            matrix_message_status_details =  json.dumps({
-                                "res_content": res_content
-                            })
-                            query_out.set_status_field('matrix_message_status', 'matrix message sent')
-                            query_out.set_status_field('matrix_message_status_details', matrix_message_status_details)
-                        except matrix_helper.MatrixMessageNotSent as e:
-                            query_out.set_status_field('matrix_message_status', 'sending matrix message failed')
-                            query_out.set_status_field('matrix_message_status_details', e.payload)
-                            logging.warning(f'matrix message sending failed: {e}')
-                            sentry.capture_message(f'sending matrix message failed {e.message}')
+                        res_content = matrix_helper.send_job_message(
+                            config=self.app.config['conf'],
+                            logger=self.logger,
+                            decoded_token=self.decoded_token,
+                            token=self.token,
+                            job_id=self.job_id,
+                            session_id=self.par_dic['session_id'],
+                            status=query_new_status,
+                            instrument=self.instrument.name,
+                            product_type=product_type,
+                            time_request=time_request,
+                            request_url=products_url,
+                            api_code=email_api_code,
+                            scratch_dir=self.scratch_dir)
+
+                        matrix_message_status_details =  json.dumps({
+                            "res_content": res_content
+                        })
+
+                        matrix_message_status = 'matrix message sent'
+                        if 'res_content_token_user_failure' in res_content or len(res_content['res_content_bcc_users_failed']) >= 1:
+                            matrix_message_status = 'sending message via matrix failed'
+
+                        query_out.set_status_field('matrix_message_status', matrix_message_status)
+                        query_out.set_status_field('matrix_message_status_details', matrix_message_status_details)
 
                     if email_helper.is_email_to_send_run_query(self.logger,
                                                                query_new_status,
