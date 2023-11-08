@@ -53,6 +53,8 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install -e .[test]
         pip install oda-knowledge-base[rdf,cwl,service] # todo
+
+        curl -o oda_api/tests/oda-ontology.ttl https://raw.githubusercontent.com/oda-hub/ontology/main/ontology.ttl
     
     - name: Test oda_api with pytest
       run: |
