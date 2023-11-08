@@ -1054,20 +1054,18 @@ def report_incident():
             scratch_dir=scratch_dir
         )
 
-        report_incident_status['martix_message_report_status'] = 'incident report message successfully sent via matrix'
+        matrix_message_report_status = 'incident report message successfully sent via matrix'
+        if len(res_content['res_content_incident_reports_failed']) >= 1:
+            matrix_message_report_status = 'sending of an incident report message via matrix failed'
+
+        report_incident_status['martix_message_report_status'] = matrix_message_report_status
         report_incident_status['martix_message_report_status_details'] = {
             "res_content": res_content
         }
-    except matrix_helper.MatrixMessageNotSent as e:
-        report_incident_status['martix_message_report_status'] = 'sending message via matrix failed'
-        logging.warning(f'message sending via matrix failed: {e}')
-        sentry.capture_message(f'message sending via matrix failed {e}')
 
     except MissingRequestParameter as e:
         report_incident_status['martix_message_report_status'] = 'sending message via matrix failed'
         logging.warning(f'parameter missing during call back: {e}')
-
-    # response = jsonify({'report_incident_status': report_incident_status})
 
     return report_incident_status
 
