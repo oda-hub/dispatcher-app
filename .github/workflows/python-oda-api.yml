@@ -38,6 +38,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: 'oda-hub/oda_api'
+        ref: 'adapt-to-new-dummy-instrument'
         path: oda_api
 
 
