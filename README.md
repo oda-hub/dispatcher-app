@@ -26,7 +26,7 @@ Astronomy Department of the University of Geneva, Chemin d'Ecogia 16, CH-1290 Ve
 Jobs updates with messages on matrix
 -----------------------------------------------
 
-It is now possible to receive update messages regarding the status of the jobs submitted on the mmoda platform. An emailing system is already provided out-of-the-box, provided that a token is used (this contains the user email address to which the updates will be sent, along with a number of other configurations, more details [here](interfaces.md#user-tokens).
+It is now possible to receive update messages regarding the status of the jobs submitted on the mmoda platform. An emailing system is already provided out-of-the-box, provided that a token is used (this contains the user email address to which the updates will be sent, along with a number of other configurations, more details [here](interfaces.md#user-tokens)).
 
 The platform supports now also the sending of messages via the [Matrix](https://matrix.org/) platform, and a dedicated messaging bot (__@mmoda-bot__) is available for receiving jobs updates messages.
 
@@ -59,8 +59,13 @@ Within the element client:
 <img align="center" src="readme_imgs/img_2.png" width ="45%">
 <img align="center" src="readme_imgs/img_3.png"  width ="45%">
 </div>
+<br clear="left"/>
 
 * @mmoda-bot will then have to join the room (as stated within the [client-server-api](https://spec.matrix.org/latest/client-server-api/#room-membership)), and this will be automatically performed by the dispatcher.
+
+An example of a message is in the image below:
+
+![img.png](readme_imgs/img_matrix_msg_example.png)
 
 Token specific configuration
 ----------------------------
