@@ -26,15 +26,16 @@ Astronomy Department of the University of Geneva, Chemin d'Ecogia 16, CH-1290 Ve
 Jobs updates with messages on matrix
 -----------------------------------------------
 
-It is now possible to receive update messages regarding the status of the jobs submitted on the mmoda platform. An emailing system is already provided out-of-the-box, provided that a token is used (this contains the user email address to which the updates will be sent, along with a number of other configurations, more details [here](interfaces.md#user-tokens)).
+It is possible to receive update messages regarding the status of the jobs submitted on the mmoda platform. An emailing system is already provided out-of-the-box, provided that a token is used (this contains the user email address to which the updates will be sent, along with a number of other configurations, more details can be found [here](interfaces.md#user-tokens)).
 
-The platform supports now also the sending of messages via the [Matrix](https://matrix.org/) platform, and a dedicated messaging bot (__@mmoda-bot__) is available for receiving jobs updates messages.
+The platform now supports also the sending of messages via the [Matrix](https://matrix.org/) platform, and a dedicated messaging bot (__@mmoda-bot__) is available for receiving jobs updates.
 
-All communication over Matrix happens within a **room**: for this reason, one must be configured.
+All communication over Matrix happens within a **room**: for this reason, in order to receive jobs updates, one must be configured.
 
 Two options are possible:
+
 * _**shared room**_: a room where multiple users can participate.  
-* _**direct message room**_: where the messages are directly sent and received, to and from a particular user.
+* _**direct message room**_: a room where the messages are directly sent and received, to and from a particular user.
 
 Obviously, an account on the matrix platform is necessary. In addition, a number of configuration steps are necessary, either on the token as well as on the matrix user account.
 
@@ -54,25 +55,27 @@ Within the element client:
 </div>
 <br clear="left"/>
 
-* Invite @mmoda-bot to the room created in the previous step
+* Invite the __@mmoda-bot__ user to the room created in the previous step
 <div align="center">
 <img align="center" src="readme_imgs/img_2.png" width ="45%">
 <img align="center" src="readme_imgs/img_3.png" width ="45%">
 </div>
 <br clear="left"/>
 
-* @mmoda-bot will then have to join the room (as stated within the [client-server-api](https://spec.matrix.org/latest/client-server-api/#room-membership)), and this will be automatically performed by the dispatcher.
+* __@mmoda-bot__ will then have to join the room (as stated within the [client-server-api](https://spec.matrix.org/latest/client-server-api/#room-membership)), and this will be automatically performed by the dispatcher.
 
-An example of a message is in the image below:
+Once a job is started, and the previous steps have been followed, the __@mmoda-bot__ will send updates regarding the state of the job.
+
+An example of a message can be seen the image below:
 
 ![img.png](readme_imgs/img_matrix_msg_example.png)
 
-Token specific configuration
-----------------------------
+### Token specific configuration
 
-Within the token, some configuration are user-specific (and mandatory), whereas others are optional, and if not provided, a set of default values will be provided within the dispatcher configuration:
+Within the token, some configuration are user-specific (and mandatory), whereas others are optional, and if not provided, a set of default values will be available within the dispatcher configuration:
 
-* `mxroomid` (user-specific): id of the room to where the messages should be sent (can be a room for direct messages, or a room used specifically for the purpose of mmoda messages)
+* `mxroomid` (user-specific): id of the room to where the messages should be sent (can be a room for direct messages, or a room used specifically for the purpose of mmoda messages). Using the element client, this can be found within the settings of the room itself, as visualized within the image below:
+
 
 For more detailed information regarding the other options, a dedicated section is available [here](interfaces.md#user-tokens).   
 
