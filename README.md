@@ -57,7 +57,7 @@ Within the element client:
 * Invite @mmoda-bot to the room created in the previous step
 <div align="center">
 <img align="center" src="readme_imgs/img_2.png" width ="45%">
-<img align="center" src="readme_imgs/img_3.png"  width ="45%">
+<img align="center" src="readme_imgs/img_3.png" width ="45%">
 </div>
 <br clear="left"/>
 
@@ -70,7 +70,7 @@ An example of a message is in the image below:
 Token specific configuration
 ----------------------------
 
-Within the token:
+Within the token, some configuration are user-specific (and mandatory), whereas others are optional, and if not provided, a set of default values will be provided within the dispatcher configuration:
 
 * `mxroomid` id of the room to where the messages should be sent (can be a room for direct messages, or a room used specifically for the purpose of mmoda messages)
 
