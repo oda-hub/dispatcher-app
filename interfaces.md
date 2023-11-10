@@ -93,28 +93,40 @@ Example, showing minimal required set of fields in token payload:
   "msfail": true,
   "mxdone": true,
   "mxintsub": 1800,
-  "mxroomid": "!HrPEWeAGfzSDyXVBqr:matrix.org",
+  "mxroomid": "!abcdefghi123456789:matrix.org",
   "mxstout": true,
   "mxsub": true,
-  "tmx": 1800
+  "tmx": 1800,
+  "mxfail": true
 }
 ```
 
 Where "sub" field is unique user identified, defined as email. In some cases, email may be passed
 
 
-| Description | token field | drupal field |
-| :--  | :-- | :-- |
-| email |  sub or email   | ? | 
-| full name |  name   | ? | 
-| roles, coma-separated | roles |  ? |
-| expiration | exp | ? |
-| issued-at | iat | ? |
-| issued-dy | iss | none |
-| audience, issued-for | aud | none |
-| email timeout | tem | none |
-| email sent upon completion of a request that sxceeded the established timeout| mstout | none |
-| email sent once a query has been submitted | mssub | none |
+| Description                                                                            | token field  | drupal field |
+|:---------------------------------------------------------------------------------------|:-------------| :-- |
+| email                                                                                  | sub or email | ? | 
+| full name                                                                              | name         | ? | 
+| roles, coma-separated                                                                  | roles        |  ? |
+| expiration                                                                             | exp          | ? |
+| issued-at                                                                              | iat          | ? |
+| issued-dy                                                                              | iss          | none |
+| audience, issued-for                                                                   | aud          | none |
+| email timeout for completed message                                                    | tem          | none |
+| email timeout from last email sent                                                     | intsub       | none |
+| email sent upon completion of a request that suceeded the established timeout          | mstout       | none |
+| email sent once a query has been submitted                                             | mssub        | none |
+| email sent once a query has completed                                                  | msdone       | none |
+| email sent once a query has failed                                                     | msfail       | none |
+| matrix room id                                                                         | mxroomid     | none |
+| matrix message timeout from last matrix message sent                                   | mxintsub     | none |
+| matrix message timeout for completed message                                           | tmx          | none |
+| matrix message sent upon completion of a request that suceeded the established timeout | mxstout      | none |
+| matrix message sent once a query has been submitted                                    | mxsub        | none |
+| matrix message sent once a query has completed                                         | mxdone       | none |
+| matrix message sent once a query has failed                                            | mxfail       | none |
+
 
 Specific sites may specify more roles, as needed.
 
