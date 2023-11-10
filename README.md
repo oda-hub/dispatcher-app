@@ -26,29 +26,24 @@ Astronomy Department of the University of Geneva, Chemin d'Ecogia 16, CH-1290 Ve
 Jobs updates with messages on matrix
 -----------------------------------------------
 
-In order to receive update messages regarding the status of the jobs submitted on the mmoda platform, 
-an emailing system is already provided out-of-the-box, provided that a token used 
-(this contains the user email address to which the updates will be sent).
+It is now possible to receive update messages regarding the status of the jobs submitted on the mmoda platform. An emailing system is already provided out-of-the-box, provided that a token is used (this contains the user email address to which the updates will be sent, along with a number of other configurations, more details [here](interfaces.md#user-tokens).
 
-The platform supports now also the sending of messages via the [Matrix](https://matrix.org/) platform.
+The platform supports now also the sending of messages via the [Matrix](https://matrix.org/) platform, and a dedicated messaging bot (__@mmoda-bot__) is available for receiving jobs updates messages.
 
-All communication over Matrix happens within a room: for this reason, one must be configured 
-in order to receive the desired messages.
+All communication over Matrix happens within a **room**: for this reason, one must be configured.
 
 Two options are possible:
-* direct message room: where the messages are directly sento to a particular user
-* shared room: a dedicated room used for messages related to the jobs updates  
+* _**shared room**_: a room where multiple users can participate.  
+* _**direct message room**_: where the messages are directly sent and received, to and from a particular user.
 
-To enable those, a number of configuration steps are necessary, either on the token as well as on the matrix user account.
+Obviously, an account on the matrix platform is necessary. In addition, a number of configuration steps are necessary, either on the token as well as on the matrix user account.
 
-For the purpose of this documentation, the matrix client element will be used (https://element.io/).
+For the purpose of this documentation, the matrix client **element** will be used (https://element.io/).
 
-Token specific configuration
+Matrix account configuration
 ----------------------------
 
-Within the token:
-
-* `mxroomid` id of the room to where the messages should be sent (can be a room for direct messages, or a room used specifically for the purpose of mmoda messages)
+### Configuration of a shared room
 
 Within the element client:
 * Create a dedicated room 
@@ -65,6 +60,12 @@ Within the element client:
 <img align="center" src="readme_imgs/img_3.png"  width ="45%">
 </div>
 
-* @mmoda-bot has to join the room (as stated within the [client-server-api](https://spec.matrix.org/latest/client-server-api/#room-membership)), 
-and this will be automatically performed by the dispatcher 
-<!-- (TODO extend the code to support automatic joining) --> 
+* @mmoda-bot will then have to join the room (as stated within the [client-server-api](https://spec.matrix.org/latest/client-server-api/#room-membership)), and this will be automatically performed by the dispatcher.
+
+Token specific configuration
+----------------------------
+
+Within the token:
+
+* `mxroomid` id of the room to where the messages should be sent (can be a room for direct messages, or a room used specifically for the purpose of mmoda messages)
+
