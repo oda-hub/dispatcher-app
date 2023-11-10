@@ -72,5 +72,7 @@ Token specific configuration
 
 Within the token, some configuration are user-specific (and mandatory), whereas others are optional, and if not provided, a set of default values will be provided within the dispatcher configuration:
 
-* `mxroomid` id of the room to where the messages should be sent (can be a room for direct messages, or a room used specifically for the purpose of mmoda messages)
+* `mxroomid` (user-specific): id of the room to where the messages should be sent (can be a room for direct messages, or a room used specifically for the purpose of mmoda messages)
+
+For more detailed information regarding the other options, a dedicated section is available [here](interfaces.md#user-tokens).   
 
