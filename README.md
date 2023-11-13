@@ -32,14 +32,14 @@ The platform now supports also the sending of messages via the [Matrix](https://
 
 All communication over Matrix happens within a **room**: for this reason, in order to receive jobs updates, one must be configured.
 
-Two options are possible:
+[//]: # (Two options are possible:)
+[//]: # ()
+[//]: # (* _**shared room**_: a room where multiple users can participate.)
+[//]: # (* _**direct message room**_: a room where the messages are directly sent and received, to and from a particular user.)
+[//]: # (> **NOTE**)
+[//]: # (> This feature is not supported yet)
 
-* _**shared room**_: a room where multiple users can participate.
-* _**direct message room**_: a room where the messages are directly sent and received, to and from a particular user.
-> **NOTE**
-> This feature is not supported yet
-
-Obviously, an account on the matrix platform is necessary. In addition, a number of configuration steps are necessary, either on the token as well as on the matrix user account.
+Finally, an account on the matrix platform is necessary. In addition, a number of configuration steps are necessary, either on the token as well as on the matrix user account.
 
 For the purpose of this documentation, the matrix client **element** will be used (https://element.io/).
 
