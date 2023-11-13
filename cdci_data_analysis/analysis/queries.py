@@ -580,14 +580,10 @@ class ProductQuery(BaseQuery):
                 else:
                     job.set_submitted()
 
-                if return_progress:
+                if return_progress or (not return_progress and job.status == 'done'):
                     prod_list = self.build_product_list(instrument, res, scratch_dir, api=api)
                 else:
-                    if job.status != 'done':
-                        prod_list = QueryProductList(prod_list=[], job=job)
-                    else:
-                        prod_list = self.build_product_list(instrument,res, scratch_dir,api=api)
-
+                    prod_list = QueryProductList(prod_list=[], job=job)
 
                 self.query_prod_list=QueryProductList(prod_list=prod_list,job=job)
 
