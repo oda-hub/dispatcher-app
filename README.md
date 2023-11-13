@@ -76,6 +76,14 @@ Within the token, some configuration are user-specific (and mandatory), whereas 
 
 * `mxroomid` (user-specific): id of the room to where the messages should be sent (can be a room for direct messages, or a room used specifically for the purpose of mmoda messages). Using the element client, this can be found within the settings of the room itself, as visualized within the image below:
 ![img.png](readme_imgs/img_room_id.png)
-
+  For add or update the token with the id of a certain room, the CLI from the `oda-api` provide a dedicated command:
+    ```bash
+    oda-api token --matrix-room-id test_room_id:matrix.org
+    ```
+  It is also possible to disable the reception of messages via matrix with the following command:
+    ```bash
+    oda-api token --disable-matrix
+    ```
+    
 For more detailed information regarding the other options, a dedicated section is available [here](interfaces.md#user-tokens).   
 
