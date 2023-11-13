@@ -34,8 +34,10 @@ All communication over Matrix happens within a **room**: for this reason, in ord
 
 Two options are possible:
 
-* _**shared room**_: a room where multiple users can participate.  
+* _**shared room**_: a room where multiple users can participate.
 * _**direct message room**_: a room where the messages are directly sent and received, to and from a particular user.
+> **NOTE**
+> This feature is not supported yet
 
 Obviously, an account on the matrix platform is necessary. In addition, a number of configuration steps are necessary, either on the token as well as on the matrix user account.
 
