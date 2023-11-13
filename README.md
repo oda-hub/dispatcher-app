@@ -78,11 +78,14 @@ Within the token, some configuration are user-specific (and mandatory), whereas 
 ![img.png](readme_imgs/img_room_id.png)
   For add or update the token with the id of a certain room, the CLI from the `oda-api` provide a dedicated command:
     ```bash
-    oda-api token --matrix-room-id test_room_id:matrix.org
+    oda-api token -s SECRET_KEY --matrix-room-id test_room_id:matrix.org
     ```
+  
+  Where `SECRET_KEY` refers to the secret key used to encode and decode the token.     
+
   It is also possible to disable the reception of messages via matrix with the following command:
     ```bash
-    oda-api token --disable-matrix
+    oda-api token -s SECRET_KEY --disable-matrix
     ```
     
 For more detailed information regarding the other options, a dedicated section is available [here](interfaces.md#user-tokens).   
