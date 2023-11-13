@@ -28,7 +28,7 @@ Jobs updates with messages on matrix
 
 It is possible to receive update messages regarding the status of the jobs submitted on the mmoda platform. An emailing system is already provided out-of-the-box, provided that a token is used (this contains the user email address to which the updates will be sent, along with a number of other configurations, more details can be found [here](interfaces.md#user-tokens)).
 
-The platform now supports also the sending of messages via the [Matrix](https://matrix.org/) platform, and a dedicated messaging bot (__@mmoda-bot__) is available for receiving jobs updates.
+The platform now supports also the sending of messages via the [Matrix](https://matrix.org/) platform, and a dedicated messaging bot (__@mmoda-bot__) is available for sending jobs updates.
 
 All communication over Matrix happens within a **room**: for this reason, in order to receive jobs updates, one must be configured.
 
@@ -39,7 +39,7 @@ All communication over Matrix happens within a **room**: for this reason, in ord
 [//]: # (> **NOTE**)
 [//]: # (> This feature is not supported yet)
 
-Finally, an account on the matrix platform is necessary. In addition, a number of configuration steps are necessary, either on the token as well as on the matrix user account.
+Obviously, an account on the matrix platform is necessary. In addition, a number of configuration steps are necessary, either on the **_token_** as well as on the _**matrix user account**_.
 
 For the purpose of this documentation, the matrix client **element** will be used (https://element.io/).
 
@@ -76,14 +76,14 @@ An example of a message can be seen the image below:
 
 Within the token, some configuration are user-specific (and mandatory), whereas others are optional, and if not provided, a set of default values will be available within the dispatcher configuration:
 
-* `mxroomid` (user-specific): id of the room to where the messages should be sent (can be a room for direct messages, or a room used specifically for the purpose of mmoda messages). Using the element client, this can be found within the settings of the room itself, as visualized within the image below:
+* `mxroomid` (user-specific): id of the room to where the messages should be sent. Using the element client, this can be found within the settings of the room itself, as visualized within the image below:
 ![img.png](readme_imgs/img_room_id.png)
   For add or update the token with the id of a certain room, the CLI from the `oda-api` provide a dedicated command:
     ```bash
     oda-api token -s SECRET_KEY --matrix-room-id test_room_id:matrix.org
     ```
   
-  Where `SECRET_KEY` refers to the secret key used to encode and decode the token.     
+  Where `SECRET_KEY` refers to the secret key used to encode and decode the token within the mmoda platform.     
 
   It is also possible to disable the reception of messages via matrix with the following command:
     ```bash
