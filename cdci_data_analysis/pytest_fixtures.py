@@ -325,6 +325,34 @@ def dispatcher_local_matrix_message_server(dispatcher_test_conf_with_matrix_opti
             self.matrix_sender_access_token = matrix_sender_access_token
             self.room_id = self.create_room()
 
+
+        def invite_to_room(self,
+                           room_id=None,
+                           user_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']):
+
+            if room_id is None:
+                room_id = self.room_id
+
+            url = os.path.join(self.matrix_server_url, f'_matrix/client/v3/rooms/{room_id}/invite')
+            headers = {
+                'Authorization': ' '.join(['Bearer', self.matrix_sender_access_token]),
+                'Content-type': 'application/json'
+            }
+
+            room_data = {
+                'reason': 'test',
+                'user_id': user_id
+            }
+
+            res = requests.post(url, json=room_data, headers=headers)
+
+            if res.status_code == 200:
+                res_content = res.json()
+                if res_content == {}:
+                    return True
+
+            return False
+
         def create_room(self):
             url = os.path.join(self.matrix_server_url, f'_matrix/client/v3/createRoom')
             headers = {
@@ -399,8 +427,11 @@ def dispatcher_local_matrix_message_server(dispatcher_test_conf_with_matrix_opti
 
     matrix_message_controller = MatrixMessageController(
         matrix_server_url=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_server_url'],
-        matrix_sender_access_token=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']
+        matrix_sender_access_token=os.getenv("MATRIX_CREATOR_ACCESS_TOKEN", dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token'])
     )
+    matrix_message_controller.invite_to_room(
+        room_id=os.getenv("MATRIX_INCIDENT_REPORT_RECEIVER_ROOM_ID", matrix_message_controller.room_id),
+        user_id=os.getenv("MATRIX_INVITEE_USER_ID", dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']))
     yield matrix_message_controller
     matrix_message_controller.leave_room()
     matrix_message_controller.forget_room()
@@ -557,7 +588,7 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
             f.write(f_default.read())
 
         f.write('\n    product_gallery_options:'
-                '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/galleryd"'
+                '\n        product_gallery_url: "http://cdciweb02.astro.unige.ch/mmoda/galleryd"'
                 f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"'
                 '\n        product_gallery_timezone: "Europe/Zurich"'
                 '\n        name_resolver_url: "https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}"'
@@ -595,6 +626,10 @@ def dispatcher_test_conf_with_matrix_options_fn(dispatcher_test_conf_fn):
 def dispatcher_no_bcc_matrix_room_ids(monkeypatch):
     monkeypatch.delenv('MATRIX_CC_RECEIVER_ROOM_ID', raising=False)
 
+@pytest.fixture
+def dispatcher_no_invitee_user_id(monkeypatch):
+    monkeypatch.delenv('MATRIX_INVITEE_USER_ID', raising=False)
+
 
 @pytest.fixture
 def dispatcher_test_conf_with_gallery_no_resolver_fn(dispatcher_test_conf_fn):
@@ -605,7 +640,7 @@ def dispatcher_test_conf_with_gallery_no_resolver_fn(dispatcher_test_conf_fn):
             f.write(f_default.read())
 
         f.write('\n    product_gallery_options:'
-                '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/galleryd"'
+                '\n        product_gallery_url: "http://cdciweb02.astro.unige.ch/mmoda/galleryd"'
                 '\n        product_gallery_timezone: "Europe/Zurich"'
                 f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"')
 
