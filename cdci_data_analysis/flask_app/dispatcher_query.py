@@ -1731,7 +1731,8 @@ class InstrumentQueryBackEnd:
                                          verbose=verbose,
                                          dry_run=dry_run,
                                          api=api,
-                                         decoded_token=self.decoded_token)
+                                         decoded_token=self.decoded_token,
+                                         return_progress=self.return_progress)
 
 
     def send_query_new_status_email(self,
