@@ -1686,3 +1686,82 @@ def test_matrix_message_run_analysis_callback_no_room_ids(dispatcher_no_bcc_matr
                 dispatcher_live_fixture=server,
                 require_reference_matrix_message=True
             )
+
+
+def test_matrix_message_very_long_request_url(dispatcher_live_fixture_with_matrix_options,
+                                              dispatcher_local_matrix_message_server):
+
+    server = dispatcher_live_fixture_with_matrix_options
+    DataServerQuery.set_status('submitted')
+    DispatcherJobState.remove_scratch_folders()
+
+     # let's generate a valid token with high threshold
+    token_payload = {**default_token_payload,
+                     "tmx": 0,
+                     "tem": 0,
+                     "mxstout": True,
+                     "mxintsub": 5,
+                     "mxsub": True,
+                     "mssub": False,
+                     "msdone": False,
+                     "msfail": False,
+                     "mxroomid": dispatcher_local_matrix_message_server.room_id
+                     }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    # set the time the request was initiated
+    time_request = time.time()
+
+    dict_param = dict(
+         query_status="new",
+         query_type="Real",
+         instrument="empty-async",
+         product_type="numerical",
+         token=encoded_token,
+         time_request=time_request
+    )
+
+    catalog_object_dict = DispatcherJobState.create_catalog_object()
+    dict_param['selected_catalog'] = json.dumps(catalog_object_dict)
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     params=dict_param)
+
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+
+    jdata = c.json()
+    session_id = jdata['session_id']
+    job_id = jdata['job_monitor']['job_id']
+#
+    assert 'matrix_message_status' in jdata['exit_status']
+    assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
+#     # set the time the request was initiated
+#     time_request = jdata['time_request']
+#     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
+#
+#
+#
+#     short_url = DispatcherJobState.get_expected_products_url(dict_param, session_id=session_id, job_id=job_id, token=encoded_token)
+#
+#     if short_url != "":
+#         assert short_url in email_data
+#         url = short_url.replace('PRODUCTS_URL/dispatch-data', server)
+#
+#         print("url", url)
+#
+#         c = requests.get(url, allow_redirects=False)
+#
+#         assert c.status_code == 302, json.dumps(c.json(), sort_keys=True, indent=4)
+#
+#         redirect_url = parse.urlparse(c.headers['Location'])
+#         print(redirect_url)
+#
+#         # TODO: complete this
+#         # compressed = "z%3A" + base64.b64encode(zlib.compress(json.dumps(name_parameter_value).encode())).decode()
+#         # assert compressed in email_data
+#     else:
+#         assert """You can retrieve the results by repeating the request.
+# Unfortunately, due to a known issue with very large requests, a URL with the selected request parameters could not be generated.
+# This might be fixed in a future release.""" in email_data
