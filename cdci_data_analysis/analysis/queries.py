@@ -577,6 +577,8 @@ class ProductQuery(BaseQuery):
                     job.set_done()
                 elif job_status == 'failed':
                     job.set_failed()
+                elif job_status == 'progress':
+                    job.set_progress()
                 else:
                     job.set_submitted()
 

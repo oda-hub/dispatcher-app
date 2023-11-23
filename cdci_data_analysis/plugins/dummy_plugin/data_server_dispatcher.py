@@ -109,6 +109,12 @@ class DataServerQuery:
                                job_status='submitted',
                                comment="mock comment",
                                warning="mock warning")
+        if status == "progress":
+            query_out.set_done(message="job progress mock",
+                               debug_message="no message really",
+                               job_status='progress',
+                               comment="mock comment",
+                               warning="mock warning")
         elif status == "done":
             query_out.set_done(message="job done mock",
                                debug_message="no message really",
@@ -121,6 +127,42 @@ class DataServerQuery:
                                  job_status='failed')
         else:
             NotImplementedError
+
+
+        return None, query_out
+
+
+class DataServerLogSubmitQuery(DataServerQuery):
+
+    def run_query(self, *args, **kwargs):
+        logger.warn('fake run_query in %s with %s, %s', self, args, kwargs)
+
+        query_out = QueryOutput()
+
+        current_status = self.get_status()
+
+        if current_status == '':
+            # request sent to the backend
+            self.set_status("submitted")
+            query_out.set_done(message="job submitted mock",
+                               debug_message="no message really",
+                               job_status="submitted",
+                               comment="mock comment",
+                               warning="mock warning")
+
+        elif current_status == "submitted":
+            query_out.set_done(message="job submitted mock",
+                               debug_message="no message really",
+                               job_status='submitted',
+                               comment="mock comment",
+                               warning="mock warning")
+
+        elif current_status == "done":
+            query_out.set_done(message="job done mock",
+                               debug_message="no message really",
+                               job_status='done',
+                               comment="mock comment",
+                               warning="mock warning")
 
 
         return None, query_out
@@ -309,6 +351,14 @@ class EmptyProductQuery(ProductQuery):
         # return True
         results = dict(authorization=True, needed_roles=[])
         return results
+
+
+class EmptyLogSubmitProductQuery(EmptyProductQuery):
+
+    def get_data_server_query(self, instrument: Instrument, config=None):
+        q = DataServerLogSubmitQuery()
+        self.input_param_scw_list = instrument.get_par_by_name('scw_list').value
+        return q
 
 
 class FailingProductQuery(EmptyProductQuery):

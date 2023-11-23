@@ -377,7 +377,6 @@ class Instrument:
 
     def run_query(self, product_type,
                   par_dic,
-                  request,
                   back_end_query,
                   job,
                   run_asynch,
