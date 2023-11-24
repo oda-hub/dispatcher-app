@@ -8,6 +8,9 @@ import logging
 import re
 import glob
 
+from urllib import parse
+
+from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask
 from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
 
@@ -26,6 +29,27 @@ default_token_payload = dict(
     mxsub=True,
     mxintsub=5
 )
+
+
+def validate_catalog_matrix_message_content(message_record,
+                                            products_url=None,
+                                            dispatcher_live_fixture=None
+                                            ):
+
+    extracted_api_code = DispatcherJobState.extract_api_code_from_text(message_record['content']['formatted_body'])
+    assert 'selected_catalog' in extracted_api_code
+
+    extracted_product_url = DispatcherJobState.extract_products_url(message_record['content']['formatted_body'])
+    if products_url is not None:
+        assert products_url == extracted_product_url
+
+    if 'resolve' in extracted_product_url:
+        print("need to resolve this:", extracted_product_url)
+        extracted_product_url = DispatcherJobState.validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
+
+    if extracted_product_url is not None and extracted_product_url != '':
+        extracted_parsed = parse.urlparse(extracted_product_url)
+        assert 'selected_catalog' in parse.parse_qs(extracted_parsed.query)
 
 
 def validate_matrix_message_content(
@@ -1688,14 +1712,19 @@ def test_matrix_message_run_analysis_callback_no_room_ids(dispatcher_no_bcc_matr
             )
 
 
-def test_matrix_message_very_long_request_url(dispatcher_live_fixture_with_matrix_options,
-                                              dispatcher_local_matrix_message_server):
-
-    server = dispatcher_live_fixture_with_matrix_options
-    DataServerQuery.set_status('submitted')
+@pytest.mark.not_safe_parallel
+@pytest.mark.test_catalog
+@pytest.mark.parametrize("catalog_passage", ['file', 'params'])
+def test_matrix_message_catalog(dispatcher_live_fixture_with_matrix_options,
+                                dispatcher_local_matrix_message_server,
+                                catalog_passage
+                                ):
     DispatcherJobState.remove_scratch_folders()
 
-     # let's generate a valid token with high threshold
+    server = dispatcher_live_fixture_with_matrix_options
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
     token_payload = {**default_token_payload,
                      "tmx": 0,
                      "tem": 0,
@@ -1709,59 +1738,65 @@ def test_matrix_message_very_long_request_url(dispatcher_live_fixture_with_matri
                      }
 
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-    # set the time the request was initiated
-    time_request = time.time()
+    list_file = None
+    list_file_content = None
+    catalog_object_dict = dict()
 
-    dict_param = dict(
-         query_status="new",
-         query_type="Real",
-         instrument="empty-async",
-         product_type="numerical",
-         token=encoded_token,
-         time_request=time_request
-    )
+    # setting params
+    params = {
+        'query_status': "new",
+        'product_type': 'dummy',
+        'query_type': "Real",
+        'instrument': 'empty-async',
+        'token': encoded_token
+    }
 
-    catalog_object_dict = DispatcherJobState.create_catalog_object()
-    dict_param['selected_catalog'] = json.dumps(catalog_object_dict)
+    if catalog_passage == 'file':
+        file_path = DispatcherJobState.create_catalog_file(catalog_value=5)
+        list_file = open(file_path)
+        list_file_content = list_file.read()
+        catalog_object_dict = BasicCatalog.from_file(file_path).get_dictionary()
+    elif catalog_passage == 'params':
+        catalog_object_dict = DispatcherJobState.create_catalog_object()
+        params['selected_catalog'] = json.dumps(catalog_object_dict)
 
-    c = requests.get(os.path.join(server, "run_analysis"),
-                     params=dict_param)
+    jdata = ask(server,
+                params,
+                expected_query_status=["submitted"],
+                max_time_s=150,
+                method='post',
+                files={"user_catalog_file": list_file_content}
+                )
 
-    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+    if list_file is not None:
+        list_file.close()
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    params['selected_catalog'] = json.dumps(catalog_object_dict),
 
-    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+    completed_dict_param = {**params,
+                            'src_name': '1E 1740.7-2942',
+                            'RA': 265.97845833,
+                            'DEC': -29.74516667,
+                            'T1': '2017-03-06T13:26:48.000',
+                            'T2': '2017-03-06T15:32:27.000',
+                            }
 
-    jdata = c.json()
-    session_id = jdata['session_id']
-    job_id = jdata['job_monitor']['job_id']
-#
+    products_url = DispatcherJobState.get_expected_products_url(completed_dict_param,
+                                                                session_id=dispatcher_job_state.session_id,
+                                                                job_id=dispatcher_job_state.job_id,
+                                                                token=encoded_token)
+
     assert 'matrix_message_status' in jdata['exit_status']
     assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
-#     # set the time the request was initiated
-#     time_request = jdata['time_request']
-#     time_request_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(time_request)))
-#
-#
-#
-#     short_url = DispatcherJobState.get_expected_products_url(dict_param, session_id=session_id, job_id=job_id, token=encoded_token)
-#
-#     if short_url != "":
-#         assert short_url in email_data
-#         url = short_url.replace('PRODUCTS_URL/dispatch-data', server)
-#
-#         print("url", url)
-#
-#         c = requests.get(url, allow_redirects=False)
-#
-#         assert c.status_code == 302, json.dumps(c.json(), sort_keys=True, indent=4)
-#
-#         redirect_url = parse.urlparse(c.headers['Location'])
-#         print(redirect_url)
-#
-#         # TODO: complete this
-#         # compressed = "z%3A" + base64.b64encode(zlib.compress(json.dumps(name_parameter_value).encode())).decode()
-#         # assert compressed in email_data
-#     else:
-#         assert """You can retrieve the results by repeating the request.
-# Unfortunately, due to a known issue with very large requests, a URL with the selected request parameters could not be generated.
-# This might be fixed in a future release.""" in email_data
+    assert 'matrix_message_status_details' in jdata['exit_status']
+    matrix_message_status_details_obj = json.loads(jdata['exit_status']['matrix_message_status_details'])
+    assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
+    matrix_user_message_event_id = matrix_message_status_details_obj['res_content']['res_content_token_user']['event_id']
+
+    # email validation
+    validate_catalog_matrix_message_content(
+        message_record=dispatcher_local_matrix_message_server.get_matrix_message_record(
+            room_id=token_payload['mxroomid'],
+            event_id=matrix_user_message_event_id),
+        products_url=products_url,
+        dispatcher_live_fixture=server)
