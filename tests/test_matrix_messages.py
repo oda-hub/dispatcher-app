@@ -1712,6 +1712,7 @@ def test_matrix_message_run_analysis_callback_no_room_ids(dispatcher_no_bcc_matr
             )
 
 
+@pytest.mark.test_matrix
 @pytest.mark.not_safe_parallel
 @pytest.mark.test_catalog
 @pytest.mark.parametrize("catalog_passage", ['file', 'params'])
