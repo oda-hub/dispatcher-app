@@ -1294,6 +1294,29 @@ class DispatcherJobState:
             return ''
 
     @staticmethod
+    def validate_resolve_url(url, server):
+        print("need to resolve this:", url)
+
+        r = requests.get(url.replace('PRODUCTS_URL/dispatch-data', server))
+
+        # parameters could be overwritten in resolve; this never happens intentionally and is not dangerous
+        # but prevented for clarity
+        alt_scw_list = ['066400220010.001', '066400230010.001']
+        r_alt = requests.get(url.replace('PRODUCTS_URL/dispatch-data', server),
+                             params={'scw_list': alt_scw_list},
+                             allow_redirects=False)
+        assert r_alt.status_code == 302
+        redirect_url = parse.urlparse(r_alt.headers['Location'])
+        assert 'error_message' in parse.parse_qs(redirect_url.query)
+        assert 'status_code' in parse.parse_qs(redirect_url.query)
+        extracted_error_message = parse.parse_qs(redirect_url.query)['error_message'][0]
+        assert extracted_error_message == "found unexpected parameters: ['scw_list'], expected only and only these ['job_id', 'session_id', 'token']"
+
+        url = r.url
+        print("resolved url: ", url)
+        return url
+
+    @staticmethod
     def get_expected_products_url(dict_param,
                               session_id,
                               token,
