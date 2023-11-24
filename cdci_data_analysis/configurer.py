@@ -227,6 +227,7 @@ class ConfigEnv(object):
                                      disp_dict['dispatcher_callback_url_base'],
                                      disp_dict['secret_key'],
                                      disp_dict.get('token_max_refresh_interval', 604800),
+                                     disp_dict.get('resubmit_timeout', 1800),
                                      disp_dict.get('soft_minimum_folder_age_days', 5),
                                      disp_dict.get('hard_minimum_folder_age_days', 30),
                                      disp_dict['email_options']['smtp_server'],
@@ -305,6 +306,7 @@ class ConfigEnv(object):
                             dispatcher_callback_url_base,
                             secret_key,
                             token_max_refresh_interval,
+                            resubmit_timeout,
                             soft_minimum_folder_age_days,
                             hard_minimum_folder_age_days,
                             smtp_server,
@@ -355,6 +357,7 @@ class ConfigEnv(object):
         self.dispatcher_callback_url_base = dispatcher_callback_url_base
         self.secret_key = secret_key
         self.token_max_refresh_interval = token_max_refresh_interval
+        self.resubmit_timeout = resubmit_timeout
         self.soft_minimum_folder_age_days = soft_minimum_folder_age_days
         self.hard_minimum_folder_age_days = hard_minimum_folder_age_days
         self.smtp_server = smtp_server
