@@ -173,29 +173,6 @@ def store_email(email_html, **email_args):
     return fn
 
 
-def validate_resolve_url(url, server):
-    print("need to resolve this:", url)
-
-    r = requests.get(url.replace('PRODUCTS_URL/dispatch-data', server))
-
-    # parameters could be overwritten in resolve; this never happens intentionally and is not dangerous
-    # but prevented for clarity
-    alt_scw_list = ['066400220010.001', '066400230010.001']
-    r_alt = requests.get(url.replace('PRODUCTS_URL/dispatch-data', server),
-                         params={'scw_list': alt_scw_list},
-                         allow_redirects=False)
-    assert r_alt.status_code == 302
-    redirect_url = parse.urlparse(r_alt.headers['Location'])
-    assert 'error_message' in parse_qs(redirect_url.query)
-    assert 'status_code' in parse_qs(redirect_url.query)
-    extracted_error_message = parse_qs(redirect_url.query)['error_message'][0]
-    assert extracted_error_message == "found unexpected parameters: ['scw_list'], expected only and only these ['job_id', 'session_id', 'token']"
-
-    url = r.url
-    print("resolved url: ", url)
-    return url
-
-
 def validate_scw_list_email_content(message_record,
                                     scw_list,
                                     request_params=None,
@@ -219,7 +196,7 @@ def validate_scw_list_email_content(message_record,
 
             if 'resolve' in extracted_product_url:
                 print("need to resolve this:", extracted_product_url)
-                extracted_product_url = validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
+                extracted_product_url = DispatcherJobState.validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
 
             # verify product url contains the use_scws parameter for the frontend
             extracted_parsed = parse.urlparse(extracted_product_url)
@@ -249,7 +226,7 @@ def validate_catalog_email_content(message_record,
 
             if 'resolve' in extracted_product_url:
                 print("need to resolve this:", extracted_product_url)
-                extracted_product_url = validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
+                extracted_product_url = DispatcherJobState.validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
 
             if extracted_product_url is not None and extracted_product_url != '':
                 extracted_parsed = parse.urlparse(extracted_product_url)
