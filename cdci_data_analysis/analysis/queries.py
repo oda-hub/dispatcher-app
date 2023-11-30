@@ -560,7 +560,7 @@ class ProductQuery(BaseQuery):
                 q = self.get_data_server_query(instrument,config)
 
                 if return_progress:
-                    res, data_server_query_out = q.get_progress_run()
+                    res, data_server_query_out = q.get_progress_run(call_back_url=call_back_url, run_asynch=run_asynch, logger=logger)
                 else:
                     call_back_url = job.get_call_back_url()
                     logger.info(f"about to perform run_query from get_query_products. call_back_url: {call_back_url}, run_asynch: {run_asynch}")
