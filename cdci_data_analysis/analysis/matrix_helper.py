@@ -1,3 +1,4 @@
+import html
 import time as time_
 import os
 import requests
@@ -7,7 +8,7 @@ import re
 import typing
 
 from ..analysis import tokenHelper
-from ..analysis.email_helper import humanize_age, humanize_future
+from ..analysis.email_helper import humanize_age, humanize_future, wrap_python_code
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
 from ..analysis.hash import make_hash
 from ..analysis.time_helper import validate_time
@@ -216,6 +217,10 @@ def send_job_message(
     receiver_room_id = tokenHelper.get_token_user_matrix_room_id(decoded_token)
 
     bcc_receivers_room_ids = config.matrix_bcc_receivers_room_ids
+
+    api_code = html.escape(api_code, quote=False)
+
+    api_code = wrap_python_code(api_code)
 
     matrix_message_data = {
         'oda_site': {

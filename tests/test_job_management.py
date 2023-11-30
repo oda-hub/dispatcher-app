@@ -173,29 +173,6 @@ def store_email(email_html, **email_args):
     return fn
 
 
-def validate_resolve_url(url, server):
-    print("need to resolve this:", url)
-
-    r = requests.get(url.replace('PRODUCTS_URL/dispatch-data', server))
-
-    # parameters could be overwritten in resolve; this never happens intentionally and is not dangerous
-    # but prevented for clarity
-    alt_scw_list = ['066400220010.001', '066400230010.001']
-    r_alt = requests.get(url.replace('PRODUCTS_URL/dispatch-data', server),
-                         params={'scw_list': alt_scw_list},
-                         allow_redirects=False)
-    assert r_alt.status_code == 302
-    redirect_url = parse.urlparse(r_alt.headers['Location'])
-    assert 'error_message' in parse_qs(redirect_url.query)
-    assert 'status_code' in parse_qs(redirect_url.query)
-    extracted_error_message = parse_qs(redirect_url.query)['error_message'][0]
-    assert extracted_error_message == "found unexpected parameters: ['scw_list'], expected only and only these ['job_id', 'session_id', 'token']"
-
-    url = r.url
-    print("resolved url: ", url)
-    return url
-
-
 def validate_scw_list_email_content(message_record,
                                     scw_list,
                                     request_params=None,
@@ -219,7 +196,7 @@ def validate_scw_list_email_content(message_record,
 
             if 'resolve' in extracted_product_url:
                 print("need to resolve this:", extracted_product_url)
-                extracted_product_url = validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
+                extracted_product_url = DispatcherJobState.validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
 
             # verify product url contains the use_scws parameter for the frontend
             extracted_parsed = parse.urlparse(extracted_product_url)
@@ -249,7 +226,7 @@ def validate_catalog_email_content(message_record,
 
             if 'resolve' in extracted_product_url:
                 print("need to resolve this:", extracted_product_url)
-                extracted_product_url = validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
+                extracted_product_url = DispatcherJobState.validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
 
             if extracted_product_url is not None and extracted_product_url != '':
                 extracted_parsed = parse.urlparse(extracted_product_url)
@@ -433,10 +410,85 @@ def validate_incident_email_content(
                 assert DispatcherJobState.ignore_html_patterns(reference_email) == DispatcherJobState.ignore_html_patterns(content_text_html)
 
 
+@pytest.mark.not_safe_parallel
+def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
+    server = dispatcher_live_fixture_no_resubmit_timeout
+    DispatcherJobState.remove_scratch_folders()
+    DataServerQuery.set_status('')
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    # these parameters define request content
+    base_dict_param = dict(
+        instrument="empty-async",
+        product_type="dummy-log-submit",
+        query_type="Real",
+    )
+
+    dict_param = dict(
+        query_status="new",
+        token=encoded_token,
+        **base_dict_param
+    )
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    print(json.dumps(c.json(), sort_keys=True, indent=4))
+
+    assert c.status_code == 200
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert DataServerQuery.get_status() == 'submitted'
+
+    # resubmit the job before the timeout expires
+    dict_param['job_id'] = dispatcher_job_state.job_id
+    dict_param['query_status'] = 'submitted'
+    DataServerQuery.set_status('')
+    #
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert DataServerQuery.get_status() == ''
+
+    # resubmit the job after the timeout expired
+    time.sleep(10.5)
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert DataServerQuery.get_status() == 'submitted'
+
+    # resubmit the job to get job ready
+    DataServerQuery.set_status('done')
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'ready'
+
+
 def test_validation_job_id(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     DispatcherJobState.remove_scratch_folders()
-
+    DataServerQuery.set_status('submitted')
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token

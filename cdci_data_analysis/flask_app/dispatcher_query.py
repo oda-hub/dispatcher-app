@@ -165,6 +165,7 @@ class InstrumentQueryBackEnd:
 
 
             self.client_name = self.par_dic.pop('client-name', 'unknown')
+            self.return_progress = self.par_dic.pop('return_progress', False) == 'True'
             if os.environ.get("DISPATCHER_ASYNC_ENABLED", "no") == "yes":  # TODO: move to config!
                 self.async_dispatcher = self.par_dic.pop(
                     'async_dispatcher', 'True') == 'True'  # why string true?? else false anyway
@@ -1141,6 +1142,7 @@ class InstrumentQueryBackEnd:
                     status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
                                                                         config=self.config,
                                                                         logger=self.logger)
+                    
                 # build the products URL and get also the original requested product
                 step = 'extracting the products url'
                 products_url = self.generate_products_url(self.config.products_url,
@@ -1714,6 +1716,65 @@ class InstrumentQueryBackEnd:
 
             self.config = config
 
+    def instrument_run_query(self, product_type, job, run_asynch, query_type, verbose, dry_run, api):
+
+        return self.instrument.run_query(product_type,
+                                         self.par_dic,
+                                         self,  # this will change?
+                                         job,  # this will change
+                                         run_asynch,
+                                         out_dir=self.scratch_dir,
+                                         config=self.config_data_server,
+                                         query_type=query_type,
+                                         logger=self.logger,
+                                         sentry_dsn=self.sentry_dsn,
+                                         verbose=verbose,
+                                         dry_run=dry_run,
+                                         api=api,
+                                         decoded_token=self.decoded_token,
+                                         return_progress=self.return_progress)
+
+
+    def send_query_new_status_email(self,
+                                product_type,
+                                query_new_status,
+                                time_request=None,
+                                instrument_name=None,
+                                status_details=None,
+                                arg_par_dic=None):
+        if time_request is None:
+            time_request = self.time_request
+        if instrument_name is None:
+            instrument_name = self.instrument.name
+        if arg_par_dic is None:
+            arg_par_dic = self.par_dic
+        products_url = self.generate_products_url(self.config.products_url,
+                                                  arg_par_dic)
+        email_api_code = DispatcherAPI.set_api_code(arg_par_dic,
+                                                    url=os.path.join(self.config.products_url, "dispatch-data")
+                                                    )
+        time_request_first_submitted = email_helper.get_first_submitted_email_time(
+            self.scratch_dir)
+        if time_request_first_submitted is not None:
+            time_request = time_request_first_submitted
+
+        email_helper.send_job_email(
+            config=self.config,
+            logger=self.logger,
+            decoded_token=self.decoded_token,
+            token=self.token,
+            job_id=self.job_id,
+            session_id=self.par_dic['session_id'],
+            status=query_new_status,
+            status_details=status_details,
+            instrument=instrument_name,
+            product_type=product_type,
+            time_request=time_request,
+            request_url=products_url,
+            api_code=email_api_code,
+            scratch_dir=self.scratch_dir)
+
+
     def run_query(self, off_line=False, disp_conf=None):
         """
         this is the principal function to respond to the requests
@@ -1803,7 +1864,7 @@ class InstrumentQueryBackEnd:
         else:
             self.logger.info('==> async dispatcher operation NOT requested')
 
-        if self.instrument.asynch == False:
+        if not self.instrument.asynch:
             run_asynch = False
 
         if alias_workdir is not None and run_asynch:
@@ -1843,6 +1904,7 @@ class InstrumentQueryBackEnd:
             original_work_dir = job.work_dir
             job.work_dir = alias_workdir
 
+
             self.logger.info(
                 '\033[32m==> ALIASING to %s\033[0m', alias_workdir)
 
@@ -1875,7 +1937,63 @@ class InstrumentQueryBackEnd:
                     job_monitor = job.updated_dataserver_monitor()
                     print('==>ALIASING switched off for Dummy query')
 
-        if job_is_aliased == True and query_status == 'ready':
+            if job_monitor['status'] != 'done' and job_monitor['status'] != 'failed' and query_status != 'new':
+                # check the last time status was updated and in case re-submit the request
+                last_modified_monitor = job.get_latest_monitor_mtime()
+                self.logger.info(f'last modify at the job monitor status file at {last_modified_monitor}')
+                resubmit_timeout = self.app.config['conf'].resubmit_timeout
+                if time_.time() - last_modified_monitor >= resubmit_timeout:
+                    # re-submit
+                    try:
+                        self.log_query_progression("before re-submission of instrument.run_query")
+                        self.logger.info('will re-submit with self.par_dic: %s', self.par_dic)
+                        query_out = self.instrument_run_query(product_type,
+                                                              job,
+                                                              run_asynch,
+                                                              query_type,
+                                                              verbose,
+                                                              dry_run,
+                                                              api)
+                        self.log_query_progression("after re-submission of instrument.run_query")
+                    except RequestNotAuthorized as e:
+                        return self.build_response_failed(f'permissions exception when executing job {job.job_id}',
+                                                          e.message,
+                                                          status_code=e.status_code,
+                                                          debug_message=e.debug_message)
+
+                    if query_out.status_dictionary['status'] == 0:
+                        if job.status == 'done':
+                            query_new_status = 'done'
+                        elif job.status == 'failed':
+                            query_new_status = 'failed'
+                        else:
+                            query_new_status = 'submitted'
+                            job.set_submitted()
+
+                        if email_helper.is_email_to_send_run_query(self.logger,
+                                                                   query_new_status,
+                                                                   self.time_request,
+                                                                   self.scratch_dir,
+                                                                   self.job_id,
+                                                                   self.app.config['conf'],
+                                                                   decoded_token=self.decoded_token):
+                            try:
+                                self.send_query_new_status_email(product_type, query_new_status)
+                                # store an additional information about the sent email
+                                query_out.set_status_field('email_status', 'email sent')
+                            except email_helper.EMailNotSent as e:
+                                query_out.set_status_field('email_status', 'sending email failed')
+                                logging.warning(f'email sending failed: {e}')
+                                sentry.capture_message(f'sending email failed {e.message}')
+                    else:
+                        job.set_failed()
+
+                    # set also the new file_path for the job object ?
+                    job._set_file_path(file_name=job.file_name, work_dir=job.work_dir)
+                    if query_status != query_new_status:
+                        job.write_dataserver_status()
+
+        if job_is_aliased and query_status == 'ready':
             original_work_dir = job.work_dir
             job.work_dir = alias_workdir
 
@@ -1884,16 +2002,10 @@ class InstrumentQueryBackEnd:
             job_monitor = job.updated_dataserver_monitor()
             self.logger.info('==>ALIASING switched off for status ready')
 
-        if job_is_aliased == True:
+        if job_is_aliased:
             delta_limit = 600
 
-            try:
-                raise NotImplementedError
-                # this never worked since time_ was introduced, but it makes no difference
-                delta = self.get_file_mtime(
-                    alias_workdir + '/' + 'job_monitor.json') - time_.time()
-            except:
-                delta = delta_limit+1
+            delta = delta_limit+1
 
             if delta > delta_limit:
                 original_work_dir = job.work_dir
@@ -1928,24 +2040,16 @@ class InstrumentQueryBackEnd:
                 try:
                     self.log_query_progression("before instrument.run_query")
                     self.logger.info('will run_query with self.par_dic: %s', self.par_dic)
-                    query_out = self.instrument.run_query(product_type,
-                                                          self.par_dic,
-                                                          request,
-                                                          self,  # this will change?
-                                                          job,  # this will change
+                    query_out = self.instrument_run_query(product_type,
+                                                          job,
                                                           run_asynch,
-                                                          out_dir=self.scratch_dir,
-                                                          config=self.config_data_server,
-                                                          query_type=query_type,
-                                                          logger=self.logger,
-                                                          sentry_dsn=self.sentry_dsn,
-                                                          verbose=verbose,
-                                                          dry_run=dry_run,
-                                                          api=api,
-                                                          decoded_token=self.decoded_token)
+                                                          query_type,
+                                                          verbose,
+                                                          dry_run,
+                                                          api)
                     self.log_query_progression("after instrument.run_query")                                                          
                 except RequestNotAuthorized as e:
-                    return self.build_response_failed('oda_api permissions failed',
+                    return self.build_response_failed(f'permissions exception when executing job {job.job_id}',
                                                       e.message,
                                                       status_code=e.status_code,
                                                       debug_message=e.debug_message)
@@ -2104,7 +2208,7 @@ class InstrumentQueryBackEnd:
             self.logger.info(
                 '==============================> query done <==============================')
 
-        if not job_is_aliased:
+        if not job_is_aliased and query_status != query_new_status:
             job.write_dataserver_status()
 
         if not self.async_dispatcher:
