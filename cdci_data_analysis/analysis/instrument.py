@@ -472,11 +472,17 @@ class Instrument:
                                      'This additional information might help:\n\n'
                                )
                     e_message = f'Instrument: {self.name}, product: {product_type}\n'
+
+                    debug_message = ''
+                    if e.payload is not None and e.payload.get('exception', None) is not None:
+                        debug_message = repr(e.payload['exception'])
+
                     query_out.set_failed(product_type,
                                          message=message,
                                          e_message=e_message,
                                          logger=logger,
                                          sentry_dsn=sentry_dsn,
+                                         debug_message=debug_message,
                                          excep=e)
 
                 except Exception as e: # we shall not do that
