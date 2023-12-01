@@ -628,7 +628,7 @@ class ProductQuery(BaseQuery):
             #                      e_message=e_message,
             #                      debug_message=debug_message)
 
-            raise InternalError(internal_error_message)
+            raise InternalError(internal_error_message, payload={'exception': e})
            # if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
            #     raise
            # exception_message = getattr(e, 'message', '')
