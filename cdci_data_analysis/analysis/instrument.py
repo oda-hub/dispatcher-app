@@ -459,7 +459,8 @@ class Instrument:
                 except InternalError as e:
                     if hasattr(e, 'message') and e.message is not None:
                         message = e.message
-                        tail_message = 'Support team has been notified, we are working on the issue'
+                        tail_message = ('The support team has been notified, '
+                                        'and we are investigating to resolve the issue as soon as possible')
                     else:
                         message = ('Your request produced an unusual result. It might not be what you expected. '
                                      'It is possible that this particular parameter selection should indeed lead to this outcome '

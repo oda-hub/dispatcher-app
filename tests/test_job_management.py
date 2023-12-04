@@ -1489,7 +1489,8 @@ def test_status_details_email_done(gunicorn_dispatcher_live_fixture, dispatcher_
     # check the additional status details within the email
     assert 'email_status_details' in jdata
     assert jdata['email_status_details'] == {
-        'exception_message': 'Error when getting query products\nInstrument: empty, product: failing\n',
+        'exception_message': 'Error when getting query products\nInstrument: empty, product: failing\n\n'
+                             'The support team has been notified, and we are investigating to resolve the issue as soon as possible',
         'status': 'empty_product'
     }
 
