@@ -459,6 +459,7 @@ class Instrument:
                 except InternalError as e:
                     if hasattr(e, 'message') and e.message is not None:
                         message = e.message
+                        tail_message = 'Support team has been notified, we are working on the issue'
                     else:
                         message = ('Your request produced an unusual result. It might not be what you expected. '
                                      'It is possible that this particular parameter selection should indeed lead to this outcome '
@@ -471,8 +472,8 @@ class Instrument:
                                      'please use "provide feedback" button below. We would greatly appreciate it!\n\n'
                                      'This additional information might help:\n\n'
                                )
-                    e_message = (f'Instrument: {self.name}, product: {product_type}\n\n'
-                                 f'Support team has been notified, we are working on the issue')
+                        tail_message = ''
+                    e_message = f'Instrument: {self.name}, product: {product_type}\n\n{tail_message}'
 
                     debug_message = ''
                     if e.payload is not None and e.payload.get('exception', None) is not None:
