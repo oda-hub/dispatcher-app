@@ -601,8 +601,6 @@ class ProductQuery(BaseQuery):
                                                                    api=api)
                     job.set_done()
 
-                #self.query_prod_list = QueryProductList(prod_list=prod_list)
-
             #DONE
             query_out.set_done(message=messages['message'], debug_message=str(messages['debug_message']),job_status=job.status,status=status,comment=messages['comment'],warning=messages['warning'])
             #print('-->', query_out.status_dictionary)
@@ -613,41 +611,8 @@ class ProductQuery(BaseQuery):
         except Exception as e:
             logger.exception("failed to get query products")
             internal_error_message = "Error when getting query products"
-            # e_message = f"{internal_error_message} (instrument: {instrument.name}, product: {self.name}):\n{repr(e)}"
-            #
-            # if hasattr(e, 'debug_message') and e.debug_message is not None:
-            #     debug_message = e.debug_message
-            # else:
-            #     debug_message = 'no exception default debug me
             job.set_failed()
-            # if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
-            #     raise
-            # query_out.set_failed('get_query_products',
-            #                      logger=logger,
-            #                      excep=e,
-            #                      e_message=e_message,
-            #                      debug_message=debug_message)
-
             raise InternalError(internal_error_message, payload={'exception': e})
-           # if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
-           #     raise
-           # exception_message = getattr(e, 'message', '')
-           # if return_progress:
-           #     logger.exception("failed to get progress run")
-           #     e_message = f'Failed when getting the progress run for job {job.job_id}:\n{exception_message}'
-           # else:
-           #     logger.exception("failed to get query products")
-           #     e_message = f'Failed when getting query products for job {job.job_id}:\n{exception_message}'
-           # messages['debug_message'] = repr(e) + ' : ' + getattr(e, 'debug_message', '')
-
-           # query_out.set_failed('get_query_products found job failed',
-           #                      logger=logger,
-           #                      sentry_dsn=sentry_dsn,
-           #                      excep=e,
-           #                      e_message=e_message,
-           #                      debug_message=messages['debug_message'])
-            # TODO to use this approach when we will refactor the handling of exceptions
-            # raise InternalError(e_message)
 
         logger.info('--> data_server_query_status %d' % query_out.get_status())
         logger.info('--> end product query ')
