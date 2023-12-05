@@ -45,6 +45,7 @@ jdata.json
 /tests/test-dispatcher-conf-with-renku-options.yaml
 /tests/test-dispatcher-conf-with-hard-minimum-age-days-param.yaml
 /tests/test-dispatcher-conf-with-hard_minimum_folder_age_days-param.yaml
+/tests/scw_list_files/*
 .coverage.*
 .coverage
 *,cover
