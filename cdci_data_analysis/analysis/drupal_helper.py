@@ -377,7 +377,6 @@ def post_file_to_gallery(product_gallery_url, file, gallery_jwt_token, file_type
     return output_post
 
 def delete_content_gallery(decoded_token,
-                           files=None,
                            disp_conf=None,
                            **kwargs):
     gallery_secret_key = disp_conf.product_gallery_secret_key
@@ -394,7 +393,7 @@ def delete_content_gallery(decoded_token,
                                           sentry_dsn=sentry_dsn)
     # update the token
     gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
-    content_type = ContentType[str.upper(par_dic.pop('content_type', 'article'))]
+    content_type = ContentType[str.upper(par_dic.get('content_type', 'article'))]
     output_delete = None
     if content_type == content_type.DATA_PRODUCT:
         product_id = par_dic.get('product_id', None)
