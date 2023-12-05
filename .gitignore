@@ -40,6 +40,8 @@ jdata.json
 /tests/data/dummy_prods/isgri_query_mosaic.fits
 /tests/data/dummy_prods/query_catalog.fits
 /tests/data/dummy_prods/ds9.jpeg
+/tests/no-url-problem.html
+/tests/ReturnProgressProductQuery-current_p_value.out
 /tests/local_smtp_log
 /tests/test-dispatcher-conf-with-gallery.yaml
 /tests/test-dispatcher-conf-with-renku-options.yaml
