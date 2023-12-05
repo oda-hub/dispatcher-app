@@ -400,7 +400,7 @@ def delete_content_gallery(decoded_token,
         product_id = par_dic.get('product_id', None)
         output_delete = delete_data_product_to_gallery_via_product_id(product_gallery_url, gallery_jwt_token, product_id, sentry_dsn=sentry_dsn)
 
-    # TODO extend to also delete other type of content (eg OBSERVATION, ASTROPHYSICAL_ENTITY)
+    # TODO maybe extend to also delete other type of content (eg OBSERVATION, ASTROPHYSICAL_ENTITY) ... ?
     return output_delete
 
 def post_content_to_gallery(decoded_token,
