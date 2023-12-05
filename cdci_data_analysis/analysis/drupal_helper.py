@@ -1198,10 +1198,12 @@ def delete_data_product_to_gallery_via_product_id(product_gallery_url, gallery_j
 
     if nid is not None:
         delete_node_gallery(product_gallery_url, nid, gallery_jwt_token, sentry_dsn=sentry_dsn)
-        return  True
+        return {}
     else:
-        logger.info(f"no data-product with product_id {product_id} has been found, no data-product deletion will take place")
-        return False
+        msg = f"no data-product with product_id {product_id} has been found, no data-product deletion will take place"
+        logger.info(msg)
+        # TODO extend this approach (specific message) to other use-cases
+        return {"output_message": msg}
 
 
 def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,
