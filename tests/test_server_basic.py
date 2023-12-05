@@ -3355,6 +3355,78 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
     assert len(drupal_res_obj['_links'][link_fits_file_id]) == 1
 
 
+@pytest.mark.test_drupal
+def test_product_gallery_delete(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    dispatcher_fetch_dummy_products('default')
+
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    product_id = 'aaabbbccc_' + str(time.time())
+
+    params = dict(product_id=product_id,
+                  instrument='isgri',
+                  src_name='Crab',
+                  product_type='isgri_lc',
+                  content_type='data_product',
+                  E1_keV=45,
+                  E2_kev=95,
+                  DEC=15,
+                  RA=458,
+                  product_title='Test data product to be deleted',
+                  token=encoded_token)
+
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                      params={**params},
+                      )
+
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    assert 'nid' in drupal_res_obj
+    nid_creation = drupal_res_obj['nid'][0]['value']
+    assert 'field_product_id' in drupal_res_obj
+    assert drupal_res_obj['field_product_id'][0]['value'] == product_id
+
+    params = {
+        'product_id': product_id,
+        'content_type': 'data_product',
+        'token': encoded_token
+    }
+
+    c = requests.get(os.path.join(server, "get_data_product_list_with_conditions"),
+                     params=params
+                     )
+
+    assert c.status_code == 200
+    drupal_res_obj = c.json()
+    assert len(drupal_res_obj) == 1
+    assert drupal_res_obj[0]['nid'] == str(nid_creation)
+
+    c = requests.post(os.path.join(server, "delete_product_to_gallery"),
+                      params={**params},
+                      )
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+    assert drupal_res_obj == {}
+
+    c = requests.get(os.path.join(server, "get_data_product_list_with_conditions"),
+                     params=params
+                     )
+
+    assert c.status_code == 200
+    drupal_res_obj = c.json()
+    assert drupal_res_obj == []
 
 @pytest.mark.test_drupal
 def test_product_gallery_error_message(dispatcher_live_fixture_with_gallery):
