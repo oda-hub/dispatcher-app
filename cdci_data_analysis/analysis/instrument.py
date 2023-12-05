@@ -460,7 +460,7 @@ class Instrument:
                     if hasattr(e, 'message') and e.message is not None:
                         message = e.message
                         tail_message = ('The support team has been notified, '
-                                        'and we are investigating to resolve the issue as soon as possible\n'
+                                        'and we are investigating to resolve the issue as soon as possible\n\n'
                                         'If you are willing to help us, please use the "Write a feedback" button below. '
                                         'We will make sure to respond to any feedback provided')
                     else:
