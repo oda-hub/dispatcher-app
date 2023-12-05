@@ -459,6 +459,10 @@ class Instrument:
                 except InternalError as e:
                     if hasattr(e, 'message') and e.message is not None:
                         message = e.message
+                        tail_message = ('The support team has been notified, '
+                                        'and we are investigating to resolve the issue as soon as possible\n\n'
+                                        'If you are willing to help us, please use the "Write a feedback" button below. '
+                                        'We will make sure to respond to any feedback provided')
                     else:
                         message = ('Your request produced an unusual result. It might not be what you expected. '
                                      'It is possible that this particular parameter selection should indeed lead to this outcome '
@@ -468,15 +472,22 @@ class Instrument:
                                      'but for now, we unfortunately can not be certain all cases like this are detected. '
                                      'We try to discover on our own and directly address any temporary issue. '
                                      'But some issues might slip past us. If you are willing to help us, '
-                                     'please use "provide feedback" button below. We would greatly appreciate it!\n\n'
+                                     'please use "Write a feedback" button below. We would greatly appreciate it!\n\n'
                                      'This additional information might help:\n\n'
                                )
-                    e_message = f'Instrument: {self.name}, product: {product_type} failed!\n'
+                        tail_message = ''
+                    e_message = f'Instrument: {self.name}, product: {product_type}\n\n{tail_message}'
+
+                    debug_message = ''
+                    if e.payload is not None and e.payload.get('exception', None) is not None:
+                        debug_message = repr(e.payload['exception'])
+
                     query_out.set_failed(product_type,
                                          message=message,
                                          e_message=e_message,
                                          logger=logger,
                                          sentry_dsn=sentry_dsn,
+                                         debug_message=debug_message,
                                          excep=e)
 
                 except Exception as e: # we shall not do that
