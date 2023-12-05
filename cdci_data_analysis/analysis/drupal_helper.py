@@ -315,6 +315,21 @@ def get_user_id(product_gallery_url, user_email, sentry_dsn=None) -> Optional[st
     return user_id
 
 
+def delete_node_gallery(product_gallery_url, node_to_delete_id, gallery_jwt_token, sentry_dsn=None):
+    logger.info(f"deleting node with id {node_to_delete_id} from the product gallery")
+
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/node/{node_to_delete_id}",
+                                     method='delete',
+                                     headers=headers,
+                                     sentry_dsn=sentry_dsn)
+
+    logger.info(f"node with id {node_to_delete_id} successfully deleted from the product gallery")
+    output_post = analyze_drupal_output(log_res, operation_performed="deleting a node from the product gallery")
+    return output_post
+
+
 def delete_file_gallery(product_gallery_url, file_to_delete_id, gallery_jwt_token, sentry_dsn=None):
     logger.info(f"deleting file with id {file_to_delete_id} from the product gallery")
 
