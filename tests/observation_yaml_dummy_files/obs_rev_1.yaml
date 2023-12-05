@@ -1,0 +1,1773 @@
+- Dec: 22.0145
+  E1_isgri: 28.0
+  E1_jemx: 3.0
+  E2_isgri: 40.0
+  E2_jemx: 20.0
+  RA: 83.63308
+  api_cat_fname: api_cat_str_Crab_jemx1.txt
+  expid: 25420001.0
+  extended_title: Crab monitoring
+  isgri_fluxed_catalog:
+    ERR_RAD:
+      0: 0.0002800000074785203
+    FLAG:
+      0: 1
+    FLUX:
+      0: 69.13994490801743
+    FLUX_ERR:
+      0: 0.13905380602244902
+    ISGRI_FLAG:
+      0: 2
+    NEW_SOURCE:
+      0: -32768
+    dec:
+      0: 22.017799377441406
+    meta_ID:
+      0: 5
+    ra:
+      0: 83.62904357910156
+    significance:
+      0: 497.2172059559117
+    src_names:
+      0: Crab
+  isgri_gallery_object:
+    _embedded:
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_data_product_type:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/46?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/taxonomy_term/products
+        uuid:
+        - value: ef010a85-09b7-400c-ab99-5910f1204a5e
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_derived_from_observation:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/node/4678?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/node/observation
+        uuid:
+        - value: 66ce08d4-5cdf-4953-848f-2db1d8d3de92
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_describes_astro_entity:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/node/872?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/node/astro_entity
+        uuid:
+        - value: 1eee0997-1e13-4e35-8844-5551dab51caf
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_fits_file:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10082?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: 294d5cf6-1056-4826-b3b1-1d28211079dd
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10083?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: 62afaf55-fe5c-4161-9d82-75f8729ef3f4
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10084?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: 22c332c4-60c2-4850-b6eb-fd306911a9f8
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_html_file:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10085?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: 36c29c72-13d5-4947-84e9-2b88cd961479
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_image_png:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10081?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/image
+        alt: null
+        height: 355.0
+        title: null
+        uuid:
+        - value: 4f715db9-a4d2-45e1-9d8f-84ed4809e90a
+        width: 576.0
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_instrumentused:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/5?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/taxonomy_term/instruments
+        uuid:
+        - value: ccf0aadc-0a65-4a9f-ac69-816b0106e0e0
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/revision_uid:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/user/user
+        uuid:
+        - value: c52186d2-9c6a-46ec-8f24-f4632736716f
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/uid:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/user/user
+        lang: en
+        uuid:
+        - value: c52186d2-9c6a-46ec-8f24-f4632736716f
+    _links:
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_data_product_type:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/46?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_derived_from_observation:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/node/4678?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_describes_astro_entity:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/node/872?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_fits_file:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10082?_format=hal_json
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10083?_format=hal_json
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10084?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_html_file:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10085?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_image_png:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10081?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_instrumentused:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/5?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/revision_uid:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/uid:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+        lang: en
+      self:
+        href: http://cdciweb02.internal.odahub.io/mmoda/gallery/data-products/crab-rev-2542?_format=hal_json
+      type:
+        href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/node/data_product
+    changed:
+    - format: Y-m-d\TH:i:sP
+      lang: en
+      value: '2022-08-28T08:36:01+00:00'
+    created:
+    - format: Y-m-d\TH:i:sP
+      lang: en
+      value: '2022-08-28T08:36:01+00:00'
+    default_langcode:
+    - lang: en
+      value: 1.0
+    field_dec:
+    - value: 22.013333333333332
+    field_detected_sources:
+    - format: full_html
+      processed: " <table class=\"table table-responsive\">\n   <thead class=\"table-dark\"\
+        >\n    <tr>\n     <th>Name</th>\n     <th>RA</th>\n     <th>Dec</th>\n   \
+        \  <th>Flux (cts/s)</th>\n     <th>Error (cts/s)</th>\n     <th>Significance</th>\n\
+        \    </tr>\n   </thead>\n   <tr>\n    <td>Crab</td>\n    <td>83.62904</td>\n\
+        \    <td>22.01779</td>\n    <td>69.14</td>\n    <td>0.14</td>\n    <td>497.2</td>\n\
+        \   </tr>\n  </table>"
+      summary: null
+      value: " <table class=\"table table-responsive\">\n   <thead class=\"table-dark\"\
+        >\n    <tr>\n     <th>Name</th>\n     <th>RA</th>\n     <th>Dec</th>\n   \
+        \  <th>Flux (cts/s)</th>\n     <th>Error (cts/s)</th>\n     <th>Significance</th>\n\
+        \    </tr>\n   </thead>\n   <tr>\n    <td>Crab</td>\n    <td>83.62904</td>\n\
+        \    <td>22.01779</td>\n    <td>69.14</td>\n    <td>0.14</td>\n    <td>497.2</td>\n\
+        \   </tr>\n  </table>"
+    field_e1_kev:
+    - value: 28.0
+    field_e2_kev:
+    - value: 40.0
+    field_produced_by:
+    - format: null
+      processed: "<p><a href=\"https://gitlab.astro.unige.ch/oda/product-gallery/gallery-notebooks/-/blob/master/Generic%20Revolution%20Mosaics.ipynb\"\
+        >https://gitlab.astro.unige.ch/oda/product-gallery/gallery-notebooks/-/b\u2026\
+        </a></p>\n"
+      value: https://gitlab.astro.unige.ch/oda/product-gallery/gallery-notebooks/-/blob/master/Generic%20Revolution%20Mosaics.ipynb
+    field_product_id:
+    - value: 8ad67b800f5f1a6a
+    field_ra:
+    - value: 83.63333333333331
+    field_rendered_html_file:
+    - format: full_html
+      processed: "                                                               \
+        \                                                                        \
+        \                                      \n    <html>                      \
+        \                                                                        \
+        \                                                                        \
+        \               \n                <head>                                 \
+        \                                                                        \
+        \                                                                \n      \
+        \            <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"\
+        >                                                                        \
+        \                                  \n                  <meta http-equiv=\"\
+        X-UA-Compatible\" content=\"IE=Edge;chrome=1\" >                         \
+        \                                                                        \
+        \             \n                  <meta name=\"viewport\" content=\"width=device-width,\
+        \ initial-scale=1\">                                                     \
+        \                                                    \n                  <link\
+        \ type=\"image/x-icon\" rel=\"shortcut icon\" href=\"./favicon.ico\">    \
+        \                                                                        \
+        \                              \n                  <link type=\"text/css\"\
+        \ rel=\"stylesheet\" href=\"../libraries/js9/js9support.css\">           \
+        \                                                                        \
+        \                         \n                  <link type=\"text/css\" rel=\"\
+        stylesheet\" href=\"../libraries/js9/js9.css\">                          \
+        \                                                                        \
+        \                 \n                  <script type=\"text/javascript\" src=\"\
+        ../libraries/js9/js9prefs.js\"></script>                                 \
+        \                                                                        \
+        \      \n                  <script type=\"text/javascript\" src=\"../libraries/js9/js9support.min.js\"\
+        ></script>                                                               \
+        \                                          \n                  <script type=\"\
+        text/javascript\" src=\"../libraries/js9/js9.min.js\"></script>          \
+        \                                                                        \
+        \                              \n                  <script type=\"text/javascript\"\
+        \ src=\"../libraries/js9/js9plugins.js\"></script>                       \
+        \                                                                        \
+        \              \n                    </head>                             \
+        \                                                                        \
+        \                                                               \n       \
+        \         <body>                                                         \
+        \                                                                        \
+        \                                        \n\n\n                <center><font\
+        \ size=\"+1\">                                                           \
+        \                                                                        \
+        \                    \n                </font></center>                  \
+        \                                                                        \
+        \                                                                     \n \
+        \               <table cellspacing=\"30\">                               \
+        \                                                                        \
+        \                                                \n                <tr valign=\"\
+        top\">                                                                   \
+        \                                                                        \
+        \                   \n        <td>                                       \
+        \                                                                        \
+        \                                                               \n       \
+        \         </td>                                                          \
+        \                                                                        \
+        \                                        \n        <td>                  \
+        \                                                                        \
+        \                                                                        \
+        \                 \n                <tr valign=\"top\">                  \
+        \                                                                        \
+        \                                                                    \n  \
+        \              <td>                                                      \
+        \                                                                        \
+        \                                             \n                <div class=\"\
+        JS9Menubar\"  id=\"myJS9Menubar\" ></div>\n                <div class=\"JS9Colorbar\"\
+        \ id=\"myJS9Colorbar\" ></div>\n                <div class=\"JS9\" id=\"myJS9\"\
+        ></div>                                                                  \
+        \                                                                        \
+        \              \n                </td>                                   \
+        \                                                                        \
+        \                                                               \n       \
+        \         <td>                                                           \
+        \                                                                        \
+        \                                        \n\n                <p>         \
+        \                                                                        \
+        \                                                                        \
+        \                   \n                </td>                              \
+        \                                                                        \
+        \                                                                    \n  \
+        \              </tr>                                                     \
+        \                                                                        \
+        \                                             \n                </table> \
+        \                                                                        \
+        \                                                                        \
+        \                      \n                <script type=\"text/javascript\"\
+        >                                                                        \
+        \                                                                        \n\
+        \                  function init(){                                      \
+        \                                                                        \
+        \                                               \n                     var\
+        \ idx, obj;\n                     JS9.imageOpts.wcsunits = \"degrees\";\n\
+        \                     JS9.Preload(\"/mmoda/gallery/sites/default/files/332099_image_Crab_2542_isgri_mosaic_clean_significance28_40.fits.gz\"\
+        , {scale: 'log', colormap: 'plasma', onload: function(im){JS9.SetZoom(1);\
+        \ JS9.DisplayCoordGrid(true); JS9.LoadRegions(\"/mmoda/gallery/sites/default/files/332099_image_Crab_2542_isgri_mosaic_clean_significance28_40.reg\"\
+        );}}, {display: \"myJS9\"});                \n                  }\n      \
+        \            $(document).ready(function(){                               \
+        \                                                                        \
+        \                                         \n                    init();\n\
+        \                   });                                                  \
+        \                                                                        \
+        \                                                \n                </script>\
+        \                                                                        \
+        \                                                                        \
+        \                      \n\n            </body>                           \
+        \                                                                        \
+        \                                                                        \
+        \ \n    </html>                                                          \
+        \                                                                        \
+        \                                                  \n\n    "
+      summary: null
+      value: "                                                                   \
+        \                                                                        \
+        \                                  \n    <html>                          \
+        \                                                                        \
+        \                                                                        \
+        \           \n                <head>                                     \
+        \                                                                        \
+        \                                                            \n          \
+        \        <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"\
+        >                                                                        \
+        \                                  \n                  <meta http-equiv=\"\
+        X-UA-Compatible\" content=\"IE=Edge;chrome=1\" >                         \
+        \                                                                        \
+        \             \n                  <meta name=\"viewport\" content=\"width=device-width,\
+        \ initial-scale=1\">                                                     \
+        \                                                    \n                  <link\
+        \ type=\"image/x-icon\" rel=\"shortcut icon\" href=\"./favicon.ico\">    \
+        \                                                                        \
+        \                              \n                  <link type=\"text/css\"\
+        \ rel=\"stylesheet\" href=\"../libraries/js9/js9support.css\">           \
+        \                                                                        \
+        \                         \n                  <link type=\"text/css\" rel=\"\
+        stylesheet\" href=\"../libraries/js9/js9.css\">                          \
+        \                                                                        \
+        \                 \n                  <script type=\"text/javascript\" src=\"\
+        ../libraries/js9/js9prefs.js\"></script>                                 \
+        \                                                                        \
+        \      \n                  <script type=\"text/javascript\" src=\"../libraries/js9/js9support.min.js\"\
+        ></script>                                                               \
+        \                                          \n                  <script type=\"\
+        text/javascript\" src=\"../libraries/js9/js9.min.js\"></script>          \
+        \                                                                        \
+        \                              \n                  <script type=\"text/javascript\"\
+        \ src=\"../libraries/js9/js9plugins.js\"></script>                       \
+        \                                                                        \
+        \              \n                    </head>                             \
+        \                                                                        \
+        \                                                               \n       \
+        \         <body>                                                         \
+        \                                                                        \
+        \                                        \n\n\n                <center><font\
+        \ size=\"+1\">                                                           \
+        \                                                                        \
+        \                    \n                </font></center>                  \
+        \                                                                        \
+        \                                                                     \n \
+        \               <table cellspacing=\"30\">                               \
+        \                                                                        \
+        \                                                \n                <tr valign=\"\
+        top\">                                                                   \
+        \                                                                        \
+        \                   \n        <td>                                       \
+        \                                                                        \
+        \                                                               \n       \
+        \         </td>                                                          \
+        \                                                                        \
+        \                                        \n        <td>                  \
+        \                                                                        \
+        \                                                                        \
+        \                 \n                <tr valign=\"top\">                  \
+        \                                                                        \
+        \                                                                    \n  \
+        \              <td>                                                      \
+        \                                                                        \
+        \                                             \n                <div class=\"\
+        JS9Menubar\"  id=\"myJS9Menubar\" ></div>\n                <div class=\"JS9Colorbar\"\
+        \ id=\"myJS9Colorbar\" ></div>\n                <div class=\"JS9\" id=\"myJS9\"\
+        ></div>                                                                  \
+        \                                                                        \
+        \              \n                </td>                                   \
+        \                                                                        \
+        \                                                               \n       \
+        \         <td>                                                           \
+        \                                                                        \
+        \                                        \n\n                <p>         \
+        \                                                                        \
+        \                                                                        \
+        \                   \n                </td>                              \
+        \                                                                        \
+        \                                                                    \n  \
+        \              </tr>                                                     \
+        \                                                                        \
+        \                                             \n                </table> \
+        \                                                                        \
+        \                                                                        \
+        \                      \n                <script type=\"text/javascript\"\
+        >                                                                        \
+        \                                                                        \n\
+        \                  function init(){                                      \
+        \                                                                        \
+        \                                               \n                     var\
+        \ idx, obj;\n                     JS9.imageOpts.wcsunits = \"degrees\";\n\
+        \                     JS9.Preload(\"/mmoda/gallery/sites/default/files/332099_image_Crab_2542_isgri_mosaic_clean_significance28_40.fits.gz\"\
+        , {scale: 'log', colormap: 'plasma', onload: function(im){JS9.SetZoom(1);\
+        \ JS9.DisplayCoordGrid(true); JS9.LoadRegions(\"/mmoda/gallery/sites/default/files/332099_image_Crab_2542_isgri_mosaic_clean_significance28_40.reg\"\
+        );}}, {display: \"myJS9\"});                \n                  }\n      \
+        \            $(document).ready(function(){                               \
+        \                                                                        \
+        \                                         \n                    init();\n\
+        \                   });                                                  \
+        \                                                                        \
+        \                                                \n                </script>\
+        \                                                                        \
+        \                                                                        \
+        \                      \n\n            </body>                           \
+        \                                                                        \
+        \                                                                        \
+        \ \n    </html>                                                          \
+        \                                                                        \
+        \                                                  \n\n    "
+    langcode:
+    - lang: en
+      value: en
+    nid:
+    - value: 4679.0
+    path:
+    - alias: null
+      lang: en
+      langcode: en
+      pid: null
+    promote:
+    - lang: en
+      value: 1.0
+    revision_timestamp:
+    - format: Y-m-d\TH:i:sP
+      value: '2022-08-28T08:36:01+00:00'
+    revision_translation_affected:
+    - lang: en
+      value: 1.0
+    status:
+    - lang: en
+      value: 1.0
+    sticky:
+    - lang: en
+      value: 0.0
+    title:
+    - lang: en
+      value: Crab Rev. 2542
+    type:
+    - target_id: data_product
+    uuid:
+    - value: 8dbb5ce7-ac20-4bd5-b4f5-8be3f5b65083
+    vid:
+    - value: 5222.0
+  isgri_source_catalog: '{"cat_frame": "fk5", "cat_coord_units": "deg", "cat_column_list":
+    [[5], ["Crab"], [470.2950439453125], [83.62904357910156], [22.017799377441406],
+    [-32768], [2], [1], [0.0002800000074785203]], "cat_column_names": ["meta_ID",
+    "src_names", "significance", "ra", "dec", "NEW_SOURCE", "ISGRI_FLAG", "FLAG",
+    "ERR_RAD"], "cat_column_descr": [["meta_ID", "<i8"], ["src_names", "<U4"], ["significance",
+    "<f8"], ["ra", "<f8"], ["dec", "<f8"], ["NEW_SOURCE", "<i8"], ["ISGRI_FLAG", "<i8"],
+    ["FLAG", "<i8"], ["ERR_RAD", "<f8"]], "cat_lat_name": "dec", "cat_lon_name": "ra"}'
+  jemx1_fluxed_catalog:
+    ERR_RAD:
+      0: 0.05000000074505806
+    FLAG:
+      0: 1
+    FLUX:
+      0: 0.11570472370422198
+    FLUX_ERR:
+      0: 0.0004219947957142578
+    dec:
+      0: 22.01395034790039
+    meta_ID:
+      0: 0
+    ra:
+      0: 83.62789154052734
+    significance:
+      0: 274.1851910955041
+    src_names:
+      0: Crab
+  jemx1_gallery_object:
+    _embedded:
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_data_product_type:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/69?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/taxonomy_term/products
+        uuid:
+        - value: 712fed31-86e2-4576-9888-c3ff98604a3d
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_derived_from_observation:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/node/4678?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/node/observation
+        uuid:
+        - value: 66ce08d4-5cdf-4953-848f-2db1d8d3de92
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_describes_astro_entity:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/node/872?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/node/astro_entity
+        uuid:
+        - value: 1eee0997-1e13-4e35-8844-5551dab51caf
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_fits_file:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10092?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: 7aebed67-bd28-4daa-9c3f-e666952353a5
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10093?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: 9cba69f2-a151-4554-9b44-fc73c6769b3f
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10094?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: 402ea01e-1156-4d6e-b725-cea6f2fc23ae
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_html_file:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10095?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: 5f45a38d-0ce6-4bf2-b5d7-84597241b7c0
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_image_png:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10091?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/image
+        alt: null
+        height: 355.0
+        title: null
+        uuid:
+        - value: de609f71-16b0-4e72-ae84-6474ce1f9e43
+        width: 576.0
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_instrumentused:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/37?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/taxonomy_term/instruments
+        uuid:
+        - value: e0ca8cc0-e733-4a89-92fa-952c8777d64f
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/revision_uid:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/user/user
+        uuid:
+        - value: c52186d2-9c6a-46ec-8f24-f4632736716f
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/uid:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/user/user
+        lang: en
+        uuid:
+        - value: c52186d2-9c6a-46ec-8f24-f4632736716f
+    _links:
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_data_product_type:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/69?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_derived_from_observation:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/node/4678?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_describes_astro_entity:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/node/872?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_fits_file:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10092?_format=hal_json
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10093?_format=hal_json
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10094?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_html_file:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10095?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_image_png:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10091?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_instrumentused:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/37?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/revision_uid:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/uid:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+        lang: en
+      self:
+        href: http://cdciweb02.internal.odahub.io/mmoda/gallery/data-products/crab-rev-2542-0?_format=hal_json
+      type:
+        href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/node/data_product
+    changed:
+    - format: Y-m-d\TH:i:sP
+      lang: en
+      value: '2022-08-28T08:36:27+00:00'
+    created:
+    - format: Y-m-d\TH:i:sP
+      lang: en
+      value: '2022-08-28T08:36:27+00:00'
+    default_langcode:
+    - lang: en
+      value: 1.0
+    field_dec:
+    - value: 22.013333333333332
+    field_detected_sources:
+    - format: full_html
+      processed: " <table class=\"table table-responsive\">\n   <thead class=\"table-dark\"\
+        >\n    <tr>\n     <th>Name</th>\n     <th>RA</th>\n     <th>Dec</th>\n   \
+        \  <th>Flux (cts/s)</th>\n     <th>Error (cts/s)</th>\n     <th>Significance</th>\n\
+        \    </tr>\n   </thead>\n   <tr>\n    <td>Crab</td>\n    <td>83.62789</td>\n\
+        \    <td>22.01395</td>\n    <td>0.11570</td>\n    <td>0.00042</td>\n    <td>274.2</td>\n\
+        \   </tr>\n  </table>"
+      summary: null
+      value: " <table class=\"table table-responsive\">\n   <thead class=\"table-dark\"\
+        >\n    <tr>\n     <th>Name</th>\n     <th>RA</th>\n     <th>Dec</th>\n   \
+        \  <th>Flux (cts/s)</th>\n     <th>Error (cts/s)</th>\n     <th>Significance</th>\n\
+        \    </tr>\n   </thead>\n   <tr>\n    <td>Crab</td>\n    <td>83.62789</td>\n\
+        \    <td>22.01395</td>\n    <td>0.11570</td>\n    <td>0.00042</td>\n    <td>274.2</td>\n\
+        \   </tr>\n  </table>"
+    field_e1_kev:
+    - value: 3.0
+    field_e2_kev:
+    - value: 20.0
+    field_produced_by:
+    - format: null
+      processed: "<p><a href=\"https://gitlab.astro.unige.ch/oda/product-gallery/gallery-notebooks/-/blob/master/Generic%20Revolution%20Mosaics.ipynb\"\
+        >https://gitlab.astro.unige.ch/oda/product-gallery/gallery-notebooks/-/b\u2026\
+        </a></p>\n"
+      value: https://gitlab.astro.unige.ch/oda/product-gallery/gallery-notebooks/-/blob/master/Generic%20Revolution%20Mosaics.ipynb
+    field_product_id:
+    - value: 7febef9e542f085a
+    field_ra:
+    - value: 83.63333333333331
+    field_rendered_html_file:
+    - format: full_html
+      processed: "                                                               \
+        \                                                                        \
+        \                                      \n    <html>                      \
+        \                                                                        \
+        \                                                                        \
+        \               \n                <head>                                 \
+        \                                                                        \
+        \                                                                \n      \
+        \            <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"\
+        >                                                                        \
+        \                                  \n                  <meta http-equiv=\"\
+        X-UA-Compatible\" content=\"IE=Edge;chrome=1\" >                         \
+        \                                                                        \
+        \             \n                  <meta name=\"viewport\" content=\"width=device-width,\
+        \ initial-scale=1\">                                                     \
+        \                                                    \n                  <link\
+        \ type=\"image/x-icon\" rel=\"shortcut icon\" href=\"./favicon.ico\">    \
+        \                                                                        \
+        \                              \n                  <link type=\"text/css\"\
+        \ rel=\"stylesheet\" href=\"../libraries/js9/js9support.css\">           \
+        \                                                                        \
+        \                         \n                  <link type=\"text/css\" rel=\"\
+        stylesheet\" href=\"../libraries/js9/js9.css\">                          \
+        \                                                                        \
+        \                 \n                  <script type=\"text/javascript\" src=\"\
+        ../libraries/js9/js9prefs.js\"></script>                                 \
+        \                                                                        \
+        \      \n                  <script type=\"text/javascript\" src=\"../libraries/js9/js9support.min.js\"\
+        ></script>                                                               \
+        \                                          \n                  <script type=\"\
+        text/javascript\" src=\"../libraries/js9/js9.min.js\"></script>          \
+        \                                                                        \
+        \                              \n                  <script type=\"text/javascript\"\
+        \ src=\"../libraries/js9/js9plugins.js\"></script>                       \
+        \                                                                        \
+        \              \n                    </head>                             \
+        \                                                                        \
+        \                                                               \n       \
+        \         <body>                                                         \
+        \                                                                        \
+        \                                        \n\n\n                <center><font\
+        \ size=\"+1\">                                                           \
+        \                                                                        \
+        \                    \n                </font></center>                  \
+        \                                                                        \
+        \                                                                     \n \
+        \               <table cellspacing=\"30\">                               \
+        \                                                                        \
+        \                                                \n                <tr valign=\"\
+        top\">                                                                   \
+        \                                                                        \
+        \                   \n        <td>                                       \
+        \                                                                        \
+        \                                                               \n       \
+        \         </td>                                                          \
+        \                                                                        \
+        \                                        \n        <td>                  \
+        \                                                                        \
+        \                                                                        \
+        \                 \n                <tr valign=\"top\">                  \
+        \                                                                        \
+        \                                                                    \n  \
+        \              <td>                                                      \
+        \                                                                        \
+        \                                             \n                <div class=\"\
+        JS9Menubar\"  id=\"myJS9Menubar\" ></div>\n                <div class=\"JS9Colorbar\"\
+        \ id=\"myJS9Colorbar\" ></div>\n                <div class=\"JS9\" id=\"myJS9\"\
+        ></div>                                                                  \
+        \                                                                        \
+        \              \n                </td>                                   \
+        \                                                                        \
+        \                                                               \n       \
+        \         <td>                                                           \
+        \                                                                        \
+        \                                        \n\n                <p>         \
+        \                                                                        \
+        \                                                                        \
+        \                   \n                </td>                              \
+        \                                                                        \
+        \                                                                    \n  \
+        \              </tr>                                                     \
+        \                                                                        \
+        \                                             \n                </table> \
+        \                                                                        \
+        \                                                                        \
+        \                      \n                <script type=\"text/javascript\"\
+        >                                                                        \
+        \                                                                        \n\
+        \                  function init(){                                      \
+        \                                                                        \
+        \                                               \n                     var\
+        \ idx, obj;\n                     JS9.imageOpts.wcsunits = \"degrees\";\n\
+        \                     JS9.Preload(\"/mmoda/gallery/sites/default/files/583813_image_Crab_2542_jemx1_mosaic_clean_significance3.04_19.98.fits.gz\"\
+        , {scale: 'log', colormap: 'plasma', onload: function(im){JS9.SetZoom(1);\
+        \ JS9.DisplayCoordGrid(true); JS9.LoadRegions(\"/mmoda/gallery/sites/default/files/583813_image_Crab_2542_jemx1_mosaic_clean_significance3.04_19.98.reg\"\
+        );}}, {display: \"myJS9\"});                \n                  }\n      \
+        \            $(document).ready(function(){                               \
+        \                                                                        \
+        \                                         \n                    init();\n\
+        \                   });                                                  \
+        \                                                                        \
+        \                                                \n                </script>\
+        \                                                                        \
+        \                                                                        \
+        \                      \n\n            </body>                           \
+        \                                                                        \
+        \                                                                        \
+        \ \n    </html>                                                          \
+        \                                                                        \
+        \                                                  \n\n    "
+      summary: null
+      value: "                                                                   \
+        \                                                                        \
+        \                                  \n    <html>                          \
+        \                                                                        \
+        \                                                                        \
+        \           \n                <head>                                     \
+        \                                                                        \
+        \                                                            \n          \
+        \        <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"\
+        >                                                                        \
+        \                                  \n                  <meta http-equiv=\"\
+        X-UA-Compatible\" content=\"IE=Edge;chrome=1\" >                         \
+        \                                                                        \
+        \             \n                  <meta name=\"viewport\" content=\"width=device-width,\
+        \ initial-scale=1\">                                                     \
+        \                                                    \n                  <link\
+        \ type=\"image/x-icon\" rel=\"shortcut icon\" href=\"./favicon.ico\">    \
+        \                                                                        \
+        \                              \n                  <link type=\"text/css\"\
+        \ rel=\"stylesheet\" href=\"../libraries/js9/js9support.css\">           \
+        \                                                                        \
+        \                         \n                  <link type=\"text/css\" rel=\"\
+        stylesheet\" href=\"../libraries/js9/js9.css\">                          \
+        \                                                                        \
+        \                 \n                  <script type=\"text/javascript\" src=\"\
+        ../libraries/js9/js9prefs.js\"></script>                                 \
+        \                                                                        \
+        \      \n                  <script type=\"text/javascript\" src=\"../libraries/js9/js9support.min.js\"\
+        ></script>                                                               \
+        \                                          \n                  <script type=\"\
+        text/javascript\" src=\"../libraries/js9/js9.min.js\"></script>          \
+        \                                                                        \
+        \                              \n                  <script type=\"text/javascript\"\
+        \ src=\"../libraries/js9/js9plugins.js\"></script>                       \
+        \                                                                        \
+        \              \n                    </head>                             \
+        \                                                                        \
+        \                                                               \n       \
+        \         <body>                                                         \
+        \                                                                        \
+        \                                        \n\n\n                <center><font\
+        \ size=\"+1\">                                                           \
+        \                                                                        \
+        \                    \n                </font></center>                  \
+        \                                                                        \
+        \                                                                     \n \
+        \               <table cellspacing=\"30\">                               \
+        \                                                                        \
+        \                                                \n                <tr valign=\"\
+        top\">                                                                   \
+        \                                                                        \
+        \                   \n        <td>                                       \
+        \                                                                        \
+        \                                                               \n       \
+        \         </td>                                                          \
+        \                                                                        \
+        \                                        \n        <td>                  \
+        \                                                                        \
+        \                                                                        \
+        \                 \n                <tr valign=\"top\">                  \
+        \                                                                        \
+        \                                                                    \n  \
+        \              <td>                                                      \
+        \                                                                        \
+        \                                             \n                <div class=\"\
+        JS9Menubar\"  id=\"myJS9Menubar\" ></div>\n                <div class=\"JS9Colorbar\"\
+        \ id=\"myJS9Colorbar\" ></div>\n                <div class=\"JS9\" id=\"myJS9\"\
+        ></div>                                                                  \
+        \                                                                        \
+        \              \n                </td>                                   \
+        \                                                                        \
+        \                                                               \n       \
+        \         <td>                                                           \
+        \                                                                        \
+        \                                        \n\n                <p>         \
+        \                                                                        \
+        \                                                                        \
+        \                   \n                </td>                              \
+        \                                                                        \
+        \                                                                    \n  \
+        \              </tr>                                                     \
+        \                                                                        \
+        \                                             \n                </table> \
+        \                                                                        \
+        \                                                                        \
+        \                      \n                <script type=\"text/javascript\"\
+        >                                                                        \
+        \                                                                        \n\
+        \                  function init(){                                      \
+        \                                                                        \
+        \                                               \n                     var\
+        \ idx, obj;\n                     JS9.imageOpts.wcsunits = \"degrees\";\n\
+        \                     JS9.Preload(\"/mmoda/gallery/sites/default/files/583813_image_Crab_2542_jemx1_mosaic_clean_significance3.04_19.98.fits.gz\"\
+        , {scale: 'log', colormap: 'plasma', onload: function(im){JS9.SetZoom(1);\
+        \ JS9.DisplayCoordGrid(true); JS9.LoadRegions(\"/mmoda/gallery/sites/default/files/583813_image_Crab_2542_jemx1_mosaic_clean_significance3.04_19.98.reg\"\
+        );}}, {display: \"myJS9\"});                \n                  }\n      \
+        \            $(document).ready(function(){                               \
+        \                                                                        \
+        \                                         \n                    init();\n\
+        \                   });                                                  \
+        \                                                                        \
+        \                                                \n                </script>\
+        \                                                                        \
+        \                                                                        \
+        \                      \n\n            </body>                           \
+        \                                                                        \
+        \                                                                        \
+        \ \n    </html>                                                          \
+        \                                                                        \
+        \                                                  \n\n    "
+    langcode:
+    - lang: en
+      value: en
+    nid:
+    - value: 4682.0
+    path:
+    - alias: null
+      lang: en
+      langcode: en
+      pid: null
+    promote:
+    - lang: en
+      value: 1.0
+    revision_timestamp:
+    - format: Y-m-d\TH:i:sP
+      value: '2022-08-28T08:36:27+00:00'
+    revision_translation_affected:
+    - lang: en
+      value: 1.0
+    status:
+    - lang: en
+      value: 1.0
+    sticky:
+    - lang: en
+      value: 0.0
+    title:
+    - lang: en
+      value: Crab Rev. 2542
+    type:
+    - target_id: data_product
+    uuid:
+    - value: 32a82270-4391-4125-bfe4-71c5b7948879
+    vid:
+    - value: 5225.0
+  jemx1_source_catalog: '{"cat_frame": "fk5", "cat_coord_units": "deg", "cat_column_list":
+    [[0], ["Crab"], [536.6403198242188], [83.62789154052734], [22.01395034790039],
+    [1], [0.05000000074505806]], "cat_column_names": ["meta_ID", "src_names", "significance",
+    "ra", "dec", "FLAG", "ERR_RAD"], "cat_column_descr": [["meta_ID", "<i8"], ["src_names",
+    "<U4"], ["significance", "<f8"], ["ra", "<f8"], ["dec", "<f8"], ["FLAG", "<i8"],
+    ["ERR_RAD", "<f8"]], "cat_lat_name": "dec", "cat_lon_name": "ra"}'
+  obsid: 19600010008.0
+  pi: Public
+  scw_list:
+  - 254200020010.0
+  - 254200030010.0
+  - 254200040010.0
+  - 254200050010.0
+  - 254200060010.0
+  - 254200070010.0
+  - 254200080010.0
+  - 254200090010.0
+  - 254200100010.0
+  - 254200110010.0
+  - 254200120010.0
+  - 254200130010.0
+  - 254200140010.0
+  - 254200150010.0
+  - 254200160010.0
+  - 254200170010.0
+  - 254200180010.0
+  - 254200190010.0
+  - 254200200010.0
+  - 254200210010.0
+  - 254200220010.0
+  - 254200230010.0
+  - 254200240010.0
+  - 254200250010.0
+  - 254200260010.0
+  title: Crab
+  tstart: '2022-08-27T08:19:44.999'
+  tstop: '2022-08-27T21:39:01.000'
+- Dec: -3.733472
+  E1_isgri: 28.0
+  E1_jemx: 3.0
+  E2_isgri: 40.0
+  E2_jemx: 20.0
+  RA: 78.8725
+  expid: 25420002.0
+  extended_title: Massive Stars in the Orion Region
+  isgri_fluxed_catalog: null
+  isgri_gallery_object:
+    _embedded:
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_data_product_type:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/46?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/taxonomy_term/products
+        uuid:
+        - value: ef010a85-09b7-400c-ab99-5910f1204a5e
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_derived_from_observation:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/node/4680?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/node/observation
+        uuid:
+        - value: 4473d91d-3a8c-4641-8154-596d0485aa1d
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_fits_file:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10087?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: eb81f5b3-591c-414a-9503-144aafee945a
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10088?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: 84f9e3a7-b9c9-45d4-9329-67e8f2855290
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10089?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: 1c3cb812-10d7-4071-8b30-a0705857328b
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_html_file:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10090?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: 6bc93510-bd6d-4f79-9b15-82b26133e8c2
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_image_png:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10086?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/image
+        alt: null
+        height: 355.0
+        title: null
+        uuid:
+        - value: 92a8ca98-cbeb-4e99-a6d6-38bde5336512
+        width: 576.0
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_instrumentused:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/5?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/taxonomy_term/instruments
+        uuid:
+        - value: ccf0aadc-0a65-4a9f-ac69-816b0106e0e0
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/revision_uid:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/user/user
+        uuid:
+        - value: c52186d2-9c6a-46ec-8f24-f4632736716f
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/uid:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/user/user
+        lang: en
+        uuid:
+        - value: c52186d2-9c6a-46ec-8f24-f4632736716f
+    _links:
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_data_product_type:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/46?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_derived_from_observation:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/node/4680?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_fits_file:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10087?_format=hal_json
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10088?_format=hal_json
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10089?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_html_file:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10090?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_image_png:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10086?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_instrumentused:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/5?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/revision_uid:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/uid:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+        lang: en
+      self:
+        href: http://cdciweb02.internal.odahub.io/mmoda/gallery/data-products/orion3-rev-2542?_format=hal_json
+      type:
+        href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/node/data_product
+    changed:
+    - format: Y-m-d\TH:i:sP
+      lang: en
+      value: '2022-08-28T08:36:12+00:00'
+    created:
+    - format: Y-m-d\TH:i:sP
+      lang: en
+      value: '2022-08-28T08:36:12+00:00'
+    default_langcode:
+    - lang: en
+      value: 1.0
+    field_dec:
+    - value: -3.733472
+    field_e1_kev:
+    - value: 28.0
+    field_e2_kev:
+    - value: 40.0
+    field_produced_by:
+    - format: null
+      processed: "<p><a href=\"https://gitlab.astro.unige.ch/oda/product-gallery/gallery-notebooks/-/blob/master/Generic%20Revolution%20Mosaics.ipynb\"\
+        >https://gitlab.astro.unige.ch/oda/product-gallery/gallery-notebooks/-/b\u2026\
+        </a></p>\n"
+      value: https://gitlab.astro.unige.ch/oda/product-gallery/gallery-notebooks/-/blob/master/Generic%20Revolution%20Mosaics.ipynb
+    field_product_id:
+    - value: abded2b555b7a8af
+    field_ra:
+    - value: 78.8725
+    field_rendered_html_file:
+    - format: full_html
+      processed: "                                                               \
+        \                                                                        \
+        \                                      \n    <html>                      \
+        \                                                                        \
+        \                                                                        \
+        \               \n                <head>                                 \
+        \                                                                        \
+        \                                                                \n      \
+        \            <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"\
+        >                                                                        \
+        \                                  \n                  <meta http-equiv=\"\
+        X-UA-Compatible\" content=\"IE=Edge;chrome=1\" >                         \
+        \                                                                        \
+        \             \n                  <meta name=\"viewport\" content=\"width=device-width,\
+        \ initial-scale=1\">                                                     \
+        \                                                    \n                  <link\
+        \ type=\"image/x-icon\" rel=\"shortcut icon\" href=\"./favicon.ico\">    \
+        \                                                                        \
+        \                              \n                  <link type=\"text/css\"\
+        \ rel=\"stylesheet\" href=\"../libraries/js9/js9support.css\">           \
+        \                                                                        \
+        \                         \n                  <link type=\"text/css\" rel=\"\
+        stylesheet\" href=\"../libraries/js9/js9.css\">                          \
+        \                                                                        \
+        \                 \n                  <script type=\"text/javascript\" src=\"\
+        ../libraries/js9/js9prefs.js\"></script>                                 \
+        \                                                                        \
+        \      \n                  <script type=\"text/javascript\" src=\"../libraries/js9/js9support.min.js\"\
+        ></script>                                                               \
+        \                                          \n                  <script type=\"\
+        text/javascript\" src=\"../libraries/js9/js9.min.js\"></script>          \
+        \                                                                        \
+        \                              \n                  <script type=\"text/javascript\"\
+        \ src=\"../libraries/js9/js9plugins.js\"></script>                       \
+        \                                                                        \
+        \              \n                    </head>                             \
+        \                                                                        \
+        \                                                               \n       \
+        \         <body>                                                         \
+        \                                                                        \
+        \                                        \n\n\n                <center><font\
+        \ size=\"+1\">                                                           \
+        \                                                                        \
+        \                    \n                </font></center>                  \
+        \                                                                        \
+        \                                                                     \n \
+        \               <table cellspacing=\"30\">                               \
+        \                                                                        \
+        \                                                \n                <tr valign=\"\
+        top\">                                                                   \
+        \                                                                        \
+        \                   \n        <td>                                       \
+        \                                                                        \
+        \                                                               \n       \
+        \         </td>                                                          \
+        \                                                                        \
+        \                                        \n        <td>                  \
+        \                                                                        \
+        \                                                                        \
+        \                 \n                <tr valign=\"top\">                  \
+        \                                                                        \
+        \                                                                    \n  \
+        \              <td>                                                      \
+        \                                                                        \
+        \                                             \n                <div class=\"\
+        JS9Menubar\"  id=\"myJS9Menubar\" ></div>\n                <div class=\"JS9Colorbar\"\
+        \ id=\"myJS9Colorbar\" ></div>\n                <div class=\"JS9\" id=\"myJS9\"\
+        ></div>                                                                  \
+        \                                                                        \
+        \              \n                </td>                                   \
+        \                                                                        \
+        \                                                               \n       \
+        \         <td>                                                           \
+        \                                                                        \
+        \                                        \n\n                <p>         \
+        \                                                                        \
+        \                                                                        \
+        \                   \n                </td>                              \
+        \                                                                        \
+        \                                                                    \n  \
+        \              </tr>                                                     \
+        \                                                                        \
+        \                                             \n                </table> \
+        \                                                                        \
+        \                                                                        \
+        \                      \n                <script type=\"text/javascript\"\
+        >                                                                        \
+        \                                                                        \n\
+        \                  function init(){                                      \
+        \                                                                        \
+        \                                               \n                     var\
+        \ idx, obj;\n                     JS9.imageOpts.wcsunits = \"degrees\";\n\
+        \                     JS9.Preload(\"/mmoda/gallery/sites/default/files/365296_image_Orion_3_2542_isgri_mosaic_clean_significance28_40.fits.gz\"\
+        , {scale: 'log', colormap: 'plasma', onload: function(im){JS9.SetZoom(1);\
+        \ JS9.DisplayCoordGrid(true); JS9.LoadRegions(\"/mmoda/gallery/sites/default/files/365296_image_Orion_3_2542_isgri_mosaic_clean_significance28_40.reg\"\
+        );}}, {display: \"myJS9\"});                \n                  }\n      \
+        \            $(document).ready(function(){                               \
+        \                                                                        \
+        \                                         \n                    init();\n\
+        \                   });                                                  \
+        \                                                                        \
+        \                                                \n                </script>\
+        \                                                                        \
+        \                                                                        \
+        \                      \n\n            </body>                           \
+        \                                                                        \
+        \                                                                        \
+        \ \n    </html>                                                          \
+        \                                                                        \
+        \                                                  \n\n    "
+      summary: null
+      value: "                                                                   \
+        \                                                                        \
+        \                                  \n    <html>                          \
+        \                                                                        \
+        \                                                                        \
+        \           \n                <head>                                     \
+        \                                                                        \
+        \                                                            \n          \
+        \        <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"\
+        >                                                                        \
+        \                                  \n                  <meta http-equiv=\"\
+        X-UA-Compatible\" content=\"IE=Edge;chrome=1\" >                         \
+        \                                                                        \
+        \             \n                  <meta name=\"viewport\" content=\"width=device-width,\
+        \ initial-scale=1\">                                                     \
+        \                                                    \n                  <link\
+        \ type=\"image/x-icon\" rel=\"shortcut icon\" href=\"./favicon.ico\">    \
+        \                                                                        \
+        \                              \n                  <link type=\"text/css\"\
+        \ rel=\"stylesheet\" href=\"../libraries/js9/js9support.css\">           \
+        \                                                                        \
+        \                         \n                  <link type=\"text/css\" rel=\"\
+        stylesheet\" href=\"../libraries/js9/js9.css\">                          \
+        \                                                                        \
+        \                 \n                  <script type=\"text/javascript\" src=\"\
+        ../libraries/js9/js9prefs.js\"></script>                                 \
+        \                                                                        \
+        \      \n                  <script type=\"text/javascript\" src=\"../libraries/js9/js9support.min.js\"\
+        ></script>                                                               \
+        \                                          \n                  <script type=\"\
+        text/javascript\" src=\"../libraries/js9/js9.min.js\"></script>          \
+        \                                                                        \
+        \                              \n                  <script type=\"text/javascript\"\
+        \ src=\"../libraries/js9/js9plugins.js\"></script>                       \
+        \                                                                        \
+        \              \n                    </head>                             \
+        \                                                                        \
+        \                                                               \n       \
+        \         <body>                                                         \
+        \                                                                        \
+        \                                        \n\n\n                <center><font\
+        \ size=\"+1\">                                                           \
+        \                                                                        \
+        \                    \n                </font></center>                  \
+        \                                                                        \
+        \                                                                     \n \
+        \               <table cellspacing=\"30\">                               \
+        \                                                                        \
+        \                                                \n                <tr valign=\"\
+        top\">                                                                   \
+        \                                                                        \
+        \                   \n        <td>                                       \
+        \                                                                        \
+        \                                                               \n       \
+        \         </td>                                                          \
+        \                                                                        \
+        \                                        \n        <td>                  \
+        \                                                                        \
+        \                                                                        \
+        \                 \n                <tr valign=\"top\">                  \
+        \                                                                        \
+        \                                                                    \n  \
+        \              <td>                                                      \
+        \                                                                        \
+        \                                             \n                <div class=\"\
+        JS9Menubar\"  id=\"myJS9Menubar\" ></div>\n                <div class=\"JS9Colorbar\"\
+        \ id=\"myJS9Colorbar\" ></div>\n                <div class=\"JS9\" id=\"myJS9\"\
+        ></div>                                                                  \
+        \                                                                        \
+        \              \n                </td>                                   \
+        \                                                                        \
+        \                                                               \n       \
+        \         <td>                                                           \
+        \                                                                        \
+        \                                        \n\n                <p>         \
+        \                                                                        \
+        \                                                                        \
+        \                   \n                </td>                              \
+        \                                                                        \
+        \                                                                    \n  \
+        \              </tr>                                                     \
+        \                                                                        \
+        \                                             \n                </table> \
+        \                                                                        \
+        \                                                                        \
+        \                      \n                <script type=\"text/javascript\"\
+        >                                                                        \
+        \                                                                        \n\
+        \                  function init(){                                      \
+        \                                                                        \
+        \                                               \n                     var\
+        \ idx, obj;\n                     JS9.imageOpts.wcsunits = \"degrees\";\n\
+        \                     JS9.Preload(\"/mmoda/gallery/sites/default/files/365296_image_Orion_3_2542_isgri_mosaic_clean_significance28_40.fits.gz\"\
+        , {scale: 'log', colormap: 'plasma', onload: function(im){JS9.SetZoom(1);\
+        \ JS9.DisplayCoordGrid(true); JS9.LoadRegions(\"/mmoda/gallery/sites/default/files/365296_image_Orion_3_2542_isgri_mosaic_clean_significance28_40.reg\"\
+        );}}, {display: \"myJS9\"});                \n                  }\n      \
+        \            $(document).ready(function(){                               \
+        \                                                                        \
+        \                                         \n                    init();\n\
+        \                   });                                                  \
+        \                                                                        \
+        \                                                \n                </script>\
+        \                                                                        \
+        \                                                                        \
+        \                      \n\n            </body>                           \
+        \                                                                        \
+        \                                                                        \
+        \ \n    </html>                                                          \
+        \                                                                        \
+        \                                                  \n\n    "
+    langcode:
+    - lang: en
+      value: en
+    nid:
+    - value: 4681.0
+    path:
+    - alias: null
+      lang: en
+      langcode: en
+      pid: null
+    promote:
+    - lang: en
+      value: 1.0
+    revision_timestamp:
+    - format: Y-m-d\TH:i:sP
+      value: '2022-08-28T08:36:12+00:00'
+    revision_translation_affected:
+    - lang: en
+      value: 1.0
+    status:
+    - lang: en
+      value: 1.0
+    sticky:
+    - lang: en
+      value: 0.0
+    title:
+    - lang: en
+      value: Orion_3 Rev. 2542
+    type:
+    - target_id: data_product
+    uuid:
+    - value: db49416b-1da3-4dbd-8393-827230a08fa2
+    vid:
+    - value: 5224.0
+  isgri_source_catalog: null
+  jemx1_fluxed_catalog: null
+  jemx1_gallery_object:
+    _embedded:
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_data_product_type:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/69?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/taxonomy_term/products
+        uuid:
+        - value: 712fed31-86e2-4576-9888-c3ff98604a3d
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_derived_from_observation:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/node/4680?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/node/observation
+        uuid:
+        - value: 4473d91d-3a8c-4641-8154-596d0485aa1d
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_fits_file:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10097?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: 07b08d13-64a8-4727-bcf9-d2cb5e527656
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10098?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: 9ac23d9b-4480-42c9-82ce-3ad464e9222c
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10099?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: 0b4c0906-ebf2-4181-bfa0-3078268d30f2
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_html_file:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10100?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/document
+        description: null
+        display: null
+        uuid:
+        - value: 4ff31f04-b0a9-4da9-a71c-e4e0b45147ac
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_image_png:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10096?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/file/image
+        alt: null
+        height: 355.0
+        title: null
+        uuid:
+        - value: 269610cb-5558-4c24-9b68-b5b66c0b0191
+        width: 576.0
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_instrumentused:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/37?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/taxonomy_term/instruments
+        uuid:
+        - value: e0ca8cc0-e733-4a89-92fa-952c8777d64f
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/revision_uid:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/user/user
+        uuid:
+        - value: c52186d2-9c6a-46ec-8f24-f4632736716f
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/uid:
+      - _links:
+          self:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+          type:
+            href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/user/user
+        lang: en
+        uuid:
+        - value: c52186d2-9c6a-46ec-8f24-f4632736716f
+    _links:
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_data_product_type:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/69?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_derived_from_observation:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/node/4680?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_fits_file:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10097?_format=hal_json
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10098?_format=hal_json
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10099?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_html_file:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10100?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_image_png:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/file/10096?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/field_instrumentused:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/taxonomy/term/37?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/revision_uid:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+      http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/relation/node/data_product/uid:
+      - href: http://cdciweb02.internal.odahub.io/mmoda/gallery/user/17?_format=hal_json
+        lang: en
+      self:
+        href: http://cdciweb02.internal.odahub.io/mmoda/gallery/data-products/orion3-rev-2542-0?_format=hal_json
+      type:
+        href: http://cdciweb02.internal.odahub.io/mmoda/gallery/rest/type/node/data_product
+    changed:
+    - format: Y-m-d\TH:i:sP
+      lang: en
+      value: '2022-08-28T08:36:37+00:00'
+    created:
+    - format: Y-m-d\TH:i:sP
+      lang: en
+      value: '2022-08-28T08:36:37+00:00'
+    default_langcode:
+    - lang: en
+      value: 1.0
+    field_dec:
+    - value: -3.733472
+    field_e1_kev:
+    - value: 3.0
+    field_e2_kev:
+    - value: 20.0
+    field_produced_by:
+    - format: null
+      processed: "<p><a href=\"https://gitlab.astro.unige.ch/oda/product-gallery/gallery-notebooks/-/blob/master/Generic%20Revolution%20Mosaics.ipynb\"\
+        >https://gitlab.astro.unige.ch/oda/product-gallery/gallery-notebooks/-/b\u2026\
+        </a></p>\n"
+      value: https://gitlab.astro.unige.ch/oda/product-gallery/gallery-notebooks/-/blob/master/Generic%20Revolution%20Mosaics.ipynb
+    field_product_id:
+    - value: 703af80534a318fb
+    field_ra:
+    - value: 78.8725
+    field_rendered_html_file:
+    - format: full_html
+      processed: "                                                               \
+        \                                                                        \
+        \                                      \n    <html>                      \
+        \                                                                        \
+        \                                                                        \
+        \               \n                <head>                                 \
+        \                                                                        \
+        \                                                                \n      \
+        \            <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"\
+        >                                                                        \
+        \                                  \n                  <meta http-equiv=\"\
+        X-UA-Compatible\" content=\"IE=Edge;chrome=1\" >                         \
+        \                                                                        \
+        \             \n                  <meta name=\"viewport\" content=\"width=device-width,\
+        \ initial-scale=1\">                                                     \
+        \                                                    \n                  <link\
+        \ type=\"image/x-icon\" rel=\"shortcut icon\" href=\"./favicon.ico\">    \
+        \                                                                        \
+        \                              \n                  <link type=\"text/css\"\
+        \ rel=\"stylesheet\" href=\"../libraries/js9/js9support.css\">           \
+        \                                                                        \
+        \                         \n                  <link type=\"text/css\" rel=\"\
+        stylesheet\" href=\"../libraries/js9/js9.css\">                          \
+        \                                                                        \
+        \                 \n                  <script type=\"text/javascript\" src=\"\
+        ../libraries/js9/js9prefs.js\"></script>                                 \
+        \                                                                        \
+        \      \n                  <script type=\"text/javascript\" src=\"../libraries/js9/js9support.min.js\"\
+        ></script>                                                               \
+        \                                          \n                  <script type=\"\
+        text/javascript\" src=\"../libraries/js9/js9.min.js\"></script>          \
+        \                                                                        \
+        \                              \n                  <script type=\"text/javascript\"\
+        \ src=\"../libraries/js9/js9plugins.js\"></script>                       \
+        \                                                                        \
+        \              \n                    </head>                             \
+        \                                                                        \
+        \                                                               \n       \
+        \         <body>                                                         \
+        \                                                                        \
+        \                                        \n\n\n                <center><font\
+        \ size=\"+1\">                                                           \
+        \                                                                        \
+        \                    \n                </font></center>                  \
+        \                                                                        \
+        \                                                                     \n \
+        \               <table cellspacing=\"30\">                               \
+        \                                                                        \
+        \                                                \n                <tr valign=\"\
+        top\">                                                                   \
+        \                                                                        \
+        \                   \n        <td>                                       \
+        \                                                                        \
+        \                                                               \n       \
+        \         </td>                                                          \
+        \                                                                        \
+        \                                        \n        <td>                  \
+        \                                                                        \
+        \                                                                        \
+        \                 \n                <tr valign=\"top\">                  \
+        \                                                                        \
+        \                                                                    \n  \
+        \              <td>                                                      \
+        \                                                                        \
+        \                                             \n                <div class=\"\
+        JS9Menubar\"  id=\"myJS9Menubar\" ></div>\n                <div class=\"JS9Colorbar\"\
+        \ id=\"myJS9Colorbar\" ></div>\n                <div class=\"JS9\" id=\"myJS9\"\
+        ></div>                                                                  \
+        \                                                                        \
+        \              \n                </td>                                   \
+        \                                                                        \
+        \                                                               \n       \
+        \         <td>                                                           \
+        \                                                                        \
+        \                                        \n\n                <p>         \
+        \                                                                        \
+        \                                                                        \
+        \                   \n                </td>                              \
+        \                                                                        \
+        \                                                                    \n  \
+        \              </tr>                                                     \
+        \                                                                        \
+        \                                             \n                </table> \
+        \                                                                        \
+        \                                                                        \
+        \                      \n                <script type=\"text/javascript\"\
+        >                                                                        \
+        \                                                                        \n\
+        \                  function init(){                                      \
+        \                                                                        \
+        \                                               \n                     var\
+        \ idx, obj;\n                     JS9.imageOpts.wcsunits = \"degrees\";\n\
+        \                     JS9.Preload(\"/mmoda/gallery/sites/default/files/1570632_image_Orion_3_2542_jemx1_mosaic_clean_significance3.04_19.98.fits.gz\"\
+        , {scale: 'log', colormap: 'plasma', onload: function(im){JS9.SetZoom(1);\
+        \ JS9.DisplayCoordGrid(true); JS9.LoadRegions(\"/mmoda/gallery/sites/default/files/1570632_image_Orion_3_2542_jemx1_mosaic_clean_significance3.04_19.98.reg\"\
+        );}}, {display: \"myJS9\"});                \n                  }\n      \
+        \            $(document).ready(function(){                               \
+        \                                                                        \
+        \                                         \n                    init();\n\
+        \                   });                                                  \
+        \                                                                        \
+        \                                                \n                </script>\
+        \                                                                        \
+        \                                                                        \
+        \                      \n\n            </body>                           \
+        \                                                                        \
+        \                                                                        \
+        \ \n    </html>                                                          \
+        \                                                                        \
+        \                                                  \n\n    "
+      summary: null
+      value: "                                                                   \
+        \                                                                        \
+        \                                  \n    <html>                          \
+        \                                                                        \
+        \                                                                        \
+        \           \n                <head>                                     \
+        \                                                                        \
+        \                                                            \n          \
+        \        <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"\
+        >                                                                        \
+        \                                  \n                  <meta http-equiv=\"\
+        X-UA-Compatible\" content=\"IE=Edge;chrome=1\" >                         \
+        \                                                                        \
+        \             \n                  <meta name=\"viewport\" content=\"width=device-width,\
+        \ initial-scale=1\">                                                     \
+        \                                                    \n                  <link\
+        \ type=\"image/x-icon\" rel=\"shortcut icon\" href=\"./favicon.ico\">    \
+        \                                                                        \
+        \                              \n                  <link type=\"text/css\"\
+        \ rel=\"stylesheet\" href=\"../libraries/js9/js9support.css\">           \
+        \                                                                        \
+        \                         \n                  <link type=\"text/css\" rel=\"\
+        stylesheet\" href=\"../libraries/js9/js9.css\">                          \
+        \                                                                        \
+        \                 \n                  <script type=\"text/javascript\" src=\"\
+        ../libraries/js9/js9prefs.js\"></script>                                 \
+        \                                                                        \
+        \      \n                  <script type=\"text/javascript\" src=\"../libraries/js9/js9support.min.js\"\
+        ></script>                                                               \
+        \                                          \n                  <script type=\"\
+        text/javascript\" src=\"../libraries/js9/js9.min.js\"></script>          \
+        \                                                                        \
+        \                              \n                  <script type=\"text/javascript\"\
+        \ src=\"../libraries/js9/js9plugins.js\"></script>                       \
+        \                                                                        \
+        \              \n                    </head>                             \
+        \                                                                        \
+        \                                                               \n       \
+        \         <body>                                                         \
+        \                                                                        \
+        \                                        \n\n\n                <center><font\
+        \ size=\"+1\">                                                           \
+        \                                                                        \
+        \                    \n                </font></center>                  \
+        \                                                                        \
+        \                                                                     \n \
+        \               <table cellspacing=\"30\">                               \
+        \                                                                        \
+        \                                                \n                <tr valign=\"\
+        top\">                                                                   \
+        \                                                                        \
+        \                   \n        <td>                                       \
+        \                                                                        \
+        \                                                               \n       \
+        \         </td>                                                          \
+        \                                                                        \
+        \                                        \n        <td>                  \
+        \                                                                        \
+        \                                                                        \
+        \                 \n                <tr valign=\"top\">                  \
+        \                                                                        \
+        \                                                                    \n  \
+        \              <td>                                                      \
+        \                                                                        \
+        \                                             \n                <div class=\"\
+        JS9Menubar\"  id=\"myJS9Menubar\" ></div>\n                <div class=\"JS9Colorbar\"\
+        \ id=\"myJS9Colorbar\" ></div>\n                <div class=\"JS9\" id=\"myJS9\"\
+        ></div>                                                                  \
+        \                                                                        \
+        \              \n                </td>                                   \
+        \                                                                        \
+        \                                                               \n       \
+        \         <td>                                                           \
+        \                                                                        \
+        \                                        \n\n                <p>         \
+        \                                                                        \
+        \                                                                        \
+        \                   \n                </td>                              \
+        \                                                                        \
+        \                                                                    \n  \
+        \              </tr>                                                     \
+        \                                                                        \
+        \                                             \n                </table> \
+        \                                                                        \
+        \                                                                        \
+        \                      \n                <script type=\"text/javascript\"\
+        >                                                                        \
+        \                                                                        \n\
+        \                  function init(){                                      \
+        \                                                                        \
+        \                                               \n                     var\
+        \ idx, obj;\n                     JS9.imageOpts.wcsunits = \"degrees\";\n\
+        \                     JS9.Preload(\"/mmoda/gallery/sites/default/files/1570632_image_Orion_3_2542_jemx1_mosaic_clean_significance3.04_19.98.fits.gz\"\
+        , {scale: 'log', colormap: 'plasma', onload: function(im){JS9.SetZoom(1);\
+        \ JS9.DisplayCoordGrid(true); JS9.LoadRegions(\"/mmoda/gallery/sites/default/files/1570632_image_Orion_3_2542_jemx1_mosaic_clean_significance3.04_19.98.reg\"\
+        );}}, {display: \"myJS9\"});                \n                  }\n      \
+        \            $(document).ready(function(){                               \
+        \                                                                        \
+        \                                         \n                    init();\n\
+        \                   });                                                  \
+        \                                                                        \
+        \                                                \n                </script>\
+        \                                                                        \
+        \                                                                        \
+        \                      \n\n            </body>                           \
+        \                                                                        \
+        \                                                                        \
+        \ \n    </html>                                                          \
+        \                                                                        \
+        \                                                  \n\n    "
+    langcode:
+    - lang: en
+      value: en
+    nid:
+    - value: 4683.0
+    path:
+    - alias: null
+      lang: en
+      langcode: en
+      pid: null
+    promote:
+    - lang: en
+      value: 1.0
+    revision_timestamp:
+    - format: Y-m-d\TH:i:sP
+      value: '2022-08-28T08:36:37+00:00'
+    revision_translation_affected:
+    - lang: en
+      value: 1.0
+    status:
+    - lang: en
+      value: 1.0
+    sticky:
+    - lang: en
+      value: 0.0
+    title:
+    - lang: en
+      value: Orion_3 Rev. 2542
+    type:
+    - target_id: data_product
+    uuid:
+    - value: 24494fd2-fd8f-4347-9eeb-57fa7e521492
+    vid:
+    - value: 5226.0
+  jemx1_source_catalog: null
+  obsid: 18200150003.0
+  pi: Diehl Roland Prof.
+  scw_list:
+  - 254200280010.0
+  - 254200290010.0
+  - 254200300010.0
+  - 254200310010.0
+  - 254200320010.0
+  - 254200330010.0
+  title: Orion_3
+  tstart: '2022-08-27T22:00:00.999'
+  tstop: '2022-08-28T03:42:57.000'
