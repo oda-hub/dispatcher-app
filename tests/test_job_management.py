@@ -2694,7 +2694,9 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id,
                        )
 
     job_id_done = jdata_done['job_monitor']['job_id']
+    session_id_done = jdata_done['session_id']
     job_id_failed = jdata_failed['job_monitor']['job_id']
+    session_id_failed = jdata_failed['session_id']
 
     if expired_token:
         # let make sure the token used for the previous request expires
@@ -2767,20 +2769,137 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id,
             assert isinstance(jdata['jobs'][1]['job_status_data'][0]['job_statuses'], list)
             assert len(jdata['jobs'][1]['job_status_data'][0]['job_statuses']) == 1
 
+        assert 'job_statuses_fn' in jdata['jobs'][0]['job_status_data'][0]
         if not pass_job_id:
-            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0] == 'done' or \
-                   jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0] == 'done'
-
-            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0] == 'failed' or \
-                   jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0] == 'failed'
+            assert 'job_statuses_fn' in jdata['jobs'][1]['job_status_data'][0]
+            assert (jdata['jobs'][0]['job_status_data'][0]['job_statuses_fn'] ==
+                    f'scratch_sid_{session_id_done}_jid_{job_id_done}' or
+                    jdata['jobs'][0]['job_status_data'][0]['job_statuses_fn'] ==
+                    f'scratch_sid_{session_id_failed}_jid_{job_id_failed}')
+            assert (jdata['jobs'][1]['job_status_data'][0]['job_statuses_fn'] ==
+                    f'scratch_sid_{session_id_done}_jid_{job_id_done}' or
+                   jdata['jobs'][1]['job_status_data'][0]['job_statuses_fn'] ==
+                    f'scratch_sid_{session_id_failed}_jid_{job_id_failed}')
         else:
-            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0] == 'done'
+            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses_fn'] == f'scratch_sid_{session_id_done}_jid_{job_id_done}'
+
+        assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0]['job_status_file'] == 'job_monitor.json'
+        if not pass_job_id:
+            assert jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0]['job_status_file'] == 'job_monitor.json'
+        if not pass_job_id:
+            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0]['status'] == 'done' or \
+                   jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0]['status'] == 'done'
+
+            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0]['status'] == 'failed' or \
+                   jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0]['status'] == 'failed'
+        else:
+            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0]['status'] == 'done'
 
         assert 'token_expired' in jdata['jobs'][0]['job_status_data'][0]
         assert jdata['jobs'][0]['job_status_data'][0]['token_expired'] == expired_token
         if not pass_job_id:
             assert 'token_expired' in jdata['jobs'][1]['job_status_data'][0]
             assert jdata['jobs'][1]['job_status_data'][0]['token_expired'] == expired_token
+
+
+def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
+    server = gunicorn_dispatcher_long_living_fixture
+    token_payload = {**default_token_payload, "roles": 'job manager'}
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    DataServerQuery.set_status('submitted')
+    DispatcherJobState.remove_scratch_folders()
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+    jdata = c.json()
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    time_request = jdata['time_request']
+    for i in range(5):
+        # imitating what a backend would do
+        current_action = 'progress' if i > 2 else 'main_done'
+        c = requests.get(os.path.join(server, "call_back"),
+                         params=dict(
+                             job_id=dispatcher_job_state.job_id,
+                             session_id=dispatcher_job_state.session_id,
+                             instrument_name="empty-async",
+                             action=current_action,
+                             node_id=f'node_{i}',
+                             message='progressing',
+                             token=encoded_token,
+                             time_original_request=time_request
+                         ))
+        c = requests.get(os.path.join(server, "run_analysis"),
+                    params=dict(
+                        query_status="submitted",  # whether query is new or not, this should work
+                        query_type="Real",
+                        instrument="empty-async",
+                        product_type="dummy",
+                        async_dispatcher=False,
+                        session_id=dispatcher_job_state.session_id,
+                        job_id=dispatcher_job_state.job_id,
+                        token=encoded_token
+                    ))
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     {**dict_param,
+                      "query_status": "submitted",
+                      "job_id": dispatcher_job_state.job_id,
+                      "session_id": dispatcher_job_state.session_id,
+                      }
+                     )
+
+    c = requests.get(os.path.join(server, "call_back"),
+                    params=dict(
+                        job_id=dispatcher_job_state.job_id,
+                        session_id=dispatcher_job_state.session_id,
+                        instrument_name="empty-async",
+                        action='main_incorrect_status',
+                        node_id=f'node_{i+1}',
+                        message='progressing',
+                        token=encoded_token,
+                        time_original_request=time_request
+                    ))
+    DataServerQuery.set_status('done')
+
+    c = requests.get(os.path.join(server, "call_back"),
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action='done',
+                         node_id='node_final',
+                         message='done',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+    c = requests.get(os.path.join(server, "call_back"),
+                     params={
+                         'job_id': dispatcher_job_state.job_id,
+                         'session_id': dispatcher_job_state.session_id,
+                         'instrument_name': "empty-async",
+                         'action': 'failed',
+                         'node_id': 'node_failed',
+                         'message': 'failed',
+                         'token': encoded_token,
+                         'time_original_request': time_request
+                     })
+
+    inspect_params = dict(
+        token=encoded_token
+    )
+    c = requests.get(server + "/inspect-jobs",
+                     params=inspect_params)
+
+    jdata_inspection = c.json()
+    print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
