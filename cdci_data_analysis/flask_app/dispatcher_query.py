@@ -483,11 +483,11 @@ class InstrumentQueryBackEnd:
 
                         if len(job_status_search_result) > 0:
                             # job_status_search_result[1]['jobs_status'].append(dict(**result_job_status))
-                            records_job_status[job_status_search_result[0][0]]['jobs_statuses'].append(dict(**result_job_status))
+                            records_job_status[job_status_search_result[0][0]]['job_status_data'].append(dict(**result_job_status))
                         else:
                             records_job_status.append(dict(
                                 job_id=scratch_dir_job_id,
-                                jobs_statuses=[dict(**result_job_status)]
+                                job_status_data=[dict(**result_job_status)]
                             )
                             )
 
@@ -513,7 +513,7 @@ class InstrumentQueryBackEnd:
         result_content = {}
         result_job_status = {
             "token_expired": False,
-            "job_status": None
+            "job_statuses": None
         }
 
         file_list = []
