@@ -2639,6 +2639,86 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_se
         assert 'file_list' in jdata['records'][0]
         assert isinstance(jdata['records'][0]['file_list'], list)
 
+@pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
+@pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
+def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles):
+    required_roles = ['job manager']
+    DispatcherJobState.remove_scratch_folders()
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+    token_none = (request_cred == 'public')
+
+    if token_none:
+        encoded_token = None
+    else:
+        # let's generate a valid token
+        token_payload = {
+            **default_token_payload,
+            "roles": roles,
+        }
+        encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    # just for having the roles in a list
+    roles = roles.split(',')
+    roles[:] = [r.strip() for r in roles]
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
+
+    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    scratch_dir_ctime = os.stat(scratch_dir_fn).st_ctime
+
+    assert os.path.exists(scratch_dir_fn)
+
+    status_code = 403
+    if request_cred == 'invalid_token':
+        # an invalid (encoded) token, just a string
+        encoded_token = 'invalid_token'
+        error_message = 'The token provided is not valid.'
+    elif request_cred == 'public':
+        error_message = 'A token must be provided.'
+    elif request_cred == 'private':
+        if 'job manager' not in roles:
+            lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+            error_message = (
+                f'Unfortunately, your privileges are not sufficient to inspect the state for a given job_id.\n'
+                f'Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}.'
+            )
+
+    # for the email we only use the first 8 characters
+    c = requests.get(server + "/inspect-jobs",
+                     params=dict(
+                         job_id=job_id[:8],
+                         token=encoded_token
+                     ))
+
+    scratch_dir_mtime = os.stat(scratch_dir_fn).st_mtime
+
+    if request_cred != 'private' or ('job manager' not in roles):
+        # email not supposed to be sent for public request
+        assert c.status_code == status_code
+        assert c.text == error_message
+    else:
+        jdata= c.json()
+        assert 'jobs' in jdata
+        assert type(jdata['jobs']) is list
+        assert len(jdata['jobs']) == 1
+
+        assert jdata['jobs'][0]['job_id'] == job_id
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
 def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, dispatcher_test_conf, request_cred):
