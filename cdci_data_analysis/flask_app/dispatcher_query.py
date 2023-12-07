@@ -582,7 +582,7 @@ class InstrumentQueryBackEnd:
                 result_job_status['job_statuses'] = []
             result_job_status['job_statuses'].append(
                 dict(status=job_monitor_content['status'],
-                     job_status_ffile=job_status_filename
+                     job_status_file=job_status_filename
                      ))
 
             if 'token' in result_content['analysis_parameters']:
