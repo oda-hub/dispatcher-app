@@ -278,8 +278,13 @@ def free_up_space():
 @app.route('/inspect-state', methods=['POST', 'GET'])
 def inspect_state():
     state_data_obj = InstrumentQueryBackEnd.inspect_state(app)
-    return state_data_obj
+    return jsonify(state_data_obj['records'])
 
+
+@app.route('/inspect-jobs', methods=['POST', 'GET'])
+def inspect_jobs():
+    state_data_obj = InstrumentQueryBackEnd.inspect_state(app)
+    return jsonify(state_data_obj['jobs'])
 
 @app.route('/instr-list')
 def instr_list():
