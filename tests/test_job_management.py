@@ -2584,6 +2584,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_se
     assert os.path.exists(scratch_dir_fn)
 
     status_code = 403
+    error_message = ''
     if request_cred == 'invalid_token':
         # an invalid (encoded) token, just a string
         encoded_token = 'invalid_token'
@@ -2642,21 +2643,23 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_se
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
 @pytest.mark.parametrize("pass_job_id", [True, False])
-def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id):
+@pytest.mark.parametrize("expired_token", [True, False])
+def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id, expired_token):
     required_roles = ['job manager']
     DispatcherJobState.remove_scratch_folders()
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
     token_none = (request_cred == 'public')
 
+    token_payload = {**default_token_payload}
+
     if token_none:
         encoded_token = None
     else:
         # let's generate a valid token
-        token_payload = {
-            **default_token_payload,
-            "roles": roles,
-        }
+        token_payload["roles"] = roles
+        if expired_token:
+            token_payload["exp"] = int(time.time()) + 15
         encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
     params = {
@@ -2693,7 +2696,21 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id)
     job_id_done = jdata_done['job_monitor']['job_id']
     job_id_failed = jdata_failed['job_monitor']['job_id']
 
+    if expired_token:
+        # let make sure the token used for the previous request expires
+        time.sleep(18)
+
+    # generate a new valid token with the same approach
+    if token_none:
+        encoded_token = None
+    else:
+        # let's generate a valid token
+        token_payload["roles"] = roles
+        token_payload["exp"] = int(time.time()) + 5000
+        encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
     status_code = 403
+    error_message = ''
     if request_cred == 'invalid_token':
         # an invalid (encoded) token, just a string
         encoded_token = 'invalid_token'
@@ -2745,12 +2762,10 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id)
         assert 'job_statuses' in jdata['jobs'][0]['job_status_data'][0]
         assert isinstance(jdata['jobs'][0]['job_status_data'][0]['job_statuses'], list)
         assert len(jdata['jobs'][0]['job_status_data'][0]['job_statuses']) == 1
-        assert 'token_expired' in jdata['jobs'][0]['job_status_data'][0]
         if not pass_job_id:
             assert 'job_statuses' in jdata['jobs'][1]['job_status_data'][0]
             assert isinstance(jdata['jobs'][1]['job_status_data'][0]['job_statuses'], list)
             assert len(jdata['jobs'][1]['job_status_data'][0]['job_statuses']) == 1
-            assert 'token_expired' in jdata['jobs'][1]['job_status_data'][0]
 
         if not pass_job_id:
             assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0] == 'done' or \
@@ -2761,9 +2776,11 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id)
         else:
             assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0] == 'done'
 
-        assert jdata['jobs'][0]['job_status_data'][0]['token_expired'] == False
+        assert 'token_expired' in jdata['jobs'][0]['job_status_data'][0]
+        assert jdata['jobs'][0]['job_status_data'][0]['token_expired'] == expired_token
         if not pass_job_id:
-            assert jdata['jobs'][1]['job_status_data'][0]['token_expired'] == False
+            assert 'token_expired' in jdata['jobs'][1]['job_status_data'][0]
+            assert jdata['jobs'][1]['job_status_data'][0]['token_expired'] == expired_token
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
