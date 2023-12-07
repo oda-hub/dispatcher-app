@@ -579,7 +579,8 @@ class InstrumentQueryBackEnd:
             result_job_status['job_statuses'].append(job_monitor_content['status'])
 
             if 'token' in result_content['analysis_parameters']:
-                result_job_status['token_expired'] = result_content['analysis_parameters']['token']['exp'] < ctime
+                # TODO I am not 100% sure this is enough
+                result_job_status['token_expired'] = result_content['analysis_parameters']['token']['exp'] < time_.time()
 
             result_content['job_monitor'].append(dict(
                 ctime=ctime,
