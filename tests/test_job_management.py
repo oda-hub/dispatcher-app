@@ -2641,7 +2641,8 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_se
 
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
-def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles):
+@pytest.mark.parametrize("pass_job_id", [True, False])
+def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id):
     required_roles = ['job manager']
     DispatcherJobState.remove_scratch_folders()
     server = dispatcher_live_fixture
@@ -2707,12 +2708,15 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles):
                 f'Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}.'
             )
 
+    inspect_params = dict(
+                         token=encoded_token
+                     )
+    if pass_job_id:
+        inspect_params['job_id'] = job_id_done[:8]
+
     # for the email we only use the first 8 characters
     c = requests.get(server + "/inspect-jobs",
-                     params=dict(
-                         # job_id=job_id[:8],
-                         token=encoded_token
-                     ))
+                     params=inspect_params)
 
     if request_cred != 'private' or ('job manager' not in roles):
         # email not supposed to be sent for public request
@@ -2722,35 +2726,44 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles):
         jdata= c.json()
         assert 'jobs' in jdata
         assert type(jdata['jobs']) is list
-        assert len(jdata['jobs']) == 2
-
-        assert jdata['jobs'][0]['job_id'] == job_id_done or jdata['jobs'][1]['job_id'] == job_id_done
-        assert jdata['jobs'][0]['job_id'] == job_id_failed or jdata['jobs'][1]['job_id'] == job_id_failed
+        if not pass_job_id:
+            assert len(jdata['jobs']) == 2
+            assert jdata['jobs'][0]['job_id'] == job_id_done or jdata['jobs'][1]['job_id'] == job_id_done
+            assert jdata['jobs'][0]['job_id'] == job_id_failed or jdata['jobs'][1]['job_id'] == job_id_failed
+        else:
+            assert len(jdata['jobs']) == 1
+            assert jdata['jobs'][0]['job_id'] == job_id_done
 
         assert isinstance(jdata['jobs'][0]['job_status_data'], list)
-        assert isinstance(jdata['jobs'][1]['job_status_data'], list)
+        if not pass_job_id:
+            assert isinstance(jdata['jobs'][1]['job_status_data'], list)
 
         assert len(jdata['jobs'][0]['job_status_data']) == 1
-        assert len(jdata['jobs'][1]['job_status_data']) == 1
+        if not pass_job_id:
+            assert len(jdata['jobs'][1]['job_status_data']) == 1
 
         assert 'job_statuses' in jdata['jobs'][0]['job_status_data'][0]
         assert isinstance(jdata['jobs'][0]['job_status_data'][0]['job_statuses'], list)
         assert len(jdata['jobs'][0]['job_status_data'][0]['job_statuses']) == 1
         assert 'token_expired' in jdata['jobs'][0]['job_status_data'][0]
+        if not pass_job_id:
+            assert 'job_statuses' in jdata['jobs'][1]['job_status_data'][0]
+            assert isinstance(jdata['jobs'][1]['job_status_data'][0]['job_statuses'], list)
+            assert len(jdata['jobs'][1]['job_status_data'][0]['job_statuses']) == 1
+            assert 'token_expired' in jdata['jobs'][1]['job_status_data'][0]
 
-        assert 'job_statuses' in jdata['jobs'][1]['job_status_data'][0]
-        assert isinstance(jdata['jobs'][1]['job_status_data'][0]['job_statuses'], list)
-        assert len(jdata['jobs'][1]['job_status_data'][0]['job_statuses']) == 1
-        assert 'token_expired' in jdata['jobs'][1]['job_status_data'][0]
+        if not pass_job_id:
+            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0] == 'done' or \
+                   jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0] == 'done'
 
-        assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0] == 'done' or \
-               jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0] == 'done'
-
-        assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0] == 'failed' or \
-               jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0] == 'failed'
+            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0] == 'failed' or \
+                   jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0] == 'failed'
+        else:
+            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0] == 'done'
 
         assert jdata['jobs'][0]['job_status_data'][0]['token_expired'] == False
-        assert jdata['jobs'][1]['job_status_data'][0]['token_expired'] == False
+        if not pass_job_id:
+            assert jdata['jobs'][1]['job_status_data'][0]['token_expired'] == False
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
