@@ -2670,19 +2670,27 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles):
     roles = roles.split(',')
     roles[:] = [r.strip() for r in roles]
 
-    jdata = ask(server,
+    jdata_done = ask(server,
                 params,
                 expected_query_status=["done"],
                 max_time_s=150,
                 )
 
-    job_id = jdata['products']['job_id']
-    session_id = jdata['session_id']
+    params = {
+        'query_status': 'new',
+        'product_type': 'failing',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
 
-    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
-    scratch_dir_ctime = os.stat(scratch_dir_fn).st_ctime
+    jdata_failed = ask(server,
+                       params,
+                       expected_query_status='failed'
+                       )
 
-    assert os.path.exists(scratch_dir_fn)
+    job_id_done = jdata_done['job_monitor']['job_id']
+    job_id_failed = jdata_failed['job_monitor']['job_id']
 
     status_code = 403
     if request_cred == 'invalid_token':
@@ -2702,11 +2710,9 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles):
     # for the email we only use the first 8 characters
     c = requests.get(server + "/inspect-jobs",
                      params=dict(
-                         job_id=job_id[:8],
+                         # job_id=job_id[:8],
                          token=encoded_token
                      ))
-
-    scratch_dir_mtime = os.stat(scratch_dir_fn).st_mtime
 
     if request_cred != 'private' or ('job manager' not in roles):
         # email not supposed to be sent for public request
@@ -2716,9 +2722,9 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles):
         jdata= c.json()
         assert 'jobs' in jdata
         assert type(jdata['jobs']) is list
-        assert len(jdata['jobs']) == 1
+        assert len(jdata['jobs']) == 2
 
-        assert jdata['jobs'][0]['job_id'] == job_id
+        assert jdata['jobs'][0]['job_id'] == job_id_done
         assert isinstance(jdata['jobs'][0]['job_status_data'], list)
         assert len(jdata['jobs'][0]['job_status_data']) == 1
         assert 'job_statuses' in jdata['jobs'][0]['job_status_data'][0]
@@ -2727,6 +2733,17 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles):
         assert len(jdata['jobs'][0]['job_status_data'][0]['job_statuses']) == 1
         assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0] == 'done'
         assert jdata['jobs'][0]['job_status_data'][0]['token_expired'] == False
+
+        assert jdata['jobs'][1]['job_id'] == job_id_failed
+        assert isinstance(jdata['jobs'][1]['job_status_data'], list)
+        assert len(jdata['jobs'][1]['job_status_data']) == 1
+        assert 'job_statuses' in jdata['jobs'][1]['job_status_data'][0]
+        assert 'token_expired' in jdata['jobs'][1]['job_status_data'][0]
+        assert isinstance(jdata['jobs'][1]['job_status_data'][0]['job_statuses'], list)
+        assert len(jdata['jobs'][1]['job_status_data'][0]['job_statuses']) == 1
+        assert jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0] == 'failed'
+        assert jdata['jobs'][1]['job_status_data'][0]['token_expired'] == False
+
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
 def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, dispatcher_test_conf, request_cred):
