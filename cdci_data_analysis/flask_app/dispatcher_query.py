@@ -523,7 +523,9 @@ class InstrumentQueryBackEnd:
 
         try:
             fn = os.path.join(scratch_dir, 'analysis_parameters.json')
-            result_content['analysis_parameters'] = json.load(open(fn))
+            with open(fn) as analysis_parameters_file:
+                analysis_parameters_content = json.load(analysis_parameters_file)
+            result_content['analysis_parameters'] = analysis_parameters_content
         except Exception as e:
             # write something
             logger.warning('unable to read: %s', fn)
