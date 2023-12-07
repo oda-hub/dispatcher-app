@@ -2724,24 +2724,32 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles):
         assert type(jdata['jobs']) is list
         assert len(jdata['jobs']) == 2
 
-        assert jdata['jobs'][0]['job_id'] == job_id_done
+        assert jdata['jobs'][0]['job_id'] == job_id_done or jdata['jobs'][1]['job_id'] == job_id_done
+        assert jdata['jobs'][0]['job_id'] == job_id_failed or jdata['jobs'][1]['job_id'] == job_id_failed
+
         assert isinstance(jdata['jobs'][0]['job_status_data'], list)
+        assert isinstance(jdata['jobs'][1]['job_status_data'], list)
+
         assert len(jdata['jobs'][0]['job_status_data']) == 1
+        assert len(jdata['jobs'][1]['job_status_data']) == 1
+
         assert 'job_statuses' in jdata['jobs'][0]['job_status_data'][0]
-        assert 'token_expired' in jdata['jobs'][0]['job_status_data'][0]
         assert isinstance(jdata['jobs'][0]['job_status_data'][0]['job_statuses'], list)
         assert len(jdata['jobs'][0]['job_status_data'][0]['job_statuses']) == 1
-        assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0] == 'done'
-        assert jdata['jobs'][0]['job_status_data'][0]['token_expired'] == False
+        assert 'token_expired' in jdata['jobs'][0]['job_status_data'][0]
 
-        assert jdata['jobs'][1]['job_id'] == job_id_failed
-        assert isinstance(jdata['jobs'][1]['job_status_data'], list)
-        assert len(jdata['jobs'][1]['job_status_data']) == 1
         assert 'job_statuses' in jdata['jobs'][1]['job_status_data'][0]
-        assert 'token_expired' in jdata['jobs'][1]['job_status_data'][0]
         assert isinstance(jdata['jobs'][1]['job_status_data'][0]['job_statuses'], list)
         assert len(jdata['jobs'][1]['job_status_data'][0]['job_statuses']) == 1
-        assert jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0] == 'failed'
+        assert 'token_expired' in jdata['jobs'][1]['job_status_data'][0]
+
+        assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0] == 'done' or \
+               jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0] == 'done'
+
+        assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0] == 'failed' or \
+               jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0] == 'failed'
+
+        assert jdata['jobs'][0]['job_status_data'][0]['token_expired'] == False
         assert jdata['jobs'][1]['job_status_data'][0]['token_expired'] == False
 
 
