@@ -2719,6 +2719,14 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles):
         assert len(jdata['jobs']) == 1
 
         assert jdata['jobs'][0]['job_id'] == job_id
+        assert isinstance(jdata['jobs'][0]['job_status_data'], list)
+        assert len(jdata['jobs'][0]['job_status_data']) == 1
+        assert 'job_statuses' in jdata['jobs'][0]['job_status_data'][0]
+        assert 'token_expired' in jdata['jobs'][0]['job_status_data'][0]
+        assert isinstance(jdata['jobs'][0]['job_status_data'][0]['job_statuses'], list)
+        assert len(jdata['jobs'][0]['job_status_data'][0]['job_statuses']) == 1
+        assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0] == 'done'
+        assert jdata['jobs'][0]['job_status_data'][0]['token_expired'] == False
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
 def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, dispatcher_test_conf, request_cred):
