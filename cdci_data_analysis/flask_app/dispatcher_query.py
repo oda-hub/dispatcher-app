@@ -457,17 +457,6 @@ class InstrumentQueryBackEnd:
 
     @staticmethod
     def inspect_state(app):
-        token = request.args.get('token', None)
-
-        app_config = app.config.get('conf')
-        secret_key = app_config.secret_key
-        output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                      required_roles=['job manager'],
-                                                                      action="inspect the state for a given job_id")
-
-        if output_code is not None:
-            return make_response(output, output_code)
-
         recent_days = request.args.get('recent_days', 3, type=float)
         job_id = request.args.get('job_id', None)
         include_session_log = request.args.get('include_session_log', False) == 'True'
@@ -585,14 +574,12 @@ class InstrumentQueryBackEnd:
                 job_monitor_content = json.load(job_status_file)
             ctime = os.stat(fn).st_ctime
 
-            if result_job_status.get('job_status', None) is None:
-                result_job_status['job_status'] = []
-            result_job_status['job_status'].append(job_monitor_content['status'])
+            if result_job_status.get('job_statuses', None) is None:
+                result_job_status['job_statuses'] = []
+            result_job_status['job_statuses'].append(job_monitor_content['status'])
 
             if 'token' in result_content['analysis_parameters']:
-                if result_job_status.get('token_expired', None) is None:
-                    result_job_status['token_expired'] = []
-                result_job_status['token_expired'].append(result_content['analysis_parameters']['token']['exp'] < ctime)
+                result_job_status['token_expired'] = result_content['analysis_parameters']['token']['exp'] < ctime
 
             result_content['job_monitor'].append(dict(
                 ctime=ctime,
