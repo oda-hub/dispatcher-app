@@ -513,7 +513,8 @@ class InstrumentQueryBackEnd:
         result_content = {}
         result_job_status = {
             "token_expired": False,
-            "job_statuses": None
+            "job_statuses": None,
+            "job_statuses_fn": scratch_dir
         }
 
         file_list = []
@@ -572,13 +573,17 @@ class InstrumentQueryBackEnd:
 
         result_content['job_monitor'] = []
         for fn in glob.glob(os.path.join(scratch_dir, 'job_monitor*')):
+            job_status_filename = os.path.basename(fn)
             with open(fn) as job_status_file:
                 job_monitor_content = json.load(job_status_file)
             ctime = os.stat(fn).st_ctime
 
             if result_job_status.get('job_statuses', None) is None:
                 result_job_status['job_statuses'] = []
-            result_job_status['job_statuses'].append(job_monitor_content['status'])
+            result_job_status['job_statuses'].append(
+                dict(status=job_monitor_content['status'],
+                     job_status_ffile=job_status_filename
+                     ))
 
             if 'token' in result_content['analysis_parameters']:
                 # TODO I am not 100% sure this is enough
