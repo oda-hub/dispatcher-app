@@ -2805,6 +2805,7 @@ def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
     server = gunicorn_dispatcher_long_living_fixture
     token_payload = {**default_token_payload, "roles": 'job manager'}
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    DataServerQuery.set_status('submitted')
     DispatcherJobState.remove_scratch_folders()
     dict_param = dict(
         query_status="new",
@@ -2865,7 +2866,7 @@ def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
                      token=encoded_token,
                      time_original_request=time_request
                  ))
-
+    DataServerQuery.set_status('done')
     requests.get(os.path.join(server, "call_back"),
                  params=dict(
                      job_id=dispatcher_job_state.job_id,
@@ -2902,6 +2903,14 @@ def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
     assert len(jdata_inspection['jobs']) == 1
     assert jdata_inspection['jobs'][0]['job_id'] == dispatcher_job_state.job_id
     assert len(jdata_inspection['jobs'][0]['job_status_data']) == 2
+    assert 'job_statuses' in jdata_inspection['jobs'][0]['job_status_data'][0]
+    assert isinstance(jdata_inspection['jobs'][0]['job_status_data'][0]['job_statuses'], list)
+    assert (len(jdata_inspection['jobs'][0]['job_status_data'][0]['job_statuses']) == 9 or
+            len(jdata_inspection['jobs'][0]['job_status_data'][0]['job_statuses']) == 1)
+    assert 'job_statuses' in jdata_inspection['jobs'][0]['job_status_data'][1]
+    assert isinstance(jdata_inspection['jobs'][0]['job_status_data'][1]['job_statuses'], list)
+    assert (len(jdata_inspection['jobs'][0]['job_status_data'][1]['job_statuses']) == 1 or
+            len(jdata_inspection['jobs'][0]['job_status_data'][1]['job_statuses']) == 9)
 
 
 def test_inspect_jobs_failed(dispatcher_live_fixture):
