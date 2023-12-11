@@ -587,7 +587,8 @@ class InstrumentQueryBackEnd:
             job_status_filename = os.path.basename(fn)
             with open(fn) as job_status_file:
                 job_monitor_content = json.load(job_status_file)
-            ctime = os.stat(fn).st_ctime
+            job_monitor_ctime = os.stat(fn).st_ctime
+            job_monitor_mtime = os.stat(fn).st_mtime
 
             job_status_obj = dict(status=job_monitor_content['status'],
                                   job_status_file=job_status_filename
@@ -599,12 +600,13 @@ class InstrumentQueryBackEnd:
             result_job_status['job_statuses'].append(job_status_obj)
 
             if 'token' in result_content['analysis_parameters']:
-                # TODO I am not 100% sure this is enough
+                # TODO I am not 100% sure this is enough, perhaps it's not even needed
                 result_job_status['token_expired'] = result_content['analysis_parameters']['token']['exp'] < time_.time()
+                # result_job_status['token_expired'] = result_content['analysis_parameters']['token']['exp'] < job_monitor_mtime
 
             result_content['job_monitor'].append(dict(
-                ctime=ctime,
-                ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(ctime)),
+                ctime=job_monitor_ctime,
+                ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(job_monitor_ctime)),
                 fn=fn,
                 job_monitor_content=job_monitor_content
             ))
