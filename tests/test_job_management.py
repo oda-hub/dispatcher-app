@@ -2825,72 +2825,72 @@ def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
     for i in range(5):
         # imitating what a backend would do
         current_action = 'progress' if i > 2 else 'main_done'
-        c = requests.get(os.path.join(server, "call_back"),
-                         params=dict(
-                             job_id=dispatcher_job_state.job_id,
-                             session_id=dispatcher_job_state.session_id,
-                             instrument_name="empty-async",
-                             action=current_action,
-                             node_id=f'node_{i}',
-                             message='progressing',
-                             token=encoded_token,
-                             time_original_request=time_request
-                         ))
-        c = requests.get(os.path.join(server, "run_analysis"),
-                    params=dict(
-                        query_status="submitted",  # whether query is new or not, this should work
-                        query_type="Real",
-                        instrument="empty-async",
-                        product_type="dummy",
-                        async_dispatcher=False,
-                        session_id=dispatcher_job_state.session_id,
-                        job_id=dispatcher_job_state.job_id,
-                        token=encoded_token
-                    ))
-
-    c = requests.get(os.path.join(server, "run_analysis"),
-                     {**dict_param,
-                      "query_status": "submitted",
-                      "job_id": dispatcher_job_state.job_id,
-                      "session_id": dispatcher_job_state.session_id,
-                      }
-                     )
-
-    c = requests.get(os.path.join(server, "call_back"),
-                    params=dict(
-                        job_id=dispatcher_job_state.job_id,
-                        session_id=dispatcher_job_state.session_id,
-                        instrument_name="empty-async",
-                        action='main_incorrect_status',
-                        node_id=f'node_{i+1}',
-                        message='progressing',
-                        token=encoded_token,
-                        time_original_request=time_request
-                    ))
-    DataServerQuery.set_status('done')
-
-    c = requests.get(os.path.join(server, "call_back"),
+        requests.get(os.path.join(server, "call_back"),
                      params=dict(
                          job_id=dispatcher_job_state.job_id,
                          session_id=dispatcher_job_state.session_id,
                          instrument_name="empty-async",
-                         action='done',
-                         node_id='node_final',
-                         message='done',
+                         action=current_action,
+                         node_id=f'node_{i}',
+                         message='progressing',
                          token=encoded_token,
                          time_original_request=time_request
                      ))
-    c = requests.get(os.path.join(server, "call_back"),
-                     params={
-                         'job_id': dispatcher_job_state.job_id,
-                         'session_id': dispatcher_job_state.session_id,
-                         'instrument_name': "empty-async",
-                         'action': 'failed',
-                         'node_id': 'node_failed',
-                         'message': 'failed',
-                         'token': encoded_token,
-                         'time_original_request': time_request
-                     })
+        requests.get(os.path.join(server, "run_analysis"),
+                     params=dict(
+                         query_status="submitted",  # whether query is new or not, this should work
+                         query_type="Real",
+                         instrument="empty-async",
+                         product_type="dummy",
+                         async_dispatcher=False,
+                         session_id=dispatcher_job_state.session_id,
+                         job_id=dispatcher_job_state.job_id,
+                         token=encoded_token
+                     ))
+
+    requests.get(os.path.join(server, "run_analysis"),
+                 {**dict_param,
+                  "query_status": "submitted",
+                  "job_id": dispatcher_job_state.job_id,
+                  "session_id": dispatcher_job_state.session_id,
+                  }
+                 )
+
+    requests.get(os.path.join(server, "call_back"),
+                 params=dict(
+                     job_id=dispatcher_job_state.job_id,
+                     session_id=dispatcher_job_state.session_id,
+                     instrument_name="empty-async",
+                     action='main_incorrect_status',
+                     node_id=f'node_{i+1}',
+                     message='progressing',
+                     token=encoded_token,
+                     time_original_request=time_request
+                 ))
+    DataServerQuery.set_status('done')
+
+    requests.get(os.path.join(server, "call_back"),
+                 params=dict(
+                     job_id=dispatcher_job_state.job_id,
+                     session_id=dispatcher_job_state.session_id,
+                     instrument_name="empty-async",
+                     action='done',
+                     node_id='node_final',
+                     message='done',
+                     token=encoded_token,
+                     time_original_request=time_request
+                 ))
+    requests.get(os.path.join(server, "call_back"),
+                 params=dict(
+                     job_id=dispatcher_job_state.job_id,
+                     session_id=dispatcher_job_state.session_id,
+                     instrument_name="empty-async",
+                     action='failed',
+                     node_id='node_failed',
+                     message='failed',
+                     token=encoded_token,
+                     time_original_request=time_request
+                 ))
 
     inspect_params = dict(
         token=encoded_token
@@ -2900,6 +2900,11 @@ def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
 
     jdata_inspection = c.json()
     print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
+    assert 'jobs' in jdata_inspection
+    assert type(jdata_inspection['jobs']) is list
+    assert len(jdata_inspection['jobs']) == 1
+    assert jdata_inspection['jobs'][0]['job_id'] == dispatcher_job_state.job_id
+    assert len(jdata_inspection['jobs'][0]['job_status_data']) == 2
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
