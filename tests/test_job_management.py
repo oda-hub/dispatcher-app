@@ -2733,7 +2733,6 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id,
     if pass_job_id:
         inspect_params['job_id'] = job_id_done[:8]
 
-    # for the email we only use the first 8 characters
     c = requests.get(server + "/inspect-jobs",
                      params=inspect_params)
 
@@ -2806,7 +2805,6 @@ def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
     server = gunicorn_dispatcher_long_living_fixture
     token_payload = {**default_token_payload, "roles": 'job manager'}
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-    DataServerQuery.set_status('submitted')
     DispatcherJobState.remove_scratch_folders()
     dict_param = dict(
         query_status="new",
@@ -2867,7 +2865,6 @@ def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
                      token=encoded_token,
                      time_original_request=time_request
                  ))
-    DataServerQuery.set_status('done')
 
     requests.get(os.path.join(server, "call_back"),
                  params=dict(
@@ -2905,6 +2902,51 @@ def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
     assert len(jdata_inspection['jobs']) == 1
     assert jdata_inspection['jobs'][0]['job_id'] == dispatcher_job_state.job_id
     assert len(jdata_inspection['jobs'][0]['job_status_data']) == 2
+
+
+def test_inspect_jobs_failed(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    token_payload = {**default_token_payload, "roles": 'job manager'}
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    DataServerQuery.set_status('submitted')
+    DispatcherJobState.remove_scratch_folders()
+    params = {
+        'query_status': 'new',
+        'product_type': 'failing',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status='failed'
+                )
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+
+    inspect_params = dict(
+        token=encoded_token
+    )
+    c = requests.get(server + "/inspect-jobs",
+                     params=inspect_params)
+
+    jdata_inspection = c.json()
+    print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
+    assert 'jobs' in jdata_inspection
+    assert type(jdata_inspection['jobs']) is list
+    assert len(jdata_inspection['jobs']) == 1
+    assert jdata_inspection['jobs'][0]['job_id'] == dispatcher_job_state.job_id
+    assert 'job_status_data' in jdata_inspection['jobs'][0]
+    assert len(jdata_inspection['jobs'][0]['job_status_data']) == 1
+    assert 'job_status_data' in jdata_inspection['jobs'][0]
+    assert len(jdata_inspection['jobs'][0]['job_status_data']) == 1
+    assert 'query_output' in jdata_inspection['jobs'][0]['job_status_data'][0]
+    assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['debug_message'] == 'InternalError()'
+    assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['error_message'] == \
+            ('Instrument: empty, product: failing\n\nThe support team has been notified, and we are investigating '
+             'to resolve the issue as soon as possible\n\nIf you are willing to help us, please use the '
+             '\"Write a feedback\" button below. We will make sure to respond to any feedback provided')
+    assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['message'] == 'Error when getting query products'
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
