@@ -2643,8 +2643,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_se
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
 @pytest.mark.parametrize("pass_job_id", [True, False])
-@pytest.mark.parametrize("expired_token", [True, False])
-def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id, expired_token):
+def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id):
     required_roles = ['job manager']
     DispatcherJobState.remove_scratch_folders()
     server = dispatcher_live_fixture
@@ -2658,8 +2657,6 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id,
     else:
         # let's generate a valid token
         token_payload["roles"] = roles
-        if expired_token:
-            token_payload["exp"] = int(time.time()) + 15
         encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
     params = {
@@ -2697,10 +2694,6 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id,
     session_id_done = jdata_done['session_id']
     job_id_failed = jdata_failed['job_monitor']['job_id']
     session_id_failed = jdata_failed['session_id']
-
-    if expired_token:
-        # let make sure the token used for the previous request expires
-        time.sleep(18)
 
     # generate a new valid token with the same approach
     if token_none:
@@ -2795,10 +2788,10 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id,
             assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0]['status'] == 'done'
 
         assert 'token_expired' in jdata['jobs'][0]['job_status_data'][0]
-        assert jdata['jobs'][0]['job_status_data'][0]['token_expired'] == expired_token
+        assert not jdata['jobs'][0]['job_status_data'][0]['token_expired']
         if not pass_job_id:
             assert 'token_expired' in jdata['jobs'][1]['job_status_data'][0]
-            assert jdata['jobs'][1]['job_status_data'][0]['token_expired'] == expired_token
+            assert not jdata['jobs'][1]['job_status_data'][0]['token_expired']
 
 
 def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
@@ -2956,6 +2949,67 @@ def test_inspect_jobs_failed(dispatcher_live_fixture):
              'to resolve the issue as soon as possible\n\nIf you are willing to help us, please use the '
              '\"Write a feedback\" button below. We will make sure to respond to any feedback provided')
     assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['message'] == 'Error when getting query products'
+
+
+def test_inspect_jobs_expired_token(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    token_payload = {**default_token_payload, 'roles': 'job manager', 'exp': int(time.time()) + 10,'mstout':False,'mssub':False}
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    DataServerQuery.set_status('submitted')
+    DispatcherJobState.remove_scratch_folders()
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    jdata = ask(server,
+                dict_param,
+                expected_query_status='submitted'
+                )
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    time_request = jdata['time_request']
+
+    # let make sure the token used for the previous request expires
+    time.sleep(12)
+
+    c = requests.get(os.path.join(server, "call_back"),
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action='done',
+                         node_id=f'node_0',
+                         message='progressing',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+
+    token_payload["roles"] = 'job manager'
+    token_payload["exp"] = int(time.time()) + 5000
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    inspect_params = dict(
+        token=encoded_token
+    )
+    c = requests.get(server + "/inspect-jobs",
+                     params=inspect_params)
+
+    jdata_inspection = c.json()
+    print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
+    assert 'jobs' in jdata_inspection
+    assert type(jdata_inspection['jobs']) is list
+    assert len(jdata_inspection['jobs']) == 1
+    assert jdata_inspection['jobs'][0]['job_id'] == dispatcher_job_state.job_id
+    assert 'job_status_data' in jdata_inspection['jobs'][0]
+    assert len(jdata_inspection['jobs'][0]['job_status_data']) == 1
+    assert 'query_output' in jdata_inspection['jobs'][0]['job_status_data'][0]
+    assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['debug_message'] == ''
+    assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['error_message'] == ''
+    assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['message'] == ''
+    assert 'job_completed' in jdata_inspection['jobs'][0]['job_status_data'][0]
+    assert not jdata_inspection['jobs'][0]['job_status_data'][0]['job_completed']
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
