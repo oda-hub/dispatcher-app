@@ -476,7 +476,6 @@ class InstrumentQueryBackEnd:
                 if os.path.exists(scratch_dir):
                     if (time_.time() - os.stat(scratch_dir).st_mtime) < recent_days * 24 * 3600:
                         result_content, result_job_status = InstrumentQueryBackEnd.read_scratch_dir(scratch_dir, include_session_log)
-                        # job_status_entry_found = any(job_status_obj.get(job_id) == scratch_dir_job_id for job_status_obj in records_job_status)
                         job_status_search_result = [(index, job_status_obj)
                                                     for index, job_status_obj in enumerate(records_job_status) if
                                                     job_status_obj.get('job_id') == scratch_dir_job_id]
@@ -578,12 +577,26 @@ class InstrumentQueryBackEnd:
                 job_monitor_content = json.load(job_status_file)
             ctime = os.stat(fn).st_ctime
 
+            job_status_obj = dict(status=job_monitor_content['status'],
+                                  job_status_file=job_status_filename
+                                  )
+
             if result_job_status.get('job_statuses', None) is None:
                 result_job_status['job_statuses'] = []
-            result_job_status['job_statuses'].append(
-                dict(status=job_monitor_content['status'],
-                     job_status_file=job_status_filename
-                     ))
+
+            query_output_fn = os.path.join(scratch_dir, 'query_output.json')
+            try:
+                with open(query_output_fn) as query_output_file:
+                    query_output_content = json.load(query_output_file)
+                query_output_status_dict = query_output_content.get('status_dictionary', None)
+                if query_output_status_dict is not None:
+                    job_status_obj['query_output'] = query_output_status_dict
+            except Exception as e:
+                # write something
+                logger.warning('unable to read: %s', query_output_fn)
+                job_status_obj['query_output'] = f'problem reading {query_output_fn}: {repr(e)}'
+
+            result_job_status['job_statuses'].append(job_status_obj)
 
             if 'token' in result_content['analysis_parameters']:
                 # TODO I am not 100% sure this is enough
