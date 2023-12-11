@@ -513,6 +513,7 @@ class InstrumentQueryBackEnd:
         result_job_status = {
             "token_expired": False,
             "job_statuses": None,
+            "job_completed": False,
             "job_statuses_fn": scratch_dir
         }
 
@@ -588,9 +589,11 @@ class InstrumentQueryBackEnd:
             with open(fn) as job_status_file:
                 job_monitor_content = json.load(job_status_file)
             job_monitor_ctime = os.stat(fn).st_ctime
-            job_monitor_mtime = os.stat(fn).st_mtime
 
-            job_status_obj = dict(status=job_monitor_content['status'],
+            job_status = job_monitor_content['status']
+            result_job_status['job_completed'] = (result_job_status['job_completed'] or job_status == 'done')
+
+            job_status_obj = dict(status=job_status,
                                   job_status_file=job_status_filename
                                   )
 
@@ -602,7 +605,6 @@ class InstrumentQueryBackEnd:
             if 'token' in result_content['analysis_parameters']:
                 # TODO I am not 100% sure this is enough, perhaps it's not even needed
                 result_job_status['token_expired'] = result_content['analysis_parameters']['token']['exp'] < time_.time()
-                # result_job_status['token_expired'] = result_content['analysis_parameters']['token']['exp'] < job_monitor_mtime
 
             result_content['job_monitor'].append(dict(
                 ctime=job_monitor_ctime,
