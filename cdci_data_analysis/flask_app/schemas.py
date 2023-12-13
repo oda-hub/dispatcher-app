@@ -5,7 +5,6 @@ import typing
 from marshmallow import Schema, EXCLUDE, fields
 from marshmallow.validate import OneOf
 from marshmallow.fields import _T
-from networkx.release import description
 
 dispatcher_strict_validate = os.environ.get('DISPATCHER_STRICT_VALIDATE', 'no') == 'yes'
 
