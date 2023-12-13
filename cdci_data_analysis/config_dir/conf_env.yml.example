@@ -14,7 +14,8 @@ dispatcher:
     # register on sentry.io and  put here url for reporting issues!
     # optional, but should be enforcable in "strict" mode
     sentry_url:
-    
+    sentry_environment: production
+
     # can be ignored, install your own (https://www.elastic.co/logstash) or use external https://logz.io/
     # optional, but may be be enforcable in "strict" mode
     logstash_host: 
@@ -29,6 +30,9 @@ dispatcher:
 
     # maximum interval allowed during token refreshing
     token_max_refresh_interval: 604800
+
+    # timeout to re-submit the request
+    resubmit_timeout: 900
 
     # where the dispatcher binds, will be used for the flask app at start-up
     # host and port are well distinguished for clarity
@@ -72,6 +76,35 @@ dispatcher:
         email_sending_job_submitted_default_interval: 5
         # enable the sending of a sentry message in case a not valid condition for the sending an email is met
         sentry_for_email_sending_check: False
+
+    # matrix related configurations: a user might want to receive a message on his matrix personal room, or another room he chooses
+    matrix_options:
+        # matrix server url
+        matrix_server_url: MATRIX_SERVER_URL
+        # access token of the sender account, from which the messages will be sent from
+        matrix_sender_access_token: MATRIX_SENDER_ACCESS_TOKEN
+        # list of additional room ids receivers towards which the message will be sent, besides the room id extracted from the token
+        matrix_bcc_receivers_room_ids: ['room_id']
+        # incident report related options, for the messages sent via matrix
+        incident_report_matrix_options:
+            # list of room ids receivers towards which the incident report message will be sent
+            matrix_incident_report_receivers_room_ids: ['room_id']
+            # personal access token of the sender of the incident report
+            matrix_incident_report_sender_personal_access_token: MATRIX_INCIDENT_REPORT_SENDER_ACCESS_TOKEN
+        # list of room ids to which the matrix message should be sent
+        matrix_cc_receivers_room_id: []
+        # enable/disable sending of messages via matrix in case of a submitted job status
+        matrix_message_sending_job_submitted: True
+        # amount of time (in seconds) elapsed from the sending of the last message on matrix
+        # for when a request has been submitted
+        matrix_message_sending_job_submitted_default_interval: 5
+        # enable the sending of a sentry message in case a not valid condition for the sending a message on matrix is met
+        sentry_for_matrix_message_sending_check: False
+        # amount of time (in seconds) elapsed from the issuing of the request,
+        # that will trigger the sending of a message via matrix when the request is complete, if this time is exceeded
+        matrix_message_sending_timeout_default_threshold: 1800
+        # enable the sending of a message via matrix when a request is ''done'', and this took long to complete
+        matrix_message_sending_timeout: True
 
     # product gallery related set of options
     # in case no integration with the product gallery is provided, these options will be ignored

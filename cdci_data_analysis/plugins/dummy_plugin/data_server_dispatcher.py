@@ -104,28 +104,65 @@ class DataServerQuery:
         
         status = self.decide_status() 
         if status == "submitted":
-            # set done to submitted?
             query_out.set_done(message="job submitted mock",
-                            debug_message="no message really",
-                            job_status='submitted',
-                            comment="mock comment",
-                            warning="mock warning")
+                               debug_message="no message really",
+                               job_status='submitted',
+                               comment="mock comment",
+                               warning="mock warning")
+        if status == "progress":
+            query_out.set_done(message="job progress mock",
+                               debug_message="no message really",
+                               job_status='progress',
+                               comment="mock comment",
+                               warning="mock warning")
         elif status == "done":
-            # set done to submitted?
             query_out.set_done(message="job done mock",
-                            debug_message="no message really",
-                            job_status='done',
-                            comment="mock comment",
-                            warning="mock warning")
+                               debug_message="no message really",
+                               job_status='done',
+                               comment="mock comment",
+                               warning="mock warning")
         elif status == "failed":
-            # set done to submitted?
             query_out.set_failed(message="job failed mock",
-                            debug_message="no message really",
-                            job_status='failed',
-                            comment="mock comment",
-                            warning="mock warning")
+                                 debug_message="no message really",
+                                 job_status='failed')
         else:
             NotImplementedError
+
+
+        return None, query_out
+
+
+class DataServerLogSubmitQuery(DataServerQuery):
+
+    def run_query(self, *args, **kwargs):
+        logger.warn('fake run_query in %s with %s, %s', self, args, kwargs)
+
+        query_out = QueryOutput()
+
+        current_status = self.get_status()
+
+        if current_status == '':
+            # request sent to the backend
+            self.set_status("submitted")
+            query_out.set_done(message="job submitted mock",
+                               debug_message="no message really",
+                               job_status="submitted",
+                               comment="mock comment",
+                               warning="mock warning")
+
+        elif current_status == "submitted":
+            query_out.set_done(message="job submitted mock",
+                               debug_message="no message really",
+                               job_status='submitted',
+                               comment="mock comment",
+                               warning="mock warning")
+
+        elif current_status == "done":
+            query_out.set_done(message="job done mock",
+                               debug_message="no message really",
+                               job_status='done',
+                               comment="mock comment",
+                               warning="mock warning")
 
 
         return None, query_out
@@ -164,6 +201,92 @@ class DataServerQuerySemiAsync(DataServerQuery):
         return None, query_out
 
 
+class ReturnProgressDataServerQuery(DataServerQuery):
+    def __init__(self, config=None, instrument=None):
+        super().__init__()
+
+    def get_progress_run(self):
+
+        query_out = QueryOutput()
+
+        p_value = ReturnProgressProductQuery.get_p_value()
+
+        query_out.set_status(
+            0,
+            message=f"current p value is {p_value}",
+            debug_message="no debug message really",
+            job_status="submitted",
+            comment="mock comment",
+            warning="mock warning")
+
+        return p_value, query_out
+
+    def run_query(self, *args, **kwargs):
+        logger.warn('fake run_query in %s with %s, %s', self, args, kwargs)
+        query_out = QueryOutput()
+
+        p_value = ReturnProgressProductQuery.get_p_value()
+
+        query_out.set_status(
+            0,
+            message=f"current p value is {p_value}",
+            debug_message="no debug message really",
+            job_status="done",
+            comment="mock comment",
+            warning="mock warning")
+
+        return p_value, query_out
+
+
+class ReturnProgressProductQuery(ProductQuery):
+
+    p_value_fn = "ReturnProgressProductQuery-current_p_value.out"
+
+    def __init__(self, name, parameters_list=None):
+        if parameters_list is None:
+            parameters_list = []
+        super().__init__(name, parameters_list=parameters_list)
+
+    @classmethod
+    def set_p_value(cls, p_value):
+        with open(cls.p_value_fn, "w") as p_value_f:
+            p_value_f.write(str(p_value))
+
+    @classmethod
+    def get_p_value(cls):
+        if os.path.exists(cls.p_value_fn):
+            with open(cls.p_value_fn) as p_value_f:
+                p_value = float(p_value_f.read())
+            return p_value
+        else:
+            return 0
+
+    def get_data_server_query(self,instrument,config=None,**kwargs):
+        if instrument.data_server_query_class:
+            q = instrument.data_server_query_class(instrument=instrument, config=config)
+        else:
+            q = DataServerQuery()
+        return q
+
+    def get_dummy_progress_run(self, instrument, config=None,**kwargs):
+        p_value = self.get_p_value()
+        prod_list = QueryProductList(prod_list=[p_value])
+        return prod_list
+
+    def get_dummy_products(self, instrument, config=None, **kwargs):
+        p_value = self.get_p_value()
+        prod_list = QueryProductList(prod_list=[p_value])
+        return prod_list
+
+    def process_product_method(self, instrument, prod_list, api=False, **kw):
+        query_out = QueryOutput()
+        query_out.prod_dictionary['p'] = prod_list.prod_list[0]
+        return query_out
+
+    def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
+        p_value = res
+        return [p_value]
+
 class EmptyProductQuery(ProductQuery):
 
     def __init__(self, name='unset-name', config=None, instrument=None):
@@ -198,6 +321,7 @@ class EmptyProductQuery(ProductQuery):
 
     def test_communication(self,
                            instrument: Instrument,
+                           job=None,
                            query_type='Real',
                            logger=None,
                            config=None,
@@ -227,6 +351,14 @@ class EmptyProductQuery(ProductQuery):
         # return True
         results = dict(authorization=True, needed_roles=[])
         return results
+
+
+class EmptyLogSubmitProductQuery(EmptyProductQuery):
+
+    def get_data_server_query(self, instrument: Instrument, config=None):
+        q = DataServerLogSubmitQuery()
+        self.input_param_scw_list = instrument.get_par_by_name('scw_list').value
+        return q
 
 
 class FailingProductQuery(EmptyProductQuery):
@@ -372,12 +504,12 @@ class EchoProductQuery(ProductQuery):
         query_out.prod_dictionary['echo'] = prod_list.prod_list[0]
         return query_out
     
-    def test_communication(self, instrument, query_type='Real', logger=None, config=None, sentry_dsn=None):
+    def test_communication(self, instrument, job=None, query_type='Real', logger=None, config=None, sentry_dsn=None):
         query_out = QueryOutput()
         query_out.set_done()
         return query_out
     
-    def test_has_products(self, instrument, query_type='Real', logger=None, config=None, scratch_dir=None, sentry_dsn=None):
+    def test_has_products(self, instrument, job=None, query_type='Real', logger=None, config=None, scratch_dir=None, sentry_dsn=None):
         query_out = QueryOutput()
         query_out.prod_dictionary['input_prod_list'] = []
         query_out.set_done()

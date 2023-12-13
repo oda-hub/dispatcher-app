@@ -27,7 +27,7 @@ from flask_restx import Api, Resource
 import time as _time
 from urllib.parse import urlencode, urlparse
 
-from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper, email_helper
+from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper, email_helper, matrix_helper
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError
@@ -221,6 +221,8 @@ def common_exception_payload():
         'dispatcher-config': remove_nested_keys(app.config['conf'].as_dict(),
                                                 ['sentry_url', 'logstash_host', 'logstash_port','secret_key',
                                                  'product_gallery_secret_key',
+                                                 'matrix_sender_access_token', 'matrix_incident_report_sender_personal_access_token',
+                                                 'matrix_bcc_receivers_room_ids', 'matrix_incident_report_receivers_room_ids',
                                                  'smtp_server_password'])
     }
 
@@ -800,7 +802,47 @@ def get_astro_entity_info_by_source_name():
     return refactored_astro_entity_info
 
 
+@app.route('/get_data_product_list_with_conditions', methods=['GET'])
+def get_data_product_list_with_conditions():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
 
+    par_dic = request.values.to_dict()
+    token = par_dic.pop('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="getting all the astro entities from the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    sentry_dsn = sentry.sentry_url
+
+    gallery_secret_key = app_config.product_gallery_secret_key
+    product_gallery_url = app_config.product_gallery_url
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
+                                                        user_email=user_email,
+                                                        sentry_dsn=sentry_dsn)
+    # update the token
+    gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+
+    # src_name = par_dic.pop('src_name', None)
+
+    output_get = drupal_helper.get_data_product_list_by_source_name_with_conditions(product_gallery_url=product_gallery_url,
+                                                                                    gallery_jwt_token=gallery_jwt_token,
+                                                                                    sentry_dsn=sentry_dsn,
+                                                                                    **par_dic)
+    output_list = json.dumps(output_get)
+
+    return output_list
+
+
+# TODO to refactor using get_data_product_list_with_conditions
 @app.route('/get_data_product_list_by_source_name', methods=['GET'])
 def get_data_product_list_by_source_name():
     logger.info("request.args: %s ", request.args)
@@ -835,7 +877,7 @@ def get_data_product_list_by_source_name():
     src_name = request.args.get('src_name', None)
 
     output_get = drupal_helper.get_data_product_list_by_source_name(product_gallery_url=product_gallery_url,
-                                                                     gallery_jwt_token=gallery_jwt_token,
+                                                                    gallery_jwt_token=gallery_jwt_token,
                                                                     src_name=src_name,
                                                                     sentry_dsn=sentry_dsn)
     output_list = json.dumps(output_get)
@@ -930,6 +972,34 @@ def post_product_to_gallery():
     return output_post
 
 
+@app.route('/delete_product_to_gallery', methods=['POST'])
+def delete_product_to_gallery():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="delete from the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    output_post = drupal_helper.delete_content_gallery(decoded_token=decoded_token,
+                                                       disp_conf=app_config,
+                                                       files=request.files,
+                                                       **par_dic)
+
+    return output_post
+
+
 @app.route('/post_revolution_processing_log_to_gallery', methods=['POST'])
 def post_revolution_processing_log_to_gallery():
     logger.info("request.args: %s ", request.args)
@@ -967,14 +1037,12 @@ def report_incident():
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
-    sentry_dsn = sentry.sentry_url
-
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key)
 
     if output_code is not None:
         return make_response(output, output_code)
     decoded_token = output
-
+    report_incident_status = {}
     par_dic = request.values.to_dict()
     job_id = par_dic.get('job_id')
     session_id = par_dic.get('session_id')
@@ -990,22 +1058,44 @@ def report_incident():
             decoded_token=decoded_token,
             incident_content=incident_content,
             incident_time=incident_time,
-            scratch_dir=scratch_dir,
-            sentry_dsn=sentry_dsn
+            scratch_dir=scratch_dir
         )
-        report_incident_status = 'incident report email successfully sent'
+        report_incident_status['email_report_status'] = 'incident report email successfully sent'
     except email_helper.EMailNotSent as e:
-        report_incident_status = 'sending email failed'
+        report_incident_status['email_report_status'] = 'sending email failed'
         logging.warning(f'email sending failed: {e}')        
         sentry.capture_message(f'sending email failed {e}')
 
     except MissingRequestParameter as e:
-        report_incident_status = 'sending email failed'
+        report_incident_status['email_report_status'] = 'sending email failed'
         logging.warning(f'parameter missing during call back: {e}')
 
-    response = jsonify({'report_incident_status': report_incident_status})
+    try:
+        res_content = matrix_helper.send_incident_report_message(
+            config=app_config,
+            job_id=job_id,
+            session_id=session_id,
+            logger=logger,
+            decoded_token=decoded_token,
+            incident_content=incident_content,
+            incident_time=incident_time,
+            scratch_dir=scratch_dir
+        )
 
-    return response
+        matrix_message_report_status = 'incident report message successfully sent via matrix'
+        if len(res_content['res_content_incident_reports_failed']) >= 1:
+            matrix_message_report_status = 'sending of an incident report message via matrix failed'
+
+        report_incident_status['martix_message_report_status'] = matrix_message_report_status
+        report_incident_status['martix_message_report_status_details'] = {
+            "res_content": res_content
+        }
+
+    except MissingRequestParameter as e:
+        report_incident_status['martix_message_report_status'] = 'sending message via matrix failed'
+        logging.warning(f'parameter missing during call back: {e}')
+
+    return report_incident_status
 
 
 @ns_conf.route('/js9/<path:path>', methods=['GET', 'POST'])

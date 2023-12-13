@@ -28,7 +28,6 @@ import string
 import json
 import logging
 
-from ..flask_app.sentry import sentry
 import yaml
 
 import numpy as np
@@ -43,7 +42,7 @@ from .io_helper import upload_file
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
 from ..flask_app.sentry import sentry
 
-from oda_api.api import DispatcherAPI, RemoteException, DispatcherException, DispatcherNotAvailable, UnexpectedDispatcherStatusCode, RequestNotUnderstood as RequestNotUnderstoodOdaApi
+from oda_api.api import DispatcherAPI, RemoteException, Unauthorized, DispatcherException, DispatcherNotAvailable, UnexpectedDispatcherStatusCode, RequestNotUnderstood as RequestNotUnderstoodOdaApi
 
 __author__ = "Andrea Tramacere"
 
@@ -219,7 +218,8 @@ class Instrument:
                 p = _query
 
         if p is None:
-            raise Warning('query', prod_name, 'not found')
+            sentry.capture_message(f'query for the product {prod_name} not found')
+            raise Warning(f'query for the product {prod_name} not found')
 
         return p
 
@@ -267,6 +267,7 @@ class Instrument:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='',
                                                  additional=': '+getattr(e, 'message', ''))
+            sentry.capture_message(f'{error_message}\n{e}')
             raise RequestNotUnderstood(error_message)
         except Exception as e:
             error_message = error_message.format(step=step,
@@ -292,8 +293,7 @@ class Instrument:
     def get_status_details(self,
                            par_dic,
                            config=None,
-                           logger=None,
-                           sentry_dsn=None):
+                           logger=None):
         if logger is None:
             logger = self.get_logger()
 
@@ -317,22 +317,38 @@ class Instrument:
                 UnexpectedDispatcherStatusCode,
                 RequestNotUnderstoodOdaApi) as de:
             logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
-                        'A exception regarding the dispatcher has been returned by the oda_api when retrieving '
+                        'An exception regarding the dispatcher has been returned by the oda_api when retrieving '
                         'information from a completed job')
             status_details_output_obj['status'] = 'dispatcher_exception'
             status_details_output_obj['exception_message'] = str(de)
-            sentry.capture_message((f'Dispatcher-related exception detected when retrieving additional '
-                                    f'information from a completed job '
-                                    f'{de}'))
+            sentry.capture_message(f'Dispatcher-related exception detected when retrieving additional '
+                                   f'information from a completed job:\n{de}')
         except ConnectionError as ce:
             logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
                         'A connection error has been detected when retrieving additional information '
                         f'from a completed job: {ce}')
             status_details_output_obj['status'] = 'connection_error'
             status_details_output_obj['exception_message'] = str(ce)
-            sentry.capture_message((f'ConnectionError detected when retrieving additional '
-                                    f'information from a completed job '
-                                    f'{ce}'))
+            sentry.capture_message(f'ConnectionError detected when retrieving additional '
+                                   f'information from a completed job:\n{ce}')
+        except Unauthorized as ue:
+            detail_message = ""
+            status_details_output_obj['status'] = 'authorization_error'
+            if 'The token provided is expired' in ue.message:
+                detail_message = ('It looks like the token has expired before the job completion, and therefore the request cannot be completed.\n'
+                                  'The result might however be complete or mostly ready, please resubmit it using a token with longer validity.')
+                status_details_output_obj['status'] = 'expired_token'
+            # TODO probably not really needed ... ?
+            elif 'The token provided is not valid' in ue.message:
+                detail_message = ('It looks like the provided token is not valid, and therefore the request cannot be completed.\n'
+                                  'The result might however be complete or mostly ready, please resubmit it using a valid token.')
+                status_details_output_obj['status'] = 'invalid_token'
+            logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
+                        f'{detail_message}\n'
+                        f'For more information you can contact us at the contact@odahub.io email address or using the dedicated form.')
+            status_details_output_obj['exception_message'] = str(ue)
+            sentry.capture_message(f'Authorization-related exception detected when retrieving additional '
+                                   f'information from a completed job:\n{ue}')
         except RemoteException as re:
             if 'unable to complete API call' in re.message:
                 logger.info('A problem has been detected when performing an assessment of the outcome of your request.\n'
@@ -354,14 +370,13 @@ class Instrument:
                 status_details_output_obj['status'] = 'empty_product'
                 status_details_output_obj['exception_message'] = re.message + '\n' + re.debug_message
 
-            sentry.capture_message((f'RemoteException detected when retrieving additional '
-                                    f'information from a completed job {re}'))
+            sentry.capture_message(f'RemoteException detected when retrieving additional '
+                                   f'information from a completed job:\n{re}')
 
         return status_details_output_obj
 
     def run_query(self, product_type,
                   par_dic,
-                  request,
                   back_end_query,
                   job,
                   run_asynch,
@@ -374,6 +389,7 @@ class Instrument:
                   dry_run=False,
                   api=False,
                   decoded_token=None,
+                  return_progress=False,
                   **kwargs):
 
         if logger is None:
@@ -417,6 +433,7 @@ class Instrument:
                                                     config=config,
                                                     logger=logger,
                                                     sentry_dsn=sentry_dsn,
+                                                    return_progress=return_progress,
                                                     api=api)
                     if query_out.status_dictionary['status'] == 0:
                         if 'comment' in query_out.status_dictionary.keys():
@@ -442,6 +459,10 @@ class Instrument:
                 except InternalError as e:
                     if hasattr(e, 'message') and e.message is not None:
                         message = e.message
+                        tail_message = ('The support team has been notified, '
+                                        'and we are investigating to resolve the issue as soon as possible\n\n'
+                                        'If you are willing to help us, please use the "Write a feedback" button below. '
+                                        'We will make sure to respond to any feedback provided')
                     else:
                         message = ('Your request produced an unusual result. It might not be what you expected. '
                                      'It is possible that this particular parameter selection should indeed lead to this outcome '
@@ -451,15 +472,22 @@ class Instrument:
                                      'but for now, we unfortunately can not be certain all cases like this are detected. '
                                      'We try to discover on our own and directly address any temporary issue. '
                                      'But some issues might slip past us. If you are willing to help us, '
-                                     'please use "provide feedback" button below. We would greatly appreciate it!\n\n'
+                                     'please use "Write a feedback" button below. We would greatly appreciate it!\n\n'
                                      'This additional information might help:\n\n'
                                )
-                    e_message = f'Instrument: {self.name}, product: {product_type} failed!\n'
+                        tail_message = ''
+                    e_message = f'Instrument: {self.name}, product: {product_type}\n\n{tail_message}'
+
+                    debug_message = ''
+                    if e.payload is not None and e.payload.get('exception', None) is not None:
+                        debug_message = repr(e.payload['exception'])
+
                     query_out.set_failed(product_type,
                                          message=message,
                                          e_message=e_message,
                                          logger=logger,
                                          sentry_dsn=sentry_dsn,
+                                         debug_message=debug_message,
                                          excep=e)
 
                 except Exception as e: # we shall not do that
@@ -478,6 +506,7 @@ class Instrument:
 
     def get_product_query_name(self, product_type):
         if product_type not in self.query_dictionary:
+            sentry.capture_message(f'product type {product_type} not in query_dictionary {self.query_dictionary}')
             raise Exception(f"product type {product_type} not in query_dictionary {self.query_dictionary}")
         else:
             return self.query_dictionary[product_type]
@@ -602,6 +631,7 @@ class Instrument:
             self.logger.warning('duplicates in parameters_name_list: %s', l)
         return l
 
+    # TODO this seems not being used anywhere on the dispatcher, can it be removed?
     def set_pars_from_form(self,par_dic,logger=None,verbose=False,sentry_dsn=None):
         #print('---------------------------------------------')
         #print('setting form paramters')

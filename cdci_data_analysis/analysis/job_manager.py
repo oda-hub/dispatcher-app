@@ -181,6 +181,8 @@ class Job(object):
                                 full_dict=None,
                                 email_status=None,
                                 email_status_details=None,
+                                matrix_message_status=None,
+                                matrix_message_status_details=None,
                                 call_back_status=None):
         # TODO: write to specific name coming for call_back
 
@@ -201,6 +203,12 @@ class Job(object):
 
         if email_status_details is not None:
             self.monitor['email_status_details'] = email_status_details
+
+        if matrix_message_status is not None:
+            self.monitor['matrix_message_status'] = matrix_message_status
+
+        if matrix_message_status_details is not None:
+            self.monitor['matrix_message_status_details'] = matrix_message_status_details
 
         if call_back_status is not None:
             self.monitor['call_back_status'] = call_back_status
@@ -291,6 +299,15 @@ class OsaJob(Job):
                                   token=token,
                                   time_request=time_request)
 
+
+    def get_latest_monitor_mtime(self):
+        last_modified_time = None
+        job_monitor_path = os.path.join(self.work_dir, 'job_monitor.json')
+        if os.path.exists(job_monitor_path):
+            last_modified_time = os.path.getmtime(job_monitor_path)
+        return last_modified_time
+
+
     def updated_dataserver_monitor(self,work_dir=None):
         if work_dir is None:
             work_dir=self.work_dir
@@ -313,7 +330,7 @@ class OsaJob(Job):
             try:
                 with open(job_file, 'r') as infile:
                     try:
-                        self.monitor = json.load(infile, encoding='utf-8')
+                        self.monitor = json.load(infile)
                     except Exception as e:
                         # happens in py3.9 at least
                         infile.seek(0)
@@ -341,13 +358,13 @@ class OsaJob(Job):
 
         print(f"found {n_progress} PROGRESS entries in {len(job_files_list)} job_files ({work_dir}/job_monitor*.json)")
 
-        if progress is True:
+        if progress:
             self.monitor['status'] = 'progress'
 
-        if job_done == True:
+        if job_done:
             self.monitor['status'] = 'done'
 
-        if job_failed == True:
+        if job_failed:
             self.monitor['status'] = 'failed'
 
         self.monitor['full_report_dict_list']=full_report_dict_list

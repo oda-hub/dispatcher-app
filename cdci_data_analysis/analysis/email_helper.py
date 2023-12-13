@@ -24,13 +24,14 @@ import json
 from jinja2 import Environment, FileSystemLoader
 from bs4 import BeautifulSoup
 
-
+from ..app_logging import app_logging
 from ..analysis.exceptions import BadRequest, MissingRequestParameter
 from ..analysis.hash import make_hash
+from ..analysis.time_helper import validate_time
 
 from datetime import datetime
 
-logger = logging.getLogger()
+email_helper_logger = app_logging.getLogger('email_helper')
 
 num_email_sending_max_tries = 5
 email_sending_retry_sleep_s = .5
@@ -42,14 +43,13 @@ class MultipleDoneEmail(BadRequest):
 class EMailNotSent(BadRequest):
     pass
 
+
 def timestamp2isot(timestamp_or_string: typing.Union[str, float]):
     try:
-        timestamp_or_string = float(timestamp_or_string)
-    except ValueError:
-        pass
-
-    if isinstance(timestamp_or_string, float):
-        return datetime.fromtimestamp(float(timestamp_or_string)).strftime("%Y-%m-%d %H:%M:%S")
+        timestamp_or_string = validate_time(timestamp_or_string).strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, OverflowError, TypeError, OSError) as e:
+        email_helper_logger.warning(f'Error when constructing the datetime object from the timestamp {timestamp_or_string}:\n{e}')
+        raise EMailNotSent(f"Email not sent: {e}")
 
     return timestamp_or_string
 
@@ -101,8 +101,8 @@ def compress_request_url_params(request_url, consider_args=['selected_catalog', 
 
             if len(v_json) > 100:
                 v = "z:" + base64.b64encode(zlib.compress(v_json.encode())).decode()
-                logger.info("compressing long %.50s...", v_json)
-                logger.info("compressed into %.500s...", v)
+                email_helper_logger.info("compressing long %.50s...", v_json)
+                email_helper_logger.info("compressed into %.500s...", v)
 
         compressed_qs[k] = v
 
@@ -154,7 +154,7 @@ def wrap_python_code(code, max_length=100, max_str_length=None):
         else:
             code = new_code
 
-    logger.debug("\033[31mwrapped: %s\033[0m", code)
+    email_helper_logger.debug("\033[31mwrapped: %s\033[0m", code)
 
     mode = black.Mode(
         target_versions={black.TargetVersion.PY38},
@@ -178,7 +178,7 @@ def check_scw_list_length(
         return False
 
 
-def get_first_submitted_email_time(job_id, scratch_dir):
+def get_first_submitted_email_time(scratch_dir):
     first_submitted_email_time = None
     submitted_email_pattern = os.path.join(
         scratch_dir,
@@ -189,7 +189,25 @@ def get_first_submitted_email_time(job_id, scratch_dir):
 
     if len(submitted_email_files) >= 1:
         f_name, f_ext = os.path.splitext(os.path.basename(submitted_email_files[0]))
-        first_submitted_email_time = float(f_name.split('_')[3])
+        f_name_split = f_name.split('_')
+        if len(f_name_split) == 4:
+            try:
+                validate_time(f_name_split[3])
+                first_submitted_email_time = float(f_name_split[3])
+            except (ValueError, OverflowError, TypeError, OSError) as e:
+                email_helper_logger.warning(f'Error when extracting the time of the first submitted email.'
+                                            f'The value extracted {first_submitted_email_time} raised the following error:\n{e}')
+                first_submitted_email_time = None
+                sentry.capture_message(f'Error when extracting the time of the first submitted email.'
+                               f'The value extracted {first_submitted_email_time} raised the following error:\n{e}')
+        else:
+            email_helper_logger.warning(f'Error when extracting the time of the first submitted email: '
+                                        f'the name of the email file has been found not properly formatted, therefore, '
+                                        f'the time of the first submitted email could not be extracted.')
+            first_submitted_email_time = None
+            sentry.capture_message(f'Error when extracting the time of the first submitted email: '
+                           f'the name of the email file has been found not properly formatted, therefore, '
+                           f'the time of the first submitted email could not be extracted.')
 
     return first_submitted_email_time
 
@@ -202,8 +220,7 @@ def send_incident_report_email(
         decoded_token,
         incident_content=None,
         incident_time=None,
-        scratch_dir=None,
-        sentry_dsn=None):
+        scratch_dir=None):
 
     sending_time = time_.time()
 
@@ -246,8 +263,7 @@ def send_incident_report_email(
                          scratch_dir=scratch_dir,
                          smtp_server_password=config.smtp_server_password,
                          sending_time=sending_time,
-                         logger=logger,
-                         sentry_dsn=sentry_dsn)
+                         logger=logger)
 
     store_incident_report_email_info(message, scratch_dir, sending_time=sending_time)
 
@@ -268,8 +284,7 @@ def send_job_email(
         time_request=None,
         request_url="",
         api_code="",
-        scratch_dir=None,
-        sentry_dsn=None):
+        scratch_dir=None):
     sending_time = time_.time()
 
     # let's get the needed email template;
@@ -344,6 +359,7 @@ and if this is not what you expected, you probably need to modify the request pa
             'product_type': product_type,
             'time_request': time_request,
             'request_url': possibly_compressed_request_url,
+            # TODO to be removed ?
             'api_code_no_token': api_code_no_token,
             'api_code': api_code,
             'api_code_too_long': api_code_too_long,
@@ -376,10 +392,9 @@ and if this is not what you expected, you probably need to modify the request pa
                          sending_time=sending_time,
                          scratch_dir=scratch_dir,
                          logger=logger,
-                         attachment=api_code_email_attachment,
-                         sentry_dsn=sentry_dsn)
+                         attachment=api_code_email_attachment)
 
-    store_status_email_info(message, status, scratch_dir, sending_time=sending_time, first_submitted_time=time_request)
+    store_status_email_info(message, status, scratch_dir, logger, sending_time=sending_time, first_submitted_time=time_request)
 
     return message
 
@@ -398,8 +413,7 @@ def send_email(smtp_server,
                logger,
                sending_time=None,
                scratch_dir=None,
-               attachment=None,
-               sentry_dsn=None
+               attachment=None
                ):
 
     server = None
@@ -484,14 +498,34 @@ def send_email(smtp_server,
                 server.quit()
 
 
-def store_status_email_info(message, status, scratch_dir, sending_time=None, first_submitted_time=None):
+def store_status_email_info(message, status, scratch_dir, logger, sending_time=None, first_submitted_time=None):
     path_email_history_folder = os.path.join(scratch_dir, 'email_history')
+    current_time = time_.time()
     if not os.path.exists(path_email_history_folder):
         os.makedirs(path_email_history_folder)
     if sending_time is None:
-        sending_time = time_.time()
+        sending_time = current_time
+    else:
+        try:
+            validate_time(sending_time)
+        except (ValueError, OverflowError, TypeError, OSError) as e:
+            logger.warning(f'Error when writing the email content on a file, the sending time is not valid.'
+                           f'The value {sending_time} raised the following error:\n{e}')
+            sending_time = current_time
+            sentry.capture_message(f'Error when writing the email content on a file, the sending time is not valid.'
+                                   f'The value {sending_time} raised the following error:\n{e}')
+
     if first_submitted_time is None:
         first_submitted_time = sending_time
+    else:
+        try:
+            validate_time(first_submitted_time)
+        except (ValueError, OverflowError, TypeError, OSError) as e:
+            logger.warning(f'Error when writing the email content on a file, the first submitted time is not valid.'
+                           f'The value {first_submitted_time} raised the following error:\n{e}')
+            first_submitted_time = sending_time
+            sentry.capture_message(f'Error when writing the email content on a file, the first submitted time is not valid.'
+                                   f'The value {first_submitted_time} raised the following error:\n{e}')
 
     email_file_name = f'email_{status}_{str(sending_time)}_{str(first_submitted_time)}.email'
 
@@ -544,7 +578,17 @@ def log_email_sending_info(logger, status, time_request, scratch_dir, job_id, ad
     path_email_history_folder = os.path.join(scratch_dir, 'email_history')
     if not os.path.exists(path_email_history_folder):
         os.makedirs(path_email_history_folder)
-    history_info_obj = dict(time=timestamp2isot(time_request),
+
+    try:
+        time_request_str = validate_time(time_request).strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, OverflowError, TypeError, OSError) as e:
+        logger.warning(f'Error when extracting logging the sending info of an email.'
+                       f'The time value {time_request} raised the following error:\n{e}')
+        time_request_str = datetime.fromtimestamp(time_.time()).strftime("%Y-%m-%d %H:%M:%S")
+        sentry.capture_message(f'Error when extracting logging the sending info of an email.'
+                               f'The time value {time_request} raised the following error:\n{e}')
+
+    history_info_obj = dict(time=time_request_str,
                             status=status,
                             job_id=job_id)
     if additional_info_obj is not None:
@@ -557,7 +601,7 @@ def log_email_sending_info(logger, status, time_request, scratch_dir, job_id, ad
     logger.info(f"logging email sending attempt into {email_history_log_fn} file")
 
 
-def is_email_to_send_run_query(logger, status, time_original_request, scratch_dir, job_id, config, decoded_token=None, sentry_dsn=None):
+def is_email_to_send_run_query(logger, status, time_original_request, scratch_dir, job_id, config, decoded_token=None):
     log_additional_info_obj = {}
     sending_ok = False
     time_check = time_.time()
@@ -602,7 +646,7 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
                 'email_submitted_*.email'
             )
         submitted_email_files = glob.glob(submitted_email_pattern)
-        logger.info("submitted_email_files: %s as %s", len(submitted_email_files), submitted_email_pattern)
+        logger.info("submitted_email_files: %s as %s", len(submitted_email_files), submitted_email_files)
         log_additional_info_obj['submitted_email_files'] = submitted_email_files
 
         if len(submitted_email_files) >= 1:
@@ -638,13 +682,15 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
                                    job_id=job_id,
                                    additional_info_obj=log_additional_info_obj
                                    )
+        else:
+            logger.info(f"an email will not be (status: {status}, sending_ok: {sending_ok})")
     else:
         logger.info(f'an email will not be sent because a token was not provided')
 
     return sending_ok
 
 
-def is_email_to_send_callback(logger, status, time_original_request, scratch_dir, config, job_id, decoded_token=None, sentry_dsn=None):
+def is_email_to_send_callback(logger, status, time_original_request, scratch_dir, config, job_id, decoded_token=None):
     log_additional_info_obj = {}
     sending_ok = False
     time_check = time_.time()
@@ -719,5 +765,7 @@ def is_email_to_send_callback(logger, status, time_original_request, scratch_dir
                                job_id=job_id,
                                additional_info_obj=log_additional_info_obj
                                )
+    else:
+        logger.info(f"an email will not be (status: {status}, sending_ok: {sending_ok})")
 
     return sending_ok

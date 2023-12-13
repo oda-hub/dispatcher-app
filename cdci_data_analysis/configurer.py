@@ -220,12 +220,14 @@ class ConfigEnv(object):
             self.set_conf_dispatcher(disp_dict['bind_options']['bind_host'],
                                      disp_dict['bind_options']['bind_port'],
                                      disp_dict['sentry_url'],
+                                     disp_dict.get('sentry_environment', 'production'),
                                      disp_dict['logstash_host'],
                                      disp_dict['logstash_port'],
                                      products_url,
                                      disp_dict['dispatcher_callback_url_base'],
                                      disp_dict['secret_key'],
                                      disp_dict.get('token_max_refresh_interval', 604800),
+                                     disp_dict.get('resubmit_timeout', 1800),
                                      disp_dict.get('soft_minimum_folder_age_days', 5),
                                      disp_dict.get('hard_minimum_folder_age_days', 30),
                                      disp_dict['email_options']['smtp_server'],
@@ -244,6 +246,16 @@ class ConfigEnv(object):
                                      disp_dict['email_options'].get('sentry_for_email_sending_check', False),
                                      disp_dict['email_options'].get('incident_report_email_options', {}).get('incident_report_sender_email_address', None),
                                      disp_dict['email_options'].get('incident_report_email_options', {}).get('incident_report_receivers_email_addresses', None),
+                                     disp_dict.get('matrix_options', {}).get('matrix_server_url', None),
+                                     disp_dict.get('matrix_options', {}).get('matrix_sender_access_token', None),
+                                     disp_dict.get('matrix_options', {}).get('matrix_bcc_receivers_room_ids', []),
+                                     disp_dict.get('matrix_options', {}).get('incident_report_matrix_options', {}).get('matrix_incident_report_receivers_room_ids', []),
+                                     disp_dict.get('matrix_options', {}).get('incident_report_matrix_options', {}).get('matrix_incident_report_sender_personal_access_token', None),
+                                     disp_dict.get('matrix_options', {}).get('matrix_message_sending_job_submitted', True),
+                                     disp_dict.get('matrix_options', {}).get('matrix_message_sending_job_submitted_default_interval', 1800),
+                                     disp_dict.get('matrix_options', {}).get('sentry_for_matrix_message_sending_check', False),
+                                     disp_dict.get('matrix_options', {}).get('matrix_message_sending_timeout_default_threshold', 1800),
+                                     disp_dict.get('matrix_options', {}).get('matrix_message_sending_timeout', True),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_url', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_secret_key', None),
                                      disp_dict.get('product_gallery_options', {}).get('product_gallery_timezone',
@@ -287,12 +299,14 @@ class ConfigEnv(object):
                             bind_host,
                             bind_port,
                             sentry_url,
+                            sentry_environment,
                             logstash_host,
                             logstash_port,
                             products_url,
                             dispatcher_callback_url_base,
                             secret_key,
                             token_max_refresh_interval,
+                            resubmit_timeout,
                             soft_minimum_folder_age_days,
                             hard_minimum_folder_age_days,
                             smtp_server,
@@ -311,6 +325,16 @@ class ConfigEnv(object):
                             sentry_for_email_sending_check,
                             incident_report_sender_email_address,
                             incident_report_receivers_email_addresses,
+                            matrix_server_url,
+                            matrix_sender_access_token,
+                            matrix_bcc_receivers_room_ids,
+                            matrix_incident_report_receivers_room_ids,
+                            matrix_incident_report_sender_personal_access_token,
+                            matrix_message_sending_job_submitted,
+                            matrix_message_sending_job_submitted_default_interval,
+                            sentry_for_matrix_message_sending_check,
+                            matrix_message_sending_timeout_default_threshold,
+                            matrix_message_sending_timeout,
                             product_gallery_url,
                             product_gallery_secret_key,
                             product_gallery_timezone,
@@ -326,12 +350,14 @@ class ConfigEnv(object):
         self.bind_host = bind_host
         self.bind_port = bind_port
         self.sentry_url = sentry_url
+        self.sentry_environment = sentry_environment
         self.logstash_host = logstash_host
         self.logstash_port = logstash_port
         self.products_url = products_url
         self.dispatcher_callback_url_base = dispatcher_callback_url_base
         self.secret_key = secret_key
         self.token_max_refresh_interval = token_max_refresh_interval
+        self.resubmit_timeout = resubmit_timeout
         self.soft_minimum_folder_age_days = soft_minimum_folder_age_days
         self.hard_minimum_folder_age_days = hard_minimum_folder_age_days
         self.smtp_server = smtp_server
@@ -350,6 +376,16 @@ class ConfigEnv(object):
         self.sentry_for_email_sending_check = sentry_for_email_sending_check
         self.incident_report_sender_email_address = incident_report_sender_email_address
         self.incident_report_receivers_email_addresses = incident_report_receivers_email_addresses
+        self.matrix_server_url = matrix_server_url
+        self.matrix_sender_access_token = matrix_sender_access_token
+        self.matrix_bcc_receivers_room_ids = matrix_bcc_receivers_room_ids
+        self.matrix_incident_report_receivers_room_ids = matrix_incident_report_receivers_room_ids
+        self.matrix_incident_report_sender_personal_access_token = matrix_incident_report_sender_personal_access_token
+        self.matrix_message_sending_job_submitted = matrix_message_sending_job_submitted
+        self.matrix_message_sending_job_submitted_default_interval = matrix_message_sending_job_submitted_default_interval
+        self.sentry_for_matrix_message_sending_check = sentry_for_matrix_message_sending_check
+        self.matrix_message_sending_timeout_default_threshold = matrix_message_sending_timeout_default_threshold
+        self.matrix_message_sending_timeout = matrix_message_sending_timeout
         self.product_gallery_url = product_gallery_url
         self.product_gallery_secret_key = product_gallery_secret_key
         self.product_gallery_timezone = product_gallery_timezone
