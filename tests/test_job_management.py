@@ -2972,17 +2972,17 @@ def test_inspect_jobs_expired_token(dispatcher_live_fixture):
     # let make sure the token used for the previous request expires
     time.sleep(12)
 
-    c = requests.get(os.path.join(server, "call_back"),
-                     params=dict(
-                         job_id=dispatcher_job_state.job_id,
-                         session_id=dispatcher_job_state.session_id,
-                         instrument_name="empty-async",
-                         action='done',
-                         node_id=f'node_0',
-                         message='progressing',
-                         token=encoded_token,
-                         time_original_request=time_request
-                     ))
+    requests.get(os.path.join(server, "call_back"),
+                 params=dict(
+                     job_id=dispatcher_job_state.job_id,
+                     session_id=dispatcher_job_state.session_id,
+                     instrument_name="empty-async",
+                     action='done',
+                     node_id=f'node_0',
+                     message='progressing',
+                     token=encoded_token,
+                     time_original_request=time_request
+                 ))
 
     token_payload["roles"] = 'job manager'
     token_payload["exp"] = int(time.time()) + 5000
