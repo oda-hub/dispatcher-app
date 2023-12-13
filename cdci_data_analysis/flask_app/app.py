@@ -287,7 +287,7 @@ def inspect_state():
 
     if output_code is not None:
         return make_response(output, output_code)
-    state_data_obj = InstrumentQueryBackEnd.inspect_state(app)
+    state_data_obj = InstrumentQueryBackEnd.inspect_state()
     return jsonify(dict(records=state_data_obj['records']))
 
 
@@ -303,7 +303,7 @@ def inspect_jobs():
 
     if output_code is not None:
         return make_response(output, output_code)
-    state_data_obj = InstrumentQueryBackEnd.inspect_state(app)
+    state_data_obj = InstrumentQueryBackEnd.inspect_state(inspect_state=False, inspect_jobs=True)
     return jsonify(dict(jobs=state_data_obj['jobs']))
 
 @app.route('/instr-list')
