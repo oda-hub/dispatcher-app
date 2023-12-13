@@ -2892,7 +2892,8 @@ def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
 
     jdata_inspection = c.json()
     print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
-    validation_dict = JobsInspectionScheme().load(jdata_inspection)
+    validation_dict = JobsInspectionScheme().validate(jdata_inspection)
+    assert validation_dict == {}
     assert type(jdata_inspection['jobs']) is list
     assert len(jdata_inspection['jobs']) == 1
     assert jdata_inspection['jobs'][0]['job_id'] == dispatcher_job_state.job_id
@@ -2934,8 +2935,8 @@ def test_inspect_jobs_failed(dispatcher_live_fixture):
     jdata_inspection = c.json()
     print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
 
-    validation_dict = JobsInspectionScheme().load(jdata_inspection)
-
+    validation_dict = JobsInspectionScheme().validate(jdata_inspection)
+    assert validation_dict == {}
     assert len(jdata_inspection['jobs']) == 1
     assert jdata_inspection['jobs'][0]['job_id'] == dispatcher_job_state.job_id
     assert len(jdata_inspection['jobs'][0]['job_status_data']) == 1
@@ -2995,7 +2996,8 @@ def test_inspect_jobs_expired_token(dispatcher_live_fixture):
 
     jdata_inspection = c.json()
     print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
-    validation_dict = JobsInspectionScheme().load(jdata_inspection)
+    validation_dict = JobsInspectionScheme().validate(jdata_inspection)
+    assert validation_dict == {}
     assert type(jdata_inspection['jobs']) is list
     assert len(jdata_inspection['jobs']) == 1
     assert jdata_inspection['jobs'][0]['job_id'] == dispatcher_job_state.job_id
