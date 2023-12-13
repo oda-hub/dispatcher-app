@@ -5,6 +5,7 @@ import typing
 from marshmallow import Schema, EXCLUDE, fields
 from marshmallow.validate import OneOf
 from marshmallow.fields import _T
+from networkx.release import description
 
 dispatcher_strict_validate = os.environ.get('DISPATCHER_STRICT_VALIDATE', 'no') == 'yes'
 
@@ -87,6 +88,7 @@ class JobStatusDataScheme(Schema):
     # TODO should this be moved inside the JobStatusSchema ?
     job_completed = fields.Boolean(description="Has the job completed?", required=True)
     job_statuses = fields.List(fields.Nested(JobMonitorOutputSchema), description="List of information extracted from all the job_monitor files found within the scratch directory", required=True)
+    job_statuses_fn = fields.Str(description="Scratch directory path", required=True)
     query_output = fields.Nested(ExitStatus, required=False)
     token_expired = fields.Boolean(description="Has the token expired?", required=True)
 
