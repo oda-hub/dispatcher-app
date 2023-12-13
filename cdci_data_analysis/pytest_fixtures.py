@@ -325,6 +325,34 @@ def dispatcher_local_matrix_message_server(dispatcher_test_conf_with_matrix_opti
             self.matrix_sender_access_token = matrix_sender_access_token
             self.room_id = self.create_room()
 
+
+        def invite_to_room(self,
+                           room_id=None,
+                           user_id=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']):
+
+            if room_id is None:
+                room_id = self.room_id
+
+            url = os.path.join(self.matrix_server_url, f'_matrix/client/v3/rooms/{room_id}/invite')
+            headers = {
+                'Authorization': ' '.join(['Bearer', self.matrix_sender_access_token]),
+                'Content-type': 'application/json'
+            }
+
+            room_data = {
+                'reason': 'test',
+                'user_id': user_id
+            }
+
+            res = requests.post(url, json=room_data, headers=headers)
+
+            if res.status_code == 200:
+                res_content = res.json()
+                if res_content == {}:
+                    return True
+
+            return False
+
         def create_room(self):
             url = os.path.join(self.matrix_server_url, f'_matrix/client/v3/createRoom')
             headers = {
@@ -399,8 +427,11 @@ def dispatcher_local_matrix_message_server(dispatcher_test_conf_with_matrix_opti
 
     matrix_message_controller = MatrixMessageController(
         matrix_server_url=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_server_url'],
-        matrix_sender_access_token=dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']
+        matrix_sender_access_token=os.getenv("MATRIX_CREATOR_ACCESS_TOKEN", dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token'])
     )
+    matrix_message_controller.invite_to_room(
+        room_id=os.getenv("MATRIX_INCIDENT_REPORT_RECEIVER_ROOM_ID", matrix_message_controller.room_id),
+        user_id=os.getenv("MATRIX_INVITEE_USER_ID", dispatcher_test_conf_with_matrix_options['matrix_options']['matrix_sender_access_token']))
     yield matrix_message_controller
     matrix_message_controller.leave_room()
     matrix_message_controller.forget_room()
@@ -467,6 +498,7 @@ dispatcher:
     logstash_port: 
     secret_key: 'secretkey_test'
     token_max_refresh_interval: 604800
+    resubmit_timeout: 1800
     soft_minimum_folder_age_days: 5
     hard_minimum_folder_age_days: 30
     bind_options:
@@ -535,6 +567,19 @@ def dispatcher_test_conf_with_external_products_url_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
+def dispatcher_test_conf_no_resubmit_timeout_fn(dispatcher_test_conf_fn):
+    fn = dispatcher_test_conf_fn
+    with open(fn, "r+") as f:
+        data = f.read()
+        data = re.sub('(\s+resubmit_timeout:).*\n', '\n    resubmit_timeout: 10\n', data)
+        f.seek(0)
+        f.write(data)
+        f.truncate()
+
+    yield fn
+
+
+@pytest.fixture
 def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
     fn = "test-dispatcher-conf-with-gallery.yaml"
 
@@ -543,7 +588,7 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
             f.write(f_default.read())
 
         f.write('\n    product_gallery_options:'
-                '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/galleryd"'
+                '\n        product_gallery_url: "http://cdciweb02.astro.unige.ch/mmoda/galleryd"'
                 f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"'
                 '\n        product_gallery_timezone: "Europe/Zurich"'
                 '\n        name_resolver_url: "https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}"'
@@ -581,6 +626,10 @@ def dispatcher_test_conf_with_matrix_options_fn(dispatcher_test_conf_fn):
 def dispatcher_no_bcc_matrix_room_ids(monkeypatch):
     monkeypatch.delenv('MATRIX_CC_RECEIVER_ROOM_ID', raising=False)
 
+@pytest.fixture
+def dispatcher_no_invitee_user_id(monkeypatch):
+    monkeypatch.delenv('MATRIX_INVITEE_USER_ID', raising=False)
+
 
 @pytest.fixture
 def dispatcher_test_conf_with_gallery_no_resolver_fn(dispatcher_test_conf_fn):
@@ -591,7 +640,7 @@ def dispatcher_test_conf_with_gallery_no_resolver_fn(dispatcher_test_conf_fn):
             f.write(f_default.read())
 
         f.write('\n    product_gallery_options:'
-                '\n        product_gallery_url: "http://cdciweb02.isdc.unige.ch/mmoda/galleryd"'
+                '\n        product_gallery_url: "http://cdciweb02.astro.unige.ch/mmoda/galleryd"'
                 '\n        product_gallery_timezone: "Europe/Zurich"'
                 f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"')
 
@@ -624,6 +673,12 @@ def dispatcher_test_conf_no_products_url(dispatcher_test_conf_no_products_url_fn
 @pytest.fixture
 def dispatcher_test_conf_with_external_products_url(dispatcher_test_conf_with_external_products_url_fn):
     with open(dispatcher_test_conf_with_external_products_url_fn) as yaml_f:
+        loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
+    yield loaded_yaml['dispatcher']
+
+
+def dispatcher_test_conf_with_no_resubmit_timeout(dispatcher_test_conf_with_no_resubmit_timeout_fn):
+    with open(dispatcher_test_conf_with_no_resubmit_timeout_fn) as yaml_f:
         loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
     yield loaded_yaml['dispatcher']
 
@@ -1049,6 +1104,19 @@ def dispatcher_live_fixture_with_renku_options(pytestconfig, dispatcher_test_con
 
 
 @pytest.fixture
+def dispatcher_live_fixture_no_resubmit_timeout(pytestconfig, dispatcher_test_conf_no_resubmit_timeout_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_no_resubmit_timeout_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
 def dispatcher_live_fixture_no_debug_mode(pytestconfig, dispatcher_test_conf_fn, dispatcher_nodebug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn)
 
@@ -1257,6 +1325,29 @@ class DispatcherJobState:
             with open("no-url-problem.html", "w") as f:
                 f.write(text)
             return ''
+
+    @staticmethod
+    def validate_resolve_url(url, server):
+        print("need to resolve this:", url)
+
+        r = requests.get(url.replace('PRODUCTS_URL/dispatch-data', server))
+
+        # parameters could be overwritten in resolve; this never happens intentionally and is not dangerous
+        # but prevented for clarity
+        alt_scw_list = ['066400220010.001', '066400230010.001']
+        r_alt = requests.get(url.replace('PRODUCTS_URL/dispatch-data', server),
+                             params={'scw_list': alt_scw_list},
+                             allow_redirects=False)
+        assert r_alt.status_code == 302
+        redirect_url = parse.urlparse(r_alt.headers['Location'])
+        assert 'error_message' in parse.parse_qs(redirect_url.query)
+        assert 'status_code' in parse.parse_qs(redirect_url.query)
+        extracted_error_message = parse.parse_qs(redirect_url.query)['error_message'][0]
+        assert extracted_error_message == "found unexpected parameters: ['scw_list'], expected only and only these ['job_id', 'session_id', 'token']"
+
+        url = r.url
+        print("resolved url: ", url)
+        return url
 
     @staticmethod
     def get_expected_products_url(dict_param,

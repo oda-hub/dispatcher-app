@@ -8,6 +8,9 @@ import logging
 import re
 import glob
 
+from urllib import parse
+
+from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask
 from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
 
@@ -26,6 +29,27 @@ default_token_payload = dict(
     mxsub=True,
     mxintsub=5
 )
+
+
+def validate_catalog_matrix_message_content(message_record,
+                                            products_url=None,
+                                            dispatcher_live_fixture=None
+                                            ):
+
+    extracted_api_code = DispatcherJobState.extract_api_code_from_text(message_record['content']['formatted_body'])
+    assert 'selected_catalog' in extracted_api_code
+
+    extracted_product_url = DispatcherJobState.extract_products_url(message_record['content']['formatted_body'])
+    if products_url is not None:
+        assert products_url == extracted_product_url
+
+    if 'resolve' in extracted_product_url:
+        print("need to resolve this:", extracted_product_url)
+        extracted_product_url = DispatcherJobState.validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
+
+    if extracted_product_url is not None and extracted_product_url != '':
+        extracted_parsed = parse.urlparse(extracted_product_url)
+        assert 'selected_catalog' in parse.parse_qs(extracted_parsed.query)
 
 
 def validate_matrix_message_content(
@@ -828,6 +852,82 @@ def test_matrix_message_submitted_multiple_requests(dispatcher_live_fixture_with
 
 @pytest.mark.test_matrix
 @pytest.mark.not_safe_parallel
+def test_matrix_message_sender_not_invited(gunicorn_dispatcher_long_living_fixture_with_matrix_options,
+                                           dispatcher_local_matrix_message_server):
+    DispatcherJobState.remove_scratch_folders()
+    DataServerQuery.set_status('submitted')
+
+    server = gunicorn_dispatcher_long_living_fixture_with_matrix_options
+    logger.info("constructed server: %s", server)
+
+    token_payload = {
+        **default_token_payload,
+        "mxroomid": dispatcher_local_matrix_message_server.room_id,
+        "tmx": 0
+    }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    # this should return status submitted, so matrix message sent
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
+    jdata = c.json()
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+
+    # check the matrix_messages log in the matrix-message folders, and that the first one was produced
+    matrix_message_history_log_files = glob.glob(
+        os.path.join(dispatcher_job_state.scratch_dir, 'matrix_message_history', 'matrix_message_history_log_*.log'))
+    latest_file_matrix_message_history_log_file = max(matrix_message_history_log_files, key=os.path.getctime)
+    with open(latest_file_matrix_message_history_log_file) as matrix_message_history_log_content_fn:
+        history_log_content = json.loads(matrix_message_history_log_content_fn.read())
+        logger.info("content matrix message history logging: %s", history_log_content)
+        assert history_log_content['job_id'] == dispatcher_job_state.job_id
+        assert isinstance(history_log_content['additional_information']['submitted_matrix_message_files'], list)
+        assert len(history_log_content['additional_information']['submitted_matrix_message_files']) == 0
+        assert history_log_content['additional_information'][
+                   'check_result_message'] == 'the message will be sent via matrix'
+
+    time_request = jdata['time_request']
+    DataServerQuery.set_status('done')
+
+    c = requests.get(os.path.join(server, "call_back"),
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action='done',
+                         node_id='node_final',
+                         message='done',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+    assert c.status_code == 200
+
+    jdata = dispatcher_job_state.load_job_state_record('node_final', 'done')
+    assert 'matrix_message_status' in jdata
+    assert jdata['matrix_message_status'] == 'sending message via matrix failed'
+    matrix_message_status_details_obj = json.loads(jdata['matrix_message_status_details'])
+    assert 'res_content' in matrix_message_status_details_obj
+    assert 'res_content_token_user_failure' in matrix_message_status_details_obj['res_content']
+    assert matrix_message_status_details_obj['res_content']['res_content_token_user_failure'] == \
+        (f"Issue in sending a message in the room {dispatcher_local_matrix_message_server.room_id} using matrix: "
+         f"Could not join the room: {dispatcher_local_matrix_message_server.room_id}, for the following reason: M_FORBIDDEN: You are not invited to this room.")
+
+
+@pytest.mark.test_matrix
+@pytest.mark.not_safe_parallel
 def test_matrix_message_done(gunicorn_dispatcher_long_living_fixture_with_matrix_options,
                              dispatcher_local_matrix_message_server):
     DispatcherJobState.remove_scratch_folders()
@@ -1114,6 +1214,75 @@ def test_matrix_message_and_email(gunicorn_dispatcher_long_living_fixture_with_m
 
 
 @pytest.mark.test_matrix
+def test_incident_report_sender_not_invited(dispatcher_live_fixture_with_matrix_options,
+                                            dispatcher_test_conf_with_matrix_options,
+                                            dispatcher_local_matrix_message_server,
+                                            dispatcher_test_conf):
+    server = dispatcher_live_fixture_with_matrix_options
+
+    logger.info("constructed server: %s", server)
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+    }
+
+    decoded_token = {
+        **default_token_payload,
+        "mxroomid": dispatcher_local_matrix_message_server.room_id
+    }
+    encoded_token = jwt.encode(decoded_token, secret_key, algorithm='HS256')
+    params['token'] = encoded_token
+
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    time_request = jdata['time_request']
+
+    scratch_dir_fn_list = glob.glob(f'scratch_sid_{dispatcher_job_state.session_id}_jid_{dispatcher_job_state.job_id}*')
+    scratch_dir_fn = max(scratch_dir_fn_list, key=os.path.getctime)
+
+    incident_content = 'test incident'
+
+    # for the email we only use the first 8 characters
+    c = requests.post(os.path.join(server, "report_incident"),
+                      params=dict(
+                          job_id=dispatcher_job_state.job_id,
+                          session_id=dispatcher_job_state.session_id,
+                          token=encoded_token,
+                          incident_content=incident_content,
+                          incident_time=time_request,
+                          scratch_dir=scratch_dir_fn
+                      ))
+
+    jdata_incident_report = c.json()
+
+    assert 'martix_message_report_status' in jdata_incident_report
+    assert jdata_incident_report[
+               'martix_message_report_status'] == 'sending of an incident report message via matrix failed'
+    assert 'martix_message_report_status_details' in jdata_incident_report
+    assert 'res_content' in jdata_incident_report['martix_message_report_status_details']
+    assert 'res_content_incident_reports' in jdata_incident_report['martix_message_report_status_details'][
+        'res_content']
+    assert len(jdata_incident_report['martix_message_report_status_details']['res_content'][
+                   'res_content_incident_reports']) == 0
+    assert 'res_content_incident_reports_failed' in jdata_incident_report['martix_message_report_status_details'][
+        'res_content']
+    assert len(jdata_incident_report['martix_message_report_status_details']['res_content'][
+                   'res_content_incident_reports_failed']) == 1
+    assert jdata_incident_report['martix_message_report_status_details']['res_content'][
+        'res_content_incident_reports_failed'][0] == (f'Issue in sending a message in the room {os.getenv("MATRIX_INCIDENT_REPORT_RECEIVER_ROOM_ID", "")} '
+                                                      f'using matrix: Could not join the room: {os.getenv("MATRIX_INCIDENT_REPORT_RECEIVER_ROOM_ID", "")}, '
+                                                      f'for the following reason: M_FORBIDDEN: You are not invited to this room.')
+
+@pytest.mark.test_matrix
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
 def test_incident_report(dispatcher_live_fixture_with_matrix_options,
                          dispatcher_test_conf_with_matrix_options,
@@ -1142,8 +1311,7 @@ def test_incident_report(dispatcher_live_fixture_with_matrix_options,
         error_message = 'A token must be provided.'
     elif request_cred == 'valid_token':
         decoded_token = {
-            **default_token_payload,
-            "mxroomid": dispatcher_local_matrix_message_server.room_id
+            **default_token_payload
         }
         encoded_token = jwt.encode(decoded_token, secret_key, algorithm='HS256')
         params['token'] = encoded_token
@@ -1542,3 +1710,94 @@ def test_matrix_message_run_analysis_callback_no_room_ids(dispatcher_no_bcc_matr
                 dispatcher_live_fixture=server,
                 require_reference_matrix_message=True
             )
+
+
+@pytest.mark.test_matrix
+@pytest.mark.not_safe_parallel
+@pytest.mark.test_catalog
+@pytest.mark.parametrize("catalog_passage", ['file', 'params'])
+def test_matrix_message_catalog(dispatcher_live_fixture_with_matrix_options,
+                                dispatcher_local_matrix_message_server,
+                                catalog_passage
+                                ):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_live_fixture_with_matrix_options
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {**default_token_payload,
+                     "tmx": 0,
+                     "tem": 0,
+                     "mxstout": True,
+                     "mxintsub": 5,
+                     "mxsub": True,
+                     "mssub": False,
+                     "msdone": False,
+                     "msfail": False,
+                     "mxroomid": dispatcher_local_matrix_message_server.room_id
+                     }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    list_file = None
+    list_file_content = None
+    catalog_object_dict = dict()
+
+    # setting params
+    params = {
+        'query_status': "new",
+        'product_type': 'dummy',
+        'query_type': "Real",
+        'instrument': 'empty-async',
+        'token': encoded_token
+    }
+
+    if catalog_passage == 'file':
+        file_path = DispatcherJobState.create_catalog_file(catalog_value=5)
+        list_file = open(file_path)
+        list_file_content = list_file.read()
+        catalog_object_dict = BasicCatalog.from_file(file_path).get_dictionary()
+    elif catalog_passage == 'params':
+        catalog_object_dict = DispatcherJobState.create_catalog_object()
+        params['selected_catalog'] = json.dumps(catalog_object_dict)
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["submitted"],
+                max_time_s=150,
+                method='post',
+                files={"user_catalog_file": list_file_content}
+                )
+
+    if list_file is not None:
+        list_file.close()
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    params['selected_catalog'] = json.dumps(catalog_object_dict),
+
+    completed_dict_param = {**params,
+                            'src_name': '1E 1740.7-2942',
+                            'RA': 265.97845833,
+                            'DEC': -29.74516667,
+                            'T1': '2017-03-06T13:26:48.000',
+                            'T2': '2017-03-06T15:32:27.000',
+                            }
+
+    products_url = DispatcherJobState.get_expected_products_url(completed_dict_param,
+                                                                session_id=dispatcher_job_state.session_id,
+                                                                job_id=dispatcher_job_state.job_id,
+                                                                token=encoded_token)
+
+    assert 'matrix_message_status' in jdata['exit_status']
+    assert jdata['exit_status']['matrix_message_status'] == 'matrix message sent'
+    assert 'matrix_message_status_details' in jdata['exit_status']
+    matrix_message_status_details_obj = json.loads(jdata['exit_status']['matrix_message_status_details'])
+    assert 'res_content_token_user' in matrix_message_status_details_obj['res_content']
+    matrix_user_message_event_id = matrix_message_status_details_obj['res_content']['res_content_token_user']['event_id']
+
+    # email validation
+    validate_catalog_matrix_message_content(
+        message_record=dispatcher_local_matrix_message_server.get_matrix_message_record(
+            room_id=token_payload['mxroomid'],
+            event_id=matrix_user_message_event_id),
+        products_url=products_url,
+        dispatcher_live_fixture=server)

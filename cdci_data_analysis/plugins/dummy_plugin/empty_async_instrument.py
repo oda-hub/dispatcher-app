@@ -37,7 +37,7 @@ __author__ = "Andrea Tramacere"
 from cdci_data_analysis.analysis.instrument import Instrument
 from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float, Name
 
-from .data_server_dispatcher import DataServerQuery, EmptyProductQuery, DataServerNumericQuery
+from .data_server_dispatcher import DataServerQuery, EmptyProductQuery, DataServerNumericQuery, EmptyLogSubmitProductQuery
 
 
 def my_instr_factory():
@@ -49,11 +49,11 @@ def my_instr_factory():
                                   catalog=None,
                                   catalog_name='user_catalog')
 
-    # my_instr_image_query -> name given to this query
     empty_query = EmptyProductQuery('empty_parameters_dummy_query')
+    empty_log_submit_query = EmptyLogSubmitProductQuery('empty_parameters_dummy_log_submit_query')
+
     # let's build a simple parameter to its list
     p = Float(value=10., name='p', units='W')
-
     string_parameter = Name(value="default-name", name='string_like_name')
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
                                              parameters_list=[p, string_parameter])
@@ -66,11 +66,12 @@ def my_instr_factory():
     # the empty instrument does not effectively do anything and therefore support any particular query
     # nor product, only a simple query that does not return anything
     query_dictionary['dummy'] = 'empty_parameters_dummy_query'
+    query_dictionary['dummy-log-submit'] = 'empty_parameters_dummy_log_submit_query'
     query_dictionary['numerical'] = 'numerical_parameters_dummy_query'
 
     return Instrument('empty-async',
                       src_query=src_query,
                       instrumet_query=instr_query,
-                      product_queries_list=[empty_query, numerical_query],
+                      product_queries_list=[empty_query, empty_log_submit_query, numerical_query],
                       query_dictionary=query_dictionary,
                       data_server_query_class=DataServerQuery)

@@ -173,29 +173,6 @@ def store_email(email_html, **email_args):
     return fn
 
 
-def validate_resolve_url(url, server):
-    print("need to resolve this:", url)
-
-    r = requests.get(url.replace('PRODUCTS_URL/dispatch-data', server))
-
-    # parameters could be overwritten in resolve; this never happens intentionally and is not dangerous
-    # but prevented for clarity
-    alt_scw_list = ['066400220010.001', '066400230010.001']
-    r_alt = requests.get(url.replace('PRODUCTS_URL/dispatch-data', server),
-                         params={'scw_list': alt_scw_list},
-                         allow_redirects=False)
-    assert r_alt.status_code == 302
-    redirect_url = parse.urlparse(r_alt.headers['Location'])
-    assert 'error_message' in parse_qs(redirect_url.query)
-    assert 'status_code' in parse_qs(redirect_url.query)
-    extracted_error_message = parse_qs(redirect_url.query)['error_message'][0]
-    assert extracted_error_message == "found unexpected parameters: ['scw_list'], expected only and only these ['job_id', 'session_id', 'token']"
-
-    url = r.url
-    print("resolved url: ", url)
-    return url
-
-
 def validate_scw_list_email_content(message_record,
                                     scw_list,
                                     request_params=None,
@@ -219,7 +196,7 @@ def validate_scw_list_email_content(message_record,
 
             if 'resolve' in extracted_product_url:
                 print("need to resolve this:", extracted_product_url)
-                extracted_product_url = validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
+                extracted_product_url = DispatcherJobState.validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
 
             # verify product url contains the use_scws parameter for the frontend
             extracted_parsed = parse.urlparse(extracted_product_url)
@@ -249,7 +226,7 @@ def validate_catalog_email_content(message_record,
 
             if 'resolve' in extracted_product_url:
                 print("need to resolve this:", extracted_product_url)
-                extracted_product_url = validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
+                extracted_product_url = DispatcherJobState.validate_resolve_url(extracted_product_url, dispatcher_live_fixture)
 
             if extracted_product_url is not None and extracted_product_url != '':
                 extracted_parsed = parse.urlparse(extracted_product_url)
@@ -433,10 +410,85 @@ def validate_incident_email_content(
                 assert DispatcherJobState.ignore_html_patterns(reference_email) == DispatcherJobState.ignore_html_patterns(content_text_html)
 
 
+@pytest.mark.not_safe_parallel
+def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
+    server = dispatcher_live_fixture_no_resubmit_timeout
+    DispatcherJobState.remove_scratch_folders()
+    DataServerQuery.set_status('')
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    # these parameters define request content
+    base_dict_param = dict(
+        instrument="empty-async",
+        product_type="dummy-log-submit",
+        query_type="Real",
+    )
+
+    dict_param = dict(
+        query_status="new",
+        token=encoded_token,
+        **base_dict_param
+    )
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    print(json.dumps(c.json(), sort_keys=True, indent=4))
+
+    assert c.status_code == 200
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert DataServerQuery.get_status() == 'submitted'
+
+    # resubmit the job before the timeout expires
+    dict_param['job_id'] = dispatcher_job_state.job_id
+    dict_param['query_status'] = 'submitted'
+    DataServerQuery.set_status('')
+    #
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert DataServerQuery.get_status() == ''
+
+    # resubmit the job after the timeout expired
+    time.sleep(10.5)
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert DataServerQuery.get_status() == 'submitted'
+
+    # resubmit the job to get job ready
+    DataServerQuery.set_status('done')
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == 'ready'
+
+
 def test_validation_job_id(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     DispatcherJobState.remove_scratch_folders()
-
+    DataServerQuery.set_status('submitted')
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
@@ -1437,7 +1489,10 @@ def test_status_details_email_done(gunicorn_dispatcher_live_fixture, dispatcher_
     # check the additional status details within the email
     assert 'email_status_details' in jdata
     assert jdata['email_status_details'] == {
-        'exception_message': 'failing query\nInstrument: empty, product: failing failed!\n',
+        'exception_message': 'Error when getting query products\nInstrument: empty, product: failing\n\n'
+                             'The support team has been notified, and we are investigating to resolve the issue as soon as possible\n\n'
+                             'If you are willing to help us, please use the "Write a feedback" button below. '
+                             'We will make sure to respond to any feedback provided',
         'status': 'empty_product'
     }
 
@@ -1601,7 +1656,7 @@ def test_email_very_long_request_url(dispatcher_long_living_fixture,
     #  * make this or some other kind of URL shortener
 
     server = dispatcher_long_living_fixture
-    
+    DataServerQuery.set_status('submitted')
     DispatcherJobState.remove_scratch_folders()
 
      # let's generate a valid token with high threshold
@@ -2478,7 +2533,9 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
 
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
-def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
+@pytest.mark.parametrize("include_session_log", [True, False, None])
+@pytest.mark.parametrize("remove_analysis_parameters_json", [True, False])
+def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_session_log, remove_analysis_parameters_json):
     required_roles = ['job manager']
     DispatcherJobState.remove_scratch_folders()
 
@@ -2520,6 +2577,8 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
     session_id = jdata['session_id']
 
     scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    if remove_analysis_parameters_json:
+        os.remove(os.path.join(scratch_dir_fn, "analysis_parameters.json"))
     scratch_dir_ctime = os.stat(scratch_dir_fn).st_ctime
 
     assert os.path.exists(scratch_dir_fn)
@@ -2544,6 +2603,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
                      params=dict(
                          job_id=job_id[:8],
                          token=encoded_token,
+                         include_session_log=include_session_log
                      ))
 
     scratch_dir_mtime = os.stat(scratch_dir_fn).st_mtime
@@ -2563,11 +2623,21 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles):
         assert jdata['records'][0]['ctime'] == scratch_dir_ctime
         assert jdata['records'][0]['mtime'] == scratch_dir_mtime
 
-        assert 'email_history' in jdata['records'][0]['analysis_parameters']
-        assert 'matrix_message_history' in jdata['records'][0]['analysis_parameters']
+        assert 'analysis_parameters' in jdata['records'][0]
+        if remove_analysis_parameters_json:
+            assert jdata['records'][0]['analysis_parameters'] == f"problem reading {os.path.join(scratch_dir_fn, 'analysis_parameters.json')}: FileNotFoundError(2, 'No such file or directory')"
+        assert 'email_history' in jdata['records'][0]
+        assert 'matrix_message_history' in jdata['records'][0]
 
-        assert len(jdata['records'][0]['analysis_parameters']['email_history']) == 0
-        assert len(jdata['records'][0]['analysis_parameters']['matrix_message_history']) == 0
+        assert len(jdata['records'][0]['email_history']) == 0
+        assert len(jdata['records'][0]['matrix_message_history']) == 0
+        if include_session_log:
+            assert 'session_log' in jdata['records'][0]
+        else:
+            assert 'session_log' not in jdata['records'][0]
+
+        assert 'file_list' in jdata['records'][0]
+        assert isinstance(jdata['records'][0]['file_list'], list)
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
@@ -2640,3 +2710,95 @@ def test_incident_report(dispatcher_live_fixture, dispatcher_local_mail_server, 
             incident_report_str=incident_content,
             decoded_token=decoded_token
         )
+
+
+@pytest.mark.not_safe_parallel
+def test_session_log(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+
+    DispatcherJobState.remove_scratch_folders()
+
+    token_payload = {**default_token_payload
+                     }
+
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        p=15,
+        token=encoded_token
+    )
+
+    # this should return status submitted, so matrix message sent
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+    assert c.status_code == 200
+    jdata = c.json()
+
+    session_id = jdata['session_id']
+    job_id = jdata['job_monitor']['job_id']
+    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    session_log_fn = os.path.join(scratch_dir_fn, 'session.log')
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+
+    assert os.path.exists(session_log_fn)
+
+    with open(session_log_fn) as session_log_fn_f:
+        session_log_content = session_log_fn_f.read()
+
+    assert '==============================> run query <==============================' in session_log_content
+    assert "'p': '15'," in session_log_content
+
+    time_request = jdata['time_request']
+
+    requests.get(os.path.join(server, "call_back"),
+                 params=dict(
+                     job_id=dispatcher_job_state.job_id,
+                     session_id=dispatcher_job_state.session_id,
+                     instrument_name="empty-async",
+                     action='progress',
+                     node_id='node_0',
+                     message='progressing',
+                     token=encoded_token,
+                     time_original_request=time_request
+                 ))
+
+    with open(session_log_fn) as session_log_fn_f:
+        session_log_content = session_log_fn_f.read()
+
+    assert '.run_call_back with args ' in session_log_content
+    assert "'p': '15'," in session_log_content
+
+    # second run_analysis within the same running session, but resulting a different scratch_dir and therefore session_log
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        p=35,
+        token=encoded_token
+    )
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+    assert c.status_code == 200
+    jdata = c.json()
+
+    session_id = jdata['session_id']
+    job_id = jdata['job_monitor']['job_id']
+    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    session_log_fn = os.path.join(scratch_dir_fn, 'session.log')
+
+    assert os.path.exists(session_log_fn)
+
+    with open(session_log_fn) as session_log_fn_f:
+        session_log_content = session_log_fn_f.read()
+
+    assert '==============================> run query <==============================' in session_log_content
+    assert "'p': '35'," in session_log_content
+    assert "'p': '15'," not in session_log_content

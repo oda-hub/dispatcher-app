@@ -192,11 +192,10 @@ class QueryOutput(object):
                     except Exception as e:
                         logger.error('unable to represent %s due to %s, setting blank', excep, e)
                         e_message = ''
-        
-        sentry.capture_message(e_message)
+
 
         logger.error('set_query_exception with %s (%s) during %s', e_message, debug_message, failed_operation)
-                        
+
         if message is None:
             message = '%s' % message_prepend_str
             message += ' failed: %s' % (failed_operation)
@@ -206,16 +205,18 @@ class QueryOutput(object):
         else:
             pass
 
-        msg_str = '%s' % logger_prepend_str
-        msg_str += 'failed: %s' % failed_operation
-        msg_str += ' error: %s' % e_message
-        msg_str += ' debug : %s' % debug_message
+        logger_msg_str = '%s' % logger_prepend_str
+        logger_msg_str += 'failed: %s' % failed_operation
+        logger_msg_str += ' error: %s' % e_message
+        logger_msg_str += ' debug : %s' % debug_message
         if extra_message is not None:
-            msg_str += ' message: %s' % (extra_message)
+            logger_msg_str += ' message: %s' % (extra_message)
 
         if logger is not None:
-            logger.info(msg_str)
+            logger.info(logger_msg_str)
 
+        sentry_msg_str = f'failed: {failed_operation} error: {e_message} debug: {debug_message}'
+        sentry.capture_message(sentry_msg_str)
         self.set_status(status, message=message, error_message=e_message, debug_message=str(debug_message))
 
     def __repr__(self):

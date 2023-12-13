@@ -6,6 +6,7 @@ Created on Wed May 10 10:55:20 2017
 @author: andrea tramcere
 """
 import os
+import pathlib
 import time
 from builtins import (open, str, range,
                       object)
@@ -155,12 +156,16 @@ class InstrumentQueryBackEnd:
                 # this can be set since it's a call_back and job_id and session_id are available
                 self.logger.info(f"before setting scratch_dir: job_id: {self.par_dic['job_id']} callback: {data_server_call_back}, resolve_job_url: {resolve_job_url}")
                 self.set_scratch_dir(session_id=self.par_dic['session_id'], job_id=self.par_dic['job_id'])
+                self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
+                self.logger.info(f"scratch_dir set {self.scratch_dir}, job_id: {self.par_dic['job_id']} callback: {data_server_call_back}, resolve_job_url: {resolve_job_url}")
                 self.set_scws_call_back_related_params()
+                self.logger.info(f"set_scws_call_back_related_params executed")
             else:
                 self.set_scws_related_params(request)
 
 
             self.client_name = self.par_dic.pop('client-name', 'unknown')
+            self.return_progress = self.par_dic.pop('return_progress', False) == 'True'
             if os.environ.get("DISPATCHER_ASYNC_ENABLED", "no") == "yes":  # TODO: move to config!
                 self.async_dispatcher = self.par_dic.pop(
                     'async_dispatcher', 'True') == 'True'  # why string true?? else false anyway
@@ -199,6 +204,7 @@ class InstrumentQueryBackEnd:
                                "and resubmit you request.")
                     if data_server_call_back:
                         message = "The token provided is expired, please resubmit you request with a valid token."
+                        self.logger.info(message)
                         sentry.capture_message(message)
 
                     raise RequestNotAuthorized(message)
@@ -209,6 +215,7 @@ class InstrumentQueryBackEnd:
                                "and resubmit you request.")
                     if data_server_call_back:
                         message = "The token provided is expired, please resubmit you request with a valid token."
+                        self.logger.info(message)
                         sentry.capture_message(message)
 
                     raise RequestNotAuthorized(message)
@@ -463,6 +470,7 @@ class InstrumentQueryBackEnd:
 
         recent_days = request.args.get('recent_days', 3, type=float)
         job_id = request.args.get('job_id', None)
+        include_session_log = request.args.get('include_session_log', False) == 'True'
         records = []
 
         for scratch_dir in glob.glob("scratch_sid_*_jid_*"):
@@ -473,16 +481,18 @@ class InstrumentQueryBackEnd:
                 if job_id is not None:
                     if r.group('job_id')[:8] != job_id:
                         continue
-
-                if (time_.time() - os.stat(scratch_dir).st_mtime) < recent_days * 24 * 3600:
-                    records.append(dict(
-                        mtime=os.stat(scratch_dir).st_mtime,
-                        ctime=os.stat(scratch_dir).st_ctime,
-                        session_id=r.group('session_id'),
-                        job_id=r.group('job_id'),
-                        aliased_marker=r.group('aliased_marker'),
-                        **InstrumentQueryBackEnd.read_scratch_dir(scratch_dir)
-                    ))
+                if os.path.exists(scratch_dir):
+                    if (time_.time() - os.stat(scratch_dir).st_mtime) < recent_days * 24 * 3600:
+                        records.append(dict(
+                            mtime=os.stat(scratch_dir).st_mtime,
+                            ctime=os.stat(scratch_dir).st_ctime,
+                            session_id=r.group('session_id'),
+                            job_id=r.group('job_id'),
+                            aliased_marker=r.group('aliased_marker'),
+                            **InstrumentQueryBackEnd.read_scratch_dir(scratch_dir, include_session_log)
+                        ))
+                else:
+                    logger.warning(f"scratch_dir {scratch_dir} not existing, cannot be inspected")
 
         logger.info("found records: %s", len(records))
 
@@ -490,8 +500,13 @@ class InstrumentQueryBackEnd:
         return jsonify(dict(records=records))
 
     @staticmethod
-    def read_scratch_dir(scratch_dir):
+    def read_scratch_dir(scratch_dir, include_session_log=False):
         result = {}
+
+        file_list = []
+        for f in glob.glob(os.path.join(scratch_dir, "*")):
+            file_list.append(f)
+        result['file_list'] = file_list
 
         try:
             fn = os.path.join(scratch_dir, 'analysis_parameters.json')
@@ -499,43 +514,51 @@ class InstrumentQueryBackEnd:
         except Exception as e:
             # write something
             logger.warning('unable to read: %s', fn)
-            return {'error': f'problem reading {fn}: {repr(e)}'}
+            # return {'error': f'problem reading {fn}: {repr(e)}'}
+            result['analysis_parameters'] = f'problem reading {fn}: {repr(e)}'
+
+        if include_session_log:
+            result['session_log'] = ''
+            session_log_fn = os.path.join(scratch_dir, 'session.log')
+            if os.path.exists(session_log_fn):
+                with open(session_log_fn) as session_log_fn_f:
+                    result['session_log'] = session_log_fn_f.read()
 
         if 'token' in result['analysis_parameters']:
             result['analysis_parameters']['token'] = tokenHelper.get_decoded_token(
                 result['analysis_parameters']['token'], secret_key=None, validate_token=False)
 
-        result['analysis_parameters']['email_history'] = []
+        result['email_history'] = []
         for email in glob.glob(os.path.join(scratch_dir, 'email_history/*')):
             ctime = os.stat(email).st_ctime,
-            result['analysis_parameters']['email_history'].append(dict(
+            result['email_history'].append(dict(
                 ctime=ctime,
                 ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(os.stat(email).st_ctime)),
                 fn=email,
             ))
 
-        result['analysis_parameters']['matrix_message_history'] = []
+        result['matrix_message_history'] = []
         for msg in glob.glob(os.path.join(scratch_dir, 'matrix_message_history/*')):
             ctime = os.stat(msg).st_ctime,
-            result['analysis_parameters']['matrix_message_history'].append(dict(
+            result['matrix_message_history'].append(dict(
                 ctime=ctime,
                 ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(os.stat(msg).st_ctime)),
                 fn=msg,
             ))
 
-        result['analysis_parameters']['fits_files'] = []
+        result['fits_files'] = []
         for fits_fn in glob.glob(os.path.join(scratch_dir, '*fits*')):
             ctime = os.stat(fits_fn).st_ctime
-            result['analysis_parameters']['fits_files'].append(dict(
+            result['fits_files'].append(dict(
                 ctime=ctime,
                 ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(ctime)),
                 fn=fits_fn,
             ))
 
-        result['analysis_parameters']['job_monitor'] = []
+        result['job_monitor'] = []
         for fn in glob.glob(os.path.join(scratch_dir, 'job_monitor*')):
             ctime = os.stat(fn).st_ctime
-            result['analysis_parameters']['job_monitor'].append(dict(
+            result['job_monitor'].append(dict(
                 ctime=ctime,
                 ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(ctime)),
                 fn=fn,
@@ -622,10 +645,16 @@ class InstrumentQueryBackEnd:
 
         have_handler = False
         for handler in logger.handlers:
-            if isinstance(handler, logging.FileHandler):
-                logger.info("found FileHandler: %s : %s",
-                            handler, handler.baseFilename)
-                have_handler = True
+            if isinstance(handler, logging.FileHandler) and handler.baseFilename:
+                handler_path = pathlib.Path(handler.baseFilename)
+                if handler_path.parent.stem == scratch_dir:
+                    logger.info("found correspondent FileHandler: %s : %s",
+                                handler, handler.baseFilename)
+                    have_handler = True
+                else:
+                    logger.info("found not correspondent FileHandler: %s : %s, assigning a new one",
+                                handler, handler.baseFilename)
+                    logger.removeHandler(handler)
                 #handler.baseFilename == session_log_filename
 
         if not have_handler:
@@ -1054,7 +1083,8 @@ class InstrumentQueryBackEnd:
         is_message_to_send = False
         try:
             step = 'checking if a message can be sent via matrix'
-            is_message_to_send = matrix_helper.is_message_to_send_callback(status,
+            is_message_to_send = matrix_helper.is_message_to_send_callback(self.logger,
+                                                                           status,
                                                                            time_original_request,
                                                                            self.scratch_dir,
                                                                            self.app.config['conf'],
@@ -1075,12 +1105,12 @@ class InstrumentQueryBackEnd:
         try:
             step = 'checking if an email can be sent'
             is_email_to_send = email_helper.is_email_to_send_callback(self.logger,
-                                                      status,
-                                                      time_original_request,
-                                                      self.scratch_dir,
-                                                      self.app.config['conf'],
-                                                      self.job_id,
-                                                      decoded_token=self.decoded_token)
+                                                                      status,
+                                                                      time_original_request,
+                                                                      self.scratch_dir,
+                                                                      self.app.config['conf'],
+                                                                      self.job_id,
+                                                                      decoded_token=self.decoded_token)
         except email_helper.MultipleDoneEmail as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
@@ -1112,6 +1142,7 @@ class InstrumentQueryBackEnd:
                     status_details = self.instrument.get_status_details(par_dic=original_request_par_dic,
                                                                         config=self.config,
                                                                         logger=self.logger)
+                    
                 # build the products URL and get also the original requested product
                 step = 'extracting the products url'
                 products_url = self.generate_products_url(self.config.products_url,
@@ -1127,48 +1158,44 @@ class InstrumentQueryBackEnd:
             logging.warning(f'issue when {step}: {e}')
             sentry.capture_message(f'issue when {step}: {e}')
 
-        try:
-            if is_message_to_send:
-                time_request = time_original_request
-                time_request_first_submitted = matrix_helper.get_first_submitted_matrix_message_time(self.scratch_dir)
-                if time_request_first_submitted is not None:
-                    time_request = time_request_first_submitted
+        if is_message_to_send:
+            time_request = time_original_request
+            time_request_first_submitted = matrix_helper.get_first_submitted_matrix_message_time(self.scratch_dir)
+            if time_request_first_submitted is not None:
+                time_request = time_request_first_submitted
 
-                res_content = matrix_helper.send_job_message(
-                    config=self.app.config['conf'],
-                    decoded_token=self.decoded_token,
-                    token=self.token,
-                    job_id=self.job_id,
-                    session_id=self.par_dic['session_id'],
-                    status=status,
-                    instrument=self.instrument_name,
-                    status_details=status_details,
-                    product_type=product_type,
-                    time_request=time_request,
-                    request_url=products_url,
-                    api_code=email_api_code,
-                    scratch_dir=self.scratch_dir)
+            res_content = matrix_helper.send_job_message(
+                config=self.app.config['conf'],
+                logger=self.logger,
+                decoded_token=self.decoded_token,
+                token=self.token,
+                job_id=self.job_id,
+                session_id=self.par_dic['session_id'],
+                status=status,
+                instrument=self.instrument_name,
+                status_details=status_details,
+                product_type=product_type,
+                time_request=time_request,
+                request_url=products_url,
+                api_code=email_api_code,
+                scratch_dir=self.scratch_dir)
 
-                matrix_message_status_details = {
-                    "res_content": res_content
-                }
-                if status_details is not None:
-                    matrix_message_status_details['status_details'] = status_details
+            matrix_message_status_details = {
+                "res_content": res_content
+            }
+            if status_details is not None:
+                matrix_message_status_details['status_details'] = status_details
 
-                job.write_dataserver_status(status_dictionary_value=status,
-                                            full_dict=self.par_dic,
-                                            matrix_message_status='matrix message sent',
-                                            matrix_message_status_details=json.dumps(matrix_message_status_details))
-            else:
-                job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+            matrix_message_status = 'matrix message sent'
+            if 'res_content_token_user_failure' in res_content or len(res_content['res_content_bcc_users_failed']) >= 1:
+                matrix_message_status = 'sending message via matrix failed'
 
-        except matrix_helper.MatrixMessageNotSent as e:
             job.write_dataserver_status(status_dictionary_value=status,
                                         full_dict=self.par_dic,
-                                        matrix_message_status='sending message via matrix failed',
-                                        matrix_message_status_details=e.payload)
-            logging.warning(f'matrix message sending failed: {e}')
-            sentry.capture_message(f'sending matrix message failed {e.message}')
+                                        matrix_message_status=matrix_message_status,
+                                        matrix_message_status_details=json.dumps(matrix_message_status_details))
+        else:
+            job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
 
         try:
             # TODO for a future implementation
@@ -1689,6 +1716,65 @@ class InstrumentQueryBackEnd:
 
             self.config = config
 
+    def instrument_run_query(self, product_type, job, run_asynch, query_type, verbose, dry_run, api):
+
+        return self.instrument.run_query(product_type,
+                                         self.par_dic,
+                                         self,  # this will change?
+                                         job,  # this will change
+                                         run_asynch,
+                                         out_dir=self.scratch_dir,
+                                         config=self.config_data_server,
+                                         query_type=query_type,
+                                         logger=self.logger,
+                                         sentry_dsn=self.sentry_dsn,
+                                         verbose=verbose,
+                                         dry_run=dry_run,
+                                         api=api,
+                                         decoded_token=self.decoded_token,
+                                         return_progress=self.return_progress)
+
+
+    def send_query_new_status_email(self,
+                                product_type,
+                                query_new_status,
+                                time_request=None,
+                                instrument_name=None,
+                                status_details=None,
+                                arg_par_dic=None):
+        if time_request is None:
+            time_request = self.time_request
+        if instrument_name is None:
+            instrument_name = self.instrument.name
+        if arg_par_dic is None:
+            arg_par_dic = self.par_dic
+        products_url = self.generate_products_url(self.config.products_url,
+                                                  arg_par_dic)
+        email_api_code = DispatcherAPI.set_api_code(arg_par_dic,
+                                                    url=os.path.join(self.config.products_url, "dispatch-data")
+                                                    )
+        time_request_first_submitted = email_helper.get_first_submitted_email_time(
+            self.scratch_dir)
+        if time_request_first_submitted is not None:
+            time_request = time_request_first_submitted
+
+        email_helper.send_job_email(
+            config=self.config,
+            logger=self.logger,
+            decoded_token=self.decoded_token,
+            token=self.token,
+            job_id=self.job_id,
+            session_id=self.par_dic['session_id'],
+            status=query_new_status,
+            status_details=status_details,
+            instrument=instrument_name,
+            product_type=product_type,
+            time_request=time_request,
+            request_url=products_url,
+            api_code=email_api_code,
+            scratch_dir=self.scratch_dir)
+
+
     def run_query(self, off_line=False, disp_conf=None):
         """
         this is the principal function to respond to the requests
@@ -1778,7 +1864,7 @@ class InstrumentQueryBackEnd:
         else:
             self.logger.info('==> async dispatcher operation NOT requested')
 
-        if self.instrument.asynch == False:
+        if not self.instrument.asynch:
             run_asynch = False
 
         if alias_workdir is not None and run_asynch:
@@ -1818,6 +1904,7 @@ class InstrumentQueryBackEnd:
             original_work_dir = job.work_dir
             job.work_dir = alias_workdir
 
+
             self.logger.info(
                 '\033[32m==> ALIASING to %s\033[0m', alias_workdir)
 
@@ -1850,7 +1937,63 @@ class InstrumentQueryBackEnd:
                     job_monitor = job.updated_dataserver_monitor()
                     print('==>ALIASING switched off for Dummy query')
 
-        if job_is_aliased == True and query_status == 'ready':
+            if job_monitor['status'] != 'done' and job_monitor['status'] != 'failed' and query_status != 'new':
+                # check the last time status was updated and in case re-submit the request
+                last_modified_monitor = job.get_latest_monitor_mtime()
+                self.logger.info(f'last modify at the job monitor status file at {last_modified_monitor}')
+                resubmit_timeout = self.app.config['conf'].resubmit_timeout
+                if time_.time() - last_modified_monitor >= resubmit_timeout:
+                    # re-submit
+                    try:
+                        self.log_query_progression("before re-submission of instrument.run_query")
+                        self.logger.info('will re-submit with self.par_dic: %s', self.par_dic)
+                        query_out = self.instrument_run_query(product_type,
+                                                              job,
+                                                              run_asynch,
+                                                              query_type,
+                                                              verbose,
+                                                              dry_run,
+                                                              api)
+                        self.log_query_progression("after re-submission of instrument.run_query")
+                    except RequestNotAuthorized as e:
+                        return self.build_response_failed(f'permissions exception when executing job {job.job_id}',
+                                                          e.message,
+                                                          status_code=e.status_code,
+                                                          debug_message=e.debug_message)
+
+                    if query_out.status_dictionary['status'] == 0:
+                        if job.status == 'done':
+                            query_new_status = 'done'
+                        elif job.status == 'failed':
+                            query_new_status = 'failed'
+                        else:
+                            query_new_status = 'submitted'
+                            job.set_submitted()
+
+                        if email_helper.is_email_to_send_run_query(self.logger,
+                                                                   query_new_status,
+                                                                   self.time_request,
+                                                                   self.scratch_dir,
+                                                                   self.job_id,
+                                                                   self.app.config['conf'],
+                                                                   decoded_token=self.decoded_token):
+                            try:
+                                self.send_query_new_status_email(product_type, query_new_status)
+                                # store an additional information about the sent email
+                                query_out.set_status_field('email_status', 'email sent')
+                            except email_helper.EMailNotSent as e:
+                                query_out.set_status_field('email_status', 'sending email failed')
+                                logging.warning(f'email sending failed: {e}')
+                                sentry.capture_message(f'sending email failed {e.message}')
+                    else:
+                        job.set_failed()
+
+                    # set also the new file_path for the job object ?
+                    job._set_file_path(file_name=job.file_name, work_dir=job.work_dir)
+                    if query_status != query_new_status:
+                        job.write_dataserver_status()
+
+        if job_is_aliased and query_status == 'ready':
             original_work_dir = job.work_dir
             job.work_dir = alias_workdir
 
@@ -1859,16 +2002,10 @@ class InstrumentQueryBackEnd:
             job_monitor = job.updated_dataserver_monitor()
             self.logger.info('==>ALIASING switched off for status ready')
 
-        if job_is_aliased == True:
+        if job_is_aliased:
             delta_limit = 600
 
-            try:
-                raise NotImplementedError
-                # this never worked since time_ was introduced, but it makes no difference
-                delta = self.get_file_mtime(
-                    alias_workdir + '/' + 'job_monitor.json') - time_.time()
-            except:
-                delta = delta_limit+1
+            delta = delta_limit+1
 
             if delta > delta_limit:
                 original_work_dir = job.work_dir
@@ -1903,24 +2040,16 @@ class InstrumentQueryBackEnd:
                 try:
                     self.log_query_progression("before instrument.run_query")
                     self.logger.info('will run_query with self.par_dic: %s', self.par_dic)
-                    query_out = self.instrument.run_query(product_type,
-                                                          self.par_dic,
-                                                          request,
-                                                          self,  # this will change?
-                                                          job,  # this will change
+                    query_out = self.instrument_run_query(product_type,
+                                                          job,
                                                           run_asynch,
-                                                          out_dir=self.scratch_dir,
-                                                          config=self.config_data_server,
-                                                          query_type=query_type,
-                                                          logger=self.logger,
-                                                          sentry_dsn=self.sentry_dsn,
-                                                          verbose=verbose,
-                                                          dry_run=dry_run,
-                                                          api=api,
-                                                          decoded_token=self.decoded_token)
+                                                          query_type,
+                                                          verbose,
+                                                          dry_run,
+                                                          api)
                     self.log_query_progression("after instrument.run_query")                                                          
                 except RequestNotAuthorized as e:
-                    return self.build_response_failed('oda_api permissions failed',
+                    return self.build_response_failed(f'permissions exception when executing job {job.job_id}',
                                                       e.message,
                                                       status_code=e.status_code,
                                                       debug_message=e.debug_message)
@@ -1940,42 +2069,45 @@ class InstrumentQueryBackEnd:
                     email_api_code = DispatcherAPI.set_api_code(self.par_dic,
                                                                 url=os.path.join(self.app.config['conf'].products_url, "dispatch-data"))
 
-                    if matrix_helper.is_message_to_send_run_query(query_new_status,
-                                                                  self.time_request,
-                                                                  self.scratch_dir,
-                                                                  self.job_id,
-                                                                  self.app.config['conf'],
-                                                                  decoded_token=self.decoded_token):
-                        try:
-                            time_request = self.time_request
-                            time_request_first_submitted = matrix_helper.get_first_submitted_matrix_message_time(self.scratch_dir)
-                            if time_request_first_submitted is not None:
-                                time_request = time_request_first_submitted
+                    if matrix_helper.is_message_to_send_run_query(
+                            self.logger,
+                            query_new_status,
+                            self.time_request,
+                            self.scratch_dir,
+                            self.job_id,
+                            self.app.config['conf'],
+                            decoded_token=self.decoded_token):
 
-                            res_content = matrix_helper.send_job_message(
-                                config=self.app.config['conf'],
-                                decoded_token=self.decoded_token,
-                                token=self.token,
-                                job_id=self.job_id,
-                                session_id=self.par_dic['session_id'],
-                                status=query_new_status,
-                                instrument=self.instrument.name,
-                                product_type=product_type,
-                                time_request=time_request,
-                                request_url=products_url,
-                                api_code=email_api_code,
-                                scratch_dir=self.scratch_dir)
+                        time_request = self.time_request
+                        time_request_first_submitted = matrix_helper.get_first_submitted_matrix_message_time(self.scratch_dir)
+                        if time_request_first_submitted is not None:
+                            time_request = time_request_first_submitted
 
-                            matrix_message_status_details =  json.dumps({
-                                "res_content": res_content
-                            })
-                            query_out.set_status_field('matrix_message_status', 'matrix message sent')
-                            query_out.set_status_field('matrix_message_status_details', matrix_message_status_details)
-                        except matrix_helper.MatrixMessageNotSent as e:
-                            query_out.set_status_field('matrix_message_status', 'sending matrix message failed')
-                            query_out.set_status_field('matrix_message_status_details', e.payload)
-                            logging.warning(f'matrix message sending failed: {e}')
-                            sentry.capture_message(f'sending matrix message failed {e.message}')
+                        res_content = matrix_helper.send_job_message(
+                            config=self.app.config['conf'],
+                            logger=self.logger,
+                            decoded_token=self.decoded_token,
+                            token=self.token,
+                            job_id=self.job_id,
+                            session_id=self.par_dic['session_id'],
+                            status=query_new_status,
+                            instrument=self.instrument.name,
+                            product_type=product_type,
+                            time_request=time_request,
+                            request_url=products_url,
+                            api_code=email_api_code,
+                            scratch_dir=self.scratch_dir)
+
+                        matrix_message_status_details =  json.dumps({
+                            "res_content": res_content
+                        })
+
+                        matrix_message_status = 'matrix message sent'
+                        if 'res_content_token_user_failure' in res_content or len(res_content['res_content_bcc_users_failed']) >= 1:
+                            matrix_message_status = 'sending message via matrix failed'
+
+                        query_out.set_status_field('matrix_message_status', matrix_message_status)
+                        query_out.set_status_field('matrix_message_status_details', matrix_message_status_details)
 
                     if email_helper.is_email_to_send_run_query(self.logger,
                                                                query_new_status,
@@ -2076,7 +2208,7 @@ class InstrumentQueryBackEnd:
             self.logger.info(
                 '==============================> query done <==============================')
 
-        if not job_is_aliased:
+        if not job_is_aliased and query_status != query_new_status:
             job.write_dataserver_status()
 
         if not self.async_dispatcher:

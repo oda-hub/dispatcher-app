@@ -26,7 +26,7 @@ from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_has
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, create_new_notebook_with_code, generate_nb_hash, create_renku_ini_config_obj, generate_ini_file_hash
 from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id, get_source_astrophysical_entity_id_by_source_name
-from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
+from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery, ReturnProgressProductQuery
 
 # logger
 logger = logging.getLogger(__name__)
@@ -139,7 +139,7 @@ def test_empty_request(dispatcher_live_fixture):
     assert c.status_code == 400
 
     # parameterize this
-    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-semi-async', 'empty-development']) or \
+    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-semi-async', 'empty-development', 'empty-async-return-progress']) or \
            jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"
@@ -208,7 +208,7 @@ def test_matrix_options_mode_empty_request(dispatcher_live_fixture_with_matrix_o
     assert c.status_code == 400
 
     assert sorted(jdata['installed_instruments']) == sorted(
-        ['empty', 'empty-async', 'empty-semi-async', 'empty-development']) or \
+        ['empty', 'empty-async', 'empty-semi-async', 'empty-development', 'empty-async-return-progress']) or \
            jdata['installed_instruments'] == []
 
     # assert jdata['debug_mode'] == "no"
@@ -1572,6 +1572,55 @@ def test_empty_instrument_request(dispatcher_live_fixture):
     assert jdata["exit_status"]["debug_message"] == ""
     assert jdata["exit_status"]["error_message"] == ""
     assert jdata["exit_status"]["message"] == ""
+
+
+@pytest.mark.parametrize("query_type", ["Dummy", "Real"])
+def test_empty_async_return_progress_instrument_request(dispatcher_live_fixture, query_type):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    ReturnProgressProductQuery.set_p_value(5)
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': query_type,
+        'instrument': 'empty-async-return-progress',
+        'return_progress': True
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["submitted"],
+                max_time_s=50,
+                )
+
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
+
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == ""
+
+    assert jdata["products"]["p"] == 5
+
+    params.pop("return_progress", None)
+    ReturnProgressProductQuery.set_p_value(15)
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=50,
+                )
+
+    logger.info("Json output content")
+    logger.info(json.dumps(jdata, indent=4))
+
+    assert jdata["exit_status"]["debug_message"] == ""
+    assert jdata["exit_status"]["error_message"] == ""
+    assert jdata["exit_status"]["message"] == ""
+
+    assert jdata["products"]["p"] == 15
 
 
 def test_no_instrument(dispatcher_live_fixture):
@@ -3306,6 +3355,78 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
     assert len(drupal_res_obj['_links'][link_fits_file_id]) == 1
 
 
+@pytest.mark.test_drupal
+def test_product_gallery_delete(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery):
+    dispatcher_fetch_dummy_products('default')
+
+    server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # send simple request
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    product_id = 'aaabbbccc_' + str(time.time())
+
+    params = dict(product_id=product_id,
+                  instrument='isgri',
+                  src_name='Crab',
+                  product_type='isgri_lc',
+                  content_type='data_product',
+                  E1_keV=45,
+                  E2_kev=95,
+                  DEC=15,
+                  RA=458,
+                  product_title='Test data product to be deleted',
+                  token=encoded_token)
+
+    c = requests.post(os.path.join(server, "post_product_to_gallery"),
+                      params={**params},
+                      )
+
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+
+    assert 'nid' in drupal_res_obj
+    nid_creation = drupal_res_obj['nid'][0]['value']
+    assert 'field_product_id' in drupal_res_obj
+    assert drupal_res_obj['field_product_id'][0]['value'] == product_id
+
+    params = {
+        'product_id': product_id,
+        'content_type': 'data_product',
+        'token': encoded_token
+    }
+
+    c = requests.get(os.path.join(server, "get_data_product_list_with_conditions"),
+                     params=params
+                     )
+
+    assert c.status_code == 200
+    drupal_res_obj = c.json()
+    assert len(drupal_res_obj) == 1
+    assert drupal_res_obj[0]['nid'] == str(nid_creation)
+
+    c = requests.post(os.path.join(server, "delete_product_to_gallery"),
+                      params={**params},
+                      )
+    assert c.status_code == 200
+
+    drupal_res_obj = c.json()
+    assert drupal_res_obj == {}
+
+    c = requests.get(os.path.join(server, "get_data_product_list_with_conditions"),
+                     params=params
+                     )
+
+    assert c.status_code == 200
+    drupal_res_obj = c.json()
+    assert drupal_res_obj == []
 
 @pytest.mark.test_drupal
 def test_product_gallery_error_message(dispatcher_live_fixture_with_gallery):
