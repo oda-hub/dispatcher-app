@@ -565,8 +565,6 @@ class InstrumentQueryBackEnd:
 
             analysis_parameters_obj, reading_output_message = InstrumentQueryBackEnd.read_analysis_parameters_scratch_dir(scratch_dir,
                                                                                                                           decode_token=True)
-            print(f"analysis_parameters_obj {analysis_parameters_obj}")
-            print(f"reading_output_message {reading_output_message}")
             if analysis_parameters_obj is not None and 'token' in analysis_parameters_obj:
                 # TODO I am not 100% sure this is enough, perhaps it's not even needed
                 result_job_status['token_expired'] = analysis_parameters_obj['token']['exp'] < time_.time()
@@ -592,10 +590,6 @@ class InstrumentQueryBackEnd:
             if os.path.exists(session_log_fn):
                 with open(session_log_fn) as session_log_fn_f:
                     result_content['session_log'] = session_log_fn_f.read()
-
-        if 'token' in result_content['analysis_parameters']:
-            result_content['analysis_parameters']['token'] = tokenHelper.get_decoded_token(
-                result_content['analysis_parameters']['token'], secret_key=None, validate_token=False)
 
         result_content['email_history'] = []
         for email in glob.glob(os.path.join(scratch_dir, 'email_history/*')):
