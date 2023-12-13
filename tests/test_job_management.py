@@ -2736,63 +2736,34 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id)
         assert c.text == error_message
     else:
         jdata= c.json()
-        assert 'jobs' in jdata
-        assert type(jdata['jobs']) is list
+        validation_dict = JobsInspectionScheme().validate(jdata)
+        assert validation_dict == {}
+
         if not pass_job_id:
             assert len(jdata['jobs']) == 2
-            assert jdata['jobs'][0]['job_id'] == job_id_done or jdata['jobs'][1]['job_id'] == job_id_done
-            assert jdata['jobs'][0]['job_id'] == job_id_failed or jdata['jobs'][1]['job_id'] == job_id_failed
+            for job in jdata['jobs']:
+                assert job['job_id'] == job_id_done or job['job_id'] == job_id_failed
+                assert len(job['job_status_data']) == 1
+                assert len(job['job_status_data'][0]['job_statuses']) == 1
+                assert job['job_status_data'][0]['job_statuses_fn'] == (
+                    f'scratch_sid_{session_id_done}_jid_{job_id_done}' if job['job_id'] == job_id_done
+                    else f'scratch_sid_{session_id_failed}_jid_{job_id_failed}'
+                )
+                assert job['job_status_data'][0]['job_statuses'][0]['job_status_file'] == 'job_monitor.json'
+                assert job['job_status_data'][0]['job_statuses'][0]['status'] in ['done', 'failed']
+                assert not job['job_status_data'][0]['token_expired']
         else:
             assert len(jdata['jobs']) == 1
-            assert jdata['jobs'][0]['job_id'] == job_id_done
-
-        assert isinstance(jdata['jobs'][0]['job_status_data'], list)
-        if not pass_job_id:
-            assert isinstance(jdata['jobs'][1]['job_status_data'], list)
-
-        assert len(jdata['jobs'][0]['job_status_data']) == 1
-        if not pass_job_id:
-            assert len(jdata['jobs'][1]['job_status_data']) == 1
-
-        assert 'job_statuses' in jdata['jobs'][0]['job_status_data'][0]
-        assert isinstance(jdata['jobs'][0]['job_status_data'][0]['job_statuses'], list)
-        assert len(jdata['jobs'][0]['job_status_data'][0]['job_statuses']) == 1
-        if not pass_job_id:
-            assert 'job_statuses' in jdata['jobs'][1]['job_status_data'][0]
-            assert isinstance(jdata['jobs'][1]['job_status_data'][0]['job_statuses'], list)
-            assert len(jdata['jobs'][1]['job_status_data'][0]['job_statuses']) == 1
-
-        assert 'job_statuses_fn' in jdata['jobs'][0]['job_status_data'][0]
-        if not pass_job_id:
-            assert 'job_statuses_fn' in jdata['jobs'][1]['job_status_data'][0]
-            assert (jdata['jobs'][0]['job_status_data'][0]['job_statuses_fn'] ==
-                    f'scratch_sid_{session_id_done}_jid_{job_id_done}' or
-                    jdata['jobs'][0]['job_status_data'][0]['job_statuses_fn'] ==
-                    f'scratch_sid_{session_id_failed}_jid_{job_id_failed}')
-            assert (jdata['jobs'][1]['job_status_data'][0]['job_statuses_fn'] ==
-                    f'scratch_sid_{session_id_done}_jid_{job_id_done}' or
-                   jdata['jobs'][1]['job_status_data'][0]['job_statuses_fn'] ==
-                    f'scratch_sid_{session_id_failed}_jid_{job_id_failed}')
-        else:
-            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses_fn'] == f'scratch_sid_{session_id_done}_jid_{job_id_done}'
-
-        assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0]['job_status_file'] == 'job_monitor.json'
-        if not pass_job_id:
-            assert jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0]['job_status_file'] == 'job_monitor.json'
-        if not pass_job_id:
-            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0]['status'] == 'done' or \
-                   jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0]['status'] == 'done'
-
-            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0]['status'] == 'failed' or \
-                   jdata['jobs'][1]['job_status_data'][0]['job_statuses'][0]['status'] == 'failed'
-        else:
-            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0]['status'] == 'done'
-
-        assert 'token_expired' in jdata['jobs'][0]['job_status_data'][0]
-        assert not jdata['jobs'][0]['job_status_data'][0]['token_expired']
-        if not pass_job_id:
-            assert 'token_expired' in jdata['jobs'][1]['job_status_data'][0]
-            assert not jdata['jobs'][1]['job_status_data'][0]['token_expired']
+            assert jdata['jobs'][0]['job_id'] == job_id_done or jdata['jobs'][0]['job_id'] == job_id_failed
+            assert len(jdata['jobs'][0]['job_status_data']) == 1
+            assert len(jdata['jobs'][0]['job_status_data'][0]['job_statuses']) == 1
+            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses_fn'] == (
+                f'scratch_sid_{session_id_done}_jid_{job_id_done}' if jdata['jobs'][0]['job_id'] == job_id_done
+                else f'scratch_sid_{session_id_failed}_jid_{job_id_failed}'
+            )
+            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0]['job_status_file'] == 'job_monitor.json'
+            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0]['status'] in ['done', 'failed']
+            assert not jdata['jobs'][0]['job_status_data'][0]['token_expired']
 
 
 def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
