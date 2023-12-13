@@ -16,6 +16,7 @@ import glob
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, ask
 from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
+from cdci_data_analysis.flask_app.schemas import JobsInspectionScheme
 
 from datetime import datetime
 
@@ -2891,22 +2892,16 @@ def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
 
     jdata_inspection = c.json()
     print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
-    assert 'jobs' in jdata_inspection
+    validation_dict = JobsInspectionScheme().load(jdata_inspection)
     assert type(jdata_inspection['jobs']) is list
     assert len(jdata_inspection['jobs']) == 1
     assert jdata_inspection['jobs'][0]['job_id'] == dispatcher_job_state.job_id
     assert len(jdata_inspection['jobs'][0]['job_status_data']) == 2
-    assert 'job_statuses' in jdata_inspection['jobs'][0]['job_status_data'][0]
-    assert isinstance(jdata_inspection['jobs'][0]['job_status_data'][0]['job_statuses'], list)
     assert (len(jdata_inspection['jobs'][0]['job_status_data'][0]['job_statuses']) == 9 or
             len(jdata_inspection['jobs'][0]['job_status_data'][0]['job_statuses']) == 1)
-    assert 'job_statuses' in jdata_inspection['jobs'][0]['job_status_data'][1]
-    assert isinstance(jdata_inspection['jobs'][0]['job_status_data'][1]['job_statuses'], list)
     assert (len(jdata_inspection['jobs'][0]['job_status_data'][1]['job_statuses']) == 1 or
             len(jdata_inspection['jobs'][0]['job_status_data'][1]['job_statuses']) == 9)
-    assert 'job_completed' in jdata_inspection['jobs'][0]['job_status_data'][0]
     assert jdata_inspection['jobs'][0]['job_status_data'][0]['job_completed']
-    assert 'job_completed' in jdata_inspection['jobs'][0]['job_status_data'][1]
     assert jdata_inspection['jobs'][0]['job_status_data'][1]['job_completed']
 
 
@@ -2938,22 +2933,18 @@ def test_inspect_jobs_failed(dispatcher_live_fixture):
 
     jdata_inspection = c.json()
     print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
-    assert 'jobs' in jdata_inspection
-    assert type(jdata_inspection['jobs']) is list
+
+    validation_dict = JobsInspectionScheme().load(jdata_inspection)
+
     assert len(jdata_inspection['jobs']) == 1
     assert jdata_inspection['jobs'][0]['job_id'] == dispatcher_job_state.job_id
-    assert 'job_status_data' in jdata_inspection['jobs'][0]
     assert len(jdata_inspection['jobs'][0]['job_status_data']) == 1
-    assert 'job_status_data' in jdata_inspection['jobs'][0]
-    assert len(jdata_inspection['jobs'][0]['job_status_data']) == 1
-    assert 'query_output' in jdata_inspection['jobs'][0]['job_status_data'][0]
     assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['debug_message'] == 'InternalError()'
     assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['error_message'] == \
             ('Instrument: empty, product: failing\n\nThe support team has been notified, and we are investigating '
              'to resolve the issue as soon as possible\n\nIf you are willing to help us, please use the '
              '\"Write a feedback\" button below. We will make sure to respond to any feedback provided')
     assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['message'] == 'Error when getting query products'
-    assert 'job_completed' in jdata_inspection['jobs'][0]['job_status_data'][0]
     assert not jdata_inspection['jobs'][0]['job_status_data'][0]['job_completed']
 
 
@@ -3004,17 +2995,14 @@ def test_inspect_jobs_expired_token(dispatcher_live_fixture):
 
     jdata_inspection = c.json()
     print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
-    assert 'jobs' in jdata_inspection
+    validation_dict = JobsInspectionScheme().load(jdata_inspection)
     assert type(jdata_inspection['jobs']) is list
     assert len(jdata_inspection['jobs']) == 1
     assert jdata_inspection['jobs'][0]['job_id'] == dispatcher_job_state.job_id
-    assert 'job_status_data' in jdata_inspection['jobs'][0]
     assert len(jdata_inspection['jobs'][0]['job_status_data']) == 1
-    assert 'query_output' in jdata_inspection['jobs'][0]['job_status_data'][0]
     assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['debug_message'] == ''
     assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['error_message'] == ''
     assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['message'] == ''
-    assert 'job_completed' in jdata_inspection['jobs'][0]['job_status_data'][0]
     assert not jdata_inspection['jobs'][0]['job_status_data'][0]['job_completed']
 
 
