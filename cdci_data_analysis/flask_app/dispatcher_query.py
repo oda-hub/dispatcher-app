@@ -543,7 +543,6 @@ class InstrumentQueryBackEnd:
             if query_output_status_dict is not None:
                 result_job_status['query_output'] = query_output_status_dict
         except Exception as e:
-            # write something
             logger.warning('unable to read: %s', query_output_fn)
             result_job_status['query_output'] = f'problem reading {query_output_fn}: {repr(e)}'
 
