@@ -477,7 +477,9 @@ class InstrumentQueryBackEnd:
                     if (time_.time() - os.stat(scratch_dir).st_mtime) < recent_days * 24 * 3600:
                         if group_by_job:
                             result_job_status = InstrumentQueryBackEnd.read_job_status_scratch_dir(scratch_dir,
-                                                                                                   include_session_log)
+                                                                                                   include_session_log=include_session_log,
+                                                                                                   include_status_query_output=include_status_query_output
+                                                                                                   )
                             job_status_search_result = [(index, job_status_obj)
                                                         for index, job_status_obj in enumerate(records_content) if
                                                         job_status_obj.get('job_id') == scratch_dir_job_id]
