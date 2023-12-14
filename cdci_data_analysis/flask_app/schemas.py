@@ -78,17 +78,10 @@ class EmailOptionsTokenSchema(Schema):
     tem = fields.Float(description="Minimum time duration for the request for email sending", required=False)
 
 
-class JobMonitorOutputSchema(Schema):
-    job_status_file = fields.Str(description="Name of the job monitor file", required=False)
-    status = fields.Str(description="Name of the user", required=False)
-
-
 class JobStatusDataScheme(Schema):
-    # TODO should this be moved inside the JobStatusSchema ?
-    job_completed = fields.Boolean(description="Has the job completed?", required=True)
-    job_statuses = fields.List(fields.Nested(JobMonitorOutputSchema), description="List of information extracted from all the job_monitor files found within the scratch directory", required=True)
-    job_statuses_fn = fields.Str(description="Scratch directory path", required=True)
-    query_output = fields.Nested(ExitStatus, required=False)
+    request_completed = fields.Boolean(description="Has the job completed?", required=True)
+    scratch_dir_content = fields.Dict(description="Scratch directory content", required=True)
+    scratch_dir_fn = fields.Str(description="Scratch directory path", required=True)
     token_expired = fields.Boolean(description="Has the token expired?", required=True)
 
 
@@ -98,8 +91,8 @@ class JobStatusSchema(Schema):
                                   required=True)
 
 
-class JobsInspectionScheme(Schema):
-    jobs = fields.List(fields.Nested(JobStatusSchema), required=False)
+class StateInspectionScheme(Schema):
+    records = fields.List(fields.Nested(JobStatusSchema), required=False)
 
 
 class TokenPayloadSchema(EmailOptionsTokenSchema, UserOptionsTokenSchema, TokenBasePayloadSchema):
