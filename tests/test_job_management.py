@@ -4,6 +4,7 @@ from urllib import parse
 import pytest
 import requests
 import json
+import psutil
 import os
 import re
 import time
@@ -13,10 +14,12 @@ import email
 from urllib.parse import parse_qs, urlencode
 import glob
 
+from pathlib import Path
+
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, ask
 from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
-from cdci_data_analysis.flask_app.schemas import JobsInspectionScheme
+from cdci_data_analysis.flask_app.schemas import StateJobsInspectionScheme
 
 from datetime import datetime
 
@@ -2722,13 +2725,16 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id)
             )
 
     inspect_params = dict(
-                         token=encoded_token
-                     )
+        token=encoded_token,
+        group_by_job=True
+    )
     if pass_job_id:
         inspect_params['job_id'] = job_id_done[:8]
 
-    c = requests.get(server + "/inspect-jobs",
+    t0 = time.time()
+    c = requests.get(server + "/inspect-state",
                      params=inspect_params)
+    logger.info(f"\033[31m jobs inspection took {time.time() - t0} seconds\033[0m")
 
     if request_cred != 'private' or ('job manager' not in roles):
         # email not supposed to be sent for public request
@@ -2736,34 +2742,28 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id)
         assert c.text == error_message
     else:
         jdata= c.json()
-        validation_dict = JobsInspectionScheme().validate(jdata)
+        validation_dict = StateJobsInspectionScheme().validate(jdata)
         assert validation_dict == {}
 
         if not pass_job_id:
-            assert len(jdata['jobs']) == 2
-            for job in jdata['jobs']:
+            assert len(jdata['records']) == 2
+            for job in jdata['records']:
                 assert job['job_id'] == job_id_done or job['job_id'] == job_id_failed
                 assert len(job['job_status_data']) == 1
-                assert len(job['job_status_data'][0]['job_statuses']) == 1
-                assert job['job_status_data'][0]['job_statuses_fn'] == (
+                assert job['job_status_data'][0]['scratch_dir_fn'] == (
                     f'scratch_sid_{session_id_done}_jid_{job_id_done}' if job['job_id'] == job_id_done
                     else f'scratch_sid_{session_id_failed}_jid_{job_id_failed}'
                 )
-                assert job['job_status_data'][0]['job_statuses'][0]['job_status_file'] == 'job_monitor.json'
-                assert job['job_status_data'][0]['job_statuses'][0]['status'] in ['done', 'failed']
                 assert not job['job_status_data'][0]['token_expired']
         else:
-            assert len(jdata['jobs']) == 1
-            assert jdata['jobs'][0]['job_id'] == job_id_done or jdata['jobs'][0]['job_id'] == job_id_failed
-            assert len(jdata['jobs'][0]['job_status_data']) == 1
-            assert len(jdata['jobs'][0]['job_status_data'][0]['job_statuses']) == 1
-            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses_fn'] == (
-                f'scratch_sid_{session_id_done}_jid_{job_id_done}' if jdata['jobs'][0]['job_id'] == job_id_done
+            assert len(jdata['records']) == 1
+            assert jdata['records'][0]['job_id'] == job_id_done or jdata['jobs'][0]['job_id'] == job_id_failed
+            assert len(jdata['records'][0]['job_status_data']) == 1
+            assert jdata['records'][0]['job_status_data'][0]['scratch_dir_fn'] == (
+                f'scratch_sid_{session_id_done}_jid_{job_id_done}' if jdata['records'][0]['job_id'] == job_id_done
                 else f'scratch_sid_{session_id_failed}_jid_{job_id_failed}'
             )
-            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0]['job_status_file'] == 'job_monitor.json'
-            assert jdata['jobs'][0]['job_status_data'][0]['job_statuses'][0]['status'] in ['done', 'failed']
-            assert not jdata['jobs'][0]['job_status_data'][0]['token_expired']
+            assert not jdata['records'][0]['job_status_data'][0]['token_expired']
 
 
 def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
@@ -2856,27 +2856,32 @@ def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
                  ))
 
     inspect_params = dict(
-        token=encoded_token
+        token=encoded_token,
+        group_by_job=True
     )
-    c = requests.get(server + "/inspect-jobs",
+
+    t0 = time.time()
+    c = requests.get(server + "/inspect-state",
                      params=inspect_params)
+    logger.info(f"\033[31m jobs inspection took {time.time() - t0} seconds\033[0m")
 
     jdata_inspection = c.json()
     print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
-    validation_dict = JobsInspectionScheme().validate(jdata_inspection)
+    validation_dict = StateJobsInspectionScheme().validate(jdata_inspection)
     assert validation_dict == {}
-    assert len(jdata_inspection['jobs']) == 1
-    assert jdata_inspection['jobs'][0]['job_id'] == dispatcher_job_state.job_id
-    assert len(jdata_inspection['jobs'][0]['job_status_data']) == 2
-    assert (len(jdata_inspection['jobs'][0]['job_status_data'][0]['job_statuses']) == 9 or
-            len(jdata_inspection['jobs'][0]['job_status_data'][0]['job_statuses']) == 1)
-    assert (len(jdata_inspection['jobs'][0]['job_status_data'][1]['job_statuses']) == 1 or
-            len(jdata_inspection['jobs'][0]['job_status_data'][1]['job_statuses']) == 9)
-    assert jdata_inspection['jobs'][0]['job_status_data'][0]['job_completed']
-    assert jdata_inspection['jobs'][0]['job_status_data'][1]['job_completed']
+    assert len(jdata_inspection['records']) == 1
+    assert jdata_inspection['records'][0]['job_id'] == dispatcher_job_state.job_id
+    assert len(jdata_inspection['records'][0]['job_status_data']) == 2
+    assert (len(jdata_inspection['records'][0]['job_status_data'][0]['job_statuses']) == 9 or
+            len(jdata_inspection['records'][0]['job_status_data'][0]['job_statuses']) == 1)
+    assert (len(jdata_inspection['records'][0]['job_status_data'][1]['job_statuses']) == 1 or
+            len(jdata_inspection['records'][0]['job_status_data'][1]['job_statuses']) == 9)
+    assert jdata_inspection['records'][0]['job_status_data'][0]['job_completed']
+    assert jdata_inspection['records'][0]['job_status_data'][1]['job_completed']
 
 
-def test_inspect_jobs_failed(dispatcher_live_fixture):
+@pytest.mark.parametrize("include_status_query_output", [True, False, None])
+def test_inspect_jobs_failed(dispatcher_live_fixture, include_status_query_output):
     server = dispatcher_live_fixture
     token_payload = {**default_token_payload, "roles": 'job manager'}
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
@@ -2897,29 +2902,35 @@ def test_inspect_jobs_failed(dispatcher_live_fixture):
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
 
     inspect_params = dict(
-        token=encoded_token
+        token=encoded_token,
+        group_by_job=True,
+        include_status_query_output=include_status_query_output
     )
-    c = requests.get(server + "/inspect-jobs",
+    t0 = time.time()
+    c = requests.get(server + "/inspect-state",
                      params=inspect_params)
+    logger.info(f"\033[31m jobs inspection took {time.time() - t0} seconds\033[0m")
 
     jdata_inspection = c.json()
     print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
 
-    validation_dict = JobsInspectionScheme().validate(jdata_inspection)
+    validation_dict = StateJobsInspectionScheme().validate(jdata_inspection)
     assert validation_dict == {}
-    assert len(jdata_inspection['jobs']) == 1
-    assert jdata_inspection['jobs'][0]['job_id'] == dispatcher_job_state.job_id
-    assert len(jdata_inspection['jobs'][0]['job_status_data']) == 1
-    assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['debug_message'] == 'InternalError()'
-    assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['error_message'] == \
-            ('Instrument: empty, product: failing\n\nThe support team has been notified, and we are investigating '
-             'to resolve the issue as soon as possible\n\nIf you are willing to help us, please use the '
-             '\"Write a feedback\" button below. We will make sure to respond to any feedback provided')
-    assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['message'] == 'Error when getting query products'
-    assert not jdata_inspection['jobs'][0]['job_status_data'][0]['job_completed']
+    assert len(jdata_inspection['records']) == 1
+    assert jdata_inspection['records'][0]['job_id'] == dispatcher_job_state.job_id
+    assert len(jdata_inspection['records'][0]['job_status_data']) == 1
+    assert not jdata_inspection['records'][0]['job_status_data'][0]['request_completed']
+    if include_status_query_output:
+        assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['debug_message'] == 'InternalError()'
+        assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['error_message'] == \
+                ('Instrument: empty, product: failing\n\nThe support team has been notified, and we are investigating '
+                 'to resolve the issue as soon as possible\n\nIf you are willing to help us, please use the '
+                 '\"Write a feedback\" button below. We will make sure to respond to any feedback provided')
+        assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['message'] == 'Error when getting query products'
 
 
-def test_inspect_jobs_expired_token(dispatcher_live_fixture):
+@pytest.mark.parametrize("include_status_query_output", [True, False, None])
+def test_inspect_jobs_expired_token(dispatcher_live_fixture, include_status_query_output):
     server = dispatcher_live_fixture
     token_payload = {**default_token_payload, 'roles': 'job manager', 'exp': int(time.time()) + 10,'mstout':False,'mssub':False}
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
@@ -2959,22 +2970,25 @@ def test_inspect_jobs_expired_token(dispatcher_live_fixture):
     token_payload["exp"] = int(time.time()) + 5000
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
     inspect_params = dict(
-        token=encoded_token
+        token=encoded_token,
+        group_by_job=True,
+        include_status_query_output=include_status_query_output
     )
-    c = requests.get(server + "/inspect-jobs",
+    c = requests.get(server + "/inspect-state",
                      params=inspect_params)
 
     jdata_inspection = c.json()
     print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
-    validation_dict = JobsInspectionScheme().validate(jdata_inspection)
+    validation_dict = StateJobsInspectionScheme().validate(jdata_inspection)
     assert validation_dict == {}
-    assert len(jdata_inspection['jobs']) == 1
-    assert jdata_inspection['jobs'][0]['job_id'] == dispatcher_job_state.job_id
-    assert len(jdata_inspection['jobs'][0]['job_status_data']) == 1
-    assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['debug_message'] == ''
-    assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['error_message'] == ''
-    assert jdata_inspection['jobs'][0]['job_status_data'][0]['query_output']['message'] == ''
-    assert not jdata_inspection['jobs'][0]['job_status_data'][0]['job_completed']
+    assert len(jdata_inspection['records']) == 1
+    assert jdata_inspection['records'][0]['job_id'] == dispatcher_job_state.job_id
+    assert len(jdata_inspection['records'][0]['job_status_data']) == 1
+    assert not jdata_inspection['records'][0]['job_status_data'][0]['request_completed']
+    if include_status_query_output:
+        assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['debug_message'] == ''
+        assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['error_message'] == ''
+        assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['message'] == ''
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])
