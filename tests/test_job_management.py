@@ -2872,12 +2872,8 @@ def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
     assert len(jdata_inspection['records']) == 1
     assert jdata_inspection['records'][0]['job_id'] == dispatcher_job_state.job_id
     assert len(jdata_inspection['records'][0]['job_status_data']) == 2
-    assert (len(jdata_inspection['records'][0]['job_status_data'][0]['job_statuses']) == 9 or
-            len(jdata_inspection['records'][0]['job_status_data'][0]['job_statuses']) == 1)
-    assert (len(jdata_inspection['records'][0]['job_status_data'][1]['job_statuses']) == 1 or
-            len(jdata_inspection['records'][0]['job_status_data'][1]['job_statuses']) == 9)
-    assert jdata_inspection['records'][0]['job_status_data'][0]['job_completed']
-    assert jdata_inspection['records'][0]['job_status_data'][1]['job_completed']
+    assert jdata_inspection['records'][0]['job_status_data'][0]['request_completed']
+    assert jdata_inspection['records'][0]['job_status_data'][1]['request_completed']
 
 
 @pytest.mark.parametrize("include_status_query_output", [True, False, None])
