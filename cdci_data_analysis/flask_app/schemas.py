@@ -91,8 +91,12 @@ class JobStatusSchema(Schema):
                                   required=True)
 
 
-class StateInspectionScheme(Schema):
+class StateJobsInspectionScheme(Schema):
     records = fields.List(fields.Nested(JobStatusSchema), required=False)
+
+
+class StateScratchDirsInspectionScheme(Schema):
+    records = fields.List(fields.Dict, required=False)
 
 
 class TokenPayloadSchema(EmailOptionsTokenSchema, UserOptionsTokenSchema, TokenBasePayloadSchema):
