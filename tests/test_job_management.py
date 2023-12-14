@@ -4,7 +4,6 @@ from urllib import parse
 import pytest
 import requests
 import json
-import psutil
 import os
 import re
 import time
@@ -13,8 +12,6 @@ import logging
 import email
 from urllib.parse import parse_qs, urlencode
 import glob
-
-from pathlib import Path
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, ask
