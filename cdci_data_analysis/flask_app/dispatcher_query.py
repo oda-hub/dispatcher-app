@@ -456,13 +456,13 @@ class InstrumentQueryBackEnd:
 
 
     @staticmethod
-    def inspect_state(inspect_state=True, inspect_jobs=False):
+    def inspect_state():
         recent_days = request.args.get('recent_days', 3, type=float)
         job_id = request.args.get('job_id', None)
         include_session_log = request.args.get('include_session_log', False) == 'True'
+        include_status_query_output = request.args.get('include_status_query_output', False) == 'True'
+        group_by_job = request.args.get('group_by_job', False) == 'True'
         records_content = []
-        records_job_status = []
-
 
         for scratch_dir in glob.glob("scratch_sid_*_jid_*"):
             r = re.match(
@@ -475,39 +475,39 @@ class InstrumentQueryBackEnd:
                 scratch_dir_job_id = r.group('job_id')
                 if os.path.exists(scratch_dir):
                     if (time_.time() - os.stat(scratch_dir).st_mtime) < recent_days * 24 * 3600:
-                        if inspect_jobs:
+                        if group_by_job:
                             result_job_status = InstrumentQueryBackEnd.read_job_status_scratch_dir(scratch_dir,
                                                                                                    include_session_log)
                             job_status_search_result = [(index, job_status_obj)
-                                                        for index, job_status_obj in enumerate(records_job_status) if
+                                                        for index, job_status_obj in enumerate(records_content) if
                                                         job_status_obj.get('job_id') == scratch_dir_job_id]
                             if len(job_status_search_result) > 0:
-                                records_job_status[job_status_search_result[0][0]]['job_status_data'].append(dict(**result_job_status))
+                                records_content[job_status_search_result[0][0]]['job_status_data'].append(dict(**result_job_status))
                             else:
-                                records_job_status.append(dict(
+                                records_content.append(dict(
                                     job_id=scratch_dir_job_id,
                                     job_status_data=[dict(**result_job_status)]
                                 )
                                 )
-                        if inspect_state:
-                            result_content = InstrumentQueryBackEnd.read_content_scratch_dir(scratch_dir,
-                                                                                             include_session_log)
+                        else:
+                            result_content, request_completed = InstrumentQueryBackEnd.read_content_scratch_dir(scratch_dir,
+                                                                                                                include_session_log=include_session_log,
+                                                                                                                include_status_query_output=include_status_query_output)
                             records_content.append(dict(
                                 mtime=os.stat(scratch_dir).st_mtime,
                                 ctime=os.stat(scratch_dir).st_ctime,
                                 session_id=r.group('session_id'),
                                 job_id=scratch_dir_job_id,
+                                request_completed=request_completed,
                                 aliased_marker=r.group('aliased_marker'),
                                 **result_content
                             ))
                 else:
                     logger.warning(f"scratch_dir {scratch_dir} not existing, cannot be inspected")
 
-        logger.info("found records: %s", len(records_content))
-        logger.info("found job_statuses: %s", len(records_job_status))
+        logger.info("found %s records", len(records_content))
 
-        # TODO adaption to the QueryOutJSON schema is needed
-        return dict(records=records_content, jobs=records_job_status)
+        return dict(records=records_content)
 
     @staticmethod
     def read_analysis_parameters_scratch_dir(scratch_dir, decode_token=False):
@@ -527,62 +527,39 @@ class InstrumentQueryBackEnd:
         return analysis_parameters_obj, reading_output_message
 
     @staticmethod
-    def read_job_status_scratch_dir(scratch_dir, include_session_log=False, inspect_state=True, inspect_jobs=False):
-        result_job_status = {
-            "token_expired": False,
-            "job_statuses": None,
-            "job_completed": False,
-            "job_statuses_fn": scratch_dir
-        }
+    def read_job_status_scratch_dir(scratch_dir, include_session_log=False, include_status_query_output=False):
+        result_job_status = dict(
+            token_expired = False,
+            request_completed = False,
+            scratch_dir_fn = scratch_dir,
+            scratch_dir_content = None
+        )
 
-        query_output_fn = os.path.join(scratch_dir, 'query_output.json')
-        try:
-            with open(query_output_fn) as query_output_file:
-                query_output_content = json.load(query_output_file)
-            query_output_status_dict = query_output_content.get('status_dictionary', None)
-            if query_output_status_dict is not None:
-                result_job_status['query_output'] = query_output_status_dict
-        except Exception as e:
-            logger.warning('unable to read: %s', query_output_fn)
-            result_job_status['query_output'] = f'problem reading {query_output_fn}: {repr(e)}'
+        result_job_status['scratch_dir_content'], result_job_status['request_completed'] = (
+            InstrumentQueryBackEnd.read_content_scratch_dir(scratch_dir,
+                                                            include_session_log=include_session_log,
+                                                            include_status_query_output=include_status_query_output))
 
-        for fn in glob.glob(os.path.join(scratch_dir, 'job_monitor*')):
-            job_status_filename = os.path.basename(fn)
-            with open(fn) as job_status_file:
-                job_monitor_content = json.load(job_status_file)
+        if (isinstance(result_job_status['scratch_dir_content']['analysis_parameters'], dict) and
+                'token' in result_job_status['scratch_dir_content']['analysis_parameters']):
+            # TODO I am not 100% sure this is enough, perhaps it's not even needed
+            result_job_status['token_expired'] = result_job_status['scratch_dir_content']['analysis_parameters']['token']['exp'] < time_.time()
 
-            job_status = job_monitor_content['status']
-            result_job_status['job_completed'] = (result_job_status['job_completed'] or job_status == 'done')
-
-            job_status_obj = dict(status=job_status,
-                                  job_status_file=job_status_filename
-                                  )
-
-            if result_job_status.get('job_statuses', None) is None:
-                result_job_status['job_statuses'] = []
-
-            result_job_status['job_statuses'].append(job_status_obj)
-
-            analysis_parameters_obj, reading_output_message = InstrumentQueryBackEnd.read_analysis_parameters_scratch_dir(scratch_dir,
-                                                                                                                          decode_token=True)
-            if analysis_parameters_obj is not None and 'token' in analysis_parameters_obj:
-                # TODO I am not 100% sure this is enough, perhaps it's not even needed
-                result_job_status['token_expired'] = analysis_parameters_obj['token']['exp'] < time_.time()
 
         return result_job_status
 
     @staticmethod
-    def read_content_scratch_dir(scratch_dir, include_session_log=False):
+    def read_content_scratch_dir(scratch_dir, include_session_log=False, include_status_query_output=False):
         result_content = {}
         file_list = []
         for f in glob.glob(os.path.join(scratch_dir, "*")):
             file_list.append(f)
         result_content['file_list'] = file_list
-
+        request_completed = False
         result_content['analysis_parameters'], reading_output_message = InstrumentQueryBackEnd.read_analysis_parameters_scratch_dir(scratch_dir,
                                                                                                                                     decode_token=True)
         if result_content['analysis_parameters'] is None:
-            result_content ['analysis_parameters'] = reading_output_message
+            result_content['analysis_parameters'] = reading_output_message
 
         if include_session_log:
             result_content['session_log'] = ''
@@ -618,11 +595,26 @@ class InstrumentQueryBackEnd:
                 fn=fits_fn,
             ))
 
+        if include_status_query_output:
+            result_content['status_query_output'] = ''
+            query_output_fn = os.path.join(scratch_dir, 'query_output.json')
+            try:
+                with open(query_output_fn) as query_output_file:
+                    query_output_content = json.load(query_output_file)
+                query_output_status_dict = query_output_content.get('status_dictionary', None)
+                if query_output_status_dict is not None:
+                    result_content['status_query_output'] = query_output_status_dict
+            except Exception as e:
+                logger.warning('unable to read: %s', query_output_fn)
+                result_content['status_query_output'] = f'problem reading {query_output_fn}: {repr(e)}'
+
         result_content['job_monitor'] = []
         for fn in glob.glob(os.path.join(scratch_dir, 'job_monitor*')):
             with open(fn) as job_status_file:
                 job_monitor_content = json.load(job_status_file)
             job_monitor_ctime = os.stat(fn).st_ctime
+            job_monitor_status = job_monitor_content['status']
+            request_completed = (request_completed or job_monitor_status == 'done')
 
             result_content['job_monitor'].append(dict(
                 ctime=job_monitor_ctime,
@@ -631,7 +623,7 @@ class InstrumentQueryBackEnd:
                 job_monitor_content=job_monitor_content
             ))
 
-        return result_content
+        return result_content, request_completed
 
     @staticmethod
     def restricted_par_dic(par_dic, kw_black_list=None):
