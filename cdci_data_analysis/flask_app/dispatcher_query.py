@@ -461,6 +461,7 @@ class InstrumentQueryBackEnd:
         job_id = request.args.get('job_id', None)
         include_session_log = request.args.get('include_session_log', False) == 'True'
         include_status_query_output = request.args.get('include_status_query_output', False) == 'True'
+        exclude_analysis_parameters = request.args.get('exclude_analysis_parameters', False) == 'True'
         group_by_job = request.args.get('group_by_job', False) == 'True'
         records_content = []
 
@@ -478,7 +479,8 @@ class InstrumentQueryBackEnd:
                         if group_by_job:
                             result_job_status = InstrumentQueryBackEnd.read_job_status_scratch_dir(scratch_dir,
                                                                                                    include_session_log=include_session_log,
-                                                                                                   include_status_query_output=include_status_query_output
+                                                                                                   include_status_query_output=include_status_query_output,
+                                                                                                   exclude_analysis_parameters=exclude_analysis_parameters
                                                                                                    )
                             job_status_search_result = [(index, job_status_obj)
                                                         for index, job_status_obj in enumerate(records_content) if
@@ -494,7 +496,8 @@ class InstrumentQueryBackEnd:
                         else:
                             result_content, request_completed = InstrumentQueryBackEnd.read_content_scratch_dir(scratch_dir,
                                                                                                                 include_session_log=include_session_log,
-                                                                                                                include_status_query_output=include_status_query_output)
+                                                                                                                include_status_query_output=include_status_query_output,
+                                                                                                                exclude_analysis_parameters=exclude_analysis_parameters)
                             records_content.append(dict(
                                 mtime=os.stat(scratch_dir).st_mtime,
                                 ctime=os.stat(scratch_dir).st_ctime,
@@ -529,9 +532,8 @@ class InstrumentQueryBackEnd:
         return analysis_parameters_obj, reading_output_message
 
     @staticmethod
-    def read_job_status_scratch_dir(scratch_dir, include_session_log=False, include_status_query_output=False):
+    def read_job_status_scratch_dir(scratch_dir, include_session_log=False, include_status_query_output=False, exclude_analysis_parameters=True):
         result_job_status = dict(
-            token_expired = False,
             request_completed = False,
             scratch_dir_fn = scratch_dir,
             scratch_dir_content = None
@@ -540,10 +542,12 @@ class InstrumentQueryBackEnd:
         result_job_status['scratch_dir_content'], result_job_status['request_completed'] = (
             InstrumentQueryBackEnd.read_content_scratch_dir(scratch_dir,
                                                             include_session_log=include_session_log,
-                                                            include_status_query_output=include_status_query_output))
+                                                            include_status_query_output=include_status_query_output,
+                                                            exclude_analysis_parameters=exclude_analysis_parameters))
 
-        if (isinstance(result_job_status['scratch_dir_content']['analysis_parameters'], dict) and
-                'token' in result_job_status['scratch_dir_content']['analysis_parameters']):
+        if (not exclude_analysis_parameters and
+                (isinstance(result_job_status['scratch_dir_content']['analysis_parameters'], dict) and
+                 'token' in result_job_status['scratch_dir_content']['analysis_parameters'])):
             # TODO I am not 100% sure this is enough, perhaps it's not even needed
             result_job_status['token_expired'] = result_job_status['scratch_dir_content']['analysis_parameters']['token']['exp'] < time_.time()
 
@@ -551,17 +555,19 @@ class InstrumentQueryBackEnd:
         return result_job_status
 
     @staticmethod
-    def read_content_scratch_dir(scratch_dir, include_session_log=False, include_status_query_output=False):
+    def read_content_scratch_dir(scratch_dir, include_session_log=False, include_status_query_output=False, exclude_analysis_parameters=True):
         result_content = {}
         file_list = []
         for f in glob.glob(os.path.join(scratch_dir, "*")):
             file_list.append(f)
         result_content['file_list'] = file_list
         request_completed = False
-        result_content['analysis_parameters'], reading_output_message = InstrumentQueryBackEnd.read_analysis_parameters_scratch_dir(scratch_dir,
-                                                                                                                                    decode_token=True)
-        if result_content['analysis_parameters'] is None:
-            result_content['analysis_parameters'] = reading_output_message
+
+        if not exclude_analysis_parameters:
+            result_content['analysis_parameters'], reading_output_message = InstrumentQueryBackEnd.read_analysis_parameters_scratch_dir(scratch_dir,
+                                                                                                                                        decode_token=True)
+            if result_content['analysis_parameters'] is None:
+                result_content['analysis_parameters'] = reading_output_message
 
         if include_session_log:
             result_content['session_log'] = ''

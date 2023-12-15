@@ -82,7 +82,7 @@ class JobStatusDataScheme(Schema):
     request_completed = fields.Boolean(description="Has the job completed?", required=True)
     scratch_dir_content = fields.Dict(description="Scratch directory content", required=True)
     scratch_dir_fn = fields.Str(description="Scratch directory path", required=True)
-    token_expired = fields.Boolean(description="Has the token expired?", required=True)
+    token_expired = fields.Boolean(description="Has the token expired?", required=False)
 
 
 class JobStatusSchema(Schema):
