@@ -2753,6 +2753,7 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id,
                     f'scratch_sid_{session_id_done}_jid_{job_id_done}' if job['job_id'] == job_id_done
                     else f'scratch_sid_{session_id_failed}_jid_{job_id_failed}'
                 )
+                assert ('analysis_parameters' not in job['job_status_data'][0]) == exclude_analysis_parameters
                 if exclude_analysis_parameters:
                     assert 'token_expired' not in job['job_status_data'][0]
                 else:
