@@ -2644,7 +2644,8 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_se
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
 @pytest.mark.parametrize("pass_job_id", [True, False])
-def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id):
+@pytest.mark.parametrize("exclude_analysis_parameters", [True, False, None])
+def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id, exclude_analysis_parameters):
     required_roles = ['job manager']
     DispatcherJobState.remove_scratch_folders()
     server = dispatcher_live_fixture
@@ -2723,7 +2724,8 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id)
 
     inspect_params = dict(
         token=encoded_token,
-        group_by_job=True
+        group_by_job=True,
+        exclude_analysis_parameters=exclude_analysis_parameters
     )
     if pass_job_id:
         inspect_params['job_id'] = job_id_done[:8]
@@ -2751,7 +2753,10 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id)
                     f'scratch_sid_{session_id_done}_jid_{job_id_done}' if job['job_id'] == job_id_done
                     else f'scratch_sid_{session_id_failed}_jid_{job_id_failed}'
                 )
-                assert not job['job_status_data'][0]['token_expired']
+                if exclude_analysis_parameters:
+                    assert 'token_expired' not in job['job_status_data'][0]
+                else:
+                    assert not job['job_status_data'][0]['token_expired']
         else:
             assert len(jdata['records']) == 1
             assert jdata['records'][0]['job_id'] == job_id_done or jdata['jobs'][0]['job_id'] == job_id_failed
@@ -2760,7 +2765,11 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id)
                 f'scratch_sid_{session_id_done}_jid_{job_id_done}' if jdata['records'][0]['job_id'] == job_id_done
                 else f'scratch_sid_{session_id_failed}_jid_{job_id_failed}'
             )
-            assert not jdata['records'][0]['job_status_data'][0]['token_expired']
+
+            if exclude_analysis_parameters:
+                assert 'token_expired' not in jdata['records'][0]['job_status_data'][0]
+            else:
+                assert not jdata['records'][0]['job_status_data'][0]['token_expired']
 
 
 def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
