@@ -277,8 +277,18 @@ def free_up_space():
 
 @app.route('/inspect-state', methods=['POST', 'GET'])
 def inspect_state():
-    state_data_obj = InstrumentQueryBackEnd.inspect_state(app)
-    return state_data_obj
+    token = request.args.get('token', None)
+
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['job manager'],
+                                                                  action="inspect the state for a given job_id")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    state_data_obj = InstrumentQueryBackEnd.inspect_state()
+    return jsonify(dict(records=state_data_obj['records']))
 
 
 @app.route('/instr-list')
