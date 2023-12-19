@@ -838,12 +838,12 @@ class PostProcessProductQuery(ProductQuery):
 
         return process_product_query_out
 
-    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_dsn=None,api=False):
+    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_dsn=None,api=False,return_progress=False):
 
         if logger is None:
             logger = self.get_logger()
 
-        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir,sentry_dsn=sentry_dsn,api=api)
+        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir,sentry_dsn=sentry_dsn,api=api,return_progress=return_progress)
         if query_out.status_dictionary['status'] == 0:
             job.set_done()
         else:
