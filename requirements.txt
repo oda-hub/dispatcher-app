@@ -36,5 +36,5 @@ MarkupSafe==2.0.1
 # TODO: needed by some plugins: migrate
 simple_logger
 matplotlib
-validators==0.20.0
+validators==0.21.0
 pillow>=10.0.1 # not directly required, pinned by Snyk to avoid a vulnerability
