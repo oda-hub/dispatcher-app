@@ -283,7 +283,7 @@ class ReturnProgressProductQuery(ProductQuery):
         query_out.prod_dictionary['p'] = prod_list.prod_list[0]
         return query_out
 
-    def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
+    def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False, return_progress=False):
         p_value = res
         return [p_value]
 
@@ -311,7 +311,7 @@ class EmptyProductQuery(ProductQuery):
 
         return query_out
 
-    def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
+    def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False, return_progress=False):
         #TODO: return here the parameters
         p = BaseQueryProduct('input_param_scw_list', 
                               data=NumpyDataProduct(NumpyDataUnit(
@@ -407,7 +407,7 @@ class DataServerNumericQuery(ProductQuery):
 
         return prod_list
 
-    def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
+    def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False, return_progress=False):
         return []
 
     def process_product_method(self, instrument, prod_list, api=False, **kw):
@@ -464,7 +464,7 @@ class DataServerParametricQuery(ProductQuery):
     def test_has_input_products(self):
         pass
 
-    def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
+    def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False, return_progress=False):
         return []
 
     def process_product_method(self, instrument, prod_list, api=False, **kw):
@@ -496,7 +496,7 @@ class EchoProductQuery(ProductQuery):
         param_dict = {x: instrument.get_par_by_name(x).value for x in param_names}
         return EchoServerDispatcher(instrument=instrument, param_dict=param_dict)
     
-    def build_product_list(self, instrument, res, out_dir, api=False):
+    def build_product_list(self, instrument, res, out_dir, api=False, return_progress=False):
         return [res]
     
     def process_product_method(self, instrument, prod_list, api=False, **kw):
