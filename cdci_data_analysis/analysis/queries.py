@@ -583,7 +583,7 @@ class ProductQuery(BaseQuery):
                     job.set_submitted()
 
                 if return_progress or (not return_progress and job.status == 'done'):
-                    prod_list = self.build_product_list(instrument, res, scratch_dir, api=api)
+                    prod_list = self.build_product_list(instrument, res, scratch_dir, api=api, return_progress=return_progress)
                 else:
                     prod_list = QueryProductList(prod_list=[], job=job)
 
