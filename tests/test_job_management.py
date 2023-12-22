@@ -16,6 +16,7 @@ import glob
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, make_hash, ask
 from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery
+from cdci_data_analysis.flask_app.schemas import StateJobsInspectionScheme
 
 from datetime import datetime
 
@@ -1489,7 +1490,10 @@ def test_status_details_email_done(gunicorn_dispatcher_live_fixture, dispatcher_
     # check the additional status details within the email
     assert 'email_status_details' in jdata
     assert jdata['email_status_details'] == {
-        'exception_message': 'failing query\nInstrument: empty, product: failing failed!\n',
+        'exception_message': 'Error when getting query products\nInstrument: empty, product: failing\n\n'
+                             'The support team has been notified, and we are investigating to resolve the issue as soon as possible\n\n'
+                             'If you are willing to help us, please use the "Write a feedback" button below. '
+                             'We will make sure to respond to any feedback provided',
         'status': 'empty_product'
     }
 
@@ -2581,6 +2585,7 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_se
     assert os.path.exists(scratch_dir_fn)
 
     status_code = 403
+    error_message = ''
     if request_cred == 'invalid_token':
         # an invalid (encoded) token, just a string
         encoded_token = 'invalid_token'
@@ -2635,6 +2640,359 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_se
 
         assert 'file_list' in jdata['records'][0]
         assert isinstance(jdata['records'][0]['file_list'], list)
+
+@pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
+@pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
+@pytest.mark.parametrize("pass_job_id", [True, False])
+@pytest.mark.parametrize("exclude_analysis_parameters", [True, False, None])
+def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id, exclude_analysis_parameters):
+    required_roles = ['job manager']
+    DispatcherJobState.remove_scratch_folders()
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+    token_none = (request_cred == 'public')
+
+    token_payload = {**default_token_payload}
+
+    if token_none:
+        encoded_token = None
+    else:
+        # let's generate a valid token
+        token_payload["roles"] = roles
+        encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    # just for having the roles in a list
+    roles = roles.split(',')
+    roles[:] = [r.strip() for r in roles]
+
+    jdata_done = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'failing',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    jdata_failed = ask(server,
+                       params,
+                       expected_query_status='failed'
+                       )
+
+    job_id_done = jdata_done['job_monitor']['job_id']
+    session_id_done = jdata_done['session_id']
+    job_id_failed = jdata_failed['job_monitor']['job_id']
+    session_id_failed = jdata_failed['session_id']
+
+    # generate a new valid token with the same approach
+    if token_none:
+        encoded_token = None
+    else:
+        # let's generate a valid token
+        token_payload["roles"] = roles
+        token_payload["exp"] = int(time.time()) + 5000
+        encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    status_code = 403
+    error_message = ''
+    if request_cred == 'invalid_token':
+        # an invalid (encoded) token, just a string
+        encoded_token = 'invalid_token'
+        error_message = 'The token provided is not valid.'
+    elif request_cred == 'public':
+        error_message = 'A token must be provided.'
+    elif request_cred == 'private':
+        if 'job manager' not in roles:
+            lacking_roles = ", ".join(sorted(list(set(required_roles) - set(roles))))
+            error_message = (
+                f'Unfortunately, your privileges are not sufficient to inspect the state for a given job_id.\n'
+                f'Your privilege roles include {roles}, but the following roles are missing: {lacking_roles}.'
+            )
+
+    inspect_params = dict(
+        token=encoded_token,
+        group_by_job=True,
+        exclude_analysis_parameters=exclude_analysis_parameters
+    )
+    if pass_job_id:
+        inspect_params['job_id'] = job_id_done[:8]
+
+    t0 = time.time()
+    c = requests.get(server + "/inspect-state",
+                     params=inspect_params)
+    logger.info(f"\033[31m jobs inspection took {time.time() - t0} seconds\033[0m")
+
+    if request_cred != 'private' or ('job manager' not in roles):
+        # email not supposed to be sent for public request
+        assert c.status_code == status_code
+        assert c.text == error_message
+    else:
+        jdata= c.json()
+        validation_dict = StateJobsInspectionScheme().validate(jdata)
+        assert validation_dict == {}
+
+        if not pass_job_id:
+            assert len(jdata['records']) == 2
+            for job in jdata['records']:
+                assert job['job_id'] == job_id_done or job['job_id'] == job_id_failed
+                assert len(job['job_status_data']) == 1
+                assert job['job_status_data'][0]['scratch_dir_fn'] == (
+                    f'scratch_sid_{session_id_done}_jid_{job_id_done}' if job['job_id'] == job_id_done
+                    else f'scratch_sid_{session_id_failed}_jid_{job_id_failed}'
+                )
+                if exclude_analysis_parameters:
+                    assert 'token_expired' not in job['job_status_data'][0]
+                    assert 'analysis_parameters' not in job['job_status_data'][0]['scratch_dir_content']
+                else:
+                    assert not job['job_status_data'][0]['token_expired']
+                    assert 'analysis_parameters' in job['job_status_data'][0]['scratch_dir_content']
+        else:
+            assert len(jdata['records']) == 1
+            assert jdata['records'][0]['job_id'] == job_id_done or jdata['jobs'][0]['job_id'] == job_id_failed
+            assert len(jdata['records'][0]['job_status_data']) == 1
+            assert jdata['records'][0]['job_status_data'][0]['scratch_dir_fn'] == (
+                f'scratch_sid_{session_id_done}_jid_{job_id_done}' if jdata['records'][0]['job_id'] == job_id_done
+                else f'scratch_sid_{session_id_failed}_jid_{job_id_failed}'
+            )
+
+            if exclude_analysis_parameters:
+                assert 'token_expired' not in jdata['records'][0]['job_status_data'][0]
+            else:
+                assert not jdata['records'][0]['job_status_data'][0]['token_expired']
+
+
+def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
+    server = gunicorn_dispatcher_long_living_fixture
+    token_payload = {**default_token_payload, "roles": 'job manager'}
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    DataServerQuery.set_status('submitted')
+    DispatcherJobState.remove_scratch_folders()
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+    jdata = c.json()
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    time_request = jdata['time_request']
+    for i in range(5):
+        # imitating what a backend would do
+        current_action = 'progress' if i > 2 else 'main_done'
+        requests.get(os.path.join(server, "call_back"),
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action=current_action,
+                         node_id=f'node_{i}',
+                         message='progressing',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+        requests.get(os.path.join(server, "run_analysis"),
+                     params=dict(
+                         query_status="submitted",  # whether query is new or not, this should work
+                         query_type="Real",
+                         instrument="empty-async",
+                         product_type="dummy",
+                         async_dispatcher=False,
+                         session_id=dispatcher_job_state.session_id,
+                         job_id=dispatcher_job_state.job_id,
+                         token=encoded_token
+                     ))
+
+    requests.get(os.path.join(server, "run_analysis"),
+                 {**dict_param,
+                  "query_status": "submitted",
+                  "job_id": dispatcher_job_state.job_id,
+                  "session_id": dispatcher_job_state.session_id,
+                  }
+                 )
+
+    requests.get(os.path.join(server, "call_back"),
+                 params=dict(
+                     job_id=dispatcher_job_state.job_id,
+                     session_id=dispatcher_job_state.session_id,
+                     instrument_name="empty-async",
+                     action='main_incorrect_status',
+                     node_id=f'node_{i+1}',
+                     message='progressing',
+                     token=encoded_token,
+                     time_original_request=time_request
+                 ))
+    DataServerQuery.set_status('done')
+    requests.get(os.path.join(server, "call_back"),
+                 params=dict(
+                     job_id=dispatcher_job_state.job_id,
+                     session_id=dispatcher_job_state.session_id,
+                     instrument_name="empty-async",
+                     action='done',
+                     node_id='node_final',
+                     message='done',
+                     token=encoded_token,
+                     time_original_request=time_request
+                 ))
+    requests.get(os.path.join(server, "call_back"),
+                 params=dict(
+                     job_id=dispatcher_job_state.job_id,
+                     session_id=dispatcher_job_state.session_id,
+                     instrument_name="empty-async",
+                     action='failed',
+                     node_id='node_failed',
+                     message='failed',
+                     token=encoded_token,
+                     time_original_request=time_request
+                 ))
+
+    inspect_params = dict(
+        token=encoded_token,
+        group_by_job=True
+    )
+
+    t0 = time.time()
+    c = requests.get(server + "/inspect-state",
+                     params=inspect_params)
+    logger.info(f"\033[31m jobs inspection took {time.time() - t0} seconds\033[0m")
+
+    jdata_inspection = c.json()
+    print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
+    validation_dict = StateJobsInspectionScheme().validate(jdata_inspection)
+    assert validation_dict == {}
+    assert len(jdata_inspection['records']) == 1
+    assert jdata_inspection['records'][0]['job_id'] == dispatcher_job_state.job_id
+    assert len(jdata_inspection['records'][0]['job_status_data']) == 2
+    assert jdata_inspection['records'][0]['job_status_data'][0]['request_completed']
+    assert jdata_inspection['records'][0]['job_status_data'][1]['request_completed']
+
+
+@pytest.mark.parametrize("include_status_query_output", [True, False, None])
+def test_inspect_jobs_failed(dispatcher_live_fixture, include_status_query_output):
+    server = dispatcher_live_fixture
+    token_payload = {**default_token_payload, "roles": 'job manager'}
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    DataServerQuery.set_status('submitted')
+    DispatcherJobState.remove_scratch_folders()
+    params = {
+        'query_status': 'new',
+        'product_type': 'failing',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status='failed'
+                )
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+
+    inspect_params = dict(
+        token=encoded_token,
+        group_by_job=True,
+        include_status_query_output=include_status_query_output
+    )
+    t0 = time.time()
+    c = requests.get(server + "/inspect-state",
+                     params=inspect_params)
+    logger.info(f"\033[31m jobs inspection took {time.time() - t0} seconds\033[0m")
+
+    jdata_inspection = c.json()
+    print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
+
+    validation_dict = StateJobsInspectionScheme().validate(jdata_inspection)
+    assert validation_dict == {}
+    assert len(jdata_inspection['records']) == 1
+    assert jdata_inspection['records'][0]['job_id'] == dispatcher_job_state.job_id
+    assert len(jdata_inspection['records'][0]['job_status_data']) == 1
+    assert not jdata_inspection['records'][0]['job_status_data'][0]['request_completed']
+    if include_status_query_output:
+        assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['debug_message'] == 'InternalError()'
+        assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['error_message'] == \
+                ('Instrument: empty, product: failing\n\nThe support team has been notified, and we are investigating '
+                 'to resolve the issue as soon as possible\n\nIf you are willing to help us, please use the '
+                 '\"Write a feedback\" button below. We will make sure to respond to any feedback provided')
+        assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['message'] == 'Error when getting query products'
+
+
+@pytest.mark.parametrize("include_status_query_output", [True, False, None])
+def test_inspect_jobs_expired_token(dispatcher_live_fixture, include_status_query_output):
+    server = dispatcher_live_fixture
+    token_payload = {**default_token_payload, 'roles': 'job manager', 'exp': int(time.time()) + 10,'mstout':False,'mssub':False}
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    DataServerQuery.set_status('submitted')
+    DispatcherJobState.remove_scratch_folders()
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    jdata = ask(server,
+                dict_param,
+                expected_query_status='submitted'
+                )
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    time_request = jdata['time_request']
+
+    # let make sure the token used for the previous request expires
+    time.sleep(12)
+
+    requests.get(os.path.join(server, "call_back"),
+                 params=dict(
+                     job_id=dispatcher_job_state.job_id,
+                     session_id=dispatcher_job_state.session_id,
+                     instrument_name="empty-async",
+                     action='done',
+                     node_id=f'node_0',
+                     message='progressing',
+                     token=encoded_token,
+                     time_original_request=time_request
+                 ))
+
+    token_payload["roles"] = 'job manager'
+    token_payload["exp"] = int(time.time()) + 5000
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    inspect_params = dict(
+        token=encoded_token,
+        group_by_job=True,
+        include_status_query_output=include_status_query_output
+    )
+    c = requests.get(server + "/inspect-state",
+                     params=inspect_params)
+
+    jdata_inspection = c.json()
+    print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
+    validation_dict = StateJobsInspectionScheme().validate(jdata_inspection)
+    assert validation_dict == {}
+    assert len(jdata_inspection['records']) == 1
+    assert jdata_inspection['records'][0]['job_id'] == dispatcher_job_state.job_id
+    assert len(jdata_inspection['records'][0]['job_status_data']) == 1
+    assert not jdata_inspection['records'][0]['job_status_data'][0]['request_completed']
+    if include_status_query_output:
+        assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['debug_message'] == ''
+        assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['error_message'] == ''
+        assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['message'] == ''
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])

@@ -456,22 +456,14 @@ class InstrumentQueryBackEnd:
 
 
     @staticmethod
-    def inspect_state(app):
-        token = request.args.get('token', None)
-
-        app_config = app.config.get('conf')
-        secret_key = app_config.secret_key
-        output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                      required_roles=['job manager'],
-                                                                      action="inspect the state for a given job_id")
-
-        if output_code is not None:
-            return make_response(output, output_code)
-
+    def inspect_state():
         recent_days = request.args.get('recent_days', 3, type=float)
         job_id = request.args.get('job_id', None)
         include_session_log = request.args.get('include_session_log', False) == 'True'
-        records = []
+        include_status_query_output = request.args.get('include_status_query_output', False) == 'True'
+        exclude_analysis_parameters = request.args.get('exclude_analysis_parameters', False) == 'True'
+        group_by_job = request.args.get('group_by_job', False) == 'True'
+        records_content = []
 
         for scratch_dir in glob.glob("scratch_sid_*_jid_*"):
             r = re.match(
@@ -481,89 +473,165 @@ class InstrumentQueryBackEnd:
                 if job_id is not None:
                     if r.group('job_id')[:8] != job_id:
                         continue
+                scratch_dir_job_id = r.group('job_id')
                 if os.path.exists(scratch_dir):
                     if (time_.time() - os.stat(scratch_dir).st_mtime) < recent_days * 24 * 3600:
-                        records.append(dict(
-                            mtime=os.stat(scratch_dir).st_mtime,
-                            ctime=os.stat(scratch_dir).st_ctime,
-                            session_id=r.group('session_id'),
-                            job_id=r.group('job_id'),
-                            aliased_marker=r.group('aliased_marker'),
-                            **InstrumentQueryBackEnd.read_scratch_dir(scratch_dir, include_session_log)
-                        ))
+                        if group_by_job:
+                            result_job_status = InstrumentQueryBackEnd.read_job_status_scratch_dir(scratch_dir,
+                                                                                                   include_session_log=include_session_log,
+                                                                                                   include_status_query_output=include_status_query_output,
+                                                                                                   exclude_analysis_parameters=exclude_analysis_parameters
+                                                                                                   )
+                            job_status_search_result = [(index, job_status_obj)
+                                                        for index, job_status_obj in enumerate(records_content) if
+                                                        job_status_obj.get('job_id') == scratch_dir_job_id]
+                            if len(job_status_search_result) > 0:
+                                records_content[job_status_search_result[0][0]]['job_status_data'].append(dict(**result_job_status))
+                            else:
+                                records_content.append(dict(
+                                    job_id=scratch_dir_job_id,
+                                    job_status_data=[dict(**result_job_status)]
+                                )
+                                )
+                        else:
+                            result_content, request_completed = InstrumentQueryBackEnd.read_content_scratch_dir(scratch_dir,
+                                                                                                                include_session_log=include_session_log,
+                                                                                                                include_status_query_output=include_status_query_output,
+                                                                                                                exclude_analysis_parameters=exclude_analysis_parameters)
+                            records_content.append(dict(
+                                mtime=os.stat(scratch_dir).st_mtime,
+                                ctime=os.stat(scratch_dir).st_ctime,
+                                session_id=r.group('session_id'),
+                                job_id=scratch_dir_job_id,
+                                request_completed=request_completed,
+                                aliased_marker=r.group('aliased_marker'),
+                                **result_content
+                            ))
                 else:
                     logger.warning(f"scratch_dir {scratch_dir} not existing, cannot be inspected")
 
-        logger.info("found records: %s", len(records))
+        logger.info("found %s records", len(records_content))
 
-        # TODO adaption to the QueryOutJSON schema is needed
-        return jsonify(dict(records=records))
+        return dict(records=records_content)
 
     @staticmethod
-    def read_scratch_dir(scratch_dir, include_session_log=False):
-        result = {}
+    def read_analysis_parameters_scratch_dir(scratch_dir, decode_token=False):
+        analysis_parameters_obj = None
+        reading_output_message = ""
+        fn = os.path.join(scratch_dir, 'analysis_parameters.json')
+        try:
+            with open(fn) as analysis_parameters_file:
+                analysis_parameters_obj = json.load(analysis_parameters_file)
+        except Exception as e:
+            logger.warning('unable to read: %s', fn)
+            reading_output_message = f'problem reading {fn}: {repr(e)}'
 
+        if analysis_parameters_obj is not None and  decode_token and 'token' in analysis_parameters_obj:
+            analysis_parameters_obj['token'] = tokenHelper.get_decoded_token(analysis_parameters_obj['token'], secret_key=None, validate_token=False)
+
+        return analysis_parameters_obj, reading_output_message
+
+    @staticmethod
+    def read_job_status_scratch_dir(scratch_dir, include_session_log=False, include_status_query_output=False, exclude_analysis_parameters=True):
+        result_job_status = dict(
+            request_completed = False,
+            scratch_dir_fn = scratch_dir,
+            scratch_dir_content = None
+        )
+
+        result_job_status['scratch_dir_content'], result_job_status['request_completed'] = (
+            InstrumentQueryBackEnd.read_content_scratch_dir(scratch_dir,
+                                                            include_session_log=include_session_log,
+                                                            include_status_query_output=include_status_query_output,
+                                                            exclude_analysis_parameters=exclude_analysis_parameters))
+
+        if (not exclude_analysis_parameters and
+                (isinstance(result_job_status['scratch_dir_content']['analysis_parameters'], dict) and
+                 'token' in result_job_status['scratch_dir_content']['analysis_parameters'])):
+            # TODO I am not 100% sure this is enough, perhaps it's not even needed
+            result_job_status['token_expired'] = result_job_status['scratch_dir_content']['analysis_parameters']['token']['exp'] < time_.time()
+
+
+        return result_job_status
+
+    @staticmethod
+    def read_content_scratch_dir(scratch_dir, include_session_log=False, include_status_query_output=False, exclude_analysis_parameters=True):
+        result_content = {}
         file_list = []
         for f in glob.glob(os.path.join(scratch_dir, "*")):
             file_list.append(f)
-        result['file_list'] = file_list
+        result_content['file_list'] = file_list
+        request_completed = False
 
-        try:
-            fn = os.path.join(scratch_dir, 'analysis_parameters.json')
-            result['analysis_parameters'] = json.load(open(fn))
-        except Exception as e:
-            # write something
-            logger.warning('unable to read: %s', fn)
-            # return {'error': f'problem reading {fn}: {repr(e)}'}
-            result['analysis_parameters'] = f'problem reading {fn}: {repr(e)}'
+        if not exclude_analysis_parameters:
+            result_content['analysis_parameters'], reading_output_message = InstrumentQueryBackEnd.read_analysis_parameters_scratch_dir(scratch_dir,
+                                                                                                                                        decode_token=True)
+            if result_content['analysis_parameters'] is None:
+                result_content['analysis_parameters'] = reading_output_message
 
         if include_session_log:
-            result['session_log'] = ''
+            result_content['session_log'] = ''
             session_log_fn = os.path.join(scratch_dir, 'session.log')
             if os.path.exists(session_log_fn):
                 with open(session_log_fn) as session_log_fn_f:
-                    result['session_log'] = session_log_fn_f.read()
+                    result_content['session_log'] = session_log_fn_f.read()
 
-        if 'token' in result['analysis_parameters']:
-            result['analysis_parameters']['token'] = tokenHelper.get_decoded_token(
-                result['analysis_parameters']['token'], secret_key=None, validate_token=False)
-
-        result['email_history'] = []
+        result_content['email_history'] = []
         for email in glob.glob(os.path.join(scratch_dir, 'email_history/*')):
             ctime = os.stat(email).st_ctime,
-            result['email_history'].append(dict(
+            result_content['email_history'].append(dict(
                 ctime=ctime,
                 ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(os.stat(email).st_ctime)),
                 fn=email,
             ))
 
-        result['matrix_message_history'] = []
+        result_content['matrix_message_history'] = []
         for msg in glob.glob(os.path.join(scratch_dir, 'matrix_message_history/*')):
             ctime = os.stat(msg).st_ctime,
-            result['matrix_message_history'].append(dict(
+            result_content['matrix_message_history'].append(dict(
                 ctime=ctime,
                 ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(os.stat(msg).st_ctime)),
                 fn=msg,
             ))
 
-        result['fits_files'] = []
+        result_content['fits_files'] = []
         for fits_fn in glob.glob(os.path.join(scratch_dir, '*fits*')):
             ctime = os.stat(fits_fn).st_ctime
-            result['fits_files'].append(dict(
+            result_content['fits_files'].append(dict(
                 ctime=ctime,
                 ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(ctime)),
                 fn=fits_fn,
             ))
 
-        result['job_monitor'] = []
+        if include_status_query_output:
+            result_content['status_query_output'] = ''
+            query_output_fn = os.path.join(scratch_dir, 'query_output.json')
+            try:
+                with open(query_output_fn) as query_output_file:
+                    query_output_content = json.load(query_output_file)
+                query_output_status_dict = query_output_content.get('status_dictionary', None)
+                if query_output_status_dict is not None:
+                    result_content['status_query_output'] = query_output_status_dict
+            except Exception as e:
+                logger.warning('unable to read: %s', query_output_fn)
+                result_content['status_query_output'] = f'problem reading {query_output_fn}: {repr(e)}'
+
+        result_content['job_monitor'] = []
         for fn in glob.glob(os.path.join(scratch_dir, 'job_monitor*')):
-            ctime = os.stat(fn).st_ctime
-            result['job_monitor'].append(dict(
-                ctime=ctime,
-                ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(ctime)),
+            with open(fn) as job_status_file:
+                job_monitor_content = json.load(job_status_file)
+            job_monitor_ctime = os.stat(fn).st_ctime
+            job_monitor_status = job_monitor_content['status']
+            request_completed = (request_completed or job_monitor_status == 'done')
+
+            result_content['job_monitor'].append(dict(
+                ctime=job_monitor_ctime,
+                ctime_isot=time_.strftime("%Y-%m-%dT%H:%M:%S", time_.gmtime(job_monitor_ctime)),
                 fn=fn,
+                job_monitor_content=job_monitor_content
             ))
-        return result
+
+        return result_content, request_completed
 
     @staticmethod
     def restricted_par_dic(par_dic, kw_black_list=None):

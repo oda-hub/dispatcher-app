@@ -315,6 +315,21 @@ def get_user_id(product_gallery_url, user_email, sentry_dsn=None) -> Optional[st
     return user_id
 
 
+def delete_node_gallery(product_gallery_url, node_to_delete_id, gallery_jwt_token, sentry_dsn=None):
+    logger.info(f"deleting node with id {node_to_delete_id} from the product gallery")
+
+    headers = get_drupal_request_headers(gallery_jwt_token)
+
+    log_res = execute_drupal_request(f"{product_gallery_url}/node/{node_to_delete_id}",
+                                     method='delete',
+                                     headers=headers,
+                                     sentry_dsn=sentry_dsn)
+
+    logger.info(f"node with id {node_to_delete_id} successfully deleted from the product gallery")
+    output_post = analyze_drupal_output(log_res, operation_performed="deleting a node from the product gallery")
+    return output_post
+
+
 def delete_file_gallery(product_gallery_url, file_to_delete_id, gallery_jwt_token, sentry_dsn=None):
     logger.info(f"deleting file with id {file_to_delete_id} from the product gallery")
 
@@ -361,6 +376,31 @@ def post_file_to_gallery(product_gallery_url, file, gallery_jwt_token, file_type
     output_post = analyze_drupal_output(log_res, operation_performed="posting a picture to the product gallery")
     return output_post
 
+def delete_content_gallery(decoded_token,
+                           disp_conf=None,
+                           **kwargs):
+    gallery_secret_key = disp_conf.product_gallery_secret_key
+    product_gallery_url = disp_conf.product_gallery_url
+
+    sentry_dsn = sentry.sentry_url
+
+    par_dic = copy.deepcopy(kwargs)
+
+    # extract email address and then the relative user_id
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
+    user_id_product_creator = get_user_id(product_gallery_url=product_gallery_url,
+                                          user_email=user_email,
+                                          sentry_dsn=sentry_dsn)
+    # update the token
+    gallery_jwt_token = generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+    content_type = ContentType[str.upper(par_dic.get('content_type', 'article'))]
+    output_delete = None
+    if content_type == content_type.DATA_PRODUCT:
+        product_id = par_dic.get('product_id', None)
+        output_delete = delete_data_product_to_gallery_via_product_id(product_gallery_url, gallery_jwt_token, product_id, sentry_dsn=sentry_dsn)
+
+    # TODO maybe extend to also delete other type of content (eg OBSERVATION, ASTROPHYSICAL_ENTITY) ... ?
+    return output_delete
 
 def post_content_to_gallery(decoded_token,
                             files=None,
@@ -1138,6 +1178,31 @@ def post_revolution_processing_log_to_gallery(product_gallery_url, gallery_jwt_t
     output_post = analyze_drupal_output(log_res, operation_performed="posting a new revolution processing log to the gallery")
 
     return output_post
+
+
+def delete_data_product_to_gallery_via_product_id(product_gallery_url, gallery_jwt_token, product_id, sentry_dsn=None):
+    logger.info(f"retrieving data-product with the product_id: {product_id}")
+    product_id_data_product_list = get_data_product_list_by_product_id(product_gallery_url=product_gallery_url,
+                                                                       gallery_jwt_token=gallery_jwt_token,
+                                                                       product_id=product_id,
+                                                                       sentry_dsn=sentry_dsn)
+    nid = None
+    if len(product_id_data_product_list) > 0:
+        if len(product_id_data_product_list) > 1:
+            logger.info(
+                f"more than one data-product with product_id {product_id} has been found, the most recently posted or updated will be used")
+        nid = product_id_data_product_list[0]['nid']
+        product_title = product_id_data_product_list[0]['title']
+        logger.info(f"the data-product \"{product_title}\", id: {product_id} will be updated")
+
+    if nid is not None:
+        delete_node_gallery(product_gallery_url, nid, gallery_jwt_token, sentry_dsn=sentry_dsn)
+        return {}
+    else:
+        msg = f"no data-product with product_id {product_id} has been found, no data-product deletion will take place"
+        logger.info(msg)
+        # TODO extend this approach (specific message) to other use-cases
+        return {"output_message": msg}
 
 
 def post_data_product_to_gallery(product_gallery_url, gallery_jwt_token, converttime_revnum_service_url,

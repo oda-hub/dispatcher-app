@@ -277,8 +277,18 @@ def free_up_space():
 
 @app.route('/inspect-state', methods=['POST', 'GET'])
 def inspect_state():
-    state_data_obj = InstrumentQueryBackEnd.inspect_state(app)
-    return state_data_obj
+    token = request.args.get('token', None)
+
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['job manager'],
+                                                                  action="inspect the state for a given job_id")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    state_data_obj = InstrumentQueryBackEnd.inspect_state()
+    return jsonify(dict(records=state_data_obj['records']))
 
 
 @app.route('/instr-list')
@@ -968,6 +978,34 @@ def post_product_to_gallery():
                                                         disp_conf=app_config,
                                                         files=request.files,
                                                         **par_dic)
+
+    return output_post
+
+
+@app.route('/delete_product_to_gallery', methods=['POST'])
+def delete_product_to_gallery():
+    logger.info("request.args: %s ", request.args)
+    logger.info("request.files: %s ", request.files)
+
+    token = request.args.get('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="delete from the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+    decoded_token = output
+
+    par_dic = request.values.to_dict()
+    par_dic.pop('token')
+
+    output_post = drupal_helper.delete_content_gallery(decoded_token=decoded_token,
+                                                       disp_conf=app_config,
+                                                       files=request.files,
+                                                       **par_dic)
 
     return output_post
 

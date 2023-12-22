@@ -18,19 +18,18 @@ __author__ = "Andrea Tramacere"
 
 
 import logging
-import os
 import time as _time
 import json
 from collections import OrderedDict
 
-import sentry_sdk
-import decorator 
+import decorator
+import traceback
 import numpy as np
 
 
-from .parameters import (Parameter, 
-                         ParameterGroup, 
-                         ParameterRange, 
+from .parameters import (Parameter,
+                         ParameterGroup,
+                         ParameterRange,
                          ParameterTuple,
                          Name,
                          Angle,
@@ -40,15 +39,14 @@ from .parameters import (Parameter,
                          DetectionThreshold,
                          Float,
                          TimeDelta,
-                         
+
                          # these are not used here but wildcard-imported from this module by integral plugin
                          SpectralBoundary,
                          Integer
                          )
 from .products import SpectralFitProduct, QueryOutput, QueryProductList, ImageProduct
 from .io_helper import FilePath
-from .exceptions import RequestNotUnderstood, UnfortunateRequestResults, BadRequest, InternalError
-import traceback
+from .exceptions import RequestNotUnderstood, InternalError
 
 logger = logging.getLogger(__name__)
 
@@ -455,7 +453,6 @@ class ProductQuery(BaseQuery):
                                  debug_message=debug_message)
 
         except Exception as e:
-            sentry_sdk.capture_exception(e)
             raise InternalError(f"unexpected error while testing communication with {instrument}, {e!r}")
 
         status = query_out.get_status()
@@ -604,8 +601,6 @@ class ProductQuery(BaseQuery):
                                                                    api=api)
                     job.set_done()
 
-                #self.query_prod_list = QueryProductList(prod_list=prod_list)
-
             #DONE
             query_out.set_done(message=messages['message'], debug_message=str(messages['debug_message']),job_status=job.status,status=status,comment=messages['comment'],warning=messages['warning'])
             #print('-->', query_out.status_dictionary)
@@ -614,30 +609,10 @@ class ProductQuery(BaseQuery):
             raise
 
         except Exception as e:
-            # TODO: could we avoid these? they make error tracking hard
-            # TODO we could use the very same approach used when test_communication fails
-
-            #status=1
+            logger.exception("failed to get query products")
+            internal_error_message = "Error when getting query products"
             job.set_failed()
-            if os.environ.get('DISPATCHER_DEBUG', 'yes') == 'yes':
-                raise
-            exception_message = getattr(e, 'message', '')
-            if return_progress:
-                logger.exception("failed to get progress run")
-                e_message = f'Failed when getting the progress run for job {job.job_id}:\n{exception_message}'
-            else:
-                logger.exception("failed to get query products")
-                e_message = f'Failed when getting query products for job {job.job_id}:\n{exception_message}'
-            messages['debug_message'] = repr(e) + ' : ' + getattr(e, 'debug_message', '')
-
-            query_out.set_failed('get_query_products found job failed',
-                                 logger=logger,
-                                 sentry_dsn=sentry_dsn,
-                                 excep=e,
-                                 e_message=e_message,
-                                 debug_message=messages['debug_message'])
-            # TODO to use this approach when we will refactor the handling of exceptions
-            # raise InternalError(e_message)
+            raise InternalError(internal_error_message, payload={'exception': e})
 
         logger.info('--> data_server_query_status %d' % query_out.get_status())
         logger.info('--> end product query ')
@@ -863,12 +838,12 @@ class PostProcessProductQuery(ProductQuery):
 
         return process_product_query_out
 
-    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_dsn=None,api=False):
+    def run_query(self,instrument,scratch_dir,job,run_asynch,query_type='Real', config=None,logger=None,sentry_dsn=None,api=False,return_progress=False):
 
         if logger is None:
             logger = self.get_logger()
 
-        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir,sentry_dsn=sentry_dsn,api=api)
+        query_out = self.process_query_product(instrument,job,logger=logger, config=config,scratch_dir=scratch_dir,sentry_dsn=sentry_dsn,api=api,return_progress=return_progress)
         if query_out.status_dictionary['status'] == 0:
             job.set_done()
         else:
