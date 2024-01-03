@@ -456,6 +456,8 @@ class Parameter:
             restrictions['min_value'] = self._min_value
         if getattr(self, '_max_value', None) is not None:
             restrictions['max_value'] = self._max_value
+        if getattr(self, 'schema', None) is not None:
+            restrictions['schema'] = self.schema
         if restrictions:
             reprjson[0]['restrictions'] = restrictions
         if self.par_format_name is not None:
