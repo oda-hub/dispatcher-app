@@ -22,7 +22,8 @@ from cdci_data_analysis.analysis.parameters import (
     InputProdList,
     DetectionThreshold,
     String,
-    Boolean
+    Boolean,
+    PhosphorosFiltersTable
 )
 from cdci_data_analysis.analysis.exceptions import RequestNotUnderstood
 
@@ -590,3 +591,57 @@ def test_time_interval_bounds():
     assert ti.value == 3 
     with pytest.raises(RequestNotUnderstood):
         TimeInterval(value=10, units='s', min_value = 1, max_value=5)
+    
+@pytest.mark.fast
+def test_valid_phosphoros_table():
+    tab_value = {'filter': ["Euclid|VIS.vis", "Euclid|NISP.Y"],
+                 'flux': ["FLUX_DETECTION_TOTAL", "FLUX_Y_TOTAL"],
+                 'flux_error': ["FLUXERR_DETECTION_TOTAL", "FLUXERR_Y_TOTAL"]}
+    
+    pht = PhosphorosFiltersTable(tab_value)
+    
+    assert pht.value == tab_value
+    
+@pytest.mark.fast
+@pytest.mark.parametrize("tab_value", [
+    # missing value
+    {'filter': ["Euclid|VIS.vis", "Euclid|NISP.Y"],
+     'flux': ["FLUX_DETECTION_TOTAL", "FLUX_Y_TOTAL"],
+     'flux_error': ["FLUXERR_DETECTION_TOTAL"]},
+
+    # empty value
+    {'filter': ["Euclid|VIS.vis", "Euclid|NISP.Y"],
+     'flux': ["FLUX_DETECTION_TOTAL", "FLUX_Y_TOTAL"],
+     'flux_error': ["FLUXERR_DETECTION_TOTAL", ""]},
+    
+    # None value
+    {'filter': ["Euclid|VIS.vis", "Euclid|NISP.Y"],
+     'flux': ["FLUX_DETECTION_TOTAL", None],
+     'flux_error': ["FLUXERR_DETECTION_TOTAL", "FLUXERR_Y_TOTAL"]},
+    
+    # Wrong format
+    {'filter': ["Euclid|VIS.vis", "Euclid|NISP.Y"],
+     'flux': [463, "FLUX_Y_TOTAL"],
+     'flux_error': ["FLUXERR_DETECTION_TOTAL", "FLUXERR_Y_TOTAL"]},
+    
+    # unknown filter name
+    {'filter': ["Euclid|VIS.vis", "UNKNOWN"],
+     'flux': ["FLUX_DETECTION_TOTAL", "FLUX_Y_TOTAL"],
+     'flux_error': ["FLUXERR_DETECTION_TOTAL", "FLUXERR_Y_TOTAL"]},
+    
+    # missing column
+    {'filter': ["Euclid|VIS.vis", "Euclid|NISP.Y"],
+     'flux': ["FLUX_DETECTION_TOTAL", "FLUX_Y_TOTAL"],
+     },
+    
+    # Empty table
+    {'filter': [],
+     'flux': [],
+     'flux_error': []},  
+    
+    ])
+def test_invalid_phosphoros_table(tab_value):
+    with pytest.raises(RequestNotUnderstood):
+        PhosphorosFiltersTable(tab_value)
+    
+    

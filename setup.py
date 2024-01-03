@@ -48,7 +48,8 @@ install_req = [
     "nbformat",
     "giturlparse",
     "sentry-sdk",
-    "validators"
+    "validators",
+    "jsonschema"
 ]
 
 test_req = [
