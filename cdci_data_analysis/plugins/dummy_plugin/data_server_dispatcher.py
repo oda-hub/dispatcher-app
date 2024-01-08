@@ -205,7 +205,7 @@ class ReturnProgressDataServerQuery(DataServerQuery):
     def __init__(self, config=None, instrument=None):
         super().__init__()
 
-    def get_progress_run(self):
+    def get_progress_run(self, **kwargs):
 
         query_out = QueryOutput()
 
