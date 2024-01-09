@@ -461,7 +461,12 @@ class Parameter:
         if restrictions:
             reprjson[0]['restrictions'] = restrictions
         if getattr(self, 'owl_uris', None):
-            reprjson[0]['owl_uri'] = self.owl_uris
+            if isinstance(self.owl_uris, str):
+                reprjson[0]['owl_uri'] = [ self.owl_uris ]
+            elif isinstance(self.owl_uris, tuple):
+                reprjson[0]['owl_uri'] = list(self.owl_uris)
+            else:
+                reprjson[0]['owl_uri'] = self.owl_uris
         if self.par_format_name is not None:
             reprjson.append(dict(name=self.par_format_name, units="str", value=self.par_format))
         return reprjson
