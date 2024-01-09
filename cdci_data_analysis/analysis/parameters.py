@@ -460,6 +460,8 @@ class Parameter:
             restrictions['schema'] = self.schema
         if restrictions:
             reprjson[0]['restrictions'] = restrictions
+        if getattr(self, 'owl_uris', None):
+            reprjson[0]['owl_uri'] = self.owl_uris
         if self.par_format_name is not None:
             reprjson.append(dict(name=self.par_format_name, units="str", value=self.par_format))
         return reprjson
@@ -1004,7 +1006,10 @@ class PhosphorosFiltersTable(StructuredParameter):
     
     def __init__(self, value=None, name=None):
         
-        # TODO: this list should come from outside
+        # TODO: either list or the whole schema may be loaded from the external file, purely based on URI.
+        #       If there is no additional check, this would allow to avoid even having the class.
+        #       
+        #       But for the time being, as agreed, we will keep the hardcoded dedicated class.
         filter_list = ["CFHT|MegaCam.g", "CFHT|MegaCam.gri", "CFHT|MegaCam.i", "CFHT|MegaCam.r", "CFHT|MegaCam.u", "CFHT|MegaCam.z",
                        "CTIO|DECam.Y", "CTIO|DECam.g", "CTIO|DECam.i", "CTIO|DECam.r", "CTIO|DECam.u", "CTIO|DECam.z",
                        "Euclid|NISP.H", "Euclid|NISP.J", "Euclid|NISP.Y", "Euclid|VIS.vis",
