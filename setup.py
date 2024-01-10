@@ -33,7 +33,7 @@ install_req = [
     "blinker",
     "bokeh==2.4.2",
     "json_tricks",
-    "flask-restx==1.1.0",
+    "flask-restx==1.2.0",
     "six",
     "werkzeug==2.0.3",
     "python-shell-colors==0.2.1",
