@@ -2999,7 +2999,7 @@ def test_inspect_jobs_expired_token(dispatcher_live_fixture, include_status_quer
         assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['message'] == ''
 
 
-def test_inspect_status_expired_token(dispatcher_live_fixture, include_status_query_output):
+def test_inspect_status_expired_token(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     token_payload = {**default_token_payload, 'roles': 'job manager', 'exp': int(time.time()) + 10,'mstout':False,'mssub':False}
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
@@ -3040,7 +3040,6 @@ def test_inspect_status_expired_token(dispatcher_live_fixture, include_status_qu
     encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
     inspect_params = dict(
         token=encoded_token,
-        include_status_query_output=include_status_query_output
     )
     c = requests.get(server + "/inspect-state",
                      params=inspect_params)
