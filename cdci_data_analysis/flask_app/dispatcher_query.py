@@ -494,12 +494,11 @@ class InstrumentQueryBackEnd:
                                 )
                                 )
                         else:
-                            result_content, request_completed = InstrumentQueryBackEnd.read_content_scratch_dir(scratch_dir,
+                            result_content, request_completed, token_expired = InstrumentQueryBackEnd.read_content_scratch_dir(scratch_dir,
                                                                                                                 include_session_log=include_session_log,
                                                                                                                 include_status_query_output=include_status_query_output,
                                                                                                                 exclude_analysis_parameters=exclude_analysis_parameters)
-
-                            records_content.append(dict(
+                            record = dict(
                                 mtime=os.stat(scratch_dir).st_mtime,
                                 ctime=os.stat(scratch_dir).st_ctime,
                                 session_id=r.group('session_id'),
@@ -507,7 +506,10 @@ class InstrumentQueryBackEnd:
                                 request_completed=request_completed,
                                 aliased_marker=r.group('aliased_marker'),
                                 **result_content
-                            ))
+                            )
+                            if token_expired is not None:
+                                record['token_expired'] = token_expired
+                            records_content.append(record)
                 else:
                     logger.warning(f"scratch_dir {scratch_dir} not existing, cannot be inspected")
 
@@ -540,11 +542,14 @@ class InstrumentQueryBackEnd:
             scratch_dir_content = None
         )
 
-        result_job_status['scratch_dir_content'], result_job_status['request_completed'] = (
+        result_job_status['scratch_dir_content'], result_job_status['request_completed'], token_expired = (
             InstrumentQueryBackEnd.read_content_scratch_dir(scratch_dir,
                                                             include_session_log=include_session_log,
                                                             include_status_query_output=include_status_query_output,
                                                             exclude_analysis_parameters=exclude_analysis_parameters))
+        if token_expired is not None:
+            result_job_status['token_expired'] = token_expired
+
         return result_job_status
 
     @staticmethod
@@ -555,6 +560,7 @@ class InstrumentQueryBackEnd:
             file_list.append(f)
         result_content['file_list'] = file_list
         request_completed = False
+        token_expired = None
 
         if not exclude_analysis_parameters:
             result_content['analysis_parameters'], reading_output_message = InstrumentQueryBackEnd.read_analysis_parameters_scratch_dir(scratch_dir,
@@ -563,7 +569,7 @@ class InstrumentQueryBackEnd:
                 result_content['analysis_parameters'] = reading_output_message
             else:
                 if 'token' in result_content['analysis_parameters']:
-                    result_content['token_expired'] = result_content['analysis_parameters']['token']['exp'] < time_.time()
+                    token_expired = result_content['analysis_parameters']['token']['exp'] < time_.time()
 
         if include_session_log:
             result_content['session_log'] = ''
@@ -627,7 +633,7 @@ class InstrumentQueryBackEnd:
                 job_monitor_content=job_monitor_content
             ))
 
-        return result_content, request_completed
+        return result_content, request_completed, token_expired
 
     @staticmethod
     def restricted_par_dic(par_dic, kw_black_list=None):
