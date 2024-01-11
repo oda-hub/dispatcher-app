@@ -498,6 +498,7 @@ class InstrumentQueryBackEnd:
                                                                                                                 include_session_log=include_session_log,
                                                                                                                 include_status_query_output=include_status_query_output,
                                                                                                                 exclude_analysis_parameters=exclude_analysis_parameters)
+
                             records_content.append(dict(
                                 mtime=os.stat(scratch_dir).st_mtime,
                                 ctime=os.stat(scratch_dir).st_ctime,
@@ -544,14 +545,6 @@ class InstrumentQueryBackEnd:
                                                             include_session_log=include_session_log,
                                                             include_status_query_output=include_status_query_output,
                                                             exclude_analysis_parameters=exclude_analysis_parameters))
-
-        if (not exclude_analysis_parameters and
-                (isinstance(result_job_status['scratch_dir_content']['analysis_parameters'], dict) and
-                 'token' in result_job_status['scratch_dir_content']['analysis_parameters'])):
-            # TODO I am not 100% sure this is enough, perhaps it's not even needed
-            result_job_status['token_expired'] = result_job_status['scratch_dir_content']['analysis_parameters']['token']['exp'] < time_.time()
-
-
         return result_job_status
 
     @staticmethod
@@ -568,6 +561,9 @@ class InstrumentQueryBackEnd:
                                                                                                                                         decode_token=True)
             if result_content['analysis_parameters'] is None:
                 result_content['analysis_parameters'] = reading_output_message
+            else:
+                if 'token' in result_content['analysis_parameters']:
+                    result_content['token_expired'] = result_content['analysis_parameters']['token']['exp'] < time_.time()
 
         if include_session_log:
             result_content['session_log'] = ''
