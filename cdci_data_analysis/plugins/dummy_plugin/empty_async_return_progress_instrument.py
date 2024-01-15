@@ -20,11 +20,14 @@ def my_instr_factory():
     return_progress_query = ReturnProgressProductQuery('empty_parameters_dummy_query_return_progress',
                                                        parameters_list=[p])
 
-    query_dictionary = {'dummy': 'empty_parameters_dummy_query_return_progress'}
+    return_progress_html_query = ReturnProgressHtmlProductQuery('empty_parameters_dummy_query_return_progress_html')
+
+    query_dictionary = {'dummy': 'empty_parameters_dummy_query_return_progress',
+                        'dummy_html': 'empty_parameters_dummy_query_return_progress_html'}
 
     return Instrument('empty-async-return-progress',
                       src_query=src_query,
                       instrumet_query=instr_query,
-                      product_queries_list=[return_progress_query],
+                      product_queries_list=[return_progress_query, return_progress_html_query],
                       query_dictionary=query_dictionary,
                       data_server_query_class=ReturnProgressDataServerQuery)

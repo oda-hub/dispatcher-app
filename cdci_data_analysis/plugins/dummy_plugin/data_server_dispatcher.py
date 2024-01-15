@@ -287,6 +287,42 @@ class ReturnProgressProductQuery(ProductQuery):
         p_value = res
         return [p_value]
 
+class ReturnProgressHtmlProductQuery(ReturnProgressProductQuery):
+
+    html_output_fn = "progress_html_output.html"
+    def __init__(self, name):
+        super().__init__(name)
+
+    @classmethod
+    def set_progress_html_output(cls, html_output_content):
+        with open(cls.html_output_fn, "w") as progress_html_f:
+            progress_html_f.write(str(html_output_content))
+
+    @classmethod
+    def get_progress_html_output(cls):
+        if os.path.exists(cls.html_output_fn):
+            with open(cls.html_output_fn) as html_output_f:
+                html_output = float(html_output_f.read())
+            return html_output
+        else:
+            return ""
+
+    def get_dummy_progress_run(self, instrument, config=None,**kwargs):
+        html_output = self.get_progress_html_output()
+        prod_list = QueryProductList(prod_list=[html_output])
+        return prod_list
+
+    def get_dummy_products(self, instrument, config=None, **kwargs):
+        html_output = self.get_progress_html_output()
+        prod_list = QueryProductList(prod_list=[html_output])
+        return prod_list
+
+    def process_product_method(self, instrument, prod_list, api=False, **kw):
+        query_out = QueryOutput()
+        query_out.prod_dictionary['progress_product_html_output'] = prod_list.prod_list[0]
+        return query_out
+
+
 class EmptyProductQuery(ProductQuery):
 
     def __init__(self, name='unset-name', config=None, instrument=None):
