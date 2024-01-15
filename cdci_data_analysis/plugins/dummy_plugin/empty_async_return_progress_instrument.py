@@ -5,7 +5,7 @@ __author__ = "Gabriele Barni"
 from cdci_data_analysis.analysis.instrument import Instrument
 from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery, Float
 
-from .data_server_dispatcher import ReturnProgressDataServerQuery, ReturnProgressProductQuery
+from .data_server_dispatcher import ReturnProgressDataServerQuery, ReturnProgressProductQuery, ReturnProgressHtmlProductQuery
 
 
 def my_instr_factory():
