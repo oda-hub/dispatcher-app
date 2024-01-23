@@ -830,6 +830,13 @@ class InstrumentQueryBackEnd:
 
         self.par_dic = args.to_dict()
 
+        self.par_dic = {}
+        for k, v in args.to_dict().items():
+            try:
+                self.par_dic[k] = json.loads(v)
+            except json.JSONDecodeError:
+                self.par_dic[k] = v
+        
         if verbose:
             print('par_dic', self.par_dic)
 
