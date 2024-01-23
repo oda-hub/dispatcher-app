@@ -2131,6 +2131,8 @@ class InstrumentQueryBackEnd:
                         query_new_status = 'done'
                     elif job.status == 'failed':
                         query_new_status = 'failed'
+                    elif job.status == 'progress':
+                        query_new_status = 'progress'
                     else:
                         query_new_status = 'submitted'
                         job.set_submitted()
