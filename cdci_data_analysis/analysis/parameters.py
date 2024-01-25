@@ -42,6 +42,7 @@ from inspect import signature
 from .exceptions import RequestNotUnderstood
 
 from jsonschema import validate, ValidationError
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -1004,7 +1005,9 @@ class StructuredParameter(Parameter):
             self.additional_check()
         except (AssertionError, ValidationError):
             raise RequestNotUnderstood('Wrong value of structured parameter %s', self.name)
-            
+    
+    def get_default_value(self):
+        return json.dumps(self.value, sort_keys=True)
 
 class PhosphorosFiltersTable(StructuredParameter):
     owl_uris = ('http://odahub.io/ontology#PhosphorosFiltersTable')
