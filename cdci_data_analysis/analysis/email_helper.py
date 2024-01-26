@@ -160,7 +160,7 @@ def wrap_python_code(code, max_length=100, max_str_length=None):
         target_versions={black.TargetVersion.PY38},
         line_length=max_length,
         string_normalization=True,
-        experimental_string_processing=True,
+        preview=True,
     )
 
     # this will also ensure it's valid code
