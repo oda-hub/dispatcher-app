@@ -42,7 +42,7 @@ install_req = [
     "redis",
     "pyjwt",
     "marshmallow",
-    "black",
+    "black>=22.10.0",
     "bs4",
     "GitPython",
     "nbformat",
