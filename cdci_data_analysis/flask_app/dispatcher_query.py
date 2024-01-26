@@ -828,12 +828,19 @@ class InstrumentQueryBackEnd:
         else:
             raise NotImplementedError
 
-        self.par_dic = args.to_dict()
+        #self.par_dic = args.to_dict()
 
         self.par_dic = {}
         for k, v in args.to_dict().items():
+            if k in ['catalog_selected_objects', 'selected_catalog']:
+                self.par_dic[k] = v
+                continue
             try:
-                self.par_dic[k] = json.loads(v)
+                decoded = json.loads(v)
+                if isinstance(decoded, (dict, list)):
+                    self.par_dic[k] = decoded
+                else:
+                    self.par_dic[k] = v
             except json.JSONDecodeError:
                 self.par_dic[k] = v
         
