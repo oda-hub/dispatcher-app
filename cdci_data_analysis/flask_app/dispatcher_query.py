@@ -2036,6 +2036,8 @@ class InstrumentQueryBackEnd:
                             query_new_status = 'done'
                         elif job.status == 'failed':
                             query_new_status = 'failed'
+                        elif job.status == 'progress':
+                            query_new_status = 'progress'
                         else:
                             query_new_status = 'submitted'
                             job.set_submitted()
@@ -2057,6 +2059,7 @@ class InstrumentQueryBackEnd:
                                 sentry.capture_message(f'sending email failed {e.message}')
                     else:
                         job.set_failed()
+                        query_new_status = 'failed'
 
                     # set also the new file_path for the job object ?
                     job._set_file_path(file_name=job.file_name, work_dir=job.work_dir)
@@ -2131,6 +2134,8 @@ class InstrumentQueryBackEnd:
                         query_new_status = 'done'
                     elif job.status == 'failed':
                         query_new_status = 'failed'
+                    elif job.status == 'progress':
+                        query_new_status = 'progress'
                     else:
                         query_new_status = 'submitted'
                         job.set_submitted()
