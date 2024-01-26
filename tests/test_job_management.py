@@ -52,11 +52,12 @@ def test_callback_without_prior_run_analysis(dispatcher_live_fixture):
     assert c.status_code == 200
 
 
-def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_server):
+@pytest.mark.parametrize("status", ['submitted', 'progress'])
+def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_server, status):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
-    DataServerQuery.set_status('submitted')
+    DataServerQuery.set_status(status)
 
     dict_param = dict(
         query_status="new",
@@ -73,7 +74,7 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
     logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
     jdata = c.json()
-    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['job_status'] == status
     assert 'email_status' not in jdata['exit_status']
 
     session_id = c.json()['session_id']
@@ -91,7 +92,7 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
                      ))
 
     jdata = c.json()
-    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['job_status'] == status
     assert 'email_status' not in jdata['exit_status']
 
 
@@ -412,10 +413,13 @@ def validate_incident_email_content(
 
 
 @pytest.mark.not_safe_parallel
-def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
+@pytest.mark.parametrize('status', ['submitted', 'empty', 'progress'])
+def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout, status):
     server = dispatcher_live_fixture_no_resubmit_timeout
     DispatcherJobState.remove_scratch_folders()
-    DataServerQuery.set_status('')
+    expected_status = 'submitted' if status == 'empty' or status == 'submitted' else 'progress'
+    status = status if status == 'progress' or status == 'submitted' else ''
+    DataServerQuery.set_status(status)
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
@@ -446,13 +450,13 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
     assert c.status_code == 200
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
     jdata = c.json()
-    assert jdata['exit_status']['job_status'] == 'submitted'
-    assert DataServerQuery.get_status() == 'submitted'
+    assert jdata['exit_status']['job_status'] == expected_status
+    assert DataServerQuery.get_status() == expected_status
 
     # resubmit the job before the timeout expires
     dict_param['job_id'] = dispatcher_job_state.job_id
-    dict_param['query_status'] = 'submitted'
-    DataServerQuery.set_status('')
+    dict_param['query_status'] = expected_status
+    DataServerQuery.set_status(status)
     #
     c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
@@ -460,8 +464,8 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
 
     assert c.status_code == 200
     jdata = c.json()
-    assert jdata['exit_status']['job_status'] == 'submitted'
-    assert DataServerQuery.get_status() == ''
+    assert jdata['exit_status']['job_status'] == expected_status
+    assert DataServerQuery.get_status() == status
 
     # resubmit the job after the timeout expired
     time.sleep(10.5)
@@ -471,8 +475,8 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
 
     assert c.status_code == 200
     jdata = c.json()
-    assert jdata['exit_status']['job_status'] == 'submitted'
-    assert DataServerQuery.get_status() == 'submitted'
+    assert jdata['exit_status']['job_status'] == expected_status
+    assert DataServerQuery.get_status() == expected_status
 
     # resubmit the job to get job ready
     DataServerQuery.set_status('done')
