@@ -150,6 +150,13 @@ class DataServerLogSubmitQuery(DataServerQuery):
                                comment="mock comment",
                                warning="mock warning")
 
+        elif current_status == "progress":
+            query_out.set_done(message="job progress mock",
+                               debug_message="no message really",
+                               job_status='progress',
+                               comment="mock comment",
+                               warning="mock warning")
+
         elif current_status == "submitted":
             query_out.set_done(message="job submitted mock",
                                debug_message="no message really",
