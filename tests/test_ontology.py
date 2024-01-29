@@ -21,6 +21,10 @@ ontology_path = 'tests/oda-ontology.ttl'
 def onto(scope='module'):
     return Ontology(ontology_path)
 
+@pytest.mark.parametrize('empty_str', ['', ' ', '\t', '\n'])
+def test_ontology_empty_ttl(onto, empty_str):
+    onto.parse_extra_triples(empty_str)
+
 def test_ontology_hierarchy(onto):
     hierarchy_list = onto.get_parameter_hierarchy('oda:PointOfInterestRA')
     assert f'{oda_prefix}RightAscension' in hierarchy_list

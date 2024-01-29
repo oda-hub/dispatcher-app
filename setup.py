@@ -57,7 +57,7 @@ test_req = [
 ]
 
 onto_req = [
-    'rdflib',
+    'rdflib>=6.2.0',
 ]
 
 packs = find_packages()
