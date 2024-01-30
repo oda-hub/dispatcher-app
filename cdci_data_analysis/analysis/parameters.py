@@ -1004,7 +1004,7 @@ class StructuredParameter(Parameter):
             self.check_schema()
             self.additional_check()
         except (AssertionError, ValidationError):
-            raise RequestNotUnderstood('Wrong value of structured parameter %s', self.name)
+            raise RequestNotUnderstood(f'Wrong value of structured parameter {self.name}')
     
     def get_default_value(self):
         return json.dumps(self.value, sort_keys=True)
