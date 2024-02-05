@@ -828,8 +828,6 @@ class InstrumentQueryBackEnd:
         else:
             raise NotImplementedError
 
-        #self.par_dic = args.to_dict()
-
         self.par_dic = {}
         for k, v in args.to_dict().items():
             if k in ['catalog_selected_objects', 'selected_catalog']:
