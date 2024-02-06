@@ -648,7 +648,7 @@ def test_invalid_phosphoros_table(tab_value):
     with pytest.raises(RequestNotUnderstood):
         PhosphorosFiltersTable(tab_value)
     
-
+@pytest.mark.fast
 def test_structured_get_default_value():
     value = {"c": [15, 5], "a": [1, 2], "b": ["foo", "bar"]}
     expected = '{"a": [1, 2], "b": ["foo", "bar"], "c": [15, 5]}'
