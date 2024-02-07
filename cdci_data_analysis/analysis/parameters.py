@@ -981,7 +981,7 @@ class Boolean(Parameter):
 class StructuredParameter(Parameter):
     owl_uris = ("http://odahub.io/ontology#StructuredParameter")
     
-    def __init__(self, value=None, name=None, schema=None):
+    def __init__(self, value=None, name=None, schema={"oneOf": [{"type": "object"}, {"type": "array"}]}):
         
         self.schema = schema
         
