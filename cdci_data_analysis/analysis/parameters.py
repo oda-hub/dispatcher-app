@@ -41,7 +41,7 @@ from typing import Union
 from inspect import signature
 from .exceptions import RequestNotUnderstood
 
-from jsonschema import validate, ValidationError
+from jsonschema import validate, ValidationError, SchemaError
 import json
 
 logger = logging.getLogger(__name__)
@@ -1005,6 +1005,8 @@ class StructuredParameter(Parameter):
             self.additional_check()
         except (AssertionError, ValidationError):
             raise RequestNotUnderstood(f'Wrong value of structured parameter {self.name}')
+        except SchemaError:
+            raise RuntimeError(f"Wrong schema for parameter {self.name}: {self.schema}")
     
     def get_default_value(self):
         return json.dumps(self.value, sort_keys=True)

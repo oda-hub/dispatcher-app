@@ -99,7 +99,7 @@ def my_instr_factory():
                                                                      bounded_float_param,
                                                                      string_select_param])
 
-    struct_par = StructuredParameter({'a': [1, 2]}, name='struct')
+    struct_par = StructuredParameter({'a': [1, 2]}, name='struct', schema={"oneOf": [{"type": "object"}, {"type": "array"}]})
     structured_echo_query = StructuredEchoProductQuery('structured_param_dummy_query', parameters_list=[struct_par])
     # this dicts binds the product query name to the product name from frontend
     # eg my_instr_image is the parameter passed by the fronted to access the
