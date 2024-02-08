@@ -23,6 +23,7 @@ from cdci_data_analysis.analysis.parameters import (
     DetectionThreshold,
     String,
     Boolean,
+    StructuredParameter,
     PhosphorosFiltersTable
 )
 from cdci_data_analysis.analysis.exceptions import RequestNotUnderstood
@@ -647,4 +648,12 @@ def test_invalid_phosphoros_table(tab_value):
     with pytest.raises(RequestNotUnderstood):
         PhosphorosFiltersTable(tab_value)
     
+@pytest.mark.fast
+def test_structured_get_default_value():
+    value = {"c": [15, 5], "a": [1, 2], "b": ["foo", "bar"]}
+    expected = '{"a": [1, 2], "b": ["foo", "bar"], "c": [15, 5]}'
+    
+    stp = StructuredParameter(value)
+    
+    assert stp.get_default_value() == expected
     

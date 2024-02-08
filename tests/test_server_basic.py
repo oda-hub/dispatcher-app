@@ -3740,3 +3740,46 @@ def test_restricted_parameter_bad_request(dispatcher_live_fixture, par_name, par
     print("content:", c.text)
     jdata=c.json()
     assert jdata['error'].startswith( f'RequestNotUnderstood():Parameter {par_name} wrong value' )
+    
+@pytest.mark.fast
+def test_structured_parameter(dispatcher_live_fixture):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+    
+    par = {'instrument': 'empty',
+           'product_type': 'structured',
+           'query_status': 'new',
+           'query_type': 'Real',
+           'struct': '{"b": [1, 2], "a": [4.2, 1.3]}',
+           }
+    
+    c = requests.get(server + '/run_analysis',
+                     params = par)
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+    assert jdata['exit_status']['status'] == 0
+    assert jdata['exit_status']['job_status'] == 'done'
+    assert jdata['products']['echo']['struct'] == '{"a": [4.2, 1.3], "b": [1, 2]}'
+    
+    
+@pytest.mark.fast
+def test_malformed_structured_parameter(dispatcher_live_fixture):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+    
+    par = {'instrument': 'empty',
+           'product_type': 'structured',
+           'query_status': 'new',
+           'query_type': 'Real',
+           'struct': '{a: [4.2, 1.3]}',
+           }
+    
+    c = requests.get(server + '/run_analysis',
+                     params = par)
+    #TODO:
+    assert c.status_code == 400
+    print("content:", c.text)
+    jdata=c.json()
+    assert 'Wrong value of structured parameter struct' in jdata['error_message']

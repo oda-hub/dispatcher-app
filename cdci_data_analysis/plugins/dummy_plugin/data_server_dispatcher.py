@@ -521,7 +521,13 @@ class EchoProductQuery(ProductQuery):
         query_out.prod_dictionary['input_prod_list'] = []
         query_out.set_done()
         return query_out
-        
+
+class StructuredEchoProductQuery(EchoProductQuery):
+    def get_data_server_query(self, instrument, config=None, **kwargs):
+        param_names = instrument.get_parameters_name_list()
+        # and here it's passed as in nb2w plugin
+        param_dict = {x: instrument.get_par_by_name(x).get_default_value() for x in param_names}
+        return EchoServerDispatcher(instrument=instrument, param_dict=param_dict)            
 
 class EchoServerDispatcher:
     def __init__(self, instrument=None, param_dict=None):

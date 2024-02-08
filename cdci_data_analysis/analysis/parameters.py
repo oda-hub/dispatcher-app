@@ -41,7 +41,8 @@ from typing import Union
 from inspect import signature
 from .exceptions import RequestNotUnderstood
 
-from jsonschema import validate, ValidationError
+from jsonschema import validate, ValidationError, SchemaError
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -980,7 +981,7 @@ class Boolean(Parameter):
 class StructuredParameter(Parameter):
     owl_uris = ("http://odahub.io/ontology#StructuredParameter")
     
-    def __init__(self, value=None, name=None, schema=None):
+    def __init__(self, value=None, name=None, schema={"oneOf": [{"type": "object"}, {"type": "array"}]}):
         
         self.schema = schema
         
@@ -1003,8 +1004,12 @@ class StructuredParameter(Parameter):
             self.check_schema()
             self.additional_check()
         except (AssertionError, ValidationError):
-            raise RequestNotUnderstood('Wrong value of structured parameter %s', self.name)
-            
+            raise RequestNotUnderstood(f'Wrong value of structured parameter {self.name}')
+        except SchemaError:
+            raise RuntimeError(f"Wrong schema for parameter {self.name}: {self.schema}")
+    
+    def get_default_value(self):
+        return json.dumps(self.value, sort_keys=True)
 
 class PhosphorosFiltersTable(StructuredParameter):
     owl_uris = ('http://odahub.io/ontology#PhosphorosFiltersTable')
