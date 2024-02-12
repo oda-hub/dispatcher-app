@@ -193,29 +193,22 @@ class QueryOutput(object):
                         logger.error('unable to represent %s due to %s, setting blank', excep, e)
                         e_message = ''
 
-
-        logger.error('set_query_exception with %s (%s) during %s', e_message, debug_message, failed_operation)
-
         if message is None:
-            message = '%s' % message_prepend_str
-            message += ' failed: %s' % (failed_operation)
+            message = f'{message_prepend_str} failed: {failed_operation}'
             if extra_message is not None:
-                message += 'message: %s' % (extra_message)
+                message += f' message: {extra_message}'
             message = message.strip()
-        else:
-            pass
 
-        logger_msg_str = '%s' % logger_prepend_str
-        logger_msg_str += 'failed: %s' % failed_operation
-        logger_msg_str += ' error: %s' % e_message
-        logger_msg_str += ' debug : %s' % debug_message
+
+        logger_msg_str = f'{logger_prepend_str} failed: {failed_operation} message: {message} error: {e_message} debug : {debug_message}'
         if extra_message is not None:
-            logger_msg_str += ' message: %s' % (extra_message)
+            logger_msg_str += f' message: {extra_message}'
 
         if logger is not None:
+            logger.error(f'set_query_exception with {e_message} ({debug_message}) during {failed_operation} with message {message}')
             logger.info(logger_msg_str)
 
-        sentry_msg_str = f'failed: {failed_operation} error: {e_message} debug: {debug_message}'
+        sentry_msg_str = f'failed: {failed_operation} message: {message} error: {e_message} debug: {debug_message}'
         sentry.capture_message(sentry_msg_str)
         self.set_status(status, message=message, error_message=e_message, debug_message=str(debug_message))
 
