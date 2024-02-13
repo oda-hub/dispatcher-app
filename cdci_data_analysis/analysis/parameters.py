@@ -570,10 +570,32 @@ class Name(String):
 class NumericParameter(Parameter):
     owl_uris = ("http://odahub.io/ontology#NumericParameter")
 
-
+    def __init__(self, *args, **kwargs):
+        if kwargs.get('allowed_types') is None:
+            kwargs['allowed_types'] = [int, float]
+        
+        if kwargs.get('default_type') is None:
+            val = kwargs['value'] if kwargs.get('value') is not None else args[0]
+            if type(val) in kwargs['allowed_types']:
+                kwargs['default_type'] = type(val)
+            else:    
+                for tp in kwargs['allowed_types']:
+                    try:
+                        tp(val)
+                        kwargs['default_type'] = tp
+                        break
+                    except ValueError:
+                        continue
+                if kwargs.get('default_type') is None:
+                    kwargs['default_type'] = float # fallback, should fail on check
+                
+        
+        super().__init__(*args, **kwargs)
+            
+    
     def set_par_internal_value(self, value):
         if value is not None and value != '':
-            self._value = self.default_type(value) 
+            self._value = self.default_type(value)
             if self.units is not None:
                 u = getattr(apy_u, self.units)
                 self._quantity = self._value * u

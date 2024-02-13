@@ -24,7 +24,8 @@ from cdci_data_analysis.analysis.parameters import (
     String,
     Boolean,
     StructuredParameter,
-    PhosphorosFiltersTable
+    PhosphorosFiltersTable,
+    NumericParameter
 )
 from cdci_data_analysis.analysis.exceptions import RequestNotUnderstood
 
@@ -656,4 +657,18 @@ def test_structured_get_default_value():
     stp = StructuredParameter(value)
     
     assert stp.get_default_value() == expected
-    
+
+@pytest.mark.fast
+@pytest.mark.parametrize('value, expected_type, expected_value', [('25', int, 25), 
+                                                                  (25, int, 25), 
+                                                                  (25.0, float, 25.0), 
+                                                                  ('25.2', float, 25.2), 
+                                                                  (25.2, float, 25.2)])
+def test_numeric_nonetype(value, expected_type, expected_value):
+    np = NumericParameter(value)
+    assert np.value == expected_value
+    assert type(np.value) == expected_type
+
+def test_numeric_wrong():
+    with pytest.raises(RequestNotUnderstood):
+        NumericParameter("ImNotaNumber")
