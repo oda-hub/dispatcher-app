@@ -36,7 +36,7 @@ jobs:
         pip install flake8 pytest mypy pylint pytest-cov pytest-xdist wheel
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install -e .[test,ontology]
-        curl -o tests/oda-ontology.ttl https://raw.githubusercontent.com/oda-hub/ontology/ecdf2a61f87aac13ae7a96c0f3dad960312adae4/ontology.ttl
+        curl -o tests/oda-ontology.ttl https://raw.githubusercontent.com/oda-hub/ontology/main/ontology.ttl
 
 
     - name: Lint with flake8
