@@ -482,7 +482,7 @@ class Parameter:
                      extra_ttl = None,
                      ontology_path = None, 
                      **kwargs):
-        from .ontology import Ontology
+        from oda_api.ontology_helper import Ontology
 
         if ontology_path:
             onto = Ontology(ontology_path)
