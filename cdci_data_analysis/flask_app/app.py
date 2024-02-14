@@ -379,13 +379,19 @@ def push_renku_branch():
             raise RequestNotUnderstood(error_message)
 
     except Exception as e:
-        error_message = f"Exception in push-renku-branch: {repr(e)}, {traceback.format_exc()}"
+        error_message = f"Exception in push-renku-branch: "
+        if hasattr(e, 'message') and e.message is not None:
+            error_message += e.message
+        else:
+            error_message += f"{repr(e)}"
+        error_message += f", {traceback.format_exc()}"
+
         logging.getLogger().error(error_message)
 
-        sentry.capture_message(f'exception while posting on the renku branch: {str(e)}')
+        sentry.capture_message(f'exception while posting on the renku branch: {error_message}')
         
         raise RequestNotUnderstood(message="Error while posting on the renku branch",
-                                   payload={'error_message': error_message})
+                                   payload={'renku_helper_error_message': error_message})
 
 
 
