@@ -3514,7 +3514,8 @@ def test_posting_renku_error_missing_file(dispatcher_live_fixture_with_renku_opt
     assert c.status_code == 400
 
     jdata = c.json()
-    assert jdata['error_message'] == 'Error while posting on the renku branch'
+    assert jdata['error_message'] == ('Internal error while posting on the renku branch. '
+                                      'Our team is notified and is working on it.')
 
 
 @pytest.mark.test_renku
