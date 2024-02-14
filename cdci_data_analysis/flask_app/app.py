@@ -328,9 +328,17 @@ def push_renku_branch():
         scratch_dir_pattern = f'scratch_sid_*_jid_{job_id}*'
         list_scratch_folders = glob.glob(scratch_dir_pattern)
         if len(list_scratch_folders) >= 1:
-            with open(os.path.join(list_scratch_folders[0], 'query_output.json')) as q_out_f:
-                query_output_json_content_original = json.load(q_out_f)
-
+            query_output_json_content_original = None
+            for scratch_folder in list_scratch_folders:
+                query_output_path = os.path.join(scratch_folder, 'query_output.json')
+                if os.path.exists(query_output_path):
+                    with open(query_output_path) as q_out_f:
+                        query_output_json_content_original = json.load(q_out_f)
+                    break
+            if query_output_json_content_original is None:
+                error_message = (f"Error while posting data in the renku branch: query_output.json file was not found "
+                                 f"for the given job_id {job_id}")
+                raise RequestNotUnderstood(error_message)
             prod_dict = query_output_json_content_original['prod_dictionary']
             # remove parameters that should not be shared (eg token)
             api_code = prod_dict.pop('api_code', None)
