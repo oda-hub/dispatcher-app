@@ -3514,9 +3514,6 @@ def test_posting_renku_error_missing_file(dispatcher_live_fixture_with_renku_opt
     assert c.status_code == 400
 
     jdata = c.json()
-    assert 'renku_helper_error_message' in jdata
-    assert ('Exception in push-renku-branch: Error while posting data in the renku branch: '
-            f'query_output.json file was not found for the given job_id {job_id}') in jdata['renku_helper_error_message']
     assert jdata['error_message'] == 'Error while posting on the renku branch'
 
 

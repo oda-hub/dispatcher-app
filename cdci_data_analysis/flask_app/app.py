@@ -390,8 +390,7 @@ def push_renku_branch():
 
         sentry.capture_message(f'exception while posting on the renku branch: {error_message}')
         
-        raise RequestNotUnderstood(message="Error while posting on the renku branch",
-                                   payload={'renku_helper_error_message': error_message})
+        raise RequestNotUnderstood(message="Error while posting on the renku branch")
 
 
 
