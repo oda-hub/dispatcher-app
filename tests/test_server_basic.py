@@ -3469,6 +3469,58 @@ def test_product_gallery_error_message(dispatcher_live_fixture_with_gallery):
 
 
 @pytest.mark.test_renku
+def test_posting_renku_error_missing_file(dispatcher_live_fixture_with_renku_options, dispatcher_test_conf_with_renku_options):
+    DispatcherJobState.remove_scratch_folders()
+    server = dispatcher_live_fixture_with_renku_options
+    print("constructed server:", server)
+    logger.info("constructed server: %s", server)
+
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, renku contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    p = 7.5
+
+    params = {
+        **default_params,
+        'src_name': 'Mrk 421',
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': p,
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150
+                )
+    job_id = jdata['products']['job_id']
+    session_id = jdata['products']['session_id']
+    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    os.remove(os.path.join(scratch_dir_fn, "query_output.json"))
+
+    params = {
+        'job_id': job_id,
+        'token': encoded_token
+    }
+
+    c = requests.post(os.path.join(server, "push-renku-branch"),
+                      params={**params}
+                      )
+
+    assert c.status_code == 400
+
+    jdata = c.json()
+    assert 'renku_helper_error_message' in jdata
+    assert ('Exception in push-renku-branch: Error while posting data in the renku branch: '
+            f'query_output.json file was not found for the given job_id {job_id}') in jdata['renku_helper_error_message']
+    assert jdata['error_message'] == 'Error while posting on the renku branch'
+
+
+@pytest.mark.test_renku
 @pytest.mark.parametrize("existing_branch", [True, False])
 @pytest.mark.parametrize("scw_list_passage", ['file', 'params'])
 def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_test_conf_with_renku_options, existing_branch, scw_list_passage):
