@@ -357,23 +357,17 @@ def push_renku_branch():
         renku_logger.info('user_name: %s', user_name)
         renku_logger.info('user_email: %s', user_email)
 
-        if api_code is not None:
-            api_code_url = renku_helper.push_api_code(api_code=api_code,
-                                                      token=token,
-                                                      job_id=job_id,
-                                                      renku_gitlab_repository_url=renku_gitlab_repository_url,
-                                                      renku_base_project_url=renku_base_project_url,
-                                                      renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path,
-                                                      user_name=user_name, user_email=user_email,
-                                                      products_url=products_url,
-                                                      request_dict=request_dict)
+        api_code_url = renku_helper.push_api_code(api_code=api_code,
+                                                  token=token,
+                                                  job_id=job_id,
+                                                  renku_gitlab_repository_url=renku_gitlab_repository_url,
+                                                  renku_base_project_url=renku_base_project_url,
+                                                  renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path,
+                                                  user_name=user_name, user_email=user_email,
+                                                  products_url=products_url,
+                                                  request_dict=analysis_parameters_content_original)
 
-            return api_code_url
-
-        else:
-            error_message = (f"Error while posting data in the renku branch: "
-                             f"api_code was not found for the given job_id {job_id}.")
-            raise RequestNotUnderstood(error_message)
+        return api_code_url
 
     except Exception as e:
         error_message = f"Exception in push-renku-branch: "
