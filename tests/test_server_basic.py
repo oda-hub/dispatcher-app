@@ -3500,7 +3500,7 @@ def test_posting_renku_error_missing_file(dispatcher_live_fixture_with_renku_opt
     job_id = jdata['products']['job_id']
     session_id = jdata['products']['session_id']
     scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
-    os.remove(os.path.join(scratch_dir_fn, "query_output.json"))
+    os.remove(os.path.join(scratch_dir_fn, "analysis_parameters.json"))
 
     params = {
         'job_id': job_id,
