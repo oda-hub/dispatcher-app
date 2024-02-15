@@ -46,6 +46,7 @@ from .sentry import sentry
 
 from cdci_data_analysis import __version__
 import oda_api
+from oda_api.api import DispatcherAPI
 
 from cdci_data_analysis.configurer import ConfigEnv
 
@@ -322,30 +323,26 @@ def push_renku_branch():
         par_dic.pop('token')
         # TODO check job_id is provided with the request
         job_id = par_dic.pop('job_id')
-        api_code = None
-        request_dict = None
         # Get the API code to push to the new renku branch
         scratch_dir_pattern = f'scratch_sid_*_jid_{job_id}*'
         list_scratch_folders = glob.glob(scratch_dir_pattern)
         if len(list_scratch_folders) >= 1:
-            query_output_json_content_original = None
+            analysis_parameters_content_original = None
             for scratch_folder in list_scratch_folders:
-                query_output_path = os.path.join(scratch_folder, 'query_output.json')
-                if os.path.exists(query_output_path):
-                    with open(query_output_path) as q_out_f:
-                        query_output_json_content_original = json.load(q_out_f)
+                analysis_parameters_path = os.path.join(scratch_folder, 'analysis_parameters.json')
+                if os.path.exists(analysis_parameters_path):
+                    with open(analysis_parameters_path) as a_par_f:
+                        analysis_parameters_content_original = json.load(a_par_f)
                     break
-            if query_output_json_content_original is None:
-                error_message = (f"Error while posting data in the renku branch: query_output.json file was not found "
-                                 f"for the given job_id {job_id}")
+            if analysis_parameters_content_original is None:
+                error_message = ("Error while posting data in the renku branch: "
+                                 f"analysis_parameters.json file was not found for the given job_id {job_id}")
                 raise RequestNotUnderstood(error_message)
-            prod_dict = query_output_json_content_original['prod_dictionary']
-            # remove parameters that should not be shared (eg token)
-            api_code = prod_dict.pop('api_code', None)
-            request_dict = prod_dict.pop('analysis_parameters', None)
+            request_dict = analysis_parameters_content_original
+            api_code = DispatcherAPI.set_api_code(request_dict, url=os.path.join(app.config['conf'].products_url, 'dispatch-data'))
         else:
-            error_message = f"Error while posting data in the renku branch: " \
-                            f"no scratch folder was found with the given job_id :{job_id}"
+            error_message = ("Error while posting data in the renku branch: "
+                             f"no scratch folder was found with the given job_id :{job_id}")
             raise RequestNotUnderstood(error_message)
 
         renku_gitlab_repository_url = app_config.renku_gitlab_repository_url
@@ -374,8 +371,8 @@ def push_renku_branch():
             return api_code_url
 
         else:
-            error_message = "Error while posting data in the renku branch: api_code was not found, " \
-                            "perhaps wrong job_id was passed?"
+            error_message = (f"Error while posting data in the renku branch: "
+                             f"api_code was not found for the given job_id {job_id}.")
             raise RequestNotUnderstood(error_message)
 
     except Exception as e:
