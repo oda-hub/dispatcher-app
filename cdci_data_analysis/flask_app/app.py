@@ -46,6 +46,7 @@ from .sentry import sentry
 
 from cdci_data_analysis import __version__
 import oda_api
+from oda_api.api import DispatcherAPI
 
 from cdci_data_analysis.configurer import ConfigEnv
 
@@ -322,22 +323,26 @@ def push_renku_branch():
         par_dic.pop('token')
         # TODO check job_id is provided with the request
         job_id = par_dic.pop('job_id')
-        api_code = None
-        request_dict = None
         # Get the API code to push to the new renku branch
         scratch_dir_pattern = f'scratch_sid_*_jid_{job_id}*'
         list_scratch_folders = glob.glob(scratch_dir_pattern)
         if len(list_scratch_folders) >= 1:
-            with open(os.path.join(list_scratch_folders[0], 'query_output.json')) as q_out_f:
-                query_output_json_content_original = json.load(q_out_f)
-
-            prod_dict = query_output_json_content_original['prod_dictionary']
-            # remove parameters that should not be shared (eg token)
-            api_code = prod_dict.pop('api_code', None)
-            request_dict = prod_dict.pop('analysis_parameters', None)
+            analysis_parameters_content_original = None
+            for scratch_folder in list_scratch_folders:
+                analysis_parameters_path = os.path.join(scratch_folder, 'analysis_parameters.json')
+                if os.path.exists(analysis_parameters_path):
+                    with open(analysis_parameters_path) as a_par_f:
+                        analysis_parameters_content_original = json.load(a_par_f)
+                    break
+            if analysis_parameters_content_original is None:
+                error_message = ("Error while posting data in the renku branch: "
+                                 f"analysis_parameters.json file was not found for the given job_id {job_id}")
+                raise RequestNotUnderstood(error_message)
+            request_dict = analysis_parameters_content_original
+            api_code = DispatcherAPI.set_api_code(request_dict, url=os.path.join(app.config['conf'].products_url, 'dispatch-data'))
         else:
-            error_message = f"Error while posting data in the renku branch: " \
-                            f"no scratch folder was found with the given job_id :{job_id}"
+            error_message = ("Error while posting data in the renku branch: "
+                             f"no scratch folder was found with the given job_id :{job_id}")
             raise RequestNotUnderstood(error_message)
 
         renku_gitlab_repository_url = app_config.renku_gitlab_repository_url
@@ -352,32 +357,32 @@ def push_renku_branch():
         renku_logger.info('user_name: %s', user_name)
         renku_logger.info('user_email: %s', user_email)
 
-        if api_code is not None:
-            api_code_url = renku_helper.push_api_code(api_code=api_code,
-                                                      token=token,
-                                                      job_id=job_id,
-                                                      renku_gitlab_repository_url=renku_gitlab_repository_url,
-                                                      renku_base_project_url=renku_base_project_url,
-                                                      renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path,
-                                                      user_name=user_name, user_email=user_email,
-                                                      products_url=products_url,
-                                                      request_dict=request_dict)
+        api_code_url = renku_helper.push_api_code(api_code=api_code,
+                                                  token=token,
+                                                  job_id=job_id,
+                                                  renku_gitlab_repository_url=renku_gitlab_repository_url,
+                                                  renku_base_project_url=renku_base_project_url,
+                                                  renku_gitlab_ssh_key_path=renku_gitlab_ssh_key_path,
+                                                  user_name=user_name, user_email=user_email,
+                                                  products_url=products_url,
+                                                  request_dict=analysis_parameters_content_original)
 
-            return api_code_url
-
-        else:
-            error_message = "Error while posting data in the renku branch: api_code was not found, " \
-                            "perhaps wrong job_id was passed?"
-            raise RequestNotUnderstood(error_message)
+        return api_code_url
 
     except Exception as e:
-        error_message = f"Exception in push-renku-branch: {repr(e)}, {traceback.format_exc()}"
+        error_message = f"Exception in push-renku-branch: "
+        if hasattr(e, 'message') and e.message is not None:
+            error_message += e.message
+        else:
+            error_message += f"{repr(e)}"
+        error_message += f", {traceback.format_exc()}"
+
         logging.getLogger().error(error_message)
 
-        sentry.capture_message(f'exception while posting on the renku branch: {str(e)}')
+        sentry.capture_message(f'exception while posting on the renku branch: {error_message}')
         
-        raise RequestNotUnderstood(message="Error while posting on the renku branch",
-                                   payload={'error_message': error_message})
+        raise RequestNotUnderstood(message="Internal error while posting on the renku branch. "
+                                           "Our team is notified and is working on it.")
 
 
 

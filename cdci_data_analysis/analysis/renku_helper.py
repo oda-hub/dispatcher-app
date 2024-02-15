@@ -10,6 +10,7 @@ import copy
 from git import Repo, Actor, RemoteProgress
 from configparser import ConfigParser
 
+from ..flask_app.sentry import sentry
 from ..app_logging import app_logging
 from .exceptions import RequestNotUnderstood
 from .email_helper import generate_products_url_from_par_dict
@@ -109,8 +110,9 @@ def push_api_code(api_code,
 
     except Exception as e:
         error_message = error_message.format(step=step, exception_message=e)
-        logger.warning(f"something happened while pushing the api_code: {step}\n{e}")
+        logger.warning(error_message)
         traceback.print_exc()
+        sentry.capture_message(error_message)
 
         raise RequestNotUnderstood(error_message)
     finally:
