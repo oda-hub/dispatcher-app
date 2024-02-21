@@ -30,6 +30,7 @@ __author__ = "Andrea Tramacere"
 import six
 import decorator
 import logging
+import os
 
 from astropy.time import Time as astropyTime
 from astropy.time import TimeDelta as astropyTimeDelta
@@ -495,21 +496,27 @@ class Parameter:
                                         **kwargs):
         from oda_api.ontology_helper import Ontology
 
-        if ontology_path:
-            onto = Ontology(ontology_path)
+        if ontology_path is None:
+            logger.warning('Ontology path not set in Parameter.from_owl_uri(). '
+                'Trying to find parameter which have %s directly set. '
+                'extra_ttl will be ignored ', owl_uri)
+            parameter_hierarchy = [ owl_uri ]
+            par_format = par_unit = allowed_values = min_value = max_value = None
+        else:
+            if isinstance(ontology_path, str) or isinstance(ontology_path, os.PathLike):
+                onto = Ontology(ontology_path)
+            elif isinstance(ontology_path, Ontology):
+                onto = ontology_path
+            else:
+                raise RuntimeError("Wrong ontology_path")
+            
             if extra_ttl is not None:
                 onto.parse_extra_triples(extra_ttl)
             parameter_hierarchy = onto.get_parameter_hierarchy(owl_uri)
             par_format = onto.get_parameter_format(owl_uri)
             par_unit = onto.get_parameter_unit(owl_uri)
             min_value, max_value = onto.get_limits(owl_uri)
-            allowed_values = onto.get_allowed_values(owl_uri)            
-        else:
-            logger.warning('Ontology path not set in Parameter.from_owl_uri(). '
-                           'Trying to find parameter which have %s directly set. '
-                           'extra_ttl will be ignored ', owl_uri)
-            parameter_hierarchy = [ owl_uri ]
-            par_format = par_unit = allowed_values = min_value = max_value = None
+            allowed_values = onto.get_allowed_values(owl_uri)
         
         for owl_superclass_uri in parameter_hierarchy:
             for python_subclass in subclasses_recursive(cls):
