@@ -482,6 +482,17 @@ class Parameter:
                      extra_ttl = None,
                      ontology_path = None, 
                      **kwargs):
+        return cls.instance_signature_from_owl_uri(owl_uri,
+                                                   extra_ttl,
+                                                   ontology_path, 
+                                                   **kwargs)[0]
+
+    @classmethod
+    def instance_signature_from_owl_uri(cls,
+                                        owl_uri,
+                                        extra_ttl = None,
+                                        ontology_path = None, 
+                                        **kwargs):
         from oda_api.ontology_helper import Ontology
 
         if ontology_path:
@@ -537,7 +548,7 @@ class Parameter:
                                         par_name, par_value, python_subclass, call_signature)
                     try:
                         parameter_interpretation = python_subclass(**call_kwargs)
-                        return parameter_interpretation
+                        return parameter_interpretation, python_subclass, call_kwargs
                     except Exception as e:
                         logger.exception(("owl_uri %s matches Parameter %s, but the Parameter constructor failed! "
                                           "Possibly a programming error"), 
@@ -545,7 +556,7 @@ class Parameter:
 
         logger.warning(('Unknown owl type uri %s or failed to construct any parameter. '
                         'Creating basic Parameter object.'), owl_uri)
-        return cls(**kwargs)
+        return cls(**kwargs), cls, kwargs
 
 class String(Parameter):
     owl_uris = ("http://www.w3.org/2001/XMLSchema#str", "http://odahub.io/ontology#String")
