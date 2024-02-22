@@ -52,11 +52,12 @@ def test_callback_without_prior_run_analysis(dispatcher_live_fixture):
     assert c.status_code == 200
 
 
-def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_server):
+@pytest.mark.parametrize("status", ['submitted', 'progress'])
+def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_server, status):
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
-    DataServerQuery.set_status('submitted')
+    DataServerQuery.set_status(status)
 
     dict_param = dict(
         query_status="new",
@@ -73,7 +74,7 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
     logger.info("response from run_analysis: %s", json.dumps(c.json(), indent=4))
 
     jdata = c.json()
-    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['job_status'] == status
     assert 'email_status' not in jdata['exit_status']
 
     session_id = c.json()['session_id']
@@ -91,7 +92,7 @@ def test_public_async_request(dispatcher_live_fixture, dispatcher_local_mail_ser
                      ))
 
     jdata = c.json()
-    assert jdata['exit_status']['job_status'] == 'submitted'
+    assert jdata['exit_status']['job_status'] == status
     assert 'email_status' not in jdata['exit_status']
 
 
@@ -412,10 +413,13 @@ def validate_incident_email_content(
 
 
 @pytest.mark.not_safe_parallel
-def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
+@pytest.mark.parametrize('status', ['submitted', 'empty', 'progress'])
+def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout, status):
     server = dispatcher_live_fixture_no_resubmit_timeout
     DispatcherJobState.remove_scratch_folders()
-    DataServerQuery.set_status('')
+    expected_status = 'submitted' if status == 'empty' or status == 'submitted' else 'progress'
+    status = status if status == 'progress' or status == 'submitted' else ''
+    DataServerQuery.set_status(status)
     logger.info("constructed server: %s", server)
 
     # let's generate a valid token
@@ -446,13 +450,13 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
     assert c.status_code == 200
     dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
     jdata = c.json()
-    assert jdata['exit_status']['job_status'] == 'submitted'
-    assert DataServerQuery.get_status() == 'submitted'
+    assert jdata['exit_status']['job_status'] == expected_status
+    assert DataServerQuery.get_status() == expected_status
 
     # resubmit the job before the timeout expires
     dict_param['job_id'] = dispatcher_job_state.job_id
-    dict_param['query_status'] = 'submitted'
-    DataServerQuery.set_status('')
+    dict_param['query_status'] = expected_status
+    DataServerQuery.set_status(status)
     #
     c = requests.get(os.path.join(server, "run_analysis"),
                      dict_param
@@ -460,8 +464,8 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
 
     assert c.status_code == 200
     jdata = c.json()
-    assert jdata['exit_status']['job_status'] == 'submitted'
-    assert DataServerQuery.get_status() == ''
+    assert jdata['exit_status']['job_status'] == expected_status
+    assert DataServerQuery.get_status() == status
 
     # resubmit the job after the timeout expired
     time.sleep(10.5)
@@ -471,8 +475,8 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout):
 
     assert c.status_code == 200
     jdata = c.json()
-    assert jdata['exit_status']['job_status'] == 'submitted'
-    assert DataServerQuery.get_status() == 'submitted'
+    assert jdata['exit_status']['job_status'] == expected_status
+    assert DataServerQuery.get_status() == expected_status
 
     # resubmit the job to get job ready
     DataServerQuery.set_status('done')
@@ -2625,9 +2629,13 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_se
         assert jdata['records'][0]['ctime'] == scratch_dir_ctime
         assert jdata['records'][0]['mtime'] == scratch_dir_mtime
 
+
         assert 'analysis_parameters' in jdata['records'][0]
         if remove_analysis_parameters_json:
             assert jdata['records'][0]['analysis_parameters'] == f"problem reading {os.path.join(scratch_dir_fn, 'analysis_parameters.json')}: FileNotFoundError(2, 'No such file or directory')"
+            assert 'token_expired' not in jdata['records'][0]
+        else:
+            assert not jdata['records'][0]['token_expired']
         assert 'email_history' in jdata['records'][0]
         assert 'matrix_message_history' in jdata['records'][0]
 
@@ -2993,6 +3001,59 @@ def test_inspect_jobs_expired_token(dispatcher_live_fixture, include_status_quer
         assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['debug_message'] == ''
         assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['error_message'] == ''
         assert jdata_inspection['records'][0]['job_status_data'][0]['scratch_dir_content']['status_query_output']['message'] == ''
+
+
+def test_inspect_status_expired_token(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    token_payload = {**default_token_payload, 'roles': 'job manager', 'exp': int(time.time()) + 10,'mstout':False,'mssub':False}
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    DataServerQuery.set_status('submitted')
+    DispatcherJobState.remove_scratch_folders()
+    dict_param = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+
+    jdata = ask(server,
+                dict_param,
+                expected_query_status='submitted'
+                )
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    time_request = jdata['time_request']
+
+    # let make sure the token used for the previous request expires
+    time.sleep(12)
+
+    requests.get(os.path.join(server, "call_back"),
+                 params=dict(
+                     job_id=dispatcher_job_state.job_id,
+                     session_id=dispatcher_job_state.session_id,
+                     instrument_name="empty-async",
+                     action='done',
+                     node_id=f'node_0',
+                     message='progressing',
+                     token=encoded_token,
+                     time_original_request=time_request
+                 ))
+
+    token_payload["roles"] = 'job manager'
+    token_payload["exp"] = int(time.time()) + 5000
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    inspect_params = dict(
+        token=encoded_token,
+    )
+    c = requests.get(server + "/inspect-state",
+                     params=inspect_params)
+
+    jdata_inspection = c.json()
+    print(json.dumps(jdata_inspection, indent=4, sort_keys=True))
+    assert len(jdata_inspection['records']) == 1
+    assert jdata_inspection['records'][0]['job_id'] == dispatcher_job_state.job_id
+    assert not jdata_inspection['records'][0]['request_completed']
+    assert jdata_inspection['records'][0]['token_expired']
 
 
 @pytest.mark.parametrize("request_cred", ['public', 'valid_token', 'invalid_token'])

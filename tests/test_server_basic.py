@@ -3469,6 +3469,56 @@ def test_product_gallery_error_message(dispatcher_live_fixture_with_gallery):
 
 
 @pytest.mark.test_renku
+def test_posting_renku_error_missing_file(dispatcher_live_fixture_with_renku_options, dispatcher_test_conf_with_renku_options):
+    DispatcherJobState.remove_scratch_folders()
+    server = dispatcher_live_fixture_with_renku_options
+    print("constructed server:", server)
+    logger.info("constructed server: %s", server)
+
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, renku contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    p = 7.5
+
+    params = {
+        **default_params,
+        'src_name': 'Mrk 421',
+        'product_type': 'numerical',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': p,
+        'token': encoded_token
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150
+                )
+    job_id = jdata['products']['job_id']
+    session_id = jdata['products']['session_id']
+    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    os.remove(os.path.join(scratch_dir_fn, "analysis_parameters.json"))
+
+    params = {
+        'job_id': job_id,
+        'token': encoded_token
+    }
+
+    c = requests.post(os.path.join(server, "push-renku-branch"),
+                      params={**params}
+                      )
+
+    assert c.status_code == 400
+
+    jdata = c.json()
+    assert jdata['error_message'] == ('Internal error while posting on the renku branch. '
+                                      'Our team is notified and is working on it.')
+
+
+@pytest.mark.test_renku
 @pytest.mark.parametrize("existing_branch", [True, False])
 @pytest.mark.parametrize("scw_list_passage", ['file', 'params'])
 def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_test_conf_with_renku_options, existing_branch, scw_list_passage):
@@ -3740,3 +3790,46 @@ def test_restricted_parameter_bad_request(dispatcher_live_fixture, par_name, par
     print("content:", c.text)
     jdata=c.json()
     assert jdata['error'].startswith( f'RequestNotUnderstood():Parameter {par_name} wrong value' )
+    
+@pytest.mark.fast
+def test_structured_parameter(dispatcher_live_fixture):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+    
+    par = {'instrument': 'empty',
+           'product_type': 'structured',
+           'query_status': 'new',
+           'query_type': 'Real',
+           'struct': '{"b": [1, 2], "a": [4.2, 1.3]}',
+           }
+    
+    c = requests.get(server + '/run_analysis',
+                     params = par)
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+    assert jdata['exit_status']['status'] == 0
+    assert jdata['exit_status']['job_status'] == 'done'
+    assert jdata['products']['echo']['struct'] == '{"a": [4.2, 1.3], "b": [1, 2]}'
+    
+    
+@pytest.mark.fast
+def test_malformed_structured_parameter(dispatcher_live_fixture):
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+    
+    par = {'instrument': 'empty',
+           'product_type': 'structured',
+           'query_status': 'new',
+           'query_type': 'Real',
+           'struct': '{a: [4.2, 1.3]}',
+           }
+    
+    c = requests.get(server + '/run_analysis',
+                     params = par)
+    #TODO:
+    assert c.status_code == 400
+    print("content:", c.text)
+    jdata=c.json()
+    assert 'Wrong value of structured parameter struct' in jdata['error_message']

@@ -41,12 +41,19 @@ from .data_server_dispatcher import (EmptyProductQuery,
                                      DataServerNumericQuery, 
                                      FailingProductQuery, 
                                      DataServerParametricQuery, 
-                                     EchoProductQuery)
+                                     EchoProductQuery,
+                                     StructuredEchoProductQuery)
 
 # duplicated with jemx, but this staticmethod makes it complex.
 # this all should be done commonly, for all parameters - limits are common thing
 from ...analysis.exceptions import RequestNotUnderstood
-from ...analysis.parameters import SpectralBoundary, Angle, Energy, Integer, Float, String
+from ...analysis.parameters import (SpectralBoundary, 
+                                    Angle, 
+                                    Energy, 
+                                    Integer, 
+                                    Float, 
+                                    String,
+                                    StructuredParameter)
 
 
 
@@ -92,6 +99,8 @@ def my_instr_factory():
                                                                      bounded_float_param,
                                                                      string_select_param])
 
+    struct_par = StructuredParameter({'a': [1, 2]}, name='struct')
+    structured_echo_query = StructuredEchoProductQuery('structured_param_dummy_query', parameters_list=[struct_par])
     # this dicts binds the product query name to the product name from frontend
     # eg my_instr_image is the parameter passed by the fronted to access the
     # the MyInstrMosaicQuery, and the dictionary will bind
@@ -105,6 +114,7 @@ def my_instr_factory():
     query_dictionary['parametrical'] = 'parametrical_parameters_dummy_query'
     query_dictionary['echo'] = 'echo_parameters_dummy_query'
     query_dictionary['restricted'] = 'restricted_parameters_dummy_query'
+    query_dictionary['structured'] = 'structured_param_dummy_query'
 
     return Instrument('empty',
                       src_query=src_query,
@@ -114,5 +124,6 @@ def my_instr_factory():
                                             failing_query, 
                                             parametrical_query, 
                                             echo_param_query, 
-                                            restricted_param_query],
+                                            restricted_param_query,
+                                            structured_echo_query],
                       query_dictionary=query_dictionary)

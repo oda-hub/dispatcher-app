@@ -41,6 +41,9 @@ from typing import Union
 from inspect import signature
 from .exceptions import RequestNotUnderstood
 
+from jsonschema import validate, ValidationError, SchemaError
+import json
+
 logger = logging.getLogger(__name__)
 
 
@@ -454,8 +457,17 @@ class Parameter:
             restrictions['min_value'] = self._min_value
         if getattr(self, '_max_value', None) is not None:
             restrictions['max_value'] = self._max_value
+        if getattr(self, 'schema', None) is not None:
+            restrictions['schema'] = self.schema
         if restrictions:
             reprjson[0]['restrictions'] = restrictions
+        if getattr(self, 'owl_uris', None):
+            if isinstance(self.owl_uris, str):
+                reprjson[0]['owl_uri'] = [ self.owl_uris ]
+            elif isinstance(self.owl_uris, tuple):
+                reprjson[0]['owl_uri'] = list(self.owl_uris)
+            else:
+                reprjson[0]['owl_uri'] = self.owl_uris
         if self.par_format_name is not None:
             reprjson.append(dict(name=self.par_format_name, units="str", value=self.par_format))
         return reprjson
@@ -470,7 +482,7 @@ class Parameter:
                      extra_ttl = None,
                      ontology_path = None, 
                      **kwargs):
-        from .ontology import Ontology
+        from oda_api.ontology_helper import Ontology
 
         if ontology_path:
             onto = Ontology(ontology_path)
@@ -558,10 +570,32 @@ class Name(String):
 class NumericParameter(Parameter):
     owl_uris = ("http://odahub.io/ontology#NumericParameter")
 
-
+    def __init__(self, *args, **kwargs):
+        if kwargs.get('allowed_types') is None:
+            kwargs['allowed_types'] = [int, float]
+        
+        if kwargs.get('default_type') is None:
+            val = kwargs['value'] if kwargs.get('value') is not None else args[0]
+            if type(val) in kwargs['allowed_types']:
+                kwargs['default_type'] = type(val)
+            else:    
+                for tp in kwargs['allowed_types']:
+                    try:
+                        tp(val)
+                        kwargs['default_type'] = tp
+                        break
+                    except ValueError:
+                        continue
+                if kwargs.get('default_type') is None:
+                    kwargs['default_type'] = float # fallback, should fail on check
+                
+        
+        super().__init__(*args, **kwargs)
+            
+    
     def set_par_internal_value(self, value):
         if value is not None and value != '':
-            self._value = self.default_type(value) 
+            self._value = self.default_type(value)
             if self.units is not None:
                 u = getattr(apy_u, self.units)
                 self._quantity = self._value * u
@@ -965,3 +999,82 @@ class Boolean(Parameter):
             self._value = True
         else:
             raise RequestNotUnderstood(f'Wrong value for boolean parameter {self.name}')
+        
+class StructuredParameter(Parameter):
+    owl_uris = ("http://odahub.io/ontology#StructuredParameter")
+    
+    def __init__(self, value=None, name=None, schema={"oneOf": [{"type": "object"}, {"type": "array"}]}):
+        
+        self.schema = schema
+        
+        if self.schema is None:
+            logger.warning("Parameter %s: Schema is not defined, will allow any structure.", name)
+            
+        super().__init__(value=value,
+                         name=name)
+    
+    def check_schema(self):
+        if self.schema is not None:
+            validate(self._value, self.schema)
+        
+    def additional_check(self):
+        # should raise AssertionError if wrong
+        pass
+    
+    def check_value(self):
+        try:
+            self.check_schema()
+            self.additional_check()
+        except (AssertionError, ValidationError):
+            raise RequestNotUnderstood(f'Wrong value of structured parameter {self.name}')
+        except SchemaError:
+            raise RuntimeError(f"Wrong schema for parameter {self.name}: {self.schema}")
+    
+    def get_default_value(self):
+        return json.dumps(self.value, sort_keys=True)
+
+class PhosphorosFiltersTable(StructuredParameter):
+    owl_uris = ('http://odahub.io/ontology#PhosphorosFiltersTable')
+    
+    def __init__(self, value=None, name=None):
+        
+        # TODO: either list or the whole schema may be loaded from the external file, purely based on URI.
+        #       If there is no additional check, this would allow to avoid even having the class.
+        #       
+        #       But for the time being, as agreed, we will keep the hardcoded dedicated class.
+        filter_list = ["CFHT|MegaCam.g", "CFHT|MegaCam.gri", "CFHT|MegaCam.i", "CFHT|MegaCam.r", "CFHT|MegaCam.u", "CFHT|MegaCam.z",
+                       "CTIO|DECam.Y", "CTIO|DECam.g", "CTIO|DECam.i", "CTIO|DECam.r", "CTIO|DECam.u", "CTIO|DECam.z",
+                       "Euclid|NISP.H", "Euclid|NISP.J", "Euclid|NISP.Y", "Euclid|VIS.vis",
+                       "GAIA|GAIA3.G", "GAIA|GAIA3.Gbp", "GAIA|GAIA3.Grp",
+                       "GALEX|GALEX.FUV", "GALEX|GALEX.NUV",
+                       "LSST|LSST.g", "LSST|LSST.i", "LSST|LSST.r", "LSST|LSST.u", "LSST|LSST.y", "LSST|LSST.z",
+                       "PAN-STARRS|PS1.g", "PAN-STARRS|PS1.i", "PAN-STARRS|PS1.open", "PAN-STARRS|PS1.r", "PAN-STARRS|PS1.w", "PAN-STARRS|PS1.y", "PAN-STARRS|PS1.z",
+                       "VIRCAM|VISTA.H", "VIRCAM|VISTA.J", "VIRCAM|VISTA.Ks", "VIRCAM|VISTA.NB118", "VIRCAM|VISTA.NB980", "VIRCAM|VISTA.NB990", "VIRCAM|VISTA.Y", "VIRCAM|VISTA.Z",
+                       "SLOAN|SDSS.g", "SLOAN|SDSS.i", "SLOAN|SDSS.r", "SLOAN|SDSS.u", "SLOAN|SDSS.z",
+                       "Subaru|HSC.Y", "Subaru|HSC.g", "Subaru|HSC.i", "Subaru|HSC.r", "Subaru|HSC.z",
+                       "UKIRT|WFCAM.H", "UKIRT|WFCAM.J", "UKIRT|WFCAM.K", "UKIRT|WFCAM.Y", "UKIRT|WFCAM.Z",
+                       "WISE|WISE.W1", "WISE|WISE.W2", "WISE|WISE.W3", "WISE|WISE.W4"]
+        
+        schema = {"type": "object",
+                  "properties": {
+                      "filter": {"type": "array", 
+                                 "minItems": 1,
+                                 "uniqueItems": True, 
+                                 "items": {"enum": filter_list}},
+                      "flux": {"type": "array",
+                               "minItems": 1, 
+                               "uniqueItems": True, 
+                               "items": {"type": "string", "minLength": 1}},
+                      "flux_error": {"type": "array", 
+                                     "minItems": 1,
+                                     "uniqueItems": True, 
+                                     "items": {"type": "string", "minLength": 1}}},
+                  "additionalProperties": False,
+                  "required": ["filter", "flux", "flux_error"]
+                  }
+        
+        super().__init__(value=value, name=name, schema=schema)
+        
+    def additional_check(self):
+        assert len(self._value['filter']) == len(self._value['flux']) == len(self._value['flux_error'])
+        

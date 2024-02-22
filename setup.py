@@ -33,7 +33,7 @@ install_req = [
     "blinker",
     "bokeh==2.4.2",
     "json_tricks",
-    "flask-restx",
+    "flask-restx==1.2.0",
     "six",
     "werkzeug==2.0.3",
     "python-shell-colors==0.2.1",
@@ -42,13 +42,14 @@ install_req = [
     "redis",
     "pyjwt",
     "marshmallow",
-    "black",
+    "black>=22.10.0",
     "bs4",
     "GitPython",
     "nbformat",
     "giturlparse",
     "sentry-sdk",
-    "validators"
+    "validators",
+    "jsonschema"
 ]
 
 test_req = [
@@ -56,7 +57,7 @@ test_req = [
 ]
 
 onto_req = [
-    'rdflib',
+    'rdflib>=6.2.0',
 ]
 
 packs = find_packages()
