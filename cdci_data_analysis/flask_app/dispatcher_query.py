@@ -447,10 +447,17 @@ class InstrumentQueryBackEnd:
 
         out_instrument_list = []
         for instrument_factory in importer.instrument_factory_list:
-            instrument = instrument_factory()
+            if hasattr(instrument_factory, 'instrument_query'):
+                instrument_query = instrument_factory.instrument_query
+                instr_name = getattr(instrument_factory, 'instr_name', instrument_factory().name)
+            else:
+                instrument = instrument_factory()
+                instrument_query = instrument.instrumet_query
+                instr_name = instrument.name
+                
 
-            if instrument.instrumet_query.check_instrument_access(roles, email):
-                out_instrument_list.append(instrument.name)
+            if instrument_query.check_instrument_access(roles, email):
+                out_instrument_list.append(instr_name)
 
         return jsonify(out_instrument_list)
 
@@ -1106,7 +1113,7 @@ class InstrumentQueryBackEnd:
     def get_instr_list(self, name=None):
         _l = []
         for instrument_factory in importer.instrument_factory_list:
-            _l.append(instrument_factory().name)
+            _l.append(getattr(instrument_factory, 'instr_name', instrument_factory().name))
 
         return jsonify(_l)
 
@@ -1491,14 +1498,28 @@ class InstrumentQueryBackEnd:
             new_instrument = 'mock'
         else:
             for instrument_factory in importer.instrument_factory_list:
-                instrument = instrument_factory()
-                if instrument.name == instrument_name:
-                    if instrument.instrumet_query.check_instrument_access(roles, email):
-                        new_instrument = instrument  # multiple assignment? TODO
+                _instrument = None
+                if hasattr(instrument_factory, 'instr_name'):
+                    instr_name = instrument_factory.instr_name
+                else:
+                    _instrument = instrument_factory()
+                    instr_name = _instrument.name
+                
+                if instr_name == instrument_name:
+                    if _instrument is None and hasattr(instrument_factory, 'instrument_query'):
+                        instr_query = instrument_factory.instrument_query
+                    else:
+                        _instrument = instrument_factory()
+                        instr_query = _instrument.instrumet_query
+                             
+                    if instr_query.check_instrument_access(roles, email):
+                        if _instrument is None:
+                            _instrument = instrument_factory()
+                        new_instrument = _instrument  # multiple assignment? TODO
                     else:
                         no_access = True
 
-                known_instruments.append(instrument.name)
+                known_instruments.append(instr_name)
         if new_instrument is None:
             if no_access:
                 raise RequestNotAuthorized(f"Unfortunately, your priviledges are not sufficient "

@@ -208,7 +208,7 @@ def common_exception_payload():
     _l = []
 
     for instrument_factory in importer.instrument_factory_list:
-        _l.append('%s' % instrument_factory().name)
+        _l.append('%s' % getattr(instrument_factory, 'instr_name', instrument_factory().name))
 
     payload['installed_instruments'] = _l
 
