@@ -793,3 +793,13 @@ def build_catalog(cat_dic,catalog_selected_objects=None):
     user_catalog.select_IDs(IDs)
 
     return user_catalog
+
+class InstrumentFactoryIterator:
+    def __init__(self):
+        self._partlist = []
+        
+    def extend(self, lst):
+        self._partlist.append(lst)
+    
+    def __iter__(self):
+        return (y for x in self._partlist for y in x)

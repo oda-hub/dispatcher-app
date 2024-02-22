@@ -446,7 +446,7 @@ class InstrumentQueryBackEnd:
                 email = tokenHelper.get_token_user_email_address(decoded_token)
 
         out_instrument_list = []
-        for instrument_factory in importer.instrument_factory_list:
+        for instrument_factory in importer.instrument_factory_iter:
             if hasattr(instrument_factory, 'instrument_query'):
                 instrument_query = instrument_factory.instrument_query
                 instr_name = getattr(instrument_factory, 'instr_name', instrument_factory().name)
@@ -1112,7 +1112,7 @@ class InstrumentQueryBackEnd:
 
     def get_instr_list(self, name=None):
         _l = []
-        for instrument_factory in importer.instrument_factory_list:
+        for instrument_factory in importer.instrument_factory_iter:
             _l.append(getattr(instrument_factory, 'instr_name', instrument_factory().name))
 
         return jsonify(_l)
@@ -1497,7 +1497,7 @@ class InstrumentQueryBackEnd:
         if instrument_name == 'mock':
             new_instrument = 'mock'
         else:
-            for instrument_factory in importer.instrument_factory_list:
+            for instrument_factory in importer.instrument_factory_iter:
                 _instrument = None
                 if hasattr(instrument_factory, 'instr_name'):
                     instr_name = instrument_factory.instr_name
