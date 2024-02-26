@@ -482,22 +482,29 @@ class Parameter:
                      owl_uri,
                      extra_ttl = None,
                      ontology_path = None, 
+                     ontology_object = None,
                      **kwargs):
         from oda_api.ontology_helper import Ontology
 
-        if ontology_path is None:
-            logger.warning('Ontology path not set in Parameter.from_owl_uri(). '
+        if ontology_path is not None and ontology_object is not None:
+            raise RuntimeError("Both ontology_path and ontology_object parameters are set.")
+        elif ontology_path is None and ontology_object is None:
+            logger.warning('Ontology path/object not set in Parameter.from_owl_uri(). '
                 'Trying to find parameter which have %s directly set. '
                 'extra_ttl will be ignored ', owl_uri)
             parameter_hierarchy = [ owl_uri ]
             par_format = par_unit = allowed_values = min_value = max_value = None
-        else:
+        elif ontology_path is not None:
             if isinstance(ontology_path, str) or isinstance(ontology_path, os.PathLike):
                 onto = Ontology(ontology_path)
-            elif isinstance(ontology_path, Ontology):
-                onto = ontology_path
             else:
                 raise RuntimeError("Wrong ontology_path")
+        else:
+            if isinstance(ontology_object, Ontology):
+                onto = ontology_object
+            else:
+                raise RuntimeError("Wrong ontology_object")
+            
             
             if extra_ttl is not None:
                 onto.parse_extra_triples(extra_ttl)
