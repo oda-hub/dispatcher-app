@@ -494,17 +494,17 @@ class Parameter:
                 'extra_ttl will be ignored ', owl_uri)
             parameter_hierarchy = [ owl_uri ]
             par_format = par_unit = allowed_values = min_value = max_value = None
-        elif ontology_path is not None:
-            if isinstance(ontology_path, str) or isinstance(ontology_path, os.PathLike):
-                onto = Ontology(ontology_path)
-            else:
-                raise RuntimeError("Wrong ontology_path")
         else:
-            if isinstance(ontology_object, Ontology):
-                onto = ontology_object
+            if ontology_path is not None:
+                if isinstance(ontology_path, str) or isinstance(ontology_path, os.PathLike):
+                    onto = Ontology(ontology_path)
+                else:
+                    raise RuntimeError("Wrong ontology_path")
             else:
-                raise RuntimeError("Wrong ontology_object")
-            
+                if isinstance(ontology_object, Ontology):
+                    onto = ontology_object
+                else:
+                    raise RuntimeError("Wrong ontology_object")
             
             if extra_ttl is not None:
                 onto.parse_extra_triples(extra_ttl)
