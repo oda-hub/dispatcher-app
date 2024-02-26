@@ -1509,7 +1509,8 @@ class InstrumentQueryBackEnd:
                     if _instrument is None and hasattr(instrument_factory, 'instrument_query'):
                         instr_query = instrument_factory.instrument_query
                     else:
-                        _instrument = instrument_factory()
+                        if _instrument is None:
+                            _instrument = instrument_factory()
                         instr_query = _instrument.instrumet_query
                              
                     if instr_query.check_instrument_access(roles, email):
