@@ -522,7 +522,7 @@ class Parameter:
                     logger.info("will construct %s by owl_uri %s", python_subclass, owl_superclass_uri)
                     call_kwargs = {}
                     call_signature = signature(python_subclass)
-                    var_kw_signature = call_parameter.VAR_KEYWORD in [x.kind for x in call_signature]
+                    var_kw_signature = call_parameter.VAR_KEYWORD in [x.kind for x in call_signature.parameters.values()]
                     
                     for restr, overr_kw, kw_name in [(par_format, 'format_kw', 'par_format'), 
                                                      (par_format, 'default_format_kw', 'par_default_format'),
