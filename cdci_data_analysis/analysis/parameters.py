@@ -39,7 +39,8 @@ from astropy import units as apy_u
 import numpy as np
 
 from typing import Union
-from inspect import signature, Parameter
+from inspect import signature
+from inspect import Parameter as call_parameter
 from .exceptions import RequestNotUnderstood
 
 from jsonschema import validate, ValidationError, SchemaError
@@ -521,7 +522,7 @@ class Parameter:
                     logger.info("will construct %s by owl_uri %s", python_subclass, owl_superclass_uri)
                     call_kwargs = {}
                     call_signature = signature(python_subclass)
-                    var_kw_signature = Parameter.VAR_KEYWORD in [x.kind for x in call_signature]
+                    var_kw_signature = call_parameter.VAR_KEYWORD in [x.kind for x in call_signature]
                     
                     for restr, overr_kw, kw_name in [(par_format, 'format_kw', 'par_format'), 
                                                      (par_format, 'default_format_kw', 'par_default_format'),
