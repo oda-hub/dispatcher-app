@@ -496,7 +496,7 @@ class Parameter:
             par_format = par_unit = allowed_values = min_value = max_value = None
         else:
             if ontology_path is not None:
-                if isinstance(ontology_path, str) or isinstance(ontology_path, os.PathLike):
+                if isinstance(ontology_path, (str, os.PathLike)):
                     onto = Ontology(ontology_path)
                 else:
                     raise RuntimeError("Wrong ontology_path")
