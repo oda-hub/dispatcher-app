@@ -449,7 +449,10 @@ class InstrumentQueryBackEnd:
         for instrument_factory in importer.instrument_factory_iter:
             if hasattr(instrument_factory, 'instrument_query'):
                 instrument_query = instrument_factory.instrument_query
-                instr_name = getattr(instrument_factory, 'instr_name', instrument_factory().name)
+                if hasattr(instrument_factory, 'instr_name'):
+                    instr_name = instrument_factory.instr_name
+                else:
+                    instr_name = instrument_factory().name
             else:
                 instrument = instrument_factory()
                 instrument_query = instrument.instrumet_query
@@ -1113,7 +1116,11 @@ class InstrumentQueryBackEnd:
     def get_instr_list(self, name=None):
         _l = []
         for instrument_factory in importer.instrument_factory_iter:
-            _l.append(getattr(instrument_factory, 'instr_name', instrument_factory().name))
+            if hasattr(instrument_factory, 'instr_name'):
+                iname = instrument_factory.instr_name
+            else:
+                iname = instrument_factory().name
+            _l.append(iname)
 
         return jsonify(_l)
 
