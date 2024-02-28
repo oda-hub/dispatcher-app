@@ -49,6 +49,7 @@ import oda_api
 from oda_api.api import DispatcherAPI
 
 from cdci_data_analysis.configurer import ConfigEnv
+from cdci_data_analysis.timer import block_timer
 
 logger = app_logging.getLogger('flask_app')
 
@@ -204,11 +205,16 @@ def common_exception_payload():
     payload['cdci_data_analysis_version'] = __version__
     payload['cdci_data_analysis_version_details'] = os.getenv('DISPATCHER_VERSION_DETAILS', 'unknown')
     payload['oda_api_version'] = oda_api.__version__
-     
-    _l = []
-
-    for instrument_factory in importer.instrument_factory_iter:
-        _l.append(str(getattr(instrument_factory, 'instr_name', instrument_factory().name)))
+    
+    with block_timer(logger=logger, 
+                     message_template="Instrument factory iteration took {:.1f} seconds"): 
+        _l = []
+        for instrument_factory in importer.instrument_factory_iter:
+            if hasattr(instrument_factory, 'instr_name'):
+                iname = instrument_factory.instr_name
+            else:
+                iname = instrument_factory().name
+            _l.append(str(iname))
 
     payload['installed_instruments'] = _l
 

@@ -60,6 +60,7 @@ from .logstash import logstash_message
 
 from oda_api.data_products import NumpyDataProduct
 import oda_api
+from cdci_data_analysis.timer import block_timer
 
 logger = logging.getLogger(__name__)
 
@@ -445,19 +446,24 @@ class InstrumentQueryBackEnd:
                 roles = tokenHelper.get_token_roles(decoded_token)
                 email = tokenHelper.get_token_user_email_address(decoded_token)
 
-        out_instrument_list = []
-        for instrument_factory in importer.instrument_factory_iter:
-            if hasattr(instrument_factory, 'instrument_query'):
-                instrument_query = instrument_factory.instrument_query
-                instr_name = getattr(instrument_factory, 'instr_name', instrument_factory().name)
-            else:
-                instrument = instrument_factory()
-                instrument_query = instrument.instrumet_query
-                instr_name = instrument.name
-                
+        with block_timer(logger=logger, 
+                         message_template="Instrument factory iteration took {:.1f} seconds"):
+            out_instrument_list = []
+            for instrument_factory in importer.instrument_factory_iter:
+                if hasattr(instrument_factory, 'instrument_query'):
+                    instrument_query = instrument_factory.instrument_query
+                    if hasattr(instrument_factory, 'instr_name'):
+                        instr_name = instrument_factory.instr_name
+                    else:
+                        instr_name = instrument_factory().name
+                else:
+                    instrument = instrument_factory()
+                    instrument_query = instrument.instrumet_query
+                    instr_name = instrument.name
+                    
 
-            if instrument_query.check_instrument_access(roles, email):
-                out_instrument_list.append(instr_name)
+                if instrument_query.check_instrument_access(roles, email):
+                    out_instrument_list.append(instr_name)
 
         return jsonify(out_instrument_list)
 
@@ -1111,9 +1117,15 @@ class InstrumentQueryBackEnd:
         return jsonify(self.par_dic)
 
     def get_instr_list(self, name=None):
-        _l = []
-        for instrument_factory in importer.instrument_factory_iter:
-            _l.append(getattr(instrument_factory, 'instr_name', instrument_factory().name))
+        with block_timer(logger=logger, 
+                         message_template="Instrument factory iteration took {:.1f} seconds"):
+            _l = []
+            for instrument_factory in importer.instrument_factory_iter:
+                if hasattr(instrument_factory, 'instr_name'):
+                    iname = instrument_factory.instr_name
+                else:
+                    iname = instrument_factory().name
+                _l.append(iname)
 
         return jsonify(_l)
 
@@ -1497,30 +1509,32 @@ class InstrumentQueryBackEnd:
         if instrument_name == 'mock':
             new_instrument = 'mock'
         else:
-            for instrument_factory in importer.instrument_factory_iter:
-                _instrument = None
-                if hasattr(instrument_factory, 'instr_name'):
-                    instr_name = instrument_factory.instr_name
-                else:
-                    _instrument = instrument_factory()
-                    instr_name = _instrument.name
-                
-                if instr_name == instrument_name:
-                    if _instrument is None and hasattr(instrument_factory, 'instrument_query'):
-                        instr_query = instrument_factory.instrument_query
+            with block_timer(logger=logger, 
+                             message_template="Instrument factory iteration took {:.1f} seconds"):
+                for instrument_factory in importer.instrument_factory_iter:
+                    _instrument = None
+                    if hasattr(instrument_factory, 'instr_name'):
+                        instr_name = instrument_factory.instr_name
                     else:
-                        if _instrument is None:
-                            _instrument = instrument_factory()
-                        instr_query = _instrument.instrumet_query
-                             
-                    if instr_query.check_instrument_access(roles, email):
-                        if _instrument is None:
-                            _instrument = instrument_factory()
-                        new_instrument = _instrument  # multiple assignment? TODO
-                    else:
-                        no_access = True
+                        _instrument = instrument_factory()
+                        instr_name = _instrument.name
+                    
+                    if instr_name == instrument_name:
+                        if _instrument is None and hasattr(instrument_factory, 'instrument_query'):
+                            instr_query = instrument_factory.instrument_query
+                        else:
+                            if _instrument is None:
+                                _instrument = instrument_factory()
+                            instr_query = _instrument.instrumet_query
+                                
+                        if instr_query.check_instrument_access(roles, email):
+                            if _instrument is None:
+                                _instrument = instrument_factory()
+                            new_instrument = _instrument  # multiple assignment? TODO
+                        else:
+                            no_access = True
 
-                known_instruments.append(instr_name)
+                    known_instruments.append(instr_name)
         if new_instrument is None:
             if no_access:
                 raise RequestNotAuthorized(f"Unfortunately, your priviledges are not sufficient "
