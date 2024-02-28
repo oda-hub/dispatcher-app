@@ -40,6 +40,7 @@ import numpy as np
 
 from typing import Union
 from inspect import signature
+from inspect import Parameter as call_parameter
 from .exceptions import RequestNotUnderstood
 
 from jsonschema import validate, ValidationError, SchemaError
@@ -520,7 +521,8 @@ class Parameter:
                 if python_subclass.matches_owl_uri(owl_superclass_uri):
                     logger.info("will construct %s by owl_uri %s", python_subclass, owl_superclass_uri)
                     call_kwargs = {}
-                    call_signature = signature(python_subclass)                   
+                    call_signature = signature(python_subclass)
+                    var_kw_signature = call_parameter.VAR_KEYWORD in [x.kind for x in call_signature.parameters.values()]
                     
                     for restr, overr_kw, kw_name in [(par_format, 'format_kw', 'par_format'), 
                                                      (par_format, 'default_format_kw', 'par_default_format'),
@@ -531,7 +533,7 @@ class Parameter:
                                                      (allowed_values, 'notexist', 'allowed_values')]:
                         if restr is not None:
                             par_kw = getattr(python_subclass, overr_kw, kw_name)
-                            if par_kw in call_signature.parameters:
+                            if var_kw_signature or par_kw in call_signature.parameters:
                                 call_kwargs[par_kw] = restr
                             else:
                                 logger.error(("according to ontology, owl_uri %s parameter have %s=%s "
@@ -540,7 +542,7 @@ class Parameter:
                                             owl_uri, par_kw, restr, python_subclass)
                     
                     for par_name, par_value in kwargs.items():
-                        if par_name in call_signature.parameters:
+                        if var_kw_signature or par_name in call_signature.parameters:
                             if par_name in call_kwargs.keys(): 
                                 logger.warning("overriding ontology-derived value of the %s keyword of %s with explicitly set value %s",
                                                par_name, python_subclass, par_value)
