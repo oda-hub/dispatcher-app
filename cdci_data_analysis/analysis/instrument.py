@@ -725,11 +725,13 @@ class Instrument:
         file_paths_obj = {}
         if request.method == 'POST':
             for f in request.files:
-                f_path = upload_file(f, temp_dir)
-                if f_path is not None:
-                    file_paths_obj[f] = f_path
-                    par_dic[f'{f}_hash'] = make_hash_file(f_path)
-        if par_dic != {}:
+                # TODO needed since those two files are extracted in a previous step
+                if f != 'user_scw_list_file' and f != 'user_catalog_file':
+                    f_path = upload_file(f, temp_dir)
+                    if f_path is not None:
+                        file_paths_obj[f] = f_path
+                        par_dic[f'{f}_hash'] = make_hash_file(f_path)
+        if file_paths_obj != {}:
             par_dic['file_paths'] = file_paths_obj
 
     def upload_catalog_from_fronted(self, par_dic, request, temp_dir):
