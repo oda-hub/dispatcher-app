@@ -34,3 +34,13 @@ def make_hash(o):
 
     # this takes care of various strange objects which can not be properly represented
     return format_hash(json.dumps(o))
+
+
+def make_hash_file(file_path):
+
+    # TODO to adapt in case of big files and reading in chunks will be necessary
+    def read_file():
+        with open(file_path, 'rb') as f_fn:
+            return f_fn.read()
+
+    return hashlib.md5(read_file()).hexdigest()[:16]
