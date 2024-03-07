@@ -39,6 +39,7 @@ from .catalog import BasicCatalog
 from .products import QueryOutput
 from .queries import ProductQuery, SourceQuery, InstrumentQuery
 from .io_helper import upload_file
+from .hash import make_hash_file
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
 from ..flask_app.sentry import sentry
 
@@ -263,6 +264,10 @@ class Instrument:
                                                                       temp_dir=temp_dir)
             step = 'setting input scw_list file'
             self.set_input_products_from_fronted(input_file_path=input_file_path, par_dic=par_dic, verbose=verbose)
+
+            # any other file
+            step = 'upload other files'
+            self.upload_files_request(par_dic=par_dic, request=request, temp_dir=temp_dir)
         except RequestNotUnderstood as e:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='',
@@ -715,6 +720,17 @@ class Instrument:
                 has_prods=False
 
         return has_prods
+
+    def upload_files_request(self, par_dic, request, temp_dir):
+        file_paths_obj = {}
+        if request.method == 'POST':
+            for f in request.files:
+                f_path = upload_file(f, temp_dir)
+                if f_path is not None:
+                    file_paths_obj[f] = f_path
+                    par_dic[f'{f}_hash'] = make_hash_file(f_path)
+        if par_dic != {}:
+            par_dic['file_paths'] = file_paths_obj
 
     def upload_catalog_from_fronted(self, par_dic, request, temp_dir):
         cat_file_path = None
