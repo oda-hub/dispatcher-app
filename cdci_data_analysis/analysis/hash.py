@@ -10,7 +10,8 @@ default_kw_black_list = ('session_id',
                  'api',
                  'off_line',
                  'query_status',
-                 'async_dispatcher')
+                 'async_dispatcher',
+                 'file_paths')
 
 
 def make_hash(o):
