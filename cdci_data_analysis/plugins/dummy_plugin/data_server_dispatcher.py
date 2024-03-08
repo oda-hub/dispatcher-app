@@ -376,6 +376,12 @@ class FailingProductQuery(EmptyProductQuery):
     def get_dummy_products(self, instrument, config=None, **kwargs):
         raise InternalError("failing query")
 
+class FileParameterQuery(ProductQuery):
+    def __init__(self, name, parameters_list=None, ):
+        if parameters_list is None:
+            parameters_list = []
+        super().__init__(name, parameters_list=parameters_list)
+
 
 class DataServerNumericQuery(ProductQuery):
 
