@@ -42,7 +42,8 @@ from .data_server_dispatcher import (EmptyProductQuery,
                                      FailingProductQuery, 
                                      DataServerParametricQuery, 
                                      EchoProductQuery,
-                                     StructuredEchoProductQuery)
+                                     StructuredEchoProductQuery,
+                                     FileParameterQuery)
 
 # duplicated with jemx, but this staticmethod makes it complex.
 # this all should be done commonly, for all parameters - limits are common thing
@@ -53,7 +54,8 @@ from ...analysis.parameters import (SpectralBoundary,
                                     Integer, 
                                     Float, 
                                     String,
-                                    StructuredParameter)
+                                    StructuredParameter,
+                                    FileInformationObject)
 
 
 
@@ -74,11 +76,15 @@ def my_instr_factory():
                                   catalog_name='user_catalog')
 
     empty_query = EmptyProductQuery('empty_parameters_dummy_query',)
-    failing_query = FailingProductQuery('failing_parameters_dummy_query', )
+    failing_query = FailingProductQuery('failing_parameters_dummy_query',)
     # let's build a simple parameter to its list
     p = BoundaryFloat(value=10., name='p', units='W',)
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
                                              parameters_list=[p])
+
+    f = FileInformationObject(name='dummy_file')
+    file_query = FileParameterQuery('file_parameters_dummy_query',
+                                    parameters_list=[p, f])
 
     # let's build a simple parameter to its list
     sb = SpectralBoundary(value=10., name='sb')
@@ -110,6 +116,7 @@ def my_instr_factory():
     # nor product, only a simple query that does not return anything
     query_dictionary['dummy'] = 'empty_parameters_dummy_query'
     query_dictionary['numerical'] = 'numerical_parameters_dummy_query'
+    query_dictionary['file_dummy'] = 'file_parameters_dummy_query'
     query_dictionary['failing'] = 'failing_parameters_dummy_query'
     query_dictionary['parametrical'] = 'parametrical_parameters_dummy_query'
     query_dictionary['echo'] = 'echo_parameters_dummy_query'
@@ -120,7 +127,8 @@ def my_instr_factory():
                       src_query=src_query,
                       instrumet_query=instr_query,
                       product_queries_list=[empty_query, 
-                                            numerical_query, 
+                                            numerical_query,
+                                            file_query,
                                             failing_query, 
                                             parametrical_query, 
                                             echo_param_query, 

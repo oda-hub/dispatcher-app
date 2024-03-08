@@ -1194,6 +1194,45 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
     logger.info(json.dumps(jdata, indent=4))
 
 
+def test_arg_file(dispatcher_live_fixture):
+
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'file_dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 5.,
+        'token': encoded_token,
+    }
+
+    file_path = DispatcherJobState.create_p_value_file(p_value=5)
+
+    list_file = open(file_path)
+
+    expected_query_status = 'done'
+    expected_job_status = 'done'
+    expected_status_code = 200
+
+    jdata = ask(server,
+                params,
+                expected_query_status=expected_query_status,
+                expected_job_status=expected_job_status,
+                expected_status_code=expected_status_code,
+                max_time_s=150,
+                method='post',
+                files={'dummy_file': list_file.read()}
+                )
+
 def test_scws_list_file(dispatcher_live_fixture):
 
     server = dispatcher_live_fixture
