@@ -32,8 +32,6 @@ import yaml
 
 import numpy as np
 from astropy.table import Table
-from urllib.parse import urlencode
-from collections import OrderedDict
 
 from cdci_data_analysis.analysis.queries import _check_is_base_query
 from ..analysis import tokenHelper, parameters

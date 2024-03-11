@@ -944,7 +944,8 @@ class InstrumentQueryBackEnd:
             tar.close()
         else:
             if return_archive:
-                in_data = open(file_list[0], "rb").read()
+                with open(file_list[0], "rb") as f_in:
+                    in_data = f_in.read()
                 with gzip.open(file_path, 'wb') as f:
                     f.write(in_data)
             else:

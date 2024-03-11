@@ -54,8 +54,7 @@ from ...analysis.parameters import (SpectralBoundary,
                                     Integer, 
                                     Float, 
                                     String,
-                                    StructuredParameter,
-                                    FileUrl)
+                                    StructuredParameter)
 
 
 
