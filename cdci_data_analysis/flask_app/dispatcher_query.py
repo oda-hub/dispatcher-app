@@ -914,7 +914,7 @@ class InstrumentQueryBackEnd:
         if temp_scratch_dir is not None and temp_scratch_dir != self.scratch_dir and os.path.exists(temp_scratch_dir):
             shutil.rmtree(temp_scratch_dir)
 
-    def prepare_download(self, file_list, file_name, scratch_dir):
+    def prepare_download(self, file_list, file_name, scratch_dir, return_archive=True):
         file_name = file_name.replace(' ', '_')
 
         if hasattr(file_list, '__iter__'):
@@ -925,9 +925,9 @@ class InstrumentQueryBackEnd:
         for ID, f in enumerate(file_list):
             file_list[ID] = os.path.join(scratch_dir + '/', f)
 
-        tmp_dir = tempfile.mkdtemp(prefix='download_', dir='./')
+        file_dir = tempfile.mkdtemp(prefix='download_', dir='./')
 
-        file_path = os.path.join(tmp_dir, file_name)
+        file_path = os.path.join(file_dir, file_name)
         out_dir = file_name.replace('.tar', '')
         out_dir = out_dir.replace('.gz', '')
 
@@ -940,13 +940,21 @@ class InstrumentQueryBackEnd:
                             (out_dir, os.path.basename(name)))
             tar.close()
         else:
-            in_data = open(file_list[0], "rb").read()
-            with gzip.open(file_path, 'wb') as f:
-                f.write(in_data)
+            if return_archive:
+                in_data = open(file_list[0], "rb").read()
+                with gzip.open(file_path, 'wb') as f:
+                    f.write(in_data)
+            else:
+                file_to_download = file_list[0].split('/')[-1]
+                if file_name == file_to_download:
+                    file_dir = os.path.dirname(file_list[0])
+                else:
+                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                    shutil.copy(file_list[0], file_path)
 
-        tmp_dir = os.path.abspath(tmp_dir)
+        file_dir = os.path.abspath(file_dir)
 
-        return tmp_dir, file_name
+        return file_dir, file_name
 
     def resolve_job_url(self):
         expected_pars = set(['job_id', 'session_id', 'token'])
@@ -1048,7 +1056,7 @@ class InstrumentQueryBackEnd:
 
         return self.token
 
-    def download_products(self):
+    def download_file(self):
         try:
             # TODO not entirely sure about these
             self.off_line = False
@@ -1056,10 +1064,13 @@ class InstrumentQueryBackEnd:
 
             self.validate_job_id(request_parameters_from_scratch_dir=True)
             file_list = self.args.get('file_list').split(',')
-            file_name = self.args.get('download_file_name')
+            file_name = self.args.get('download_file_name', None)
+            if file_name is None:
+                file_name = file_list[0] if len(file_list) == 1 else 'download.tar.gz'
+            return_archive = self.args.get('return_archive', 'True') == 'True'
 
             tmp_dir, target_file = self.prepare_download(
-                file_list, file_name, self.scratch_dir)
+                file_list, file_name, self.scratch_dir, return_archive=return_archive)
             try:
                 return send_from_directory(directory=tmp_dir, path=target_file, attachment_filename=target_file,
                                         as_attachment=True)

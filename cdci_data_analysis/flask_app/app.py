@@ -151,8 +151,13 @@ def meta_data_src():
 @app.route("/download_products", methods=['POST', 'GET'])
 def download_products():
     query = InstrumentQueryBackEnd(app, download_products=True)
-    return query.download_products()
+    return query.download_file()
 
+
+@app.route("/download_file", methods=['POST', 'GET'])
+def download_file():
+    query = InstrumentQueryBackEnd(app, download_products=True)
+    return query.download_file()
 
 class UnknownDispatcherException(Exception):
     status_code = 400
