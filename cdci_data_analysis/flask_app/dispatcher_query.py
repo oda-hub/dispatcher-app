@@ -295,6 +295,9 @@ class InstrumentQueryBackEnd:
                             verbose=verbose,
                             use_scws=self.use_scws,
                             scratch_dir=self.scratch_dir,
+                            job_id=self.job_id,
+                            session_id=self.par_dic['session_id'],
+                            products_url=self.app.config['conf'].products_url,
                             sentry_dsn=self.sentry_dsn
                         )
                         self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
