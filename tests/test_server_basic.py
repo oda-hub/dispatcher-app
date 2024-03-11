@@ -1256,9 +1256,9 @@ def test_arg_file(dispatcher_live_fixture):
         'token': encoded_token,
     }
 
-    file_path = DispatcherJobState.create_p_value_file(p_value=5)
+    p_file_path = DispatcherJobState.create_p_value_file(p_value=5)
 
-    list_file = open(file_path)
+    list_file = open(p_file_path)
 
     expected_query_status = 'done'
     expected_job_status = 'done'
@@ -1273,6 +1273,28 @@ def test_arg_file(dispatcher_live_fixture):
                 method='post',
                 files={'dummy_file': list_file.read()}
                 )
+
+    list_file.close()
+    assert 'dummy_file' in jdata['products']['analysis_parameters']
+
+    params = {
+            'query_status': 'ready',
+            'file_list': 'dummy_file',
+            'session_id': jdata['session_id'],
+            'return_archive': False,
+            'job_id': jdata['products']['job_id'],
+            'token': encoded_token,
+        }
+
+    c = requests.get(server + "/download_file",
+                     params=params)
+
+    assert c.status_code == 200
+    with open(p_file_path) as p_file:
+        p_file_content = p_file.read()
+    assert c.content.decode() == p_file_content
+
+
 
 def test_scws_list_file(dispatcher_live_fixture):
 
