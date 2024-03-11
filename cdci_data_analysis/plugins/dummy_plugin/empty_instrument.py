@@ -55,7 +55,7 @@ from ...analysis.parameters import (SpectralBoundary,
                                     Float, 
                                     String,
                                     StructuredParameter,
-                                    FileInformationObject)
+                                    FileUrl)
 
 
 
@@ -82,7 +82,7 @@ def my_instr_factory():
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
                                              parameters_list=[p])
 
-    f = FileInformationObject(name='dummy_file')
+    f = FileUrl(name='dummy_file_url')
     file_query = FileParameterQuery('file_parameters_dummy_query',
                                     parameters_list=[p, f])
 
