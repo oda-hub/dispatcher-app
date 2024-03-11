@@ -1236,7 +1236,7 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
 
 
 def test_arg_file(dispatcher_live_fixture):
-
+    DispatcherJobState.remove_scratch_folders()
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
@@ -1276,6 +1276,7 @@ def test_arg_file(dispatcher_live_fixture):
 
     list_file.close()
     assert 'dummy_file' in jdata['products']['analysis_parameters']
+    assert os.path.exists(f'scratch_sid_{jdata["session_id"]}_jid_{jdata["products"]["job_id"]}/dummy_file')
 
     params = {
             'query_status': 'ready',
