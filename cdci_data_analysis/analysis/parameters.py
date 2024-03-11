@@ -1049,8 +1049,6 @@ class StructuredParameter(Parameter):
     def get_default_value(self):
         return json.dumps(self.value, sort_keys=True)
 
-class FileUrl(String):
-    owl_uris = String.owl_uris + ('http://odahub.io/ontology#FileURL',)
 
 class PhosphorosFiltersTable(StructuredParameter):
     owl_uris = ('http://odahub.io/ontology#PhosphorosFiltersTable')
