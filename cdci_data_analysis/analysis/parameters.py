@@ -1049,17 +1049,8 @@ class StructuredParameter(Parameter):
     def get_default_value(self):
         return json.dumps(self.value, sort_keys=True)
 
-class FileInformationObject(StructuredParameter):
-
-    def __init__(self, value=None, name=None):
-        schema = {
-            "type": "object",
-            "properties": {
-                "hash": {"type": "string"},
-                "path": {"type": "string"}
-            }
-        }
-        super().__init__(value=value, name=name, schema=schema)
+class FileUrl(String):
+    owl_uris = String.owl_uris + ('http://odahub.io/ontology#FileURL',)
 
 class PhosphorosFiltersTable(StructuredParameter):
     owl_uris = ('http://odahub.io/ontology#PhosphorosFiltersTable')
