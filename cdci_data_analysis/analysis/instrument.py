@@ -244,6 +244,7 @@ class Instrument:
                            temp_dir,
                            verbose,
                            use_scws,
+                           scratch_dir,
                            sentry_dsn=None):
         error_message = 'Error while {step} {temp_dir_content_msg}{additional}'
         # TODO probably exception handling can be further improved and/or optmized
@@ -267,7 +268,7 @@ class Instrument:
 
             # any other file
             step = 'upload other files'
-            self.upload_files_request(par_dic=par_dic, request=request, temp_dir=temp_dir)
+            self.upload_files_request(par_dic=par_dic, request=request, scratch_dir=scratch_dir)
         except RequestNotUnderstood as e:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='',
@@ -721,15 +722,16 @@ class Instrument:
 
         return has_prods
 
-    def upload_files_request(self, par_dic, request, temp_dir):
+    def upload_files_request(self, par_dic, request, scratch_dir):
         if request.method == 'POST':
             for f in request.files:
                 # TODO needed since those two files are extracted in a previous step
                 if f != 'user_scw_list_file' and f != 'user_catalog_file':
-                    f_path = upload_file(f, temp_dir)
+                    f_path = upload_file(f, scratch_dir)
                     if f_path is not None:
                         f_hash = make_hash_file(f_path)
-                        par_dic[f] = {"hash": f_hash, "path": f_path}
+                        # par_dic[f] = {"hash": f_hash, "path": f_path}
+
 
     def upload_catalog_from_fronted(self, par_dic, request, temp_dir):
         cat_file_path = None

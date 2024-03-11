@@ -294,6 +294,7 @@ class InstrumentQueryBackEnd:
                             temp_dir=self.temp_dir,
                             verbose=verbose,
                             use_scws=self.use_scws,
+                            scratch_dir=self.scratch_dir,
                             sentry_dsn=self.sentry_dsn
                         )
                         self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
