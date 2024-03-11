@@ -743,11 +743,7 @@ class Instrument:
                             'return_archive': False,
                             'job_id': job_id
                         }
-                        # params_download_request = OrderedDict({
-                        #     k: params_download_request[k] for k in sorted(params_download_request.keys())
-                        # })
-
-                        f_url = '%s?%s' % (products_url, urlencode(params_download_request))
+                        f_url = '%s/download_file?%s' % (products_url, urlencode(params_download_request))
                         par_dic[f'{f}_url'] = f_url
 
 
