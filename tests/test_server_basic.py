@@ -577,6 +577,30 @@ def test_instrument_list_redirection_external_products_url(dispatcher_live_fixtu
 
 
 @pytest.mark.fast
+@pytest.mark.parametrize("include_args", [True, False])
+def test_download_file_redirection_external_products_url(dispatcher_live_fixture_with_external_products_url,
+                                                           dispatcher_test_conf_with_external_products_url,
+                                                           include_args):
+    server = dispatcher_live_fixture_with_external_products_url
+
+    logger.info("constructed server: %s", server)
+
+    url_request = os.path.join(server, "download_file")
+
+    if include_args:
+        url_request += '?a=4566&token=aaaaaaaaaa'
+
+    c = requests.get(url_request, allow_redirects=False)
+
+    assert c.status_code == 302
+    redirection_header_location_url = c.headers["Location"]
+    redirection_url = os.path.join(dispatcher_test_conf_with_external_products_url['products_url'], 'dispatch-data/download_products')
+    if include_args:
+        redirection_url += '?a=4566&token=aaaaaaaaaa'
+    assert redirection_url == redirection_header_location_url
+
+
+@pytest.mark.fast
 @pytest.mark.parametrize("allow_redirect", [True, False])
 @pytest.mark.parametrize("include_args", [True, False])
 def test_instrument_list_redirection_no_custom_products_url(dispatcher_live_fixture_no_products_url,
@@ -603,6 +627,29 @@ def test_instrument_list_redirection_no_custom_products_url(dispatcher_live_fixt
     else:
         assert c.status_code == 200
 
+
+@pytest.mark.fast
+@pytest.mark.parametrize("include_args", [True, False])
+def test_download_file_redirection_no_custom_products_url(dispatcher_live_fixture_no_products_url,
+                                                          include_args):
+    server = dispatcher_live_fixture_no_products_url
+
+    logger.info("constructed server: %s", server)
+
+    url_request = os.path.join(server, "download_file")
+
+    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
+    if include_args:
+        url_request += '?a=4566&token=' + encoded_token
+
+    c = requests.get(url_request, allow_redirects=False)
+
+    assert c.status_code == 302
+    redirection_header_location_url = c.headers["Location"]
+    redirection_url = os.path.join(server, 'download_products')
+    if include_args:
+        redirection_url += '?a=4566&token=' + encoded_token
+    assert redirection_header_location_url == redirection_url
 
 @pytest.mark.fast
 @pytest.mark.parametrize("allow_redirect", [True, False])
