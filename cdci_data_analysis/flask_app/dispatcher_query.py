@@ -294,7 +294,6 @@ class InstrumentQueryBackEnd:
                             temp_dir=self.temp_dir,
                             verbose=verbose,
                             use_scws=self.use_scws,
-                            scratch_dir=self.scratch_dir,
                             job_id=self.job_id,
                             session_id=self.par_dic['session_id'],
                             products_url=self.app.config['conf'].products_url,

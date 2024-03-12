@@ -244,7 +244,6 @@ class Instrument:
                            temp_dir,
                            verbose,
                            use_scws,
-                           scratch_dir,
                            job_id,
                            session_id,
                            products_url,
