@@ -244,9 +244,6 @@ class Instrument:
                            temp_dir,
                            verbose,
                            use_scws,
-                           job_id,
-                           session_id,
-                           products_url,
                            sentry_dsn=None):
         error_message = 'Error while {step} {temp_dir_content_msg}{additional}'
         # TODO probably exception handling can be further improved and/or optmized
@@ -270,7 +267,7 @@ class Instrument:
 
             # any other file
             step = 'upload other files'
-            self.upload_files_request(par_dic=par_dic, request=request, temp_dir=temp_dir, job_id=job_id, session_id=session_id, products_url=products_url)
+            self.upload_files_request(par_dic=par_dic, request=request, temp_dir=temp_dir)
         except RequestNotUnderstood as e:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='',
@@ -724,7 +721,7 @@ class Instrument:
 
         return has_prods
 
-    def upload_files_request(self, par_dic, request, temp_dir, job_id, session_id, products_url):
+    def upload_files_request(self, par_dic, request, temp_dir):
         if request.method == 'POST':
             for f in request.files:
                 # TODO needed since those two files are extracted in a previous step
@@ -732,15 +729,6 @@ class Instrument:
                     f_path = upload_file(f, temp_dir)
                     if f_path is not None:
                         f_hash = make_hash_file(f_path)
-                        # params_download_request = {
-                        #     'query_status': 'ready',
-                        #     'file_list': f,
-                        #     'download_file_name': f_hash,
-                        #     'session_id': session_id,
-                        #     'return_archive': False,
-                        #     'job_id': job_id
-                        # }
-                        # f_url = '%s/download_file?%s' % (products_url, urlencode(params_download_request))
                         par_dic[f] = f_hash
 
 
