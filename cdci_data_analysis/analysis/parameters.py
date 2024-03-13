@@ -583,6 +583,9 @@ class String(Parameter):
 class Name(String):
     owl_uris = String.owl_uris + ("http://odahub.io/ontology#AstrophysicalObject",)
 
+class FileReference(String):
+    owl_uris = String.owl_uris + ("http://odahub.io/ontology#FileReference",)
+
 class NumericParameter(Parameter):
     owl_uris = ("http://odahub.io/ontology#NumericParameter")
 
