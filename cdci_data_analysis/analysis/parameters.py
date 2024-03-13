@@ -586,6 +586,9 @@ class Name(String):
 class FileReference(String):
     owl_uris = String.owl_uris + ("http://odahub.io/ontology#FileReference",)
 
+class POSIXPath(FileReference):
+    owl_uris = FileReference.owl_uris + ("http://odahub.io/ontology#POSIXPath",)
+
 class NumericParameter(Parameter):
     owl_uris = ("http://odahub.io/ontology#NumericParameter")
 
