@@ -1,7 +1,7 @@
 import re
 import shutil
 import urllib
-
+import io
 import requests
 import time
 import uuid
@@ -439,6 +439,59 @@ def test_download_products_public(dispatcher_long_living_fixture, empty_products
 
     assert data_downloaded == empty_products_files_fixture['content']
 
+@pytest.mark.fast
+@pytest.mark.parametrize('filelist', ['../external_file', '/tmp/external_file', 'test.fits.gz'])
+@pytest.mark.parametrize('outname', ['/tmp/output_test', '../output_test', 'output_test'])
+def test_download_products_outside_dir(dispatcher_long_living_fixture, 
+                                       empty_products_files_fixture,
+                                       filelist,
+                                       outname):    
+    server = dispatcher_long_living_fixture
+
+    is_good = True if filelist == 'test.fits.gz' and outname == 'output_test' else False
+    logger.info("constructed server: %s", server)
+
+    session_id = empty_products_files_fixture['session_id']
+    job_id = empty_products_files_fixture['job_id']
+
+    if not is_good:
+        with open(filelist.replace('../', ''), 'w') as outb:
+            outb.write('__confidential__')
+    
+    params = {
+            'instrument': 'any_name',
+            # since we are passing a job_id
+            'query_status': 'ready',
+            'file_list': filelist,
+            'download_file_name': outname,
+            'session_id': session_id,
+            'job_id': job_id
+        }
+
+    c = requests.get(server + "/download_products",
+                     params=params)
+
+    if is_good:
+        assert c.status_code == 200
+        # further checks in previous test
+    else:    
+        assert c.status_code == 403
+    
+        # check the output anyway
+        assert b"__confidential__" not in c.content
+        if hasattr(c, 'text'):
+            assert "__confidential__" not in c.text
+        
+        with io.BytesIO() as outb:
+            outb.write(c.content)
+            outb.seek(0)
+            gz = gzip.GzipFile(fileobj=outb, mode='rb')
+            with pytest.raises(gzip.BadGzipFile):
+                gz.read()
+        try:
+            os.remove(filelist.replace('../', ''))
+        except:
+            pass
 
 def test_query_restricted_instrument(dispatcher_live_fixture):
     server = dispatcher_live_fixture

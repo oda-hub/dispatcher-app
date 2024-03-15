@@ -913,6 +913,21 @@ class InstrumentQueryBackEnd:
         if temp_scratch_dir is not None and temp_scratch_dir != self.scratch_dir and os.path.exists(temp_scratch_dir):
             shutil.rmtree(temp_scratch_dir)
 
+    @staticmethod
+    def validated_download_file_path(basepath, filename, should_exist=True):
+        # basic arg validation
+        if "../" in filename or filename.startswith(os.sep):
+            raise RequestNotAuthorized('No such file')
+        
+        # still explicitly check if the file is in the dir
+        base_abs = os.path.realpath(basepath)
+        file_abs = os.path.realpath(os.path.join(basepath, filename))
+
+        if (os.path.commonpath([base_abs]) != os.path.commonpath([base_abs, file_abs]) 
+                or (should_exist and not os.path.isfile(file_abs)) ):
+            raise RequestNotAuthorized('No such file')
+        return file_abs
+    
     def prepare_download(self, file_list, file_name, scratch_dir):
         file_name = file_name.replace(' ', '_')
 
@@ -922,18 +937,17 @@ class InstrumentQueryBackEnd:
             file_list = [file_list]
 
         for ID, f in enumerate(file_list):
-            file_list[ID] = os.path.join(scratch_dir + '/', f)
+            file_list[ID] = self.validated_download_file_path(scratch_dir, f)
 
         tmp_dir = tempfile.mkdtemp(prefix='download_', dir='./')
 
-        file_path = os.path.join(tmp_dir, file_name)
+        file_path = self.validated_download_file_path(tmp_dir, file_name, should_exist=False)
         out_dir = file_name.replace('.tar', '')
         out_dir = out_dir.replace('.gz', '')
 
         if len(file_list) > 1:
             tar = tarfile.open("%s" % (file_path), "w:gz")
             for name in file_list:
-                #print('add to tar', file_name,name)
                 if name is not None:
                     tar.add(name, arcname='%s/%s' %
                             (out_dir, os.path.basename(name)))
@@ -1055,6 +1069,7 @@ class InstrumentQueryBackEnd:
 
             self.validate_job_id(request_parameters_from_scratch_dir=True)
             file_list = self.args.get('file_list').split(',')
+                        
             file_name = self.args.get('download_file_name')
 
             tmp_dir, target_file = self.prepare_download(
