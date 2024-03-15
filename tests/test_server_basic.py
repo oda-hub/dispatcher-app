@@ -1,7 +1,7 @@
 import re
 import shutil
 import urllib
-
+import io
 import requests
 import time
 import uuid
@@ -448,8 +448,8 @@ def test_download_products_outside_dir(dispatcher_long_living_fixture, empty_pro
     session_id = empty_products_files_fixture['session_id']
     job_id = empty_products_files_fixture['job_id']
 
-    with open('external_file', 'w') as fd:
-        fd.write('confidential')
+    with open('external_file', 'w') as outb:
+        outb.write('__confidential__')
     
     params = {
             'instrument': 'any_name',
@@ -464,17 +464,23 @@ def test_download_products_outside_dir(dispatcher_long_living_fixture, empty_pro
     c = requests.get(server + "/download_products",
                      params=params)
 
-    assert c.status_code == 200
-
-    # download the output, read it and then compare it
-    with open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'wb') as fout:
-        fout.write(c.content)
-
-    with gzip.open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'rt') as fout:
-        data_downloaded = fout.read()
-
-    assert data_downloaded == 'confidential'
-
+    assert c.status_code in [403, 500]
+   
+    # check the output anyway
+    assert b"__confidential__" not in c.content
+    if hasattr(c, 'text'):
+        assert "__confidential__" not in c.text
+    
+    with io.BytesIO() as outb:
+        outb.write(c.content)
+        outb.seek(0)
+        gz = gzip.GzipFile(fileobj=outb, mode='rb')
+        with pytest.raises(gzip.BadGzipFile):
+            gz.read()
+    try:
+        os.remove('external_file')
+    except:
+        pass
 
 def test_query_restricted_instrument(dispatcher_live_fixture):
     server = dispatcher_live_fixture

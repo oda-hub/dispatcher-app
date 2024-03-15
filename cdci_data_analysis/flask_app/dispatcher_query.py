@@ -927,7 +927,7 @@ class InstrumentQueryBackEnd:
             scratch_abs = os.path.abspath(scratch_dir)
             file_abs = os.path.abspath(file_list[ID])
 
-            if (os.path.commonpath(scratch_abs) != os.path.commonpath([scratch_abs, file_abs]) 
+            if (os.path.commonpath([scratch_abs]) != os.path.commonpath([scratch_abs, file_abs]) 
                     or not os.path.isfile(file_abs)):
                 raise RequestNotAuthorized('No such file')
 
