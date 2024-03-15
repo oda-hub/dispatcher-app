@@ -922,7 +922,14 @@ class InstrumentQueryBackEnd:
             file_list = [file_list]
 
         for ID, f in enumerate(file_list):
-            file_list[ID] = os.path.join(scratch_dir + '/', f)
+            file_list[ID] = os.path.join(scratch_dir, f)
+            # check if the file is in the scratch_dir (i.e. f didn't contain ..)
+            scratch_abs = os.path.abspath(scratch_dir)
+            file_abs = os.path.abspath(file_list[ID])
+
+            if (os.path.commonpath(scratch_abs) != os.path.commonpath([scratch_abs, file_abs]) 
+                    or not os.path.isfile(file_abs)):
+                raise RequestNotAuthorized('No such file')
 
         tmp_dir = tempfile.mkdtemp(prefix='download_', dir='./')
 
@@ -1055,6 +1062,7 @@ class InstrumentQueryBackEnd:
 
             self.validate_job_id(request_parameters_from_scratch_dir=True)
             file_list = self.args.get('file_list').split(',')
+            
             file_name = self.args.get('download_file_name')
 
             tmp_dir, target_file = self.prepare_download(
