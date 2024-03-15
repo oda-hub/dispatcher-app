@@ -922,7 +922,7 @@ class InstrumentQueryBackEnd:
             file_list = [file_list]
 
         for ID, f in enumerate(file_list):
-            file_list[ID] = os.path.join(scratch_dir + '/', f)
+            file_list[ID] = os.path.join(scratch_dir, f)
 
         file_dir = tempfile.mkdtemp(prefix='download_', dir='./')
 
