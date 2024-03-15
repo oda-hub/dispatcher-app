@@ -1,4 +1,5 @@
 import hashlib
+import subprocess
 import json
 from collections import OrderedDict
 
@@ -37,9 +38,8 @@ def make_hash(o):
 
 
 def make_hash_file(file_path):
+    command = f"md5sum {file_path}"
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = process.communicate()
 
-    # TODO to adapt in case of big files and reading in chunks will be necessary
-    with open(file_path, 'rb') as f:
-        file_content = f.read()
-
-    return hashlib.md5(file_content).hexdigest()[:16]
+    return stdout.decode().split()[0][:16]
