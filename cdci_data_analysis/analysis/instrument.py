@@ -728,8 +728,7 @@ class Instrument:
                 if f != 'user_scw_list_file' and f != 'user_catalog_file':
                     f_path = upload_file(f, temp_dir)
                     if f_path is not None:
-                        f_hash = make_hash_file(f_path)
-                        par_dic[f] = f_hash
+                        par_dic[f] = make_hash_file(f_path)
 
 
     def upload_catalog_from_fronted(self, par_dic, request, temp_dir):
