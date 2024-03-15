@@ -1062,7 +1062,10 @@ class InstrumentQueryBackEnd:
 
             self.validate_job_id(request_parameters_from_scratch_dir=True)
             file_list = self.args.get('file_list').split(',')
-            
+            for fn in file_list:
+                if f"../" is fn:
+                    raise RequestNotAuthorized('No such file')
+                        
             file_name = self.args.get('download_file_name')
 
             tmp_dir, target_file = self.prepare_download(
