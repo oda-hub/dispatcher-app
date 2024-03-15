@@ -439,6 +439,42 @@ def test_download_products_public(dispatcher_long_living_fixture, empty_products
 
     assert data_downloaded == empty_products_files_fixture['content']
 
+@pytest.mark.fast
+def test_download_products_outside_dir(dispatcher_long_living_fixture, empty_products_files_fixture):    
+    server = dispatcher_long_living_fixture
+
+    logger.info("constructed server: %s", server)
+
+    session_id = empty_products_files_fixture['session_id']
+    job_id = empty_products_files_fixture['job_id']
+
+    with open('external_file', 'w') as fd:
+        fd.write('confidential')
+    
+    params = {
+            'instrument': 'any_name',
+            # since we are passing a job_id
+            'query_status': 'ready',
+            'file_list': '../external_file',
+            'download_file_name': 'output_test',
+            'session_id': session_id,
+            'job_id': job_id
+        }
+
+    c = requests.get(server + "/download_products",
+                     params=params)
+
+    assert c.status_code == 200
+
+    # download the output, read it and then compare it
+    with open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'wb') as fout:
+        fout.write(c.content)
+
+    with gzip.open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'rt') as fout:
+        data_downloaded = fout.read()
+
+    assert data_downloaded == 'confidential'
+
 
 def test_query_restricted_instrument(dispatcher_live_fixture):
     server = dispatcher_live_fixture
