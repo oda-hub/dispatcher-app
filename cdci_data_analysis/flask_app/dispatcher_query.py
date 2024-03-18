@@ -928,7 +928,7 @@ class InstrumentQueryBackEnd:
             raise RequestNotAuthorized('No such file')
         return file_abs
     
-    def prepare_download(self, file_list, file_name, scratch_dir):
+    def prepare_download(self, file_list, file_name, scratch_dir, return_archive=True):
         file_name = file_name.replace(' ', '_')
 
         if hasattr(file_list, '__iter__'):
@@ -941,7 +941,7 @@ class InstrumentQueryBackEnd:
 
         file_dir = tempfile.mkdtemp(prefix='download_', dir='./')
 
-        file_path = self.validated_download_file_path(tmp_dir, file_name, should_exist=False)
+        file_path = self.validated_download_file_path(scratch_dir, file_name, should_exist=False)
         out_dir = file_name.replace('.tar', '')
         out_dir = out_dir.replace('.gz', '')
 
