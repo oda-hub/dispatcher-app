@@ -941,7 +941,7 @@ class InstrumentQueryBackEnd:
 
         file_dir = tempfile.mkdtemp(prefix='download_', dir='./')
 
-        file_path = self.validated_download_file_path(scratch_dir, file_name, should_exist=False)
+        file_path = self.validated_download_file_path(file_dir, file_name, should_exist=False)
         out_dir = file_name.replace('.tar', '')
         out_dir = out_dir.replace('.gz', '')
 
