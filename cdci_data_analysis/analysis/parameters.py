@@ -586,6 +586,10 @@ class Name(String):
 class FileReference(String):
     owl_uris = "http://odahub.io/ontology#FileReference"
 
+    def __init__(self, downloadable=False, *args, **kwargs):
+        self.downloadable = downloadable
+        super().__init__(*args, **kwargs)
+
 class POSIXPath(FileReference):
     owl_uris = FileReference.owl_uris + "http://odahub.io/ontology#POSIXPath"
 
