@@ -586,7 +586,7 @@ class Name(String):
 class FileReference(String):
     owl_uris = "http://odahub.io/ontology#FileReference"
 
-    def __init__(self, downloadable=True, *args, **kwargs):
+    def __init__(self, *args, downloadable=True, **kwargs):
         self.downloadable = downloadable
         super().__init__(*args, **kwargs)
 
