@@ -267,7 +267,7 @@ class Instrument:
 
             # any other file
             step = 'upload other files'
-            self.upload_files_request(par_dic=par_dic, request=request, temp_dir=temp_dir)
+            self.upload_files_request(par_dic=par_dic, request=request, upload_dir=temp_dir)
         except RequestNotUnderstood as e:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='',
@@ -721,14 +721,19 @@ class Instrument:
 
         return has_prods
 
-    def upload_files_request(self, par_dic, request, temp_dir):
+    def upload_files_request(self, par_dic, request, upload_dir):
         if request.method == 'POST':
             for f in request.files:
                 # TODO needed since those two files are extracted in a previous step
                 if f != 'user_scw_list_file' and f != 'user_catalog_file':
-                    f_path = upload_file(f, temp_dir)
+                    f_path = upload_file(f, upload_dir)
                     if f_path is not None:
-                        par_dic[f] = make_hash_file(f_path)
+                        file_hash = make_hash_file(f_path)
+                        f_name, f_ext = os.path.splitext(os.path.basename(f_path))
+                        new_file_name = f_name.split('.')[0] + '_' + file_hash + f_ext
+                        new_file_path = os.path.join(upload_dir, new_file_name)
+                        os.rename(f_path, new_file_path)
+                        par_dic[f] = 'url'
 
 
     def upload_catalog_from_fronted(self, par_dic, request, temp_dir):
