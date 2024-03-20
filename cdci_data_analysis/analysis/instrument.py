@@ -244,6 +244,7 @@ class Instrument:
                            temp_dir,
                            verbose,
                            use_scws,
+                           upload_dir,
                            sentry_dsn=None):
         error_message = 'Error while {step} {temp_dir_content_msg}{additional}'
         # TODO probably exception handling can be further improved and/or optmized
@@ -267,7 +268,7 @@ class Instrument:
 
             # any other file
             step = 'upload other files'
-            self.upload_files_request(par_dic=par_dic, request=request, upload_dir=temp_dir)
+            list_uploaded_files = self.upload_files_request(par_dic=par_dic, request=request, upload_dir=upload_dir)
         except RequestNotUnderstood as e:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='',
@@ -294,6 +295,8 @@ class Instrument:
                             'use_scws was indicating this was not provided, please check the inputs'
 
             raise RequestNotUnderstood(error_message)
+
+        return list_uploaded_files
 
     def get_status_details(self,
                            par_dic,
@@ -722,6 +725,7 @@ class Instrument:
         return has_prods
 
     def upload_files_request(self, par_dic, request, upload_dir):
+        list_uploaded_files = []
         if request.method == 'POST':
             for f in request.files:
                 # TODO needed since those two files are extracted in a previous step
@@ -732,8 +736,10 @@ class Instrument:
                         f_name, f_ext = os.path.splitext(os.path.basename(f_path))
                         new_file_name = f_name.split('.')[0] + '_' + file_hash + f_ext
                         new_file_path = os.path.join(upload_dir, new_file_name)
+                        list_uploaded_files.append(new_file_name)
                         os.rename(f_path, new_file_path)
                         par_dic[f] = 'url'
+        return list_uploaded_files
 
 
     def upload_catalog_from_fronted(self, par_dic, request, temp_dir):

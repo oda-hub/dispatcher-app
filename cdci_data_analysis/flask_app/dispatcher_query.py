@@ -125,6 +125,8 @@ class InstrumentQueryBackEnd:
         else:
             self.logger.setLevel(logging.INFO)
 
+        self.request_files_dir = self.get_request_files_dir()
+
         params_not_to_be_included.clear()
         params_not_to_be_included.append('user_catalog')
 
@@ -294,9 +296,14 @@ class InstrumentQueryBackEnd:
                             temp_dir=self.temp_dir,
                             verbose=verbose,
                             use_scws=self.use_scws,
+                            upload_dir=self.request_files_dir,
                             sentry_dsn=self.sentry_dsn
                         )
-                        self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
+                        list_uploaded_files = self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
+                        user_email = None
+                        if self.decoded_token is not None:
+                            user_email = tokenHelper.get_token_user_email_address(self.decoded_token)
+                        self.update_ownership_files(list_uploaded_files, user_email=user_email)
                 # update the job_id
                 if not (data_server_call_back or resolve_job_url):
                     query_status = self.par_dic['query_status']
@@ -859,6 +866,36 @@ class InstrumentQueryBackEnd:
             print('par_dic', self.par_dic)
 
         self.args = args
+
+    def get_request_files_dir(self):
+        request_files_dir = FilePath(file_dir='request_files')
+        request_files_dir.mkdir()
+        ownership_file_path = os.path.join(request_files_dir.path, '.file_ownerships.json')
+        if not os.path.exists(ownership_file_path):
+            with open(ownership_file_path, 'w') as ownership_file:
+                json.dump({}, ownership_file)
+        return request_files_dir.path
+
+    def update_ownership_files(self, list_file_name, user_email=None):
+        if user_email:
+            user_email = 'public'
+        update_file=False
+        if isinstance(list_file_name, str):
+            list_file_name = [list_file_name]
+        ownership_file_path = os.path.join(self.request_files_dir, '.file_ownerships.json')
+        with open(ownership_file_path) as ownership_file:
+            ownerships = json.load(ownership_file)
+        for file_name in list_file_name:
+            if file_name not in ownerships:
+                ownerships[file_name] = [user_email]
+                update_file=True
+            elif user_email not in ownerships[file_name]:
+                ownerships[file_name].append(user_email)
+                update_file=True
+        if update_file:
+            with open(ownership_file_path, 'w') as ownership_file:
+                json.dump(ownerships, ownership_file)
+
 
     def set_scratch_dir(self, session_id, job_id=None, verbose=False):
         if verbose == True:
@@ -2433,3 +2470,4 @@ class InstrumentQueryBackEnd:
                     status=0, job_status="submitted", message="async-dispatcher waiting")
 
         return query_out, job_monitor, query_new_status
+
