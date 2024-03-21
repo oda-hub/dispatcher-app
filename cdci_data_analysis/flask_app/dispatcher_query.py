@@ -877,9 +877,9 @@ class InstrumentQueryBackEnd:
         return request_files_dir.path
 
     def update_ownership_files(self, list_file_name, user_email=None):
-        if user_email:
+        if user_email is None:
             user_email = 'public'
-        update_file=False
+        update_file = False
         if isinstance(list_file_name, str):
             list_file_name = [list_file_name]
         ownership_file_path = os.path.join(self.request_files_dir, '.file_ownerships.json')
@@ -888,10 +888,10 @@ class InstrumentQueryBackEnd:
         for file_name in list_file_name:
             if file_name not in ownerships:
                 ownerships[file_name] = [user_email]
-                update_file=True
+                update_file = True
             elif user_email not in ownerships[file_name]:
                 ownerships[file_name].append(user_email)
-                update_file=True
+                update_file = True
         if update_file:
             with open(ownership_file_path, 'w') as ownership_file:
                 json.dump(ownerships, ownership_file)
