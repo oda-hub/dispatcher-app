@@ -150,13 +150,13 @@ def meta_data_src():
 
 @app.route("/download_products", methods=['POST', 'GET'])
 def download_products():
-    query = InstrumentQueryBackEnd(app, download_products=True, config=app.config['conf'])
+    query = InstrumentQueryBackEnd(app, download_products=True)
     return query.download_file()
 
 
 @app.route("/download_file", methods=['POST', 'GET'])
 def download_file():
-    query = InstrumentQueryBackEnd(app, download_products=True, config=app.config['conf'])
+    query = InstrumentQueryBackEnd(app, download_products=True)
     return query.download_file(from_request_files_dir=True)
 
 class UnknownDispatcherException(Exception):

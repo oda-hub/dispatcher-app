@@ -290,6 +290,7 @@ class InstrumentQueryBackEnd:
                                             "Our team is notified and is working on it. We are sorry! "
                                             "When we find a solution we will try to reach you", status_code=500)
                     if self.instrument is not None and not isinstance(self.instrument, str):
+                        products_url = self.app.config.get('conf').products_url
                         self.instrument.parse_inputs_files(
                             par_dic=self.par_dic,
                             request=request,
@@ -297,6 +298,8 @@ class InstrumentQueryBackEnd:
                             verbose=verbose,
                             use_scws=self.use_scws,
                             upload_dir=self.request_files_dir,
+                            token=self.token,
+                            products_url=products_url,
                             sentry_dsn=self.sentry_dsn
                         )
                         list_uploaded_files = self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)

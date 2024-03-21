@@ -42,6 +42,7 @@ from .io_helper import upload_file
 from .hash import make_hash_file
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
 from ..flask_app.sentry import sentry
+from urllib.parse import urlencode
 
 from oda_api.api import DispatcherAPI, RemoteException, Unauthorized, DispatcherException, DispatcherNotAvailable, UnexpectedDispatcherStatusCode, RequestNotUnderstood as RequestNotUnderstoodOdaApi
 
@@ -245,6 +246,8 @@ class Instrument:
                            verbose,
                            use_scws,
                            upload_dir,
+                           token,
+                           products_url,
                            sentry_dsn=None):
         error_message = 'Error while {step} {temp_dir_content_msg}{additional}'
         # TODO probably exception handling can be further improved and/or optmized
@@ -268,7 +271,11 @@ class Instrument:
 
             # any other file
             step = 'upload other files'
-            list_uploaded_files = self.upload_files_request(par_dic=par_dic, request=request, upload_dir=upload_dir)
+            list_uploaded_files = self.upload_files_request(par_dic=par_dic,
+                                                            request=request,
+                                                            upload_dir=upload_dir,
+                                                            products_url=products_url,
+                                                            token=token)
         except RequestNotUnderstood as e:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='',
@@ -724,9 +731,10 @@ class Instrument:
 
         return has_prods
 
-    def upload_files_request(self, par_dic, request, upload_dir):
+    def upload_files_request(self, par_dic, request, upload_dir, products_url, token=None):
         list_uploaded_files = []
         if request.method == 'POST':
+            basepath = os.path.join(self.external_disp_url, 'dispatch-data/download_file')
             for f in request.files:
                 # TODO needed since those two files are extracted in a previous step
                 if f != 'user_scw_list_file' and f != 'user_catalog_file':
@@ -738,7 +746,11 @@ class Instrument:
                         new_file_path = os.path.join(upload_dir, new_file_name)
                         list_uploaded_files.append(new_file_name)
                         os.rename(f_path, new_file_path)
-                        par_dic[f] = 'url'
+                        dpars = urlencode(dict(file_list=new_file_name,
+                                               query_status="ready",
+                                               token=token))
+                        download_file_url = f"{basepath}?{dpars}"
+                        par_dic[f] = download_file_url
         return list_uploaded_files
 
 
