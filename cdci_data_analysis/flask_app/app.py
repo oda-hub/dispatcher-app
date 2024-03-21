@@ -156,18 +156,8 @@ def download_products():
 
 @app.route("/download_file", methods=['POST', 'GET'])
 def download_file():
-    if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url):
-        redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/download_products')
-        if request.args:
-            args_request = urlencode(request.args)
-            redirection_url = f'{redirection_url}?{args_request}'
-    else:
-        parsed_request_url = urlparse(request.url)
-        path_request_url = parsed_request_url.path.replace('/download_file', '/download_products')
-        parsed_request_url = parsed_request_url._replace(path=path_request_url)
-        redirection_url = parsed_request_url.geturl()
-
-    return redirect(redirection_url)
+    query = InstrumentQueryBackEnd(app, download_products=True)
+    return query.download_file(from_request_files_dir=True)
 
 class UnknownDispatcherException(Exception):
     status_code = 400
