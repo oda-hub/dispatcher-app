@@ -964,8 +964,22 @@ class InstrumentQueryBackEnd:
                 or (should_exist and not os.path.isfile(file_abs)) ):
             raise RequestNotAuthorized('No such file')
         return file_abs
+
+    def verify_access_to_file(self, file_name):
+        user_email = tokenHelper.get_token_user_email_address(self.decoded_token)
+        ownership_file_path = os.path.join(self.request_files_dir, '.file_ownerships.json')
+        with open(ownership_file_path) as ownership_file:
+            ownerships = json.load(ownership_file)
+        file_owners_list = ownerships.get(file_name, [])
+        if 'public' not in file_owners_list and user_email not in file_owners_list:
+            raise RequestNotAuthorized('User cannot access the file')
+
     
-    def prepare_download(self, file_list, file_name, scratch_dir, return_archive=True):
+    def prepare_download(self, file_list, file_name, return_archive=True, from_request_files_dir=False):
+        origin_dir = self.scratch_dir
+        if from_request_files_dir:
+            origin_dir = self.request_files_dir
+
         file_name = file_name.replace(' ', '_')
 
         if hasattr(file_list, '__iter__'):
@@ -974,7 +988,9 @@ class InstrumentQueryBackEnd:
             file_list = [file_list]
 
         for ID, f in enumerate(file_list):
-            file_list[ID] = self.validated_download_file_path(scratch_dir, f)
+            file_list[ID] = self.validated_download_file_path(origin_dir, f)
+            if from_request_files_dir:
+                self.verify_access_to_file(f)
 
         file_dir = tempfile.mkdtemp(prefix='download_', dir='./')
 
@@ -1107,8 +1123,9 @@ class InstrumentQueryBackEnd:
 
         return self.token
 
-    def download_file(self):
+    def download_file(self, from_request_files_dir=False):
         try:
+
             # TODO not entirely sure about these
             self.off_line = False
             self.api = False
@@ -1121,7 +1138,9 @@ class InstrumentQueryBackEnd:
             return_archive = self.args.get('return_archive', 'True') == 'True'
 
             tmp_dir, target_file = self.prepare_download(
-                file_list, file_name, self.scratch_dir, return_archive=return_archive)
+                file_list, file_name,
+                return_archive=return_archive,
+                from_request_files_dir=from_request_files_dir)
             try:
                 return send_from_directory(directory=tmp_dir, path=target_file, attachment_filename=target_file,
                                         as_attachment=True)
