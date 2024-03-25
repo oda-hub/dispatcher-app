@@ -1538,6 +1538,11 @@ class DispatcherJobState:
         return selected_catalog_obj
 
     @staticmethod
+    def create_local_request_files_folder():
+        if not os.path.exists('local_request_files'):
+            os.makedirs('local_request_files')
+
+    @staticmethod
     def create_catalog_file(catalog_value, wrong_format=False):
         # generate ScWs list file
         if not os.path.exists('catalog_simple_files'):

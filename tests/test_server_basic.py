@@ -497,7 +497,7 @@ def test_download_products_outside_dir(dispatcher_long_living_fixture,
 @pytest.mark.parametrize('return_archive', [True, False])
 @pytest.mark.parametrize('matching_file_name', [True, False])
 def test_download_file_public(dispatcher_long_living_fixture, request_files_fixture, return_archive, matching_file_name):
-
+    DispatcherJobState.create_local_request_files_folder()
     server = dispatcher_long_living_fixture
 
     logger.info("constructed server: %s", server)
