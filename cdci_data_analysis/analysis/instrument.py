@@ -27,7 +27,7 @@ from builtins import (bytes, str, open, super, range,
 import string
 import json
 import logging
-
+import validators
 import yaml
 
 import numpy as np
@@ -734,7 +734,10 @@ class Instrument:
     def upload_files_request(self, par_dic, request, upload_dir, products_url, token=None):
         list_uploaded_files = []
         if request.method == 'POST':
-            basepath = os.path.join(products_url, 'dispatch-data/download_file')
+            if validators.url(products_url):
+                basepath = os.path.join(products_url, 'dispatch-data/download_file')
+            else:
+                basepath = os.path.join(products_url, 'download_file')
             for f in request.files:
                 # TODO needed since those two files are extracted in a previous step
                 if f != 'user_scw_list_file' and f != 'user_catalog_file':
@@ -748,6 +751,7 @@ class Instrument:
                         os.rename(f_path, new_file_path)
                         dpars = urlencode(dict(file_list=new_file_name,
                                                query_status="ready",
+                                               return_archive=False,
                                                token=token))
                         download_file_url = f"{basepath}?{dpars}"
                         par_dic[f] = download_file_url
