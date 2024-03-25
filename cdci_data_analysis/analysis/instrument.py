@@ -734,7 +734,7 @@ class Instrument:
     def upload_files_request(self, par_dic, request, upload_dir, products_url, token=None):
         list_uploaded_files = []
         if request.method == 'POST':
-            basepath = os.path.join(self.products_url, 'dispatch-data/download_file')
+            basepath = os.path.join(products_url, 'dispatch-data/download_file')
             for f in request.files:
                 # TODO needed since those two files are extracted in a previous step
                 if f != 'user_scw_list_file' and f != 'user_catalog_file':
