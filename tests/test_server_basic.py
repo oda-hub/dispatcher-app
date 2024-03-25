@@ -1286,6 +1286,7 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
 
 def test_arg_file(dispatcher_live_fixture):
     DispatcherJobState.remove_scratch_folders()
+    DispatcherJobState.empty_request_files_folders()
     server = dispatcher_live_fixture
     logger.info("constructed server: %s", server)
 
@@ -1325,19 +1326,26 @@ def test_arg_file(dispatcher_live_fixture):
 
     list_file.close()
     assert 'dummy_file' in jdata['products']['analysis_parameters']
-    assert os.path.exists(f'scratch_sid_{jdata["session_id"]}_jid_{jdata["products"]["job_id"]}/dummy_file')
+    parsed_url_dummy_file = parse.urlparse(jdata['products']['analysis_parameters']['dummy_file'])
+    args_dict = parse.parse_qs(parsed_url_dummy_file.query)
+    assert parsed_url_dummy_file.path.endswith('download_file')
+    assert 'file_list' in args_dict
+    assert len(args_dict['file_list']) == 1
+    assert os.path.exists(f'request_files/{args_dict["file_list"][0]}')
+
+    download_url = jdata['products']['analysis_parameters']['dummy_file'].replace('PRODUCTS_URL/', server)
 
     params = {
             'query_status': 'ready',
-            'file_list': 'dummy_file',
-            'session_id': jdata['session_id'],
+            'file_list': args_dict["file_list"][0],
             'return_archive': False,
-            'job_id': jdata['products']['job_id'],
             'token': encoded_token,
         }
 
-    c = requests.get(server + "/download_file",
-                     params=params)
+    # c = requests.get(server + "/download_file",
+    #                  params=params)
+
+    c = requests.get(download_url)
 
     assert c.status_code == 200
     with open(p_file_path) as p_file:
