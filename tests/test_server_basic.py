@@ -1334,17 +1334,6 @@ def test_arg_file(dispatcher_live_fixture):
     assert os.path.exists(f'request_files/{args_dict["file_list"][0]}')
 
     download_url = jdata['products']['analysis_parameters']['dummy_file'].replace('PRODUCTS_URL/', server)
-
-    params = {
-            'query_status': 'ready',
-            'file_list': args_dict["file_list"][0],
-            'return_archive': False,
-            'token': encoded_token,
-        }
-
-    # c = requests.get(server + "/download_file",
-    #                  params=params)
-
     c = requests.get(download_url)
 
     assert c.status_code == 200
