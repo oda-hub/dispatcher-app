@@ -496,22 +496,18 @@ def test_download_products_outside_dir(dispatcher_long_living_fixture,
 @pytest.mark.fast
 @pytest.mark.parametrize('return_archive', [True, False])
 @pytest.mark.parametrize('matching_file_name', [True, False])
-def test_download_file_public(dispatcher_long_living_fixture, empty_products_files_fixture, return_archive, matching_file_name):
+def test_download_file_public(dispatcher_long_living_fixture, request_files_fixture, return_archive, matching_file_name):
+
     server = dispatcher_long_living_fixture
 
     logger.info("constructed server: %s", server)
 
-    session_id = empty_products_files_fixture['session_id']
-    job_id = empty_products_files_fixture['job_id']
-
     params = {
             # since we are passing a job_id
             'query_status': 'ready',
-            'file_list': 'test.fits.gz',
+            'file_list': os.path.basename(request_files_fixture['file_path']),
             'download_file_name': 'output_test',
-            'session_id': session_id,
             'return_archive': return_archive,
-            'job_id': job_id
         }
 
     if matching_file_name:
@@ -523,16 +519,16 @@ def test_download_file_public(dispatcher_long_living_fixture, empty_products_fil
     assert c.status_code == 200
 
     # download the output, read it and then compare it
-    with open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'wb') as fout:
+    with open('local_request_files/output_test', 'wb') as fout:
         fout.write(c.content)
 
     if return_archive:
-        with gzip.open(f'scratch_sid_{session_id}_jid_{job_id}/output_test', 'rb') as fout:
+        with gzip.open('local_request_files/output_test', 'rb') as fout:
             data_downloaded = fout.read()
     else:
         data_downloaded = c.content
 
-    assert data_downloaded == empty_products_files_fixture['content']
+    assert data_downloaded == request_files_fixture['content']
 
 def test_query_restricted_instrument(dispatcher_live_fixture):
     server = dispatcher_live_fixture
