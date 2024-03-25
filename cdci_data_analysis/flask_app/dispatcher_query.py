@@ -293,7 +293,7 @@ class InstrumentQueryBackEnd:
                                             "When we find a solution we will try to reach you", status_code=500)
                     if self.instrument is not None and not isinstance(self.instrument, str):
                         products_url = self.app.config.get('conf').products_url
-                        self.instrument.parse_inputs_files(
+                        list_uploaded_files = self.instrument.parse_inputs_files(
                             par_dic=self.par_dic,
                             request=request,
                             temp_dir=self.temp_dir,
@@ -304,7 +304,7 @@ class InstrumentQueryBackEnd:
                             products_url=products_url,
                             sentry_dsn=self.sentry_dsn
                         )
-                        list_uploaded_files = self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
+                        self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
                         user_email = None
                         if self.decoded_token is not None:
                             user_email = tokenHelper.get_token_user_email_address(self.decoded_token)
