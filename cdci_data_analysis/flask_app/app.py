@@ -156,7 +156,7 @@ def download_products():
 
 @app.route("/download_file", methods=['POST', 'GET'])
 def download_file():
-    query = InstrumentQueryBackEnd(app, download_products=True)
+    query = InstrumentQueryBackEnd(app, download_files=True)
     return query.download_file(from_request_files_dir=True)
 
 class UnknownDispatcherException(Exception):

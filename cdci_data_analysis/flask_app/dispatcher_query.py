@@ -114,6 +114,7 @@ class InstrumentQueryBackEnd:
                  verbose=False,
                  get_meta_data=False,
                  download_products=False,
+                 download_files=False,
                  resolve_job_url=False,
                  query_id=None,
                  update_token=False):
@@ -227,7 +228,7 @@ class InstrumentQueryBackEnd:
                 logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
                 self.log_query_progression("after logstash_message")
 
-            if download_products or resolve_job_url or update_token:
+            if download_products or resolve_job_url or update_token or download_files:
                 instrument_name = 'mock'
 
             self.logger.info("before setting instrument, self.par_dic: %s", self.par_dic)
@@ -263,7 +264,7 @@ class InstrumentQueryBackEnd:
                 #    raise MissingRequestParameter('no query_status!')
 
                 verbose = self.par_dic.get('verbose', 'False') == 'True'
-                if not (data_server_call_back or resolve_job_url):
+                if not (data_server_call_back or resolve_job_url or download_files):
                     query_status = self.par_dic['query_status']
                     self.job_id = None
                     if query_status == 'new':
@@ -276,10 +277,11 @@ class InstrumentQueryBackEnd:
 
                         self.job_id = self.par_dic['job_id']
 
-                # let's generate a temporary scratch_dir using the temporary job_id
-                self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
-                # temp_job_id = self.job_id
-                temp_scratch_dir = self.scratch_dir
+                if not download_files:
+                    # let's generate a temporary scratch_dir using the temporary job_id
+                    self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
+                    # temp_job_id = self.job_id
+                    temp_scratch_dir = self.scratch_dir
                 if not data_server_call_back:
                     try:
                         self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
@@ -308,7 +310,7 @@ class InstrumentQueryBackEnd:
                             user_email = tokenHelper.get_token_user_email_address(self.decoded_token)
                         self.update_ownership_files(list_uploaded_files, user_email=user_email)
                 # update the job_id
-                if not (data_server_call_back or resolve_job_url):
+                if not (data_server_call_back or resolve_job_url or download_files):
                     query_status = self.par_dic['query_status']
                     self.job_id = None
                     if query_status == 'new':
@@ -331,15 +333,18 @@ class InstrumentQueryBackEnd:
 
                         self.job_id = self.par_dic['job_id']
 
-                # let's set the scratch_dir with the updated job_id
-                self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
+                elif download_files:
+                    self.job_id = None
 
-                self.log_query_progression("before move_temp_content")
-                self.move_temp_content()
-                self.log_query_progression("after move_temp_content")                
+                if not download_files:
+                    # let's set the scratch_dir with the updated job_id
+                    self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
 
-                self.set_session_logger(
-                    self.scratch_dir, verbose=verbose, config=config)
+                    self.log_query_progression("before move_temp_content")
+                    self.move_temp_content()
+                    self.log_query_progression("after move_temp_content")
+
+                    self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
 
                 self.config = config
 
@@ -969,19 +974,23 @@ class InstrumentQueryBackEnd:
         return file_abs
 
     def verify_access_to_file(self, file_name):
-        user_email = tokenHelper.get_token_user_email_address(self.decoded_token)
+        user_email = None
+        if self.decoded_token is not None:
+            user_email = tokenHelper.get_token_user_email_address(self.decoded_token)
         ownership_file_path = os.path.join(self.request_files_dir, '.file_ownerships.json')
         with open(ownership_file_path) as ownership_file:
             ownerships = json.load(ownership_file)
         file_owners_list = ownerships.get(file_name, [])
-        if 'public' not in file_owners_list and user_email not in file_owners_list:
+        if ('public' not in file_owners_list and
+                ((user_email is not None and user_email not in file_owners_list) or user_email is None)):
             raise RequestNotAuthorized('User cannot access the file')
 
     
     def prepare_download(self, file_list, file_name, return_archive=True, from_request_files_dir=False):
-        origin_dir = self.scratch_dir
         if from_request_files_dir:
             origin_dir = self.request_files_dir
+        else:
+            origin_dir = self.scratch_dir
 
         file_name = file_name.replace(' ', '_')
 
