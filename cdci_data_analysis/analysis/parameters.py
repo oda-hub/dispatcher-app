@@ -589,10 +589,6 @@ class FileReference(String):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-
-class POSIXPath(FileReference):
-    owl_uris = FileReference.owl_uris + "http://odahub.io/ontology#POSIXPath"
-
 class NumericParameter(Parameter):
     owl_uris = ("http://odahub.io/ontology#NumericParameter")
 
