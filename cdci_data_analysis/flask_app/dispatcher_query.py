@@ -1005,12 +1005,11 @@ class InstrumentQueryBackEnd:
                 self.verify_access_to_file(f)
 
         file_dir = tempfile.mkdtemp(prefix='download_', dir='./')
-
         file_path = self.validated_download_file_path(file_dir, file_name, should_exist=False)
-        out_dir = file_name.replace('.tar', '')
-        out_dir = out_dir.replace('.gz', '')
 
         if len(file_list) > 1:
+            out_dir = file_name.replace('.tar', '')
+            out_dir = out_dir.replace('.gz', '')
             tar = tarfile.open("%s" % (file_path), "w:gz")
             for name in file_list:
                 if name is not None:
@@ -1028,7 +1027,6 @@ class InstrumentQueryBackEnd:
                 if file_name == file_to_download:
                     file_dir = os.path.dirname(file_list[0])
                 else:
-                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
                     shutil.copy(file_list[0], file_path)
 
         file_dir = os.path.abspath(file_dir)
