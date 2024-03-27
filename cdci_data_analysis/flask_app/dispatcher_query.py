@@ -1158,10 +1158,14 @@ class InstrumentQueryBackEnd:
                 return send_from_directory(directory=tmp_dir, filename=target_file, attachment_filename=target_file,
                                            as_attachment=True)
         except RequestNotAuthorized as e:
+            extract_job_monitor = True
+            if not hasattr(self, 'scratch_dir') or self.scratch_dir is None:
+                extract_job_monitor = False
             return self.build_response_failed('oda_api permissions failed',
                                               e.message,
                                               status_code=e.status_code,
-                                              debug_message=e.debug_message)
+                                              debug_message=e.debug_message,
+                                              extract_job_monitor=extract_job_monitor)
         except Exception as e:
             return e
 
@@ -1762,10 +1766,15 @@ class InstrumentQueryBackEnd:
                            token=self.token,
                            time_request=self.time_request)
 
-    def build_response_failed(self, message, extra_message, status_code=None, debug_message=''):
-        job = self.build_job()
-        job.set_failed()
-        job_monitor = job.monitor
+    def build_response_failed(self, message, extra_message, status_code=None, debug_message='', extract_job_monitor=True):
+        if extract_job_monitor:
+            job = self.build_job()
+            job.set_failed()
+            job_monitor = job.monitor
+            job_status = job_monitor['status']
+        else:
+            job_monitor = None
+            job_status = 'failed'
 
         query_status = 'failed'
 
@@ -1775,7 +1784,7 @@ class InstrumentQueryBackEnd:
 
         query_out.set_failed(failed_task,
                              message=extra_message,
-                             job_status=job_monitor['status'],
+                             job_status=job_status,
                              debug_message=debug_message)
 
         resp = self.build_dispatcher_response(query_new_status=query_status,
