@@ -750,7 +750,6 @@ class Instrument:
                         list_uploaded_files.append(new_file_name)
                         os.rename(f_path, new_file_path)
                         dpars = urlencode(dict(file_list=new_file_name,
-                                               query_status="ready",
                                                return_archive=False,
                                                token=token))
                         download_file_url = f"{basepath}?{dpars}"

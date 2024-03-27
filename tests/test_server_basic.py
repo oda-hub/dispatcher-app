@@ -503,8 +503,6 @@ def test_download_file_public(dispatcher_long_living_fixture, request_files_fixt
     logger.info("constructed server: %s", server)
 
     params = {
-            # since we are passing a job_id
-            'query_status': 'ready',
             'file_list': os.path.basename(request_files_fixture['file_path']),
             'download_file_name': 'output_test',
             'return_archive': return_archive,
