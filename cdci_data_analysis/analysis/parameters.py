@@ -583,6 +583,12 @@ class String(Parameter):
 class Name(String):
     owl_uris = String.owl_uris + ("http://odahub.io/ontology#AstrophysicalObject",)
 
+class FileReference(String):
+    owl_uris = "http://odahub.io/ontology#FileReference"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
 class NumericParameter(Parameter):
     owl_uris = ("http://odahub.io/ontology#NumericParameter")
 
@@ -1048,6 +1054,7 @@ class StructuredParameter(Parameter):
     
     def get_default_value(self):
         return json.dumps(self.value, sort_keys=True)
+
 
 class PhosphorosFiltersTable(StructuredParameter):
     owl_uris = ('http://odahub.io/ontology#PhosphorosFiltersTable')

@@ -27,7 +27,7 @@ from builtins import (bytes, str, open, super, range,
 import string
 import json
 import logging
-
+import validators
 import yaml
 
 import numpy as np
@@ -39,8 +39,10 @@ from .catalog import BasicCatalog
 from .products import QueryOutput
 from .queries import ProductQuery, SourceQuery, InstrumentQuery
 from .io_helper import upload_file
+from .hash import make_hash_file
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
 from ..flask_app.sentry import sentry
+from urllib.parse import urlencode
 
 from oda_api.api import DispatcherAPI, RemoteException, Unauthorized, DispatcherException, DispatcherNotAvailable, UnexpectedDispatcherStatusCode, RequestNotUnderstood as RequestNotUnderstoodOdaApi
 
@@ -243,6 +245,9 @@ class Instrument:
                            temp_dir,
                            verbose,
                            use_scws,
+                           upload_dir,
+                           token,
+                           products_url,
                            sentry_dsn=None):
         error_message = 'Error while {step} {temp_dir_content_msg}{additional}'
         # TODO probably exception handling can be further improved and/or optmized
@@ -263,6 +268,14 @@ class Instrument:
                                                                       temp_dir=temp_dir)
             step = 'setting input scw_list file'
             self.set_input_products_from_fronted(input_file_path=input_file_path, par_dic=par_dic, verbose=verbose)
+
+            # any other file
+            step = 'uploading other files'
+            list_uploaded_files = self.upload_files_request(par_dic=par_dic,
+                                                            request=request,
+                                                            upload_dir=upload_dir,
+                                                            products_url=products_url,
+                                                            token=token)
         except RequestNotUnderstood as e:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='',
@@ -289,6 +302,8 @@ class Instrument:
                             'use_scws was indicating this was not provided, please check the inputs'
 
             raise RequestNotUnderstood(error_message)
+
+        return list_uploaded_files
 
     def get_status_details(self,
                            par_dic,
@@ -715,6 +730,32 @@ class Instrument:
                 has_prods=False
 
         return has_prods
+
+    def upload_files_request(self, par_dic, request, upload_dir, products_url, token=None):
+        list_uploaded_files = []
+        if request.method == 'POST':
+            if validators.url(products_url):
+                basepath = os.path.join(products_url, 'dispatch-data/download_file')
+            else:
+                basepath = os.path.join(products_url, 'download_file')
+            for f in request.files:
+                # TODO needed since those two files are extracted in a previous step
+                if f != 'user_scw_list_file' and f != 'user_catalog_file':
+                    f_path = upload_file(f, upload_dir)
+                    if f_path is not None:
+                        file_hash = make_hash_file(f_path)
+                        f_name, f_ext = os.path.splitext(os.path.basename(f_path))
+                        new_file_name = f_name.split('.')[0] + '_' + file_hash + f_ext
+                        new_file_path = os.path.join(upload_dir, new_file_name)
+                        list_uploaded_files.append(new_file_name)
+                        os.rename(f_path, new_file_path)
+                        dpars = urlencode(dict(file_list=new_file_name,
+                                               return_archive=False,
+                                               token="INSERT_YOUR_TOKEN_HERE"))
+                        download_file_url = f"{basepath}?{dpars}"
+                        par_dic[f] = download_file_url
+        return list_uploaded_files
+
 
     def upload_catalog_from_fronted(self, par_dic, request, temp_dir):
         cat_file_path = None
