@@ -248,6 +248,22 @@ class Job(object):
 
         return url
 
+    def get_query_new_status(self):
+        if self.status == 'done':
+            query_new_status = 'done'
+        elif self.status == 'failed':
+            query_new_status = 'failed'
+        elif self.status == 'progress':
+            query_new_status = 'progress'
+        else:
+            job_monitor = self.updated_dataserver_monitor()
+            if job_monitor['status'] == 'progress':
+                query_new_status = 'progress'
+            else:
+                query_new_status = 'submitted'
+                self.set_submitted()
+
+        return query_new_status
 
 class OsaJob(Job):
     def __init__(self,

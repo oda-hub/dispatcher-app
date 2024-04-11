@@ -2095,15 +2095,7 @@ class InstrumentQueryBackEnd:
                                                           debug_message=e.debug_message)
 
                     if query_out.status_dictionary['status'] == 0:
-                        if job.status == 'done':
-                            query_new_status = 'done'
-                        elif job.status == 'failed':
-                            query_new_status = 'failed'
-                        elif job.status == 'progress':
-                            query_new_status = 'progress'
-                        else:
-                            query_new_status = 'submitted'
-                            job.set_submitted()
+                        query_new_status = job.get_query_new_status()
 
                         if email_helper.is_email_to_send_run_query(self.logger,
                                                                    query_new_status,
@@ -2193,15 +2185,7 @@ class InstrumentQueryBackEnd:
                 self.logger.info('-----------------> job status after query: %s', job.status)
 
                 if query_out.status_dictionary['status'] == 0:
-                    if job.status == 'done':
-                        query_new_status = 'done'
-                    elif job.status == 'failed':
-                        query_new_status = 'failed'
-                    elif job.status == 'progress':
-                        query_new_status = 'progress'
-                    else:
-                        query_new_status = 'submitted'
-                        job.set_submitted()
+                    query_new_status = job.get_query_new_status()
 
                     products_url = self.generate_products_url(self.app.config.get('conf').products_url, self.par_dic)
                     email_api_code = DispatcherAPI.set_api_code(self.par_dic,
