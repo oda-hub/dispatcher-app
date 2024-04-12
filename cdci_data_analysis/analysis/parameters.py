@@ -580,6 +580,9 @@ class String(Parameter):
     def check_name_value(value, units=None, name=None, par_format=None):
         pass
 
+class LongString(String):
+    owl_uris = String.owl_uris + ("http://odahub.io/ontology#LongString",)
+
 class Name(String):
     owl_uris = String.owl_uris + ("http://odahub.io/ontology#AstrophysicalObject",)
 
