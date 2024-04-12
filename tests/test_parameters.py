@@ -355,7 +355,7 @@ def test_parameter_bounds():
 def test_parameter_meta_data():
     bounded_parameter = Float(value = 1., name='bounded', min_value=0.1, max_value=2)
     choice_parameter = String(value = 'spam', name='choice', allowed_values=['spam', 'eggs', 'hams'])
-    long_choice_parameter = LongString(value='spam', name='choice', allowed_values=['spam', 'eggs', 'hams'])
+    long_choice_parameter = LongString(value='long_spam', name='choice')
     bool_parameter = Boolean(value = True, name = 'bool')
     assert bounded_parameter.reprJSONifiable() == [{'name': 'bounded', 
                                                     'units': None, 'value': 1.0, 
@@ -368,8 +368,7 @@ def test_parameter_meta_data():
                                                    'owl_uri': ["http://www.w3.org/2001/XMLSchema#str", "http://odahub.io/ontology#String"]}]
     assert long_choice_parameter.reprJSONifiable() == [{'name': 'choice',
                                                        'units': 'str',
-                                                       'value': 'spam',
-                                                       'restrictions': {'allowed_values': ['spam', 'eggs', 'hams']},
+                                                       'value': 'long_spam',
                                                        'owl_uri': ["http://www.w3.org/2001/XMLSchema#str",
                                                                    "http://odahub.io/ontology#String",
                                                                    "http://odahub.io/ontology#LongString"]}]
