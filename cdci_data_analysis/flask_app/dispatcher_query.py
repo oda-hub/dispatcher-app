@@ -1455,10 +1455,6 @@ class InstrumentQueryBackEnd:
             if self.return_progress:
                 out_dict['return_progress_products'] = query_out.prod_dictionary
                 out_dict['return_progress_exit_status'] = query_out.status_dictionary
-                with open(self.response_filename, "r") as query_output_f:
-                    query_output_file_content = json.load(query_output_f)
-                out_dict['products'] = query_output_file_content['prod_dictionary']
-                out_dict['exit_status'] = query_output_file_content['status_dictionary']
             else:
                 out_dict['products'] = query_out.prod_dictionary
                 out_dict['exit_status'] = query_out.status_dictionary
@@ -1467,8 +1463,9 @@ class InstrumentQueryBackEnd:
                     comment = f'Please note that argument {self.instrument.unknown_arguments_name_list[0]} is not used'
                 else:
                     comment = f'Please note that arguments {", ".join(self.instrument.unknown_arguments_name_list)} are not used'
-                out_dict['exit_status']['comment'] = \
-                    out_dict['exit_status']['comment'] + ' ' + comment if out_dict['exit_status']['comment'] else comment
+                if not self.return_progress:
+                    out_dict['exit_status']['comment'] = \
+                        out_dict['exit_status']['comment'] + ' ' + comment if out_dict['exit_status']['comment'] else comment
 
         if job_monitor is not None:
             out_dict['job_monitor'] = job_monitor
