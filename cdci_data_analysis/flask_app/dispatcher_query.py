@@ -1467,12 +1467,19 @@ class InstrumentQueryBackEnd:
                     out_dict['exit_status']['comment'] = \
                         out_dict['exit_status']['comment'] + ' ' + comment if out_dict['exit_status']['comment'] else comment
 
-        if job_monitor is not None:
-            out_dict['job_monitor'] = job_monitor
-            out_dict['job_status'] = job_monitor['status']
+        if not self.return_progress:
+            if job_monitor is not None:
+                out_dict['job_monitor'] = job_monitor
+                out_dict['job_status'] = job_monitor['status']
+        else:
+            job_monitor_path = self.response_filename + ".job-monitor"
+            with open(job_monitor_path, 'r') as f:
+                job_monitor_content = json.load(f)
+            out_dict['job_monitor'] = job_monitor_content
+            out_dict['job_status'] = job_monitor_content['status']
 
-        if job_monitor is not None:
-            out_dict['job_monitor'] = job_monitor
+        # if job_monitor is not None:
+        #     out_dict['job_monitor'] = job_monitor
 
         out_dict['session_id'] = self.par_dic['session_id']
 
@@ -2294,8 +2301,8 @@ class InstrumentQueryBackEnd:
                 else:
                     query_new_status = 'failed'
                     job.set_failed()
-
-                job.write_dataserver_status()
+                if not self.return_progress:
+                    job.write_dataserver_status()
 
             print('-----------------> query status update for done/ready: ',
                   query_new_status)
@@ -2354,7 +2361,7 @@ class InstrumentQueryBackEnd:
             self.logger.info(
                 '==============================> query done <==============================')
 
-        if not job_is_aliased and query_status != query_new_status:
+        if not job_is_aliased and query_status != query_new_status and not self.return_progress:
             job.write_dataserver_status()
 
         if not self.async_dispatcher:
