@@ -1472,15 +1472,15 @@ class InstrumentQueryBackEnd:
                 out_dict['job_monitor'] = job_monitor
                 out_dict['job_status'] = job_monitor['status']
         else:
-            job_monitor_path = self.response_filename + ".job-monitor"
-            if os.path.exists(job_monitor_path):
-                with open(job_monitor_path, 'r') as f:
-                    job_monitor_content = json.load(f)
-                out_dict['job_monitor'] = job_monitor_content
-                out_dict['job_status'] = job_monitor_content['status']
-
-        # if job_monitor is not None:
-        #     out_dict['job_monitor'] = job_monitor
+            if job_monitor is not None:
+                out_dict['return_progress_job_monitor'] = job_monitor
+                out_dict['return_progress_job_status'] = job_monitor['status']
+            # job_monitor_path = self.response_filename + ".job-monitor"
+            # if os.path.exists(job_monitor_path):
+            #     with open(job_monitor_path, 'r') as f:
+            #         job_monitor_content = json.load(f)
+            #     out_dict['job_monitor'] = job_monitor_content
+            #     out_dict['job_status'] = job_monitor_content['status']
 
         out_dict['session_id'] = self.par_dic['session_id']
 
@@ -1840,6 +1840,7 @@ class InstrumentQueryBackEnd:
 
         if self.return_progress:
             query_out.serialize(open(self.response_filename + ".return-progress-query-output", "w"))
+            json.dump(job_monitor, open(self.response_filename + ".return-progress-job-monitor", "w"))
         else:
             query_out.serialize(open(self.response_filename, "w"))
             json.dump(job_monitor, open(self.response_filename + ".job-monitor", "w"))
