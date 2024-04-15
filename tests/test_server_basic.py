@@ -1651,11 +1651,12 @@ def test_empty_async_return_progress_instrument_request(dispatcher_live_fixture,
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
 
-    assert jdata["exit_status"]["debug_message"] == ""
-    assert jdata["exit_status"]["error_message"] == ""
-    assert jdata["exit_status"]["message"] == ""
+    assert 'return_progress_exit_status' in jdata
+    assert jdata["return_progress_exit_status"]["debug_message"] == ""
+    assert jdata["return_progress_exit_status"]["error_message"] == ""
+    assert jdata["return_progress_exit_status"]["message"] == ""
 
-    assert jdata["products"]["p"] == 5
+    assert jdata["return_progress_products"]["p"] == 5
 
     params.pop("return_progress", None)
     ReturnProgressProductQuery.set_p_value(15)
