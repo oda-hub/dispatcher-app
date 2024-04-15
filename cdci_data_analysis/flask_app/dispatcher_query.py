@@ -1452,8 +1452,16 @@ class InstrumentQueryBackEnd:
         if query_new_status is not None:
             out_dict['query_status'] = query_new_status
         if query_out is not None:
-            out_dict['products'] = query_out.prod_dictionary
-            out_dict['exit_status'] = query_out.status_dictionary
+            if self.return_progress:
+                out_dict['return_progress_products'] = query_out.prod_dictionary
+                out_dict['return_progress_exit_status'] = query_out.status_dictionary
+                with open(self.response_filename, "r") as query_output_f:
+                    query_output_file_content = json.load(query_output_f)
+                out_dict['products'] = query_output_file_content['prod_dictionary']
+                out_dict['exit_status'] = query_output_file_content['status_dictionary']
+            else:
+                out_dict['products'] = query_out.prod_dictionary
+                out_dict['exit_status'] = query_out.status_dictionary
             if getattr(self.instrument, 'unknown_arguments_name_list', []):
                 if len(self.instrument.unknown_arguments_name_list) == 1:
                     comment = f'Please note that argument {self.instrument.unknown_arguments_name_list[0]} is not used'
@@ -1820,13 +1828,16 @@ class InstrumentQueryBackEnd:
         if os.path.exists(self.response_filename):
             if not os.path.exists(self.query_log_dir):
                 os.makedirs(self.query_log_dir)
-            os.rename(self.response_filename, self.response_log_filename)
-            self.logger.info("renamed query log log %s => %s",
-                             self.response_filename, self.response_log_filename)
+            if not self.return_progress:
+                os.rename(self.response_filename, self.response_log_filename)
+                self.logger.info("renamed query log log %s => %s",
+                                 self.response_filename, self.response_log_filename)
 
-        query_out.serialize(open(self.response_filename, "w"))
-        json.dump(job_monitor, open(
-            self.response_filename + ".job-monitor", "w"))
+        if self.return_progress:
+            query_out.serialize(open(self.response_filename + ".return-progress-query-output", "w"))
+        else:
+            query_out.serialize(open(self.response_filename, "w"))
+            json.dump(job_monitor, open(self.response_filename + ".job-monitor", "w"))
 
     def load_config(self):
         try:
