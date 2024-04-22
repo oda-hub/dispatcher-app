@@ -1452,29 +1452,19 @@ class InstrumentQueryBackEnd:
         if query_new_status is not None:
             out_dict['query_status'] = query_new_status
         if query_out is not None:
-            if self.return_progress:
-                out_dict['return_progress_products'] = query_out.prod_dictionary
-                out_dict['return_progress_exit_status'] = query_out.status_dictionary
-            else:
-                out_dict['products'] = query_out.prod_dictionary
-                out_dict['exit_status'] = query_out.status_dictionary
+            out_dict['products'] = query_out.prod_dictionary
+            out_dict['exit_status'] = query_out.status_dictionary
             if getattr(self.instrument, 'unknown_arguments_name_list', []):
                 if len(self.instrument.unknown_arguments_name_list) == 1:
                     comment = f'Please note that argument {self.instrument.unknown_arguments_name_list[0]} is not used'
                 else:
                     comment = f'Please note that arguments {", ".join(self.instrument.unknown_arguments_name_list)} are not used'
-                if not self.return_progress:
-                    out_dict['exit_status']['comment'] = \
-                        out_dict['exit_status']['comment'] + ' ' + comment if out_dict['exit_status']['comment'] else comment
+                out_dict['exit_status']['comment'] = \
+                    out_dict['exit_status']['comment'] + ' ' + comment if out_dict['exit_status']['comment'] else comment
 
-        if not self.return_progress:
-            if job_monitor is not None:
-                out_dict['job_monitor'] = job_monitor
-                out_dict['job_status'] = job_monitor['status']
-        else:
-            if job_monitor is not None:
-                out_dict['return_progress_job_monitor'] = job_monitor
-                out_dict['return_progress_job_status'] = job_monitor['status']
+        if job_monitor is not None:
+            out_dict['job_monitor'] = job_monitor
+            out_dict['job_status'] = job_monitor['status']
 
         out_dict['session_id'] = self.par_dic['session_id']
 
@@ -1824,20 +1814,20 @@ class InstrumentQueryBackEnd:
     def store_response(self, query_out, job_monitor):
         self.logger.info("storing query output: %s, %s",
                          self.response_filename, self.response_log_filename)
+
         if os.path.exists(self.response_filename):
             if not os.path.exists(self.query_log_dir):
                 os.makedirs(self.query_log_dir)
-            if not self.return_progress:
-                os.rename(self.response_filename, self.response_log_filename)
-                self.logger.info("renamed query log log %s => %s",
-                                 self.response_filename, self.response_log_filename)
+            # if not self.return_progress:
+            os.rename(self.response_filename, self.response_log_filename)
+            self.logger.info("renamed query log log %s => %s",
+                             self.response_filename, self.response_log_filename)
 
         if self.return_progress:
-            query_out.serialize(open(self.response_filename + ".return-progress-query-output", "w"))
             json.dump(job_monitor, open(self.response_filename + ".return-progress-job-monitor", "w"))
         else:
-            query_out.serialize(open(self.response_filename, "w"))
             json.dump(job_monitor, open(self.response_filename + ".job-monitor", "w"))
+        query_out.serialize(open(self.response_filename, "w"))
 
     def load_config(self):
         try:
