@@ -1466,9 +1466,6 @@ class InstrumentQueryBackEnd:
             out_dict['job_monitor'] = job_monitor
             out_dict['job_status'] = job_monitor['status']
 
-        if job_monitor is not None:
-            out_dict['job_monitor'] = job_monitor
-
         out_dict['session_id'] = self.par_dic['session_id']
 
         if status_code is not None:
@@ -1817,16 +1814,20 @@ class InstrumentQueryBackEnd:
     def store_response(self, query_out, job_monitor):
         self.logger.info("storing query output: %s, %s",
                          self.response_filename, self.response_log_filename)
+
         if os.path.exists(self.response_filename):
             if not os.path.exists(self.query_log_dir):
                 os.makedirs(self.query_log_dir)
+            # if not self.return_progress:
             os.rename(self.response_filename, self.response_log_filename)
             self.logger.info("renamed query log log %s => %s",
                              self.response_filename, self.response_log_filename)
 
+        if self.return_progress:
+            json.dump(job_monitor, open(self.response_filename + ".return-progress-job-monitor", "w"))
+        else:
+            json.dump(job_monitor, open(self.response_filename + ".job-monitor", "w"))
         query_out.serialize(open(self.response_filename, "w"))
-        json.dump(job_monitor, open(
-            self.response_filename + ".job-monitor", "w"))
 
     def load_config(self):
         try:
@@ -2286,8 +2287,8 @@ class InstrumentQueryBackEnd:
                 else:
                     query_new_status = 'failed'
                     job.set_failed()
-
-                job.write_dataserver_status()
+                if not self.return_progress:
+                    job.write_dataserver_status()
 
             print('-----------------> query status update for done/ready: ',
                   query_new_status)
@@ -2346,7 +2347,7 @@ class InstrumentQueryBackEnd:
             self.logger.info(
                 '==============================> query done <==============================')
 
-        if not job_is_aliased and query_status != query_new_status:
+        if not job_is_aliased and query_status != query_new_status and not self.return_progress:
             job.write_dataserver_status()
 
         if not self.async_dispatcher:
