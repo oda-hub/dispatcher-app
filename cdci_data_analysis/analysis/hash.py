@@ -39,7 +39,6 @@ def make_hash(o):
 
 def make_hash_file(file_path):
     command = ["md5sum", file_path]
-    process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = process.communicate()
 
-    return stdout.decode().split()[0][:16]
+    output = subprocess.check_output(command)
+    return output.decode().split()[0]
