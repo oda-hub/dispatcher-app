@@ -150,14 +150,30 @@ def meta_data_src():
 
 @app.route("/download_products", methods=['POST', 'GET'])
 def download_products():
-    query = InstrumentQueryBackEnd(app, download_products=True)
-    return query.download_file()
+    from_request_files_dir = request.args.get('from_request_files_dir', False) == 'True'
+    download_file = request.args.get('download_file', False) == 'True'
+    query = InstrumentQueryBackEnd(app, download_products=download_file, download_files=from_request_files_dir)
+    return query.download_file(from_request_files_dir=from_request_files_dir)
 
 
 @app.route("/download_file", methods=['POST', 'GET'])
 def download_file():
-    query = InstrumentQueryBackEnd(app, download_files=True)
-    return query.download_file(from_request_files_dir=True)
+    if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url):
+        redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/download_products')
+        if request.args:
+            args_request = urlencode(request.args)
+            redirection_url = f'{redirection_url}?{args_request}'
+
+    else:
+        parsed_request_url = urlparse(request.url)
+        path_request_url = parsed_request_url.path.replace('/download_file', '/download_products')
+        parsed_request_url = parsed_request_url._replace(path=path_request_url)
+        redirection_url = parsed_request_url.geturl()
+
+    redirection_url += f'&from_request_files_dir=True&download_file=True'
+
+    return redirect(redirection_url)
+
 
 class UnknownDispatcherException(Exception):
     status_code = 400
