@@ -587,10 +587,10 @@ class Name(String):
     owl_uris = String.owl_uris + ("http://odahub.io/ontology#AstrophysicalObject",)
 
 class FileReference(String):
-    owl_uris = "http://odahub.io/ontology#FileReference"
+    owl_uris = String.owl_uris + ("http://odahub.io/ontology#FileReference",)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class FileURL(FileReference):
+    owl_uris = FileReference.owl_uris + ("http://odahub.io/ontology#FileURL",)
 
 class NumericParameter(Parameter):
     owl_uris = ("http://odahub.io/ontology#NumericParameter")
