@@ -150,9 +150,9 @@ def meta_data_src():
 
 @app.route("/download_products", methods=['POST', 'GET'])
 def download_products():
-    from_request_files_dir = request.args.get('from_request_files_dir', False) == 'True'
-    download_file = request.args.get('download_file', False) == 'True'
-    query = InstrumentQueryBackEnd(app, download_products=download_file, download_files=from_request_files_dir)
+    from_request_files_dir = request.args.get('from_request_files_dir', 'False') == 'True'
+    download_file = request.args.get('download_file', 'False') == 'True'
+    query = InstrumentQueryBackEnd(app, download_products=not download_file, download_files=from_request_files_dir)
     return query.download_file(from_request_files_dir=from_request_files_dir)
 
 
