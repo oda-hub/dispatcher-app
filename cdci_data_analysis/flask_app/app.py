@@ -152,7 +152,8 @@ def meta_data_src():
 def download_products():
     from_request_files_dir = request.args.get('from_request_files_dir', 'False') == 'True'
     download_file = request.args.get('download_file', 'False') == 'True'
-    query = InstrumentQueryBackEnd(app, download_products=not download_file, download_files=from_request_files_dir)
+    download_products = request.args.get('download_products', 'True') == 'True'
+    query = InstrumentQueryBackEnd(app, download_products=download_products, download_files=download_file)
     return query.download_file(from_request_files_dir=from_request_files_dir)
 
 
@@ -170,7 +171,7 @@ def download_file():
         parsed_request_url = parsed_request_url._replace(path=path_request_url)
         redirection_url = parsed_request_url.geturl()
 
-    redirection_url += f'&from_request_files_dir=True&download_file=True'
+    redirection_url += f'&from_request_files_dir=True&download_file=True&download_products=False'
 
     return redirect(redirection_url)
 
