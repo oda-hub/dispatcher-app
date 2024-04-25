@@ -515,7 +515,7 @@ def test_download_file_redirection_external_products_url(dispatcher_live_fixture
     redirection_url = os.path.join(dispatcher_test_conf_with_external_products_url['products_url'], 'dispatch-data/download_products')
     if include_args:
         redirection_url += '?a=4566&token=aaaaaaaaaa'
-    redirection_url += '&from_request_files_dir=True&download_file=True'
+    redirection_url += '&from_request_files_dir=True&download_file=True&download_products=False'
     assert redirection_url == redirection_header_location_url
 
 
@@ -540,7 +540,7 @@ def test_download_file_redirection_no_custom_products_url(dispatcher_live_fixtur
     redirection_url = os.path.join(server, 'download_products')
     if include_args:
         redirection_url += '?a=4566&token=' + encoded_token
-    redirection_url += '&from_request_files_dir=True&download_file=True'
+    redirection_url += '&from_request_files_dir=True&download_file=True&download_products=False'
     assert redirection_header_location_url == redirection_url
 
 
