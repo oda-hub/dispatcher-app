@@ -1406,6 +1406,96 @@ def test_arg_file(dispatcher_live_fixture, public_download_request):
             p_file_content = p_file.read()
         assert c.content.decode() == p_file_content
 
+def test_file_ownerships(dispatcher_live_fixture):
+    DispatcherJobState.remove_scratch_folders()
+    DispatcherJobState.empty_request_files_folders()
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'file_dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 5.,
+        'token': encoded_token,
+    }
+
+    p_file_path_first = DispatcherJobState.create_p_value_file(p_value=5)
+    p_file_path_second = DispatcherJobState.create_p_value_file(p_value=6)
+
+    list_file_first = open(p_file_path_first)
+    list_file_second = open(p_file_path_second)
+
+    expected_query_status = 'done'
+    expected_job_status = 'done'
+    expected_status_code = 200
+
+    jdata = ask(server,
+                params,
+                expected_query_status=expected_query_status,
+                expected_job_status=expected_job_status,
+                expected_status_code=expected_status_code,
+                max_time_s=150,
+                method='post',
+                files={'dummy_file_first': list_file_first.read(), 'dummy_file_second': list_file_second.read()}
+                )
+
+    list_file_first.close()
+    list_file_second.close()
+
+    ownership_file_path = os.path.join('request_files', '.file_ownerships.json')
+    with open(ownership_file_path) as ownership_file:
+        ownerships = json.load(ownership_file)
+
+    first_file_hash = make_hash_file(p_file_path_first)
+    second_file_hash = make_hash_file(p_file_path_second)
+
+    assert first_file_hash in ownerships
+    assert second_file_hash in ownerships
+    assert token_payload['sub'] in ownerships[first_file_hash]['user_emails']
+    assert token_payload['sub'] in ownerships[second_file_hash]['user_emails']
+    token_roles = [r.strip() for r in token_payload['roles'].split(',')]
+    assert all(r in ownerships[first_file_hash]['user_roles'] for r in token_roles)
+    assert all(r in ownerships[second_file_hash]['user_roles'] for r in token_roles)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "sub":"mtm2@mtmco.net",
+        "name":"mmeharga2",
+        "roles": "general, unige-second-hpc-full, general_second_request",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    params['token'] = encoded_token
+
+    list_file_first = open(p_file_path_first)
+    jdata = ask(server,
+                params,
+                expected_query_status=expected_query_status,
+                expected_job_status=expected_job_status,
+                expected_status_code=expected_status_code,
+                max_time_s=150,
+                method='post',
+                files={'dummy_file_first': list_file_first.read()}
+                )
+
+    list_file_first.close()
+
+    with open(ownership_file_path) as ownership_file:
+        ownerships = json.load(ownership_file)
+
+    assert token_payload['sub'] in ownerships[first_file_hash]['user_emails']
+    token_roles = [r.strip() for r in token_payload['roles'].split(',')]
+    assert all(r in ownerships[first_file_hash]['user_roles'] for r in token_roles)
+
 
 def test_scws_list_file(dispatcher_live_fixture):
 
