@@ -304,10 +304,7 @@ class InstrumentQueryBackEnd:
                             sentry_dsn=self.sentry_dsn
                         )
                         self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
-                        user_email = None
-                        if self.decoded_token is not None:
-                            user_email = tokenHelper.get_token_user_email_address(self.decoded_token)
-                        self.update_ownership_files(list_uploaded_files, user_email=user_email)
+                        self.update_ownership_files(list_uploaded_files)
                 # update the job_id
                 if not (data_server_call_back or resolve_job_url or download_files):
                     query_status = self.par_dic['query_status']
@@ -883,9 +880,12 @@ class InstrumentQueryBackEnd:
                 json.dump({}, ownership_file)
         return request_files_dir.path
 
-    def update_ownership_files(self, list_file_name, user_email=None):
-        if user_email is None:
+    def update_ownership_files(self, list_file_name):
+        if hasattr(self, 'decoded_token') and self.decoded_token is not None:
+            user_email = tokenHelper.get_token_user_email_address(self.decoded_token)
+        else:
             user_email = 'public'
+
         update_file = False
         if isinstance(list_file_name, str):
             list_file_name = [list_file_name]
