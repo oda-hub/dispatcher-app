@@ -37,7 +37,7 @@ from ..analysis import tokenHelper, parameters
 from .catalog import BasicCatalog
 from .products import QueryOutput
 from .queries import ProductQuery, SourceQuery, InstrumentQuery
-from .io_helper import upload_file
+from .io_helper import upload_file, upload_files_request
 
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
 from ..flask_app.sentry import sentry
@@ -269,10 +269,10 @@ class Instrument:
 
             # any other file
             step = 'uploading other files'
-            list_uploaded_files = self.upload_files_request(par_dic=par_dic,
-                                                            request=request,
-                                                            upload_dir=upload_dir,
-                                                            products_url=products_url)
+            list_uploaded_files = upload_files_request(par_dic=par_dic,
+                                                       request=request,
+                                                       upload_dir=upload_dir,
+                                                       products_url=products_url)
         except RequestNotUnderstood as e:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='',
