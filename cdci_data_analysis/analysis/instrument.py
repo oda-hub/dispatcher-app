@@ -274,8 +274,7 @@ class Instrument:
             list_uploaded_files = self.upload_files_request(par_dic=par_dic,
                                                             request=request,
                                                             upload_dir=upload_dir,
-                                                            products_url=products_url,
-                                                            token=token)
+                                                            products_url=products_url)
         except RequestNotUnderstood as e:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='',
