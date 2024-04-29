@@ -1384,18 +1384,15 @@ def test_arg_file(dispatcher_live_fixture, public_download_request):
     assert os.path.exists(f'request_files/{args_dict["file_list"][0]}')
 
     download_url = jdata['products']['analysis_parameters']['dummy_file'].replace('PRODUCTS_URL/', server)
-    assert "token=INSERT_YOUR_TOKEN_HERE" in download_url
-    if public_download_request:
-        download_url = download_url.replace("&token=INSERT_YOUR_TOKEN_HERE", '')
-    else:
-        download_url = download_url.replace("&token=INSERT_YOUR_TOKEN_HERE", f'&token={encoded_token}')
-    c = requests.get(download_url)
 
     if public_download_request:
+        c = requests.get(download_url)
         assert c.status_code == 403
         jdata = c.json()
         assert jdata['exit_status']['message'] == "User cannot access the file"
     else:
+        download_url += f'&token={encoded_token}'
+        c = requests.get(download_url)
         assert c.status_code == 200
         with open(p_file_path) as p_file:
             p_file_content = p_file.read()
