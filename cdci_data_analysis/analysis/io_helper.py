@@ -37,6 +37,10 @@ from astropy.io import fits as pf
 from flask import request
 from werkzeug.utils import secure_filename
 import decorator
+import validators
+
+from .hash import make_hash_file
+from urllib.parse import urlencode
 # Dependencies
 # eg numpy 
 # absolute import eg: import numpy as np
@@ -204,6 +208,30 @@ def upload_file(name, dir):
         file_path = os.path.join(dir, filename)
         file.save(file_path)
         return file_path
+
+
+def upload_files_request(par_dic, request, upload_dir, products_url):
+    list_uploaded_files = []
+    if request.method == 'POST':
+        if validators.url(products_url):
+            basepath = os.path.join(products_url, 'dispatch-data/download_file')
+        else:
+            basepath = os.path.join(products_url, 'download_file')
+        for f in request.files:
+            # TODO needed since those two files are extracted in a previous step
+            if f != 'user_scw_list_file' and f != 'user_catalog_file':
+                f_path = upload_file(f, upload_dir)
+                if f_path is not None:
+                    file_hash = make_hash_file(f_path)
+                    new_file_name = file_hash
+                    new_file_path = os.path.join(upload_dir, new_file_name)
+                    list_uploaded_files.append(new_file_name)
+                    os.rename(f_path, new_file_path)
+                    dpars = urlencode(dict(file_list=new_file_name,
+                                           return_archive=False))
+                    download_file_url = f"{basepath}?{dpars}"
+                    par_dic[f] = download_file_url
+    return list_uploaded_files
 
 
 def format_size(size_bytes, format_returned='M'):
