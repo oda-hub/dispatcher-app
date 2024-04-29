@@ -731,7 +731,7 @@ class Instrument:
 
         return has_prods
 
-    def upload_files_request(self, par_dic, request, upload_dir, products_url, token=None):
+    def upload_files_request(self, par_dic, request, upload_dir, products_url):
         list_uploaded_files = []
         if request.method == 'POST':
             if validators.url(products_url):
@@ -744,14 +744,12 @@ class Instrument:
                     f_path = upload_file(f, upload_dir)
                     if f_path is not None:
                         file_hash = make_hash_file(f_path)
-                        f_name, f_ext = os.path.splitext(os.path.basename(f_path))
-                        new_file_name = f_name.split('.')[0] + '_' + file_hash + f_ext
+                        new_file_name = file_hash
                         new_file_path = os.path.join(upload_dir, new_file_name)
                         list_uploaded_files.append(new_file_name)
                         os.rename(f_path, new_file_path)
                         dpars = urlencode(dict(file_list=new_file_name,
-                                               return_archive=False,
-                                               token="INSERT_YOUR_TOKEN_HERE"))
+                                               return_archive=False))
                         download_file_url = f"{basepath}?{dpars}"
                         par_dic[f] = download_file_url
         return list_uploaded_files
