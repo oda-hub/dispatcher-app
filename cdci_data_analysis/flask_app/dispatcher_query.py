@@ -880,11 +880,14 @@ class InstrumentQueryBackEnd:
                 json.dump({}, ownership_file)
         return request_files_dir.path
 
+
     def update_ownership_files(self, list_file_name):
         if hasattr(self, 'decoded_token') and self.decoded_token is not None:
             user_email = tokenHelper.get_token_user_email_address(self.decoded_token)
+            user_roles = tokenHelper.get_token_roles(self.decoded_token)
         else:
             user_email = 'public'
+            user_roles = []
 
         update_file = False
         if isinstance(list_file_name, str):
@@ -894,11 +897,20 @@ class InstrumentQueryBackEnd:
             ownerships = json.load(ownership_file)
         for file_name in list_file_name:
             if file_name not in ownerships:
-                ownerships[file_name] = [user_email]
+                ownerships[file_name] = dict(
+                    user_emails=[user_email],
+                    user_roles=user_roles
+                )
                 update_file = True
-            elif user_email not in ownerships[file_name]:
-                ownerships[file_name].append(user_email)
-                update_file = True
+            else:
+                if user_email not in ownerships[file_name]['user_emails']:
+                    ownerships[file_name]['user_emails'].append(user_email)
+                    update_file = True
+                if not all(role in ownerships[file_name]['user_roles'] for role in user_roles):
+                    set_user_roles = set(ownerships[file_name]['user_roles'])
+                    set_user_roles |= user_roles
+                    ownerships[file_name]['user_roles'] = list(set_user_roles)
+                    update_file = True
         if update_file:
             with open(ownership_file_path, 'w') as ownership_file:
                 json.dump(ownerships, ownership_file)
@@ -979,9 +991,9 @@ class InstrumentQueryBackEnd:
         ownership_file_path = os.path.join(self.request_files_dir, '.file_ownerships.json')
         with open(ownership_file_path) as ownership_file:
             ownerships = json.load(ownership_file)
-        file_owners_list = ownerships.get(file_name, [])
-        if ('public' not in file_owners_list and
-                ((user_email is not None and user_email not in file_owners_list) or user_email is None)):
+        file_owners_obj = ownerships.get(file_name, None)
+        if file_owners_obj is None or ('public' not in file_owners_obj['user_emails'] and
+                ((user_email is not None and user_email not in file_owners_obj['user_emails']) or user_email is None)):
             raise RequestNotAuthorized('User cannot access the file')
 
     
