@@ -908,7 +908,7 @@ class InstrumentQueryBackEnd:
                     update_file = True
                 if not all(role in ownerships[file_name]['user_roles'] for role in user_roles):
                     set_user_roles = set(ownerships[file_name]['user_roles'])
-                    set_user_roles |= user_roles
+                    set_user_roles |= set(user_roles)
                     ownerships[file_name]['user_roles'] = list(set_user_roles)
                     update_file = True
         if update_file:
