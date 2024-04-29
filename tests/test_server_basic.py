@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from dateutil import parser, tz
 from functools import reduce
 from urllib import parse
+from urllib.parse import urlencode
 import nbformat as nbf
 import yaml
 import gzip
@@ -22,7 +23,7 @@ import random
 import string
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products, make_hash_file
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, create_new_notebook_with_code, generate_nb_hash, create_renku_ini_config_obj, generate_ini_file_hash
 from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id, get_source_astrophysical_entity_id_by_source_name
@@ -1383,16 +1384,23 @@ def test_arg_file(dispatcher_live_fixture, public_download_request):
     assert len(args_dict['file_list']) == 1
     assert os.path.exists(f'request_files/{args_dict["file_list"][0]}')
 
-    download_url = jdata['products']['analysis_parameters']['dummy_file'].replace('PRODUCTS_URL/', server)
+    arg_download_url = jdata['products']['analysis_parameters']['dummy_file'].replace('PRODUCTS_URL/', server)
+
+    file_hash = make_hash_file(p_file_path)
+    dpars = urlencode(dict(file_list=file_hash,
+                           return_archive=False))
+    local_download_url = f"{os.path.join(server, 'download_file')}?{dpars}"
+
+    assert arg_download_url == local_download_url
 
     if public_download_request:
-        c = requests.get(download_url)
+        c = requests.get(arg_download_url)
         assert c.status_code == 403
         jdata = c.json()
         assert jdata['exit_status']['message'] == "User cannot access the file"
     else:
-        download_url += f'&token={encoded_token}'
-        c = requests.get(download_url)
+        arg_download_url += f'&token={encoded_token}'
+        c = requests.get(arg_download_url)
         assert c.status_code == 200
         with open(p_file_path) as p_file:
             p_file_content = p_file.read()
