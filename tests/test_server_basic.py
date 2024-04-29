@@ -1399,7 +1399,6 @@ def test_arg_file(dispatcher_live_fixture, public_download_request):
         assert c.content.decode() == p_file_content
 
 
-
 def test_scws_list_file(dispatcher_live_fixture):
 
     server = dispatcher_live_fixture
