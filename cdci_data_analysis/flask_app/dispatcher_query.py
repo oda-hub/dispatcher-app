@@ -300,7 +300,6 @@ class InstrumentQueryBackEnd:
                             verbose=verbose,
                             use_scws=self.use_scws,
                             upload_dir=self.request_files_dir,
-                            token=self.token,
                             products_url=products_url,
                             sentry_dsn=self.sentry_dsn
                         )

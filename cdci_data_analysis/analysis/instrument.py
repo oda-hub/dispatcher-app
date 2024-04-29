@@ -244,7 +244,6 @@ class Instrument:
                            verbose,
                            use_scws,
                            upload_dir,
-                           token,
                            products_url,
                            sentry_dsn=None):
         error_message = 'Error while {step} {temp_dir_content_msg}{additional}'
