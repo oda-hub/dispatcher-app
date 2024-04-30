@@ -950,18 +950,18 @@ def request_files_fixture(default_params_dict):
     request_file_info_obj['file_hash'] = make_hash_file(request_file_info_obj['file_path'])
 
     f_path_obj = pathlib.Path(request_file_info_obj['file_path'])
-    f_name = f_path_obj.name.split('.')[0]
-    f_ext = ''.join(f_path_obj.suffixes)
-
-    new_file_name = f_name + '_' + request_file_info_obj['file_hash'] + f_ext
-    new_file_path = os.path.join('request_files', new_file_name)
+    file_hash = request_file_info_obj['file_hash']
+    new_file_path = os.path.join('request_files', file_hash)
     os.rename(request_file_info_obj['file_path'], new_file_path)
     request_file_info_obj['file_path'] = new_file_path
 
     ownership_file_path = 'request_files/.file_ownerships.json'
     with open(ownership_file_path) as ownership_file:
         ownerships = json.load(ownership_file)
-    ownerships[new_file_name] = ['public']
+    ownerships[file_hash] = dict(
+        user_emails=['public'],
+        user_roles=[]
+    )
     with open(ownership_file_path, 'w') as ownership_file:
         json.dump(ownerships, ownership_file)
 
