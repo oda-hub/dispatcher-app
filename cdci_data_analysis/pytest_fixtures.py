@@ -949,7 +949,6 @@ def request_files_fixture(default_params_dict):
 
     request_file_info_obj['file_hash'] = make_hash_file(request_file_info_obj['file_path'])
 
-    f_path_obj = pathlib.Path(request_file_info_obj['file_path'])
     file_hash = request_file_info_obj['file_hash']
     new_file_path = os.path.join('request_files', file_hash)
     os.rename(request_file_info_obj['file_path'], new_file_path)
