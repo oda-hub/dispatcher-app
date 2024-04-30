@@ -1,5 +1,4 @@
 # this could be a separate package or/and a pytest plugin
-import pathlib
 from json import JSONDecodeError
 
 import sentry_sdk
