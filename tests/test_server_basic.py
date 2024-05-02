@@ -1497,6 +1497,49 @@ def test_file_ownerships(dispatcher_live_fixture):
     assert all(r in ownerships[first_file_hash]['user_roles'] for r in token_roles)
 
 
+def test_public_file_ownerships(dispatcher_live_fixture):
+    DispatcherJobState.remove_scratch_folders()
+    DispatcherJobState.empty_request_files_folders()
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 6.,
+    }
+
+    p_file_path = DispatcherJobState.create_p_value_file(p_value=6)
+    list_file = open(p_file_path)
+
+    expected_query_status = 'done'
+    expected_job_status = 'done'
+    expected_status_code = 200
+
+    jdata = ask(server,
+                params,
+                expected_query_status=expected_query_status,
+                expected_job_status=expected_job_status,
+                expected_status_code=expected_status_code,
+                max_time_s=150,
+                method='post',
+                files={'dummy_file_first': list_file.read()}
+                )
+
+    list_file.close()
+
+    ownership_file_path = os.path.join('request_files', '.file_ownerships.json')
+    with open(ownership_file_path) as ownership_file:
+        ownerships = json.load(ownership_file)
+
+    file_hash = make_hash_file(p_file_path)
+
+    assert file_hash in ownerships
+    assert ownerships[file_hash]['user_roles'] == []
+
+
 def test_scws_list_file(dispatcher_live_fixture):
 
     server = dispatcher_live_fixture
