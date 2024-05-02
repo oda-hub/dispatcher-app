@@ -293,7 +293,7 @@ class InstrumentQueryBackEnd:
                                             "When we find a solution we will try to reach you", status_code=500)
                     if self.instrument is not None and not isinstance(self.instrument, str):
                         products_url = self.app.config.get('conf').products_url
-                        list_uploaded_files = self.instrument.parse_inputs_files(
+                        uploaded_files_obj = self.instrument.parse_inputs_files(
                             par_dic=self.par_dic,
                             request=request,
                             temp_dir=self.temp_dir,
@@ -304,7 +304,7 @@ class InstrumentQueryBackEnd:
                             sentry_dsn=self.sentry_dsn
                         )
                         self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
-                        self.update_ownership_files(list_uploaded_files)
+                        self.update_ownership_files(uploaded_files_obj)
                 # update the job_id
                 if not (data_server_call_back or resolve_job_url or download_files):
                     query_status = self.par_dic['query_status']
@@ -881,7 +881,7 @@ class InstrumentQueryBackEnd:
         return request_files_dir.path
 
 
-    def update_ownership_files(self, list_file_name):
+    def update_ownership_files(self, uploaded_files_obj):
         if hasattr(self, 'decoded_token') and self.decoded_token is not None:
             user_email = tokenHelper.get_token_user_email_address(self.decoded_token)
             user_roles = tokenHelper.get_token_roles(self.decoded_token)
@@ -890,26 +890,25 @@ class InstrumentQueryBackEnd:
             user_roles = []
 
         update_file = False
-        if isinstance(list_file_name, str):
-            list_file_name = [list_file_name]
         ownership_file_path = os.path.join(self.request_files_dir, '.file_ownerships.json')
         with open(ownership_file_path) as ownership_file:
             ownerships = json.load(ownership_file)
-        for file_name in list_file_name:
-            if file_name not in ownerships:
-                ownerships[file_name] = dict(
+        for file_name in uploaded_files_obj:
+            file_hash = uploaded_files_obj[file_name]
+            if file_hash not in ownerships:
+                ownerships[file_hash] = dict(
                     user_emails=[user_email],
                     user_roles=user_roles
                 )
                 update_file = True
             else:
-                if user_email not in ownerships[file_name]['user_emails']:
-                    ownerships[file_name]['user_emails'].append(user_email)
+                if user_email not in ownerships[file_hash]['user_emails']:
+                    ownerships[file_hash]['user_emails'].append(user_email)
                     update_file = True
-                if not all(role in ownerships[file_name]['user_roles'] for role in user_roles):
-                    set_user_roles = set(ownerships[file_name]['user_roles'])
+                if not all(role in ownerships[file_hash]['user_roles'] for role in user_roles):
+                    set_user_roles = set(ownerships[file_hash]['user_roles'])
                     set_user_roles |= set(user_roles)
-                    ownerships[file_name]['user_roles'] = list(set_user_roles)
+                    ownerships[file_hash]['user_roles'] = list(set_user_roles)
                     update_file = True
         if update_file:
             with open(ownership_file_path, 'w') as ownership_file:

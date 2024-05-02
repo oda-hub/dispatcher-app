@@ -28,9 +28,11 @@ import string
 import json
 import logging
 import yaml
+import validators
 
 import numpy as np
 from astropy.table import Table
+from urllib.parse import urlencode
 
 from cdci_data_analysis.analysis.queries import _check_is_base_query
 from ..analysis import tokenHelper, parameters
@@ -268,10 +270,13 @@ class Instrument:
 
             # any other file
             step = 'uploading other files'
-            list_uploaded_files = upload_files_request(par_dic=par_dic,
-                                                       request=request,
-                                                       upload_dir=upload_dir,
-                                                       products_url=products_url)
+            uploaded_files_obj = upload_files_request(request=request,
+                                                      upload_dir=upload_dir)
+            step = 'updating par_dic with the uploaded files'
+            self.update_par_dic_with_uploaded_files(par_dic=par_dic,
+                                                    uploaded_files_obj=uploaded_files_obj,
+                                                    products_url=products_url)
+
         except RequestNotUnderstood as e:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='',
@@ -299,7 +304,7 @@ class Instrument:
 
             raise RequestNotUnderstood(error_message)
 
-        return list_uploaded_files
+        return uploaded_files_obj
 
     def get_status_details(self,
                            par_dic,
@@ -694,6 +699,17 @@ class Instrument:
                 pass
             else:
                 raise RuntimeError
+
+    def update_par_dic_with_uploaded_files(self, par_dic, uploaded_files_obj, products_url):
+        if validators.url(products_url):
+            basepath = os.path.join(products_url, 'dispatch-data/download_file')
+        else:
+            basepath = os.path.join(products_url, 'download_file')
+        for f in uploaded_files_obj:
+            dpars = urlencode(dict(file_list=uploaded_files_obj[f],
+                                   return_archive=False))
+            download_file_url = f"{basepath}?{dpars}"
+            par_dic[f] = download_file_url
 
     def set_input_products(self, par_dic, input_file_path,input_prod_list_name):
         if input_file_path is None:
