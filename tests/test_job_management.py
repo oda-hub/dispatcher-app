@@ -434,7 +434,7 @@ def test_resubmission_with_conf(dispatcher_live_fixture_no_resubmit_timeout, dis
     dict_param['query_status'] = 'submitted'
     assert jdata['exit_status']['comment'] == f'dataserver products url: {dispatcher_test_conf_no_resubmit_timeout["products_url"]}'
     time.sleep(10.5)
-    jdata = ask(server, dict_param, expected_query_status='submitted')
+    ask(server, dict_param, expected_query_status='submitted')
 
 
 @pytest.mark.not_safe_parallel
