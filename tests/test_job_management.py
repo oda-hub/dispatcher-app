@@ -412,6 +412,31 @@ def validate_incident_email_content(
                 assert DispatcherJobState.ignore_html_patterns(reference_email) == DispatcherJobState.ignore_html_patterns(content_text_html)
 
 
+def test_resubmission_with_conf(dispatcher_live_fixture_no_resubmit_timeout, dispatcher_test_conf_no_resubmit_timeout):
+    DispatcherJobState.remove_scratch_folders()
+    server = dispatcher_live_fixture_no_resubmit_timeout
+    logger.info("constructed server: %s", server)
+    # let's generate a valid token
+    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        token=encoded_token,
+        instrument="empty-with-conf",
+        product_type="dummy",
+        query_type="Real",
+    )
+
+    jdata = ask(server, dict_param, expected_query_status='submitted')
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    print(jdata)
+    dict_param['job_id'] = dispatcher_job_state.job_id
+    dict_param['query_status'] = 'submitted'
+    assert jdata['exit_status']['comment'] == f'dataserver products url: {dispatcher_test_conf_no_resubmit_timeout["products_url"]}'
+    time.sleep(10.5)
+    jdata = ask(server, dict_param, expected_query_status='submitted')
+
+
 @pytest.mark.not_safe_parallel
 @pytest.mark.parametrize('status', ['submitted', 'empty', 'progress'])
 def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout, status):
