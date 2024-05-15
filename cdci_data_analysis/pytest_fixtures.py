@@ -1478,10 +1478,6 @@ class DispatcherJobState:
         for d in dir_list:
             os.remove(d)
 
-        ownership_file_path = 'request_files/.file_ownerships.json'
-        with open(ownership_file_path, 'w') as ownership_file:
-            json.dump({}, ownership_file)
-
     @staticmethod
     def create_p_value_file(p_value):
         # generate ScWs list file
