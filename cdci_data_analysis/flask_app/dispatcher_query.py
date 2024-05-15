@@ -876,46 +876,7 @@ class InstrumentQueryBackEnd:
     def get_request_files_dir(self):
         request_files_dir = FilePath(file_dir='request_files')
         request_files_dir.mkdir()
-        # ownership_file_path = os.path.join(request_files_dir.path, '.file_ownerships.json')
-        # if not os.path.exists(ownership_file_path):
-        #     with open(ownership_file_path, 'w') as ownership_file:
-        #         json.dump({}, ownership_file)
         return request_files_dir.path
-
-
-    # def update_ownership_files(self, uploaded_files_obj):
-    #     if getattr(self, 'decoded_token', None) is not None:
-    #         user_email = tokenHelper.get_token_user_email_address(self.decoded_token)
-    #         user_roles = tokenHelper.get_token_roles(self.decoded_token)
-    #     else:
-    #         user_email = 'public'
-    #         user_roles = []
-    #
-    #     update_file = False
-    #     ownership_file_path = os.path.join(self.request_files_dir, '.file_ownerships.json')
-    #     with open(ownership_file_path) as ownership_file:
-    #         ownerships = json.load(ownership_file)
-    #     for file_name in uploaded_files_obj:
-    #         file_hash = uploaded_files_obj[file_name]
-    #         if file_hash not in ownerships:
-    #             ownerships[file_hash] = dict(
-    #                 user_emails=[user_email],
-    #                 user_roles=user_roles
-    #             )
-    #             update_file = True
-    #         else:
-    #             if user_email not in ownerships[file_hash]['user_emails']:
-    #                 ownerships[file_hash]['user_emails'].append(user_email)
-    #                 update_file = True
-    #             if not all(role in ownerships[file_hash]['user_roles'] for role in user_roles):
-    #                 set_user_roles = set(ownerships[file_hash]['user_roles'])
-    #                 set_user_roles |= set(user_roles)
-    #                 ownerships[file_hash]['user_roles'] = list(set_user_roles)
-    #                 update_file = True
-    #     if update_file:
-    #         with open(ownership_file_path, 'w') as ownership_file:
-    #             json.dump(ownerships, ownership_file)
-
 
     def set_scratch_dir(self, session_id, job_id=None, verbose=False):
         if verbose == True:
