@@ -159,7 +159,7 @@ def download_products():
 
 @app.route("/download_file", methods=['POST', 'GET'])
 def download_file():
-    if validators.url(app.config['conf'].products_url):
+    if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url):
         redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/download_products')
         if request.args:
             args_request = urlencode(request.args)
