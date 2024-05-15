@@ -882,7 +882,7 @@ class InstrumentQueryBackEnd:
 
 
     def update_ownership_files(self, uploaded_files_obj):
-        if hasattr(self, 'decoded_token') and self.decoded_token is not None:
+        if getattr(self, 'decoded_token', None) is not None:
             user_email = tokenHelper.get_token_user_email_address(self.decoded_token)
             user_roles = tokenHelper.get_token_roles(self.decoded_token)
         else:
