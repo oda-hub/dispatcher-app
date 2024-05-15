@@ -953,15 +953,13 @@ def request_files_fixture(default_params_dict):
     os.rename(request_file_info_obj['file_path'], new_file_path)
     request_file_info_obj['file_path'] = new_file_path
 
-    ownership_file_path = 'request_files/.file_ownerships.json'
-    with open(ownership_file_path) as ownership_file:
-        ownerships = json.load(ownership_file)
-    ownerships[file_hash] = dict(
+    ownership_file_path = f'request_files/{file_hash}_ownerships.json'
+    ownerships_obj = dict(
         user_emails=['public'],
         user_roles=[]
     )
     with open(ownership_file_path, 'w') as ownership_file:
-        json.dump(ownerships, ownership_file)
+        json.dump(ownerships_obj, ownership_file)
 
     yield request_file_info_obj
 

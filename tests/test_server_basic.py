@@ -1438,33 +1438,37 @@ def test_file_ownerships(dispatcher_live_fixture):
     expected_job_status = 'done'
     expected_status_code = 200
 
-    jdata = ask(server,
-                params,
-                expected_query_status=expected_query_status,
-                expected_job_status=expected_job_status,
-                expected_status_code=expected_status_code,
-                max_time_s=150,
-                method='post',
-                files={'dummy_file_first': list_file_first.read(), 'dummy_file_second': list_file_second.read()}
-                )
+    ask(server,
+        params,
+        expected_query_status=expected_query_status,
+        expected_job_status=expected_job_status,
+        expected_status_code=expected_status_code,
+        max_time_s=150,
+        method='post',
+        files={'dummy_file_first': list_file_first.read(), 'dummy_file_second': list_file_second.read()}
+        )
 
     list_file_first.close()
     list_file_second.close()
 
-    ownership_file_path = os.path.join('request_files', '.file_ownerships.json')
-    with open(ownership_file_path) as ownership_file:
-        ownerships = json.load(ownership_file)
-
     first_file_hash = make_hash_file(p_file_path_first)
     second_file_hash = make_hash_file(p_file_path_second)
 
-    assert first_file_hash in ownerships
-    assert second_file_hash in ownerships
-    assert token_payload['sub'] in ownerships[first_file_hash]['user_emails']
-    assert token_payload['sub'] in ownerships[second_file_hash]['user_emails']
+    first_ownership_file_path = os.path.join('request_files', first_file_hash + '_ownerships.json')
+    second_ownership_file_path = os.path.join('request_files', second_file_hash + '_ownerships.json')
+    assert os.path.exists(first_ownership_file_path)
+    assert os.path.exists(second_ownership_file_path)
+
+    with open(first_ownership_file_path) as first_ownership_file:
+        first_ownerships = json.load(first_ownership_file)
+    with open(second_ownership_file_path) as second_ownership_file:
+        second_ownerships = json.load(second_ownership_file)
+
+    assert token_payload['sub'] in first_ownerships['user_emails']
+    assert token_payload['sub'] in second_ownerships['user_emails']
     token_roles = [r.strip() for r in token_payload['roles'].split(',')]
-    assert all(r in ownerships[first_file_hash]['user_roles'] for r in token_roles)
-    assert all(r in ownerships[second_file_hash]['user_roles'] for r in token_roles)
+    assert all(r in first_ownerships['user_roles'] for r in token_roles)
+    assert all(r in second_ownerships['user_roles'] for r in token_roles)
 
     # let's generate a valid token
     token_payload = {
@@ -1477,24 +1481,24 @@ def test_file_ownerships(dispatcher_live_fixture):
     params['token'] = encoded_token
 
     list_file_first = open(p_file_path_first)
-    jdata = ask(server,
-                params,
-                expected_query_status=expected_query_status,
-                expected_job_status=expected_job_status,
-                expected_status_code=expected_status_code,
-                max_time_s=150,
-                method='post',
-                files={'dummy_file_first': list_file_first.read()}
-                )
+    ask(server,
+        params,
+        expected_query_status=expected_query_status,
+        expected_job_status=expected_job_status,
+        expected_status_code=expected_status_code,
+        max_time_s=150,
+        method='post',
+        files={'dummy_file_first': list_file_first.read()}
+        )
 
     list_file_first.close()
 
-    with open(ownership_file_path) as ownership_file:
-        ownerships = json.load(ownership_file)
+    with open(first_ownership_file_path) as first_ownership_file:
+        first_ownerships = json.load(first_ownership_file)
 
-    assert token_payload['sub'] in ownerships[first_file_hash]['user_emails']
+    assert token_payload['sub'] in first_ownerships['user_emails']
     token_roles = [r.strip() for r in token_payload['roles'].split(',')]
-    assert all(r in ownerships[first_file_hash]['user_roles'] for r in token_roles)
+    assert all(r in first_ownerships['user_roles'] for r in token_roles)
 
 
 def test_public_file_ownerships(dispatcher_live_fixture):
@@ -1518,26 +1522,24 @@ def test_public_file_ownerships(dispatcher_live_fixture):
     expected_job_status = 'done'
     expected_status_code = 200
 
-    jdata = ask(server,
-                params,
-                expected_query_status=expected_query_status,
-                expected_job_status=expected_job_status,
-                expected_status_code=expected_status_code,
-                max_time_s=150,
-                method='post',
-                files={'dummy_file_first': list_file.read()}
-                )
+    ask(server,
+        params,
+        expected_query_status=expected_query_status,
+        expected_job_status=expected_job_status,
+        expected_status_code=expected_status_code,
+        max_time_s=150,
+        method='post',
+        files={'dummy_file_first': list_file.read()}
+        )
 
     list_file.close()
-
-    ownership_file_path = os.path.join('request_files', '.file_ownerships.json')
-    with open(ownership_file_path) as ownership_file:
-        ownerships = json.load(ownership_file)
-
     file_hash = make_hash_file(p_file_path)
 
-    assert file_hash in ownerships
-    assert ownerships[file_hash]['user_roles'] == []
+    ownership_file_path = os.path.join('request_files', file_hash + '_ownerships.json')
+    assert os.path.exists(ownership_file_path)
+    with open(ownership_file_path) as ownership_file:
+        ownerships = json.load(ownership_file)
+    assert ownerships['user_roles'] == []
 
 
 def test_scws_list_file(dispatcher_live_fixture):
