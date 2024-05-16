@@ -4,3 +4,4 @@ instruments:
 - empty_semi_async_instrument
 - empty_development_instrument
 - empty_async_return_progress_instrument
+- empty_instrument_with_conf
