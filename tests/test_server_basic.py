@@ -140,7 +140,7 @@ def test_empty_request(dispatcher_live_fixture):
     assert c.status_code == 400
 
     # parameterize this
-    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-semi-async', 'empty-development', 'empty-async-return-progress']) or \
+    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-with-conf', 'empty-semi-async', 'empty-development', 'empty-async-return-progress']) or \
            jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"
@@ -209,7 +209,7 @@ def test_matrix_options_mode_empty_request(dispatcher_live_fixture_with_matrix_o
     assert c.status_code == 400
 
     assert sorted(jdata['installed_instruments']) == sorted(
-        ['empty', 'empty-async', 'empty-semi-async', 'empty-development', 'empty-async-return-progress']) or \
+        ['empty', 'empty-async', 'empty-semi-async', 'empty-with-conf', 'empty-development', 'empty-async-return-progress']) or \
            jdata['installed_instruments'] == []
 
     # assert jdata['debug_mode'] == "no"
