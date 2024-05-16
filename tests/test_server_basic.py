@@ -269,8 +269,8 @@ def test_error_two_scratch_dir_same_job_id(dispatcher_live_fixture):
                 expected_status_code=500,
                 expected_query_status=None,
                 )
-    assert jdata['error'] == 'InternalError():we have encountered an internal error! Our team is notified and is working on it. We are sorry! When we find a solution we will try to reach you'
-    assert jdata['error_message'] == 'we have encountered an internal error! Our team is notified and is working on it. We are sorry! When we find a solution we will try to reach you'
+    assert jdata['error'] == 'InternalError():We have encountered an internal error! Our team is notified and is working on it. We are sorry! When we find a solution we will try to reach you'
+    assert jdata['error_message'] == 'We have encountered an internal error! Our team is notified and is working on it. We are sorry! When we find a solution we will try to reach you'
 
 
 @pytest.mark.fast
