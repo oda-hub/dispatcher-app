@@ -2073,6 +2073,7 @@ class InstrumentQueryBackEnd:
 
             if job_monitor['status'] != 'done' and job_monitor['status'] != 'failed' and query_status != 'new':
                 # check the last time status was updated and in case re-submit the request
+                self.instrument.disp_conf = disp_conf
                 try:
                     last_modified_monitor = job.get_latest_monitor_mtime()
                 except FileNotFoundError as f_e:

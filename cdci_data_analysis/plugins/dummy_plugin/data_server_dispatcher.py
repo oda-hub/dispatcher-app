@@ -175,6 +175,23 @@ class DataServerLogSubmitQuery(DataServerQuery):
         return None, query_out
 
 
+class DataServerQueryDispConf(DataServerQuery):
+    def __init__(self, config=None, instrument=None):
+        self.instrument = instrument
+        self.products_url_config = instrument.disp_conf.products_url
+        super(DataServerQueryDispConf, self).__init__()
+
+    def run_query(self, *args, **kwargs):
+        query_out = QueryOutput()
+
+        query_out.set_done(message="job submitted mock",
+                           job_status="submitted",
+                           comment=f"dataserver products url: {self.products_url_config}",
+                           warning="mock warning")
+
+        return None, query_out
+
+
 class DataServerQuerySemiAsync(DataServerQuery):
     def __init__(self, config=None, instrument=None):
         self.instrument = instrument
@@ -358,6 +375,14 @@ class EmptyProductQuery(ProductQuery):
         # return True
         results = dict(authorization=True, needed_roles=[])
         return results
+
+
+class EmptyProductQueryNoScwList(EmptyProductQuery):
+    def get_data_server_query(self, instrument: Instrument, config=None):
+        return instrument.data_server_query_class(instrument=instrument, config=config)
+
+    def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
+        return []
 
 
 class EmptyLogSubmitProductQuery(EmptyProductQuery):
