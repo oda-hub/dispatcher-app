@@ -233,6 +233,46 @@ def test_matrix_options_mode_empty_request(dispatcher_live_fixture_with_matrix_o
     logger.info(jdata['config'])
 
 
+@pytest.mark.not_safe_parallel
+@pytest.mark.fast
+def test_error_two_scratch_dir_same_job_id(dispatcher_live_fixture):
+    DispatcherJobState.remove_scratch_folders()
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
+    # issuing a request each, with the same set of parameters
+    params = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+    DataServerQuery.set_status('submitted')
+    # let's generate a fake scratch dir
+    jdata = ask(server,
+              params,
+              expected_query_status=["submitted"],
+              max_time_s=50,
+              )
+
+    job_id = jdata['job_monitor']['job_id']
+    session_id = jdata['session_id']
+    os.makedirs(f'scratch_sid_01234567890_jid_{job_id}')
+
+    params['job_id'] = job_id
+    params['session_id'] = session_id
+
+    jdata = ask(server,
+                params,
+                expected_status_code=500,
+                expected_query_status=None,
+                )
+    assert jdata['error'] == 'InternalError():we have encountered an internal error! Our team is notified and is working on it. We are sorry! When we find a solution we will try to reach you'
+    assert jdata['error_message'] == 'we have encountered an internal error! Our team is notified and is working on it. We are sorry! When we find a solution we will try to reach you'
+
+
 @pytest.mark.fast
 def test_same_request_different_users(dispatcher_live_fixture):
     server = dispatcher_live_fixture
