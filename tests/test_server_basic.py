@@ -259,7 +259,8 @@ def test_error_two_scratch_dir_same_job_id(dispatcher_live_fixture):
 
     job_id = jdata['job_monitor']['job_id']
     session_id = jdata['session_id']
-    os.makedirs(f'scratch_sid_01234567890_jid_{job_id}')
+    fake_scratch_dir = f'scratch_sid_01234567890_jid_{job_id}'
+    os.makedirs(fake_scratch_dir)
 
     params['job_id'] = job_id
     params['session_id'] = session_id
@@ -271,6 +272,7 @@ def test_error_two_scratch_dir_same_job_id(dispatcher_live_fixture):
                 )
     assert jdata['error'] == 'InternalError():We have encountered an internal error! Our team is notified and is working on it. We are sorry! When we find a solution we will try to reach you'
     assert jdata['error_message'] == 'We have encountered an internal error! Our team is notified and is working on it. We are sorry! When we find a solution we will try to reach you'
+    os.rmdir(fake_scratch_dir)
 
 
 @pytest.mark.fast
