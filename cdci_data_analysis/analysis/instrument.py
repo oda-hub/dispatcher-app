@@ -724,9 +724,6 @@ class Instrument:
             user_roles = []
 
         update_file = False
-        # ownership_file_path = os.path.join(request_files_dir, '.file_ownerships.json')
-        # with open(ownership_file_path) as ownership_file:
-        #     ownerships = json.load(ownership_file)
         for file_name in uploaded_files_obj:
             file_hash = uploaded_files_obj[file_name]
             ownership_file_path = os.path.join(request_files_dir, f'{file_hash}_ownerships.json')
