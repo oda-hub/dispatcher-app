@@ -1610,9 +1610,13 @@ class InstrumentQueryBackEnd:
                 alias_dir = None
 
         elif len(dir_list) > 1:
-            sentry.capture_message('Found two non aliased identical job_id')
-            print(f'Found two non aliased identical job_id, dir_list: {dir_list}')
-            raise RuntimeError('Found two non aliased identical job_id')
+            sentry.capture_message(f'Found two non aliased identical job_id, dir_list: {dir_list}')
+            self.logger.warning(f'Found two non aliased identical job_id, dir_list: {dir_list}')
+
+            raise InternalError("We have encountered an internal error! "
+                                "Our team is notified and is working on it. We are sorry! "
+                                "When we find a solution we will try to reach you",
+                                status_code=500)
 
         else:
             alias_dir = None
