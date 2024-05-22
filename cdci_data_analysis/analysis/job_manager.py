@@ -173,9 +173,9 @@ class Job(object):
 
     def updated_dataserver_monitor(self,):
         # TODO: combine all files
-
+        job_monitor_path = os.path.join(self.work_dir, 'job_monitor.json')
         try:
-            with open(self.file_path, 'r') as infile:
+            with open(job_monitor_path, 'r') as infile:
                 #print("=====> reading  from ", self.file_path)
                 self.monitor = json.load(infile,)
 
