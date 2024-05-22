@@ -482,6 +482,71 @@ def test_download_products_public(dispatcher_long_living_fixture, empty_products
     assert data_downloaded == empty_products_files_fixture['content']
 
 @pytest.mark.fast
+def test_download_products_aliased_dir(dispatcher_live_fixture):
+    DispatcherJobState.remove_scratch_folders()
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Real",
+        'instrument': 'empty-async',
+        'p': 5.,
+        'use_scws': 'user_file',
+    }
+
+    DataServerQuery.set_status('submitted')
+    file_path = DispatcherJobState.create_p_value_file(p_value=5)
+    list_file = open(file_path)
+
+    jdata = ask(server,
+                params,
+                expected_query_status='submitted',
+                expected_job_status=['submitted'],
+                expected_status_code=200,
+                max_time_s=150,
+                method='post',
+                files={'user_scw_list_file': list_file.read()}
+                )
+    list_file.close()
+
+    list_file = open(file_path)
+    DataServerQuery.set_status('done')
+    # job done
+    jdata_aliased = ask(server,
+                        params,
+                        expected_query_status='done',
+                        expected_job_status=['done'],
+                        expected_status_code=200,
+                        max_time_s=150,
+                        method='post',
+                        files={'user_scw_list_file': list_file.read()}
+                        )
+    list_file.close()
+
+    # force remove the file to test the download happens from the aliased dir
+    os.remove(f'scratch_sid_{jdata["session_id"]}_jid_{jdata["job_monitor"]["job_id"]}/user_scw_list_file')
+
+    d = requests.get(server + "/download_products",
+                     params={
+                         'session_id': jdata_aliased['session_id'],
+                         'file_list': 'user_scw_list_file',
+                         'download_file_name': 'output_test',
+                         'query_status': 'ready',
+                         'job_id': jdata_aliased['job_monitor']['job_id'],
+                     })
+    assert d.status_code == 200
+
+@pytest.mark.fast
 @pytest.mark.parametrize('filelist', ['../external_file', '/tmp/external_file', 'test.fits.gz'])
 @pytest.mark.parametrize('outname', ['/tmp/output_test', '../output_test', 'output_test'])
 def test_download_products_outside_dir(dispatcher_long_living_fixture, 
