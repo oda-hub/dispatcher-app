@@ -71,3 +71,5 @@ data/dummy_prods**
 js9.fits
 test-dispatcher-conf-with-gallery.yaml
 tests/oda-ontology.ttl
+tests/request_files
+tests/local_request_files

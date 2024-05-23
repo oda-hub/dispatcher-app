@@ -43,6 +43,7 @@ from cdci_data_analysis.pytest_fixtures import (
             cleanup,
             empty_products_files_fixture,
             empty_products_user_files_fixture,
+            request_files_fixture,
             default_params_dict,
             default_token_payload,
             dispatcher_live_fixture_empty_sentry,

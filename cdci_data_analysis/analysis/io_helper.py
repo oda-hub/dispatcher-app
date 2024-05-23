@@ -37,6 +37,9 @@ from astropy.io import fits as pf
 from flask import request
 from werkzeug.utils import secure_filename
 import decorator
+
+from .hash import make_hash_file
+
 # Dependencies
 # eg numpy 
 # absolute import eg: import numpy as np
@@ -204,6 +207,22 @@ def upload_file(name, dir):
         file_path = os.path.join(dir, filename)
         file.save(file_path)
         return file_path
+
+
+def upload_files_request(request, upload_dir):
+    uploaded_files_obj = {}
+    if request.method == 'POST':
+        for f in request.files:
+            # TODO needed since those two files are extracted in a previous step
+            if f != 'user_scw_list_file' and f != 'user_catalog_file':
+                f_path = upload_file(f, upload_dir)
+                if f_path is not None:
+                    file_hash = make_hash_file(f_path)
+                    new_file_name = file_hash
+                    new_file_path = os.path.join(upload_dir, new_file_name)
+                    uploaded_files_obj[f] = new_file_name
+                    os.rename(f_path, new_file_path)
+    return uploaded_files_obj
 
 
 def format_size(size_bytes, format_returned='M'):

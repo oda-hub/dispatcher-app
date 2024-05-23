@@ -480,6 +480,13 @@ class DataServerNumericQuery(ProductQuery):
         return results
 
 
+class FileParameterQuery(DataServerNumericQuery):
+    def __init__(self, name, parameters_list=None, ):
+        if parameters_list is None:
+            parameters_list = []
+        super().__init__(name, parameters_list=parameters_list)
+
+
 class DataServerParametricQuery(ProductQuery):
 
     def __init__(self, name, parameters_list=None):

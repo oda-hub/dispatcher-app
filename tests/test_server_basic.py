@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from dateutil import parser, tz
 from functools import reduce
 from urllib import parse
+from urllib.parse import urlencode
 import nbformat as nbf
 import yaml
 import gzip
@@ -22,7 +23,7 @@ import random
 import string
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
-from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products
+from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products, make_hash_file
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, create_new_notebook_with_code, generate_nb_hash, create_renku_ini_config_obj, generate_ini_file_hash
 from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id, get_source_astrophysical_entity_id_by_source_name
@@ -599,6 +600,92 @@ def test_download_products_outside_dir(dispatcher_long_living_fixture,
             os.remove(filelist.replace('../', ''))
         except:
             pass
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize("include_args", [True, False])
+def test_download_file_redirection_external_products_url(dispatcher_live_fixture_with_external_products_url,
+                                                           dispatcher_test_conf_with_external_products_url,
+                                                           include_args):
+    server = dispatcher_live_fixture_with_external_products_url
+
+    logger.info("constructed server: %s", server)
+
+    url_request = os.path.join(server, "download_file")
+
+    if include_args:
+        url_request += '?a=4566&token=aaaaaaaaaa'
+
+    c = requests.get(url_request, allow_redirects=False)
+
+    assert c.status_code == 302
+    redirection_header_location_url = c.headers["Location"]
+    redirection_url = os.path.join(dispatcher_test_conf_with_external_products_url['products_url'], 'dispatch-data/download_products')
+    if include_args:
+        redirection_url += '?a=4566&token=aaaaaaaaaa'
+    redirection_url += '&from_request_files_dir=True&download_file=True&download_products=False'
+    assert redirection_url == redirection_header_location_url
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize("include_args", [True, False])
+def test_download_file_redirection_no_custom_products_url(dispatcher_live_fixture_no_products_url,
+                                                          include_args):
+    server = dispatcher_live_fixture_no_products_url
+
+    logger.info("constructed server: %s", server)
+
+    url_request = os.path.join(server, "download_file")
+
+    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
+    if include_args:
+        url_request += '?a=4566&token=' + encoded_token
+
+    c = requests.get(url_request, allow_redirects=False)
+
+    assert c.status_code == 302
+    redirection_header_location_url = c.headers["Location"]
+    redirection_url = os.path.join(server, 'download_products')
+    if include_args:
+        redirection_url += '?a=4566&token=' + encoded_token
+    redirection_url += '&from_request_files_dir=True&download_file=True&download_products=False'
+    assert redirection_header_location_url == redirection_url
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize('return_archive', [True, False])
+@pytest.mark.parametrize('matching_file_name', [True, False])
+def test_download_file_public(dispatcher_long_living_fixture, request_files_fixture, return_archive, matching_file_name):
+    DispatcherJobState.create_local_request_files_folder()
+    server = dispatcher_long_living_fixture
+
+    logger.info("constructed server: %s", server)
+
+    params = {
+            'file_list': os.path.basename(request_files_fixture['file_path']),
+            'download_file_name': 'output_test',
+            'return_archive': return_archive,
+        }
+
+    if matching_file_name:
+        params['download_file_name'] = params['file_list']
+
+    c = requests.get(server + "/download_file",
+                     params=params)
+
+    assert c.status_code == 200
+
+    # download the output, read it and then compare it
+    with open('local_request_files/output_test', 'wb') as fout:
+        fout.write(c.content)
+
+    if return_archive:
+        with gzip.open('local_request_files/output_test', 'rb') as fout:
+            data_downloaded = fout.read()
+    else:
+        data_downloaded = c.content
+
+    assert data_downloaded == request_files_fixture['content']
 
 def test_query_restricted_instrument(dispatcher_live_fixture):
     server = dispatcher_live_fixture
@@ -1352,6 +1439,214 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
 
     logger.info("Json output content")
     logger.info(json.dumps(jdata, indent=4))
+
+
+@pytest.mark.parametrize("public_download_request", [True, False])
+def test_arg_file(dispatcher_live_fixture, public_download_request):
+    DispatcherJobState.remove_scratch_folders()
+    DispatcherJobState.empty_request_files_folders()
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'file_dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 5.,
+        'token': encoded_token,
+    }
+
+    p_file_path = DispatcherJobState.create_p_value_file(p_value=5)
+
+    list_file = open(p_file_path)
+
+    expected_query_status = 'done'
+    expected_job_status = 'done'
+    expected_status_code = 200
+
+    jdata = ask(server,
+                params,
+                expected_query_status=expected_query_status,
+                expected_job_status=expected_job_status,
+                expected_status_code=expected_status_code,
+                max_time_s=150,
+                method='post',
+                files={'dummy_file': list_file.read()}
+                )
+
+    list_file.close()
+    assert 'dummy_file' in jdata['products']['analysis_parameters']
+    parsed_url_dummy_file = parse.urlparse(jdata['products']['analysis_parameters']['dummy_file'])
+    args_dict = parse.parse_qs(parsed_url_dummy_file.query)
+    assert parsed_url_dummy_file.path.endswith('download_file')
+    assert 'file_list' in args_dict
+    assert len(args_dict['file_list']) == 1
+    assert os.path.exists(f'request_files/{args_dict["file_list"][0]}')
+
+    arg_download_url = jdata['products']['analysis_parameters']['dummy_file'].replace('PRODUCTS_URL/', server)
+
+    file_hash = make_hash_file(p_file_path)
+    dpars = urlencode(dict(file_list=file_hash,
+                           return_archive=False))
+    local_download_url = f"{os.path.join(server, 'download_file')}?{dpars}"
+
+    assert arg_download_url == local_download_url
+
+    if public_download_request:
+        c = requests.get(arg_download_url)
+        assert c.status_code == 403
+        jdata = c.json()
+        assert jdata['exit_status']['message'] == "User cannot access the file"
+    else:
+        arg_download_url += f'&token={encoded_token}'
+        c = requests.get(arg_download_url)
+        assert c.status_code == 200
+        with open(p_file_path) as p_file:
+            p_file_content = p_file.read()
+        assert c.content.decode() == p_file_content
+
+def test_file_ownerships(dispatcher_live_fixture):
+    DispatcherJobState.remove_scratch_folders()
+    DispatcherJobState.empty_request_files_folders()
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'file_dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 5.,
+        'token': encoded_token,
+    }
+
+    p_file_path_first = DispatcherJobState.create_p_value_file(p_value=5)
+    p_file_path_second = DispatcherJobState.create_p_value_file(p_value=6)
+
+    list_file_first = open(p_file_path_first)
+    list_file_second = open(p_file_path_second)
+
+    expected_query_status = 'done'
+    expected_job_status = 'done'
+    expected_status_code = 200
+
+    ask(server,
+        params,
+        expected_query_status=expected_query_status,
+        expected_job_status=expected_job_status,
+        expected_status_code=expected_status_code,
+        max_time_s=150,
+        method='post',
+        files={'dummy_file_first': list_file_first.read(), 'dummy_file_second': list_file_second.read()}
+        )
+
+    list_file_first.close()
+    list_file_second.close()
+
+    first_file_hash = make_hash_file(p_file_path_first)
+    second_file_hash = make_hash_file(p_file_path_second)
+
+    first_ownership_file_path = os.path.join('request_files', first_file_hash + '_ownerships.json')
+    second_ownership_file_path = os.path.join('request_files', second_file_hash + '_ownerships.json')
+    assert os.path.exists(first_ownership_file_path)
+    assert os.path.exists(second_ownership_file_path)
+
+    with open(first_ownership_file_path) as first_ownership_file:
+        first_ownerships = json.load(first_ownership_file)
+    with open(second_ownership_file_path) as second_ownership_file:
+        second_ownerships = json.load(second_ownership_file)
+
+    assert token_payload['sub'] in first_ownerships['user_emails']
+    assert token_payload['sub'] in second_ownerships['user_emails']
+    token_roles = [r.strip() for r in token_payload['roles'].split(',')]
+    assert all(r in first_ownerships['user_roles'] for r in token_roles)
+    assert all(r in second_ownerships['user_roles'] for r in token_roles)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "sub":"mtm2@mtmco.net",
+        "name":"mmeharga2",
+        "roles": "general, unige-second-hpc-full, general_second_request",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+    params['token'] = encoded_token
+
+    list_file_first = open(p_file_path_first)
+    ask(server,
+        params,
+        expected_query_status=expected_query_status,
+        expected_job_status=expected_job_status,
+        expected_status_code=expected_status_code,
+        max_time_s=150,
+        method='post',
+        files={'dummy_file_first': list_file_first.read()}
+        )
+
+    list_file_first.close()
+
+    with open(first_ownership_file_path) as first_ownership_file:
+        first_ownerships = json.load(first_ownership_file)
+
+    assert token_payload['sub'] in first_ownerships['user_emails']
+    token_roles = [r.strip() for r in token_payload['roles'].split(',')]
+    assert all(r in first_ownerships['user_roles'] for r in token_roles)
+
+
+def test_public_file_ownerships(dispatcher_live_fixture):
+    DispatcherJobState.remove_scratch_folders()
+    DispatcherJobState.empty_request_files_folders()
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 6.,
+    }
+
+    p_file_path = DispatcherJobState.create_p_value_file(p_value=6)
+    list_file = open(p_file_path)
+
+    expected_query_status = 'done'
+    expected_job_status = 'done'
+    expected_status_code = 200
+
+    ask(server,
+        params,
+        expected_query_status=expected_query_status,
+        expected_job_status=expected_job_status,
+        expected_status_code=expected_status_code,
+        max_time_s=150,
+        method='post',
+        files={'dummy_file_first': list_file.read()}
+        )
+
+    list_file.close()
+    file_hash = make_hash_file(p_file_path)
+
+    ownership_file_path = os.path.join('request_files', file_hash + '_ownerships.json')
+    assert os.path.exists(ownership_file_path)
+    with open(ownership_file_path) as ownership_file:
+        ownerships = json.load(ownership_file)
+    assert ownerships['user_roles'] == []
 
 
 def test_scws_list_file(dispatcher_live_fixture):

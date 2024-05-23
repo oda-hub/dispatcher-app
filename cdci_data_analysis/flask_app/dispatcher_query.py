@@ -114,6 +114,7 @@ class InstrumentQueryBackEnd:
                  verbose=False,
                  get_meta_data=False,
                  download_products=False,
+                 download_files=False,
                  resolve_job_url=False,
                  query_id=None,
                  update_token=False):
@@ -124,6 +125,8 @@ class InstrumentQueryBackEnd:
             self.logger.setLevel(logging.DEBUG)
         else:
             self.logger.setLevel(logging.INFO)
+
+        self.request_files_dir = self.get_request_files_dir()
 
         params_not_to_be_included.clear()
         params_not_to_be_included.append('user_catalog')
@@ -225,7 +228,7 @@ class InstrumentQueryBackEnd:
                 logstash_message(app, {'origin': 'dispatcher-run-analysis', 'event':'token-accepted', 'decoded-token':self.decoded_token })
                 self.log_query_progression("after logstash_message")
 
-            if download_products or resolve_job_url or update_token:
+            if download_products or resolve_job_url or update_token or download_files:
                 instrument_name = 'mock'
 
             self.logger.info("before setting instrument, self.par_dic: %s", self.par_dic)
@@ -261,7 +264,7 @@ class InstrumentQueryBackEnd:
                 #    raise MissingRequestParameter('no query_status!')
 
                 verbose = self.par_dic.get('verbose', 'False') == 'True'
-                if not (data_server_call_back or resolve_job_url):
+                if not (data_server_call_back or resolve_job_url or download_files):
                     query_status = self.par_dic['query_status']
                     self.job_id = None
                     if query_status == 'new':
@@ -274,10 +277,11 @@ class InstrumentQueryBackEnd:
 
                         self.job_id = self.par_dic['job_id']
 
-                # let's generate a temporary scratch_dir using the temporary job_id
-                self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
-                # temp_job_id = self.job_id
-                temp_scratch_dir = self.scratch_dir
+                if not download_files:
+                    # let's generate a temporary scratch_dir using the temporary job_id
+                    self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
+                    # temp_job_id = self.job_id
+                    temp_scratch_dir = self.scratch_dir
                 if not data_server_call_back:
                     try:
                         self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
@@ -288,17 +292,23 @@ class InstrumentQueryBackEnd:
                                             "Our team is notified and is working on it. We are sorry! "
                                             "When we find a solution we will try to reach you", status_code=500)
                     if self.instrument is not None and not isinstance(self.instrument, str):
+                        products_url = self.app.config.get('conf').products_url
                         self.instrument.parse_inputs_files(
                             par_dic=self.par_dic,
                             request=request,
                             temp_dir=self.temp_dir,
                             verbose=verbose,
                             use_scws=self.use_scws,
+                            upload_dir=self.request_files_dir,
+                            products_url=products_url,
+                            request_files_dir=self.request_files_dir,
+                            decoded_token=self.decoded_token,
                             sentry_dsn=self.sentry_dsn
                         )
                         self.par_dic = self.instrument.set_pars_from_dic(self.par_dic, verbose=verbose)
+                        # self.update_ownership_files(uploaded_files_obj)
                 # update the job_id
-                if not (data_server_call_back or resolve_job_url):
+                if not (data_server_call_back or resolve_job_url or download_files):
                     query_status = self.par_dic['query_status']
                     self.job_id = None
                     if query_status == 'new':
@@ -321,15 +331,18 @@ class InstrumentQueryBackEnd:
 
                         self.job_id = self.par_dic['job_id']
 
-                # let's set the scratch_dir with the updated job_id
-                self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
+                elif download_files:
+                    self.job_id = None
 
-                self.log_query_progression("before move_temp_content")
-                self.move_temp_content()
-                self.log_query_progression("after move_temp_content")                
+                if not download_files:
+                    # let's set the scratch_dir with the updated job_id
+                    self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
 
-                self.set_session_logger(
-                    self.scratch_dir, verbose=verbose, config=config)
+                    self.log_query_progression("before move_temp_content")
+                    self.move_temp_content()
+                    self.log_query_progression("after move_temp_content")
+
+                    self.set_session_logger(self.scratch_dir, verbose=verbose, config=config)
 
                 self.config = config
 
@@ -860,6 +873,11 @@ class InstrumentQueryBackEnd:
 
         self.args = args
 
+    def get_request_files_dir(self):
+        request_files_dir = FilePath(file_dir='request_files')
+        request_files_dir.mkdir()
+        return request_files_dir.path
+
     def set_scratch_dir(self, session_id, job_id=None, verbose=False):
         if verbose == True:
             print('SETSCRATCH  ---->', session_id,
@@ -927,8 +945,25 @@ class InstrumentQueryBackEnd:
                 or (should_exist and not os.path.isfile(file_abs)) ):
             raise RequestNotAuthorized('No such file')
         return file_abs
+
+    def verify_access_to_file(self, file_name):
+        user_email = None
+        if self.decoded_token is not None:
+            user_email = tokenHelper.get_token_user_email_address(self.decoded_token)
+        ownership_file_path = os.path.join(self.request_files_dir, f'{file_name}_ownerships.json')
+        with open(ownership_file_path) as ownership_file:
+            ownerships = json.load(ownership_file)
+        if 'public' not in ownerships['user_emails'] and \
+                ((user_email is not None and user_email not in ownerships['user_emails']) or user_email is None):
+            raise RequestNotAuthorized('User cannot access the file')
+
     
-    def prepare_download(self, file_list, file_name, scratch_dir):
+    def prepare_download(self, file_list, file_name, return_archive=True, from_request_files_dir=False):
+        if from_request_files_dir:
+            origin_dir = self.request_files_dir
+        else:
+            origin_dir = self.scratch_dir
+
         file_name = file_name.replace(' ', '_')
 
         if hasattr(file_list, '__iter__'):
@@ -937,15 +972,16 @@ class InstrumentQueryBackEnd:
             file_list = [file_list]
 
         for ID, f in enumerate(file_list):
-            file_list[ID] = self.validated_download_file_path(scratch_dir, f)
+            file_list[ID] = self.validated_download_file_path(origin_dir, f)
+            if from_request_files_dir:
+                self.verify_access_to_file(f)
 
-        tmp_dir = tempfile.mkdtemp(prefix='download_', dir='./')
-
-        file_path = self.validated_download_file_path(tmp_dir, file_name, should_exist=False)
-        out_dir = file_name.replace('.tar', '')
-        out_dir = out_dir.replace('.gz', '')
+        file_dir = tempfile.mkdtemp(prefix='download_', dir='./')
+        file_path = self.validated_download_file_path(file_dir, file_name, should_exist=False)
 
         if len(file_list) > 1:
+            out_dir = file_name.replace('.tar', '')
+            out_dir = out_dir.replace('.gz', '')
             tar = tarfile.open("%s" % (file_path), "w:gz")
             for name in file_list:
                 if name is not None:
@@ -953,13 +989,21 @@ class InstrumentQueryBackEnd:
                             (out_dir, os.path.basename(name)))
             tar.close()
         else:
-            in_data = open(file_list[0], "rb").read()
-            with gzip.open(file_path, 'wb') as f:
-                f.write(in_data)
+            if return_archive:
+                with open(file_list[0], "rb") as f_in:
+                    in_data = f_in.read()
+                with gzip.open(file_path, 'wb') as f:
+                    f.write(in_data)
+            else:
+                file_to_download = file_list[0].split('/')[-1]
+                if file_name == file_to_download:
+                    file_dir = os.path.dirname(file_list[0])
+                else:
+                    shutil.copy(file_list[0], file_path)
 
-        tmp_dir = os.path.abspath(tmp_dir)
+        file_dir = os.path.abspath(file_dir)
 
-        return tmp_dir, file_name
+        return file_dir, file_name
 
     def resolve_job_url(self):
         expected_pars = set(['job_id', 'session_id', 'token'])
@@ -1061,19 +1105,24 @@ class InstrumentQueryBackEnd:
 
         return self.token
 
-    def download_products(self):
+    def download_file(self, from_request_files_dir=False):
         try:
+
             # TODO not entirely sure about these
             self.off_line = False
             self.api = False
 
             self.validate_job_id(request_parameters_from_scratch_dir=True)
             file_list = self.args.get('file_list').split(',')
-                        
-            file_name = self.args.get('download_file_name')
+            file_name = self.args.get('download_file_name', None)
+            if file_name is None:
+                file_name = file_list[0] if len(file_list) == 1 else 'download.tar.gz'
+            return_archive = self.args.get('return_archive', 'True') == 'True'
 
             tmp_dir, target_file = self.prepare_download(
-                file_list, file_name, self.scratch_dir)
+                file_list, file_name,
+                return_archive=return_archive,
+                from_request_files_dir=from_request_files_dir)
             try:
                 return send_from_directory(directory=tmp_dir, path=target_file, attachment_filename=target_file,
                                         as_attachment=True)
@@ -1081,10 +1130,14 @@ class InstrumentQueryBackEnd:
                 return send_from_directory(directory=tmp_dir, filename=target_file, attachment_filename=target_file,
                                            as_attachment=True)
         except RequestNotAuthorized as e:
+            extract_job_monitor = True
+            if not hasattr(self, 'scratch_dir') or self.scratch_dir is None:
+                extract_job_monitor = False
             return self.build_response_failed('oda_api permissions failed',
                                               e.message,
                                               status_code=e.status_code,
-                                              debug_message=e.debug_message)
+                                              debug_message=e.debug_message,
+                                              extract_job_monitor=extract_job_monitor)
         except Exception as e:
             return e
 
@@ -1686,10 +1739,15 @@ class InstrumentQueryBackEnd:
                            token=self.token,
                            time_request=self.time_request)
 
-    def build_response_failed(self, message, extra_message, status_code=None, debug_message=''):
-        job = self.build_job()
-        job.set_failed()
-        job_monitor = job.monitor
+    def build_response_failed(self, message, extra_message, status_code=None, debug_message='', extract_job_monitor=True):
+        if extract_job_monitor:
+            job = self.build_job()
+            job.set_failed()
+            job_monitor = job.monitor
+            job_status = job_monitor['status']
+        else:
+            job_monitor = None
+            job_status = 'failed'
 
         query_status = 'failed'
 
@@ -1699,7 +1757,7 @@ class InstrumentQueryBackEnd:
 
         query_out.set_failed(failed_task,
                              message=extra_message,
-                             job_status=job_monitor['status'],
+                             job_status=job_status,
                              debug_message=debug_message)
 
         resp = self.build_dispatcher_response(query_new_status=query_status,
@@ -2434,3 +2492,4 @@ class InstrumentQueryBackEnd:
                     status=0, job_status="submitted", message="async-dispatcher waiting")
 
         return query_out, job_monitor, query_new_status
+
