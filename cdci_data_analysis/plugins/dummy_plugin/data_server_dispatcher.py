@@ -175,6 +175,23 @@ class DataServerLogSubmitQuery(DataServerQuery):
         return None, query_out
 
 
+class DataServerQueryDispConf(DataServerQuery):
+    def __init__(self, config=None, instrument=None):
+        self.instrument = instrument
+        self.products_url_config = instrument.disp_conf.products_url
+        super(DataServerQueryDispConf, self).__init__()
+
+    def run_query(self, *args, **kwargs):
+        query_out = QueryOutput()
+
+        query_out.set_done(message="job submitted mock",
+                           job_status="submitted",
+                           comment=f"dataserver products url: {self.products_url_config}",
+                           warning="mock warning")
+
+        return None, query_out
+
+
 class DataServerQuerySemiAsync(DataServerQuery):
     def __init__(self, config=None, instrument=None):
         self.instrument = instrument
@@ -360,6 +377,14 @@ class EmptyProductQuery(ProductQuery):
         return results
 
 
+class EmptyProductQueryNoScwList(EmptyProductQuery):
+    def get_data_server_query(self, instrument: Instrument, config=None):
+        return instrument.data_server_query_class(instrument=instrument, config=config)
+
+    def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
+        return []
+
+
 class EmptyLogSubmitProductQuery(EmptyProductQuery):
 
     def get_data_server_query(self, instrument: Instrument, config=None):
@@ -453,6 +478,13 @@ class DataServerNumericQuery(ProductQuery):
                     'unige-hpc-full': 'unige-hpc-full role is needed for p>50 as well'
                 }
         return results
+
+
+class FileParameterQuery(DataServerNumericQuery):
+    def __init__(self, name, parameters_list=None, ):
+        if parameters_list is None:
+            parameters_list = []
+        super().__init__(name, parameters_list=parameters_list)
 
 
 class DataServerParametricQuery(ProductQuery):

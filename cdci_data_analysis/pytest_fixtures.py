@@ -7,7 +7,7 @@ import yaml
 import cdci_data_analysis.flask_app.app
 from cdci_data_analysis.analysis.exceptions import BadRequest
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
-from cdci_data_analysis.analysis.hash import make_hash
+from cdci_data_analysis.analysis.hash import make_hash, make_hash_file
 from cdci_data_analysis.configurer import ConfigEnv
 from cdci_data_analysis.analysis.email_helper import textify_email
 
@@ -703,6 +703,13 @@ def dispatcher_test_conf_with_renku_options(dispatcher_test_conf_with_renku_opti
 
 
 @pytest.fixture
+def dispatcher_test_conf_no_resubmit_timeout(dispatcher_test_conf_no_resubmit_timeout_fn):
+    with open(dispatcher_test_conf_no_resubmit_timeout_fn) as yaml_f:
+        loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
+    yield loaded_yaml['dispatcher']
+
+
+@pytest.fixture
 def dispatcher_test_conf(dispatcher_test_conf_fn):
     yield yaml.load(open(dispatcher_test_conf_fn), Loader=yaml.SafeLoader)['dispatcher']
 
@@ -933,6 +940,35 @@ def empty_products_files_fixture(default_params_dict):
         outfile.write(u'%s' % my_json_str)
 
     yield scratch_params
+
+
+@pytest.fixture
+def request_files_fixture(default_params_dict):
+    DispatcherJobState.empty_request_files_folders()
+    request_file_info_obj = {
+        'file_path': 'request_files/test.fits.gz',
+        'content': os.urandom(20)
+    }
+
+    with open(request_file_info_obj['file_path'], 'wb') as f:
+        f.write(request_file_info_obj['content'])
+
+    request_file_info_obj['file_hash'] = make_hash_file(request_file_info_obj['file_path'])
+
+    file_hash = request_file_info_obj['file_hash']
+    new_file_path = os.path.join('request_files', file_hash)
+    os.rename(request_file_info_obj['file_path'], new_file_path)
+    request_file_info_obj['file_path'] = new_file_path
+
+    ownership_file_path = f'request_files/{file_hash}_ownerships.json'
+    ownerships_obj = dict(
+        user_emails=['public'],
+        user_roles=[]
+    )
+    with open(ownership_file_path, 'w') as ownership_file:
+        json.dump(ownerships_obj, ownership_file)
+
+    yield request_file_info_obj
 
 
 @pytest.fixture
@@ -1442,6 +1478,12 @@ class DispatcherJobState:
             shutil.rmtree(d)
 
     @staticmethod
+    def empty_request_files_folders():
+        dir_list = glob.glob('request_files/*')
+        for d in dir_list:
+            os.remove(d)
+
+    @staticmethod
     def create_p_value_file(p_value):
         # generate ScWs list file
         if not os.path.exists('p_value_simple_files'):
@@ -1493,6 +1535,11 @@ class DispatcherJobState:
             selected_catalog_obj['cat_column_list'][8].append(0)
 
         return selected_catalog_obj
+
+    @staticmethod
+    def create_local_request_files_folder():
+        if not os.path.exists('local_request_files'):
+            os.makedirs('local_request_files')
 
     @staticmethod
     def create_catalog_file(catalog_value, wrong_format=False):

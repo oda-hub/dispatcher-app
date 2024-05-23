@@ -3,6 +3,7 @@ from . import empty_semi_async_instrument
 from . import empty_async_instrument
 from . import empty_development_instrument
 from . import empty_async_return_progress_instrument
+from . import empty_instrument_with_conf
 from . import conf_file
 import yaml
 

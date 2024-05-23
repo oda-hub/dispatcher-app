@@ -412,6 +412,31 @@ def validate_incident_email_content(
                 assert DispatcherJobState.ignore_html_patterns(reference_email) == DispatcherJobState.ignore_html_patterns(content_text_html)
 
 
+def test_resubmission_with_conf(dispatcher_live_fixture_no_resubmit_timeout, dispatcher_test_conf_no_resubmit_timeout):
+    DispatcherJobState.remove_scratch_folders()
+    server = dispatcher_live_fixture_no_resubmit_timeout
+    logger.info("constructed server: %s", server)
+    # let's generate a valid token
+    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
+
+    dict_param = dict(
+        query_status="new",
+        token=encoded_token,
+        instrument="empty-with-conf",
+        product_type="dummy",
+        query_type="Real",
+    )
+
+    jdata = ask(server, dict_param, expected_query_status='submitted')
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    print(jdata)
+    dict_param['job_id'] = dispatcher_job_state.job_id
+    dict_param['query_status'] = 'submitted'
+    assert jdata['exit_status']['comment'] == f'dataserver products url: {dispatcher_test_conf_no_resubmit_timeout["products_url"]}'
+    time.sleep(10.5)
+    ask(server, dict_param, expected_query_status='submitted')
+
+
 @pytest.mark.not_safe_parallel
 @pytest.mark.parametrize('status', ['submitted', 'empty', 'progress'])
 def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout, status):
@@ -488,6 +513,55 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout, status
     assert c.status_code == 200
     jdata = c.json()
     assert jdata['exit_status']['job_status'] == 'ready'
+
+
+@pytest.mark.not_safe_parallel
+def test_failed_resubmission(dispatcher_live_fixture_no_resubmit_timeout):
+    server = dispatcher_live_fixture_no_resubmit_timeout
+    DispatcherJobState.remove_scratch_folders()
+    DataServerQuery.set_status("submitted")
+    logger.info("constructed server: %s", server)
+
+    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
+
+    # these parameters define request content
+    base_dict_param = dict(
+        instrument="empty-async",
+        product_type="dummy-log-submit",
+        query_type="Real",
+    )
+
+    dict_param = dict(
+        query_status="new",
+        token=encoded_token,
+        **base_dict_param
+    )
+
+    jdata = ask(server,
+                dict_param,
+                expected_query_status='submitted'
+                )
+    print(json.dumps(jdata, sort_keys=True, indent=4))
+
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(jdata)
+    assert jdata['exit_status']['job_status'] == "submitted"
+    assert DataServerQuery.get_status() == "submitted"
+
+    # resubmit the job before the timeout expires
+    dict_param['job_id'] = dispatcher_job_state.job_id
+    dict_param['query_status'] = "submitted"
+    DataServerQuery.set_status("submitted")
+
+    scratch_dir = f'scratch_sid_{dispatcher_job_state.session_id}_jid_{dispatcher_job_state.job_id}'
+    os.remove(os.path.join(scratch_dir, 'job_monitor.json'))
+
+    time.sleep(10.5)
+    # resubmit the job after the timeout expired
+    jdata = ask(server,
+                dict_param,
+                expected_query_status='failed'
+                )
+    print(json.dumps(jdata, sort_keys=True, indent=4))
 
 
 def test_validation_job_id(dispatcher_live_fixture):
