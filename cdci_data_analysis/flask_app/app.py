@@ -148,7 +148,7 @@ def meta_data_src():
     return query.get_meta_data('src_query')
 
 
-@app.route("/download_products", methods=['POST', 'GET'])
+@app.route("/download_products", methods=['POST', 'GET', 'HEAD'])
 def download_products():
     from_request_files_dir = request.args.get('from_request_files_dir', 'False') == 'True'
     download_file = request.args.get('download_file', 'False') == 'True'
@@ -157,7 +157,7 @@ def download_products():
     return query.download_file(from_request_files_dir=from_request_files_dir)
 
 
-@app.route("/download_file", methods=['POST', 'GET'])
+@app.route("/download_file", methods=['POST', 'GET', 'HEAD'])
 def download_file():
     if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url):
         redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/download_products')

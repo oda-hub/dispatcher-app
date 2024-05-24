@@ -139,7 +139,7 @@ class InstrumentQueryBackEnd:
 
         try:
             if par_dic is None:
-                self.set_args(request, verbose=verbose)
+                self.set_args(request, verbose=verbose, download_files=download_files, download_products=download_products)
             else:
                 self.par_dic = par_dic
             self.log_query_progression("after set args")
@@ -848,8 +848,11 @@ class InstrumentQueryBackEnd:
                 if self.use_scws is None:
                     self.use_scws = 'form_list'
 
-    def set_args(self, request, verbose=False):
-        if request.method in ['GET', 'POST']:
+    def set_args(self, request, verbose=False, download_products=False, download_files=False):
+        supported_methods = ['GET', 'POST']
+        if download_files or download_products:
+            supported_methods.append('HEAD')
+        if request.method in supported_methods:
             args = request.values
         else:
             raise NotImplementedError
