@@ -149,7 +149,6 @@ def meta_data_src():
 
 
 @app.route("/download_products", methods=['POST', 'GET', 'HEAD'])
-@app.route("/dispatch-data/download_products", methods=['POST', 'GET', 'HEAD'])
 def download_products():
     from_request_files_dir = request.args.get('from_request_files_dir', 'False') == 'True'
     download_file = request.args.get('download_file', 'False') == 'True'
@@ -159,7 +158,6 @@ def download_products():
 
 
 @app.route("/download_file", methods=['POST', 'GET', 'HEAD'])
-@app.route("/dispatch-data/download_file", methods=['POST', 'GET', 'HEAD'])
 def download_file():
     if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url):
         redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/download_products')
