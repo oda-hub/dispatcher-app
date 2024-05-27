@@ -1514,7 +1514,7 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
 
 
 @pytest.mark.parametrize("public_download_request", [True, False])
-def test_arg_file(dispatcher_live_fixture, public_download_request):
+def test_arg_file(dispatcher_live_fixture, dispatcher_test_conf, public_download_request):
     DispatcherJobState.remove_scratch_folders()
     DispatcherJobState.empty_request_files_folders()
     server = dispatcher_live_fixture
@@ -1563,12 +1563,15 @@ def test_arg_file(dispatcher_live_fixture, public_download_request):
     assert len(args_dict['file_list']) == 1
     assert os.path.exists(f'request_files/{args_dict["file_list"][0]}')
 
-    arg_download_url = jdata['products']['analysis_parameters']['dummy_file'].replace('PRODUCTS_URL/', server)
+    products_host_port = f"http://{dispatcher_test_conf['bind_options']['bind_host']}:{dispatcher_test_conf['bind_options']['bind_port']}"
+
+    arg_download_url = jdata['products']['analysis_parameters']['dummy_file'].replace('PRODUCTS_URL/', products_host_port)
 
     file_hash = make_hash_file(p_file_path)
     dpars = urlencode(dict(file_list=file_hash,
+                           _is_mmoda_url=True,
                            return_archive=False))
-    local_download_url = f"{os.path.join(server, 'download_file')}?{dpars}"
+    local_download_url = f"{os.path.join(products_host_port, 'download_file')}?{dpars}"
 
     assert arg_download_url == local_download_url
 
