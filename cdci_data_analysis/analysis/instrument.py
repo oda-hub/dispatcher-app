@@ -710,6 +710,7 @@ class Instrument:
 
     def update_par_dic_with_uploaded_files(self, par_dic, uploaded_files_obj, products_url, bind_host, bind_port):
         if validators.url(products_url):
+            # TODO remove the dispatch-data part, better to have it extracted from the configuration file
             basepath = os.path.join(products_url, 'dispatch-data/download_file')
         else:
             basepath = os.path.join(f"http://{bind_host}:{bind_port}", 'download_file')
