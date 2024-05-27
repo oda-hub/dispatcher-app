@@ -293,6 +293,8 @@ class InstrumentQueryBackEnd:
                                             "When we find a solution we will try to reach you", status_code=500)
                     if self.instrument is not None and not isinstance(self.instrument, str):
                         products_url = self.app.config.get('conf').products_url
+                        bind_host = self.app.config.get('conf').bind_host
+                        bind_port = self.app.config.get('conf').bind_port
                         self.instrument.parse_inputs_files(
                             par_dic=self.par_dic,
                             request=request,
@@ -301,6 +303,8 @@ class InstrumentQueryBackEnd:
                             use_scws=self.use_scws,
                             upload_dir=self.request_files_dir,
                             products_url=products_url,
+                            bind_host=bind_host,
+                            bind_port=bind_port,
                             request_files_dir=self.request_files_dir,
                             decoded_token=self.decoded_token,
                             sentry_dsn=self.sentry_dsn
