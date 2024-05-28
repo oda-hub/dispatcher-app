@@ -100,7 +100,7 @@ def run_api_instr_list():
     logger.warning('\nThe endpoint \'/api/instr-list\' is deprecated and you will be automatically redirected to the '
                    '\'/instr-list\' endpoint. Please use this one in the future.\n')
 
-    if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url):
+    if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url, simple_host=True):
         # TODO remove the dispatch-data part, better to have it extracted from the configuration file
         redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/instr-list')
         if request.args:
@@ -160,7 +160,7 @@ def download_products():
 
 @app.route("/download_file", methods=['POST', 'GET', 'HEAD'])
 def download_file():
-    if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url):
+    if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url, simple_host=True):
         # TODO remove the dispatch-data part, better to have it extracted from the configuration file
         redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/download_products')
         if request.args:

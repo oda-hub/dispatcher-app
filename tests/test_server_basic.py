@@ -662,6 +662,31 @@ def test_download_file_redirection_external_products_url(dispatcher_live_fixture
 
 @pytest.mark.fast
 @pytest.mark.parametrize("include_args", [True, False])
+def test_download_file_redirection_default_route_products_url(dispatcher_live_fixture_with_default_route_products_url,
+                                                              dispatcher_test_conf_with_default_route_products_url,
+                                                              include_args):
+    server = dispatcher_live_fixture_with_default_route_products_url
+
+    logger.info("constructed server: %s", server)
+
+    url_request = os.path.join(server, "download_file")
+
+    if include_args:
+        url_request += '?a=4566&token=aaaaaaaaaa'
+
+    c = requests.get(url_request, allow_redirects=False)
+
+    assert c.status_code == 302
+    redirection_header_location_url = c.headers["Location"]
+    redirection_url = os.path.join(dispatcher_test_conf_with_default_route_products_url['products_url'], 'dispatch-data/download_products')
+    if include_args:
+        redirection_url += '?a=4566&token=aaaaaaaaaa'
+    redirection_url += '&from_request_files_dir=True&download_file=True&download_products=False'
+    assert redirection_url == redirection_header_location_url
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize("include_args", [True, False])
 def test_download_file_redirection_no_custom_products_url(dispatcher_live_fixture_no_products_url,
                                                           include_args):
     server = dispatcher_live_fixture_no_products_url
@@ -849,6 +874,30 @@ def test_instrument_list_redirection_external_products_url(dispatcher_live_fixtu
     assert c.status_code == 302
     redirection_header_location_url = c.headers["Location"]
     redirection_url = os.path.join(dispatcher_test_conf_with_external_products_url['products_url'], 'dispatch-data/instr-list')
+    if include_args:
+        redirection_url += '?a=4566&token=aaaaaaaaaa'
+    assert redirection_url == redirection_header_location_url
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize("include_args", [True, False])
+def test_instrument_list_redirection_default_route_products_url(dispatcher_live_fixture_with_default_route_products_url,
+                                                                dispatcher_test_conf_with_default_route_products_url,
+                                                                include_args):
+    server = dispatcher_live_fixture_with_default_route_products_url
+
+    logger.info("constructed server: %s", server)
+
+    url_request = os.path.join(server, "api/instr-list")
+
+    if include_args:
+        url_request += '?a=4566&token=aaaaaaaaaa'
+
+    c = requests.get(url_request, allow_redirects=False)
+
+    assert c.status_code == 302
+    redirection_header_location_url = c.headers["Location"]
+    redirection_url = os.path.join(dispatcher_test_conf_with_default_route_products_url['products_url'], 'dispatch-data/instr-list')
     if include_args:
         redirection_url += '?a=4566&token=aaaaaaaaaa'
     assert redirection_url == redirection_header_location_url
