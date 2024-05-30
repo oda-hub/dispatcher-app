@@ -482,6 +482,39 @@ def test_download_products_public(dispatcher_long_living_fixture, empty_products
 
     assert data_downloaded == empty_products_files_fixture['content']
 
+
+@pytest.mark.fast
+def test_head_download_products_public(dispatcher_long_living_fixture, empty_products_files_fixture):
+    server = dispatcher_long_living_fixture
+
+    logger.info("constructed server: %s", server)
+
+    session_id = empty_products_files_fixture['session_id']
+    job_id = empty_products_files_fixture['job_id']
+
+    params = {
+        'query_status': 'ready',
+        'file_list': 'test.fits.gz',
+        'download_file_name': 'output_test',
+        'session_id': session_id,
+        'job_id': job_id
+    }
+
+    c = requests.head(server + "/download_products",
+                     params=params)
+
+    assert c.status_code == 200
+    file_path = f'scratch_sid_{session_id}_jid_{job_id}/test.fits.gz'
+    with open(file_path, "rb") as f_in:
+        in_data = f_in.read()
+    archived_file_path = f'scratch_sid_{session_id}_jid_{job_id}/output_test'
+    with gzip.open(archived_file_path, 'wb') as f:
+        f.write(in_data)
+    # download the output, read it and then compare it
+    size = os.path.getsize(archived_file_path)
+    assert int(c.headers['Content-Length']) == size
+
+
 @pytest.mark.fast
 def test_download_products_aliased_dir(dispatcher_live_fixture):
     DispatcherJobState.remove_scratch_folders()
@@ -629,6 +662,31 @@ def test_download_file_redirection_external_products_url(dispatcher_live_fixture
 
 @pytest.mark.fast
 @pytest.mark.parametrize("include_args", [True, False])
+def test_download_file_redirection_default_route_products_url(dispatcher_live_fixture_with_default_route_products_url,
+                                                              dispatcher_test_conf_with_default_route_products_url,
+                                                              include_args):
+    server = dispatcher_live_fixture_with_default_route_products_url
+
+    logger.info("constructed server: %s", server)
+
+    url_request = os.path.join(server, "download_file")
+
+    if include_args:
+        url_request += '?a=4566&token=aaaaaaaaaa'
+
+    c = requests.get(url_request, allow_redirects=False)
+
+    assert c.status_code == 302
+    redirection_header_location_url = c.headers["Location"]
+    redirection_url = os.path.join(dispatcher_test_conf_with_default_route_products_url['products_url'], 'dispatch-data/download_products')
+    if include_args:
+        redirection_url += '?a=4566&token=aaaaaaaaaa'
+    redirection_url += '&from_request_files_dir=True&download_file=True&download_products=False'
+    assert redirection_url == redirection_header_location_url
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize("include_args", [True, False])
 def test_download_file_redirection_no_custom_products_url(dispatcher_live_fixture_no_products_url,
                                                           include_args):
     server = dispatcher_live_fixture_no_products_url
@@ -686,6 +744,45 @@ def test_download_file_public(dispatcher_long_living_fixture, request_files_fixt
         data_downloaded = c.content
 
     assert data_downloaded == request_files_fixture['content']
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize('return_archive', [True, False])
+@pytest.mark.parametrize('matching_file_name', [True, False])
+def test_head_download_file(dispatcher_long_living_fixture, request_files_fixture, return_archive, matching_file_name):
+    DispatcherJobState.create_local_request_files_folder()
+    server = dispatcher_long_living_fixture
+
+    logger.info("constructed server: %s", server)
+
+    params = {
+            'file_list': os.path.basename(request_files_fixture['file_path']),
+            'download_file_name': 'output_test',
+            'return_archive': return_archive,
+        }
+
+    if matching_file_name:
+        params['download_file_name'] = params['file_list']
+
+    c = requests.head(server + "/download_file",
+                      allow_redirects=True,
+                      params=params)
+
+    assert c.status_code == 200
+
+    if return_archive:
+        with open(request_files_fixture['file_path'], "rb") as f_in:
+            in_data = f_in.read()
+        archived_file_path = f'local_request_files/{params["download_file_name"]}'
+        with gzip.open(archived_file_path, 'wb') as f:
+            f.write(in_data)
+        # download the output, read it and then compare it
+        size = os.path.getsize(archived_file_path)
+    else:
+        size = os.path.getsize(request_files_fixture['file_path'])
+
+    assert int(c.headers['Content-Length']) == size
+
 
 def test_query_restricted_instrument(dispatcher_live_fixture):
     server = dispatcher_live_fixture
@@ -777,6 +874,30 @@ def test_instrument_list_redirection_external_products_url(dispatcher_live_fixtu
     assert c.status_code == 302
     redirection_header_location_url = c.headers["Location"]
     redirection_url = os.path.join(dispatcher_test_conf_with_external_products_url['products_url'], 'dispatch-data/instr-list')
+    if include_args:
+        redirection_url += '?a=4566&token=aaaaaaaaaa'
+    assert redirection_url == redirection_header_location_url
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize("include_args", [True, False])
+def test_instrument_list_redirection_default_route_products_url(dispatcher_live_fixture_with_default_route_products_url,
+                                                                dispatcher_test_conf_with_default_route_products_url,
+                                                                include_args):
+    server = dispatcher_live_fixture_with_default_route_products_url
+
+    logger.info("constructed server: %s", server)
+
+    url_request = os.path.join(server, "api/instr-list")
+
+    if include_args:
+        url_request += '?a=4566&token=aaaaaaaaaa'
+
+    c = requests.get(url_request, allow_redirects=False)
+
+    assert c.status_code == 302
+    redirection_header_location_url = c.headers["Location"]
+    redirection_url = os.path.join(dispatcher_test_conf_with_default_route_products_url['products_url'], 'dispatch-data/instr-list')
     if include_args:
         redirection_url += '?a=4566&token=aaaaaaaaaa'
     assert redirection_url == redirection_header_location_url
@@ -1442,7 +1563,7 @@ def test_numerical_authorization_user_roles(dispatcher_live_fixture, roles):
 
 
 @pytest.mark.parametrize("public_download_request", [True, False])
-def test_arg_file(dispatcher_live_fixture, public_download_request):
+def test_arg_file(dispatcher_live_fixture, dispatcher_test_conf, public_download_request):
     DispatcherJobState.remove_scratch_folders()
     DispatcherJobState.empty_request_files_folders()
     server = dispatcher_live_fixture
@@ -1491,12 +1612,15 @@ def test_arg_file(dispatcher_live_fixture, public_download_request):
     assert len(args_dict['file_list']) == 1
     assert os.path.exists(f'request_files/{args_dict["file_list"][0]}')
 
-    arg_download_url = jdata['products']['analysis_parameters']['dummy_file'].replace('PRODUCTS_URL/', server)
+    products_host_port = f"http://{dispatcher_test_conf['bind_options']['bind_host']}:{dispatcher_test_conf['bind_options']['bind_port']}"
+
+    arg_download_url = jdata['products']['analysis_parameters']['dummy_file'].replace('PRODUCTS_URL/', products_host_port)
 
     file_hash = make_hash_file(p_file_path)
     dpars = urlencode(dict(file_list=file_hash,
+                           _is_mmoda_url=True,
                            return_archive=False))
-    local_download_url = f"{os.path.join(server, 'download_file')}?{dpars}"
+    local_download_url = f"{os.path.join(products_host_port, 'download_file')}?{dpars}"
 
     assert arg_download_url == local_download_url
 

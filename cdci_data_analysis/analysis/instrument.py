@@ -247,6 +247,8 @@ class Instrument:
                            use_scws,
                            upload_dir,
                            products_url,
+                           bind_host,
+                           bind_port,
                            request_files_dir,
                            decoded_token,
                            sentry_dsn=None):
@@ -277,7 +279,9 @@ class Instrument:
             step = 'updating par_dic with the uploaded files'
             self.update_par_dic_with_uploaded_files(par_dic=par_dic,
                                                     uploaded_files_obj=uploaded_files_obj,
-                                                    products_url=products_url)
+                                                    products_url=products_url,
+                                                    bind_host=bind_host,
+                                                    bind_port=bind_port)
             step = 'updating ownership files'
             self.update_ownership_files(uploaded_files_obj,
                                         request_files_dir=request_files_dir,
@@ -704,13 +708,15 @@ class Instrument:
             else:
                 raise RuntimeError
 
-    def update_par_dic_with_uploaded_files(self, par_dic, uploaded_files_obj, products_url):
+    def update_par_dic_with_uploaded_files(self, par_dic, uploaded_files_obj, products_url, bind_host, bind_port):
         if validators.url(products_url):
+            # TODO remove the dispatch-data part, better to have it extracted from the configuration file
             basepath = os.path.join(products_url, 'dispatch-data/download_file')
         else:
-            basepath = os.path.join(products_url, 'download_file')
+            basepath = os.path.join(f"http://{bind_host}:{bind_port}", 'download_file')
         for f in uploaded_files_obj:
             dpars = urlencode(dict(file_list=uploaded_files_obj[f],
+                                   _is_mmoda_url=True,
                                    return_archive=False))
             download_file_url = f"{basepath}?{dpars}"
             par_dic[f] = download_file_url

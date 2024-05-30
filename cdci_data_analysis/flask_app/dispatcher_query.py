@@ -139,7 +139,7 @@ class InstrumentQueryBackEnd:
 
         try:
             if par_dic is None:
-                self.set_args(request, verbose=verbose)
+                self.set_args(request, verbose=verbose, download_files=download_files, download_products=download_products)
             else:
                 self.par_dic = par_dic
             self.log_query_progression("after set args")
@@ -293,6 +293,8 @@ class InstrumentQueryBackEnd:
                                             "When we find a solution we will try to reach you", status_code=500)
                     if self.instrument is not None and not isinstance(self.instrument, str):
                         products_url = self.app.config.get('conf').products_url
+                        bind_host = self.app.config.get('conf').bind_host
+                        bind_port = self.app.config.get('conf').bind_port
                         self.instrument.parse_inputs_files(
                             par_dic=self.par_dic,
                             request=request,
@@ -301,6 +303,8 @@ class InstrumentQueryBackEnd:
                             use_scws=self.use_scws,
                             upload_dir=self.request_files_dir,
                             products_url=products_url,
+                            bind_host=bind_host,
+                            bind_port=bind_port,
                             request_files_dir=self.request_files_dir,
                             decoded_token=self.decoded_token,
                             sentry_dsn=self.sentry_dsn
@@ -848,8 +852,11 @@ class InstrumentQueryBackEnd:
                 if self.use_scws is None:
                     self.use_scws = 'form_list'
 
-    def set_args(self, request, verbose=False):
-        if request.method in ['GET', 'POST']:
+    def set_args(self, request, verbose=False, download_products=False, download_files=False):
+        supported_methods = ['GET', 'POST']
+        if download_files or download_products:
+            supported_methods.append('HEAD')
+        if request.method in supported_methods:
             args = request.values
         else:
             raise NotImplementedError

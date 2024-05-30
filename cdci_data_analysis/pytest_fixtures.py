@@ -567,6 +567,19 @@ def dispatcher_test_conf_with_external_products_url_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
+def dispatcher_test_conf_with_default_route_products_url_fn(dispatcher_test_conf_fn):
+    fn = dispatcher_test_conf_fn
+    with open(fn, "r+") as f:
+        data = f.read()
+        data = re.sub('(\s+products_url:).*\n', '\n    products_url: http://0.0.0.0:1234/mmoda/\n', data)
+        f.seek(0)
+        f.write(data)
+        f.truncate()
+
+    yield fn
+
+
+@pytest.fixture
 def dispatcher_test_conf_no_resubmit_timeout_fn(dispatcher_test_conf_fn):
     fn = dispatcher_test_conf_fn
     with open(fn, "r+") as f:
@@ -673,6 +686,13 @@ def dispatcher_test_conf_no_products_url(dispatcher_test_conf_no_products_url_fn
 @pytest.fixture
 def dispatcher_test_conf_with_external_products_url(dispatcher_test_conf_with_external_products_url_fn):
     with open(dispatcher_test_conf_with_external_products_url_fn) as yaml_f:
+        loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
+    yield loaded_yaml['dispatcher']
+
+
+@pytest.fixture
+def dispatcher_test_conf_with_default_route_products_url(dispatcher_test_conf_with_default_route_products_url_fn):
+    with open(dispatcher_test_conf_with_default_route_products_url_fn) as yaml_f:
         loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
     yield loaded_yaml['dispatcher']
 
@@ -1116,6 +1136,19 @@ def dispatcher_live_fixture_no_products_url(pytestconfig, dispatcher_test_conf_n
 @pytest.fixture
 def dispatcher_live_fixture_with_external_products_url(pytestconfig, dispatcher_test_conf_with_external_products_url_fn, dispatcher_debug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_external_products_url_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_with_default_route_products_url(pytestconfig, dispatcher_test_conf_with_default_route_products_url_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_default_route_products_url_fn)
 
     service = dispatcher_state['url']
     pid = dispatcher_state['pid']
