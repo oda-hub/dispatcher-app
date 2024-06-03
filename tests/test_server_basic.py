@@ -1637,6 +1637,126 @@ def test_arg_file(dispatcher_live_fixture, dispatcher_test_conf, public_download
             p_file_content = p_file.read()
         assert c.content.decode() == p_file_content
 
+@pytest.mark.parametrize("public_download_request", [True, False])
+def test_arg_file_external_product_url(dispatcher_live_fixture_with_external_products_url,
+                                       dispatcher_test_conf_with_external_products_url,
+                                       public_download_request):
+    DispatcherJobState.remove_scratch_folders()
+    DispatcherJobState.empty_request_files_folders()
+    server = dispatcher_live_fixture_with_external_products_url
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'file_dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 5.,
+        'token': encoded_token,
+    }
+
+    p_file_path = DispatcherJobState.create_p_value_file(p_value=5)
+
+    list_file = open(p_file_path)
+
+    expected_query_status = 'done'
+    expected_job_status = 'done'
+    expected_status_code = 200
+
+    jdata = ask(server,
+                params,
+                expected_query_status=expected_query_status,
+                expected_job_status=expected_job_status,
+                expected_status_code=expected_status_code,
+                max_time_s=150,
+                method='post',
+                files={'dummy_file': list_file.read()}
+                )
+
+    list_file.close()
+    assert 'dummy_file' in jdata['products']['analysis_parameters']
+    parsed_url_dummy_file = parse.urlparse(jdata['products']['analysis_parameters']['dummy_file'])
+    args_dict = parse.parse_qs(parsed_url_dummy_file.query)
+    assert parsed_url_dummy_file.path.endswith('download_file')
+    assert 'file_list' in args_dict
+    assert len(args_dict['file_list']) == 1
+    assert os.path.exists(f'request_files/{args_dict["file_list"][0]}')
+
+    file_hash = make_hash_file(p_file_path)
+    dpars = urlencode(dict(file_list=file_hash,
+                           _is_mmoda_url=True,
+                           return_archive=False))
+    local_download_url = f"{os.path.join(dispatcher_test_conf_with_external_products_url['products_url'], 'dispatch-data/download_file')}?{dpars}"
+
+    assert jdata['products']['analysis_parameters']['dummy_file'] == local_download_url
+
+@pytest.mark.parametrize("public_download_request", [True, False])
+def test_arg_file_default_product_url(dispatcher_live_fixture_with_default_route_products_url,
+                                      dispatcher_test_conf_with_default_route_products_url,
+                                      public_download_request):
+    DispatcherJobState.remove_scratch_folders()
+    DispatcherJobState.empty_request_files_folders()
+    server = dispatcher_live_fixture_with_default_route_products_url
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'file_dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'p': 5.,
+        'token': encoded_token,
+    }
+
+    p_file_path = DispatcherJobState.create_p_value_file(p_value=5)
+
+    list_file = open(p_file_path)
+
+    expected_query_status = 'done'
+    expected_job_status = 'done'
+    expected_status_code = 200
+
+    jdata = ask(server,
+                params,
+                expected_query_status=expected_query_status,
+                expected_job_status=expected_job_status,
+                expected_status_code=expected_status_code,
+                max_time_s=150,
+                method='post',
+                files={'dummy_file': list_file.read()}
+                )
+
+    list_file.close()
+    assert 'dummy_file' in jdata['products']['analysis_parameters']
+    parsed_url_dummy_file = parse.urlparse(jdata['products']['analysis_parameters']['dummy_file'])
+    args_dict = parse.parse_qs(parsed_url_dummy_file.query)
+    assert parsed_url_dummy_file.path.endswith('download_file')
+    assert 'file_list' in args_dict
+    assert len(args_dict['file_list']) == 1
+    assert os.path.exists(f'request_files/{args_dict["file_list"][0]}')
+
+    file_hash = make_hash_file(p_file_path)
+    dpars = urlencode(dict(file_list=file_hash,
+                           _is_mmoda_url=True,
+                           return_archive=False))
+    local_download_url = f"{os.path.join(dispatcher_test_conf_with_default_route_products_url['products_url'], 'dispatch-data/download_file')}?{dpars}"
+
+    assert jdata['products']['analysis_parameters']['dummy_file'] == local_download_url
+
 def test_file_ownerships(dispatcher_live_fixture):
     DispatcherJobState.remove_scratch_folders()
     DispatcherJobState.empty_request_files_folders()

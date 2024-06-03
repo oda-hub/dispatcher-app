@@ -709,7 +709,7 @@ class Instrument:
                 raise RuntimeError
 
     def update_par_dic_with_uploaded_files(self, par_dic, uploaded_files_obj, products_url, bind_host, bind_port):
-        if validators.url(products_url):
+        if validators.url(products_url, simple_host=True):
             # TODO remove the dispatch-data part, better to have it extracted from the configuration file
             basepath = os.path.join(products_url, 'dispatch-data/download_file')
         else:
