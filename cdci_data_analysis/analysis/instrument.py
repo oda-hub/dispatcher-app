@@ -27,18 +27,20 @@ from builtins import (bytes, str, open, super, range,
 import string
 import json
 import logging
-
 import yaml
+import validators
 
 import numpy as np
 from astropy.table import Table
+from urllib.parse import urlencode
 
 from cdci_data_analysis.analysis.queries import _check_is_base_query
 from ..analysis import tokenHelper, parameters
 from .catalog import BasicCatalog
 from .products import QueryOutput
 from .queries import ProductQuery, SourceQuery, InstrumentQuery
-from .io_helper import upload_file
+from .io_helper import upload_file, upload_files_request
+
 from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
 from ..flask_app.sentry import sentry
 
@@ -243,6 +245,12 @@ class Instrument:
                            temp_dir,
                            verbose,
                            use_scws,
+                           upload_dir,
+                           products_url,
+                           bind_host,
+                           bind_port,
+                           request_files_dir,
+                           decoded_token,
                            sentry_dsn=None):
         error_message = 'Error while {step} {temp_dir_content_msg}{additional}'
         # TODO probably exception handling can be further improved and/or optmized
@@ -263,6 +271,22 @@ class Instrument:
                                                                       temp_dir=temp_dir)
             step = 'setting input scw_list file'
             self.set_input_products_from_fronted(input_file_path=input_file_path, par_dic=par_dic, verbose=verbose)
+
+            # any other file
+            step = 'uploading other files'
+            uploaded_files_obj = upload_files_request(request=request,
+                                                       upload_dir=upload_dir)
+            step = 'updating par_dic with the uploaded files'
+            self.update_par_dic_with_uploaded_files(par_dic=par_dic,
+                                                    uploaded_files_obj=uploaded_files_obj,
+                                                    products_url=products_url,
+                                                    bind_host=bind_host,
+                                                    bind_port=bind_port)
+            step = 'updating ownership files'
+            self.update_ownership_files(uploaded_files_obj,
+                                        request_files_dir=request_files_dir,
+                                        decoded_token=decoded_token)
+
         except RequestNotUnderstood as e:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='',
@@ -684,6 +708,52 @@ class Instrument:
             else:
                 raise RuntimeError
 
+    def update_par_dic_with_uploaded_files(self, par_dic, uploaded_files_obj, products_url, bind_host, bind_port):
+        if validators.url(products_url, simple_host=True):
+            # TODO remove the dispatch-data part, better to have it extracted from the configuration file
+            basepath = os.path.join(products_url, 'dispatch-data/download_file')
+        else:
+            basepath = os.path.join(f"http://{bind_host}:{bind_port}", 'download_file')
+        for f in uploaded_files_obj:
+            dpars = urlencode(dict(file_list=uploaded_files_obj[f],
+                                   _is_mmoda_url=True,
+                                   return_archive=False))
+            download_file_url = f"{basepath}?{dpars}"
+            par_dic[f] = download_file_url
+
+    def update_ownership_files(self, uploaded_files_obj, request_files_dir, decoded_token=None):
+        if decoded_token is not None:
+            user_email = tokenHelper.get_token_user_email_address(decoded_token)
+            user_roles = tokenHelper.get_token_roles(decoded_token)
+        else:
+            user_email = 'public'
+            user_roles = []
+
+        update_file = False
+        for file_name in uploaded_files_obj:
+            file_hash = uploaded_files_obj[file_name]
+            ownership_file_path = os.path.join(request_files_dir, f'{file_hash}_ownerships.json')
+            if not os.path.exists(ownership_file_path):
+                ownerships = dict(
+                    user_emails=[user_email],
+                    user_roles=user_roles
+                )
+                update_file = True
+            else:
+                with open(ownership_file_path) as ownership_file:
+                    ownerships = json.load(ownership_file)
+            if user_email not in ownerships['user_emails']:
+                ownerships['user_emails'].append(user_email)
+                update_file = True
+            if not all(role in ownerships['user_roles'] for role in user_roles):
+                set_user_roles = set(ownerships['user_roles'])
+                set_user_roles |= set(user_roles)
+                ownerships['user_roles'] = list(set_user_roles)
+                update_file = True
+            if update_file:
+                with open(ownership_file_path, 'w') as ownership_file:
+                    json.dump(ownerships, ownership_file)
+
     def set_input_products(self, par_dic, input_file_path,input_prod_list_name):
         if input_file_path is None:
             #if no file we pass OK condition
@@ -715,6 +785,7 @@ class Instrument:
                 has_prods=False
 
         return has_prods
+
 
     def upload_catalog_from_fronted(self, par_dic, request, temp_dir):
         cat_file_path = None

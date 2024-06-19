@@ -100,7 +100,8 @@ def run_api_instr_list():
     logger.warning('\nThe endpoint \'/api/instr-list\' is deprecated and you will be automatically redirected to the '
                    '\'/instr-list\' endpoint. Please use this one in the future.\n')
 
-    if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url):
+    if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url, simple_host=True):
+        # TODO remove the dispatch-data part, better to have it extracted from the configuration file
         redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/instr-list')
         if request.args:
             args_request = urlencode(request.args)
@@ -148,10 +149,33 @@ def meta_data_src():
     return query.get_meta_data('src_query')
 
 
-@app.route("/download_products", methods=['POST', 'GET'])
+@app.route("/download_products", methods=['POST', 'GET', 'HEAD'])
 def download_products():
-    query = InstrumentQueryBackEnd(app, download_products=True)
-    return query.download_products()
+    from_request_files_dir = request.args.get('from_request_files_dir', 'False') == 'True'
+    download_file = request.args.get('download_file', 'False') == 'True'
+    download_products = request.args.get('download_products', 'True') == 'True'
+    query = InstrumentQueryBackEnd(app, download_products=download_products, download_files=download_file)
+    return query.download_file(from_request_files_dir=from_request_files_dir)
+
+
+@app.route("/download_file", methods=['POST', 'GET', 'HEAD'])
+def download_file():
+    if app.config['conf'].products_url is not None and validators.url(app.config['conf'].products_url, simple_host=True):
+        # TODO remove the dispatch-data part, better to have it extracted from the configuration file
+        redirection_url = os.path.join(app.config['conf'].products_url, 'dispatch-data/download_products')
+        if request.args:
+            args_request = urlencode(request.args)
+            redirection_url = f'{redirection_url}?{args_request}'
+
+    else:
+        parsed_request_url = urlparse(request.url)
+        path_request_url = parsed_request_url.path.replace('/download_file', '/download_products')
+        parsed_request_url = parsed_request_url._replace(path=path_request_url)
+        redirection_url = parsed_request_url.geturl()
+
+    redirection_url += f'&from_request_files_dir=True&download_file=True&download_products=False'
+
+    return redirect(redirection_url)
 
 
 class UnknownDispatcherException(Exception):

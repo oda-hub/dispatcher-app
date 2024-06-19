@@ -163,17 +163,19 @@ class Job(object):
         return self.monitor['status']
 
     def get_latest_monitor_mtime(self):
-        last_modified_time = None
         job_monitor_path = os.path.join(self.work_dir, 'job_monitor.json')
         if os.path.exists(job_monitor_path):
             last_modified_time = os.path.getmtime(job_monitor_path)
+        else:
+            logger.warning(f"no job_monitor.json found in {self.work_dir}")
+            raise FileNotFoundError(f"no job_monitor.json found in {self.work_dir}")
         return last_modified_time
 
     def updated_dataserver_monitor(self,):
         # TODO: combine all files
-
+        job_monitor_path = os.path.join(self.work_dir, 'job_monitor.json')
         try:
-            with open(self.file_path, 'r') as infile:
+            with open(job_monitor_path, 'r') as infile:
                 #print("=====> reading  from ", self.file_path)
                 self.monitor = json.load(infile,)
 

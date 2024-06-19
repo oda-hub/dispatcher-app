@@ -1,4 +1,5 @@
 import hashlib
+import subprocess
 import json
 from collections import OrderedDict
 
@@ -34,3 +35,10 @@ def make_hash(o):
 
     # this takes care of various strange objects which can not be properly represented
     return format_hash(json.dumps(o))
+
+
+def make_hash_file(file_path):
+    command = ["md5sum", file_path]
+
+    output = subprocess.check_output(command)
+    return output.decode().split()[0]
