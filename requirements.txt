@@ -1,5 +1,5 @@
 future
-numpy==1.24.4
+numpy<2.0.0
 pyyaml
 simplejson
 flask==2.0.3
