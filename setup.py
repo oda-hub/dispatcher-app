@@ -21,7 +21,7 @@ import json
 install_req = [
     'oda_api>=1.1.31',
     'pylogstash_context>=0.1.19',
-    "numpy",
+    "numpy==1.24.4",
     "pyyaml",
     "simplejson",
     "flask==2.0.3",
