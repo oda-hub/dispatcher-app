@@ -262,6 +262,43 @@ class ReturnProgressDataServerQuery(DataServerQuery):
         return p_value, query_out
 
 
+class ReturnProgressHtmlDataServerQuery(DataServerQuery):
+    def __init__(self, config=None, instrument=None):
+        super().__init__()
+
+    def get_progress_run(self, **kwargs):
+
+        query_out = QueryOutput()
+
+        html_content = ReturnProgressHtmlProductQuery.get_progress_html_output()
+
+        query_out.set_status(
+            0,
+            message=f"current p value is {html_content}",
+            debug_message="no debug message really",
+            job_status="submitted",
+            comment="mock comment",
+            warning="mock warning")
+
+        return html_content, query_out
+
+    def run_query(self, *args, **kwargs):
+        logger.warn('fake run_query in %s with %s, %s', self, args, kwargs)
+        query_out = QueryOutput()
+
+        html_content = ReturnProgressProductQuery.get_progress_html_output()
+
+        query_out.set_status(
+            0,
+            message=f"current p value is {html_content}",
+            debug_message="no debug message really",
+            job_status="done",
+            comment="mock comment",
+            warning="mock warning")
+
+        return html_content, query_out
+
+
 class ReturnProgressProductQuery(ProductQuery):
 
     p_value_fn = "ReturnProgressProductQuery-current_p_value.out"
@@ -310,6 +347,49 @@ class ReturnProgressProductQuery(ProductQuery):
     def build_product_list(self, instrument, res, out_dir, prod_prefix='', api=False):
         p_value = res
         return [p_value]
+
+class ReturnProgressHtmlProductQuery(ReturnProgressProductQuery):
+
+    html_output_fn = "progress_html_output.html"
+    def __init__(self, name):
+        super().__init__(name)
+
+    @classmethod
+    def set_progress_html_output(cls, html_output_content):
+        with open(cls.html_output_fn, "w") as progress_html_f:
+            progress_html_f.write(str(html_output_content))
+
+    @classmethod
+    def get_progress_html_output(cls):
+        if os.path.exists(cls.html_output_fn):
+            with open(cls.html_output_fn) as html_output_f:
+                html_output = html_output_f.read()
+            return html_output
+        else:
+            return ""
+
+    def get_dummy_progress_run(self, instrument, config=None,**kwargs):
+        html_output = self.get_progress_html_output()
+        prod_list = QueryProductList(prod_list=[html_output])
+        return prod_list
+
+    def get_dummy_products(self, instrument, config=None, **kwargs):
+        html_output = self.get_progress_html_output()
+        prod_list = QueryProductList(prod_list=[html_output])
+        return prod_list
+
+    def process_product_method(self, instrument, prod_list, api=False, **kw):
+        query_out = QueryOutput()
+        query_out.prod_dictionary['progress_product_html_output'] = prod_list.prod_list[0]
+        return query_out
+
+    def get_data_server_query(self,instrument,config=None,**kwargs):
+        if instrument.data_server_query_class:
+            q = ReturnProgressHtmlDataServerQuery(instrument=instrument, config=config)
+        else:
+            q = DataServerQuery()
+        return q
+
 
 class EmptyProductQuery(ProductQuery):
 
