@@ -24,7 +24,7 @@ install_req = [
     "numpy",
     "pyyaml",
     "simplejson",
-    "flask",
+    "flask==2.0.3",
     "astropy>=2.0.3",
     "gunicorn",
     "decorator",
@@ -33,9 +33,9 @@ install_req = [
     "blinker",
     "bokeh==2.4.2",
     "json_tricks",
-    "flask-restx==1.3.0",
+    "flask-restx==1.2.0",
     "six",
-    "werkzeug==3.0.0",
+    "werkzeug==2.0.3",
     "python-shell-colors==0.2.1",
     "logging_tree",
     "celery",
@@ -49,7 +49,7 @@ install_req = [
     "giturlparse",
     "sentry-sdk",
     "validators==0.28.3",
-    "jsonschema"
+    "jsonschema==3.2.0"
 ]
 
 test_req = [
