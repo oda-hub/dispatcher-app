@@ -24,7 +24,7 @@ install_req = [
     "numpy<2.0.0",
     "pyyaml",
     "simplejson",
-    "flask==2.0.3",
+    "flask<=2.3.2",
     "astropy>=2.0.3",
     "gunicorn",
     "decorator",
