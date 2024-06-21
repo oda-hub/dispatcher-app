@@ -21,10 +21,10 @@ import json
 install_req = [
     'oda_api>=1.1.31',
     'pylogstash_context>=0.1.19',
-    "numpy",
+    "numpy<2.0.0",
     "pyyaml",
     "simplejson",
-    "flask",
+    "flask==2.0.3",
     "astropy>=2.0.3",
     "gunicorn",
     "decorator",
@@ -49,7 +49,7 @@ install_req = [
     "giturlparse",
     "sentry-sdk",
     "validators==0.28.3",
-    "jsonschema"
+    "jsonschema<=4.17.3"
 ]
 
 test_req = [
