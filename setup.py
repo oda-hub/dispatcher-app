@@ -49,7 +49,7 @@ install_req = [
     "giturlparse",
     "sentry-sdk",
     "validators==0.28.3",
-    "jsonschema==3.2.0"
+    "jsonschema<=4.17.3"
 ]
 
 test_req = [
