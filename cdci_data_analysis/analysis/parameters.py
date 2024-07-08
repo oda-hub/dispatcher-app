@@ -499,7 +499,7 @@ class Parameter:
                 'Trying to find parameter which have %s directly set. '
                 'extra_ttl will be ignored ', owl_uri)
             parameter_hierarchy = [ owl_uri ]
-            par_format = par_unit = allowed_values = min_value = max_value = None
+            par_format = par_unit = allowed_values = min_value = max_value = label = None
         else:
             if ontology_path is not None:
                 if isinstance(ontology_path, (str, os.PathLike)):
@@ -680,7 +680,8 @@ class Float(NumericParameter):
                  check_value=None, 
                  min_value= None,
                  max_value = None,
-                 units_name = None):
+                 units_name = None,
+                 extra_metadata=None):
        
         super().__init__(value=value,
                          units=units,
@@ -693,7 +694,8 @@ class Float(NumericParameter):
                          allowed_units=allowed_units,
                          min_value=min_value,
                          max_value=max_value,
-                         units_name = units_name)
+                         units_name = units_name,
+                         extra_metadata=extra_metadata)
 
 
 
@@ -709,7 +711,8 @@ class Integer(NumericParameter):
                  max_value = None,
                  units_name = None,
                  default_units = None,
-                 allowed_units = None):
+                 allowed_units = None,
+                 extra_metadata=None):
         
         super().__init__(value=value,
                          units=units,
@@ -721,7 +724,8 @@ class Integer(NumericParameter):
                          allowed_units=allowed_units,
                          min_value = min_value,
                          max_value = max_value,
-                         units_name = units_name)
+                         units_name = units_name,
+                         extra_metadata=extra_metadata)
 
     def set_par_internal_value(self, value):
         if isinstance(value, float):
@@ -734,13 +738,14 @@ class Time(Parameter):
     owl_uris = ("http://odahub.io/ontology#TimeInstant",)
     format_kw = 'T_format'
     
-    def __init__(self, value=None, T_format='isot', name=None, Time_format_name='T_format', par_default_format='isot'):
+    def __init__(self, value=None, T_format='isot', name=None, Time_format_name='T_format', par_default_format='isot', extra_metadata=None):
 
         super().__init__(value=value,
                          par_format=T_format,
                          par_format_name=Time_format_name,
                          par_default_format=par_default_format,
-                         name=name)
+                         name=name,
+                         extra_metadata=extra_metadata)
 
     def get_default_value(self):
         return self.get_value_in_default_format()
@@ -785,7 +790,7 @@ class TimeDelta(Time):
     owl_uris = ("http://odahub.io/ontology#TimeDeltaIsDeprecated",) 
     format_kw = 'delta_T_format'
     
-    def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None, par_default_format='sec'):
+    def __init__(self, value=None, delta_T_format='sec', name=None, delta_T_format_name=None, par_default_format='sec', extra_metadata=None):
         logging.warning(('TimeDelta parameter is deprecated. '
                          'It derives from Time, which is confusing. '
                          'Consider using TimeInterval parameter.'))
@@ -793,7 +798,8 @@ class TimeDelta(Time):
                          T_format=delta_T_format,
                          Time_format_name=delta_T_format_name,
                          par_default_format=par_default_format,
-                         name=name)
+                         name=name,
+                         extra_metadata=extra_metadata)
 
     def get_value_in_format(self, units):
         return getattr(self._astropy_time_delta, units)
@@ -825,7 +831,8 @@ class TimeInterval(Float):
                  default_units='s', 
                  min_value=None, 
                  max_value=None,
-                 units_name = None):
+                 units_name = None,
+                 extra_metadata=None):
 
         _allowed_units = ['s', 'minute', 'hour', 'day', 'year']
         super().__init__(value=value,
@@ -835,13 +842,14 @@ class TimeInterval(Float):
                          min_value=min_value,
                          max_value=max_value,
                          units_name = units_name,
-                         allowed_units=_allowed_units)
+                         allowed_units=_allowed_units,
+                         extra_metadata=extra_metadata)
 
 class InputProdList(Parameter):
     owl_uris = ('http://odahub.io/ontology#InputProdList',)
     
     # TODO removal of the leading underscore cannot be done for compatibility with the plugins
-    def __init__(self, value=None, _format='names_list', name: str = None):
+    def __init__(self, value=None, _format='names_list', name: str = None, extra_metadata=None):
         _allowed_units = ['names_list']
 
         if value is None:
@@ -851,7 +859,8 @@ class InputProdList(Parameter):
                          par_format=_format,
                          check_value=self.check_list_value,
                          name=name,
-                         allowed_units=_allowed_units)
+                         allowed_units=_allowed_units,
+                         extra_metadata=extra_metadata)
 
     @staticmethod
     def _split(str_list):
@@ -912,7 +921,8 @@ class Angle(Float):
                  name=None, 
                  min_value = None, 
                  max_value = None,
-                 units_name = None):
+                 units_name = None,
+                 extra_metadata=None):
 
         super().__init__(value=value,
                          units=units,
@@ -922,7 +932,8 @@ class Angle(Float):
                          allowed_units=None,
                          min_value = min_value,
                          max_value = max_value,
-                         units_name = units_name)
+                         units_name = units_name,
+                         extra_metadata=extra_metadata)
 
 
 class Energy(Float):
@@ -937,7 +948,8 @@ class Energy(Float):
                  check_value=None, 
                  min_value = None, 
                  max_value = None,
-                 units_name = None):
+                 units_name = None,
+                 extra_metadata=None):
 
         _allowed_units = ['keV', 'eV', 'MeV', 'GeV', 'TeV', 'Hz', 'MHz', 'GHz']
 
@@ -949,7 +961,8 @@ class Energy(Float):
                          allowed_units=_allowed_units,
                          min_value = min_value,
                          max_value = max_value,
-                         units_name = units_name)
+                         units_name = units_name,
+                         extra_metadata=extra_metadata)
 
 class SpectralBoundary(Energy):
     def __init__(self, 
@@ -960,7 +973,8 @@ class SpectralBoundary(Energy):
                  check_value=None, 
                  min_value=None, 
                  max_value=None, 
-                 units_name=None):
+                 units_name=None,
+                 extra_metadata=None):
     
         # retro-compatibility with integral plugin
         if check_value is None:
@@ -973,7 +987,8 @@ class SpectralBoundary(Energy):
                          check_value=check_value, 
                          min_value=min_value, 
                          max_value=max_value, 
-                         units_name=units_name)
+                         units_name=units_name,
+                         extra_metadata=extra_metadata)
         
     @staticmethod
     def check_energy_value(value, units, name): 
@@ -982,7 +997,7 @@ class SpectralBoundary(Energy):
 
 class DetectionThreshold(Float):
     owl_uris = ("http://odahub.io/ontology#DetectionThreshold",)    
-    def __init__(self, value=None, units='sigma', name=None, min_value = None, max_value = None):
+    def __init__(self, value=None, units='sigma', name=None, min_value = None, max_value = None, extra_metadata=None):
         _allowed_units = ['sigma']
 
         super().__init__(value=value,
@@ -991,7 +1006,8 @@ class DetectionThreshold(Float):
                          name=name,
                          allowed_units=_allowed_units,
                          min_value = min_value,
-                         max_value = max_value)
+                         max_value = max_value,
+                         extra_metadata=extra_metadata)
 
     # 'sigma' is not astropy unit, so need to override methods
     def get_value_in_units(self, units):
@@ -1004,24 +1020,26 @@ class DetectionThreshold(Float):
             self._value = None
 
 class UserCatalog(Parameter):
-    def __init__(self, value=None, name_format='str', name=None):
+    def __init__(self, value=None, name_format='str', name=None, extra_metadata=None):
         _allowed_units = ['str']
         super().__init__(value=value,
                          par_format=name_format,
                          check_value=None,
                          name=name,
-                         allowed_units=_allowed_units)
+                         allowed_units=_allowed_units,
+                         extra_metadata=extra_metadata)
 
 class Boolean(Parameter):
     owl_uris = ('http://www.w3.org/2001/XMLSchema#bool',"http://odahub.io/ontology#Boolean")
     
-    def __init__(self, value=None, name=None):
+    def __init__(self, value=None, name=None, extra_metadata=None):
 
         self._true_rep = ['True', 'true', 'yes', '1', True]
         self._false_rep = ['False', 'false', 'no', '0', False]
         super().__init__(value=value,
                          name=name,
-                         allowed_values=self._true_rep+self._false_rep
+                         allowed_values=self._true_rep+self._false_rep,
+                         extra_metadata = extra_metadata
                          )
 
     @property
@@ -1040,7 +1058,7 @@ class Boolean(Parameter):
 class StructuredParameter(Parameter):
     owl_uris = ("http://odahub.io/ontology#StructuredParameter")
     
-    def __init__(self, value=None, name=None, schema={"oneOf": [{"type": "object"}, {"type": "array"}]}):
+    def __init__(self, value=None, name=None, schema={"oneOf": [{"type": "object"}, {"type": "array"}]}, extra_metadata=None):
         
         self.schema = schema
         
@@ -1048,7 +1066,8 @@ class StructuredParameter(Parameter):
             logger.warning("Parameter %s: Schema is not defined, will allow any structure.", name)
             
         super().__init__(value=value,
-                         name=name)
+                         name=name,
+                         extra_metadata=extra_metadata)
     
     def check_schema(self):
         if self.schema is not None:
@@ -1074,7 +1093,7 @@ class StructuredParameter(Parameter):
 class PhosphorosFiltersTable(StructuredParameter):
     owl_uris = ('http://odahub.io/ontology#PhosphorosFiltersTable')
     
-    def __init__(self, value=None, name=None):
+    def __init__(self, value=None, name=None, extra_metadata=None):
         
         # TODO: either list or the whole schema may be loaded from the external file, purely based on URI.
         #       If there is no additional check, this would allow to avoid even having the class.
@@ -1111,7 +1130,7 @@ class PhosphorosFiltersTable(StructuredParameter):
                   "required": ["filter", "flux", "flux_error"]
                   }
         
-        super().__init__(value=value, name=name, schema=schema)
+        super().__init__(value=value, name=name, schema=schema, extra_metadata=extra_metadata)
         
     def additional_check(self):
         assert len(self._value['filter']) == len(self._value['flux']) == len(self._value['flux_error'])
