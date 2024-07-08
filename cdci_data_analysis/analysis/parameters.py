@@ -210,6 +210,8 @@ class Parameter:
                  allowed_values=None,
                  min_value = None,
                  max_value = None,
+
+                 extra_metadata=None,
                  **kwargs
                  ):
         
@@ -261,6 +263,7 @@ class Parameter:
         self._max_value = max_value
         self._bound_units = self.units
         self.value = value
+        self.extra_metadata = extra_metadata
 
 
         self._arg_list = [self.name]
@@ -463,6 +466,8 @@ class Parameter:
             restrictions['schema'] = self.schema
         if restrictions:
             reprjson[0]['restrictions'] = restrictions
+        if getattr(self, 'extra_metadata', None) is not None:
+            reprjson[0]['extra_metadata'] = self.extra_metadata
         if getattr(self, 'owl_uris', None):
             if isinstance(self.owl_uris, str):
                 reprjson[0]['owl_uri'] = [ self.owl_uris ]
@@ -514,13 +519,16 @@ class Parameter:
             par_unit = onto.get_parameter_unit(owl_uri)
             min_value, max_value = onto.get_limits(owl_uri)
             allowed_values = onto.get_allowed_values(owl_uri)
-        
+            label = onto.get_oda_label(owl_uri)
+
         for owl_superclass_uri in parameter_hierarchy:
             for python_subclass in subclasses_recursive(cls):
                 logger.debug("searching for class with owl_uri=%s, found %s", owl_superclass_uri, python_subclass)
                 if python_subclass.matches_owl_uri(owl_superclass_uri):
                     logger.info("will construct %s by owl_uri %s", python_subclass, owl_superclass_uri)
-                    call_kwargs = {}
+                    call_kwargs = {'extra_metadata': {}}
+                    if label is not None:
+                        call_kwargs['extra_metadata']['label'] = label
                     call_signature = signature(python_subclass)
                     var_kw_signature = call_parameter.VAR_KEYWORD in [x.kind for x in call_signature.parameters.values()]
                     
@@ -566,7 +574,7 @@ class Parameter:
 class String(Parameter):
     owl_uris = ("http://www.w3.org/2001/XMLSchema#str", "http://odahub.io/ontology#String")
     
-    def __init__(self, value=None, name_format='str', name=None, allowed_values = None):
+    def __init__(self, value=None, name_format='str', name=None, allowed_values = None, extra_metadata = None):
 
         _allowed_units = ['str']
         super().__init__(value=value,
@@ -574,7 +582,8 @@ class String(Parameter):
                          check_value=self.check_name_value,
                          name=name,
                          allowed_units=_allowed_units,
-                         allowed_values=allowed_values)
+                         allowed_values=allowed_values,
+                         extra_metadata=extra_metadata)
 
     @staticmethod
     def check_name_value(value, units=None, name=None, par_format=None):
