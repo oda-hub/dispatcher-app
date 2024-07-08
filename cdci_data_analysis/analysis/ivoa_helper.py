@@ -19,6 +19,7 @@ def parse_adql_query(query):
             columns = qp.columns,
             display_columns = qp.display_columns,
             tables = qp.tables,
+            rest = qp
         )
     except QuerySyntaxError as qe:
         logger.error(f'Error parsing ADQL query: {qe}')
