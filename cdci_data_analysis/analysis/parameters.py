@@ -492,6 +492,8 @@ class Parameter:
                      **kwargs):
         from oda_api.ontology_helper import Ontology
 
+        metadata_keys = ['label', 'description']
+
         if ontology_path is not None and ontology_object is not None:
             raise RuntimeError("Both ontology_path and ontology_object parameters are set.")
         elif ontology_path is None and ontology_object is None:
@@ -499,7 +501,7 @@ class Parameter:
                 'Trying to find parameter which have %s directly set. '
                 'extra_ttl will be ignored ', owl_uri)
             parameter_hierarchy = [ owl_uri ]
-            par_format = par_unit = allowed_values = min_value = max_value = label = None
+            par_format = par_unit = allowed_values = min_value = max_value = label = description = None
         else:
             if ontology_path is not None:
                 if isinstance(ontology_path, (str, os.PathLike)):
@@ -519,16 +521,17 @@ class Parameter:
             par_unit = onto.get_parameter_unit(owl_uri)
             min_value, max_value = onto.get_limits(owl_uri)
             allowed_values = onto.get_allowed_values(owl_uri)
-            label = onto.get_oda_label(owl_uri)
+            label = onto.get_direct_annotation(owl_uri, "label")
+            description = onto.get_direct_annotation(owl_uri, "description")
 
         for owl_superclass_uri in parameter_hierarchy:
             for python_subclass in subclasses_recursive(cls):
                 logger.debug("searching for class with owl_uri=%s, found %s", owl_superclass_uri, python_subclass)
                 if python_subclass.matches_owl_uri(owl_superclass_uri):
                     logger.info("will construct %s by owl_uri %s", python_subclass, owl_superclass_uri)
-                    call_kwargs = {'extra_metadata': {}}
-                    if label is not None:
-                        call_kwargs['extra_metadata']['label'] = label
+                    call_kwargs = {
+                        'extra_metadata': {key: val for key, val in zip(metadata_keys, [label, description]) if
+                                           val is not None}}
                     call_signature = signature(python_subclass)
                     var_kw_signature = call_parameter.VAR_KEYWORD in [x.kind for x in call_signature.parameters.values()]
                     
