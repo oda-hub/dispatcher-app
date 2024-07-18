@@ -46,6 +46,7 @@ install_req = [
     "bs4",
     "GitPython",
     "sqlparse",
+    "queryparser-python3",
     "nbformat",
     "giturlparse",
     "sentry-sdk",

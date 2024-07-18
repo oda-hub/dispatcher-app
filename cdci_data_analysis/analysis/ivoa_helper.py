@@ -1,3 +1,5 @@
+from queryparser.adql import ADQLQueryTranslator
+from queryparser.postgresql import PostgreSQLQueryProcessor
 from queryparser.exceptions import QuerySyntaxError
 
 import sqlparse
@@ -13,25 +15,39 @@ logger = app_logging.getLogger('ivoa_helper')
 
 def parse_adql_query(query):
     try:
-        output_obj = dict()
+        adt = ADQLQueryTranslator(query)
+        qp = PostgreSQLQueryProcessor()
+        qp.set_query(adt.to_postgresql())
+        qp.process_query()
+
+        output_obj = dict(
+            columns = qp.columns,
+            display_columns = qp.display_columns,
+            tables = qp.tables,
+            rest = qp
+        )
+        # output_obj = dict()
         parsed_query_obj = sqlparse.parse(query)[0]
-        from_seen = False
+        # from_seen = False
         for t in parsed_query_obj.tokens:
             if isinstance(t, sqlparse.sql.Where):
                 output_obj['where_token'] = t
-            if from_seen:
-                    if isinstance(t, sqlparse.sql.Identifier):
-                        output_obj['tables'] = [t.get_name()]
-                    elif isinstance(t, sqlparse.sql.IdentifierList):
-                        output_obj['tables'] = [x.get_name() for x in t.get_identifiers()]
-            if t.is_keyword and t.ttype is sqlparse.tokens.Keyword and t.value.upper() == 'FROM':
-                from_seen = True
+            # if from_seen:
+            #         if isinstance(t, sqlparse.sql.Identifier):
+            #             output_obj['tables'] = [t.get_name()]
+            #         elif isinstance(t, sqlparse.sql.IdentifierList):
+            #             output_obj['tables'] = [x.get_name() for x in t.get_identifiers()]
+            # if t.is_keyword and t.ttype is sqlparse.tokens.Keyword and t.value.upper() == 'FROM':
+            #     from_seen = True
 
     except QuerySyntaxError as qe:
         logger.error(f'Error parsing ADQL query: {qe}')
         output_obj = dict(
             where_token = None,
-            tables = None
+            tables = None,
+            columns = None,
+            display_columns = None,
+            rest = None
         )
     return output_obj
 
