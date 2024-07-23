@@ -1,6 +1,10 @@
+import antlr4
 from queryparser.adql import ADQLQueryTranslator
 from queryparser.postgresql import PostgreSQLQueryProcessor
+from queryparser.postgresql.PostgreSQLParser import PostgreSQLParser
 from queryparser.exceptions import QuerySyntaxError
+
+from queryparser.postgresql.PostgreSQLParserListener import PostgreSQLParserListener
 
 import sqlparse
 import json
@@ -9,45 +13,64 @@ from ..app_logging import app_logging
 
 from ..analysis import drupal_helper
 
-
 logger = app_logging.getLogger('ivoa_helper')
+
+
+class WhereClauseListener(PostgreSQLParserListener):
+    def __init__(self):
+        self.where_clause = None
+
+    def enterWhere_clause(self, ctx):
+        conditions = self.extract_elements(ctx)
+        self.where_clause = conditions
+
+    def extract_elements(self, node):
+        elements = []
+        for child in node.getChildren():
+            if isinstance(child, PostgreSQLParser.ExpressionContext):
+                elements.extend(self.extract_elements(child))
+            else:
+                elements.append(child.getText())
+        return elements
 
 
 def parse_adql_query(query):
     try:
+        # queryparser
         adt = ADQLQueryTranslator(query)
         qp = PostgreSQLQueryProcessor()
+        where_listener = WhereClauseListener()
         qp.set_query(adt.to_postgresql())
         qp.process_query()
 
+        inpt = antlr4.InputStream(query)
+        lexer = qp.lexer(inpt)
+        stream = antlr4.CommonTokenStream(lexer)
+        parser = qp.parser(stream)
+        tree = parser.query()
+        qp.walker.walk(where_listener, tree)
+
         output_obj = dict(
-            columns = qp.columns,
-            display_columns = qp.display_columns,
-            tables = qp.tables,
-            rest = qp
+            columns=qp.display_columns,
+            tables=qp.tables,
+            rest=qp,
+            where_clause=where_listener.where_clause
         )
-        # output_obj = dict()
+
+        # sqlparse
         parsed_query_obj = sqlparse.parse(query)[0]
-        # from_seen = False
+
         for t in parsed_query_obj.tokens:
             if isinstance(t, sqlparse.sql.Where):
                 output_obj['where_token'] = t
-            # if from_seen:
-            #         if isinstance(t, sqlparse.sql.Identifier):
-            #             output_obj['tables'] = [t.get_name()]
-            #         elif isinstance(t, sqlparse.sql.IdentifierList):
-            #             output_obj['tables'] = [x.get_name() for x in t.get_identifiers()]
-            # if t.is_keyword and t.ttype is sqlparse.tokens.Keyword and t.value.upper() == 'FROM':
-            #     from_seen = True
 
     except QuerySyntaxError as qe:
         logger.error(f'Error parsing ADQL query: {qe}')
         output_obj = dict(
-            where_token = None,
-            tables = None,
-            columns = None,
-            display_columns = None,
-            rest = None
+            where_clause=None,
+            tables=None,
+            columns=None,
+            rest=None
         )
     return output_obj
 
