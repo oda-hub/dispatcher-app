@@ -3,6 +3,7 @@ from queryparser.adql import ADQLQueryTranslator
 from queryparser.postgresql import PostgreSQLQueryProcessor
 from queryparser.postgresql.PostgreSQLParser import PostgreSQLParser
 from queryparser.exceptions import QuerySyntaxError
+from collections import deque
 
 from queryparser.postgresql.PostgreSQLParserListener import PostgreSQLParserListener
 
@@ -21,17 +22,76 @@ class WhereClauseListener(PostgreSQLParserListener):
         self.where_clause = None
 
     def enterWhere_clause(self, ctx):
-        conditions = self.extract_elements(ctx)
+        conditions = self.analyze_expressions(ctx)
         self.where_clause = conditions
 
-    def extract_elements(self, node):
-        elements = []
+    def analyze_expressions(self, node):
+        output_obj = dict()
         for child in node.getChildren():
             if isinstance(child, PostgreSQLParser.ExpressionContext):
-                elements.extend(self.extract_elements(child))
-            else:
-                elements.append(child.getText())
-        return elements
+                output_obj['conditions'] = self.extract_conditions_from_hierarchy(child)
+        return output_obj
+
+    # def extract_conditions_from_hierarchy(self, context, level=0, conditions=None):
+    #     bottom_reached = False
+    #     if conditions is None:
+    #         conditions = []
+    #     if isinstance(context, antlr4.ParserRuleContext):
+    #         print(f"{'  ' * level} - {type(context).__name__}, level: {level}")
+    #         if isinstance(context, PostgreSQLParser.Bool_primaryContext):
+    #             print("Bool_primaryContext reached")
+    #             conditions.append({})
+    #         elif isinstance(context, PostgreSQLParser.Column_nameContext):
+    #             print("Column_nameContext reached")
+    #         #     conditions[-1]['column'] = context.getText()
+    #             bottom_reached = True
+    #         elif isinstance(context, PostgreSQLParser.Relational_opContext):
+    #             print("Relational_opContext reached")
+    #             bottom_reached = True
+    #         #     conditions[-1]['operator'] = context.getText()
+    #         elif isinstance(context, PostgreSQLParser.Number_literalContext):
+    #             print("Number_literalContext reached")
+    #         #     conditions[-1]['value'] = context.getText()
+    #             bottom_reached = True
+    #         if not bottom_reached:
+    #             for child in context.children:
+    #                 print(f"{'  ' * level} - {type(child).__name__}, level: {level}, childGetText: {child.getText()}, conditions size: {len(conditions)}")
+    #                 conditions.extend(self.extract_conditions_from_hierarchy(child, level + 1, conditions=conditions))
+    #     return conditions
+
+    from collections import deque
+
+    def extract_conditions_from_hierarchy(self, context, conditions=None):
+        if conditions is None:
+            conditions = []
+
+        queue = deque([(context, 0)])
+
+        while queue:
+            context, level = queue.popleft()
+
+            if isinstance(context, antlr4.ParserRuleContext):
+                print(f"{'  ' * level} - {type(context).__name__}, level: {level}")
+                if isinstance(context, PostgreSQLParser.Bool_primaryContext):
+                    print("Bool_primaryContext reached")
+                    conditions.append({})
+                elif isinstance(context, PostgreSQLParser.Column_nameContext):
+                    print("Column_nameContext reached")
+                    conditions[-1]['column'] = context.getText()
+                elif isinstance(context, PostgreSQLParser.Relational_opContext):
+                    print("Relational_opContext reached")
+                    conditions[-1]['operator'] = context.getText()
+                elif isinstance(context, PostgreSQLParser.Number_literalContext):
+                    print("Number_literalContext reached")
+                    conditions[-1]['value'] = context.getText()
+                # else:
+                # Enqueue all children of the current node, with their level increased by 1
+                for child in context.children:
+                    print(
+                        f"{'  ' * level} - {type(child).__name__}, level: {level}, childGetText: {child.getText()}, conditions size: {len(conditions)}")
+                    queue.append((child, level + 1))
+
+        return conditions
 
 
 def parse_adql_query(query):
