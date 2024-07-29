@@ -516,6 +516,74 @@ def test_resubmission_job_id(dispatcher_live_fixture_no_resubmit_timeout, status
 
 
 @pytest.mark.not_safe_parallel
+def test_resubmission_after_callback(dispatcher_live_fixture_no_resubmit_timeout):
+    server = dispatcher_live_fixture_no_resubmit_timeout
+    DispatcherJobState.remove_scratch_folders()
+    DataServerQuery.set_status("submitted")
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    # these parameters define request content
+    base_dict_param = dict(
+        instrument="empty-async",
+        product_type="dummy-log-submit",
+        query_type="Real",
+    )
+
+    dict_param = dict(
+        query_status="new",
+        token=encoded_token,
+        **base_dict_param
+    )
+
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+    print(json.dumps(jdata, sort_keys=True, indent=4))
+    dispatcher_job_state = DispatcherJobState.from_run_analysis_response(c.json())
+    time_request = jdata['time_request']
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == "submitted"
+    assert DataServerQuery.get_status() == "submitted"
+
+    c = requests.get(os.path.join(server, "call_back"),
+                     params=dict(
+                         job_id=dispatcher_job_state.job_id,
+                         session_id=dispatcher_job_state.session_id,
+                         instrument_name="empty-async",
+                         action="progress",
+                         node_id='node_progress',
+                         message='progressing',
+                         token=encoded_token,
+                         time_original_request=time_request
+                     ))
+    assert c.status_code == 200
+    jdata = dispatcher_job_state.load_job_state_record('node_progress', 'progressing')
+    assert jdata['status'] == "progress"
+    assert jdata['full_report_dict']['action'] == "progress"
+
+    # resubmit the job after the timeout expired
+    time.sleep(10.5)
+    dict_param['job_id'] = dispatcher_job_state.job_id
+    dict_param['query_status'] = "progress"
+    c = requests.get(os.path.join(server, "run_analysis"),
+                     dict_param
+                     )
+
+    assert c.status_code == 200
+    jdata = c.json()
+    assert jdata['exit_status']['job_status'] == "progress"
+    assert jdata['query_status'] == "progress"
+
+@pytest.mark.not_safe_parallel
 def test_failed_resubmission(dispatcher_live_fixture_no_resubmit_timeout):
     server = dispatcher_live_fixture_no_resubmit_timeout
     DispatcherJobState.remove_scratch_folders()
