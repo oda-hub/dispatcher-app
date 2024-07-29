@@ -38,3 +38,4 @@ simple_logger
 matplotlib
 validators==0.28.3
 pillow>=10.0.1 # not directly required, pinned by Snyk to avoid a vulnerability
+urllib3>=2.2.2 # not directly required, pinned by Snyk to avoid a vulnerability
