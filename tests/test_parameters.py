@@ -1,4 +1,5 @@
 import pytest
+import os
 
 from cdci_data_analysis.analysis.instrument import Instrument
 from cdci_data_analysis.analysis.queries import (
@@ -422,7 +423,7 @@ def test_boolean_parameter(inval, iswrong, expected):
     True, 100, Energy),
     ])
 def test_parameter_class_from_owl_uri(uri, extra_ttl, use_ontology, value, param_type):
-    ontology_path = 'tests/oda-ontology.ttl' if use_ontology else None
+    ontology_path = os.path.join(os.path.dirname(__file__), 'oda-ontology.ttl') if use_ontology else None
     param = Parameter.from_owl_uri(uri, 
                                    value=value,
                                    extra_ttl = extra_ttl, 
