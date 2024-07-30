@@ -2,13 +2,11 @@ import antlr4
 from queryparser.adql import ADQLQueryTranslator
 from queryparser.postgresql import PostgreSQLQueryProcessor
 from queryparser.postgresql.PostgreSQLParser import PostgreSQLParser
+from queryparser.mysql import MySQLQueryProcessor
 from queryparser.exceptions import QuerySyntaxError
 from collections import deque
 
 from queryparser.postgresql.PostgreSQLParserListener import PostgreSQLParserListener
-
-import sqlparse
-import json
 
 from ..app_logging import app_logging
 
@@ -70,31 +68,24 @@ def parse_adql_query(query):
     try:
         # queryparser
         adt = ADQLQueryTranslator(query)
-        qp = PostgreSQLQueryProcessor()
-        where_listener = WhereClauseListener()
-        qp.set_query(adt.to_postgresql())
+        qp = MySQLQueryProcessor()
+        qp.set_query(adt.to_mysql())
         qp.process_query()
 
-        inpt = antlr4.InputStream(query)
-        lexer = qp.lexer(inpt)
-        stream = antlr4.CommonTokenStream(lexer)
-        parser = qp.parser(stream)
-        tree = parser.query()
-        qp.walker.walk(where_listener, tree)
+        # where_listener = WhereClauseListener()
+        # inpt = antlr4.InputStream(query)
+        # lexer = qp.lexer(inpt)
+        # stream = antlr4.CommonTokenStream(lexer)
+        # parser = qp.parser(stream)
+        # tree = parser.query()
+        # qp.walker.walk(where_listener, tree)
 
         output_obj = dict(
             columns=qp.display_columns,
             tables=qp.tables,
             rest=qp,
-            where_clause=where_listener.where_clause
+            # where_clause=where_listener.where_clause
         )
-
-        # sqlparse
-        parsed_query_obj = sqlparse.parse(query)[0]
-
-        for t in parsed_query_obj.tokens:
-            if isinstance(t, sqlparse.sql.Where):
-                output_obj['where_token'] = t
 
     except QuerySyntaxError as qe:
         logger.error(f'Error parsing ADQL query: {qe}')
@@ -130,12 +121,12 @@ def run_ivoa_query_from_product_gallery(product_gallery_url,
                                         gallery_jwt_token,
                                         sentry_dsn=None,
                                         **kwargs):
-    output_get = drupal_helper.get_data_product_list_by_source_name_with_conditions(
-        product_gallery_url=product_gallery_url,
-        gallery_jwt_token=gallery_jwt_token,
-        sentry_dsn=sentry_dsn,
-        **kwargs)
-
-    output_list = json.dumps(output_get)
+    # output_get = drupal_helper.get_data_product_list_by_source_name_with_conditions(
+    #     product_gallery_url=product_gallery_url,
+    #     gallery_jwt_token=gallery_jwt_token,
+    #     sentry_dsn=sentry_dsn,
+    #     **kwargs)
+    #
+    # output_list = json.dumps(output_get)
 
     return output_list
