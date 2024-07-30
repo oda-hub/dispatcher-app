@@ -6,6 +6,8 @@ from queryparser.mysql import MySQLQueryProcessor
 from queryparser.exceptions import QuerySyntaxError
 from collections import deque
 
+from mysql.connector import connect, Error
+
 from queryparser.postgresql.PostgreSQLParserListener import PostgreSQLParserListener
 
 from ..app_logging import app_logging
@@ -72,28 +74,22 @@ def parse_adql_query(query):
         qp.set_query(adt.to_mysql())
         qp.process_query()
 
-        # where_listener = WhereClauseListener()
-        # inpt = antlr4.InputStream(query)
-        # lexer = qp.lexer(inpt)
-        # stream = antlr4.CommonTokenStream(lexer)
-        # parser = qp.parser(stream)
-        # tree = parser.query()
-        # qp.walker.walk(where_listener, tree)
-
         output_obj = dict(
             columns=qp.display_columns,
             tables=qp.tables,
             rest=qp,
+            mysql_query=qp.query
             # where_clause=where_listener.where_clause
         )
 
     except QuerySyntaxError as qe:
         logger.error(f'Error parsing ADQL query: {qe}')
         output_obj = dict(
-            where_clause=None,
+            # where_clause=None,
             tables=None,
             columns=None,
-            rest=None
+            rest=None,
+            mysql_query=None
         )
     return output_obj
 
@@ -102,31 +98,36 @@ def run_ivoa_query(query, sentry_dsn=None, **kwargs):
     result_list = []
     parsed_query_obj = parse_adql_query(query)
 
-    tables = parsed_query_obj.get('tables', [])
-    if len(tables) == 1 and tables[0] == 'product_gallery':
-        logger.info('Query is a product_gallery query')
-        product_gallery_url = kwargs.get('product_gallery_url', None)
-        gallery_jwt_token = kwargs.get('gallery_jwt_token', None)
-        if product_gallery_url and gallery_jwt_token:
-            result_list = run_ivoa_query_from_product_gallery(
-                product_gallery_url,
-                gallery_jwt_token,
-                sentry_dsn=sentry_dsn,
-                **kwargs
-            )
+    # tables = parsed_query_obj.get('tables', [])
+    # if len(tables) == 1 and tables[0] == 'product_gallery':
+    logger.info('Performing query on the product_gallery')
+        # product_gallery_url = kwargs.get('product_gallery_url', None)
+        # gallery_jwt_token = kwargs.get('gallery_jwt_token', None)
+        # if product_gallery_url and gallery_jwt_token:
+    result_list = run_ivoa_query_from_product_gallery(parsed_query_obj)
     return result_list
 
 
-def run_ivoa_query_from_product_gallery(product_gallery_url,
-                                        gallery_jwt_token,
-                                        sentry_dsn=None,
-                                        **kwargs):
-    # output_get = drupal_helper.get_data_product_list_by_source_name_with_conditions(
-    #     product_gallery_url=product_gallery_url,
-    #     gallery_jwt_token=gallery_jwt_token,
-    #     sentry_dsn=sentry_dsn,
-    #     **kwargs)
-    #
-    # output_list = json.dumps(output_get)
+def run_ivoa_query_from_product_gallery(parsed_query_obj):
+    result_list = []
 
-    return output_list
+    try:
+        with connect(
+                # TODO: Add the connection details reading from the config file
+                host="",
+                user="",
+                password="",
+                database=""
+        ) as connection:
+            print(connection)
+
+            create_db_query = parsed_query_obj.get('mysql_query')
+            with connection.cursor() as cursor:
+                cursor.execute(create_db_query)
+                for db in cursor:
+                    print(db)
+
+    except Error as e:
+        print(e)
+
+    return result_list
