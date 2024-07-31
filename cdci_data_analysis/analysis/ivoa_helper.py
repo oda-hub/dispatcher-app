@@ -99,26 +99,33 @@ def run_ivoa_query(query, sentry_dsn=None, **kwargs):
     # tables = parsed_query_obj.get('tables', [])
     # if len(tables) == 1 and tables[0] == 'product_gallery':
     logger.info('Performing query on the product_gallery')
-        # product_gallery_url = kwargs.get('product_gallery_url', None)
-        # gallery_jwt_token = kwargs.get('gallery_jwt_token', None)
-        # if product_gallery_url and gallery_jwt_token:
-    result_list = run_ivoa_query_from_product_gallery(parsed_query_obj)
+    vo_mysql_pg_host = kwargs.get('vo_mysql_pg_host', None)
+    vo_mysql_pg_user = kwargs.get('vo_mysql_pg_user', None)
+    vo_mysql_pg_password = kwargs.get('vo_mysql_pg_password', None)
+    vo_mysql_pg_db = kwargs.get('vo_mysql_pg_db', None)
+    result_list = run_ivoa_query_from_product_gallery(parsed_query_obj,
+                                                      vo_mysql_pg_host=vo_mysql_pg_host,
+                                                      vo_mysql_pg_user=vo_mysql_pg_user,
+                                                      vo_mysql_pg_password=vo_mysql_pg_password,
+                                                      vo_mysql_pg_db=vo_mysql_pg_db)
     return result_list
 
 
-def run_ivoa_query_from_product_gallery(parsed_query_obj):
+def run_ivoa_query_from_product_gallery(parsed_query_obj,
+                                        vo_mysql_pg_host,
+                                        vo_mysql_pg_user,
+                                        vo_mysql_pg_password,
+                                        vo_mysql_pg_db
+                                        ):
     result_list = []
 
     try:
         with connect(
-                # TODO: Add the connection details reading from the config file
-                host="",
-                user="",
-                password="",
-                database=""
+                host=vo_mysql_pg_host,
+                user=vo_mysql_pg_user,
+                password=vo_mysql_pg_password,
+                database=vo_mysql_pg_db
         ) as connection:
-            print(connection)
-
             create_db_query = parsed_query_obj.get('mysql_query')
             with connection.cursor() as cursor:
                 cursor.execute(create_db_query)
