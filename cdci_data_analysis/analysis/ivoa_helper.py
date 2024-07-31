@@ -1,15 +1,11 @@
 import antlr4
 from queryparser.adql import ADQLQueryTranslator
-from queryparser.postgresql import PostgreSQLQueryProcessor
-from queryparser.postgresql.PostgreSQLParser import PostgreSQLParser
 from queryparser.mysql import MySQLQueryProcessor
 from queryparser.exceptions import QuerySyntaxError
-from collections import deque
 
 from mysql.connector import connect, Error
 
-from queryparser.postgresql.PostgreSQLParserListener import PostgreSQLParserListener
-
+from ..flask_app.sentry import sentry
 from ..app_logging import app_logging
 
 logger = app_logging.getLogger('ivoa_helper')
@@ -41,7 +37,7 @@ def parse_adql_query(query):
     return output_obj
 
 
-def run_ivoa_query(query, sentry_dsn=None, **kwargs):
+def run_ivoa_query(query, **kwargs):
     parsed_query_obj = parse_adql_query(query)
 
     # TODO use a specific dedicated table and schema to refer to the product_gallery DB ?
@@ -79,9 +75,10 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
             with connection.cursor() as cursor:
                 cursor.execute(create_db_query)
                 for db in cursor:
-                    print(db)
+                    logger.info(db)
 
     except Error as e:
-        print(e)
+        sentry.capture_message(f"Error when connecting to MySQL or performing the query: {str(e)}")
+        logger.error(f"Error when connecting to MySQL or performing the query: {str(e)}")
 
     return result_list
