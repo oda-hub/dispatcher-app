@@ -79,13 +79,11 @@ def parse_adql_query(query):
             tables=qp.tables,
             rest=qp,
             mysql_query=qp.query
-            # where_clause=where_listener.where_clause
         )
 
     except QuerySyntaxError as qe:
         logger.error(f'Error parsing ADQL query: {qe}')
         output_obj = dict(
-            # where_clause=None,
             tables=None,
             columns=None,
             rest=None,
@@ -95,9 +93,9 @@ def parse_adql_query(query):
 
 
 def run_ivoa_query(query, sentry_dsn=None, **kwargs):
-    result_list = []
     parsed_query_obj = parse_adql_query(query)
 
+    # TODO use a specific dedicated table and schema to refer to the product_gallery DB ?
     # tables = parsed_query_obj.get('tables', [])
     # if len(tables) == 1 and tables[0] == 'product_gallery':
     logger.info('Performing query on the product_gallery')
