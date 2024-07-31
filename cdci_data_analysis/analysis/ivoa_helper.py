@@ -1,4 +1,7 @@
-import antlr4
+import json
+import os.path
+
+from black.lines import append_leaves
 from queryparser.adql import ADQLQueryTranslator
 from queryparser.mysql import MySQLQueryProcessor
 from queryparser.exceptions import QuerySyntaxError
@@ -48,11 +51,13 @@ def run_ivoa_query(query, **kwargs):
     vo_mysql_pg_user = kwargs.get('vo_mysql_pg_user', None)
     vo_mysql_pg_password = kwargs.get('vo_mysql_pg_password', None)
     vo_mysql_pg_db = kwargs.get('vo_mysql_pg_db', None)
+    product_gallery_url = kwargs.get('product_gallery_url', None)
     result_list = run_ivoa_query_from_product_gallery(parsed_query_obj,
                                                       vo_mysql_pg_host=vo_mysql_pg_host,
                                                       vo_mysql_pg_user=vo_mysql_pg_user,
                                                       vo_mysql_pg_password=vo_mysql_pg_password,
-                                                      vo_mysql_pg_db=vo_mysql_pg_db)
+                                                      vo_mysql_pg_db=vo_mysql_pg_db,
+                                                      product_gallery_url=product_gallery_url)
     return result_list
 
 
@@ -60,7 +65,8 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                                         vo_mysql_pg_host,
                                         vo_mysql_pg_user,
                                         vo_mysql_pg_password,
-                                        vo_mysql_pg_db
+                                        vo_mysql_pg_db,
+                                        product_gallery_url=None
                                         ):
     result_list = []
 
@@ -72,11 +78,23 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                 database=vo_mysql_pg_db
         ) as connection:
             create_db_query = parsed_query_obj.get('mysql_query')
-            with connection.cursor() as cursor:
+            with connection.cursor(dictionary=True) as cursor:
                 cursor.execute(create_db_query)
-                for db in cursor:
-                    logger.info(db)
-                    result_list.append(db)
+                for row in cursor:
+                    if product_gallery_url is not None:
+                        path = row.get('path', None)
+                        if path is not None:
+                            if path.startswith('/'):
+                                path = path[1:]
+                            row['path'] = os.path.join(product_gallery_url, path)
+                        path_alias = row.get('path_alias', None)
+                        if path_alias is not None:
+                            if path_alias.startswith('/'):
+                                path_alias = path_alias[1:]
+                            row['path_alias'] = os.path.join(product_gallery_url, path_alias)
+                    result_list.append(row)
+                # result_obj = cursor.fetchall()
+
 
     except Error as e:
         sentry.capture_message(f"Error when connecting to MySQL: {str(e)}")
@@ -85,5 +103,10 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
     except Exception as e:
         sentry.capture_message(f"Error when performing the mysql query to the product_gallery DB: {str(e)}")
         logger.error(f"Error when performing the mysql query to the product_gallery DB: {str(e)}")
+
+    finally:
+        if connection is not None and connection.is_connected():
+            connection.close()
+            logger.info('MySQL connection closed')
 
     return result_list
