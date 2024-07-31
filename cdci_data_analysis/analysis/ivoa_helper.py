@@ -76,9 +76,14 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                 cursor.execute(create_db_query)
                 for db in cursor:
                     logger.info(db)
+                    result_list.append(db)
 
     except Error as e:
-        sentry.capture_message(f"Error when connecting to MySQL or performing the query: {str(e)}")
-        logger.error(f"Error when connecting to MySQL or performing the query: {str(e)}")
+        sentry.capture_message(f"Error when connecting to MySQL: {str(e)}")
+        logger.error(f"Error when connecting to MySQL: {str(e)}")
+
+    except Exception as e:
+        sentry.capture_message(f"Error when performing the mysql query to the product_gallery DB: {str(e)}")
+        logger.error(f"Error when performing the mysql query to the product_gallery DB: {str(e)}")
 
     return result_list
