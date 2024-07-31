@@ -435,16 +435,16 @@ def run_adql_query():
     vo_mysql_pg_user = app_config.vo_mysql_pg_user
     vo_mysql_pg_password = app_config.vo_mysql_pg_password
     vo_mysql_pg_db = app_config.vo_mysql_pg_db
+    product_gallery_url = app_config.product_gallery_url
 
     result_query = ivoa_helper.run_ivoa_query(adql_query,
                                               vo_mysql_pg_host=vo_mysql_pg_host,
                                               vo_mysql_pg_user=vo_mysql_pg_user,
                                               vo_mysql_pg_password=vo_mysql_pg_password,
-                                              vo_mysql_pg_db=vo_mysql_pg_db)
+                                              vo_mysql_pg_db=vo_mysql_pg_db,
+                                              product_gallery_url=product_gallery_url)
 
-    output_request = json.dumps(result_query)
-
-    return output_request
+    return jsonify(result_query)
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
