@@ -456,7 +456,7 @@ class Parameter:
     def reprJSONifiable(self):
         # produces json-serialisable list
         reprjson = [dict(name=self.name, units=self.units, value=self.value)]
-        restrictions = {}
+        restrictions = {'is_optional': self.is_optional}
         if self._allowed_values is not None:
             restrictions['allowed_values'] = self._allowed_values
         if getattr(self, '_min_value', None) is not None:
