@@ -408,7 +408,10 @@ class Parameter:
         return self.get_default_value()
 
     def get_default_value(self):
-        return self.value
+        if self.value is not None:
+            return self.value
+        else:
+            return '\x00'
 
     def get_value_in_default_format(self):
         return self.get_value_in_format(self.par_default_format)
@@ -639,6 +642,8 @@ class NumericParameter(Parameter):
             self._quantity = None
     
     def get_value_in_units(self, units):
+        if self.value is None:
+            return '\x00'
         if units is None:
             return self.value
         if self._quantity is None:
@@ -753,6 +758,8 @@ class Time(Parameter):
         return self.get_value_in_default_format()
 
     def get_value_in_format(self, par_format):
+        if self.value is None:
+            return '\x00'
         return getattr(self._astropy_time, par_format)
 
     @property
@@ -1105,6 +1112,8 @@ class StructuredParameter(Parameter):
             raise RuntimeError(f"Wrong schema for parameter {self.name}: {self.schema}")
     
     def get_default_value(self):
+        if self.value is None:
+            return '\x00'
         return json.dumps(self.value, sort_keys=True)
 
 
