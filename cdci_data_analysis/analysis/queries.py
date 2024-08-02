@@ -314,7 +314,7 @@ class SourceQuery(BaseQuery):
 
         t_range = ParameterRange(t1, t2, 'time')
 
-        token = Name(name_format='str', name='token', value=None)
+        token = Name(name_format='str', name='token', value=None, is_optional=True)
 
         #time_group = ParameterGroup([t_range_iso, t_range_mjd], 'time_range', selected='t_range_iso')
         #time_group_selector = time_group.build_selector('time_group_selector')
