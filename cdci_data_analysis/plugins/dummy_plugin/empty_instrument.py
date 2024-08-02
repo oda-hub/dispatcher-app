@@ -82,7 +82,7 @@ def my_instr_factory():
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
                                              parameters_list=[p])
 
-    f = FileURL(name='dummy_file', is_optional=False)
+    f = FileURL(value=None, name='dummy_file', is_optional=True)
     file_query = FileParameterQuery('file_parameters_dummy_query',
                                     parameters_list=[p, f])
 

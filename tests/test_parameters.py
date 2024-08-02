@@ -275,7 +275,7 @@ def test_parameter_normalization_no_units():
     ]:
 
         def constructor():
-            return parameter_type(value=input_value, name="my-parameter-name")
+            return parameter_type(value=input_value, name="my-parameter-name", is_optional=input_value is None)
 
         if isinstance(outcome, type) and issubclass(outcome, Exception):
             with pytest.raises(outcome):
@@ -359,24 +359,26 @@ def test_parameter_meta_data():
     bool_parameter = Boolean(value = True, name = 'bool')
     assert bounded_parameter.reprJSONifiable() == [{'name': 'bounded', 
                                                     'units': None, 'value': 1.0, 
-                                                    'restrictions': {'min_value': 0.1, 'max_value': 2.0},
+                                                    'restrictions': {'is_optional': False, 'min_value': 0.1, 'max_value': 2.0},
                                                     'owl_uri': ["http://www.w3.org/2001/XMLSchema#float", "http://odahub.io/ontology#Float"]}]
     assert choice_parameter.reprJSONifiable() == [{'name': 'choice', 
                                                    'units': 'str', 
                                                    'value': 'spam',
-                                                   'restrictions': {'allowed_values': ['spam', 'eggs', 'hams']},
+                                                   'restrictions': {'is_optional': False, 'allowed_values': ['spam', 'eggs', 'hams']},
                                                    'owl_uri': ["http://www.w3.org/2001/XMLSchema#str", "http://odahub.io/ontology#String"]}]
     assert long_choice_parameter.reprJSONifiable() == [{'name': 'choice',
                                                        'units': 'str',
                                                        'value': 'long_spam',
+                                                       'restrictions': {'is_optional': False},
                                                        'owl_uri': ["http://www.w3.org/2001/XMLSchema#str",
                                                                    "http://odahub.io/ontology#String",
                                                                    "http://odahub.io/ontology#LongString"]}]
     assert bool_parameter.reprJSONifiable() == [{'name': 'bool', 
                                                 'units': None, 
                                                 'value': True, 
-                                                'restrictions': {'allowed_values': ['True', 'true', 'yes', '1', True, 
-                                                                                    'False', 'false', 'no', '0', False]},
+                                                'restrictions': {'is_optional': False, 
+                                                    'allowed_values': ['True', 'true', 'yes', '1', True, 
+                                                                       'False', 'false', 'no', '0', False]},
                                                 'owl_uri': ["http://www.w3.org/2001/XMLSchema#bool","http://odahub.io/ontology#Boolean"]}]
     
 @pytest.mark.fast

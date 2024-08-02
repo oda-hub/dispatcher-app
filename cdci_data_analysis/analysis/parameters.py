@@ -408,10 +408,7 @@ class Parameter:
         return self.get_default_value()
 
     def get_default_value(self):
-        if self.value is not None:
-            return self.value
-        else:
-            return '\x00'
+        return self.value
 
     def get_value_in_default_format(self):
         return self.get_value_in_format(self.par_default_format)
@@ -573,7 +570,7 @@ class Parameter:
 class String(Parameter):
     owl_uris = ("http://www.w3.org/2001/XMLSchema#str", "http://odahub.io/ontology#String")
     
-    def __init__(self, value=None, name_format='str', name=None, allowed_values = None, is_optional=False):
+    def __init__(self, value, name_format='str', name=None, allowed_values = None, is_optional=False):
 
         _allowed_units = ['str']
         super().__init__(value=value,
@@ -643,7 +640,7 @@ class NumericParameter(Parameter):
     
     def get_value_in_units(self, units):
         if self.value is None:
-            return '\x00'
+            return None
         if units is None:
             return self.value
         if self._quantity is None:
@@ -673,7 +670,7 @@ class NumericParameter(Parameter):
 class Float(NumericParameter):
     owl_uris = ("http://www.w3.org/2001/XMLSchema#float", "http://odahub.io/ontology#Float")
     def __init__(self, 
-                 value=None, 
+                 value, 
                  units=None, 
                  name=None, 
                  allowed_units=None, 
@@ -704,7 +701,7 @@ class Integer(NumericParameter):
     owl_uris = ("http://www.w3.org/2001/XMLSchema#int", "http://odahub.io/ontology#Integer")
 
     def __init__(self, 
-                 value=None, 
+                 value, 
                  units=None, 
                  name=None, 
                  check_value=None, 
@@ -740,7 +737,7 @@ class Time(Parameter):
     format_kw = 'T_format'
     
     def __init__(self, 
-                 value=None, 
+                 value, 
                  T_format='isot', 
                  name=None, 
                  Time_format_name='T_format', 
@@ -759,7 +756,7 @@ class Time(Parameter):
 
     def get_value_in_format(self, par_format):
         if self.value is None:
-            return '\x00'
+            return None
         return getattr(self._astropy_time, par_format)
 
     @property
@@ -803,7 +800,7 @@ class TimeDelta(Time):
     format_kw = 'delta_T_format'
     
     def __init__(self, 
-                 value=None, 
+                 value, 
                  delta_T_format='sec', 
                  name=None, 
                  delta_T_format_name=None, 
@@ -844,7 +841,7 @@ class TimeInterval(Float):
     owl_uris = ("http://odahub.io/ontology#TimeInterval",) 
     
     def __init__(self, 
-                 value=None, 
+                 value, 
                  units='s', 
                  name=None, 
                  default_units='s', 
@@ -934,7 +931,7 @@ class Angle(Float):
     owl_uris = ("http://odahub.io/ontology#Angle")
     
     def __init__(self, 
-                 value=None, 
+                 value, 
                  units=None, 
                  default_units='deg', 
                  name=None, 
@@ -960,7 +957,7 @@ class Energy(Float):
     units_kw = 'E_units'
     
     def __init__(self, 
-                 value=None, 
+                 value, 
                  E_units='keV', 
                  default_units='keV',
                  name=None, 
@@ -985,7 +982,7 @@ class Energy(Float):
 
 class SpectralBoundary(Energy):
     def __init__(self, 
-                 value=None, 
+                 value, 
                  E_units='keV', 
                  default_units='keV', 
                  name=None, 
@@ -1017,7 +1014,7 @@ class SpectralBoundary(Energy):
 class DetectionThreshold(Float):
     owl_uris = ("http://odahub.io/ontology#DetectionThreshold",)    
     def __init__(self, 
-                 value=None, 
+                 value, 
                  units='sigma', 
                  name=None, 
                  min_value=None, 
@@ -1117,7 +1114,7 @@ class StructuredParameter(Parameter):
     
     def get_default_value(self):
         if self.value is None:
-            return '\x00'
+            return None
         return json.dumps(self.value, sort_keys=True)
 
 

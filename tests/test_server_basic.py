@@ -98,10 +98,10 @@ def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture):
     c = requests.get(server + "/api/instr-list",
                      params={'instrument': 'mock'})
     logger.info("content: %s", c.text)
+    assert c.status_code == 200
     jdata = c.json()
     logger.info(json.dumps(jdata, indent=4, sort_keys=True))
     logger.info(jdata)
-    assert c.status_code == 200
     assert 'empty' in jdata
     assert 'empty-async' in jdata
     assert 'empty-semi-async' in jdata
