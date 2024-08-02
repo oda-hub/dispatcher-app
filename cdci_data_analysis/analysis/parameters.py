@@ -191,7 +191,7 @@ class Parameter:
     TODO see through that this is implemented https://github.com/oda-hub/dispatcher-app/issues/339
     """
     def __init__(self,
-                 value=None,
+                 value,
                  units=None,
                  name: Union[str, None] = None,
                  # TODO should we remove units/type/format knowledge from the Parameter class?
@@ -1057,7 +1057,7 @@ class UserCatalog(Parameter):
 class Boolean(Parameter):
     owl_uris = ('http://www.w3.org/2001/XMLSchema#bool',"http://odahub.io/ontology#Boolean")
     
-    def __init__(self, value=None, name=None, is_optional=False):
+    def __init__(self, value, name=None, is_optional=False):
 
         self._true_rep = ['True', 'true', 'yes', '1', True]
         self._false_rep = ['False', 'false', 'no', '0', False]
@@ -1083,7 +1083,11 @@ class Boolean(Parameter):
 class StructuredParameter(Parameter):
     owl_uris = ("http://odahub.io/ontology#StructuredParameter")
     
-    def __init__(self, value=None, name=None, schema={"oneOf": [{"type": "object"}, {"type": "array"}]}, is_optional=False):
+    def __init__(self, 
+                 value, 
+                 name=None, 
+                 schema={"oneOf": [{"type": "object"}, {"type": "array"}]}, 
+                 is_optional=False):
         
         self.schema = schema
         
