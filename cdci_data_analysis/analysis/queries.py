@@ -860,8 +860,8 @@ class ImageQuery(ProductQuery):
         else:
             parameters_list = [detection_th]
 
-        image_scale_min=Float(value=None,name='image_scale_min')
-        image_scale_max = Float(value=None, name='image_scale_max')
+        image_scale_min=Float(value=None,name='image_scale_min',is_optional=True)
+        image_scale_max = Float(value=None, name='image_scale_max',is_optional=True)
         parameters_list.extend([image_scale_min, image_scale_max])
         super(ImageQuery, self).__init__(name, parameters_list, **kwargs)
 
