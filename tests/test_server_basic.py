@@ -98,10 +98,10 @@ def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture):
     c = requests.get(server + "/api/instr-list",
                      params={'instrument': 'mock'})
     logger.info("content: %s", c.text)
+    assert c.status_code == 200
     jdata = c.json()
     logger.info(json.dumps(jdata, indent=4, sort_keys=True))
     logger.info(jdata)
-    assert c.status_code == 200
     assert 'empty' in jdata
     assert 'empty-async' in jdata
     assert 'empty-semi-async' in jdata
@@ -4436,9 +4436,9 @@ def test_parameter_bounds_metadata(dispatcher_live_fixture):
     def meta_for_par(parname):
         return [x for x in restricted_meta if x.get('name', None) == parname][0]
     
-    assert meta_for_par('bounded_int_par')['restrictions'] == {'min_value': 2, 'max_value': 8}
-    assert meta_for_par('bounded_float_par')['restrictions'] == {'min_value': 2.2, 'max_value': 7.7}
-    assert meta_for_par('string_select_par')['restrictions'] == {'allowed_values': ['spam', 'eggs', 'ham']}
+    assert meta_for_par('bounded_int_par')['restrictions'] == {'is_optional': False, 'min_value': 2, 'max_value': 8}
+    assert meta_for_par('bounded_float_par')['restrictions'] == {'is_optional': False, 'min_value': 2.2, 'max_value': 7.7}
+    assert meta_for_par('string_select_par')['restrictions'] == {'is_optional': False, 'allowed_values': ['spam', 'eggs', 'ham']}
     
 @pytest.mark.fast
 def test_restricted_parameters_good_request(dispatcher_live_fixture):

@@ -866,6 +866,9 @@ class InstrumentQueryBackEnd:
             if k in ['catalog_selected_objects', 'selected_catalog']:
                 self.par_dic[k] = v
                 continue
+            if v == '\x00':
+                self.par_dic[k] = None
+                continue
             try:
                 decoded = json.loads(v)
                 if isinstance(decoded, (dict, list)):

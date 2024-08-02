@@ -314,7 +314,7 @@ class SourceQuery(BaseQuery):
 
         t_range = ParameterRange(t1, t2, 'time')
 
-        token = Name(name_format='str', name='token', value=None)
+        token = Name(name_format='str', name='token', value=None, is_optional=True)
 
         #time_group = ParameterGroup([t_range_iso, t_range_mjd], 'time_range', selected='t_range_iso')
         #time_group_selector = time_group.build_selector('time_group_selector')
@@ -860,8 +860,8 @@ class ImageQuery(ProductQuery):
         else:
             parameters_list = [detection_th]
 
-        image_scale_min=Float(value=None,name='image_scale_min')
-        image_scale_max = Float(value=None, name='image_scale_max')
+        image_scale_min=Float(value=None,name='image_scale_min',is_optional=True)
+        image_scale_max = Float(value=None, name='image_scale_max',is_optional=True)
         parameters_list.extend([image_scale_min, image_scale_max])
         super(ImageQuery, self).__init__(name, parameters_list, **kwargs)
 
