@@ -879,7 +879,7 @@ class InputProdList(Parameter):
                          check_value=self.check_list_value,
                          name=name,
                          allowed_units=_allowed_units,
-                         is_optional=False)
+                         is_optional=True)
 
     @staticmethod
     def _split(str_list):
@@ -1052,7 +1052,7 @@ class UserCatalog(Parameter):
                          check_value=None,
                          name=name,
                          allowed_units=_allowed_units,
-                         is_optional=False)
+                         is_optional=True)
 
 class Boolean(Parameter):
     owl_uris = ('http://www.w3.org/2001/XMLSchema#bool',"http://odahub.io/ontology#Boolean")
