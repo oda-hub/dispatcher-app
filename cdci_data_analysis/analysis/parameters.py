@@ -492,7 +492,7 @@ class Parameter:
                      **kwargs):
         from oda_api.ontology_helper import Ontology
 
-        metadata_keys = ['label', 'description']
+        metadata_keys = ['label', 'description', 'group']
 
         if ontology_path is not None and ontology_object is not None:
             raise RuntimeError("Both ontology_path and ontology_object parameters are set.")
@@ -501,7 +501,7 @@ class Parameter:
                 'Trying to find parameter which have %s directly set. '
                 'extra_ttl will be ignored ', owl_uri)
             parameter_hierarchy = [ owl_uri ]
-            par_format = par_unit = allowed_values = min_value = max_value = label = description = None
+            par_format = par_unit = allowed_values = min_value = max_value = label = description = group = None
         else:
             if ontology_path is not None:
                 if isinstance(ontology_path, (str, os.PathLike)):
@@ -523,6 +523,7 @@ class Parameter:
             allowed_values = onto.get_allowed_values(owl_uri)
             label = onto.get_direct_annotation(owl_uri, "label")
             description = onto.get_direct_annotation(owl_uri, "description")
+            group = onto.get_direct_annotation(owl_uri, "group")
 
         for owl_superclass_uri in parameter_hierarchy:
             for python_subclass in subclasses_recursive(cls):
@@ -530,7 +531,7 @@ class Parameter:
                 if python_subclass.matches_owl_uri(owl_superclass_uri):
                     logger.info("will construct %s by owl_uri %s", python_subclass, owl_superclass_uri)
                     call_kwargs = {
-                        'extra_metadata': {key: val for key, val in zip(metadata_keys, [label, description]) if
+                        'extra_metadata': {key: val for key, val in zip(metadata_keys, [label, description, group]) if
                                            val is not None}}
                     call_signature = signature(python_subclass)
                     var_kw_signature = call_parameter.VAR_KEYWORD in [x.kind for x in call_signature.parameters.values()]
