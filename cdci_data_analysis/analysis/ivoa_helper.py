@@ -77,9 +77,9 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                 password=vo_mysql_pg_password,
                 database=vo_mysql_pg_db
         ) as connection:
-            create_db_query = parsed_query_obj.get('mysql_query')
+            db_query = parsed_query_obj.get('mysql_query')
             with connection.cursor(dictionary=True) as cursor:
-                cursor.execute(create_db_query)
+                cursor.execute(db_query)
                 for row in cursor:
                     if product_gallery_url is not None:
                         path = row.get('path', None)
@@ -93,7 +93,6 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                                 path_alias = path_alias[1:]
                             row['path_alias'] = os.path.join(product_gallery_url, path_alias)
                     result_list.append(row)
-                # result_obj = cursor.fetchall()
 
 
     except Error as e:
