@@ -930,13 +930,13 @@ def get_data_product_list_by_source_name():
     return output_list
 
 
-
 @app.route('/post_astro_entity_to_gallery', methods=['POST'])
 def post_astro_entity_to_gallery():
     logger.info("request.args: %s ", request.args)
+    logger.info("request.values: %s ", request.values)
     logger.info("request.files: %s ", request.files)
 
-    token = request.args.get('token', None)
+    token = request.values.to_dict().get('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -963,9 +963,10 @@ def post_astro_entity_to_gallery():
 @app.route('/post_observation_to_gallery', methods=['POST'])
 def post_observation_to_gallery():
     logger.info("request.args: %s ", request.args)
+    logger.info("request.values: %s ", request.values)
     logger.info("request.files: %s ", request.files)
 
-    token = request.args.get('token', None)
+    token = request.values.to_dict().get('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -992,9 +993,10 @@ def post_observation_to_gallery():
 @app.route('/post_product_to_gallery', methods=['POST'])
 def post_product_to_gallery():
     logger.info("request.args: %s ", request.args)
+    logger.info("request.values: %s ", request.values)
     logger.info("request.files: %s ", request.files)
 
-    token = request.args.get('token', None)
+    token = request.values.to_dict().get('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -1020,9 +1022,10 @@ def post_product_to_gallery():
 @app.route('/delete_product_to_gallery', methods=['POST'])
 def delete_product_to_gallery():
     logger.info("request.args: %s ", request.args)
+    logger.info("request.values: %s ", request.values)
     logger.info("request.files: %s ", request.files)
 
-    token = request.args.get('token', None)
+    token = request.values.to_dict().get('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -1048,9 +1051,10 @@ def delete_product_to_gallery():
 @app.route('/post_revolution_processing_log_to_gallery', methods=['POST'])
 def post_revolution_processing_log_to_gallery():
     logger.info("request.args: %s ", request.args)
+    logger.info("request.values: %s ", request.values)
     logger.info("request.files: %s ", request.files)
 
-    token = request.args.get('token', None)
+    token = request.values.to_dict().get('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
