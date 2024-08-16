@@ -15,7 +15,7 @@ import string
 import random
 import hashlib
 import validators
-
+import re
 import logging
 
 from raven.contrib.flask import Sentry
@@ -221,6 +221,19 @@ def remove_nested_keys(D, keys):
         return tuple([remove_nested_keys(v, keys) for v in D])
 
     return D
+
+
+def sanitize_dict_before_log(dict_to_sanitize):
+    sensitive_keys = ['token']  # Add any other sensitive keys here
+    not_allowed_characters = r'[^A-Za-z0-9 ]'
+    replacement_character = ''
+    sanitized_values = {}
+    for key, value in dict_to_sanitize.items():
+        if key not in sensitive_keys:
+            # value = str(value).replace('\n', '').replace('\r', '')
+            value = re.sub(not_allowed_characters, replacement_character, str(value))
+            sanitized_values[key] = value
+    return sanitized_values
 
 
 def common_exception_payload():
@@ -441,9 +454,11 @@ def run_analysis():
     request_summary = log_run_query_request()
 
     try:
+        sanitized_request_values = sanitize_dict_before_log(request.values)
+
         logger.info('\033[32m===> dataserver_call_back\033[0m')
         logger.info('\033[33m raw request values: %s \033[0m',
-                    dict(request.values))
+                    dict(sanitized_request_values))
 
         query_id = hashlib.sha224(str(request.values).encode()).hexdigest()[:8]
 
@@ -522,9 +537,11 @@ def resolve_job_url():
 
 @app.route('/call_back', methods=['POST', 'GET'])
 def dataserver_call_back():
+    sanitized_request_values = sanitize_dict_before_log(request.values)
+
     logger.info('\033[32m===========================> dataserver_call_back\033[0m')
 
-    logger.info('\033[33m raw request values: %s \033[0m', dict(request.values))
+    logger.info('\033[33m raw request values: %s \033[0m', dict(sanitized_request_values))
 
     query_id = hashlib.sha224(str(request.values).encode()).hexdigest()[:8]
 
@@ -584,8 +601,11 @@ class Product(Resource):
 
 @app.route('/resolve_name', methods=['GET'])
 def resolve_name():
-    logger.info("request.args: %s ", request.args)
-    token = request.args.get('token', None)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+    logger.info("request.args: %s ", sanitized_par_dic)
+
+    token = par_dic.pop('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -596,7 +616,7 @@ def resolve_name():
     if output_code is not None:
         return make_response(output, output_code)
 
-    name = request.args.get('name', None)
+    name = par_dic.get('name', None)
 
     name_resolver_url = app_config.name_resolver_url
     entities_portal_url = app_config.entities_portal_url
@@ -610,8 +630,11 @@ def resolve_name():
 
 @app.route('/get_revnum', methods=['GET'])
 def get_revnum():
-    logger.info("request.args: %s ", request.args)
-    token = request.args.get('token', None)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+    logger.info("request.args: %s ", sanitized_par_dic)
+
+    token = par_dic.pop('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -622,7 +645,7 @@ def get_revnum():
     if output_code is not None:
         return make_response(output, output_code)
 
-    time_to_convert = request.args.get('time_to_convert', None)
+    time_to_convert = par_dic.get('time_to_convert', None)
 
     converttime_revnum_service_url = app_config.converttime_revnum_service_url
 
@@ -633,8 +656,11 @@ def get_revnum():
 
 @app.route('/get_list_terms', methods=['GET'])
 def get_list_terms():
-    logger.info("request.args: %s ", request.args)
-    token = request.args.get('token', None)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+    logger.info("request.args: %s ", sanitized_par_dic)
+
+    token = par_dic.pop('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -648,8 +674,8 @@ def get_list_terms():
 
     sentry_dsn = sentry.sentry_url
 
-    group = request.args.get('group', None)
-    parent = request.args.get('parent', None)
+    group = par_dic.get('group', None)
+    parent = par_dic.get('parent', None)
 
     list_terms = drupal_helper.get_list_terms(disp_conf=app_config,
                                               group=group,
@@ -664,8 +690,11 @@ def get_list_terms():
 
 @app.route('/get_parents_term', methods=['GET'])
 def get_parents_term():
-    logger.info("request.args: %s ", request.args)
-    token = request.args.get('token', None)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+    logger.info("request.args: %s ", sanitized_par_dic)
+
+    token = par_dic.pop('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -679,8 +708,8 @@ def get_parents_term():
 
     sentry_dsn = sentry.sentry_url
 
-    group = request.args.get('group', None)
-    term = request.args.get('term', None)
+    group = par_dic.get('group', None)
+    term = par_dic.get('term', None)
 
     list_parents = drupal_helper.get_parents_term(disp_conf=app_config,
                                                   term=term,
@@ -695,9 +724,12 @@ def get_parents_term():
 
 @app.route('/get_observation_attachments', methods=['GET'])
 def get_observation_attachments():
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+    logger.info("request.args: %s ", sanitized_par_dic)
     logger.info("request.args: %s ", request.args)
 
-    token = request.args.get('token', None)
+    token = par_dic.pop('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -708,9 +740,6 @@ def get_observation_attachments():
     if output_code is not None:
         return make_response(output, output_code)
     decoded_token = output
-
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
 
     sentry_dsn = sentry.sentry_url
 
@@ -735,10 +764,12 @@ def get_observation_attachments():
 
 @app.route('/get_all_revs', methods=['GET'])
 def get_all_revs():
-    logger.info("request.args: %s ", request.args)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+    logger.info("request.args: %s ", sanitized_par_dic)
     logger.info("request.files: %s ", request.files)
 
-    token = request.args.get('token', None)
+    token = par_dic.pop('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -749,9 +780,6 @@ def get_all_revs():
     if output_code is not None:
         return make_response(output, output_code)
     decoded_token = output
-
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
 
     sentry_dsn = sentry.sentry_url
 
@@ -775,10 +803,12 @@ def get_all_revs():
 
 @app.route('/get_all_astro_entities', methods=['GET'])
 def get_all_astro_entities():
-    logger.info("request.args: %s ", request.args)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+    logger.info("request.args: %s ", sanitized_par_dic)
     logger.info("request.files: %s ", request.files)
 
-    token = request.args.get('token', None)
+    token = par_dic.pop('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -789,9 +819,6 @@ def get_all_astro_entities():
     if output_code is not None:
         return make_response(output, output_code)
     decoded_token = output
-
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
 
     sentry_dsn = sentry.sentry_url
 
@@ -814,7 +841,9 @@ def get_all_astro_entities():
 
 @app.route('/get_astro_entity_info_by_source_name', methods=['GET'])
 def get_astro_entity_info_by_source_name():
-    logger.info("request.args: %s ", request.args)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+    logger.info("request.args: %s ", sanitized_par_dic)
     logger.info("request.files: %s ", request.files)
 
     app_config = app.config.get('conf')
@@ -822,7 +851,7 @@ def get_astro_entity_info_by_source_name():
     sentry_dsn = sentry.sentry_url
 
     product_gallery_url = app_config.product_gallery_url
-    src_name = request.args.get('src_name', None)
+    src_name = par_dic.get('src_name', None)
 
     source_entity_info = drupal_helper.get_source_astrophysical_entity_info_by_source_and_alternative_name(product_gallery_url,
                                                                                                           gallery_jwt_token=None,
@@ -849,10 +878,11 @@ def get_astro_entity_info_by_source_name():
 
 @app.route('/get_data_product_list_with_conditions', methods=['GET'])
 def get_data_product_list_with_conditions():
-    logger.info("request.args: %s ", request.args)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+    logger.info("request.args: %s ", sanitized_par_dic)
     logger.info("request.files: %s ", request.files)
 
-    par_dic = request.values.to_dict()
     token = par_dic.pop('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
@@ -876,8 +906,6 @@ def get_data_product_list_with_conditions():
     # update the token
     gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
 
-    # src_name = par_dic.pop('src_name', None)
-
     output_get = drupal_helper.get_data_product_list_by_source_name_with_conditions(product_gallery_url=product_gallery_url,
                                                                                     gallery_jwt_token=gallery_jwt_token,
                                                                                     sentry_dsn=sentry_dsn,
@@ -890,10 +918,12 @@ def get_data_product_list_with_conditions():
 # TODO to refactor using get_data_product_list_with_conditions
 @app.route('/get_data_product_list_by_source_name', methods=['GET'])
 def get_data_product_list_by_source_name():
-    logger.info("request.args: %s ", request.args)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+    logger.info("request.args: %s ", sanitized_par_dic)
     logger.info("request.files: %s ", request.files)
 
-    token = request.args.get('token', None)
+    token = par_dic.pop('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -905,8 +935,6 @@ def get_data_product_list_by_source_name():
         return make_response(output, output_code)
     decoded_token = output
 
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
 
     sentry_dsn = sentry.sentry_url
 
@@ -930,13 +958,16 @@ def get_data_product_list_by_source_name():
     return output_list
 
 
-
 @app.route('/post_astro_entity_to_gallery', methods=['POST'])
 def post_astro_entity_to_gallery():
-    logger.info("request.args: %s ", request.args)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+
+    logger.info("request.values: %s ", sanitized_par_dic)
     logger.info("request.files: %s ", request.files)
 
-    token = request.args.get('token', None)
+    token = par_dic.pop('token', None)
+
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -947,9 +978,6 @@ def post_astro_entity_to_gallery():
     if output_code is not None:
         return make_response(output, output_code)
     decoded_token = output
-
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
 
     output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
                                                         content_type="astrophysical_entity",
@@ -962,10 +990,14 @@ def post_astro_entity_to_gallery():
 
 @app.route('/post_observation_to_gallery', methods=['POST'])
 def post_observation_to_gallery():
-    logger.info("request.args: %s ", request.args)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+
+    token = par_dic.pop('token', None)
+
+    logger.info("request.values: %s ", sanitized_par_dic)
     logger.info("request.files: %s ", request.files)
 
-    token = request.args.get('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -976,9 +1008,6 @@ def post_observation_to_gallery():
     if output_code is not None:
         return make_response(output, output_code)
     decoded_token = output
-
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
 
     output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
                                                         content_type="observation",
@@ -991,10 +1020,14 @@ def post_observation_to_gallery():
 
 @app.route('/post_product_to_gallery', methods=['POST'])
 def post_product_to_gallery():
-    logger.info("request.args: %s ", request.args)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+
+    logger.info("request.values: %s ", sanitized_par_dic)
     logger.info("request.files: %s ", request.files)
 
-    token = request.args.get('token', None)
+    token = par_dic.pop('token', None)
+
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -1006,9 +1039,6 @@ def post_product_to_gallery():
         return make_response(output, output_code)
     decoded_token = output
 
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
-
     output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
                                                         disp_conf=app_config,
                                                         files=request.files,
@@ -1019,10 +1049,14 @@ def post_product_to_gallery():
 
 @app.route('/delete_product_to_gallery', methods=['POST'])
 def delete_product_to_gallery():
-    logger.info("request.args: %s ", request.args)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+
+    logger.info("request.values: %s ", sanitized_par_dic)
     logger.info("request.files: %s ", request.files)
 
-    token = request.args.get('token', None)
+    token = par_dic.pop('token', None)
+
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -1034,9 +1068,6 @@ def delete_product_to_gallery():
         return make_response(output, output_code)
     decoded_token = output
 
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
-
     output_post = drupal_helper.delete_content_gallery(decoded_token=decoded_token,
                                                        disp_conf=app_config,
                                                        files=request.files,
@@ -1047,10 +1078,14 @@ def delete_product_to_gallery():
 
 @app.route('/post_revolution_processing_log_to_gallery', methods=['POST'])
 def post_revolution_processing_log_to_gallery():
-    logger.info("request.args: %s ", request.args)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+
+    logger.info("request.values: %s ", sanitized_par_dic)
     logger.info("request.files: %s ", request.files)
 
-    token = request.args.get('token', None)
+    token = par_dic.pop('token', None)
+
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -1061,9 +1096,6 @@ def post_revolution_processing_log_to_gallery():
     if output_code is not None:
         return make_response(output, output_code)
     decoded_token = output
-
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
 
     output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
                                                         disp_conf=app_config,
