@@ -223,6 +223,16 @@ def remove_nested_keys(D, keys):
     return D
 
 
+def sanitize_dict_before_log(dict_to_sanitize):
+    sensitive_keys = ['token']  # Add any other sensitive keys here
+    sanitized_values = {}
+    for key, value in dict_to_sanitize.items():
+        if key not in sensitive_keys:
+            value = str(value).replace('\n', '').replace('\r', '')
+            sanitized_values[key] = value
+    return sanitized_values
+
+
 def common_exception_payload():
     payload = {}
 
@@ -932,11 +942,15 @@ def get_data_product_list_by_source_name():
 
 @app.route('/post_astro_entity_to_gallery', methods=['POST'])
 def post_astro_entity_to_gallery():
-    logger.info("request.args: %s ", request.args)
-    logger.info("request.values: %s ", request.values)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+
+    logger.info("request.values: %s ", sanitized_par_dic)
     logger.info("request.files: %s ", request.files)
 
-    token = request.values.to_dict().get('token', None)
+    token = par_dic.get('token', None)
+    par_dic.pop('token')
+
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -947,9 +961,6 @@ def post_astro_entity_to_gallery():
     if output_code is not None:
         return make_response(output, output_code)
     decoded_token = output
-
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
 
     output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
                                                         content_type="astrophysical_entity",
@@ -962,11 +973,15 @@ def post_astro_entity_to_gallery():
 
 @app.route('/post_observation_to_gallery', methods=['POST'])
 def post_observation_to_gallery():
-    logger.info("request.args: %s ", request.args)
-    logger.info("request.values: %s ", request.values)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+
+    token = par_dic.get('token', None)
+    par_dic.pop('token')
+
+    logger.info("request.values: %s ", sanitized_par_dic)
     logger.info("request.files: %s ", request.files)
 
-    token = request.values.to_dict().get('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -977,9 +992,6 @@ def post_observation_to_gallery():
     if output_code is not None:
         return make_response(output, output_code)
     decoded_token = output
-
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
 
     output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
                                                         content_type="observation",
@@ -992,11 +1004,15 @@ def post_observation_to_gallery():
 
 @app.route('/post_product_to_gallery', methods=['POST'])
 def post_product_to_gallery():
-    logger.info("request.args: %s ", request.args)
-    logger.info("request.values: %s ", request.values)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+
+    logger.info("request.values: %s ", sanitized_par_dic)
     logger.info("request.files: %s ", request.files)
 
-    token = request.values.to_dict().get('token', None)
+    token = par_dic.get('token', None)
+    par_dic.pop('token')
+
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -1008,9 +1024,6 @@ def post_product_to_gallery():
         return make_response(output, output_code)
     decoded_token = output
 
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
-
     output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
                                                         disp_conf=app_config,
                                                         files=request.files,
@@ -1021,11 +1034,15 @@ def post_product_to_gallery():
 
 @app.route('/delete_product_to_gallery', methods=['POST'])
 def delete_product_to_gallery():
-    logger.info("request.args: %s ", request.args)
-    logger.info("request.values: %s ", request.values)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+
+    logger.info("request.values: %s ", sanitized_par_dic)
     logger.info("request.files: %s ", request.files)
 
-    token = request.values.to_dict().get('token', None)
+    token = par_dic.get('token', None)
+    par_dic.pop('token')
+
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -1037,9 +1054,6 @@ def delete_product_to_gallery():
         return make_response(output, output_code)
     decoded_token = output
 
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
-
     output_post = drupal_helper.delete_content_gallery(decoded_token=decoded_token,
                                                        disp_conf=app_config,
                                                        files=request.files,
@@ -1050,11 +1064,15 @@ def delete_product_to_gallery():
 
 @app.route('/post_revolution_processing_log_to_gallery', methods=['POST'])
 def post_revolution_processing_log_to_gallery():
-    logger.info("request.args: %s ", request.args)
-    logger.info("request.values: %s ", request.values)
+    par_dic = request.values.to_dict()
+    sanitized_par_dic = sanitize_dict_before_log(par_dic)
+
+    logger.info("request.values: %s ", sanitized_par_dic)
     logger.info("request.files: %s ", request.files)
 
-    token = request.values.to_dict().get('token', None)
+    token = par_dic.get('token', None)
+    par_dic.pop('token')
+
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -1065,9 +1083,6 @@ def post_revolution_processing_log_to_gallery():
     if output_code is not None:
         return make_response(output, output_code)
     decoded_token = output
-
-    par_dic = request.values.to_dict()
-    par_dic.pop('token')
 
     output_post = drupal_helper.post_content_to_gallery(decoded_token=decoded_token,
                                                         disp_conf=app_config,
