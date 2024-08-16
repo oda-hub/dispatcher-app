@@ -451,9 +451,11 @@ def run_analysis():
     request_summary = log_run_query_request()
 
     try:
+        sanitized_request_values = sanitize_dict_before_log(request.values)
+
         logger.info('\033[32m===> dataserver_call_back\033[0m')
         logger.info('\033[33m raw request values: %s \033[0m',
-                    dict(request.values))
+                    dict(sanitized_request_values))
 
         query_id = hashlib.sha224(str(request.values).encode()).hexdigest()[:8]
 
@@ -532,9 +534,11 @@ def resolve_job_url():
 
 @app.route('/call_back', methods=['POST', 'GET'])
 def dataserver_call_back():
+    sanitized_request_values = sanitize_dict_before_log(request.values)
+
     logger.info('\033[32m===========================> dataserver_call_back\033[0m')
 
-    logger.info('\033[33m raw request values: %s \033[0m', dict(request.values))
+    logger.info('\033[33m raw request values: %s \033[0m', dict(sanitized_request_values))
 
     query_id = hashlib.sha224(str(request.values).encode()).hexdigest()[:8]
 
