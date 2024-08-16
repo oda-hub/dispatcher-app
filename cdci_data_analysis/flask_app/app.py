@@ -225,13 +225,13 @@ def remove_nested_keys(D, keys):
 
 def sanitize_dict_before_log(dict_to_sanitize):
     sensitive_keys = ['token']  # Add any other sensitive keys here
-    allowed_characters = r'[^A-Za-z0-9 ]'
+    not_allowed_characters = r'[^A-Za-z0-9 ]'
     replacement_character = ''
     sanitized_values = {}
     for key, value in dict_to_sanitize.items():
         if key not in sensitive_keys:
             # value = str(value).replace('\n', '').replace('\r', '')
-            value = re.sub(allowed_characters, replacement_character, str(value))
+            value = re.sub(not_allowed_characters, replacement_character, str(value))
             sanitized_values[key] = value
     return sanitized_values
 
