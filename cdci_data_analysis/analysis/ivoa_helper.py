@@ -1,7 +1,5 @@
-import json
 import os.path
 
-from black.lines import append_leaves
 from queryparser.adql import ADQLQueryTranslator
 from queryparser.mysql import MySQLQueryProcessor
 from queryparser.exceptions import QuerySyntaxError
@@ -93,7 +91,6 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                                 path_alias = path_alias[1:]
                             row['path_alias'] = os.path.join(product_gallery_url, path_alias)
                     result_list.append(row)
-
 
     except Error as e:
         sentry.capture_message(f"Error when connecting to MySQL: {str(e)}")
