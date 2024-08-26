@@ -28,6 +28,7 @@ from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
 from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, create_new_notebook_with_code, generate_nb_hash, create_renku_ini_config_obj, generate_ini_file_hash
 from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id, get_source_astrophysical_entity_id_by_source_name
 from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery, ReturnProgressProductQuery
+from cdci_data_analysis.flask_app.app import sanitize_dict_before_log
 
 # logger
 logger = logging.getLogger(__name__)
@@ -70,6 +71,24 @@ default_token_payload = dict(
     tem=0,
 )
 
+@pytest.mark.fast
+def test_sanitize_dict_before_log():
+
+    test_dict = {
+        'token': 'mytoken',
+        'field': 'myfield\n\r',
+        'username': 'myusername',
+        'email': 'myemail@example.com'
+    }
+
+    expected_dict = {
+        'field': 'myfield',
+        'username': 'myusername',
+        'email': 'myemailexamplecom'
+    }
+
+    sanitized_dict = sanitize_dict_before_log(test_dict)
+    assert sanitized_dict == expected_dict
 
 @pytest.mark.fast
 def test_js9(dispatcher_live_fixture):
@@ -2800,7 +2819,7 @@ def test_product_gallery_data_product_with_period_of_observation(dispatcher_live
         params['T2'] = now.strftime('%Y-%m-%dT%H:%M:%S')
 
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
-                      params={**params},
+                      data=params,
                       files=file_obj
                       )
 
@@ -3122,7 +3141,7 @@ def test_product_gallery_get_data_products_list_with_conditions(dispatcher_live_
         }
 
         c = requests.post(os.path.join(server, "post_astro_entity_to_gallery"),
-                          params={**source_params},
+                          data=source_params,
                           )
 
         assert c.status_code == 200
@@ -3141,7 +3160,7 @@ def test_product_gallery_get_data_products_list_with_conditions(dispatcher_live_
             'T2': '2022-08-23T05:29:11'
         }
         c = requests.post(os.path.join(server, "post_product_to_gallery"),
-                          params={**product_params}
+                          data=product_params
                           )
 
         assert c.status_code == 200
@@ -3270,7 +3289,7 @@ def test_product_gallery_get_data_products_list_for_given_source(dispatcher_live
         }
 
         c = requests.post(os.path.join(server, "post_astro_entity_to_gallery"),
-                          params={**source_params},
+                          data=source_params,
                           )
 
         assert c.status_code == 200
@@ -3286,7 +3305,7 @@ def test_product_gallery_get_data_products_list_for_given_source(dispatcher_live
             'insert_new_source': True
         }
         c = requests.post(os.path.join(server, "post_product_to_gallery"),
-                          params={**product_params}
+                          data=product_params
                           )
 
         assert c.status_code == 200
@@ -3434,7 +3453,7 @@ def test_product_gallery_get_period_of_observation_attachments(dispatcher_live_f
 
 
         c = requests.post(os.path.join(server, "post_observation_to_gallery"),
-                          params={**params},
+                          data=params,
                           files=file_obj
                           )
 
@@ -3522,7 +3541,7 @@ def test_product_gallery_post_period_of_observation(dispatcher_live_fixture_with
         params['T2'] = now.strftime('%Y-%m-%dT%H:%M:%S')
 
     c = requests.post(os.path.join(server, "post_observation_to_gallery"),
-                      params={**params},
+                      data=params,
                       files=file_obj
                       )
 
@@ -3621,7 +3640,7 @@ def test_revolution_processing_log_gallery_post(dispatcher_live_fixture_with_gal
     }
 
     c = requests.post(os.path.join(server, "post_revolution_processing_log_to_gallery"),
-                      params={**params},
+                      data=params,
                       )
 
     assert c.status_code == 200
@@ -3740,7 +3759,7 @@ def test_product_gallery_post(dispatcher_live_fixture_with_gallery, dispatcher_t
                 'fits_file_1': open('data/dummy_prods/query_catalog.fits', 'rb')}
 
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
-                      params={**params},
+                      data=params,
                       files=file_obj
                       )
 
@@ -3852,7 +3871,7 @@ def test_post_data_product_with_multiple_sources(dispatcher_live_fixture_with_ga
         'insert_new_source': insert_new_source
     }
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
-                      params={**params}
+                      data=params
                       )
 
     assert c.status_code == 200
@@ -3982,7 +4001,7 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
                 'fits_file_1': open('data/dummy_prods/query_catalog.fits', 'rb')}
 
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
-                      params={**params},
+                      data=params,
                       files=file_obj
                       )
 
@@ -4028,7 +4047,7 @@ def test_product_gallery_update(dispatcher_live_fixture_with_gallery, dispatcher
                 'fits_file_0': open('data/dummy_prods/isgri_query_lc.fits', 'rb')}
 
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
-                      params={**params},
+                      data=params,
                       files=file_obj
                       )
     assert c.status_code == 200
@@ -4084,7 +4103,7 @@ def test_product_gallery_delete(dispatcher_live_fixture_with_gallery, dispatcher
                   token=encoded_token)
 
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
-                      params={**params},
+                      data=params,
                       )
 
     assert c.status_code == 200
@@ -4096,14 +4115,14 @@ def test_product_gallery_delete(dispatcher_live_fixture_with_gallery, dispatcher
     assert 'field_product_id' in drupal_res_obj
     assert drupal_res_obj['field_product_id'][0]['value'] == product_id
 
-    params = {
-        'product_id': product_id,
+    params_products_list = {
+        'product_id_value': product_id,
         'content_type': 'data_product',
         'token': encoded_token
     }
 
     c = requests.get(os.path.join(server, "get_data_product_list_with_conditions"),
-                     params=params
+                     params=params_products_list
                      )
 
     assert c.status_code == 200
@@ -4111,8 +4130,14 @@ def test_product_gallery_delete(dispatcher_live_fixture_with_gallery, dispatcher
     assert len(drupal_res_obj) == 1
     assert drupal_res_obj[0]['nid'] == str(nid_creation)
 
+    params = {
+        'product_id': product_id,
+        'content_type': 'data_product',
+        'token': encoded_token
+    }
+
     c = requests.post(os.path.join(server, "delete_product_to_gallery"),
-                      params={**params},
+                      data=params,
                       )
     assert c.status_code == 200
 
@@ -4120,7 +4145,7 @@ def test_product_gallery_delete(dispatcher_live_fixture_with_gallery, dispatcher
     assert drupal_res_obj == {}
 
     c = requests.get(os.path.join(server, "get_data_product_list_with_conditions"),
-                     params=params
+                     params=params_products_list
                      )
 
     assert c.status_code == 200
@@ -4155,7 +4180,7 @@ def test_product_gallery_error_message(dispatcher_live_fixture_with_gallery):
     }
 
     c = requests.post(os.path.join(server, "post_product_to_gallery"),
-                      params={**params},
+                      data=params,
                       )
 
     assert c.status_code == 500
