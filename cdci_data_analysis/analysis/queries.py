@@ -275,13 +275,13 @@ class BaseQuery(object):
         else:
             return l
 
-    def get_parameters_list_as_json(self,**kwargs):
+    def get_parameters_list_jsonifiable(self,**kwargs):
         l=[ {'query_name':self.name}]
 
         for par in self._parameters_list:
             l.extend(par.reprJSONifiable())
         l1 = self._remove_duplicates_from_par_list(l)
-        return json.dumps(l1)
+        return l1
 
     # Check if the given query cn be executed given a list of roles extracted from the token
     def check_query_roles(self, roles, par_dic):
@@ -385,7 +385,7 @@ class ProductQuery(BaseQuery):
         traceback.print_stack()
         raise RuntimeError(f'{self}: get_data_server_query needs to be implemented in derived class')
 
-    def get_parameters_list_as_json(self, prod_dict=None):
+    def get_parameters_list_jsonifiable(self, prod_dict=None):
 
         l=[ {'query_name':self.name}]
         prod_name=None
@@ -402,7 +402,7 @@ class ProductQuery(BaseQuery):
             l.extend(par.reprJSONifiable())
         
         l1 = self._remove_duplicates_from_par_list(l)
-        return json.dumps(l1)
+        return l1
 
     def get_prod_by_name(self,name):
         return self.query_prod_list.get_prod_by_name(name)

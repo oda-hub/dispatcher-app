@@ -1161,17 +1161,17 @@ class InstrumentQueryBackEnd:
             else:
                 prod_name = None
             if hasattr(self, 'instrument'):
-                l.append(self.instrument.get_parameters_list_as_json(prod_name=prod_name))
+                l.append(self.instrument.get_parameters_list_jsonifiable(prod_name=prod_name))
                 src_query.show_parameters_list()
             else:
                 l = ['instrument not recognized']
 
         if meta_name == 'src_query':
-            l = [src_query.get_parameters_list_as_json()]
+            l = [src_query.get_parameters_list_jsonifiable()]
             src_query.show_parameters_list()
 
         if meta_name == 'instrument':
-            l = [self.instrument.get_parameters_list_as_json()]
+            l = [self.instrument.get_parameters_list_jsonifiable()]
             self.instrument.show_parameters_list()
 
         return jsonify(l)
