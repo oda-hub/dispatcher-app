@@ -4460,8 +4460,8 @@ def test_parameter_bounds_metadata(dispatcher_live_fixture):
     if len(metadata) == 0:
         # new behaviour, metadata is not string-encoded in the request
         metadata = jdata[0]
-    restricted_meta = [x for x in metadata if x[0]['query_name'] == 'restricted_parameters_dummy_query'][0]
-    
+    restricted_meta = [x for x in metadata if isinstance(x, list) and x[0]['query_name'] == 'restricted_parameters_dummy_query'][0]
+
     def meta_for_par(parname):
         return [x for x in restricted_meta if x.get('name', None) == parname][0]
     
