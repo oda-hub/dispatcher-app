@@ -549,7 +549,8 @@ def load_frontend_file_uri():
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                  required_roles=['gallery contributor'],
+                                                                  # TODO do we actually need a special role for this?
+                                                                  required_roles=[''],
                                                                   action="post on the product gallery")
 
     if output_code is not None:
