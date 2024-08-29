@@ -541,7 +541,7 @@ def resolve_job_url():
 def load_frontend_fits_file_url():
     par_dic = request.values.to_dict()
     sanitized_request_values = sanitize_dict_before_log(par_dic)
-    logger.info('\033[32m===========================> load_frontend_file_uri\033[0m')
+    logger.info('\033[32m===========================> load_frontend_fits_file_url\033[0m')
 
     logger.info('\033[33m raw request values: %s \033[0m', dict(sanitized_request_values))
 
@@ -562,7 +562,7 @@ def load_frontend_fits_file_url():
         response = requests.get(fits_file_url)
         return Response(response.content, status=response.status_code, mimetype='application/octet-stream')
     else:
-        raise MissingRequestParameter("url_request not provided")
+        raise MissingRequestParameter("fits_file_url arg not provided")
 
 
 @app.route('/call_back', methods=['POST', 'GET'])
