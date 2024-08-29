@@ -537,8 +537,8 @@ def resolve_job_url():
         return redirect(location, 302)
 
 
-@app.route('/load-frontend-fits-file-uri')
-def load_frontend_file_uri():
+@app.route('/load-frontend-fits-file-url')
+def load_frontend_fits_file_url():
     par_dic = request.values.to_dict()
     sanitized_request_values = sanitize_dict_before_log(par_dic)
     logger.info('\033[32m===========================> load_frontend_file_uri\033[0m')
@@ -550,16 +550,16 @@ def load_frontend_file_uri():
     secret_key = app_config.secret_key
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
                                                                   # TODO do we actually need a special role for this?
-                                                                  required_roles=[''],
+                                                                  required_roles=None,
                                                                   action="post on the product gallery")
 
     if output_code is not None:
         return make_response(output, output_code)
 
-    url_to_request = request.values.get('url_request', None)
+    fits_file_url = request.values.get('fits_file_url', None)
 
-    if url_to_request is not None:
-        response = requests.get(url_to_request)
+    if fits_file_url is not None:
+        response = requests.get(fits_file_url)
         return Response(response.content, status=response.status_code, mimetype='application/octet-stream')
     else:
         raise MissingRequestParameter("url_request not provided")
