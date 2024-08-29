@@ -14,6 +14,8 @@ import os
 import string
 import random
 import hashlib
+
+import requests
 import validators
 import re
 import logging
@@ -533,6 +535,33 @@ def resolve_job_url():
         }
         location = '%s?%s' % (app.config['conf'].products_url, urlencode(message_dict))
         return redirect(location, 302)
+
+
+@app.route('/load-frontend-fits-file-uri')
+def load_frontend_file_uri():
+    par_dic = request.values.to_dict()
+    sanitized_request_values = sanitize_dict_before_log(par_dic)
+    logger.info('\033[32m===========================> load_frontend_file_uri\033[0m')
+
+    logger.info('\033[33m raw request values: %s \033[0m', dict(sanitized_request_values))
+
+    token = par_dic.pop('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  required_roles=['gallery contributor'],
+                                                                  action="post on the product gallery")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+
+    url_to_request = request.values.get('url_request', None)
+
+    if url_to_request is not None:
+        response = requests.get(url_to_request)
+        return Response(response.content, status=response.status_code, mimetype='application/octet-stream')
+    else:
+        raise MissingRequestParameter("url_request not provided")
 
 
 @app.route('/call_back', methods=['POST', 'GET'])
