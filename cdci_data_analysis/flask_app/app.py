@@ -551,7 +551,7 @@ def load_frontend_fits_file_url():
     output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
                                                                   # TODO do we actually need a special role for this?
                                                                   required_roles=None,
-                                                                  action="post on the product gallery")
+                                                                  action="loading a fits file from the frontend via a URL")
 
     if output_code is not None:
         return make_response(output, output_code)
