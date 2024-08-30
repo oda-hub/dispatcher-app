@@ -537,7 +537,7 @@ def resolve_job_url():
         return redirect(location, 302)
 
 
-@app.route('/load-frontend-fits-file-url')
+@app.route('/load_frontend_fits_file_url')
 def load_frontend_fits_file_url():
     par_dic = request.values.to_dict()
     sanitized_request_values = sanitize_dict_before_log(par_dic)
