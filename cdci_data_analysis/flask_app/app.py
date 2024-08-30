@@ -556,13 +556,15 @@ def load_frontend_fits_file_url():
     if output_code is not None:
         return make_response(output, output_code)
 
-    fits_file_url = request.values.get('fits_file_url', None)
+    fits_file_url = par_dic.get('fits_file_url', None)
 
     if fits_file_url is not None:
+        logger.info(f"Loading fits file from URL: {fits_file_url}")
         response = requests.get(fits_file_url)
         return Response(response.content, status=response.status_code, mimetype='application/octet-stream')
     else:
-        raise MissingRequestParameter("fits_file_url arg not provided")
+        logging.warning(f'fits_file_url argument missing in request: {par_dic}')
+        return make_response("fits_file_url arg not provided", 400)
 
 
 @app.route('/call_back', methods=['POST', 'GET'])
