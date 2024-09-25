@@ -179,6 +179,31 @@ def test_empty_request(dispatcher_live_fixture):
     logger.info(jdata['config'])
 
 
+@pytest.mark.parametrize('fits_file_url', [ 'valid', 'invalid', 'empty'])
+def test_load_frontend_fits_file_url(dispatcher_live_fixture, fits_file_url):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    # let's generate a valid token
+    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
+
+    if fits_file_url == 'valid':
+        fits_file_url = 'https://fits.gsfc.nasa.gov/samples/testkeys.fits'
+        output_status_code = 200
+    elif fits_file_url == 'invalid':
+        fits_file_url = 'https://fits.gsfc.nasa.gov/samples/aaaaaa.fits'
+        output_status_code = 404
+    else:
+        fits_file_url = None
+        output_status_code = 400
+
+    c=requests.get(os.path.join(server, 'load_frontend_fits_file_url'),
+                   params={'fits_file_url': fits_file_url,
+                           'token': encoded_token})
+
+    assert c.status_code == output_status_code
+
+
 def test_no_debug_mode_empty_request(dispatcher_live_fixture_no_debug_mode):
     server = dispatcher_live_fixture_no_debug_mode
     print("constructed server:", server)
