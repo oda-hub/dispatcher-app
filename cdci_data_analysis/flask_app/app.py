@@ -432,9 +432,13 @@ def push_renku_branch():
 
 @app.route('/run_adql_query')
 def run_adql_query():
-    logger.info("request.args: %s ", request.args)
+    par_dic = request.values.to_dict()
+    sanitized_request_values = sanitize_dict_before_log(par_dic)
+    logger.info('\033[32m===========================> run_adql_query\033[0m')
 
-    token = request.args.get('token', None)
+    logger.info('\033[33m raw request values: %s \033[0m', dict(sanitized_request_values))
+
+    token = par_dic.get('token', None)
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
 
@@ -445,7 +449,7 @@ def run_adql_query():
     if output_code is not None:
         return make_response(output, output_code)
 
-    adql_query = request.args.get('adql_query', None)
+    adql_query = par_dic.get('adql_query', None)
     vo_psql_pg_host = app_config.vo_psql_pg_host
     vo_psql_pg_user = app_config.vo_psql_pg_user
     vo_psql_pg_password = app_config.vo_psql_pg_password
