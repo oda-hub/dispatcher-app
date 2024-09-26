@@ -446,17 +446,17 @@ def run_adql_query():
         return make_response(output, output_code)
 
     adql_query = request.args.get('adql_query', None)
-    vo_mysql_pg_host = app_config.vo_mysql_pg_host
-    vo_mysql_pg_user = app_config.vo_mysql_pg_user
-    vo_mysql_pg_password = app_config.vo_mysql_pg_password
-    vo_mysql_pg_db = app_config.vo_mysql_pg_db
+    vo_psql_pg_host = app_config.vo_psql_pg_host
+    vo_psql_pg_user = app_config.vo_psql_pg_user
+    vo_psql_pg_password = app_config.vo_psql_pg_password
+    vo_psql_pg_db = app_config.vo_psql_pg_db
     product_gallery_url = app_config.product_gallery_url
 
     result_query = ivoa_helper.run_ivoa_query(adql_query,
-                                              vo_mysql_pg_host=vo_mysql_pg_host,
-                                              vo_mysql_pg_user=vo_mysql_pg_user,
-                                              vo_mysql_pg_password=vo_mysql_pg_password,
-                                              vo_mysql_pg_db=vo_mysql_pg_db,
+                                              vo_psql_pg_host=vo_psql_pg_host,
+                                              vo_psql_pg_user=vo_psql_pg_user,
+                                              vo_psql_pg_password=vo_psql_pg_password,
+                                              vo_psql_pg_db=vo_psql_pg_db,
                                               product_gallery_url=product_gallery_url)
 
     return jsonify(result_query)
