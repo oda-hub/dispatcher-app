@@ -45,8 +45,6 @@ install_req = [
     "black>=22.10.0",
     "bs4",
     "GitPython",
-    "sqlparse",
-    "queryparser-python3",
     "nbformat",
     "giturlparse",
     "sentry-sdk",
