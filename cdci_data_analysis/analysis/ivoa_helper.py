@@ -85,10 +85,10 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                     if product_gallery_url is not None:
                         for index, value in enumerate(list_row):
                             description = cursor.description[index]
-                            if description.name in {'path', 'path_alias'}:
-                                if list_row[index].startswith('/'):
-                                    list_row[index] = row[index][1:]
-                                list_row[index] = os.path.join(product_gallery_url, list_row[index])
+                            if description.name in {'path', 'path_alias'} and value is not None and isinstance(value, str):
+                                if value.startswith('/'):
+                                    value = value[1:]
+                                list_row[index] = os.path.join(product_gallery_url, value)
                     result_list.append(list_row)
 
     except (Exception, DatabaseError) as e:
