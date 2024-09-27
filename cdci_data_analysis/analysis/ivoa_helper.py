@@ -1,7 +1,6 @@
 import os.path
 
 from queryparser.adql import ADQLQueryTranslator
-from queryparser.postgresql import PostgreSQLQueryProcessor
 from queryparser.exceptions import QuerySyntaxError
 
 from psycopg2 import connect, DatabaseError
