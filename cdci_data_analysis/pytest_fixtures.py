@@ -612,6 +612,27 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
+def dispatcher_test_conf_with_vo_options_fn(dispatcher_test_conf_fn):
+    fn = "test-dispatcher-conf-with-vo-options.yaml"
+
+    with open(fn, "w") as f:
+        with open(dispatcher_test_conf_fn) as f_default:
+            f.write(f_default.read())
+
+        f.write('\n    vo_options:'
+                '\n         vo_mysql_pg_host: "localhost"'
+                '\n         vo_mysql_pg_user: "user"'
+                '\n         vo_mysql_pg_password: "password"'
+                '\n         vo_mysql_pg_db: "database"'
+                '\n         vo_psql_pg_host: "localhost"'
+                '\n         vo_psql_pg_user: "user"'
+                '\n         vo_psql_pg_password: "password"'
+                '\n         vo_psql_pg_db: "database"')
+
+    yield fn
+
+
+@pytest.fixture
 def dispatcher_test_conf_with_matrix_options_fn(dispatcher_test_conf_fn):
     fn = "test-dispatcher-conf-with-matrix-options.yaml"
 
@@ -709,8 +730,14 @@ def dispatcher_test_conf_with_gallery(dispatcher_test_conf_with_gallery_fn):
 
 
 @pytest.fixture
+def dispatcher_test_conf_with_vo_options(dispatcher_test_conf_with_vo_options_fn):
+    yield yaml.load(open(dispatcher_test_conf_with_vo_options_fn), Loader=yaml.SafeLoader)['dispatcher']
+
+
+@pytest.fixture
 def dispatcher_test_conf_with_matrix_options(dispatcher_test_conf_with_matrix_options_fn):
     yield yaml.load(open(dispatcher_test_conf_with_matrix_options_fn), Loader=yaml.SafeLoader)['dispatcher']
+
 
 @pytest.fixture
 def dispatcher_test_conf_with_gallery_no_resolver(dispatcher_test_conf_with_gallery_no_resolver_fn):
