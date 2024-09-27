@@ -51,7 +51,8 @@ install_req = [
     "giturlparse",
     "sentry-sdk",
     "validators==0.28.3",
-    "jsonschema<=4.17.3"
+    "jsonschema<=4.17.3",
+    'psycopg2'
 ]
 
 test_req = [
