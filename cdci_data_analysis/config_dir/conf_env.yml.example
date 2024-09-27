@@ -129,3 +129,8 @@ dispatcher:
         vo_mysql_pg_user: MYSQL_PG_USER
         vo_mysql_pg_password: MYSQL_PG_PASSWORD
         vo_mysql_pg_db: MYSQL_PG_DB
+        # postgresql credentials
+        vo_psql_pg_host: PSQL_PG_HOST
+        vo_psql_pg_user: PSQL_PG_USER
+        vo_psql_pg_password: PSQL_PG_PASSWORD
+        vo_psql_pg_db: PSQL_PG_DB
