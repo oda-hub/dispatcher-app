@@ -14,26 +14,16 @@ logger = app_logging.getLogger('ivoa_helper')
 
 def parse_adql_query(query):
     try:
-        # queryparser
         adt = ADQLQueryTranslator(query)
-        qp = PostgreSQLQueryProcessor()
-        qp.set_query(adt.to_postgresql())
-        qp.process_query(replace_schema_name={'mmoda_pg_dev': 'public'})
 
         output_obj = dict(
-            columns=qp.display_columns,
-            tables=qp.tables,
-            rest=qp,
             mysql_query=None,
-            psql_query=qp.query
+            psql_query=adt.to_postgresql()
         )
 
     except QuerySyntaxError as qe:
         logger.error(f'Error parsing ADQL query: {qe}')
         output_obj = dict(
-            tables=None,
-            columns=None,
-            rest=None,
             mysql_query=None,
             psql_query=None
         )
