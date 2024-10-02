@@ -1,7 +1,6 @@
 # this could be a separate package or/and a pytest plugin
 from json import JSONDecodeError
 
-import responses
 import sentry_sdk
 import yaml
 
