@@ -21,6 +21,7 @@ from datetime import datetime
 from enum import Enum, auto
 from astropy.coordinates import SkyCoord, Angle
 from astropy import units as u
+import xml.etree.ElementTree as ET
 
 from cdci_data_analysis.analysis import tokenHelper
 from ..analysis.exceptions import RequestNotUnderstood, InternalError, RequestNotAuthorized
@@ -551,11 +552,14 @@ def post_content_to_gallery(decoded_token,
         if update_astro_entity:
             auto_update = kwargs.pop('auto_update', 'False') == 'True'
             if auto_update is True:
-                name_resolver_url = disp_conf.name_resolver_url
+                local_name_resolver_url = disp_conf.local_name_resolver_url
+                external_name_resolver_url = disp_conf.external_name_resolver_url
                 entities_portal_url = disp_conf.entities_portal_url
-                resolved_obj = resolve_name(name_resolver_url=name_resolver_url,
+                resolved_obj = resolve_name(local_name_resolver_url=local_name_resolver_url,
+                                            external_name_resolver_url=external_name_resolver_url,
                                             entities_portal_url=entities_portal_url,
-                                            name=src_name)
+                                            name=src_name,
+                                            sentry_dsn=sentry_dsn)
                 if resolved_obj is not None:
                     msg = ''
                     if 'message' in resolved_obj:
@@ -1488,11 +1492,11 @@ def check_matching_coords(source_1_name, source_1_coord_ra, source_1_coord_dec,
     return False
 
 
-def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: str = None):
+def resolve_name(local_name_resolver_url: str, external_name_resolver_url: str, entities_portal_url: str = None, name: str = None, sentry_dsn=None):
     resolved_obj = {}
     if name is not None:
         quoted_name = urllib.parse.quote(name.strip())
-        res = requests.get(name_resolver_url.format(quoted_name))
+        res = requests.get(local_name_resolver_url.format(quoted_name))
         if res.status_code == 200:
             returned_resolved_obj = res.json()
             if 'success' in returned_resolved_obj:
@@ -1513,12 +1517,32 @@ def resolve_name(name_resolver_url: str, entities_portal_url: str = None, name: 
                     logger.info(f"resolution of the object {name} unsuccessful")
                     resolved_obj['message'] = f'{name} could not be resolved'
         else:
-            logger.warning(f"there seems to be some problem in completing the request for the resolution of the object: {name}\n"
-                           f"the request lead to the error {res.text}, "
+            logger.warning("There seems to be some problem in completing the request for the resolution of the object"
+                           f" \"{name}\" using the local resolver.\n"
+                           f"The request lead to the error {res.text}, "
                            "this might be due to an error in the url or the service "
-                           "requested is currently not available, "
-                           "please check your request and try to issue it again")
-            raise InternalError('issue when performing a request to the local resolver',
+                           "requested is currently not available. The external resolver will be used.")
+            if sentry_dsn is not None:
+                sentry.capture_message(f'Issue in resolving the object {name} using the local resolver\n{res.text}')
+            res = requests.get(external_name_resolver_url.format(quoted_name))
+            if res.status_code == 200:
+                root = ET.fromstring(res.text)
+                resolver_tag = root.find('.//Resolver')
+                if resolver_tag is not None:
+                    ra_tag = resolver_tag.find('.//jradeg')
+                    resolved_obj['RA'] = float(ra_tag.text)
+
+                    dec_tag = resolver_tag.find('.//jdedeg')
+                    resolved_obj['DEC'] = float(dec_tag.text)
+            else:
+                logger.warning("There seems to be some problem in completing the request for the resolution of the object"
+                               f" \"{name}\" using the external resolver.\n"
+                               f"The request lead to the error {res.text}, "
+                               "this might be due to an error in the url or the service "
+                               "requested is currently not available. The object could not be resolved.")
+                if sentry_dsn is not None:
+                    sentry.capture_message(f'Issue in resolving the object {name} using the external resolver\n{res.text}')
+            raise InternalError('issue when performing a request to the external resolver',
                                 status_code=500,
                                 payload={'drupal_helper_error_message': res.text})
     return resolved_obj
