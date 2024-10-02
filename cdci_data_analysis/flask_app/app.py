@@ -650,12 +650,17 @@ def resolve_name():
 
     name = par_dic.get('name', None)
 
-    name_resolver_url = app_config.name_resolver_url
+    local_name_resolver_url = app_config.local_name_resolver_url
+    external_name_resolver_url = app_config.external_name_resolver_url
     entities_portal_url = app_config.entities_portal_url
 
-    resolve_object = drupal_helper.resolve_name(name_resolver_url=name_resolver_url,
+    sentry_dsn = sentry.sentry_url
+
+    resolve_object = drupal_helper.resolve_name(local_name_resolver_url=local_name_resolver_url,
+                                                external_name_resolver_url=external_name_resolver_url,
                                                 entities_portal_url=entities_portal_url,
-                                                name=name)
+                                                name=name,
+                                                sentry_dsn=sentry_dsn)
 
     return resolve_object
 
