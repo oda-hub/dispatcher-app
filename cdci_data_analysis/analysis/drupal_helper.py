@@ -21,6 +21,7 @@ from datetime import datetime
 from enum import Enum, auto
 from astropy.coordinates import SkyCoord, Angle
 from astropy import units as u
+from astroquery.simbad import Simbad
 import xml.etree.ElementTree as ET
 
 from cdci_data_analysis.analysis import tokenHelper
@@ -1556,6 +1557,24 @@ def resolve_name(local_name_resolver_url: str, external_name_resolver_url: str, 
                     resolved_obj['RA'] = float(ra_tag.text)
                     resolved_obj['DEC'] = float(dec_tag.text)
                     resolved_obj['entity_portal_link'] = entities_portal_url.format(quoted_name)
+
+                    try:
+                        Simbad.add_votable_fields("otype")
+                        result_table = Simbad.query_object(quoted_name)
+                        object_type = str(result_table[0]['OTYPE']).strip()
+                        resolved_obj['object_type'] = object_type
+                    except Exception as e:
+                        logger.warning(f"An exception occurred while using Simbad to query the object \"{name}\" "
+                                       f"while using the external resolver:\n{str(e)}")
+                        resolved_obj['object_type'] = None
+                    try:
+                        object_ids_table = Simbad.query_objectids(name)
+                        source_ids_list = object_ids_table['ID'].tolist()
+                        resolved_obj['object_ids'] = source_ids_list
+                    except Exception as e:
+                        logger.warning(f"An exception occurred while using Simbad to query the object ids for the object \"{name}\" "
+                                       f"while using the external resolver:\n{str(e)}")
+                        resolved_obj['object_ids'] = None
             else:
                 warning_msg = ("There seems to be some problem in completing the request for the resolution of the object"
                                f" \"{name}\" using the external resolver.")
