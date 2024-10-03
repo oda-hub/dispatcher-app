@@ -2678,7 +2678,7 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
 
         # the name resolver replaces automatically underscores with spaces in the returned name
         assert resolved_obj['name'] == source_to_resolve
-        assert resolved_obj['message'] == f'{source_to_resolve} could not be resolved'
+        assert resolved_obj['message'].startswith(f'{source_to_resolve} could not be resolved')
     else:
         assert 'name' in resolved_obj
         assert 'DEC' in resolved_obj
@@ -2689,6 +2689,53 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
 
         assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
         assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery["product_gallery_options"]["entities_portal_url"]\
+            .format(urllib.parse.quote(source_to_resolve.strip()))
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'GX 1+4', 'fake object', None])
+def test_source_resolver_invalid_local_resolver(dispatcher_live_fixture_with_gallery_invalid_local_resolver, dispatcher_test_conf_with_gallery_invalid_local_resolver, source_to_resolve):
+    server = dispatcher_live_fixture_with_gallery_invalid_local_resolver
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {'name': source_to_resolve,
+              'token': encoded_token}
+
+    c = requests.get(os.path.join(server, "resolve_name"),
+                     params={**params}
+                     )
+
+    assert c.status_code == 200
+    resolved_obj = c.json()
+    print('Resolved object returned: ', resolved_obj)
+
+    if source_to_resolve is None:
+        assert resolved_obj == {}
+    elif source_to_resolve == 'fake object':
+        assert 'name' in resolved_obj
+        assert 'message' in resolved_obj
+
+        # the name resolver replaces automatically underscores with spaces in the returned name
+        assert resolved_obj['name'] == source_to_resolve
+        assert resolved_obj['message'].startswith(f'{source_to_resolve} could not be resolved')
+    else:
+        assert 'name' in resolved_obj
+        assert 'DEC' in resolved_obj
+        assert 'RA' in resolved_obj
+        assert 'entity_portal_link' in resolved_obj
+        assert 'object_ids' in resolved_obj
+        assert 'object_type' in resolved_obj
+
+        assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
+        assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery_invalid_local_resolver["product_gallery_options"]["entities_portal_url"]\
             .format(urllib.parse.quote(source_to_resolve.strip()))
 
 
