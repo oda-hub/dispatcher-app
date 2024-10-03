@@ -1539,70 +1539,81 @@ def resolve_name(local_name_resolver_url: str, external_name_resolver_url: str, 
                 sentry.capture_message(f'An exception occurred while trying to resolve the object "{name}" using the local resolver. '
                                        f'URL: {local_name_resolver_url_formatted} '
                                        f"Exception details: {str(e)}")
-        res = requests.get(external_name_resolver_url.format(quoted_name))
-        if res.status_code == 200:
-            root = ET.fromstring(res.text)
-            resolved_obj['name'] = name.replace('_', ' ')
-            resolver_tag = root.find('.//Resolver')
-            if resolver_tag is not None:
-                ra_tag = resolver_tag.find('.//jradeg')
-                dec_tag = resolver_tag.find('.//jdedeg')
-                if ra_tag is None or dec_tag is None:
-                    info_tag = root.find('.//INFO')
-                    resolved_obj['message'] = f'{name} could not be resolved'
-                    if info_tag is not None:
-                        message_info = info_tag.text
-                        resolved_obj['message'] += f': {message_info}'
-                else:
-                    resolved_obj['RA'] = float(ra_tag.text)
-                    resolved_obj['DEC'] = float(dec_tag.text)
-                    resolved_obj['entity_portal_link'] = entities_portal_url.format(quoted_name)
+        external_name_resolver_url_formatted = external_name_resolver_url.format(quoted_name)
+        try:
+            res = requests.get(external_name_resolver_url_formatted)
+            if res.status_code == 200:
+                root = ET.fromstring(res.text)
+                resolved_obj['name'] = name.replace('_', ' ')
+                resolver_tag = root.find('.//Resolver')
+                if resolver_tag is not None:
+                    ra_tag = resolver_tag.find('.//jradeg')
+                    dec_tag = resolver_tag.find('.//jdedeg')
+                    if ra_tag is None or dec_tag is None:
+                        info_tag = root.find('.//INFO')
+                        resolved_obj['message'] = f'{name} could not be resolved'
+                        if info_tag is not None:
+                            message_info = info_tag.text
+                            resolved_obj['message'] += f': {message_info}'
+                    else:
+                        resolved_obj['RA'] = float(ra_tag.text)
+                        resolved_obj['DEC'] = float(dec_tag.text)
+                        resolved_obj['entity_portal_link'] = entities_portal_url.format(quoted_name)
 
-                    try:
-                        Simbad.add_votable_fields("otype")
-                        result_table = Simbad.query_object(quoted_name)
-                        object_type = str(result_table[0]['OTYPE']).strip()
-                        resolved_obj['object_type'] = object_type
-                    except Exception as e:
-                        logger.warning(f"An exception occurred while using Simbad to query the object \"{name}\" "
-                                       f"while using the external resolver:\n{str(e)}")
-                        resolved_obj['object_type'] = None
-                    try:
-                        object_ids_table = Simbad.query_objectids(name)
-                        source_ids_list = object_ids_table['ID'].tolist()
-                        resolved_obj['object_ids'] = source_ids_list
-                    except Exception as e:
-                        logger.warning(f"An exception occurred while using Simbad to query the object ids for the object \"{name}\" "
-                                       f"while using the external resolver:\n{str(e)}")
-                        resolved_obj['object_ids'] = None
+                        try:
+                            Simbad.add_votable_fields("otype")
+                            result_table = Simbad.query_object(quoted_name)
+                            object_type = str(result_table[0]['OTYPE']).strip()
+                            resolved_obj['object_type'] = object_type
+                        except Exception as e:
+                            logger.warning(f"An exception occurred while using Simbad to query the object \"{name}\" "
+                                           f"while using the external resolver:\n{str(e)}")
+                            resolved_obj['object_type'] = None
+                        try:
+                            object_ids_table = Simbad.query_objectids(name)
+                            source_ids_list = object_ids_table['ID'].tolist()
+                            resolved_obj['object_ids'] = source_ids_list
+                        except Exception as e:
+                            logger.warning(f"An exception occurred while using Simbad to query the object ids for the object \"{name}\" "
+                                           f"while using the external resolver:\n{str(e)}")
+                            resolved_obj['object_ids'] = None
+                else:
+                    warning_msg = ("There seems to be some problem in completing the request for the resolution of the object"
+                                   f" \"{name}\" using the external resolver.")
+                    resolved_obj['message'] = f'{name} could not be resolved'
+                    info_tag = root.find('.//INFO')
+                    if info_tag is not None:
+                        warning_msg += (f"The request lead to the error {info_tag.text}, "
+                                       "this might be due to an error in the name of the object that ha been provided.")
+                        resolved_obj['message'] += f': {info_tag.text}'
+                    logger.warning(warning_msg)
+                    if sentry_dsn is not None:
+                        sentry.capture_message(f'Failed to resolve object "{name}" using the external resolver. '
+                                               f'URL: {external_name_resolver_url_formatted} '
+                                               f'Status Code: {res.status_code} '
+                                               f'Response: {res.text}'
+                                               f"Info returned from the resolver: {resolved_obj['message']}")
             else:
-                warning_msg = ("There seems to be some problem in completing the request for the resolution of the object"
-                               f" \"{name}\" using the external resolver.")
-                resolved_obj['message'] = f'{name} could not be resolved'
-                info_tag = root.find('.//INFO')
-                if info_tag is not None:
-                    warning_msg += (f"The request lead to the error {info_tag.text}, "
-                                   "this might be due to an error in the name of the object that ha been provided.")
-                    resolved_obj['message'] += f': {info_tag.text}'
-                logger.warning(warning_msg)
+                logger.warning("There seems to be some problem in completing the request for the resolution of the object"
+                               f" \"{name}\" using the external resolver.\n"
+                               f"The request lead to the error {res.text}, "
+                               "this might be due to an error in the url or the service "
+                               "requested is currently not available. The object could not be resolved.")
                 if sentry_dsn is not None:
-                    sentry.capture_message(f'Failed to resolve object "{name}" using the remote resolver. '
-                                           f'URL: {local_name_resolver_url.format(quoted_name)} '
+                    sentry.capture_message(f'Failed to resolve object "{name}" using the external resolver. '
+                                           f'URL: {external_name_resolver_url_formatted} '
                                            f'Status Code: {res.status_code} '
-                                           f'Response: {res.text}'
-                                           f"Info returned from the resolver: {resolved_obj['message']}")
-        else:
-            logger.warning("There seems to be some problem in completing the request for the resolution of the object"
-                           f" \"{name}\" using the external resolver.\n"
-                           f"The request lead to the error {res.text}, "
-                           "this might be due to an error in the url or the service "
-                           "requested is currently not available. The object could not be resolved.")
+                                           f'Response: {res.text}')
+                resolved_obj['message'] = f'{name} could not be resolved: {res.text}'
+        except (ConnectionError,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout) as e:
+            logger.warning(f'An exception occurred while trying to resolve the object "{name}" using the local resolver. '
+                           f'using the url: {external_name_resolver_url_formatted}. Exception details: {str(e)}')
             if sentry_dsn is not None:
-                sentry.capture_message(f'Failed to resolve object "{name}" using the remote resolver. '
-                                       f'URL: {local_name_resolver_url.format(quoted_name)} '
-                                       f'Status Code: {res.status_code} '
-                                       f'Response: {res.text}')
-            resolved_obj['message'] = f'{name} could not be resolved: {res.text}'
+                sentry.capture_message(f'An exception occurred while trying to resolve the object "{name}" using the external resolver. '
+                                       f'URL: {external_name_resolver_url_formatted} '
+                                       f"Exception details: {str(e)}")
     return resolved_obj
 
 
