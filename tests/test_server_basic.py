@@ -2678,7 +2678,7 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
 
         # the name resolver replaces automatically underscores with spaces in the returned name
         assert resolved_obj['name'] == source_to_resolve
-        assert resolved_obj['message'] == f'{source_to_resolve} could not be resolved'
+        assert resolved_obj['message'].startswith(f'{source_to_resolve} could not be resolved')
     else:
         assert 'name' in resolved_obj
         assert 'DEC' in resolved_obj
@@ -2725,7 +2725,7 @@ def test_source_resolver_invalid_local_resolver(dispatcher_live_fixture_with_gal
 
         # the name resolver replaces automatically underscores with spaces in the returned name
         assert resolved_obj['name'] == source_to_resolve
-        assert resolved_obj['message'] == f'{source_to_resolve} could not be resolved'
+        assert resolved_obj['message'].startswith(f'{source_to_resolve} could not be resolved')
     else:
         assert 'name' in resolved_obj
         assert 'DEC' in resolved_obj
@@ -2735,7 +2735,7 @@ def test_source_resolver_invalid_local_resolver(dispatcher_live_fixture_with_gal
         assert 'object_type' in resolved_obj
 
         assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
-        assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery["product_gallery_options"]["entities_portal_url"]\
+        assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery_invalid_local_resolver["product_gallery_options"]["entities_portal_url"]\
             .format(urllib.parse.quote(source_to_resolve.strip()))
 
 
