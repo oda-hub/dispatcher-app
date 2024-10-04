@@ -476,7 +476,7 @@ def run_adql_query():
 
         return make_response(error_message)
     except Exception as e:
-        error_message = f"Error while running an ADQL query: {str(e)}"
+        error_message = f"Error while running an ADQL query: {str(e)}\n{traceback.format_exc()}"
         logging.getLogger().error(error_message)
         sentry.capture_message(error_message)
         return make_response(f"Internal error while running an ADQL query. Our team is notified and is working on it.")
