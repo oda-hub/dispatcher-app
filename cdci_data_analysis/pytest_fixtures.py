@@ -632,6 +632,7 @@ def dispatcher_test_conf_with_gallery_invalid_local_resolver_fn(dispatcher_test_
     yield fn
 
 
+@pytest.fixture
 def dispatcher_test_conf_with_vo_options_fn(dispatcher_test_conf_fn):
     fn = "test-dispatcher-conf-with-vo-options.yaml"
 
