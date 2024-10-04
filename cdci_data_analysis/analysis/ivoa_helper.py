@@ -1,12 +1,10 @@
 import os.path
-from audioop import error
 
 from queryparser.adql import ADQLQueryTranslator
 from queryparser.exceptions import QuerySyntaxError
 
 from psycopg2 import connect, DatabaseError
 
-from ..flask_app.sentry import sentry
 from ..app_logging import app_logging
 from ..analysis.exceptions import RequestNotUnderstood
 
