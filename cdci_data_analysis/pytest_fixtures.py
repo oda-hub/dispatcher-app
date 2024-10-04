@@ -604,7 +604,8 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
                 '\n        product_gallery_url: "http://cdciweb02.astro.unige.ch/mmoda/galleryd"'
                 f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"'
                 '\n        product_gallery_timezone: "Europe/Zurich"'
-                '\n        name_resolver_url: "https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}"'
+                '\n        local_name_resolver_url: "https://resolver-prod.obsuks1.unige.ch/api/v1.1/byname/{}"'
+                '\n        external_name_resolver_url: "http://cdsweb.u-strasbg.fr/cgi-bin/nph-sesame/-oxp/NSV?{}"'
                 '\n        entities_portal_url: "http://cdsportal.u-strasbg.fr/?target={}"'
                 '\n        converttime_revnum_service_url: "https://www.astro.unige.ch/mmoda/dispatch-data/gw/timesystem/api/v1.0/converttime/UTC/{}/REVNUM"')
 
@@ -612,6 +613,25 @@ def dispatcher_test_conf_with_gallery_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
+def dispatcher_test_conf_with_gallery_invalid_local_resolver_fn(dispatcher_test_conf_fn):
+    fn = "test-dispatcher-conf-with-gallery.yaml"
+
+    with open(fn, "w") as f:
+        with open(dispatcher_test_conf_fn) as f_default:
+            f.write(f_default.read())
+
+        f.write('\n    product_gallery_options:'
+                '\n        product_gallery_url: "http://cdciweb02.astro.unige.ch/mmoda/galleryd"'
+                f'\n        product_gallery_secret_key: "{os.getenv("DISPATCHER_PRODUCT_GALLERY_SECRET_KEY", "secret_key")}"'
+                '\n        product_gallery_timezone: "Europe/Zurich"'
+                '\n        local_name_resolver_url: "http://invalid_url/"'
+                '\n        external_name_resolver_url: "http://cdsweb.u-strasbg.fr/cgi-bin/nph-sesame/-oxp/NSV?{}"'
+                '\n        entities_portal_url: "http://cdsportal.u-strasbg.fr/?target={}"'
+                '\n        converttime_revnum_service_url: "https://www.astro.unige.ch/mmoda/dispatch-data/gw/timesystem/api/v1.0/converttime/UTC/{}/REVNUM"')
+
+    yield fn
+
+
 def dispatcher_test_conf_with_vo_options_fn(dispatcher_test_conf_fn):
     fn = "test-dispatcher-conf-with-vo-options.yaml"
 
@@ -727,6 +747,11 @@ def dispatcher_test_conf_with_no_resubmit_timeout(dispatcher_test_conf_with_no_r
 @pytest.fixture
 def dispatcher_test_conf_with_gallery(dispatcher_test_conf_with_gallery_fn):
     yield yaml.load(open(dispatcher_test_conf_with_gallery_fn), Loader=yaml.SafeLoader)['dispatcher']
+
+
+@pytest.fixture
+def dispatcher_test_conf_with_gallery_invalid_local_resolver(dispatcher_test_conf_with_gallery_invalid_local_resolver_fn):
+    yield yaml.load(open(dispatcher_test_conf_with_gallery_invalid_local_resolver_fn), Loader=yaml.SafeLoader)['dispatcher']
 
 
 @pytest.fixture
@@ -1137,6 +1162,20 @@ def dispatcher_live_fixture_with_matrix_options(pytestconfig, dispatcher_test_co
 @pytest.fixture
 def dispatcher_live_fixture_with_gallery_no_resolver(pytestconfig, dispatcher_test_conf_with_gallery_no_resolver_fn, dispatcher_debug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_gallery_no_resolver_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_with_gallery_invalid_local_resolver(pytestconfig, dispatcher_test_conf_with_gallery_invalid_local_resolver_fn,
+                                                                dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_gallery_invalid_local_resolver_fn)
 
     service = dispatcher_state['url']
     pid = dispatcher_state['pid']

@@ -115,8 +115,10 @@ dispatcher:
         product_gallery_secret_key: PRODUCT_GALLERY_SECRET_KEY
         # timezone used within the drupal configuration, these two values have to be always aligned
         product_gallery_timezone: PRODUCT_GALLERY_SECRET_KEY
-        # url of the name resolver
-        name_resolver_url: NAME_RESOLVER_URL
+        # url of the local name resolver
+        local_name_resolver_url: NAME_RESOLVER_URL
+        # url of the external name resolver
+        external_name_resolver_url: NAME_RESOLVER_URL
         # url of the online catalog for astrophysical entities
         entities_portal_url: ENTITIES_PORTAL_URL
         # url for the conversion of a given time, in UTC format, to the correspondent REVNUM

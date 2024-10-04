@@ -98,7 +98,9 @@ def test_confenv_legacy_plugin_keys(caplog):
 def test_config_no_resolver_urls(dispatcher_test_conf_with_gallery_no_resolver_fn):
     conf = ConfigEnv.from_conf_file(dispatcher_test_conf_with_gallery_no_resolver_fn)
 
-    assert hasattr(conf, 'name_resolver_url')
-    assert conf.name_resolver_url is not None
+    assert hasattr(conf, 'local_name_resolver_url')
+    assert conf.local_name_resolver_url is not None
     assert hasattr(conf, 'entities_portal_url')
     assert conf.entities_portal_url is not None
+    assert hasattr(conf, 'external_name_resolver_url')
+    assert conf.external_name_resolver_url is not None
