@@ -1,4 +1,5 @@
 import os.path
+from audioop import error
 
 from queryparser.adql import ADQLQueryTranslator
 from queryparser.exceptions import QuerySyntaxError
@@ -7,6 +8,7 @@ from psycopg2 import connect, DatabaseError
 
 from ..flask_app.sentry import sentry
 from ..app_logging import app_logging
+from ..analysis.exceptions import RequestNotUnderstood
 
 logger = app_logging.getLogger('ivoa_helper')
 
@@ -21,11 +23,8 @@ def parse_adql_query(query):
         )
 
     except QuerySyntaxError as qe:
-        logger.error(f'Error parsing ADQL query: {qe}')
-        output_obj = dict(
-            mysql_query=None,
-            psql_query=None
-        )
+        logger.error(f'Error while parsing the ADQL query: {str(qe)}')
+        raise RequestNotUnderstood(f"Error while parsing the ADQL query: {str(qe)}")
     return output_obj
 
 
@@ -58,7 +57,7 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                                         product_gallery_url=None
                                         ):
     result_list = []
-
+    connection = None
     try:
         with connect(
             host=vo_psql_pg_host,
@@ -81,8 +80,8 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                     result_list.append(list_row)
 
     except (Exception, DatabaseError) as e:
-        sentry.capture_message(f"Error when querying to the Postgresql server: {str(e)}")
         logger.error(f"Error when querying to the Postgresql server: {str(e)}")
+        raise e
 
     finally:
         if connection is not None:
