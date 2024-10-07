@@ -891,6 +891,7 @@ class InstrumentQueryBackEnd:
         lock_file = f".lock_{self.job_id}"
         scratch_dir_retry_attempts = 5
         scratch_dir_retry_delay = 0.2
+        scratch_dir_created = True
 
         if verbose:
             print('SETSCRATCH  ---->', session_id, type(session_id), job_id, type(job_id))
@@ -911,16 +912,20 @@ class InstrumentQueryBackEnd:
                     if alias_workdir is not None:
                         wd = wd + '_aliased'
 
-                    wd = FilePath(file_dir=wd)
-                    wd.mkdir()
-                    self.scratch_dir = wd.path
+                    wd_path_obj = FilePath(file_dir=wd)
+                    wd_path_obj.mkdir()
+                    self.scratch_dir = wd_path_obj.path
+                    scratch_dir_created = True
+                    break
             except IOError as io_e:
+                scratch_dir_created = False
                 self.logger.warning(f'Failed to acquire lock for the scratch directory creation, attempt number {attempt + 1} ({scratch_dir_retry_attempts} - {attempt + 1} left), sleeping {scratch_dir_retry_delay} seconds until retry.\n{str(io_e)}')
                 time.sleep(scratch_dir_retry_delay)
 
-        dir_list = glob.glob(f"*_jid_{job_id}*")
-        sentry.capture_message(f"Failed to acquire lock for directory creation after multiple attempts. dir_list: {dir_list}")
-        raise InternalError(f"Failed to acquire lock for directory creation after {scratch_dir_retry_attempts} attempts.")
+        if not scratch_dir_created:
+            dir_list = glob.glob(f"*_jid_{job_id}*")
+            sentry.capture_message(f"Failed to acquire lock for directory creation after multiple attempts. dir_list: {dir_list}")
+            raise InternalError(f"Failed to acquire lock for directory creation after {scratch_dir_retry_attempts} attempts.")
 
     def set_temp_dir(self, session_id, job_id=None, verbose=False):
         if verbose:
