@@ -919,7 +919,7 @@ class InstrumentQueryBackEnd:
                     break
             except IOError as io_e:
                 scratch_dir_created = False
-                self.logger.warning(f'Failed to acquire lock for the scratch directory creation, attempt number {attempt + 1} ({scratch_dir_retry_attempts} - {attempt + 1} left), sleeping {scratch_dir_retry_delay} seconds until retry.\n{str(io_e)}')
+                self.logger.warning(f'Failed to acquire lock for the scratch directory creation, attempt number {attempt + 1} ({scratch_dir_retry_attempts - attempt + 1} left), sleeping {scratch_dir_retry_delay} seconds until retry.\n{str(io_e)}')
                 time.sleep(scratch_dir_retry_delay)
 
         if not scratch_dir_created:
