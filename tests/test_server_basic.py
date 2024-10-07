@@ -2,7 +2,6 @@ import re
 import shutil
 import urllib
 import io
-from os import close
 
 import requests
 import time
