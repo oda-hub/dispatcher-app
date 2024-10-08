@@ -422,7 +422,7 @@ class DataServerNumericQuery(ProductQuery):
 
         # create dummy NumpyDataProduct
         meta_data = {'product': 'mosaic', 'instrument': 'empty', 'src_name': '',
-                     'query_parameters': self.get_parameters_list_as_json()}
+                     'query_parameters': self.get_parameters_list_jsonifiable()}
 
         ima = NumpyDataUnit(np.zeros((100, 100)), hdu_type='image')
         data = NumpyDataProduct(data_unit=ima)
