@@ -2737,6 +2737,7 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
         assert 'entity_portal_link' in resolved_obj
         assert 'object_ids' in resolved_obj
         assert 'object_type' in resolved_obj
+        assert 'message' in resolved_obj
 
         assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
         assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery["product_gallery_options"]["entities_portal_url"]\
@@ -2784,6 +2785,7 @@ def test_source_resolver_invalid_local_resolver(dispatcher_live_fixture_with_gal
         assert 'entity_portal_link' in resolved_obj
         assert 'object_ids' in resolved_obj
         assert 'object_type' in resolved_obj
+        assert 'message' in resolved_obj
 
         assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
         assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery_invalid_local_resolver["product_gallery_options"]["entities_portal_url"]\
