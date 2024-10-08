@@ -22,6 +22,7 @@ import copy
 import glob
 import string
 import random
+import fcntl
 
 from flask import jsonify, send_from_directory, make_response
 from flask import request, g
@@ -886,9 +887,13 @@ class InstrumentQueryBackEnd:
         return request_files_dir.path
 
     def set_scratch_dir(self, session_id, job_id=None, verbose=False):
-        if verbose == True:
-            print('SETSCRATCH  ---->', session_id,
-                  type(session_id), job_id, type(job_id))
+        lock_file = f".lock_{self.job_id}"
+        scratch_dir_retry_attempts = 5
+        scratch_dir_retry_delay = 0.2
+        scratch_dir_created = True
+
+        if verbose:
+            print('SETSCRATCH  ---->', session_id, type(session_id), job_id, type(job_id))
 
         wd = 'scratch'
 
@@ -898,14 +903,28 @@ class InstrumentQueryBackEnd:
         if job_id is not None:
             wd += '_jid_'+job_id
 
-        alias_workdir = self.get_existing_job_ID_path(
-            wd=FilePath(file_dir=wd).path)
-        if alias_workdir is not None:
-            wd = wd+'_aliased'
+        for attempt in range(scratch_dir_retry_attempts):
+            try:
+                with open(lock_file, 'w') as lock:
+                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    alias_workdir = self.get_existing_job_ID_path(wd=FilePath(file_dir=wd).path)
+                    if alias_workdir is not None:
+                        wd = wd + '_aliased'
 
-        wd = FilePath(file_dir=wd)
-        wd.mkdir()
-        self.scratch_dir = wd.path
+                    wd_path_obj = FilePath(file_dir=wd)
+                    wd_path_obj.mkdir()
+                    self.scratch_dir = wd_path_obj.path
+                    scratch_dir_created = True
+                    break
+            except (OSError, IOError) as io_e:
+                scratch_dir_created = False
+                self.logger.warning(f'Failed to acquire lock for the scratch directory creation, attempt number {attempt + 1} ({scratch_dir_retry_attempts - (attempt + 1)} left), sleeping {scratch_dir_retry_delay} seconds until retry.\nError: {str(io_e)}')
+                time.sleep(scratch_dir_retry_delay)
+
+        if not scratch_dir_created:
+            dir_list = glob.glob(f"*_jid_{job_id}*")
+            sentry.capture_message(f"Failed to acquire lock for directory creation after multiple attempts.\njob_id: {self.job_id}\ndir_list: {dir_list}")
+            raise InternalError(f"Failed to acquire lock for directory creation after {scratch_dir_retry_attempts} attempts.", status_code=500)
 
     def set_temp_dir(self, session_id, job_id=None, verbose=False):
         if verbose:
@@ -1659,9 +1678,7 @@ class InstrumentQueryBackEnd:
     def get_existing_job_ID_path(self, wd):
         # exist same job_ID, different session ID
         dir_list = glob.glob(f'*_jid_{self.job_id}')
-        # print('dirs',dir_list)
-        if dir_list:
-            dir_list = [d for d in dir_list if 'aliased' not in d]
+        dir_list = [d for d in dir_list if 'aliased' not in d]
 
         if len(dir_list) == 1:
             if dir_list[0] != wd:
@@ -1670,9 +1687,8 @@ class InstrumentQueryBackEnd:
                 alias_dir = None
 
         elif len(dir_list) > 1:
-            sentry.capture_message(f'Found two non aliased identical job_id, dir_list: {dir_list}')
-            self.logger.warning(f'Found two non aliased identical job_id, dir_list: {dir_list}')
-
+            sentry.capture_message(f'Found two or more non aliased identical job_id, dir_list: {dir_list}')
+            self.logger.warning(f'Found two or more non aliased identical job_id, dir_list: {dir_list}')
             raise InternalError("We have encountered an internal error! "
                                 "Our team is notified and is working on it. We are sorry! "
                                 "When we find a solution we will try to reach you",
@@ -1682,6 +1698,7 @@ class InstrumentQueryBackEnd:
             alias_dir = None
 
         return alias_dir
+
 
     def get_file_mtime(self, file):
         return os.path.getmtime(file)
