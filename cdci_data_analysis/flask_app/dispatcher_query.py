@@ -394,6 +394,14 @@ class InstrumentQueryBackEnd:
         list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key=os.path.getmtime)
         list_scratch_dir_to_delete = []
 
+        list_lock_files = sorted(glob.glob(".lock_*"))
+        list_lock_files_to_delete = []
+
+        for l in list_lock_files:
+            time_from_last_access = ((current_time_secs - os.path.getatime(l)) / 60 * 60 * 24)
+            if time_from_last_access >= hard_minimum_folder_age_days:
+                list_lock_files_to_delete.append(l)
+
         for scratch_dir in list_scratch_dir:
             scratch_dir_age_days = (current_time_secs - os.path.getmtime(scratch_dir)) / (60 * 60 * 24)
             if scratch_dir_age_days >= hard_minimum_folder_age_days:
@@ -419,6 +427,8 @@ class InstrumentQueryBackEnd:
                     job_id = monitor['job_id']
                 if job_status == 'done' and (token is None or token_expired):
                     list_scratch_dir_to_delete.append(scratch_dir)
+                    if os.path.exists(f".lock_{job_id}"):
+                        list_lock_files_to_delete.append(f".lock_{job_id}")
                 else:
                     incomplete_job_alert_message = f"The job {job_id} is yet to complete despite being older "\
                                                    f"than {soft_minimum_folder_age_days} days. This has been detected "\
@@ -438,13 +448,19 @@ class InstrumentQueryBackEnd:
         for d in list_scratch_dir_to_delete:
             shutil.rmtree(d)
 
+        for l in list_lock_files_to_delete:
+            os.remove(l)
+
         post_clean_space_space = shutil.disk_usage(os.getcwd())
         post_clean_available_space = format_size(post_clean_space_space.free, format_returned='M')
 
         list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"))
-        logger.info(f"Number of scratch folder after clean-up: {len(list_scratch_dir)}.\n"
-                    f"Removed {len(list_scratch_dir_to_delete)} scratch directories, "
-                    f"and now the available amount of space is {post_clean_available_space}")
+        list_lock_files = sorted(glob.glob(".lock_*"))
+        logger.info(f"Number of scratch folder after clean-up: {len(list_scratch_dir)}, "
+                    f"number of lock files after clean-up: {len(list_lock_files)}.\n"
+                    f"Removed {len(list_scratch_dir_to_delete)} scratch directories "
+                    f"and {len(list_lock_files_to_delete)} lock files.\n"
+                    f"Now the available amount of space is {post_clean_available_space}")
 
         result_scratch_dir_deletion = f"Removed {len(list_scratch_dir_to_delete)} scratch directories"
         logger.info(result_scratch_dir_deletion)
