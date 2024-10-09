@@ -135,6 +135,7 @@ class InstrumentQueryBackEnd:
         self.app = app
 
         temp_scratch_dir = None
+        temp_job_id = None
 
         self.set_sentry_sdk(getattr(self.app.config.get('conf'), 'sentry_url', None))
 
@@ -283,6 +284,7 @@ class InstrumentQueryBackEnd:
                     self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
                     # temp_job_id = self.job_id
                     temp_scratch_dir = self.scratch_dir
+                    temp_job_id = self.job_id
                 if not data_server_call_back:
                     try:
                         self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
@@ -363,7 +365,7 @@ class InstrumentQueryBackEnd:
         finally:
             self.logger.info("==> clean-up temporary directory")
             self.log_query_progression("before clear_temp_dir")
-            self.clear_temp_dir(temp_scratch_dir=temp_scratch_dir)
+            self.clear_temp_dir(temp_scratch_dir=temp_scratch_dir, temp_job_id=temp_job_id)
             self.log_query_progression("after clear_temp_dir")
             
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
@@ -394,13 +396,13 @@ class InstrumentQueryBackEnd:
         list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key=os.path.getmtime)
         list_scratch_dir_to_delete = []
 
-        list_lock_files = sorted(glob.glob(".lock_*"))
-        list_lock_files_to_delete = []
+        list_lock_files = sorted(glob.glob(".lock_*"), key=os.path.getatime)
+        list_lock_files_to_delete = set()
 
         for l in list_lock_files:
             time_from_last_access = ((current_time_secs - os.path.getatime(l)) / 60 * 60 * 24)
             if time_from_last_access >= hard_minimum_folder_age_days:
-                list_lock_files_to_delete.append(l)
+                list_lock_files_to_delete.add(l)
 
         for scratch_dir in list_scratch_dir:
             scratch_dir_age_days = (current_time_secs - os.path.getmtime(scratch_dir)) / (60 * 60 * 24)
@@ -427,8 +429,9 @@ class InstrumentQueryBackEnd:
                     job_id = monitor['job_id']
                 if job_status == 'done' and (token is None or token_expired):
                     list_scratch_dir_to_delete.append(scratch_dir)
-                    if os.path.exists(f".lock_{job_id}"):
-                        list_lock_files_to_delete.append(f".lock_{job_id}")
+                    lock_file_name = f".lock_{job_id}"
+                    if os.path.exists(lock_file_name):
+                        list_lock_files_to_delete.add(lock_file_name)
                 else:
                     incomplete_job_alert_message = f"The job {job_id} is yet to complete despite being older "\
                                                    f"than {soft_minimum_folder_age_days} days. This has been detected "\
@@ -462,7 +465,8 @@ class InstrumentQueryBackEnd:
                     f"and {len(list_lock_files_to_delete)} lock files.\n"
                     f"Now the available amount of space is {post_clean_available_space}")
 
-        result_scratch_dir_deletion = f"Removed {len(list_scratch_dir_to_delete)} scratch directories"
+        result_scratch_dir_deletion = f"Removed {len(list_scratch_dir_to_delete)} scratch directories, " \
+                                      f"and {len(list_lock_files_to_delete)} lock files. "
         logger.info(result_scratch_dir_deletion)
 
         return jsonify(dict(output_status=result_scratch_dir_deletion))
@@ -972,11 +976,14 @@ class InstrumentQueryBackEnd:
                 file_full_path = os.path.join(self.temp_dir, f)
                 shutil.copy(file_full_path, self.scratch_dir)
 
-    def clear_temp_dir(self, temp_scratch_dir=None):
+    def clear_temp_dir(self, temp_scratch_dir=None, temp_job_id=None):
         if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
         if temp_scratch_dir is not None and temp_scratch_dir != self.scratch_dir and os.path.exists(temp_scratch_dir):
             shutil.rmtree(temp_scratch_dir)
+        if temp_job_id is not None and os.path.exists(f".lock_{temp_job_id}"):
+            os.remove(f".lock_{temp_job_id}")
+
 
     @staticmethod
     def validated_download_file_path(basepath, filename, should_exist=True):
