@@ -386,7 +386,7 @@ class InstrumentQueryBackEnd:
         hard_minimum_folder_age_days = app_config.hard_minimum_folder_age_days
         # let's pass the minimum age the folders to be deleted should have
         soft_minimum_folder_age_days = request.args.get('soft_minimum_age_days', None)
-        if soft_minimum_folder_age_days is None or isinstance(soft_minimum_folder_age_days, int):
+        if soft_minimum_folder_age_days is None:
             soft_minimum_folder_age_days = app_config.soft_minimum_folder_age_days
         else:
             soft_minimum_folder_age_days = int(soft_minimum_folder_age_days)
@@ -404,8 +404,13 @@ class InstrumentQueryBackEnd:
                     dict_analysis_parameters = json.load(analysis_parameters_file)
                 token = dict_analysis_parameters.get('token', None)
                 token_expired = False
-                if token is not None and token['exp'] < current_time_secs:
-                    token_expired = True
+                # if token is not None and token['exp'] < current_time_secs:
+                #     token_expired = True
+                if token is not None:
+                    try:
+                        tokenHelper.get_decoded_token(token, secret_key)
+                    except jwt.exceptions.ExpiredSignatureError:
+                        token_expired = True
 
                 job_monitor_path = os.path.join(scratch_dir, 'job_monitor.json')
                 with open(job_monitor_path, 'r') as jm_file:

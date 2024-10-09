@@ -2622,6 +2622,8 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
         "exp": int(time.time()) - 15
     }
 
+    expired_token_encoded = jwt.encode(expired_token, secret_key, algorithm='HS256')
+
     params = {
         'query_status': 'new',
         'product_type': 'dummy',
@@ -2654,7 +2656,8 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
         analysis_parameters_path = os.path.join(scratch_dir, 'analysis_parameters.json')
         with open(analysis_parameters_path) as analysis_parameters_file:
             dict_analysis_parameters = json.load(analysis_parameters_file)
-        dict_analysis_parameters['token'] = expired_token
+        # dict_analysis_parameters['token'] = expired_token
+        dict_analysis_parameters['token'] = expired_token_encoded
         with open(analysis_parameters_path, 'w') as dict_analysis_parameters_outfile:
             my_json_str = json.dumps(dict_analysis_parameters, indent=4)
             dict_analysis_parameters_outfile.write(u'%s' % my_json_str)
