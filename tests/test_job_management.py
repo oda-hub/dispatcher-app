@@ -2605,6 +2605,7 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
                                                      ("hard_minimum_folder_age_days", 60)], indirect=True)
 def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_minimum_age_days):
     DispatcherJobState.remove_scratch_folders()
+    DispatcherJobState.remove_lock_files()
 
     server = dispatcher_live_fixture
 
@@ -2635,11 +2636,11 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
     number_analysis_to_run = 8
 
     for i in range(number_analysis_to_run):
-        ask(server,
-            params,
-            expected_query_status=["done"],
-            max_time_s=150
-            )
+        jdata = ask(server,
+                    params,
+                    expected_query_status=["done"],
+                    max_time_s=150
+                    )
 
     list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key=os.path.getmtime)
 
@@ -2662,7 +2663,6 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
             my_json_str = json.dumps(dict_analysis_parameters, indent=4)
             dict_analysis_parameters_outfile.write(u'%s' % my_json_str)
 
-
     params = {
         'token': encoded_token,
         'soft_minimum_age_days': soft_minimum_age_days
@@ -2677,7 +2677,9 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
 
     assert 'output_status' in jdata
 
-    assert jdata['output_status'] == f"Removed {number_folders_to_delete} scratch directories"
+    number_lock_files_deleted = 0 if number_folders_to_delete < number_analysis_to_run else 1
+    assert jdata['output_status'] ==  (f"Removed {number_folders_to_delete} scratch directories, "
+                                       f"and {number_lock_files_deleted} lock files.")
 
     assert len(glob.glob("scratch_sid_*_jid_*")) == number_analysis_to_run - number_folders_to_delete
 

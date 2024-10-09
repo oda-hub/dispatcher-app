@@ -1569,6 +1569,15 @@ class DispatcherJobState:
             shutil.rmtree(d)
 
     @staticmethod
+    def remove_lock_files(job_id=None):
+        if job_id is None:
+            lock_files = glob.glob('.lock_*')
+        else:
+            lock_files = glob.glob(f'.lock_{job_id}')
+        for f in lock_files:
+            os.remove(f)
+
+    @staticmethod
     def remove_download_folders(id=None):
         if id is None:
             dir_list = glob.glob('download_*')
