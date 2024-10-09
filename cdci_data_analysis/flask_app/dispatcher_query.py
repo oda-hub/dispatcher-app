@@ -399,11 +399,6 @@ class InstrumentQueryBackEnd:
         list_lock_files = sorted(glob.glob(".lock_*"), key=os.path.getatime)
         list_lock_files_to_delete = set()
 
-        for l in list_lock_files:
-            time_from_last_access = ((current_time_secs - os.path.getatime(l)) / 60 * 60 * 24)
-            if time_from_last_access >= hard_minimum_folder_age_days:
-                list_lock_files_to_delete.add(l)
-
         for scratch_dir in list_scratch_dir:
             scratch_dir_age_days = (current_time_secs - os.path.getmtime(scratch_dir)) / (60 * 60 * 24)
             if scratch_dir_age_days >= hard_minimum_folder_age_days:
@@ -429,9 +424,6 @@ class InstrumentQueryBackEnd:
                     job_id = monitor['job_id']
                 if job_status == 'done' and (token is None or token_expired):
                     list_scratch_dir_to_delete.append(scratch_dir)
-                    lock_file_name = f".lock_{job_id}"
-                    if os.path.exists(lock_file_name):
-                        list_lock_files_to_delete.add(lock_file_name)
                 else:
                     incomplete_job_alert_message = f"The job {job_id} is yet to complete despite being older "\
                                                    f"than {soft_minimum_folder_age_days} days. This has been detected "\
@@ -451,8 +443,13 @@ class InstrumentQueryBackEnd:
         for d in list_scratch_dir_to_delete:
             shutil.rmtree(d)
 
-        for l in list_lock_files_to_delete:
-            os.remove(l)
+        num_lock_files_removed = 0
+        for l in list_lock_files:
+            lock_file_job_id = l.split('_')[-1]
+            list_job_id_scratch_dir = glob.glob(f"scratch_sid_*_jid_{lock_file_job_id}*")
+            if len(list_job_id_scratch_dir) == 0:
+                os.remove(l)
+                num_lock_files_removed += 1
 
         post_clean_space_space = shutil.disk_usage(os.getcwd())
         post_clean_available_space = format_size(post_clean_space_space.free, format_returned='M')
@@ -462,11 +459,11 @@ class InstrumentQueryBackEnd:
         logger.info(f"Number of scratch folder after clean-up: {len(list_scratch_dir)}, "
                     f"number of lock files after clean-up: {len(list_lock_files)}.\n"
                     f"Removed {len(list_scratch_dir_to_delete)} scratch directories "
-                    f"and {len(list_lock_files_to_delete)} lock files.\n"
+                    f"and {num_lock_files_removed} lock files.\n"
                     f"Now the available amount of space is {post_clean_available_space}")
 
         result_scratch_dir_deletion = f"Removed {len(list_scratch_dir_to_delete)} scratch directories, " \
-                                      f"and {len(list_lock_files_to_delete)} lock files. "
+                                      f"and {num_lock_files_removed} lock files."
         logger.info(result_scratch_dir_deletion)
 
         return jsonify(dict(output_status=result_scratch_dir_deletion))
