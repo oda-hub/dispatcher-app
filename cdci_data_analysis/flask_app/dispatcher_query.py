@@ -396,9 +396,6 @@ class InstrumentQueryBackEnd:
         list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key=os.path.getmtime)
         list_scratch_dir_to_delete = []
 
-        list_lock_files = sorted(glob.glob(".lock_*"), key=os.path.getatime)
-        list_lock_files_to_delete = set()
-
         for scratch_dir in list_scratch_dir:
             scratch_dir_age_days = (current_time_secs - os.path.getmtime(scratch_dir)) / (60 * 60 * 24)
             if scratch_dir_age_days >= hard_minimum_folder_age_days:
@@ -443,6 +440,7 @@ class InstrumentQueryBackEnd:
         for d in list_scratch_dir_to_delete:
             shutil.rmtree(d)
 
+        list_lock_files = sorted(glob.glob(".lock_*"), key=os.path.getatime)
         num_lock_files_removed = 0
         for l in list_lock_files:
             lock_file_job_id = l.split('_')[-1]
