@@ -1559,6 +1559,7 @@ def resolve_name(local_name_resolver_url: str, external_name_resolver_url: str, 
                         resolved_obj['RA'] = float(ra_tag.text)
                         resolved_obj['DEC'] = float(dec_tag.text)
                         resolved_obj['entity_portal_link'] = entities_portal_url.format(quoted_name)
+                        resolved_obj['message'] = f'{name} successfully resolved'
 
                         try:
                             Simbad.add_votable_fields("otype")
