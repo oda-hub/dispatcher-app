@@ -2636,11 +2636,11 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
     number_analysis_to_run = 8
 
     for i in range(number_analysis_to_run):
-        jdata = ask(server,
-                    params,
-                    expected_query_status=["done"],
-                    max_time_s=150
-                    )
+        ask(server,
+            params,
+            expected_query_status=["done"],
+            max_time_s=150
+            )
 
     list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"), key=os.path.getmtime)
 
