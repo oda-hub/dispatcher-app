@@ -406,8 +406,6 @@ class InstrumentQueryBackEnd:
                     dict_analysis_parameters = json.load(analysis_parameters_file)
                 token = dict_analysis_parameters.get('token', None)
                 token_expired = False
-                # if token is not None and token['exp'] < current_time_secs:
-                #     token_expired = True
                 if token is not None:
                     try:
                         tokenHelper.get_decoded_token(token, secret_key)
