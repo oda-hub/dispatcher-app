@@ -2,6 +2,7 @@ import re
 import shutil
 import urllib
 import io
+
 import requests
 import time
 import uuid
@@ -11,6 +12,7 @@ import logging
 import jwt
 import glob
 import pytest
+import fcntl
 from datetime import datetime, timedelta
 from dateutil import parser, tz
 from functools import reduce
@@ -318,6 +320,55 @@ def test_error_two_scratch_dir_same_job_id(dispatcher_live_fixture):
     assert jdata['error'] == 'InternalError():We have encountered an internal error! Our team is notified and is working on it. We are sorry! When we find a solution we will try to reach you'
     assert jdata['error_message'] == 'We have encountered an internal error! Our team is notified and is working on it. We are sorry! When we find a solution we will try to reach you'
     os.rmdir(fake_scratch_dir)
+
+
+@pytest.mark.not_safe_parallel
+@pytest.mark.fast
+def test_scratch_dir_creation_lock_error(dispatcher_live_fixture):
+    DispatcherJobState.remove_scratch_folders()
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
+    # issuing a request each, with the same set of parameters
+    params = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+    DataServerQuery.set_status('submitted')
+    # let's generate a fake scratch dir
+    jdata = ask(server,
+              params,
+              expected_query_status=["submitted"],
+              max_time_s=50,
+              )
+
+    job_id = jdata['job_monitor']['job_id']
+    session_id = jdata['session_id']
+    fake_scratch_dir = f'scratch_sid_01234567890_jid_{job_id}'
+    os.makedirs(fake_scratch_dir)
+
+    params['job_id'] = job_id
+    params['session_id'] = session_id
+
+    lock_file = f".lock_{job_id}"
+
+    with open(lock_file, 'w') as f_lock:
+        fcntl.flock(f_lock, fcntl.LOCK_EX)
+
+        jdata = ask(server,
+                    params,
+                    expected_status_code=500,
+                    expected_query_status=None,
+                    )
+    scratch_dir_retry_attempts = 5
+    assert jdata['error'] == f"InternalError():Failed to acquire lock for directory creation after {scratch_dir_retry_attempts} attempts."
+    assert jdata['error_message'] == f"Failed to acquire lock for directory creation after {scratch_dir_retry_attempts} attempts."
+    os.rmdir(fake_scratch_dir)
+    os.remove(lock_file)
 
 
 @pytest.mark.fast
@@ -2711,6 +2762,7 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
         assert 'entity_portal_link' in resolved_obj
         assert 'object_ids' in resolved_obj
         assert 'object_type' in resolved_obj
+        assert 'message' in resolved_obj
 
         assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
         assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery["product_gallery_options"]["entities_portal_url"]\
@@ -2758,6 +2810,7 @@ def test_source_resolver_invalid_local_resolver(dispatcher_live_fixture_with_gal
         assert 'entity_portal_link' in resolved_obj
         assert 'object_ids' in resolved_obj
         assert 'object_type' in resolved_obj
+        assert 'message' in resolved_obj
 
         assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
         assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery_invalid_local_resolver["product_gallery_options"]["entities_portal_url"]\
