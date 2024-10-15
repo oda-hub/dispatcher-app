@@ -135,6 +135,7 @@ class InstrumentQueryBackEnd:
         self.app = app
 
         temp_scratch_dir = None
+        temp_job_id = None
 
         self.set_sentry_sdk(getattr(self.app.config.get('conf'), 'sentry_url', None))
 
@@ -283,6 +284,7 @@ class InstrumentQueryBackEnd:
                     self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
                     # temp_job_id = self.job_id
                     temp_scratch_dir = self.scratch_dir
+                    temp_job_id = self.job_id
                 if not data_server_call_back:
                     try:
                         self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
@@ -363,7 +365,7 @@ class InstrumentQueryBackEnd:
         finally:
             self.logger.info("==> clean-up temporary directory")
             self.log_query_progression("before clear_temp_dir")
-            self.clear_temp_dir(temp_scratch_dir=temp_scratch_dir)
+            self.clear_temp_dir(temp_scratch_dir=temp_scratch_dir, temp_job_id=temp_job_id)
             self.log_query_progression("after clear_temp_dir")
             
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
@@ -386,7 +388,7 @@ class InstrumentQueryBackEnd:
         hard_minimum_folder_age_days = app_config.hard_minimum_folder_age_days
         # let's pass the minimum age the folders to be deleted should have
         soft_minimum_folder_age_days = request.args.get('soft_minimum_age_days', None)
-        if soft_minimum_folder_age_days is None or isinstance(soft_minimum_folder_age_days, int):
+        if soft_minimum_folder_age_days is None:
             soft_minimum_folder_age_days = app_config.soft_minimum_folder_age_days
         else:
             soft_minimum_folder_age_days = int(soft_minimum_folder_age_days)
@@ -404,8 +406,11 @@ class InstrumentQueryBackEnd:
                     dict_analysis_parameters = json.load(analysis_parameters_file)
                 token = dict_analysis_parameters.get('token', None)
                 token_expired = False
-                if token is not None and token['exp'] < current_time_secs:
-                    token_expired = True
+                if token is not None:
+                    try:
+                        tokenHelper.get_decoded_token(token, secret_key)
+                    except jwt.exceptions.ExpiredSignatureError:
+                        token_expired = True
 
                 job_monitor_path = os.path.join(scratch_dir, 'job_monitor.json')
                 with open(job_monitor_path, 'r') as jm_file:
@@ -433,15 +438,28 @@ class InstrumentQueryBackEnd:
         for d in list_scratch_dir_to_delete:
             shutil.rmtree(d)
 
+        list_lock_files = sorted(glob.glob(".lock_*"), key=os.path.getatime)
+        num_lock_files_removed = 0
+        for l in list_lock_files:
+            lock_file_job_id = l.split('_')[-1]
+            list_job_id_scratch_dir = glob.glob(f"scratch_sid_*_jid_{lock_file_job_id}*")
+            if len(list_job_id_scratch_dir) == 0:
+                os.remove(l)
+                num_lock_files_removed += 1
+
         post_clean_space_space = shutil.disk_usage(os.getcwd())
         post_clean_available_space = format_size(post_clean_space_space.free, format_returned='M')
 
         list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"))
-        logger.info(f"Number of scratch folder after clean-up: {len(list_scratch_dir)}.\n"
-                    f"Removed {len(list_scratch_dir_to_delete)} scratch directories, "
-                    f"and now the available amount of space is {post_clean_available_space}")
+        list_lock_files = sorted(glob.glob(".lock_*"))
+        logger.info(f"Number of scratch folder after clean-up: {len(list_scratch_dir)}, "
+                    f"number of lock files after clean-up: {len(list_lock_files)}.\n"
+                    f"Removed {len(list_scratch_dir_to_delete)} scratch directories "
+                    f"and {num_lock_files_removed} lock files.\n"
+                    f"Now the available amount of space is {post_clean_available_space}")
 
-        result_scratch_dir_deletion = f"Removed {len(list_scratch_dir_to_delete)} scratch directories"
+        result_scratch_dir_deletion = f"Removed {len(list_scratch_dir_to_delete)} scratch directories, " \
+                                      f"and {num_lock_files_removed} lock files."
         logger.info(result_scratch_dir_deletion)
 
         return jsonify(dict(output_status=result_scratch_dir_deletion))
@@ -951,11 +969,14 @@ class InstrumentQueryBackEnd:
                 file_full_path = os.path.join(self.temp_dir, f)
                 shutil.copy(file_full_path, self.scratch_dir)
 
-    def clear_temp_dir(self, temp_scratch_dir=None):
+    def clear_temp_dir(self, temp_scratch_dir=None, temp_job_id=None):
         if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
         if temp_scratch_dir is not None and temp_scratch_dir != self.scratch_dir and os.path.exists(temp_scratch_dir):
             shutil.rmtree(temp_scratch_dir)
+        if temp_job_id is not None and os.path.exists(f".lock_{temp_job_id}"):
+            os.remove(f".lock_{temp_job_id}")
+
 
     @staticmethod
     def validated_download_file_path(basepath, filename, should_exist=True):
