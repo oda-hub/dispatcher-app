@@ -71,6 +71,12 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                     if product_gallery_url is not None:
                         for index, value in enumerate(list_row):
                             description = cursor.description[index]
+                            if description.name in {'file_uri', 'file_name'} and value is not None and isinstance(value, str):
+                                file_name_list = [v.strip() for v in value.split(',')]
+                                if description.name == 'file_uri':
+                                    for id, file_name in enumerate(file_name_list):
+                                        file_name_list[id] = os.path.join(product_gallery_url, 'sites/default/files/', file_name.strip())
+                                list_row[index] = file_name_list
                             if description.name in {'path', 'path_alias'} and value is not None and isinstance(value, str):
                                 if value.startswith('/'):
                                     value = value[1:]
