@@ -269,7 +269,7 @@ def common_exception_payload():
                                                  'product_gallery_secret_key',
                                                  'matrix_sender_access_token', 'matrix_incident_report_sender_personal_access_token',
                                                  'matrix_bcc_receivers_room_ids', 'matrix_incident_report_receivers_room_ids',
-                                                 'smtp_server_password'])
+                                                 'smtp_server_password', 'vo_psql_pg_db', 'vo_psql_pg_host', 'vo_psql_pg_password', 'vo_psql_pg_user'])
     }
 
     plugins = {}
