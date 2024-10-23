@@ -29,9 +29,6 @@ def parse_adql_query(query):
 def run_ivoa_query(query, **kwargs):
     parsed_query_obj = parse_adql_query(query)
 
-    # TODO use a specific dedicated table and schema to refer to the product_gallery DB ?
-    # tables = parsed_query_obj.get('tables', [])
-    # if len(tables) == 1 and tables[0] == 'product_gallery':
     logger.info('Performing query on the product_gallery')
     vo_psql_pg_host = kwargs.get('vo_psql_pg_host', None)
     vo_psql_pg_user = kwargs.get('vo_psql_pg_user', None)
