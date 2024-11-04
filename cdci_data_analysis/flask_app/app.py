@@ -14,6 +14,8 @@ import os
 import string
 import random
 import hashlib
+
+import requests
 import validators
 import re
 import logging
@@ -535,6 +537,36 @@ def resolve_job_url():
         return redirect(location, 302)
 
 
+@app.route('/load_frontend_fits_file_url')
+def load_frontend_fits_file_url():
+    par_dic = request.values.to_dict()
+    sanitized_request_values = sanitize_dict_before_log(par_dic)
+    logger.info('\033[32m===========================> load_frontend_fits_file_url\033[0m')
+
+    logger.info('\033[33m raw request values: %s \033[0m', dict(sanitized_request_values))
+
+    token = par_dic.pop('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  # TODO do we actually need a special role for this?
+                                                                  required_roles=None,
+                                                                  action="loading a fits file from the frontend via a URL")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+
+    fits_file_url = par_dic.get('fits_file_url', None)
+
+    if fits_file_url is not None:
+        logger.info(f"Loading fits file from URL: {fits_file_url}")
+        response = requests.get(fits_file_url)
+        return Response(response.content, status=response.status_code, mimetype='application/octet-stream')
+    else:
+        logging.warning(f'fits_file_url argument missing in request: {par_dic}')
+        return make_response("fits_file_url arg not provided", 400)
+
+
 @app.route('/call_back', methods=['POST', 'GET'])
 def dataserver_call_back():
     sanitized_request_values = sanitize_dict_before_log(request.values)
@@ -618,12 +650,17 @@ def resolve_name():
 
     name = par_dic.get('name', None)
 
-    name_resolver_url = app_config.name_resolver_url
+    local_name_resolver_url = app_config.local_name_resolver_url
+    external_name_resolver_url = app_config.external_name_resolver_url
     entities_portal_url = app_config.entities_portal_url
 
-    resolve_object = drupal_helper.resolve_name(name_resolver_url=name_resolver_url,
+    sentry_dsn = sentry.sentry_url
+
+    resolve_object = drupal_helper.resolve_name(local_name_resolver_url=local_name_resolver_url,
+                                                external_name_resolver_url=external_name_resolver_url,
                                                 entities_portal_url=entities_portal_url,
-                                                name=name)
+                                                name=name,
+                                                sentry_dsn=sentry_dsn)
 
     return resolve_object
 

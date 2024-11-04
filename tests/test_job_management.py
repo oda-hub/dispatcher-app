@@ -2605,6 +2605,7 @@ def test_email_t1_t2(dispatcher_long_living_fixture,
                                                      ("hard_minimum_folder_age_days", 60)], indirect=True)
 def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_minimum_age_days):
     DispatcherJobState.remove_scratch_folders()
+    DispatcherJobState.remove_lock_files()
 
     server = dispatcher_live_fixture
 
@@ -2621,6 +2622,8 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
         "roles": ['space manager'],
         "exp": int(time.time()) - 15
     }
+
+    expired_token_encoded = jwt.encode(expired_token, secret_key, algorithm='HS256')
 
     params = {
         'query_status': 'new',
@@ -2654,11 +2657,11 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
         analysis_parameters_path = os.path.join(scratch_dir, 'analysis_parameters.json')
         with open(analysis_parameters_path) as analysis_parameters_file:
             dict_analysis_parameters = json.load(analysis_parameters_file)
-        dict_analysis_parameters['token'] = expired_token
+        # dict_analysis_parameters['token'] = expired_token
+        dict_analysis_parameters['token'] = expired_token_encoded
         with open(analysis_parameters_path, 'w') as dict_analysis_parameters_outfile:
             my_json_str = json.dumps(dict_analysis_parameters, indent=4)
             dict_analysis_parameters_outfile.write(u'%s' % my_json_str)
-
 
     params = {
         'token': encoded_token,
@@ -2674,7 +2677,9 @@ def test_free_up_space(dispatcher_live_fixture, number_folders_to_delete, soft_m
 
     assert 'output_status' in jdata
 
-    assert jdata['output_status'] == f"Removed {number_folders_to_delete} scratch directories"
+    number_lock_files_deleted = 0 if number_folders_to_delete < number_analysis_to_run else 1
+    assert jdata['output_status'] ==  (f"Removed {number_folders_to_delete} scratch directories, "
+                                       f"and {number_lock_files_deleted} lock files.")
 
     assert len(glob.glob("scratch_sid_*_jid_*")) == number_analysis_to_run - number_folders_to_delete
 
