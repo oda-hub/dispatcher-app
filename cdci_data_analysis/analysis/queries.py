@@ -404,6 +404,12 @@ class ProductQuery(BaseQuery):
         l1 = self._remove_duplicates_from_par_list(l)
         return l1
 
+    def get_parameters_list_as_json(self, prod_dict=None):
+        logger.warning("Method name 'get_parameters_list_as_json' is deptrecated, "
+                       "please use 'get_parameters_list_jsonifiable'")
+        self.get_parameters_list_jsonifiable(prod_dict=prod_dict)
+
+
     def get_prod_by_name(self,name):
         return self.query_prod_list.get_prod_by_name(name)
 
