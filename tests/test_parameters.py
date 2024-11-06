@@ -675,11 +675,23 @@ def test_structured_get_default_value():
                                                                   (25.0, float, 25.0), 
                                                                   ('25.2', float, 25.2), 
                                                                   (25.2, float, 25.2)])
-def test_numeric_nonetype(value, expected_type, expected_value):
+def test_numeric_fixed_nonetype_exception(value, expected_type, expected_value):
     np = NumericParameter(value)
     assert np.value == expected_value
     assert type(np.value) == expected_type
 
+@pytest.mark.fast
 def test_numeric_wrong():
     with pytest.raises(RequestNotUnderstood):
         NumericParameter("ImNotaNumber")
+
+@pytest.mark.fast
+@pytest.mark.parametrize('is_optional', [True, False])
+@pytest.mark.parametrize('value', [5.0, None])
+def test_optional_parameters(is_optional, value):
+    if value is None and not is_optional:
+        with pytest.raises(RequestNotUnderstood):
+            Float(value, is_optional=is_optional)
+    else:
+        op = Float(value, is_optional=is_optional)
+        assert op.value == value

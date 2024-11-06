@@ -554,7 +554,7 @@ class EchoProductQuery(ProductQuery):
         query_out.set_done()
         return query_out
 
-class StructuredEchoProductQuery(EchoProductQuery):
+class DefaultEchoProductQuery(EchoProductQuery):
     def get_data_server_query(self, instrument, config=None, **kwargs):
         param_names = instrument.get_parameters_name_list()
         # and here it's passed as in nb2w plugin
