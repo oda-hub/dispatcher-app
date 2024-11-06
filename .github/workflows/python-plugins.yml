@@ -53,7 +53,8 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: 'oda-hub/dispatcher-plugin-${{matrix.plugin-name}}'
-        path: plugin   
+        path: plugin
+        ref: ${{ matrix.plugin-name == 'integral' && 'adapt-test' || 'master' }}
 
 
     - name: Install dependencies
