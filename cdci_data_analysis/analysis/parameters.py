@@ -621,7 +621,7 @@ class NumericParameter(Parameter):
             kwargs['allowed_types'] = [int, float]
         
         if kwargs.get('default_type') is None:
-            val = kwargs['value'] if 'value' in kwargs.keys() else args[0]
+            val = kwargs.get('value', args[0])
             if type(val) in kwargs['allowed_types']:
                 kwargs['default_type'] = type(val)
             else:    
