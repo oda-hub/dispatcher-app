@@ -24,8 +24,6 @@ import gzip
 import random
 import string
 
-from lxml.html.diff import token
-
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products, make_hash_file
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
