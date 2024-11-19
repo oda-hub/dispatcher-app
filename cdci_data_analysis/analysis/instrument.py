@@ -251,6 +251,7 @@ class Instrument:
                            bind_port,
                            request_files_dir,
                            decoded_token,
+                           token=None,
                            sentry_dsn=None):
         error_message = 'Error while {step} {temp_dir_content_msg}{additional}'
         # TODO probably exception handling can be further improved and/or optmized
@@ -281,7 +282,8 @@ class Instrument:
                                                     uploaded_files_obj=uploaded_files_obj,
                                                     products_url=products_url,
                                                     bind_host=bind_host,
-                                                    bind_port=bind_port)
+                                                    bind_port=bind_port,
+                                                    token=token)
             step = 'updating ownership files'
             self.update_ownership_files(uploaded_files_obj,
                                         request_files_dir=request_files_dir,
@@ -708,16 +710,17 @@ class Instrument:
             else:
                 raise RuntimeError
 
-    def update_par_dic_with_uploaded_files(self, par_dic, uploaded_files_obj, products_url, bind_host, bind_port):
+    def update_par_dic_with_uploaded_files(self, par_dic, uploaded_files_obj, products_url, bind_host, bind_port, token=None):
         if validators.url(products_url, simple_host=True):
             # TODO remove the dispatch-data part, better to have it extracted from the configuration file
             basepath = os.path.join(products_url, 'dispatch-data/download_file')
         else:
             basepath = os.path.join(f"http://{bind_host}:{bind_port}", 'download_file')
         for f in uploaded_files_obj:
-            dpars = urlencode(dict(file_list=uploaded_files_obj[f],
-                                   _is_mmoda_url=True,
-                                   return_archive=False))
+            dict_args = dict(file_list=uploaded_files_obj[f], _is_mmoda_url=True, return_archive=False)
+            if token is not None:
+                dict_args['token'] = token
+            dpars = urlencode(dict_args)
             download_file_url = f"{basepath}?{dpars}"
             par_dic[f] = download_file_url
 

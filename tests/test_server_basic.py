@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 from dateutil import parser, tz
 from functools import reduce
 from urllib import parse
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
 import nbformat as nbf
 import yaml
 import gzip
@@ -1714,18 +1714,24 @@ def test_arg_file(dispatcher_live_fixture, dispatcher_test_conf, public_download
     file_hash = make_hash_file(p_file_path)
     dpars = urlencode(dict(file_list=file_hash,
                            _is_mmoda_url=True,
-                           return_archive=False))
+                           return_archive=False,
+                           token=encoded_token))
     local_download_url = f"{os.path.join(products_host_port, 'download_file')}?{dpars}"
 
     assert arg_download_url == local_download_url
 
     if public_download_request:
+        url_parts = urlparse(arg_download_url)
+        url_args = parse_qs(url_parts.query)
+        del url_args['token']
+        new_url_parts = url_parts._replace(query=urlencode(url_args, doseq=True))
+        arg_download_url = urlunparse(new_url_parts)
         c = requests.get(arg_download_url)
         assert c.status_code == 403
         jdata = c.json()
         assert jdata['exit_status']['message'] == "User cannot access the file"
     else:
-        arg_download_url += f'&token={encoded_token}'
+        # arg_download_url += f'&token={encoded_token}'
         c = requests.get(arg_download_url)
         assert c.status_code == 200
         with open(p_file_path) as p_file:
@@ -1787,7 +1793,8 @@ def test_arg_file_external_product_url(dispatcher_live_fixture_with_external_pro
     file_hash = make_hash_file(p_file_path)
     dpars = urlencode(dict(file_list=file_hash,
                            _is_mmoda_url=True,
-                           return_archive=False))
+                           return_archive=False,
+                           token=encoded_token))
     local_download_url = f"{os.path.join(dispatcher_test_conf_with_external_products_url['products_url'], 'dispatch-data/download_file')}?{dpars}"
 
     assert jdata['products']['analysis_parameters']['dummy_file'] == local_download_url
@@ -1847,7 +1854,8 @@ def test_arg_file_default_product_url(dispatcher_live_fixture_with_default_route
     file_hash = make_hash_file(p_file_path)
     dpars = urlencode(dict(file_list=file_hash,
                            _is_mmoda_url=True,
-                           return_archive=False))
+                           return_archive=False,
+                           token=encoded_token))
     local_download_url = f"{os.path.join(dispatcher_test_conf_with_default_route_products_url['products_url'], 'dispatch-data/download_file')}?{dpars}"
 
     assert jdata['products']['analysis_parameters']['dummy_file'] == local_download_url
