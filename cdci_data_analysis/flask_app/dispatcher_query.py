@@ -309,7 +309,6 @@ class InstrumentQueryBackEnd:
                             bind_host=bind_host,
                             bind_port=bind_port,
                             request_files_dir=self.request_files_dir,
-                            token=self.token,
                             decoded_token=self.decoded_token,
                             sentry_dsn=self.sentry_dsn
                         )
