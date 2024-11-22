@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 from dateutil import parser, tz
 from functools import reduce
 from urllib import parse
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
 import nbformat as nbf
 import yaml
 import gzip

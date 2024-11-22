@@ -715,9 +715,8 @@ class Instrument:
         else:
             basepath = os.path.join(f"http://{bind_host}:{bind_port}", 'download_file')
         for f in uploaded_files_obj:
-            dpars = urlencode(dict(file_list=uploaded_files_obj[f],
-                                   _is_mmoda_url=True,
-                                   return_archive=False))
+            dict_args = dict(file_list=uploaded_files_obj[f], _is_mmoda_url=True, return_archive=False)
+            dpars = urlencode(dict_args)
             download_file_url = f"{basepath}?{dpars}"
             par_dic[f] = download_file_url
 
