@@ -422,7 +422,7 @@ class DataServerNumericQuery(ProductQuery):
 
         # create dummy NumpyDataProduct
         meta_data = {'product': 'mosaic', 'instrument': 'empty', 'src_name': '',
-                     'query_parameters': self.get_parameters_list_as_json()}
+                     'query_parameters': self.get_parameters_list_jsonifiable()}
 
         ima = NumpyDataUnit(np.zeros((100, 100)), hdu_type='image')
         data = NumpyDataProduct(data_unit=ima)
@@ -554,7 +554,7 @@ class EchoProductQuery(ProductQuery):
         query_out.set_done()
         return query_out
 
-class StructuredEchoProductQuery(EchoProductQuery):
+class DefaultEchoProductQuery(EchoProductQuery):
     def get_data_server_query(self, instrument, config=None, **kwargs):
         param_names = instrument.get_parameters_name_list()
         # and here it's passed as in nb2w plugin

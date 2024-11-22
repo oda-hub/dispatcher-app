@@ -42,7 +42,7 @@ from .data_server_dispatcher import (EmptyProductQuery,
                                      FailingProductQuery, 
                                      DataServerParametricQuery, 
                                      EchoProductQuery,
-                                     StructuredEchoProductQuery,
+                                     DefaultEchoProductQuery,
                                      FileParameterQuery)
 
 # duplicated with jemx, but this staticmethod makes it complex.
@@ -82,7 +82,7 @@ def my_instr_factory():
     numerical_query = DataServerNumericQuery('numerical_parameters_dummy_query',
                                              parameters_list=[p])
 
-    f = FileURL(name='dummy_file')
+    f = FileURL(value=None, name='dummy_file', is_optional=True)
     file_query = FileParameterQuery('file_parameters_dummy_query',
                                     parameters_list=[p, f])
 
@@ -106,7 +106,12 @@ def my_instr_factory():
                                                                      string_select_param])
 
     struct_par = StructuredParameter({'a': [1, 2]}, name='struct')
-    structured_echo_query = StructuredEchoProductQuery('structured_param_dummy_query', parameters_list=[struct_par])
+    structured_echo_query = DefaultEchoProductQuery('structured_param_dummy_query', parameters_list=[struct_par])
+
+    optional_par0 = Float(5., name = 'optional_def_float', is_optional=True)
+    optional_par1 = Float(None, name = 'optional_def_none', is_optional=True)
+    optional_echo_query = DefaultEchoProductQuery('optional_param_dummy_query', parameters_list=[optional_par0, optional_par1])
+
     # this dicts binds the product query name to the product name from frontend
     # eg my_instr_image is the parameter passed by the fronted to access the
     # the MyInstrMosaicQuery, and the dictionary will bind
@@ -122,6 +127,7 @@ def my_instr_factory():
     query_dictionary['echo'] = 'echo_parameters_dummy_query'
     query_dictionary['restricted'] = 'restricted_parameters_dummy_query'
     query_dictionary['structured'] = 'structured_param_dummy_query'
+    query_dictionary['optional'] = 'optional_param_dummy_query'
 
     return Instrument('empty',
                       src_query=src_query,
@@ -133,5 +139,6 @@ def my_instr_factory():
                                             parametrical_query, 
                                             echo_param_query, 
                                             restricted_param_query,
-                                            structured_echo_query],
+                                            structured_echo_query,
+                                            optional_echo_query],
                       query_dictionary=query_dictionary)
