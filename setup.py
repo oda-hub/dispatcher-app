@@ -55,6 +55,8 @@ install_req = [
 ]
 
 test_req = [
+    'pytest',
+    'pytest-sentry',
     'psutil',
 ]
 

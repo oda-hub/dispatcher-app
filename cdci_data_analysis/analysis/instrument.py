@@ -435,7 +435,7 @@ class Instrument:
             job.set_done()
             if query_out.status_dictionary['status'] == 0:
                 query_out.set_done(message='dry-run',job_status=job.status)
-                query_out.set_instrument_parameters(self.get_parameters_list_as_json(prod_name=product_type))
+                query_out.set_instrument_parameters(self.get_parameters_list_jsonifiable(prod_name=product_type))
         else:
             if query_out.status_dictionary['status'] == 0:
                 query_out = QueryOutput()
@@ -593,7 +593,7 @@ class Instrument:
             _query.show_parameters_list()
         print("-------------")
 
-    def get_parameters_list_as_json(self, add_src_query=True, add_instr_query=True, prod_name=None):
+    def get_parameters_list_jsonifiable(self, add_src_query=True, add_instr_query=True, prod_name=None):
 
         l=[{'instrumet':self.name}]
         l.append({'prod_dict':self.query_dictionary})
@@ -608,7 +608,7 @@ class Instrument:
             if isinstance(_query, ProductQuery) and prod_name is not None and _query.name!=self.query_dictionary[prod_name]:
                 continue
 
-            l.append(_query.get_parameters_list_as_json(prod_dict=self.query_dictionary))
+            l.append(_query.get_parameters_list_jsonifiable(prod_dict=self.query_dictionary))
 
         return l
     
@@ -715,9 +715,8 @@ class Instrument:
         else:
             basepath = os.path.join(f"http://{bind_host}:{bind_port}", 'download_file')
         for f in uploaded_files_obj:
-            dpars = urlencode(dict(file_list=uploaded_files_obj[f],
-                                   _is_mmoda_url=True,
-                                   return_archive=False))
+            dict_args = dict(file_list=uploaded_files_obj[f], _is_mmoda_url=True, return_archive=False)
+            dpars = urlencode(dict_args)
             download_file_url = f"{basepath}?{dpars}"
             par_dic[f] = download_file_url
 

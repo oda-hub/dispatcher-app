@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 from dateutil import parser, tz
 from functools import reduce
 from urllib import parse
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
 import nbformat as nbf
 import yaml
 import gzip
@@ -119,10 +119,10 @@ def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture):
     c = requests.get(server + "/api/instr-list",
                      params={'instrument': 'mock'})
     logger.info("content: %s", c.text)
+    assert c.status_code == 200
     jdata = c.json()
     logger.info(json.dumps(jdata, indent=4, sort_keys=True))
     logger.info(jdata)
-    assert c.status_code == 200
     assert 'empty' in jdata
     assert 'empty-async' in jdata
     assert 'empty-semi-async' in jdata
@@ -4607,13 +4607,17 @@ def test_parameter_bounds_metadata(dispatcher_live_fixture):
     jdata=c.json()
     
     metadata = [json.loads(x) for x in jdata[0] if isinstance(x, str)]
-    restricted_meta = [x for x in metadata if x[0]['query_name'] == 'restricted_parameters_dummy_query'][0]
+    if len(metadata) == 0:
+        # new behaviour, metadata is not string-encoded in the request
+        metadata = jdata[0]
+    restricted_meta = [x for x in metadata if isinstance(x, list) and x[0]['query_name'] == 'restricted_parameters_dummy_query'][0]
+
     def meta_for_par(parname):
         return [x for x in restricted_meta if x.get('name', None) == parname][0]
     
-    assert meta_for_par('bounded_int_par')['restrictions'] == {'min_value': 2, 'max_value': 8}
-    assert meta_for_par('bounded_float_par')['restrictions'] == {'min_value': 2.2, 'max_value': 7.7}
-    assert meta_for_par('string_select_par')['restrictions'] == {'allowed_values': ['spam', 'eggs', 'ham']}
+    assert meta_for_par('bounded_int_par')['restrictions'] == {'is_optional': False, 'min_value': 2, 'max_value': 8}
+    assert meta_for_par('bounded_float_par')['restrictions'] == {'is_optional': False, 'min_value': 2.2, 'max_value': 7.7}
+    assert meta_for_par('string_select_par')['restrictions'] == {'is_optional': False, 'allowed_values': ['spam', 'eggs', 'ham']}
     
 @pytest.mark.fast
 def test_restricted_parameters_good_request(dispatcher_live_fixture):
@@ -4707,3 +4711,72 @@ def test_malformed_structured_parameter(dispatcher_live_fixture):
     print("content:", c.text)
     jdata=c.json()
     assert 'Wrong value of structured parameter struct' in jdata['error_message']
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize('par0', [None, 2.0, '\x00'])
+@pytest.mark.parametrize('par1', [None, 3.0, '\x00'])
+def test_optional_parameters(dispatcher_live_fixture, par0, par1):
+    # NOTE: when request argument is None, it's just ignored by requests
+    #       to set optional parameter to be empty (internally None), we use '\x00' in request
+
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+    
+    c = requests.get(server + '/meta-data',
+                     params = {'instrument': 'empty'})
+    assert c.status_code == 200
+
+    optional_query_meta = [q for q in c.json()[0][4:] if q[1]['product_name'] == "optional"][0]
+    opt_pars = optional_query_meta[2:]
+
+    for par in opt_pars:
+        assert par['restrictions']['is_optional']
+
+    defaults = {p['name']: p['value'] for p in opt_pars}
+    expected = defaults.copy()
+    if par0 is not None:
+        expected[opt_pars[0]['name']] = None if par0=='\x00' else par0
+    if par1 is not None:
+        expected[opt_pars[1]['name']] = None if par1=='\x00' else par1
+    
+    req = {'instrument': 'empty',
+           'product_type': 'optional',
+           'query_status': 'new',
+           'query_type': 'Real',
+           opt_pars[0]['name']: par0,
+           opt_pars[1]['name']: par1,
+           }  
+    c = requests.get(server + '/run_analysis',
+                     params = req)
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+
+    assert jdata['exit_status']['status'] == 0
+    assert jdata['exit_status']['job_status'] == 'done'
+    for k in expected.keys():
+        assert jdata['products']['echo'][k] == expected[k]
+
+
+@pytest.mark.fast
+def test_nonoptional_parameter_is_not_nullable(dispatcher_live_fixture):
+    
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+
+    req = {'instrument': 'empty',
+           'product_type': 'numerical',
+           'query_status': 'new',
+           'query_type': 'Real',
+           'p': '\x00'
+           }  
+    c = requests.get(server + '/run_analysis',
+                     params = req)
+    
+    assert c.status_code == 400
+    print("content:", c.text)
+    jdata=c.json()
+
+    assert jdata['error_message'] == 'Non-optional parameter p is set to None'
