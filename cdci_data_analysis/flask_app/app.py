@@ -29,7 +29,7 @@ from flask_restx import Api, Resource
 import time as _time
 from urllib.parse import urlencode, urlparse
 
-from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper, email_helper, matrix_helper
+from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper, email_helper, matrix_helper, ivoa_helper
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError
@@ -269,7 +269,7 @@ def common_exception_payload():
                                                  'product_gallery_secret_key',
                                                  'matrix_sender_access_token', 'matrix_incident_report_sender_personal_access_token',
                                                  'matrix_bcc_receivers_room_ids', 'matrix_incident_report_receivers_room_ids',
-                                                 'smtp_server_password'])
+                                                 'smtp_server_password', 'vo_psql_pg_db', 'vo_psql_pg_host', 'vo_psql_pg_password', 'vo_psql_pg_user'])
     }
 
     plugins = {}
@@ -429,6 +429,57 @@ def push_renku_branch():
         raise RequestNotUnderstood(message="Internal error while posting on the renku branch. "
                                            "Our team is notified and is working on it.")
 
+
+@app.route('/run_adql_query')
+def run_adql_query():
+    try:
+        par_dic = request.values.to_dict()
+        sanitized_request_values = sanitize_dict_before_log(par_dic)
+        logger.info('\033[32m===========================> run_adql_query\033[0m')
+
+        logger.info('\033[33m raw request values: %s \033[0m', dict(sanitized_request_values))
+
+        token = par_dic.get('token', None)
+        app_config = app.config.get('conf')
+        secret_key = app_config.secret_key
+
+        output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                      required_roles=['ivoa_user'],
+                                                                      action="run an ADQL query")
+
+        if output_code is not None:
+            return make_response(output, output_code)
+
+        adql_query = par_dic.get('adql_query', None)
+        vo_psql_pg_host = app_config.vo_psql_pg_host
+        vo_psql_pg_user = app_config.vo_psql_pg_user
+        vo_psql_pg_password = app_config.vo_psql_pg_password
+        vo_psql_pg_db = app_config.vo_psql_pg_db
+        product_gallery_url = app_config.product_gallery_url
+
+        result_query = ivoa_helper.run_ivoa_query(adql_query,
+                                                  vo_psql_pg_host=vo_psql_pg_host,
+                                                  vo_psql_pg_user=vo_psql_pg_user,
+                                                  vo_psql_pg_password=vo_psql_pg_password,
+                                                  vo_psql_pg_db=vo_psql_pg_db,
+                                                  product_gallery_url=product_gallery_url)
+
+        return jsonify(result_query)
+    except APIerror as api_e:
+        error_message = f"Error while running an ADQL query: "
+        if hasattr(api_e, 'message') and api_e.message is not None:
+            error_message += api_e.message
+        else:
+            error_message += f"{repr(api_e)}"
+        logging.getLogger().error(error_message)
+        sentry.capture_message(error_message)
+
+        return make_response(error_message)
+    except Exception as e:
+        error_message = f"Error while running an ADQL query: {str(e)}\n{traceback.format_exc()}"
+        logging.getLogger().error(error_message)
+        sentry.capture_message(error_message)
+        return make_response(f"Internal error while running an ADQL query. Our team is notified and is working on it.")
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
