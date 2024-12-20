@@ -45,6 +45,7 @@ from .exceptions import RequestNotUnderstood
 
 from jsonschema import validate, ValidationError, SchemaError
 import json
+from cdci_data_analysis import conf_dir
 
 logger = logging.getLogger(__name__)
 
@@ -1154,6 +1155,9 @@ class StructuredParameter(Parameter):
         return json.dumps(self.value, sort_keys=True)
 
 
+with open(os.path.join(conf_dir, "phosphoros_filters.json"), 'r') as fd:
+    phosphoros_filters = json.load(fd)
+
 class PhosphorosFiltersTable(StructuredParameter):
     owl_uris = ('http://odahub.io/ontology#PhosphorosFiltersTable')
     
@@ -1163,19 +1167,8 @@ class PhosphorosFiltersTable(StructuredParameter):
         #       If there is no additional check, this would allow to avoid even having the class.
         #       
         #       But for the time being, as agreed, we will keep the hardcoded dedicated class.
-        filter_list = ["CFHT|MegaCam.g", "CFHT|MegaCam.gri", "CFHT|MegaCam.i", "CFHT|MegaCam.r", "CFHT|MegaCam.u", "CFHT|MegaCam.z",
-                       "CTIO|DECam.Y", "CTIO|DECam.g", "CTIO|DECam.i", "CTIO|DECam.r", "CTIO|DECam.u", "CTIO|DECam.z",
-                       "Euclid|NISP.H", "Euclid|NISP.J", "Euclid|NISP.Y", "Euclid|VIS.vis",
-                       "GAIA|GAIA3.G", "GAIA|GAIA3.Gbp", "GAIA|GAIA3.Grp",
-                       "GALEX|GALEX.FUV", "GALEX|GALEX.NUV",
-                       "LSST|LSST.g", "LSST|LSST.i", "LSST|LSST.r", "LSST|LSST.u", "LSST|LSST.y", "LSST|LSST.z",
-                       "PAN-STARRS|PS1.g", "PAN-STARRS|PS1.i", "PAN-STARRS|PS1.open", "PAN-STARRS|PS1.r", "PAN-STARRS|PS1.w", "PAN-STARRS|PS1.y", "PAN-STARRS|PS1.z",
-                       "VIRCAM|VISTA.H", "VIRCAM|VISTA.J", "VIRCAM|VISTA.Ks", "VIRCAM|VISTA.NB118", "VIRCAM|VISTA.NB980", "VIRCAM|VISTA.NB990", "VIRCAM|VISTA.Y", "VIRCAM|VISTA.Z",
-                       "SLOAN|SDSS.g", "SLOAN|SDSS.i", "SLOAN|SDSS.r", "SLOAN|SDSS.u", "SLOAN|SDSS.z",
-                       "Subaru|HSC.Y", "Subaru|HSC.g", "Subaru|HSC.i", "Subaru|HSC.r", "Subaru|HSC.z",
-                       "UKIRT|WFCAM.H", "UKIRT|WFCAM.J", "UKIRT|WFCAM.K", "UKIRT|WFCAM.Y", "UKIRT|WFCAM.Z",
-                       "WISE|WISE.W1", "WISE|WISE.W2", "WISE|WISE.W3", "WISE|WISE.W4"]
-        
+        filter_list = phosphoros_filters
+                
         schema = {"type": "object",
                   "properties": {
                       "filter": {"type": "array", 
