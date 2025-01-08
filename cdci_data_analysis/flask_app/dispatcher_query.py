@@ -1168,6 +1168,9 @@ class InstrumentQueryBackEnd:
             if file_name is None:
                 file_name = file_list[0] if len(file_list) == 1 else 'download.tar.gz'
             return_archive = self.args.get('return_archive', 'True') == 'True'
+            mimetype = 'application/x-gzip-compressed' if return_archive and len(file_list) == 1 else None
+            # otherwise, for one file, the mimetype of the uncompressed file is determined, and gz only affects Content-Encoding
+            # but Content-Encoding header isn't set if as_attachment=True
 
             tmp_dir, target_file = self.prepare_download(
                 file_list, file_name,
@@ -1175,10 +1178,10 @@ class InstrumentQueryBackEnd:
                 from_request_files_dir=from_request_files_dir)
             try:
                 return send_from_directory(directory=tmp_dir, path=target_file, attachment_filename=target_file,
-                                        as_attachment=True)
+                                        as_attachment=True, mimetype=mimetype)
             except Exception as e:
                 return send_from_directory(directory=tmp_dir, filename=target_file, attachment_filename=target_file,
-                                           as_attachment=True)
+                                           as_attachment=True, mimetype=mimetype)
         except RequestNotAuthorized as e:
             extract_job_monitor = True
             if not hasattr(self, 'scratch_dir') or self.scratch_dir is None:
