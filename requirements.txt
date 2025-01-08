@@ -23,7 +23,7 @@ psutil
 pyjwt
 giturlparse
 aiosmtpd
-marshmallow
+marshmallow<3.24.0
 requests
 GitPython
 nbformat
