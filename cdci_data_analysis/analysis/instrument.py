@@ -41,7 +41,7 @@ from .products import QueryOutput
 from .queries import ProductQuery, SourceQuery, InstrumentQuery
 from .io_helper import upload_file, upload_files_request
 
-from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
+from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError, ProductProcessingError
 from ..flask_app.sentry import sentry
 
 from oda_api.api import DispatcherAPI, RemoteException, Unauthorized, DispatcherException, DispatcherNotAvailable, UnexpectedDispatcherStatusCode, RequestNotUnderstood as RequestNotUnderstoodOdaApi
@@ -480,6 +480,10 @@ class Instrument:
                 except RequestNotUnderstood as e:
                     logger.warning("bad request from user, passing through: %s", e)
                     raise
+                except ProductProcessingError as e:
+                    logger.warning("error in the post processing of the products to fail, passing through: %s", e)
+                    query_out.set_status(1, message="Error during the products post processing",
+                                         error_message=str(e))
                 except InternalError as e:
                     if hasattr(e, 'message') and e.message is not None:
                         message = e.message
