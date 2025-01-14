@@ -46,7 +46,7 @@ from .parameters import (Parameter,
                          )
 from .products import SpectralFitProduct, QueryOutput, QueryProductList, ImageProduct
 from .io_helper import FilePath
-from .exceptions import RequestNotUnderstood, InternalError
+from .exceptions import RequestNotUnderstood, InternalError, ProductProcessingError
 
 logger = logging.getLogger(__name__)
 
@@ -612,6 +612,10 @@ class ProductQuery(BaseQuery):
             #print('-->', query_out.status_dictionary)
         except RequestNotUnderstood as e:
             logger.error("passing request issue: %s", e)
+            raise
+
+        except ProductProcessingError as e:
+            logger.error("product processing error: %s", e)
             raise
 
         except Exception as e:
