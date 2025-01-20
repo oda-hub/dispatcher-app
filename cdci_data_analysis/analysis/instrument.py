@@ -35,6 +35,7 @@ from astropy.table import Table
 from urllib.parse import urlencode
 
 from cdci_data_analysis.analysis.queries import _check_is_base_query
+# from .parameters import POSIXPath
 from ..analysis import tokenHelper, parameters
 from .catalog import BasicCatalog
 from .products import QueryOutput
@@ -167,7 +168,6 @@ class Instrument:
         for par in param_list:
             self.logger.info("before normalizing, set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
                              par, par.name, par.value, arg_dic.get(par.name, None))
-
             # this is required because in some cases a parameter is set without a name (eg UserCatalog),
             # or they don't have to set (eg scw_list)
             if par.name is not None and par.name not in params_not_to_be_included:

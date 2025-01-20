@@ -209,6 +209,7 @@ class Parameter:
 
                  check_value=None,
                  allowed_values=None,
+                 force_default_value=False,
                  min_value=None,
                  max_value=None,
                  is_optional=False,
@@ -253,6 +254,7 @@ class Parameter:
         self.is_optional = is_optional
         self._allowed_units = allowed_units
         self._allowed_values = allowed_values
+        self.force_default_value = force_default_value
         self._allowed_types = allowed_types
         self.name = name
         self.default_units = default_units
@@ -395,6 +397,8 @@ class Parameter:
 
         if in_dictionary is True:
             return self.set_par(value=v, units=u, par_format=f)
+        elif self.force_default_value:
+            return self.set_par(value=self.get_default_value(), units=u, par_format=f)
         else:
             if verbose is True:
                 logger.debug('setting par: %s in the dictionary to its default value' % par_name)
@@ -583,7 +587,7 @@ class Parameter:
 class String(Parameter):
     owl_uris = ("http://www.w3.org/2001/XMLSchema#str", "http://odahub.io/ontology#String")
     
-    def __init__(self, value, name_format='str', name=None, allowed_values = None, is_optional=False, extra_metadata = None):
+    def __init__(self, value, name_format='str', name=None, allowed_values = None, force_default_value=False, is_optional=False, extra_metadata = None):
 
         _allowed_units = ['str']
         super().__init__(value=value,
@@ -592,6 +596,7 @@ class String(Parameter):
                          name=name,
                          allowed_units=_allowed_units,
                          allowed_values=allowed_values,
+                         force_default_value=force_default_value,
                          is_optional=is_optional,
                          extra_metadata=extra_metadata)
 
@@ -610,6 +615,12 @@ class FileReference(String):
 
 class POSIXPath(FileReference):
     owl_uris = FileReference.owl_uris + ("http://odahub.io/ontology#POSIXPath",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, force_default_value=True, **kwargs)
+
+    def get_default_value(self):
+        return ''
 
 class FileURL(FileReference):
     owl_uris = FileReference.owl_uris + ("http://odahub.io/ontology#FileURL",)
