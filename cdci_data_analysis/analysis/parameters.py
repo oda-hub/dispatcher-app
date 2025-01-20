@@ -398,7 +398,8 @@ class Parameter:
         if in_dictionary is True:
             return self.set_par(value=v, units=u, par_format=f)
         elif self.force_default_value:
-            return self.set_par(value=self.get_default_value(), units=u, par_format=f)
+            self.value = self.get_default_value()
+            return self.value
         else:
             if verbose is True:
                 logger.debug('setting par: %s in the dictionary to its default value' % par_name)
@@ -620,8 +621,6 @@ class POSIXPath(FileReference):
         super().__init__(*args, force_default_value=True, **kwargs)
 
     def get_default_value(self):
-        if self.value is not None and self.value != '':
-            return self.value
         return ''
 
 class FileURL(FileReference):
