@@ -629,9 +629,6 @@ class POSIXPath(FileReference):
                          overwriting_default_value=overwriting_default_value,
                          **kwargs)
 
-    def overwrite_default_value(self):
-        self.value = ''
-
 class FileURL(FileReference):
     owl_uris = FileReference.owl_uris + ("http://odahub.io/ontology#FileURL",)
 
