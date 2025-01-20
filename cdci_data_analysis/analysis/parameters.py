@@ -620,6 +620,8 @@ class POSIXPath(FileReference):
         super().__init__(*args, force_default_value=True, **kwargs)
 
     def get_default_value(self):
+        if self.value is not None and self.value != '':
+            return self.value
         return ''
 
 class FileURL(FileReference):
