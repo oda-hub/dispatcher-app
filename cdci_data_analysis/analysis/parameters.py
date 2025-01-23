@@ -209,8 +209,6 @@ class Parameter:
 
                  check_value=None,
                  allowed_values=None,
-                 # overwrite_default_value=False,
-                 # overwriting_default_value=None,
                  min_value=None,
                  max_value=None,
                  is_optional=False,
