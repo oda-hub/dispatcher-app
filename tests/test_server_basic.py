@@ -161,7 +161,7 @@ def test_empty_request(dispatcher_live_fixture):
     assert c.status_code == 400
 
     # parameterize this
-    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-with-conf', 'empty-semi-async', 'empty-development', 'empty-async-return-progress']) or \
+    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-with-conf', 'empty-semi-async', 'empty-development', 'empty-async-return-progress', 'empty-with-posix-path']) or \
            jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"
