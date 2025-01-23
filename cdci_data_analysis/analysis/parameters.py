@@ -255,8 +255,6 @@ class Parameter:
         self.is_optional = is_optional
         self._allowed_units = allowed_units
         self._allowed_values = allowed_values
-        # self.overwrite_default_value = overwrite_default_value
-        # self.overwriting_default_value = overwriting_default_value
         self._allowed_types = allowed_types
         self.name = name
         self.default_units = default_units
@@ -399,11 +397,6 @@ class Parameter:
 
         if in_dictionary is True:
             return self.set_par(value=v, units=u, par_format=f)
-        # # If the parameter is not provided as an argument and needs to be set to a specific default value,
-        # # we decide to overwrite it. For example, in the POSIXPath class, we "force/overwrite" the default value to ''
-        # # if no file is provided, from which we normally generate a download URL.
-        # elif self.overwrite_default_value and self.overwriting_default_value is not None:
-        #     return self.set_par(value=self.overwriting_default_value, units=u, par_format=f)
         else:
             if verbose is True:
                 logger.debug('setting par: %s in the dictionary to its default value' % par_name)
@@ -592,9 +585,7 @@ class Parameter:
 class String(Parameter):
     owl_uris = ("http://www.w3.org/2001/XMLSchema#str", "http://odahub.io/ontology#String")
     
-    def __init__(self, value, name_format='str', name=None, allowed_values = None,
-                 is_optional=False, extra_metadata = None):
-                 # overwrite_default_value=False, overwriting_default_value=None,
+    def __init__(self, value, name_format='str', name=None, allowed_values = None, is_optional=False, extra_metadata = None):
 
         _allowed_units = ['str']
         super().__init__(value=value,
@@ -603,8 +594,6 @@ class String(Parameter):
                          name=name,
                          allowed_units=_allowed_units,
                          allowed_values=allowed_values,
-                         # overwrite_default_value=overwrite_default_value,
-                         # overwriting_default_value=overwriting_default_value,
                          is_optional=is_optional,
                          extra_metadata=extra_metadata)
 
@@ -623,13 +612,6 @@ class FileReference(String):
 
 class POSIXPath(FileReference):
     owl_uris = FileReference.owl_uris + ("http://odahub.io/ontology#POSIXPath",)
-
-    # def __init__(self, *args, **kwargs):
-    #     overwriting_default_value = ''
-    #     super().__init__(*args,
-    #                      overwrite_default_value=True,
-    #                      overwriting_default_value=overwriting_default_value,
-    #                      **kwargs)
 
 class FileURL(FileReference):
     owl_uris = FileReference.owl_uris + ("http://odahub.io/ontology#FileURL",)
