@@ -1988,6 +1988,59 @@ def test_public_file_ownerships(dispatcher_live_fixture):
     assert ownerships['user_roles'] == []
 
 
+@pytest.mark.parametrize("include_file_arg", [True, False])
+def test_default_value_empty_posix_path(dispatcher_live_fixture, include_file_arg):
+    DispatcherJobState.remove_scratch_folders()
+    DispatcherJobState.empty_request_files_folders()
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'file_dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty-with-posix-path',
+        'dummy_POSIX_file_type': 'file',
+        'p': 6.,
+        'token': encoded_token
+    }
+
+    p_file_path = DispatcherJobState.create_p_value_file(p_value=6)
+    list_file = open(p_file_path)
+
+    expected_query_status = 'done'
+    expected_job_status = 'done'
+    expected_status_code = 200
+
+    files = None
+    if include_file_arg:
+        files = {'dummy_POSIX_file': list_file.read()}
+
+    jdata = ask(server,
+                params,
+                expected_query_status=expected_query_status,
+                expected_job_status=expected_job_status,
+                expected_status_code=expected_status_code,
+                max_time_s=150,
+                method='post',
+                files=files
+                )
+
+    list_file.close()
+    assert 'dummy_POSIX_file' in jdata['products']['analysis_parameters']
+    if include_file_arg:
+        assert jdata['products']['analysis_parameters']['dummy_POSIX_file'] is not None
+    else:
+        assert jdata['products']['analysis_parameters']['dummy_POSIX_file'] is None
+
+
 def test_scws_list_file(dispatcher_live_fixture):
 
     server = dispatcher_live_fixture
