@@ -2008,7 +2008,6 @@ def test_default_value_empty_posix_path(dispatcher_live_fixture, include_file_ar
         'query_type': "Dummy",
         'instrument': 'empty-with-posix-path',
         'dummy_POSIX_file_type': 'file',
-        'p': 6.,
         'token': encoded_token
     }
 
