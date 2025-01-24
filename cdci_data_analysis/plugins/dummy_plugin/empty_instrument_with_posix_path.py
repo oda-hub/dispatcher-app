@@ -40,6 +40,7 @@ from cdci_data_analysis.analysis.queries import SourceQuery, InstrumentQuery
 from .data_server_dispatcher import FileParameterQuery
 
 from ...analysis.parameters import POSIXPath
+from .empty_instrument import BoundaryFloat
 
 def my_instr_factory():
     src_query = SourceQuery('src_query')
@@ -50,8 +51,9 @@ def my_instr_factory():
                                   catalog_name='user_catalog')
 
     f = POSIXPath(value=None, name='dummy_POSIX_file', is_optional=True)
+    p = BoundaryFloat(value=10., name='p', units='W', )
     file_query = FileParameterQuery('file_parameters_dummy_query',
-                                    parameters_list=[f])
+                                    parameters_list=[f, p])
 
     query_dictionary = {'file_dummy': 'file_parameters_dummy_query'}
 
