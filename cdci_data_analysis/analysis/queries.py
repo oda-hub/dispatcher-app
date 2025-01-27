@@ -569,7 +569,7 @@ class ProductQuery(BaseQuery):
                     logger.info(f"about to perform run_query from get_query_products. call_back_url: {call_back_url}, run_asynch: {run_asynch}")
                     res, data_server_query_out = q.run_query(call_back_url=call_back_url, run_asynch=run_asynch, logger=logger)
 
-                for field in ['message', 'debug_message', 'comment', 'warning']:
+                for field in ['message', 'debug_message', 'comment', 'warning', 'error_message']:
                     if field in data_server_query_out.status_dictionary.keys():
                         messages[field]=data_server_query_out.status_dictionary[field]
 
@@ -608,7 +608,13 @@ class ProductQuery(BaseQuery):
                     job.set_done()
 
             #DONE
-            query_out.set_done(message=messages['message'], debug_message=str(messages['debug_message']),job_status=job.status,status=status,comment=messages['comment'],warning=messages['warning'])
+            query_out.set_done(message=messages['message'],
+                               debug_message=str(messages['debug_message']),
+                               error_message=str(messages.get('error_message','')),
+                               job_status=job.status,
+                               status=status,
+                               comment=messages['comment'],
+                               warning=messages['warning'])
             #print('-->', query_out.status_dictionary)
         except RequestNotUnderstood as e:
             logger.error("passing request issue: %s", e)
