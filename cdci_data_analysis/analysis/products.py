@@ -93,10 +93,11 @@ class QueryOutput(object):
         for k, v in zip(keys, values):
             self.prod_dictionary[k] = v
 
-    def set_done(self, message='', debug_message='', job_status=None, status=0,comment='',warning=''):
+    def set_done(self, message='', debug_message='', error_message='', job_status=None, status=0,comment='',warning=''):
         self.set_status(status,
                         message=message,
                         debug_message=debug_message,
+                        error_message=error_message,
                         job_status=job_status,
                         comment=comment,
                         warning=warning)
