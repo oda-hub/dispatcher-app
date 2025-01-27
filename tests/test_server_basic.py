@@ -3241,7 +3241,8 @@ def test_product_gallery_get_all_astro_entities(dispatcher_live_fixture_with_gal
 @pytest.mark.test_drupal
 @pytest.mark.parametrize("source_name", ["new", "known", "unknown"])
 @pytest.mark.parametrize("include_products_fields_conditions", [True, False])
-def test_product_gallery_get_data_products_list_with_conditions(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_name, include_products_fields_conditions):
+@pytest.mark.parametrize("request_type", ["private", "public"])
+def test_product_gallery_get_data_products_list_with_conditions(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_name, include_products_fields_conditions, request_type):
     server = dispatcher_live_fixture_with_gallery
 
     logger.info("constructed server: %s", server)
@@ -3296,6 +3297,10 @@ def test_product_gallery_get_data_products_list_with_conditions(dispatcher_live_
             'instrument_name': instrument_query,
             'product_type': product_type_query
         }
+
+        if request_type == "public":
+            params.pop('token')
+
         if include_products_fields_conditions:
             for e1_kev, e2_kev, rev1, rev2 in [
                 (100, 350, 2528, 2540),
