@@ -901,7 +901,6 @@ def get_data_product_list_by_source_name_with_conditions(product_gallery_url, ga
         field_name = str.lower('field_' + k)
         params[field_name] = v
 
-    # if source_entity_id is not None:
     log_res = execute_drupal_request(request_url,
                                      params=params,
                                      headers=headers,
