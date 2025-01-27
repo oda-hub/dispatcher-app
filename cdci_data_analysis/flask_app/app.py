@@ -912,7 +912,7 @@ def get_astro_entity_info_by_source_name():
 
     return refactored_astro_entity_info
 
-
+# TODO in the gallery, in case of token is passed, it'll be checked against the 'integral-private-qla' role, to get also the private data
 @app.route('/get_data_product_list_with_conditions', methods=['GET'])
 def get_data_product_list_with_conditions():
     par_dic = request.values.to_dict()
