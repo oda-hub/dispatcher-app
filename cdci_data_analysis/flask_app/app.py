@@ -953,27 +953,29 @@ def get_data_product_list_by_source_name():
 
     token = par_dic.pop('token', None)
     app_config = app.config.get('conf')
-    secret_key = app_config.secret_key
-
-    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                  required_roles=['gallery contributor'],
-                                                                  action="getting all the astro entities from the product gallery")
-
-    if output_code is not None:
-        return make_response(output, output_code)
-    decoded_token = output
-
-
     sentry_dsn = sentry.sentry_url
 
-    gallery_secret_key = app_config.product_gallery_secret_key
+    secret_key = app_config.secret_key
     product_gallery_url = app_config.product_gallery_url
-    user_email = tokenHelper.get_token_user_email_address(decoded_token)
-    user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
-                                                        user_email=user_email,
-                                                        sentry_dsn=sentry_dsn)
-    # update the token
-    gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+    gallery_secret_key = app_config.product_gallery_secret_key
+    gallery_jwt_token = None
+
+    if token is not None:
+
+        output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                      required_roles=['gallery contributor'],
+                                                                      action="getting all the astro entities from the product gallery")
+
+        if output_code is not None:
+            return make_response(output, output_code)
+        decoded_token = output
+
+        user_email = tokenHelper.get_token_user_email_address(decoded_token)
+        user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
+                                                            user_email=user_email,
+                                                            sentry_dsn=sentry_dsn)
+        # update the token
+        gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
 
     output_get = drupal_helper.get_data_product_list_by_source_name_with_conditions(product_gallery_url=product_gallery_url,
                                                                                     gallery_jwt_token=gallery_jwt_token,
