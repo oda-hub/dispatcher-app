@@ -2698,7 +2698,8 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 @pytest.mark.test_drupal
 @pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'GX 1+4', 'fake object', None])
-def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_to_resolve):
+@pytest.mark.parametrize("request_type", ["private", "public"])
+def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_to_resolve, request_type):
     server = dispatcher_live_fixture_with_gallery
 
     logger.info("constructed server: %s", server)
@@ -2712,6 +2713,9 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
 
     params = {'name': source_to_resolve,
               'token': encoded_token}
+
+    if request_type == "private":
+        params.pop('token', None)
 
     c = requests.get(os.path.join(server, "resolve_name"),
                      params={**params}
