@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 import sentry_sdk
+from sentry_sdk.types import Hint, Event
 import os
 
 # logger = logging.getLogger(__name__)
@@ -41,7 +44,8 @@ class Sentry:
                     traces_sample_rate=0.1,
                     debug=False,
                     max_breadcrumbs=10,
-                    environment=getattr(self.app.config.get('conf'), 'sentry_environment', 'production')
+                    environment=getattr(self.app.config.get('conf'), 'sentry_environment', 'production'),
+                    before_send=self.filter_event
                 )
             except Exception as e:
                 self.logger.warning("can not setup sentry with URL %s due to %s", self.sentry_url, e)
@@ -55,5 +59,15 @@ class Sentry:
             sentry_sdk.capture_message(message)
         else:
             self.logger.warning("sentry not used, dropping %s", message)
+
+    @staticmethod
+    def filter_event(event: Event, hint: Hint) -> Event | None:
+        message = event.get("message", None)
+        if message is not None:
+            if "AnalysisError" in message:
+                return None
+
+        return event
+
 
 sentry = Sentry()
