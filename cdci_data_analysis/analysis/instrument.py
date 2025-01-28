@@ -35,6 +35,7 @@ from astropy.table import Table
 from urllib.parse import urlencode
 
 from cdci_data_analysis.analysis.queries import _check_is_base_query
+from .parameters import POSIXPath
 from ..analysis import tokenHelper, parameters
 from .catalog import BasicCatalog
 from .products import QueryOutput
@@ -167,14 +168,16 @@ class Instrument:
         for par in param_list:
             self.logger.info("before normalizing, set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
                              par, par.name, par.value, arg_dic.get(par.name, None))
-
             # this is required because in some cases a parameter is set without a name (eg UserCatalog),
             # or they don't have to set (eg scw_list)
             if par.name is not None and par.name not in params_not_to_be_included:
+                if isinstance(par, POSIXPath) and par.name + '_type' in arg_dic and arg_dic[par.name + '_type'] == 'file'\
+                        and par.name not in arg_dic:
+                    par.value = None
+
                 # set the value for par to a default format,
                 # or to a default value if this is not included within the request
                 updated_arg_dic[par.name] = par.set_value_from_form(arg_dic, verbose=verbose)
-
                 if par.units_name is not None:
                     if par.default_units is not None:
                         updated_arg_dic[par.units_name] = par.default_units
