@@ -1,9 +1,5 @@
-from __future__ import annotations
-
 import logging
 import sentry_sdk
-from sentry_sdk.types import Hint, Event
-import os
 
 # logger = logging.getLogger(__name__)
 
@@ -61,7 +57,7 @@ class Sentry:
             self.logger.warning("sentry not used, dropping %s", message)
 
     @staticmethod
-    def filter_event(event: Event, hint: Hint) -> Event | None:
+    def filter_event(event, hint):
         message = event.get("message", None)
         if message is not None:
             if "AnalysisError" in message:
