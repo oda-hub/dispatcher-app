@@ -4816,3 +4816,45 @@ def test_nonoptional_parameter_is_not_nullable(dispatcher_live_fixture):
     jdata=c.json()
 
     assert jdata['error_message'] == 'Non-optional parameter p is set to None'
+
+
+def test_job_status_unaccessible(dispatcher_live_fixture):
+    DispatcherJobState.remove_scratch_folders()
+    if os.path.isfile('DataServerQuery-status.state'):
+        os.remove('DataServerQuery-status.state')
+
+    server = dispatcher_live_fixture 
+
+    from oda_api.api import DispatcherAPI
+    disp = DispatcherAPI(url=server, wait=False)
+
+    token_payload = {
+        **default_token_payload,
+        "roles": "general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    par_dic = {
+        'instrument': 'empty-async',
+        'product': 'numerical',
+        'p': 40,
+        'token': encoded_token
+    }
+
+    data = disp.get_product(**par_dic)
+    assert disp.query_status == 'submitted'
+    assert data is None
+
+
+    DataServerQuery.set_status('done')
+    disp.poll()
+
+    #still ok 
+    disp.poll()
+
+    # now get data
+    data = disp.get_product(**par_dic)
+    assert data is not None
+
+    #and now it fails bacause of job_status "unaccessible"
+    disp.poll()
