@@ -2440,6 +2440,7 @@ class InstrumentQueryBackEnd:
 
         else:
             query_out = QueryOutput()
+            job_monitor = job.updated_dataserver_monitor()
             query_out.set_status(0, job_status=job_monitor['status'])
 
             query_new_status = job.get_status()
