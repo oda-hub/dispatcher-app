@@ -4858,3 +4858,11 @@ def test_job_status_unaccessible(dispatcher_live_fixture):
 
     #and now it fails bacause of job_status "unaccessible"
     disp.poll()
+
+    assert disp.query_status == 'done'
+
+    scratch_dir_fn = f"scratch_sid_{disp.session_id}_jid_{disp.job_id}"
+    with open(os.path.join(scratch_dir_fn, 'job_monitor.json')) as f:
+        job_monitor = json.loads(f.read())
+
+    assert job_monitor['status'] == 'done'
