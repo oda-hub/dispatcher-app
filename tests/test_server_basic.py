@@ -364,9 +364,10 @@ def test_scratch_dir_creation_lock_error(dispatcher_live_fixture):
                     expected_status_code=500,
                     expected_query_status=None,
                     )
-    scratch_dir_retry_attempts = 5
-    assert jdata['error'] == f"InternalError():Failed to acquire lock for directory creation after {scratch_dir_retry_attempts} attempts."
-    assert jdata['error_message'] == f"Failed to acquire lock for directory creation after {scratch_dir_retry_attempts} attempts."
+    scratch_dir_retry_attempts = 10
+    wd = f"scratch_sid_{session_id}_jid_{job_id}"
+    assert jdata['error'] == f"InternalError():Failed to acquire lock for directory \"{wd}\" creation after {scratch_dir_retry_attempts} attempts."
+    assert jdata['error_message'] == f"Failed to acquire lock for directory \"{wd}\" creation after {scratch_dir_retry_attempts} attempts."
     os.rmdir(fake_scratch_dir)
     os.remove(lock_file)
 
