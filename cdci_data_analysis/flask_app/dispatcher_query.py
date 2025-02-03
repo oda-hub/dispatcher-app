@@ -909,8 +909,8 @@ class InstrumentQueryBackEnd:
 
     def set_scratch_dir(self, session_id, job_id=None, verbose=False):
         lock_file = f".lock_{self.job_id}"
-        scratch_dir_retry_attempts = 10
-        starting_scratch_dir_retry_delay = 0.2
+        scratch_dir_retry_attempts = 6
+        scratch_dir_retry_delay = 0.2
         scratch_dir_created = True
 
         if verbose:
@@ -923,8 +923,6 @@ class InstrumentQueryBackEnd:
 
         if job_id is not None:
             wd += '_jid_'+job_id
-
-        scratch_dir_retry_delay = starting_scratch_dir_retry_delay
 
         for attempt in range(scratch_dir_retry_attempts):
             try:
@@ -942,8 +940,8 @@ class InstrumentQueryBackEnd:
             except (OSError, IOError) as io_e:
                 scratch_dir_created = False
                 self.logger.warning(f'Failed to acquire lock for the scratch directory "{wd}" creation, attempt number {attempt + 1} ({scratch_dir_retry_attempts - (attempt + 1)} left), sleeping {scratch_dir_retry_delay} seconds until retry.\nError: {str(io_e)}')
-                scratch_dir_retry_delay *= 2
                 time.sleep(scratch_dir_retry_delay)
+                scratch_dir_retry_delay *= 2
 
         if not scratch_dir_created:
             dir_list = glob.glob(f"*_jid_{job_id}*")
