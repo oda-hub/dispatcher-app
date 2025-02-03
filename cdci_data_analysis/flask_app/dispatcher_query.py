@@ -909,8 +909,8 @@ class InstrumentQueryBackEnd:
 
     def set_scratch_dir(self, session_id, job_id=None, verbose=False):
         lock_file = f".lock_{self.job_id}"
-        scratch_dir_retry_attempts = 5
-        scratch_dir_retry_delay = 0.2
+        scratch_dir_retry_attempts = 10
+        scratch_dir_retry_delay = 0.5
         scratch_dir_created = True
 
         if verbose:
