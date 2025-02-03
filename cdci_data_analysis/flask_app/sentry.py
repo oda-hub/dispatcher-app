@@ -59,6 +59,11 @@ class Sentry:
     @staticmethod
     def filter_event(event, hint):
         message = event.get("message", None)
+        if message is None:
+            log_record = hint.get("log_record", None)
+            if log_record is not None:
+                message = log_record.getMessage()
+
         if message is not None:
             if "AnalysisError" in message:
                 return None
