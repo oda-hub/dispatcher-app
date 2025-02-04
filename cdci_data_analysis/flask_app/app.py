@@ -662,16 +662,7 @@ def get_revnum():
     sanitized_par_dic = sanitize_dict_before_log(par_dic)
     logger.info("request.args: %s ", sanitized_par_dic)
 
-    token = par_dic.pop('token', None)
     app_config = app.config.get('conf')
-    secret_key = app_config.secret_key
-
-    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                  required_roles=['gallery contributor'],
-                                                                  action="post on the product gallery")
-
-    if output_code is not None:
-        return make_response(output, output_code)
 
     time_to_convert = par_dic.get('time_to_convert', None)
 
