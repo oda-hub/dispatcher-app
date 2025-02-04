@@ -2,6 +2,7 @@ import re
 import shutil
 import urllib
 import io
+
 import requests
 import time
 import uuid
@@ -11,11 +12,12 @@ import logging
 import jwt
 import glob
 import pytest
+import fcntl
 from datetime import datetime, timedelta
 from dateutil import parser, tz
 from functools import reduce
 from urllib import parse
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
 import nbformat as nbf
 import yaml
 import gzip
@@ -117,10 +119,10 @@ def test_reload_plugin(safe_dummy_plugin_conf, dispatcher_live_fixture):
     c = requests.get(server + "/api/instr-list",
                      params={'instrument': 'mock'})
     logger.info("content: %s", c.text)
+    assert c.status_code == 200
     jdata = c.json()
     logger.info(json.dumps(jdata, indent=4, sort_keys=True))
     logger.info(jdata)
-    assert c.status_code == 200
     assert 'empty' in jdata
     assert 'empty-async' in jdata
     assert 'empty-semi-async' in jdata
@@ -159,7 +161,7 @@ def test_empty_request(dispatcher_live_fixture):
     assert c.status_code == 400
 
     # parameterize this
-    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-with-conf', 'empty-semi-async', 'empty-development', 'empty-async-return-progress']) or \
+    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-with-conf', 'empty-semi-async', 'empty-development', 'empty-async-return-progress', 'empty-with-posix-path']) or \
            jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"
@@ -177,6 +179,31 @@ def test_empty_request(dispatcher_live_fixture):
     assert 'products_url' in dispatcher_config['cfg_dict']['dispatcher']
 
     logger.info(jdata['config'])
+
+
+@pytest.mark.parametrize('fits_file_url', [ 'valid', 'invalid', 'empty'])
+def test_load_frontend_fits_file_url(dispatcher_live_fixture, fits_file_url):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    # let's generate a valid token
+    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
+
+    if fits_file_url == 'valid':
+        fits_file_url = 'https://fits.gsfc.nasa.gov/samples/testkeys.fits'
+        output_status_code = 200
+    elif fits_file_url == 'invalid':
+        fits_file_url = 'https://fits.gsfc.nasa.gov/samples/aaaaaa.fits'
+        output_status_code = 404
+    else:
+        fits_file_url = None
+        output_status_code = 400
+
+    c=requests.get(os.path.join(server, 'load_frontend_fits_file_url'),
+                   params={'fits_file_url': fits_file_url,
+                           'token': encoded_token})
+
+    assert c.status_code == output_status_code
 
 
 def test_no_debug_mode_empty_request(dispatcher_live_fixture_no_debug_mode):
@@ -228,7 +255,7 @@ def test_matrix_options_mode_empty_request(dispatcher_live_fixture_with_matrix_o
     assert c.status_code == 400
 
     assert sorted(jdata['installed_instruments']) == sorted(
-        ['empty', 'empty-async', 'empty-semi-async', 'empty-with-conf', 'empty-development', 'empty-async-return-progress']) or \
+        ['empty', 'empty-async', 'empty-semi-async', 'empty-with-conf', 'empty-development', 'empty-async-return-progress', 'empty-with-posix-path',]) or \
            jdata['installed_instruments'] == []
 
     # assert jdata['debug_mode'] == "no"
@@ -293,6 +320,55 @@ def test_error_two_scratch_dir_same_job_id(dispatcher_live_fixture):
     assert jdata['error'] == 'InternalError():We have encountered an internal error! Our team is notified and is working on it. We are sorry! When we find a solution we will try to reach you'
     assert jdata['error_message'] == 'We have encountered an internal error! Our team is notified and is working on it. We are sorry! When we find a solution we will try to reach you'
     os.rmdir(fake_scratch_dir)
+
+
+@pytest.mark.not_safe_parallel
+@pytest.mark.fast
+def test_scratch_dir_creation_lock_error(dispatcher_live_fixture):
+    DispatcherJobState.remove_scratch_folders()
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    encoded_token = jwt.encode(default_token_payload, secret_key, algorithm='HS256')
+    # issuing a request each, with the same set of parameters
+    params = dict(
+        query_status="new",
+        query_type="Real",
+        instrument="empty-async",
+        product_type="dummy",
+        token=encoded_token
+    )
+    DataServerQuery.set_status('submitted')
+    # let's generate a fake scratch dir
+    jdata = ask(server,
+              params,
+              expected_query_status=["submitted"],
+              max_time_s=50,
+              )
+
+    job_id = jdata['job_monitor']['job_id']
+    session_id = jdata['session_id']
+    fake_scratch_dir = f'scratch_sid_01234567890_jid_{job_id}'
+    os.makedirs(fake_scratch_dir)
+
+    params['job_id'] = job_id
+    params['session_id'] = session_id
+
+    lock_file = f".lock_{job_id}"
+
+    with open(lock_file, 'w') as f_lock:
+        fcntl.flock(f_lock, fcntl.LOCK_EX)
+
+        jdata = ask(server,
+                    params,
+                    expected_status_code=500,
+                    expected_query_status=None,
+                    )
+    scratch_dir_retry_attempts = 5
+    assert jdata['error'] == f"InternalError():Failed to acquire lock for directory creation after {scratch_dir_retry_attempts} attempts."
+    assert jdata['error_message'] == f"Failed to acquire lock for directory creation after {scratch_dir_retry_attempts} attempts."
+    os.rmdir(fake_scratch_dir)
+    os.remove(lock_file)
 
 
 @pytest.mark.fast
@@ -1912,6 +1988,58 @@ def test_public_file_ownerships(dispatcher_live_fixture):
     assert ownerships['user_roles'] == []
 
 
+@pytest.mark.parametrize("include_file_arg", [True, False])
+def test_default_value_empty_posix_path(dispatcher_live_fixture, include_file_arg):
+    DispatcherJobState.remove_scratch_folders()
+    DispatcherJobState.empty_request_files_folders()
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'file_dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty-with-posix-path',
+        'dummy_POSIX_file_type': 'file',
+        'token': encoded_token
+    }
+
+    p_file_path = DispatcherJobState.create_p_value_file(p_value=6)
+    list_file = open(p_file_path)
+
+    expected_query_status = 'done'
+    expected_job_status = 'done'
+    expected_status_code = 200
+
+    files = None
+    if include_file_arg:
+        files = {'dummy_POSIX_file': list_file.read()}
+
+    jdata = ask(server,
+                params,
+                expected_query_status=expected_query_status,
+                expected_job_status=expected_job_status,
+                expected_status_code=expected_status_code,
+                max_time_s=150,
+                method='post',
+                files=files
+                )
+
+    list_file.close()
+    assert 'dummy_POSIX_file' in jdata['products']['analysis_parameters']
+    if include_file_arg:
+        assert jdata['products']['analysis_parameters']['dummy_POSIX_file'] is not None
+    else:
+        assert jdata['products']['analysis_parameters']['dummy_POSIX_file'] is None
+
+
 def test_scws_list_file(dispatcher_live_fixture):
 
     server = dispatcher_live_fixture
@@ -2622,8 +2750,60 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 @pytest.mark.test_drupal
 @pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'GX 1+4', 'fake object', None])
-def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_to_resolve):
+@pytest.mark.parametrize("request_type", ["private", "public"])
+def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_to_resolve, request_type):
     server = dispatcher_live_fixture_with_gallery
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "general, gallery contributor",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {'name': source_to_resolve,
+              'token': encoded_token}
+
+    if request_type == "private":
+        params.pop('token', None)
+
+    c = requests.get(os.path.join(server, "resolve_name"),
+                     params={**params}
+                     )
+
+    assert c.status_code == 200
+    resolved_obj = c.json()
+    print('Resolved object returned: ', resolved_obj)
+
+    if source_to_resolve is None:
+        assert resolved_obj == {}
+    elif source_to_resolve == 'fake object':
+        assert 'name' in resolved_obj
+        assert 'message' in resolved_obj
+
+        # the name resolver replaces automatically underscores with spaces in the returned name
+        assert resolved_obj['name'] == source_to_resolve
+        assert resolved_obj['message'].startswith(f'{source_to_resolve} could not be resolved')
+    else:
+        assert 'name' in resolved_obj
+        assert 'DEC' in resolved_obj
+        assert 'RA' in resolved_obj
+        assert 'entity_portal_link' in resolved_obj
+        assert 'object_ids' in resolved_obj
+        assert 'object_type' in resolved_obj
+        assert 'message' in resolved_obj
+
+        assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
+        assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery["product_gallery_options"]["entities_portal_url"]\
+            .format(urllib.parse.quote(source_to_resolve.strip()))
+
+
+@pytest.mark.test_drupal
+@pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'GX 1+4', 'fake object', None])
+def test_source_resolver_invalid_local_resolver(dispatcher_live_fixture_with_gallery_invalid_local_resolver, dispatcher_test_conf_with_gallery_invalid_local_resolver, source_to_resolve):
+    server = dispatcher_live_fixture_with_gallery_invalid_local_resolver
 
     logger.info("constructed server: %s", server)
 
@@ -2653,7 +2833,7 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
 
         # the name resolver replaces automatically underscores with spaces in the returned name
         assert resolved_obj['name'] == source_to_resolve
-        assert resolved_obj['message'] == f'{source_to_resolve} could not be resolved'
+        assert resolved_obj['message'].startswith(f'{source_to_resolve} could not be resolved')
     else:
         assert 'name' in resolved_obj
         assert 'DEC' in resolved_obj
@@ -2661,9 +2841,10 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
         assert 'entity_portal_link' in resolved_obj
         assert 'object_ids' in resolved_obj
         assert 'object_type' in resolved_obj
+        assert 'message' in resolved_obj
 
         assert resolved_obj['name'] == source_to_resolve.replace('_', ' ')
-        assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery["product_gallery_options"]["entities_portal_url"]\
+        assert resolved_obj['entity_portal_link'] == dispatcher_test_conf_with_gallery_invalid_local_resolver["product_gallery_options"]["entities_portal_url"]\
             .format(urllib.parse.quote(source_to_resolve.strip()))
 
 
@@ -3116,7 +3297,8 @@ def test_product_gallery_get_all_astro_entities(dispatcher_live_fixture_with_gal
 @pytest.mark.test_drupal
 @pytest.mark.parametrize("source_name", ["new", "known", "unknown"])
 @pytest.mark.parametrize("include_products_fields_conditions", [True, False])
-def test_product_gallery_get_data_products_list_with_conditions(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_name, include_products_fields_conditions):
+@pytest.mark.parametrize("request_type", ["private", "public"])
+def test_product_gallery_get_data_products_list_with_conditions(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_name, include_products_fields_conditions, request_type):
     server = dispatcher_live_fixture_with_gallery
 
     logger.info("constructed server: %s", server)
@@ -3171,6 +3353,10 @@ def test_product_gallery_get_data_products_list_with_conditions(dispatcher_live_
             'instrument_name': instrument_query,
             'product_type': product_type_query
         }
+
+        if request_type == "public":
+            params.pop('token')
+
         if include_products_fields_conditions:
             for e1_kev, e2_kev, rev1, rev2 in [
                 (100, 350, 2528, 2540),
@@ -4457,13 +4643,17 @@ def test_parameter_bounds_metadata(dispatcher_live_fixture):
     jdata=c.json()
     
     metadata = [json.loads(x) for x in jdata[0] if isinstance(x, str)]
-    restricted_meta = [x for x in metadata if x[0]['query_name'] == 'restricted_parameters_dummy_query'][0]
+    if len(metadata) == 0:
+        # new behaviour, metadata is not string-encoded in the request
+        metadata = jdata[0]
+    restricted_meta = [x for x in metadata if isinstance(x, list) and x[0]['query_name'] == 'restricted_parameters_dummy_query'][0]
+
     def meta_for_par(parname):
         return [x for x in restricted_meta if x.get('name', None) == parname][0]
     
-    assert meta_for_par('bounded_int_par')['restrictions'] == {'min_value': 2, 'max_value': 8}
-    assert meta_for_par('bounded_float_par')['restrictions'] == {'min_value': 2.2, 'max_value': 7.7}
-    assert meta_for_par('string_select_par')['restrictions'] == {'allowed_values': ['spam', 'eggs', 'ham']}
+    assert meta_for_par('bounded_int_par')['restrictions'] == {'is_optional': False, 'min_value': 2, 'max_value': 8}
+    assert meta_for_par('bounded_float_par')['restrictions'] == {'is_optional': False, 'min_value': 2.2, 'max_value': 7.7}
+    assert meta_for_par('string_select_par')['restrictions'] == {'is_optional': False, 'allowed_values': ['spam', 'eggs', 'ham']}
     
 @pytest.mark.fast
 def test_restricted_parameters_good_request(dispatcher_live_fixture):
@@ -4557,3 +4747,122 @@ def test_malformed_structured_parameter(dispatcher_live_fixture):
     print("content:", c.text)
     jdata=c.json()
     assert 'Wrong value of structured parameter struct' in jdata['error_message']
+
+
+@pytest.mark.fast
+@pytest.mark.parametrize('par0', [None, 2.0, '\x00'])
+@pytest.mark.parametrize('par1', [None, 3.0, '\x00'])
+def test_optional_parameters(dispatcher_live_fixture, par0, par1):
+    # NOTE: when request argument is None, it's just ignored by requests
+    #       to set optional parameter to be empty (internally None), we use '\x00' in request
+
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+    
+    c = requests.get(server + '/meta-data',
+                     params = {'instrument': 'empty'})
+    assert c.status_code == 200
+
+    optional_query_meta = [q for q in c.json()[0][4:] if q[1]['product_name'] == "optional"][0]
+    opt_pars = optional_query_meta[2:]
+
+    for par in opt_pars:
+        assert par['restrictions']['is_optional']
+
+    defaults = {p['name']: p['value'] for p in opt_pars}
+    expected = defaults.copy()
+    if par0 is not None:
+        expected[opt_pars[0]['name']] = None if par0=='\x00' else par0
+    if par1 is not None:
+        expected[opt_pars[1]['name']] = None if par1=='\x00' else par1
+    
+    req = {'instrument': 'empty',
+           'product_type': 'optional',
+           'query_status': 'new',
+           'query_type': 'Real',
+           opt_pars[0]['name']: par0,
+           opt_pars[1]['name']: par1,
+           }  
+    c = requests.get(server + '/run_analysis',
+                     params = req)
+    
+    assert c.status_code == 200
+    print("content:", c.text)
+    jdata=c.json()
+
+    assert jdata['exit_status']['status'] == 0
+    assert jdata['exit_status']['job_status'] == 'done'
+    for k in expected.keys():
+        assert jdata['products']['echo'][k] == expected[k]
+
+
+@pytest.mark.fast
+def test_nonoptional_parameter_is_not_nullable(dispatcher_live_fixture):
+    
+    server = dispatcher_live_fixture   
+    print("constructed server:", server)
+
+    req = {'instrument': 'empty',
+           'product_type': 'numerical',
+           'query_status': 'new',
+           'query_type': 'Real',
+           'p': '\x00'
+           }  
+    c = requests.get(server + '/run_analysis',
+                     params = req)
+    
+    assert c.status_code == 400
+    print("content:", c.text)
+    jdata=c.json()
+
+    assert jdata['error_message'] == 'Non-optional parameter p is set to None'
+
+
+def test_job_status_unaccessible(dispatcher_live_fixture):
+    DispatcherJobState.remove_scratch_folders()
+    if os.path.isfile('DataServerQuery-status.state'):
+        os.remove('DataServerQuery-status.state')
+
+    server = dispatcher_live_fixture 
+
+    from oda_api.api import DispatcherAPI
+    disp = DispatcherAPI(url=server, wait=False)
+
+    token_payload = {
+        **default_token_payload,
+        "roles": "general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    par_dic = {
+        'instrument': 'empty-async',
+        'product': 'numerical',
+        'p': 40,
+        'token': encoded_token
+    }
+
+    data = disp.get_product(**par_dic)
+    assert disp.query_status == 'submitted'
+    assert data is None
+
+
+    DataServerQuery.set_status('done')
+    disp.poll()
+
+    #still ok 
+    disp.poll()
+
+    # now get data
+    data = disp.get_product(**par_dic)
+    assert data is not None
+
+    #and now it fails bacause of job_status "unaccessible"
+    disp.poll()
+
+    assert disp.query_status == 'done'
+
+    scratch_dir_fn = f"scratch_sid_{disp.session_id}_jid_{disp.job_id}"
+    with open(os.path.join(scratch_dir_fn, 'job_monitor.json')) as f:
+        job_monitor = json.loads(f.read())
+
+    assert job_monitor['status'] == 'done'

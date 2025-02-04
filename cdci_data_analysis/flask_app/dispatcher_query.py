@@ -22,6 +22,7 @@ import copy
 import glob
 import string
 import random
+import fcntl
 
 from flask import jsonify, send_from_directory, make_response
 from flask import request, g
@@ -134,6 +135,7 @@ class InstrumentQueryBackEnd:
         self.app = app
 
         temp_scratch_dir = None
+        temp_job_id = None
 
         self.set_sentry_sdk(getattr(self.app.config.get('conf'), 'sentry_url', None))
 
@@ -282,6 +284,7 @@ class InstrumentQueryBackEnd:
                     self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
                     # temp_job_id = self.job_id
                     temp_scratch_dir = self.scratch_dir
+                    temp_job_id = self.job_id
                 if not data_server_call_back:
                     try:
                         self.set_temp_dir(self.par_dic['session_id'], verbose=verbose)
@@ -362,7 +365,7 @@ class InstrumentQueryBackEnd:
         finally:
             self.logger.info("==> clean-up temporary directory")
             self.log_query_progression("before clear_temp_dir")
-            self.clear_temp_dir(temp_scratch_dir=temp_scratch_dir)
+            self.clear_temp_dir(temp_scratch_dir=temp_scratch_dir, temp_job_id=temp_job_id)
             self.log_query_progression("after clear_temp_dir")
             
         logger.info("constructed %s:%s for data_server_call_back=%s", self.__class__, self, data_server_call_back)
@@ -385,7 +388,7 @@ class InstrumentQueryBackEnd:
         hard_minimum_folder_age_days = app_config.hard_minimum_folder_age_days
         # let's pass the minimum age the folders to be deleted should have
         soft_minimum_folder_age_days = request.args.get('soft_minimum_age_days', None)
-        if soft_minimum_folder_age_days is None or isinstance(soft_minimum_folder_age_days, int):
+        if soft_minimum_folder_age_days is None:
             soft_minimum_folder_age_days = app_config.soft_minimum_folder_age_days
         else:
             soft_minimum_folder_age_days = int(soft_minimum_folder_age_days)
@@ -403,8 +406,11 @@ class InstrumentQueryBackEnd:
                     dict_analysis_parameters = json.load(analysis_parameters_file)
                 token = dict_analysis_parameters.get('token', None)
                 token_expired = False
-                if token is not None and token['exp'] < current_time_secs:
-                    token_expired = True
+                if token is not None:
+                    try:
+                        tokenHelper.get_decoded_token(token, secret_key)
+                    except jwt.exceptions.ExpiredSignatureError:
+                        token_expired = True
 
                 job_monitor_path = os.path.join(scratch_dir, 'job_monitor.json')
                 with open(job_monitor_path, 'r') as jm_file:
@@ -432,15 +438,28 @@ class InstrumentQueryBackEnd:
         for d in list_scratch_dir_to_delete:
             shutil.rmtree(d)
 
+        list_lock_files = sorted(glob.glob(".lock_*"), key=os.path.getatime)
+        num_lock_files_removed = 0
+        for l in list_lock_files:
+            lock_file_job_id = l.split('_')[-1]
+            list_job_id_scratch_dir = glob.glob(f"scratch_sid_*_jid_{lock_file_job_id}*")
+            if len(list_job_id_scratch_dir) == 0:
+                os.remove(l)
+                num_lock_files_removed += 1
+
         post_clean_space_space = shutil.disk_usage(os.getcwd())
         post_clean_available_space = format_size(post_clean_space_space.free, format_returned='M')
 
         list_scratch_dir = sorted(glob.glob("scratch_sid_*_jid_*"))
-        logger.info(f"Number of scratch folder after clean-up: {len(list_scratch_dir)}.\n"
-                    f"Removed {len(list_scratch_dir_to_delete)} scratch directories, "
-                    f"and now the available amount of space is {post_clean_available_space}")
+        list_lock_files = sorted(glob.glob(".lock_*"))
+        logger.info(f"Number of scratch folder after clean-up: {len(list_scratch_dir)}, "
+                    f"number of lock files after clean-up: {len(list_lock_files)}.\n"
+                    f"Removed {len(list_scratch_dir_to_delete)} scratch directories "
+                    f"and {num_lock_files_removed} lock files.\n"
+                    f"Now the available amount of space is {post_clean_available_space}")
 
-        result_scratch_dir_deletion = f"Removed {len(list_scratch_dir_to_delete)} scratch directories"
+        result_scratch_dir_deletion = f"Removed {len(list_scratch_dir_to_delete)} scratch directories, " \
+                                      f"and {num_lock_files_removed} lock files."
         logger.info(result_scratch_dir_deletion)
 
         return jsonify(dict(output_status=result_scratch_dir_deletion))
@@ -866,6 +885,9 @@ class InstrumentQueryBackEnd:
             if k in ['catalog_selected_objects', 'selected_catalog']:
                 self.par_dic[k] = v
                 continue
+            if v == '\x00':
+                self.par_dic[k] = None
+                continue
             try:
                 decoded = json.loads(v)
                 if isinstance(decoded, (dict, list)):
@@ -886,9 +908,13 @@ class InstrumentQueryBackEnd:
         return request_files_dir.path
 
     def set_scratch_dir(self, session_id, job_id=None, verbose=False):
-        if verbose == True:
-            print('SETSCRATCH  ---->', session_id,
-                  type(session_id), job_id, type(job_id))
+        lock_file = f".lock_{self.job_id}"
+        scratch_dir_retry_attempts = 5
+        scratch_dir_retry_delay = 0.2
+        scratch_dir_created = True
+
+        if verbose:
+            print('SETSCRATCH  ---->', session_id, type(session_id), job_id, type(job_id))
 
         wd = 'scratch'
 
@@ -898,14 +924,28 @@ class InstrumentQueryBackEnd:
         if job_id is not None:
             wd += '_jid_'+job_id
 
-        alias_workdir = self.get_existing_job_ID_path(
-            wd=FilePath(file_dir=wd).path)
-        if alias_workdir is not None:
-            wd = wd+'_aliased'
+        for attempt in range(scratch_dir_retry_attempts):
+            try:
+                with open(lock_file, 'w') as lock:
+                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    alias_workdir = self.get_existing_job_ID_path(wd=FilePath(file_dir=wd).path)
+                    if alias_workdir is not None:
+                        wd = wd + '_aliased'
 
-        wd = FilePath(file_dir=wd)
-        wd.mkdir()
-        self.scratch_dir = wd.path
+                    wd_path_obj = FilePath(file_dir=wd)
+                    wd_path_obj.mkdir()
+                    self.scratch_dir = wd_path_obj.path
+                    scratch_dir_created = True
+                    break
+            except (OSError, IOError) as io_e:
+                scratch_dir_created = False
+                self.logger.warning(f'Failed to acquire lock for the scratch directory creation, attempt number {attempt + 1} ({scratch_dir_retry_attempts - (attempt + 1)} left), sleeping {scratch_dir_retry_delay} seconds until retry.\nError: {str(io_e)}')
+                time.sleep(scratch_dir_retry_delay)
+
+        if not scratch_dir_created:
+            dir_list = glob.glob(f"*_jid_{job_id}*")
+            sentry.capture_message(f"Failed to acquire lock for directory creation after multiple attempts.\njob_id: {self.job_id}\ndir_list: {dir_list}")
+            raise InternalError(f"Failed to acquire lock for directory creation after {scratch_dir_retry_attempts} attempts.", status_code=500)
 
     def set_temp_dir(self, session_id, job_id=None, verbose=False):
         if verbose:
@@ -932,11 +972,14 @@ class InstrumentQueryBackEnd:
                 file_full_path = os.path.join(self.temp_dir, f)
                 shutil.copy(file_full_path, self.scratch_dir)
 
-    def clear_temp_dir(self, temp_scratch_dir=None):
+    def clear_temp_dir(self, temp_scratch_dir=None, temp_job_id=None):
         if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
         if temp_scratch_dir is not None and temp_scratch_dir != self.scratch_dir and os.path.exists(temp_scratch_dir):
             shutil.rmtree(temp_scratch_dir)
+        if temp_job_id is not None and os.path.exists(f".lock_{temp_job_id}"):
+            os.remove(f".lock_{temp_job_id}")
+
 
     @staticmethod
     def validated_download_file_path(basepath, filename, should_exist=True):
@@ -1125,6 +1168,9 @@ class InstrumentQueryBackEnd:
             if file_name is None:
                 file_name = file_list[0] if len(file_list) == 1 else 'download.tar.gz'
             return_archive = self.args.get('return_archive', 'True') == 'True'
+            mimetype = 'application/x-gzip-compressed' if return_archive and len(file_list) == 1 else None
+            # otherwise, for one file, the mimetype of the uncompressed file is determined, and gz only affects Content-Encoding
+            # but Content-Encoding header isn't set if as_attachment=True
 
             tmp_dir, target_file = self.prepare_download(
                 file_list, file_name,
@@ -1132,10 +1178,10 @@ class InstrumentQueryBackEnd:
                 from_request_files_dir=from_request_files_dir)
             try:
                 return send_from_directory(directory=tmp_dir, path=target_file, attachment_filename=target_file,
-                                        as_attachment=True)
+                                        as_attachment=True, mimetype=mimetype)
             except Exception as e:
                 return send_from_directory(directory=tmp_dir, filename=target_file, attachment_filename=target_file,
-                                           as_attachment=True)
+                                           as_attachment=True, mimetype=mimetype)
         except RequestNotAuthorized as e:
             extract_job_monitor = True
             if not hasattr(self, 'scratch_dir') or self.scratch_dir is None:
@@ -1158,17 +1204,17 @@ class InstrumentQueryBackEnd:
             else:
                 prod_name = None
             if hasattr(self, 'instrument'):
-                l.append(self.instrument.get_parameters_list_as_json(prod_name=prod_name))
+                l.append(self.instrument.get_parameters_list_jsonifiable(prod_name=prod_name))
                 src_query.show_parameters_list()
             else:
                 l = ['instrument not recognized']
 
         if meta_name == 'src_query':
-            l = [src_query.get_parameters_list_as_json()]
+            l = [src_query.get_parameters_list_jsonifiable()]
             src_query.show_parameters_list()
 
         if meta_name == 'instrument':
-            l = [self.instrument.get_parameters_list_as_json()]
+            l = [self.instrument.get_parameters_list_jsonifiable()]
             self.instrument.show_parameters_list()
 
         return jsonify(l)
@@ -1659,9 +1705,7 @@ class InstrumentQueryBackEnd:
     def get_existing_job_ID_path(self, wd):
         # exist same job_ID, different session ID
         dir_list = glob.glob(f'*_jid_{self.job_id}')
-        # print('dirs',dir_list)
-        if dir_list:
-            dir_list = [d for d in dir_list if 'aliased' not in d]
+        dir_list = [d for d in dir_list if 'aliased' not in d]
 
         if len(dir_list) == 1:
             if dir_list[0] != wd:
@@ -1670,9 +1714,8 @@ class InstrumentQueryBackEnd:
                 alias_dir = None
 
         elif len(dir_list) > 1:
-            sentry.capture_message(f'Found two non aliased identical job_id, dir_list: {dir_list}')
-            self.logger.warning(f'Found two non aliased identical job_id, dir_list: {dir_list}')
-
+            sentry.capture_message(f'Found two or more non aliased identical job_id, dir_list: {dir_list}')
+            self.logger.warning(f'Found two or more non aliased identical job_id, dir_list: {dir_list}')
             raise InternalError("We have encountered an internal error! "
                                 "Our team is notified and is working on it. We are sorry! "
                                 "When we find a solution we will try to reach you",
@@ -1682,6 +1725,7 @@ class InstrumentQueryBackEnd:
             alias_dir = None
 
         return alias_dir
+
 
     def get_file_mtime(self, file):
         return os.path.getmtime(file)
@@ -2396,6 +2440,7 @@ class InstrumentQueryBackEnd:
 
         else:
             query_out = QueryOutput()
+            job_monitor = job.updated_dataserver_monitor()
             query_out.set_status(0, job_status=job_monitor['status'])
 
             query_new_status = job.get_status()

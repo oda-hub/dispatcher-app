@@ -14,6 +14,8 @@ import os
 import string
 import random
 import hashlib
+
+import requests
 import validators
 import re
 import logging
@@ -535,6 +537,36 @@ def resolve_job_url():
         return redirect(location, 302)
 
 
+@app.route('/load_frontend_fits_file_url')
+def load_frontend_fits_file_url():
+    par_dic = request.values.to_dict()
+    sanitized_request_values = sanitize_dict_before_log(par_dic)
+    logger.info('\033[32m===========================> load_frontend_fits_file_url\033[0m')
+
+    logger.info('\033[33m raw request values: %s \033[0m', dict(sanitized_request_values))
+
+    token = par_dic.pop('token', None)
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  # TODO do we actually need a special role for this?
+                                                                  required_roles=None,
+                                                                  action="loading a fits file from the frontend via a URL")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+
+    fits_file_url = par_dic.get('fits_file_url', None)
+
+    if fits_file_url is not None:
+        logger.info(f"Loading fits file from URL: {fits_file_url}")
+        response = requests.get(fits_file_url)
+        return Response(response.content, status=response.status_code, mimetype='application/octet-stream')
+    else:
+        logging.warning(f'fits_file_url argument missing in request: {par_dic}')
+        return make_response("fits_file_url arg not provided", 400)
+
+
 @app.route('/call_back', methods=['POST', 'GET'])
 def dataserver_call_back():
     sanitized_request_values = sanitize_dict_before_log(request.values)
@@ -605,25 +637,21 @@ def resolve_name():
     sanitized_par_dic = sanitize_dict_before_log(par_dic)
     logger.info("request.args: %s ", sanitized_par_dic)
 
-    token = par_dic.pop('token', None)
     app_config = app.config.get('conf')
-    secret_key = app_config.secret_key
-
-    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                  required_roles=['gallery contributor'],
-                                                                  action="post on the product gallery")
-
-    if output_code is not None:
-        return make_response(output, output_code)
 
     name = par_dic.get('name', None)
 
-    name_resolver_url = app_config.name_resolver_url
+    local_name_resolver_url = app_config.local_name_resolver_url
+    external_name_resolver_url = app_config.external_name_resolver_url
     entities_portal_url = app_config.entities_portal_url
 
-    resolve_object = drupal_helper.resolve_name(name_resolver_url=name_resolver_url,
+    sentry_dsn = sentry.sentry_url
+
+    resolve_object = drupal_helper.resolve_name(local_name_resolver_url=local_name_resolver_url,
+                                                external_name_resolver_url=external_name_resolver_url,
                                                 entities_portal_url=entities_portal_url,
-                                                name=name)
+                                                name=name,
+                                                sentry_dsn=sentry_dsn)
 
     return resolve_object
 
@@ -875,7 +903,7 @@ def get_astro_entity_info_by_source_name():
 
     return refactored_astro_entity_info
 
-
+# TODO in the gallery, in case of token is passed, it'll be checked against the 'integral-private-qla' role, to get also the private data
 @app.route('/get_data_product_list_with_conditions', methods=['GET'])
 def get_data_product_list_with_conditions():
     par_dic = request.values.to_dict()
@@ -885,26 +913,27 @@ def get_data_product_list_with_conditions():
 
     token = par_dic.pop('token', None)
     app_config = app.config.get('conf')
-    secret_key = app_config.secret_key
-
-    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                  required_roles=['gallery contributor'],
-                                                                  action="getting all the astro entities from the product gallery")
-
-    if output_code is not None:
-        return make_response(output, output_code)
-    decoded_token = output
-
     sentry_dsn = sentry.sentry_url
 
+    secret_key = app_config.secret_key
     gallery_secret_key = app_config.product_gallery_secret_key
     product_gallery_url = app_config.product_gallery_url
-    user_email = tokenHelper.get_token_user_email_address(decoded_token)
-    user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
-                                                        user_email=user_email,
-                                                        sentry_dsn=sentry_dsn)
-    # update the token
-    gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+    gallery_jwt_token = None
+
+    if token is not None:
+        output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                      action="getting all the astro entities from the product gallery")
+
+        if output_code is not None:
+            return make_response(output, output_code)
+        decoded_token = output
+
+
+        user_email = tokenHelper.get_token_user_email_address(decoded_token)
+        user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
+                                                            user_email=user_email,
+                                                            sentry_dsn=sentry_dsn)
+        gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
 
     output_get = drupal_helper.get_data_product_list_by_source_name_with_conditions(product_gallery_url=product_gallery_url,
                                                                                     gallery_jwt_token=gallery_jwt_token,
@@ -915,7 +944,6 @@ def get_data_product_list_with_conditions():
     return output_list
 
 
-# TODO to refactor using get_data_product_list_with_conditions
 @app.route('/get_data_product_list_by_source_name', methods=['GET'])
 def get_data_product_list_by_source_name():
     par_dic = request.values.to_dict()
@@ -925,34 +953,35 @@ def get_data_product_list_by_source_name():
 
     token = par_dic.pop('token', None)
     app_config = app.config.get('conf')
-    secret_key = app_config.secret_key
-
-    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
-                                                                  required_roles=['gallery contributor'],
-                                                                  action="getting all the astro entities from the product gallery")
-
-    if output_code is not None:
-        return make_response(output, output_code)
-    decoded_token = output
-
-
     sentry_dsn = sentry.sentry_url
 
-    gallery_secret_key = app_config.product_gallery_secret_key
+    secret_key = app_config.secret_key
     product_gallery_url = app_config.product_gallery_url
-    user_email = tokenHelper.get_token_user_email_address(decoded_token)
-    user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
-                                                        user_email=user_email,
-                                                        sentry_dsn=sentry_dsn)
-    # update the token
-    gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+    gallery_secret_key = app_config.product_gallery_secret_key
+    gallery_jwt_token = None
 
-    src_name = request.args.get('src_name', None)
+    if token is not None:
 
-    output_get = drupal_helper.get_data_product_list_by_source_name(product_gallery_url=product_gallery_url,
-                                                                    gallery_jwt_token=gallery_jwt_token,
-                                                                    src_name=src_name,
-                                                                    sentry_dsn=sentry_dsn)
+        output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                      required_roles=['gallery contributor'],
+                                                                      action="getting all the astro entities from the product gallery")
+
+        if output_code is not None:
+            return make_response(output, output_code)
+        decoded_token = output
+
+        user_email = tokenHelper.get_token_user_email_address(decoded_token)
+        user_id_product_creator = drupal_helper.get_user_id(product_gallery_url=product_gallery_url,
+                                                            user_email=user_email,
+                                                            sentry_dsn=sentry_dsn)
+        # update the token
+        gallery_jwt_token = drupal_helper.generate_gallery_jwt_token(gallery_secret_key, user_id=user_id_product_creator)
+
+    output_get = drupal_helper.get_data_product_list_by_source_name_with_conditions(product_gallery_url=product_gallery_url,
+                                                                                    gallery_jwt_token=gallery_jwt_token,
+                                                                                    sentry_dsn=sentry_dsn,
+                                                                                    **par_dic)
+
     output_list = json.dumps(output_get)
 
     return output_list

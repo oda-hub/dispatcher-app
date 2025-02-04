@@ -41,7 +41,7 @@ install_req = [
     "celery",
     "redis",
     "pyjwt",
-    "marshmallow",
+    "marshmallow<3.24",
     "black>=22.10.0",
     "bs4",
     "GitPython",
@@ -53,6 +53,8 @@ install_req = [
 ]
 
 test_req = [
+    'pytest',
+    'pytest-sentry',
     'psutil',
 ]
 

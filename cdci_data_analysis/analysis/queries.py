@@ -46,7 +46,7 @@ from .parameters import (Parameter,
                          )
 from .products import SpectralFitProduct, QueryOutput, QueryProductList, ImageProduct
 from .io_helper import FilePath
-from .exceptions import RequestNotUnderstood, InternalError
+from .exceptions import RequestNotUnderstood, InternalError, ProductProcessingError
 
 logger = logging.getLogger(__name__)
 
@@ -275,13 +275,13 @@ class BaseQuery(object):
         else:
             return l
 
-    def get_parameters_list_as_json(self,**kwargs):
+    def get_parameters_list_jsonifiable(self,**kwargs):
         l=[ {'query_name':self.name}]
 
         for par in self._parameters_list:
             l.extend(par.reprJSONifiable())
         l1 = self._remove_duplicates_from_par_list(l)
-        return json.dumps(l1)
+        return l1
 
     # Check if the given query cn be executed given a list of roles extracted from the token
     def check_query_roles(self, roles, par_dic):
@@ -314,7 +314,7 @@ class SourceQuery(BaseQuery):
 
         t_range = ParameterRange(t1, t2, 'time')
 
-        token = Name(name_format='str', name='token', value=None)
+        token = Name(name_format='str', name='token', value=None, is_optional=True)
 
         #time_group = ParameterGroup([t_range_iso, t_range_mjd], 'time_range', selected='t_range_iso')
         #time_group_selector = time_group.build_selector('time_group_selector')
@@ -385,7 +385,7 @@ class ProductQuery(BaseQuery):
         traceback.print_stack()
         raise RuntimeError(f'{self}: get_data_server_query needs to be implemented in derived class')
 
-    def get_parameters_list_as_json(self, prod_dict=None):
+    def get_parameters_list_jsonifiable(self, prod_dict=None):
 
         l=[ {'query_name':self.name}]
         prod_name=None
@@ -402,7 +402,13 @@ class ProductQuery(BaseQuery):
             l.extend(par.reprJSONifiable())
         
         l1 = self._remove_duplicates_from_par_list(l)
-        return json.dumps(l1)
+        return l1
+
+    def get_parameters_list_as_json(self, prod_dict=None):
+        logger.warning("Method name 'get_parameters_list_as_json' is deptrecated, "
+                       "please use 'get_parameters_list_jsonifiable'")
+        self.get_parameters_list_jsonifiable(prod_dict=prod_dict)
+
 
     def get_prod_by_name(self,name):
         return self.query_prod_list.get_prod_by_name(name)
@@ -606,6 +612,10 @@ class ProductQuery(BaseQuery):
             #print('-->', query_out.status_dictionary)
         except RequestNotUnderstood as e:
             logger.error("passing request issue: %s", e)
+            raise
+
+        except ProductProcessingError as e:
+            logger.error("product processing error: %s", e)
             raise
 
         except Exception as e:
@@ -860,8 +870,8 @@ class ImageQuery(ProductQuery):
         else:
             parameters_list = [detection_th]
 
-        image_scale_min=Float(value=None,name='image_scale_min')
-        image_scale_max = Float(value=None, name='image_scale_max')
+        image_scale_min=Float(value=None,name='image_scale_min',is_optional=True)
+        image_scale_max = Float(value=None, name='image_scale_max',is_optional=True)
         parameters_list.extend([image_scale_min, image_scale_max])
         super(ImageQuery, self).__init__(name, parameters_list, **kwargs)
 

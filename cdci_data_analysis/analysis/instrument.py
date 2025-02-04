@@ -35,13 +35,14 @@ from astropy.table import Table
 from urllib.parse import urlencode
 
 from cdci_data_analysis.analysis.queries import _check_is_base_query
+from .parameters import POSIXPath
 from ..analysis import tokenHelper, parameters
 from .catalog import BasicCatalog
 from .products import QueryOutput
 from .queries import ProductQuery, SourceQuery, InstrumentQuery
 from .io_helper import upload_file, upload_files_request
 
-from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError
+from .exceptions import RequestNotUnderstood, RequestNotAuthorized, InternalError, ProductProcessingError
 from ..flask_app.sentry import sentry
 
 from oda_api.api import DispatcherAPI, RemoteException, Unauthorized, DispatcherException, DispatcherNotAvailable, UnexpectedDispatcherStatusCode, RequestNotUnderstood as RequestNotUnderstoodOdaApi
@@ -167,14 +168,16 @@ class Instrument:
         for par in param_list:
             self.logger.info("before normalizing, set_pars_from_dic>> par: %s par.name: %s par.value: %s par_dic[par.name]: %s",
                              par, par.name, par.value, arg_dic.get(par.name, None))
-
             # this is required because in some cases a parameter is set without a name (eg UserCatalog),
             # or they don't have to set (eg scw_list)
             if par.name is not None and par.name not in params_not_to_be_included:
+                if isinstance(par, POSIXPath) and par.name + '_type' in arg_dic and arg_dic[par.name + '_type'] == 'file'\
+                        and par.name not in arg_dic:
+                    par.value = None
+
                 # set the value for par to a default format,
                 # or to a default value if this is not included within the request
                 updated_arg_dic[par.name] = par.set_value_from_form(arg_dic, verbose=verbose)
-
                 if par.units_name is not None:
                     if par.default_units is not None:
                         updated_arg_dic[par.units_name] = par.default_units
@@ -435,7 +438,7 @@ class Instrument:
             job.set_done()
             if query_out.status_dictionary['status'] == 0:
                 query_out.set_done(message='dry-run',job_status=job.status)
-                query_out.set_instrument_parameters(self.get_parameters_list_as_json(prod_name=product_type))
+                query_out.set_instrument_parameters(self.get_parameters_list_jsonifiable(prod_name=product_type))
         else:
             if query_out.status_dictionary['status'] == 0:
                 query_out = QueryOutput()
@@ -480,6 +483,10 @@ class Instrument:
                 except RequestNotUnderstood as e:
                     logger.warning("bad request from user, passing through: %s", e)
                     raise
+                except ProductProcessingError as e:
+                    logger.warning("error in the post processing of the products to fail, passing through: %s", e)
+                    query_out.set_status(1, message="Error during the products post processing",
+                                         error_message=str(e))
                 except InternalError as e:
                     if hasattr(e, 'message') and e.message is not None:
                         message = e.message
@@ -593,7 +600,7 @@ class Instrument:
             _query.show_parameters_list()
         print("-------------")
 
-    def get_parameters_list_as_json(self, add_src_query=True, add_instr_query=True, prod_name=None):
+    def get_parameters_list_jsonifiable(self, add_src_query=True, add_instr_query=True, prod_name=None):
 
         l=[{'instrumet':self.name}]
         l.append({'prod_dict':self.query_dictionary})
@@ -608,7 +615,7 @@ class Instrument:
             if isinstance(_query, ProductQuery) and prod_name is not None and _query.name!=self.query_dictionary[prod_name]:
                 continue
 
-            l.append(_query.get_parameters_list_as_json(prod_dict=self.query_dictionary))
+            l.append(_query.get_parameters_list_jsonifiable(prod_dict=self.query_dictionary))
 
         return l
     
@@ -715,9 +722,8 @@ class Instrument:
         else:
             basepath = os.path.join(f"http://{bind_host}:{bind_port}", 'download_file')
         for f in uploaded_files_obj:
-            dpars = urlencode(dict(file_list=uploaded_files_obj[f],
-                                   _is_mmoda_url=True,
-                                   return_archive=False))
+            dict_args = dict(file_list=uploaded_files_obj[f], _is_mmoda_url=True, return_archive=False)
+            dpars = urlencode(dict_args)
             download_file_url = f"{basepath}?{dpars}"
             par_dic[f] = download_file_url
 
