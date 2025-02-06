@@ -48,7 +48,7 @@ from .sentry import sentry
 from cdci_data_analysis import __version__
 import oda_api
 from oda_api.api import DispatcherAPI
-from oda_api.plot_toola_utils import Image
+from oda_api.plot_tools_utils import Image
 
 from cdci_data_analysis.configurer import ConfigEnv
 from cdci_data_analysis.timer import block_timer
