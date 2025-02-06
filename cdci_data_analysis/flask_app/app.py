@@ -38,7 +38,6 @@ from ..plugins import importer
 
 from ..analysis.queries import *
 from ..analysis.io_helper import FitsFile
-from ..analysis.plot_tools import Image
 from .dispatcher_query import InstrumentQueryBackEnd
 from ..analysis.exceptions import APIerror, MissingRequestParameter
 from ..app_logging import app_logging
@@ -49,6 +48,7 @@ from .sentry import sentry
 from cdci_data_analysis import __version__
 import oda_api
 from oda_api.api import DispatcherAPI
+from oda_api.plot_toola_utils import Image
 
 from cdci_data_analysis.configurer import ConfigEnv
 from cdci_data_analysis.timer import block_timer

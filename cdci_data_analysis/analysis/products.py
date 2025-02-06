@@ -25,7 +25,7 @@ import sentry_sdk
 
 matplotlib.use('Agg')  #, warn=False - deprecated
 
-from .plot_tools import Image, ScatterPlot, GridPlot
+from oda_api.plot_toola_utils import Image, ScatterPlot, GridPlot
 
 from oda_api.data_products import NumpyDataProduct, NumpyDataUnit
 
