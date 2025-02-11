@@ -909,7 +909,7 @@ class InstrumentQueryBackEnd:
 
     def set_scratch_dir(self, session_id, job_id=None, verbose=False):
         lock_file = f".lock_{self.job_id}"
-        scratch_dir_retry_attempts = 5
+        scratch_dir_retry_attempts = 6
         scratch_dir_retry_delay = 0.2
         scratch_dir_created = True
 
@@ -939,13 +939,14 @@ class InstrumentQueryBackEnd:
                     break
             except (OSError, IOError) as io_e:
                 scratch_dir_created = False
-                self.logger.warning(f'Failed to acquire lock for the scratch directory creation, attempt number {attempt + 1} ({scratch_dir_retry_attempts - (attempt + 1)} left), sleeping {scratch_dir_retry_delay} seconds until retry.\nError: {str(io_e)}')
+                self.logger.warning(f'Failed to acquire lock for the scratch directory "{wd}" creation, attempt number {attempt + 1} ({scratch_dir_retry_attempts - (attempt + 1)} left), sleeping {scratch_dir_retry_delay} seconds until retry.\nError: {str(io_e)}')
                 time.sleep(scratch_dir_retry_delay)
+                scratch_dir_retry_delay *= 2
 
         if not scratch_dir_created:
             dir_list = glob.glob(f"*_jid_{job_id}*")
-            sentry.capture_message(f"Failed to acquire lock for directory creation after multiple attempts.\njob_id: {self.job_id}\ndir_list: {dir_list}")
-            raise InternalError(f"Failed to acquire lock for directory creation after {scratch_dir_retry_attempts} attempts.", status_code=500)
+            sentry.capture_message(f"Failed to acquire lock for \"{wd}\" directory creation after multiple attempts.\njob_id: {self.job_id}\ndir_list: {dir_list}")
+            raise InternalError(f"Failed to acquire lock for directory \"{wd}\" creation after {scratch_dir_retry_attempts} attempts.", status_code=500)
 
     def set_temp_dir(self, session_id, job_id=None, verbose=False):
         if verbose:
