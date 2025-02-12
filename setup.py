@@ -31,7 +31,7 @@ install_req = [
     "python-logstash",
     "raven",
     "blinker",
-    "bokeh==2.4.2",
+    "bokeh==3.1.1",
     "json_tricks",
     "flask-restx==1.2.0",
     "six",
