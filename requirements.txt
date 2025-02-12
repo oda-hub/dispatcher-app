@@ -10,7 +10,7 @@ decorator
 python-logstash
 raven
 blinker
-bokeh==2.4.2
+bokeh==3.1.1
 json_tricks
 flask-restx
 six
@@ -29,7 +29,7 @@ GitPython
 nbformat
 sentry-sdk
 pytest-sentry
--e git+https://github.com/oda-hub/oda_api.git#egg=oda_api
+-e git+https://github.com/oda-hub/oda_api.git@no-dispatcher#egg=oda_api
 
 MarkupSafe==2.0.1
 

@@ -25,7 +25,7 @@ import sentry_sdk
 
 matplotlib.use('Agg')  #, warn=False - deprecated
 
-from .plot_tools import Image, ScatterPlot, GridPlot
+from oda_api.plot_tools_utils import Image, ScatterPlot, GridPlot
 
 from oda_api.data_products import NumpyDataProduct, NumpyDataUnit
 
@@ -423,7 +423,15 @@ class LightCurveProduct(BaseQueryProduct):
         if np.size(x) > 0:
             x = x - int(x.min())
 
-        sp=ScatterPlot(w=600,h=600,x_label=x_label,y_label=y_label,title=title)
+        x_range = [(x - dx).min(), (x + dx).max()]
+        y_range = [(y - dy).min(), (y + dy).max()]
+
+        sp=ScatterPlot(w=600, h=600,
+                       x_label=x_label,
+                       y_label=y_label,
+                       x_range=x_range,
+                       y_range=y_range,
+                       title=title)
         sp.add_errorbar(x,y,yerr=dy,xerr=dx)
         footer_str=''
 
