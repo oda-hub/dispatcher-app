@@ -43,6 +43,12 @@ class RequestNotUnderstood(BadRequest):
     """
 
 
+class ProductProcessingError(RuntimeError):
+    """
+    For an error in the post-processing, caused by the user's request.
+    """
+
+
 class RequestNotAuthorized(BadRequest):
     def __init__(self, message, debug_message=''):
         self.debug_message = debug_message

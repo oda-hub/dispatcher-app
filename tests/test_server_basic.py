@@ -161,7 +161,7 @@ def test_empty_request(dispatcher_live_fixture):
     assert c.status_code == 400
 
     # parameterize this
-    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-with-conf', 'empty-semi-async', 'empty-development', 'empty-async-return-progress']) or \
+    assert sorted(jdata['installed_instruments']) == sorted(['empty', 'empty-async', 'empty-with-conf', 'empty-semi-async', 'empty-development', 'empty-async-return-progress', 'empty-with-posix-path']) or \
            jdata['installed_instruments'] == []
 
     assert jdata['debug_mode'] == "yes"
@@ -255,7 +255,7 @@ def test_matrix_options_mode_empty_request(dispatcher_live_fixture_with_matrix_o
     assert c.status_code == 400
 
     assert sorted(jdata['installed_instruments']) == sorted(
-        ['empty', 'empty-async', 'empty-semi-async', 'empty-with-conf', 'empty-development', 'empty-async-return-progress']) or \
+        ['empty', 'empty-async', 'empty-semi-async', 'empty-with-conf', 'empty-development', 'empty-async-return-progress', 'empty-with-posix-path',]) or \
            jdata['installed_instruments'] == []
 
     # assert jdata['debug_mode'] == "no"
@@ -364,9 +364,10 @@ def test_scratch_dir_creation_lock_error(dispatcher_live_fixture):
                     expected_status_code=500,
                     expected_query_status=None,
                     )
-    scratch_dir_retry_attempts = 5
-    assert jdata['error'] == f"InternalError():Failed to acquire lock for directory creation after {scratch_dir_retry_attempts} attempts."
-    assert jdata['error_message'] == f"Failed to acquire lock for directory creation after {scratch_dir_retry_attempts} attempts."
+    scratch_dir_retry_attempts = 6
+    wd = f"scratch_sid_{session_id}_jid_{job_id}"
+    assert jdata['error'] == f"InternalError():Failed to acquire lock for directory \"{wd}\" creation after {scratch_dir_retry_attempts} attempts."
+    assert jdata['error_message'] == f"Failed to acquire lock for directory \"{wd}\" creation after {scratch_dir_retry_attempts} attempts."
     os.rmdir(fake_scratch_dir)
     os.remove(lock_file)
 
@@ -1988,6 +1989,58 @@ def test_public_file_ownerships(dispatcher_live_fixture):
     assert ownerships['user_roles'] == []
 
 
+@pytest.mark.parametrize("include_file_arg", [True, False])
+def test_default_value_empty_posix_path(dispatcher_live_fixture, include_file_arg):
+    DispatcherJobState.remove_scratch_folders()
+    DispatcherJobState.empty_request_files_folders()
+    server = dispatcher_live_fixture
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+        "roles": "unige-hpc-full, general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'file_dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty-with-posix-path',
+        'dummy_POSIX_file_type': 'file',
+        'token': encoded_token
+    }
+
+    p_file_path = DispatcherJobState.create_p_value_file(p_value=6)
+    list_file = open(p_file_path)
+
+    expected_query_status = 'done'
+    expected_job_status = 'done'
+    expected_status_code = 200
+
+    files = None
+    if include_file_arg:
+        files = {'dummy_POSIX_file': list_file.read()}
+
+    jdata = ask(server,
+                params,
+                expected_query_status=expected_query_status,
+                expected_job_status=expected_job_status,
+                expected_status_code=expected_status_code,
+                max_time_s=150,
+                method='post',
+                files=files
+                )
+
+    list_file.close()
+    assert 'dummy_POSIX_file' in jdata['products']['analysis_parameters']
+    if include_file_arg:
+        assert jdata['products']['analysis_parameters']['dummy_POSIX_file'] is not None
+    else:
+        assert jdata['products']['analysis_parameters']['dummy_POSIX_file'] is None
+
+
 def test_scws_list_file(dispatcher_live_fixture):
 
     server = dispatcher_live_fixture
@@ -2723,7 +2776,8 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 @pytest.mark.test_drupal
 @pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'GX 1+4', 'fake object', None])
-def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_to_resolve):
+@pytest.mark.parametrize("request_type", ["private", "public"])
+def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_to_resolve, request_type):
     server = dispatcher_live_fixture_with_gallery
 
     logger.info("constructed server: %s", server)
@@ -2737,6 +2791,9 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
 
     params = {'name': source_to_resolve,
               'token': encoded_token}
+
+    if request_type == "private":
+        params.pop('token', None)
 
     c = requests.get(os.path.join(server, "resolve_name"),
                      params={**params}
@@ -3266,7 +3323,8 @@ def test_product_gallery_get_all_astro_entities(dispatcher_live_fixture_with_gal
 @pytest.mark.test_drupal
 @pytest.mark.parametrize("source_name", ["new", "known", "unknown"])
 @pytest.mark.parametrize("include_products_fields_conditions", [True, False])
-def test_product_gallery_get_data_products_list_with_conditions(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_name, include_products_fields_conditions):
+@pytest.mark.parametrize("request_type", ["private", "public"])
+def test_product_gallery_get_data_products_list_with_conditions(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_name, include_products_fields_conditions, request_type):
     server = dispatcher_live_fixture_with_gallery
 
     logger.info("constructed server: %s", server)
@@ -3321,6 +3379,10 @@ def test_product_gallery_get_data_products_list_with_conditions(dispatcher_live_
             'instrument_name': instrument_query,
             'product_type': product_type_query
         }
+
+        if request_type == "public":
+            params.pop('token')
+
         if include_products_fields_conditions:
             for e1_kev, e2_kev, rev1, rev2 in [
                 (100, 350, 2528, 2540),
@@ -4780,3 +4842,53 @@ def test_nonoptional_parameter_is_not_nullable(dispatcher_live_fixture):
     jdata=c.json()
 
     assert jdata['error_message'] == 'Non-optional parameter p is set to None'
+
+
+def test_job_status_unaccessible(dispatcher_live_fixture):
+    DispatcherJobState.remove_scratch_folders()
+    if os.path.isfile('DataServerQuery-status.state'):
+        os.remove('DataServerQuery-status.state')
+
+    server = dispatcher_live_fixture 
+
+    from oda_api.api import DispatcherAPI
+    disp = DispatcherAPI(url=server, wait=False)
+
+    token_payload = {
+        **default_token_payload,
+        "roles": "general",
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    par_dic = {
+        'instrument': 'empty-async',
+        'product': 'numerical',
+        'p': 40,
+        'token': encoded_token
+    }
+
+    data = disp.get_product(**par_dic)
+    assert disp.query_status == 'submitted'
+    assert data is None
+
+
+    DataServerQuery.set_status('done')
+    disp.poll()
+
+    #still ok 
+    disp.poll()
+
+    # now get data
+    data = disp.get_product(**par_dic)
+    assert data is not None
+
+    #and now it fails bacause of job_status "unaccessible"
+    disp.poll()
+
+    assert disp.query_status == 'done'
+
+    scratch_dir_fn = f"scratch_sid_{disp.session_id}_jid_{disp.job_id}"
+    with open(os.path.join(scratch_dir_fn, 'job_monitor.json')) as f:
+        job_monitor = json.loads(f.read())
+
+    assert job_monitor['status'] == 'done'
