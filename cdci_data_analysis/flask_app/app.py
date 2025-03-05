@@ -452,6 +452,7 @@ def run_adql_query():
 
         adql_query = par_dic.get('adql_query', None)
         vo_psql_pg_host = app_config.vo_psql_pg_host
+        vo_psql_pg_port = app_config.vo_psql_pg_port
         vo_psql_pg_user = app_config.vo_psql_pg_user
         vo_psql_pg_password = app_config.vo_psql_pg_password
         vo_psql_pg_db = app_config.vo_psql_pg_db
@@ -459,6 +460,7 @@ def run_adql_query():
 
         result_query = ivoa_helper.run_ivoa_query(adql_query,
                                                   vo_psql_pg_host=vo_psql_pg_host,
+                                                  vo_psql_pg_port=vo_psql_pg_port,
                                                   vo_psql_pg_user=vo_psql_pg_user,
                                                   vo_psql_pg_password=vo_psql_pg_password,
                                                   vo_psql_pg_db=vo_psql_pg_db,

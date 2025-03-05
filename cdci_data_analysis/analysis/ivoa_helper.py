@@ -31,12 +31,14 @@ def run_ivoa_query(query, **kwargs):
 
     logger.info('Performing query on the product_gallery')
     vo_psql_pg_host = kwargs.get('vo_psql_pg_host', None)
+    vo_psql_pg_port = kwargs.get('vo_psql_pg_port', None)
     vo_psql_pg_user = kwargs.get('vo_psql_pg_user', None)
     vo_psql_pg_password = kwargs.get('vo_psql_pg_password', None)
     vo_psql_pg_db = kwargs.get('vo_psql_pg_db', None)
     product_gallery_url = kwargs.get('product_gallery_url', None)
     result_list = run_ivoa_query_from_product_gallery(parsed_query_obj,
                                                       vo_psql_pg_host=vo_psql_pg_host,
+                                                      vo_psql_pg_port=vo_psql_pg_port,
                                                       vo_psql_pg_user=vo_psql_pg_user,
                                                       vo_psql_pg_password=vo_psql_pg_password,
                                                       vo_psql_pg_db=vo_psql_pg_db,
@@ -46,6 +48,7 @@ def run_ivoa_query(query, **kwargs):
 
 def run_ivoa_query_from_product_gallery(parsed_query_obj,
                                         vo_psql_pg_host,
+                                        vo_psql_pg_port,
                                         vo_psql_pg_user,
                                         vo_psql_pg_password,
                                         vo_psql_pg_db,
@@ -56,6 +59,7 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
     try:
         with connect(
             host=vo_psql_pg_host,
+            port=vo_psql_pg_port,
             database=vo_psql_pg_db,
             user=vo_psql_pg_user,
             password=vo_psql_pg_password
