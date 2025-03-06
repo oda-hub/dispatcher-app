@@ -1,7 +1,6 @@
 import time as time_
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
 from collections import OrderedDict
 from urllib.parse import urlencode
 import typing
@@ -306,8 +305,9 @@ def send_job_email(
         # TODO: send us a sentry alert here
         attachment_file_path = store_email_api_code_attachment(api_code, status, scratch_dir, sending_time=sending_time)
         with open(attachment_file_path, "r") as fil:
-            api_code_email_attachment = MIMEApplication(
+            api_code_email_attachment = MIMEText(
                 fil.read(),
+                _subtype='x-python',
                 Name=os.path.basename(attachment_file_path)
             )
         api_code_email_attachment.add_header('Content-Disposition',
