@@ -308,7 +308,6 @@ def send_job_email(
             api_code_email_attachment = MIMEText(
                 fil.read(),
                 _subtype='x-python',
-                Name=os.path.basename(attachment_file_path)
             )
         api_code_email_attachment.add_header('Content-Disposition',
                                              'attachment',
