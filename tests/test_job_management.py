@@ -161,6 +161,15 @@ def apply_ignore_api_code_patterns(api_code_content):
     for pattern in DispatcherJobState.api_attachment_ignore_attachment_patterns:
         api_code_content = re.sub(pattern, "<IGNORES>", api_code_content, flags=re.DOTALL)
 
+    for pattern in DispatcherJobState.api_attachment_replace_attachment_patterns:
+        api_code_content = re.sub(pattern, "", api_code_content, flags=re.DOTALL)
+
+    return api_code_content
+
+
+def restrict_lines_length_api_code(api_code_content):
+    api_code_content = "\n".join([api_code_content[i:i + 76] for i in range(0, len(api_code_content), 76)]).strip()
+
     return api_code_content
 
 
@@ -266,6 +275,7 @@ def validate_email_content(
     reference_api_code_attachment = None
     if expect_api_code_attachment:
         reference_api_code_attachment = get_reference_attachment(state=state, name="api_code_attachment")
+        reference_api_code_attachment = restrict_lines_length_api_code(reference_api_code_attachment)
 
     if request_params is None:
         request_params = {}
@@ -2373,7 +2383,7 @@ def test_email_very_long_unbreakable_string(length, dispatcher_long_living_fixtu
 
     # this kind of parameters never really happen, and we should be alerted
     # we might as well send something in email, like failed case. but better let's make us look immediately
-    params['very_long_parameter_'] = "unset"*length
+    params['very_long_parameter_'*length] = "unset"
 
     c = requests.get(server + "/run_analysis",
                      params=params)

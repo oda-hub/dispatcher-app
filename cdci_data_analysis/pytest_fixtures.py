@@ -1379,6 +1379,10 @@ class DispatcherJobState:
         r"(\'|\")token(\'|\"):.*?,"
     ]
 
+    api_attachment_replace_attachment_patterns = [
+        r'\r'
+    ]
+
     generalized_incident_patterns = {
         'job_id': [
             '(job_id</span>: )(.*?)(<)',
