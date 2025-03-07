@@ -307,10 +307,10 @@ def send_job_email(
         attachment_file_path = store_email_api_code_attachment(api_code, status, scratch_dir, sending_time=sending_time)
         with open(attachment_file_path, "r") as fil:
             data = fil.read()
-            data = "\n".join([data[i:i + 76] for i in range(0, len(data), 76)]).strip()
             api_code_email_attachment = MIMEText(
                 data,
                 _subtype='x-python',
+                _charset='utf-8'
             )
         api_code_email_attachment.add_header('Content-Disposition',
                                              'attachment',
