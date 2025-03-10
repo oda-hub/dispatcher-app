@@ -306,11 +306,12 @@ def send_job_email(
     if api_code_too_long:
         # TODO: send us a sentry alert here
         attachment_file_path = store_email_api_code_attachment(api_code, status, scratch_dir, sending_time=sending_time)
-        with open(attachment_file_path, "rb") as fil:
+        with open(attachment_file_path, "r") as fil:
             data = fil.read()
-            api_code_email_attachment = MIMEApplication(
+            api_code_email_attachment = MIMEText(
                 data,
-                Name="api_code.py"
+                _subtype='x-python',
+                _charset='utf-8'
             )
         api_code_email_attachment.add_header('Content-Disposition',
                                              'attachment',
