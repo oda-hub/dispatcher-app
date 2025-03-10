@@ -489,8 +489,10 @@ def send_email(smtp_server,
                              f"{e}")
 
                 store_not_sent_email(email_body_html, scratch_dir, sending_time=sending_time)
-
-                sentry_sdk.set_context("message", {"as_string": message.as_string()})
+                
+                scope = sentry_sdk.get_current_scope()
+                scope.add_attachment(bytes=message.as_bytes(), filename="message_source")
+                
                 sentry.capture_message((f'multiple attempts to send an email with title {email_subject} '
                                         f'have been detected, the following error has been generated:\n"'
                                         f'{e}'))
