@@ -5,6 +5,7 @@ from email.mime.application import MIMEApplication
 from collections import OrderedDict
 from urllib.parse import urlencode
 import typing
+import sentry_sdk
 
 from ..flask_app.sentry import sentry
 
@@ -465,7 +466,7 @@ def send_email(smtp_server,
                     logger.warning(f'unable to start TLS: {e}')
             if smtp_server_password is not None and smtp_server_password != '':
                 server.login(sender_email_address, smtp_server_password)
-            server.sendmail(sender_email_address, receivers_email_addresses, message.as_string())
+            server.send_message(message)
             logger.info("email successfully sent")
 
             return message
@@ -489,6 +490,7 @@ def send_email(smtp_server,
 
                 store_not_sent_email(email_body_html, scratch_dir, sending_time=sending_time)
 
+                sentry_sdk.set_context("message", {"as_string": message.as_string()})
                 sentry.capture_message((f'multiple attempts to send an email with title {email_subject} '
                                         f'have been detected, the following error has been generated:\n"'
                                         f'{e}'))
