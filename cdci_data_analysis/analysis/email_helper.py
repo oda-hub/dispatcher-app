@@ -1,11 +1,9 @@
 import time as time_
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
 from collections import OrderedDict
 from urllib.parse import urlencode
 import typing
-import sentry_sdk
 
 from ..flask_app.sentry import sentry
 
@@ -18,7 +16,6 @@ import time
 import glob
 import black
 import base64
-import logging
 from urllib import parse
 import zlib
 import json
