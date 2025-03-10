@@ -8,6 +8,8 @@ from psycopg2 import connect, DatabaseError
 from ..app_logging import app_logging
 from ..analysis.exceptions import RequestNotUnderstood
 
+from astropy.io.votable.tree import VOTableFile, Resource, Field, Table, Param
+
 logger = app_logging.getLogger('ivoa_helper')
 
 
@@ -56,6 +58,16 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                                         ):
     result_list = []
     connection = None
+    # Create a new VOTable file...
+    votable = VOTableFile()
+    # ...with one resource...
+    resource = Resource()
+    votable.resources.append(resource)
+
+    # ... with one table
+    table = Table(votable)
+    resource.tables.append(table)
+
     try:
         with connect(
             host=vo_psql_pg_host,
@@ -72,12 +84,12 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                     if product_gallery_url is not None:
                         for index, value in enumerate(list_row):
                             description = cursor.description[index]
-                            if description.name in {'file_uri', 'file_name'} and value is not None and isinstance(value, str):
-                                file_name_list = [v.strip() for v in value.split(',')]
-                                if description.name == 'file_uri':
-                                    for id, file_name in enumerate(file_name_list):
-                                        file_name_list[id] = os.path.join(product_gallery_url, 'sites/default/files/', file_name.strip())
-                                list_row[index] = file_name_list
+                            if description.name in {'file_uri', 'file_name', 'image_name', 'image_uri'} and value is not None and isinstance(value, str):
+                                value_list = [v.strip() for v in value.split(',')]
+                                if description.name == 'file_uri' or description.name == 'image_uri':
+                                    for file_id, file_name in enumerate(value_list):
+                                        value_list[file_id] = os.path.join(product_gallery_url, 'sites/default/files/', file_name.strip())
+                                list_row[index] = value_list
                             if description.name in {'path', 'path_alias'} and value is not None and isinstance(value, str):
                                 if value.startswith('/'):
                                     value = value[1:]
