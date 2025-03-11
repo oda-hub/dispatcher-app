@@ -1,6 +1,7 @@
 import time as time_
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.nonmultipart import MIMENonMultipart
 from collections import OrderedDict
 from urllib.parse import urlencode
 import typing
@@ -305,11 +306,13 @@ def send_job_email(
         attachment_file_path = store_email_api_code_attachment(api_code, status, scratch_dir, sending_time=sending_time)
         with open(attachment_file_path, "r") as fil:
             data = fil.read()
-            api_code_email_attachment = MIMEText(
-                data,
-                _subtype='x-python',
-                _charset='utf-8'
-            )
+        api_code_email_attachment = MIMENonMultipart(
+            'text',
+            _subtype='x-python',
+            _charset='utf-8',
+            name="api_code.py"
+        )
+        api_code_email_attachment.set_payload(data, charset='utf-8')
         api_code_email_attachment.add_header('Content-Disposition',
                                              'attachment',
                                              filename="api_code.py")
