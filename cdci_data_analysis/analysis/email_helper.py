@@ -308,14 +308,14 @@ def send_job_email(
             data = fil.read()
         api_code_email_attachment = MIMENonMultipart(
             'text',
-            _subtype='plain',
+            _subtype='x-python',
             _charset='utf-8',
-            name="api_code.txt"
+            name="api_code.py"
         )
         api_code_email_attachment.set_payload(data, charset='utf-8')
         api_code_email_attachment.add_header('Content-Disposition',
                                              'attachment',
-                                             filename="api_code.txt")
+                                             filename="api_code.py")
 
     status_details_message = None
     status_details_title = status
