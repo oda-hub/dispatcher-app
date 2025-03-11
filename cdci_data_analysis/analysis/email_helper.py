@@ -3,6 +3,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.nonmultipart import MIMENonMultipart
 from email.mime.application import MIMEApplication
+from email.mime.base import MIMEBase
+from email import encoders
 from collections import OrderedDict
 from urllib.parse import urlencode
 import typing
@@ -305,12 +307,15 @@ def send_job_email(
     if api_code_too_long:
         # TODO: send us a sentry alert here
         attachment_file_path = store_email_api_code_attachment(api_code, status, scratch_dir, sending_time=sending_time)
-        with open(attachment_file_path, "rb") as fil:
-            data = fil.read()
         attachment_file_name = attachment_file_path.split('/')[-1]
-        api_code_email_attachment = MIMEApplication(data)
-        api_code_email_attachment.add_header('Content-Disposition',
-                                             f"attachment; filename= {attachment_file_name}")
+        with open(attachment_file_path, "rb") as fil:
+            api_code_email_attachment = MIMEBase("application", "octet-stream")
+            api_code_email_attachment.set_payload(fil.read())
+            encoders.encode_base64(api_code_email_attachment)
+            api_code_email_attachment.add_header(
+                "Content-Disposition",
+                f"attachment; filename={attachment_file_name}",
+            )
 
     status_details_message = None
     status_details_title = status
