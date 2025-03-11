@@ -466,7 +466,8 @@ def run_adql_query():
                                                   vo_psql_pg_db=vo_psql_pg_db,
                                                   product_gallery_url=product_gallery_url)
 
-        return jsonify(result_query)
+        # return jsonify(result_query)
+        return output_xml(result_query, 200)
     except APIerror as api_e:
         error_message = f"Error while running an ADQL query: "
         if hasattr(api_e, 'message') and api_e.message is not None:
@@ -667,6 +668,10 @@ def output_html(data, code, headers=None):
     resp.status_code = code
     return resp
 
+def output_xml(data, code, headers=None):
+    resp = Response(data, mimetype='text/xml', headers=headers)
+    resp.status_code = code
+    return resp
 
 @ns_conf.route('/product/<path:path>', methods=['GET', 'POST'])
 # @app.route('/product/<path:path>',methods=['GET','POST'])
