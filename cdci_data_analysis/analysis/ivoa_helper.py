@@ -52,7 +52,6 @@ def run_ivoa_query(query, **kwargs):
 
 def map_psql_type_to_vo_datatype(type_code):
     type_db = psycopg2.extensions.string_types[type_code]
-    print(f"type db is: {type_db.name}")
     if type_db.name == 'LONGINTEGER':
         return 'int'
     elif type_db.name == 'STRING':
@@ -104,6 +103,8 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                     table_row = list(row)
                     table_entry = [""] * len(table_row)
                     for v_index, value in enumerate(table_row):
+                        # Get the column description and its corresponding datatype and default value in case of null in the DB
+                        # then create the field in the VOTable obj
                         description = cursor.description[v_index]
                         datatype = map_psql_type_to_vo_datatype(description.type_code)
                         default_no_value = map_psql_null_to_vo_default_value(datatype)
