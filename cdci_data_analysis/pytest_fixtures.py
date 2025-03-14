@@ -646,6 +646,7 @@ def dispatcher_test_conf_with_vo_options_fn(dispatcher_test_conf_fn):
                 '\n         vo_mysql_pg_password: "password"'
                 '\n         vo_mysql_pg_db: "database"'
                 '\n         vo_psql_pg_host: "localhost"'
+                '\n         vo_psql_pg_port: "5432"'
                 '\n         vo_psql_pg_user: "user"'
                 '\n         vo_psql_pg_password: "password"'
                 '\n         vo_psql_pg_db: "database"')
