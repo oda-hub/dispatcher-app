@@ -21,6 +21,7 @@ import json
 from collections import OrderedDict
 
 import matplotlib
+import numpy as np
 import sentry_sdk
 
 matplotlib.use('Agg')  #, warn=False - deprecated
@@ -423,8 +424,15 @@ class LightCurveProduct(BaseQueryProduct):
         if np.size(x) > 0:
             x = x - int(x.min())
 
-        x_range = [(x - dx).min(), (x + dx).max()]
-        y_range = [(y - dy).min(), (y + dy).max()]
+        if dx is None or np.isnan(dx).all():
+            x_range = [np.nanmin(x), np.nanmax(x)]
+        else:
+            x_range = [np.nanmin(x - dx), np.nanmax(x + dx)]
+
+        if dy is None or np.isnan(dy).all():
+            y_range = [np.nanmin(y), np.nanmax(y)]
+        else:
+            y_range = [np.nanmin(y - dy), np.nanmax(y + dy)]
 
         sp=ScatterPlot(w=600, h=600,
                        x_label=x_label,
