@@ -424,14 +424,13 @@ class LightCurveProduct(BaseQueryProduct):
             x = x - int(x.min())
 
         if dx is None or np.isnan(dx).all():
-            x_range = [np.nanmin(x), np.nanmax(x)]
-        else:
-            x_range = [np.nanmin(x - dx), np.nanmax(x + dx)]
+            dx = np.zeros(len(x))
 
         if dy is None or np.isnan(dy).all():
-            y_range = [np.nanmin(y), np.nanmax(y)]
-        else:
-            y_range = [np.nanmin(y - dy), np.nanmax(y + dy)]
+            dy = np.zeros(len(y))
+
+        x_range = [np.nanmin(x - dx), np.nanmax(x + dx)]
+        y_range = [np.nanmin(y - dy), np.nanmax(y + dy)]
 
         sp=ScatterPlot(w=600, h=600,
                        x_label=x_label,
