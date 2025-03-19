@@ -174,12 +174,7 @@ def run_metadata_query_from_product_gallery(parsed_query_obj,
                                             vo_psql_pg_password,
                                             vo_psql_pg_db,
                                             ):
-    # Create a new VOTable file with one resource and one table
-    votable = VOTableFile()
-    resource = Resource()
-    votable.resources.append(resource)
-    table = Table(votable)
-    resource.tables.append(table)
+    table_list = []
 
     try:
         with connect(
@@ -193,6 +188,7 @@ def run_metadata_query_from_product_gallery(parsed_query_obj,
             with connection.cursor() as cursor:
                 cursor.execute(db_query)
                 data = cursor.fetchall()
+
 
     except (Exception, DatabaseError) as e:
         logger.error(f"Error when querying to the Postgresql server: {str(e)}")
