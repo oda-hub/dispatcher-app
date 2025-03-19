@@ -77,7 +77,6 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                                         vo_psql_pg_db,
                                         product_gallery_url=None
                                         ):
-    result_list = []
     connection = None
 
     # Create a new VOTable file with one resource and one table
@@ -123,14 +122,11 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                                 if description.name == 'file_uri' or description.name == 'image_uri':
                                     for file_id, file_name in enumerate(value_list):
                                         value_list[file_id] = os.path.join(product_gallery_url, 'sites/default/files/', file_name.strip())
-                                table_row[v_index] = value_list
                                 table_entry[v_index] = ",".join(value_list)
                             if description.name in {'path', 'path_alias'} and value is not None and isinstance(value, str):
                                 if value.startswith('/'):
                                     value = value[1:]
-                                table_row[v_index] = os.path.join(product_gallery_url, value)
                                 table_entry[v_index] = os.path.join(product_gallery_url, value)
-                    result_list.append(table_row)
                     if r_index == 0:
                         table.create_arrays(len(data))
                     table.array[r_index] = tuple(table_entry)
