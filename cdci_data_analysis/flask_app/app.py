@@ -434,6 +434,24 @@ def push_renku_branch():
 @ns_tap.route('/<string:request_type>')
 class TAPQueryResult(Resource):
     def get(self, request_type):
+        if request_type == 'tables':
+            app_config = app.config.get('conf')
+            vo_psql_pg_host = app_config.vo_psql_pg_host
+            vo_psql_pg_port = app_config.vo_psql_pg_port
+            vo_psql_pg_user = app_config.vo_psql_pg_user
+            vo_psql_pg_password = app_config.vo_psql_pg_password
+            vo_psql_pg_db = app_config.vo_psql_pg_db
+
+            list_tables_query = "SELECT * FROM pg_catalog.pg_tables;"
+            result_request = ivoa_helper.run_metadata_query(list_tables_query,
+                                                            vo_psql_pg_host=vo_psql_pg_host,
+                                                            vo_psql_pg_port=vo_psql_pg_port,
+                                                            vo_psql_pg_user=vo_psql_pg_user,
+                                                            vo_psql_pg_password=vo_psql_pg_password,
+                                                            vo_psql_pg_db=vo_psql_pg_db)
+
+            return output_xml(result_request, 200)
+    def post(self, request_type):
         if request_type == 'async':
             return make_response("TAP async query not implemented", 501)
         elif request_type == 'sync':
@@ -467,7 +485,7 @@ class TAPQueryResult(Resource):
 
                 if tap_request == 'doQuery':
                     if tap_lang == 'ADQL':
-                        result_request = ivoa_helper.run_ivoa_query(tap_query,
+                        result_request = ivoa_helper.run_adql_query(tap_query,
                                                                     vo_psql_pg_host=vo_psql_pg_host,
                                                                     vo_psql_pg_port=vo_psql_pg_port,
                                                                     vo_psql_pg_user=vo_psql_pg_user,
