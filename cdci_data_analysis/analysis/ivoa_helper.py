@@ -41,12 +41,12 @@ def run_ivoa_query(query, **kwargs):
     vo_psql_pg_db = kwargs.get('vo_psql_pg_db', None)
     product_gallery_url = kwargs.get('product_gallery_url', None)
     result_query = run_ivoa_query_from_product_gallery(parsed_query_obj,
-                                                      vo_psql_pg_host=vo_psql_pg_host,
-                                                      vo_psql_pg_port=vo_psql_pg_port,
-                                                      vo_psql_pg_user=vo_psql_pg_user,
-                                                      vo_psql_pg_password=vo_psql_pg_password,
-                                                      vo_psql_pg_db=vo_psql_pg_db,
-                                                      product_gallery_url=product_gallery_url)
+                                                       vo_psql_pg_host=vo_psql_pg_host,
+                                                       vo_psql_pg_port=vo_psql_pg_port,
+                                                       vo_psql_pg_user=vo_psql_pg_user,
+                                                       vo_psql_pg_password=vo_psql_pg_password,
+                                                       vo_psql_pg_db=vo_psql_pg_db,
+                                                       product_gallery_url=product_gallery_url)
     return result_query
 
 
@@ -124,10 +124,12 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
                                     for file_id, file_name in enumerate(value_list):
                                         value_list[file_id] = os.path.join(product_gallery_url, 'sites/default/files/', file_name.strip())
                                 table_row[v_index] = value_list
+                                table_entry[v_index] = ",".join(value_list)
                             if description.name in {'path', 'path_alias'} and value is not None and isinstance(value, str):
                                 if value.startswith('/'):
                                     value = value[1:]
                                 table_row[v_index] = os.path.join(product_gallery_url, value)
+                                table_entry[v_index] = os.path.join(product_gallery_url, value)
                     result_list.append(table_row)
                     if r_index == 0:
                         table.create_arrays(len(data))
