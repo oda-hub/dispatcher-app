@@ -10,9 +10,31 @@ from psycopg2 import connect, DatabaseError
 from ..app_logging import app_logging
 from ..analysis.exceptions import RequestNotUnderstood
 
-from astropy.io.votable.tree import VOTableFile, Resource, Field, Table, Values
+from astropy.io.votable.tree import VOTableFile, Resource, Field, Table
 
 logger = app_logging.getLogger('ivoa_helper')
+
+
+def map_psql_type_to_vo_datatype(type_code):
+    type_db = psycopg2.extensions.string_types[type_code]
+    if type_db.name == 'LONGINTEGER':
+        return 'int'
+    elif type_db.name == 'STRING':
+        return 'char'
+    elif type_db.name == 'FLOAT':
+        return 'double'
+    elif type_db.name == 'BOOLEAN':
+        return 'boolean'
+    return 'char'
+
+
+def map_psql_null_to_vo_default_value(datatype):
+    if datatype == 'char':
+        return ""
+    elif datatype in 'int':
+        return -1
+    elif datatype in 'double':
+        return np.nan
 
 
 def parse_adql_query(query):
@@ -30,7 +52,24 @@ def parse_adql_query(query):
     return output_obj
 
 
-def run_ivoa_query(query, **kwargs):
+def run_metadata_query(query, **kwargs):
+    parsed_query_obj = parse_adql_query(query)
+
+    logger.info('Performing metadata query on the product_gallery')
+    vo_psql_pg_host = kwargs.get('vo_psql_pg_host', None)
+    vo_psql_pg_port = kwargs.get('vo_psql_pg_port', None)
+    vo_psql_pg_user = kwargs.get('vo_psql_pg_user', None)
+    vo_psql_pg_password = kwargs.get('vo_psql_pg_password', None)
+    vo_psql_pg_db = kwargs.get('vo_psql_pg_db', None)
+    result_query = run_metadata_query_from_product_gallery(parsed_query_obj,
+                                                           vo_psql_pg_host=vo_psql_pg_host,
+                                                           vo_psql_pg_port=vo_psql_pg_port,
+                                                           vo_psql_pg_user=vo_psql_pg_user,
+                                                           vo_psql_pg_password=vo_psql_pg_password,
+                                                           vo_psql_pg_db=vo_psql_pg_db)
+    return result_query
+
+def run_adql_query(query, **kwargs):
     parsed_query_obj = parse_adql_query(query)
 
     logger.info('Performing query on the product_gallery')
@@ -40,7 +79,7 @@ def run_ivoa_query(query, **kwargs):
     vo_psql_pg_password = kwargs.get('vo_psql_pg_password', None)
     vo_psql_pg_db = kwargs.get('vo_psql_pg_db', None)
     product_gallery_url = kwargs.get('product_gallery_url', None)
-    result_query = run_ivoa_query_from_product_gallery(parsed_query_obj,
+    result_query = run_query_from_product_gallery(parsed_query_obj,
                                                        vo_psql_pg_host=vo_psql_pg_host,
                                                        vo_psql_pg_port=vo_psql_pg_port,
                                                        vo_psql_pg_user=vo_psql_pg_user,
@@ -50,33 +89,14 @@ def run_ivoa_query(query, **kwargs):
     return result_query
 
 
-def map_psql_type_to_vo_datatype(type_code):
-    type_db = psycopg2.extensions.string_types[type_code]
-    if type_db.name == 'LONGINTEGER':
-        return 'int'
-    elif type_db.name == 'STRING':
-        return 'char'
-    elif type_db.name == 'FLOAT':
-        return 'double'
-    return 'char'
-
-
-def map_psql_null_to_vo_default_value(datatype):
-    if datatype == 'char':
-        return ""
-    elif datatype in 'int':
-        return -1
-    elif datatype in 'double':
-        return np.nan
-
-def run_ivoa_query_from_product_gallery(parsed_query_obj,
-                                        vo_psql_pg_host,
-                                        vo_psql_pg_port,
-                                        vo_psql_pg_user,
-                                        vo_psql_pg_password,
-                                        vo_psql_pg_db,
-                                        product_gallery_url=None
-                                        ):
+def run_query_from_product_gallery(parsed_query_obj,
+                                   vo_psql_pg_host,
+                                   vo_psql_pg_port,
+                                   vo_psql_pg_user,
+                                   vo_psql_pg_password,
+                                   vo_psql_pg_db,
+                                   product_gallery_url=None
+                                   ):
     connection = None
 
     # Create a new VOTable file with one resource and one table
@@ -146,3 +166,40 @@ def run_ivoa_query_from_product_gallery(parsed_query_obj,
         votable_xml_output = f.read()
 
     return votable_xml_output
+
+def run_metadata_query_from_product_gallery(parsed_query_obj,
+                                            vo_psql_pg_host,
+                                            vo_psql_pg_port,
+                                            vo_psql_pg_user,
+                                            vo_psql_pg_password,
+                                            vo_psql_pg_db,
+                                            ):
+    # Create a new VOTable file with one resource and one table
+    votable = VOTableFile()
+    resource = Resource()
+    votable.resources.append(resource)
+    table = Table(votable)
+    resource.tables.append(table)
+
+    try:
+        with connect(
+            host=vo_psql_pg_host,
+            port=vo_psql_pg_port,
+            database=vo_psql_pg_db,
+            user=vo_psql_pg_user,
+            password=vo_psql_pg_password
+        ) as connection:
+            db_query = parsed_query_obj.get('psql_query')
+            with connection.cursor() as cursor:
+                cursor.execute(db_query)
+                data = cursor.fetchall()
+
+    except (Exception, DatabaseError) as e:
+        logger.error(f"Error when querying to the Postgresql server: {str(e)}")
+        raise e
+
+    finally:
+        if connection is not None:
+            cursor.close()
+            connection.close()
+            logger.info('Database connection closed')
