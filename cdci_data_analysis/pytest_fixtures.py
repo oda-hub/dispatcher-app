@@ -646,10 +646,10 @@ def dispatcher_test_conf_with_vo_options_fn(dispatcher_test_conf_fn):
                 '\n         vo_mysql_pg_password: "password"'
                 '\n         vo_mysql_pg_db: "database"'
                 '\n         vo_psql_pg_host: "localhost"'
-                '\n         vo_psql_pg_port: "5432"'
-                '\n         vo_psql_pg_user: "user"'
-                '\n         vo_psql_pg_password: "password"'
-                '\n         vo_psql_pg_db: "database"')
+                '\n         vo_psql_pg_port: "5433"'
+                '\n         vo_psql_pg_user: "postgres"'
+                '\n         vo_psql_pg_password: "postgres"'
+                '\n         vo_psql_pg_db: "gallery_dev_prod"')
 
     yield fn
 
@@ -1138,6 +1138,19 @@ def dispatcher_live_fixture_empty_sentry(pytestconfig, dispatcher_test_conf_empt
 @pytest.fixture
 def dispatcher_live_fixture_with_gallery(pytestconfig, dispatcher_test_conf_with_gallery_fn, dispatcher_debug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_gallery_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_with_tap(pytestconfig, dispatcher_test_conf_with_vo_options_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_vo_options_fn)
 
     service = dispatcher_state['url']
     pid = dispatcher_state['pid']
