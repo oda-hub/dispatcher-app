@@ -433,6 +433,7 @@ def push_renku_branch():
 
 @ns_tap.route('/<string:request_type>')
 class TAPQueryResult(Resource):
+
     def get(self, request_type):
         if request_type == 'tables':
             app_config = app.config.get('conf')
@@ -454,6 +455,8 @@ class TAPQueryResult(Resource):
                                                             vo_psql_pg_db=vo_psql_pg_db)
 
             return output_xml(result_request, 200)
+        return None
+
     def post(self, request_type):
         if request_type == 'async':
             return make_response("TAP async query not implemented", 501)
