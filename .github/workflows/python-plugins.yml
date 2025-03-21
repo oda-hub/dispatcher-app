@@ -36,7 +36,7 @@ jobs:
 
     services:
       antares-backend:
-        image: densavchenko/antares:gittest
+        image: odahub/antares:5ed199f
         ports: 
         - 5002:8000
 
