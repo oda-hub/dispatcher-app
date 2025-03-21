@@ -143,7 +143,7 @@ def run_query_from_product_gallery(parsed_query_obj,
                                     for file_id, file_name in enumerate(value_list):
                                         value_list[file_id] = os.path.join(product_gallery_url, 'sites/default/files/', file_name.strip())
                                 table_entry[v_index] = ",".join(value_list)
-                            if description.name in {'path', 'path_alias'} and value is not None and isinstance(value, str):
+                            if description.name in {'path', 'path_alias', 'product_path'} and value is not None and isinstance(value, str):
                                 if value.startswith('/'):
                                     value = value[1:]
                                 table_entry[v_index] = os.path.join(product_gallery_url, value)
