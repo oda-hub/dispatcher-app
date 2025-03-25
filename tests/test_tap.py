@@ -3,11 +3,11 @@ import logging
 import pytest
 
 from astroquery.utils.tap.core import TapPlus
+from pytest_postgresql import factories
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-from pytest_postgresql import factories
-from pathlib import Path
 
 postgresql_fixture = factories.postgresql_proc(
     host="localhost",
