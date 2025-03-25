@@ -269,11 +269,6 @@ class ConfigEnv(object):
                                      disp_dict.get('renku_options', {}).get('renku_gitlab_repository_url', None),
                                      disp_dict.get('renku_options', {}).get('renku_base_project_url', None),
                                      disp_dict.get('renku_options', {}).get('ssh_key_path', None),
-                                     disp_dict.get('vo_options', {}).get('vo_mysql_pg_host', None),
-                                     disp_dict.get('vo_options', {}).get('vo_mysql_pg_port', None),
-                                     disp_dict.get('vo_options', {}).get('vo_mysql_pg_user', None),
-                                     disp_dict.get('vo_options', {}).get('vo_mysql_pg_password', None),
-                                     disp_dict.get('vo_options', {}).get('vo_mysql_pg_db', None),
                                      disp_dict.get('vo_options', {}).get('vo_psql_pg_host', None),
                                      disp_dict.get('vo_options', {}).get('vo_psql_pg_port', None),
                                      disp_dict.get('vo_options', {}).get('vo_psql_pg_user', None),
@@ -358,11 +353,6 @@ class ConfigEnv(object):
                             renku_gitlab_repository_url,
                             renku_base_project_url,
                             renku_gitlab_ssh_key_path,
-                            vo_mysql_pg_host,
-                            vo_mysql_pg_port,
-                            vo_mysql_pg_user,
-                            vo_mysql_pg_password,
-                            vo_mysql_pg_db,
                             vo_psql_pg_host,
                             vo_psql_pg_port,
                             vo_psql_pg_user,
@@ -420,11 +410,6 @@ class ConfigEnv(object):
         self.renku_gitlab_repository_url = renku_gitlab_repository_url
         self.renku_gitlab_ssh_key_path = renku_gitlab_ssh_key_path
         self.renku_base_project_url = renku_base_project_url
-        self.vo_mysql_pg_host = vo_mysql_pg_host
-        self.vo_mysql_pg_port = vo_mysql_pg_port
-        self.vo_mysql_pg_user = vo_mysql_pg_user
-        self.vo_mysql_pg_password = vo_mysql_pg_password
-        self.vo_mysql_pg_db = vo_mysql_pg_db
         self.vo_psql_pg_host = vo_psql_pg_host
         self.vo_psql_pg_port = vo_psql_pg_port
         self.vo_psql_pg_user = vo_psql_pg_user

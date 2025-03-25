@@ -124,14 +124,8 @@ dispatcher:
         # url for the conversion of a given time, in UTC format, to the correspondent REVNUM
         converttime_revnum_service_url: COVERTTIME_REVNUM_SERVICE_URL
 
-    # virtual observatory related configurations (eg mysql credentials)
+    # virtual observatory related configurations (eg postgressql credentials)
     vo_options:
-        # mysql credentials
-        vo_mysql_pg_host: MYSQL_PG_HOST
-        vo_mysql_pg_host: MYSQL_PG_PORT
-        vo_mysql_pg_user: MYSQL_PG_USER
-        vo_mysql_pg_password: MYSQL_PG_PASSWORD
-        vo_mysql_pg_db: MYSQL_PG_DB
         # postgresql credentials
         vo_psql_pg_host: PSQL_PG_HOST
         vo_psql_pg_port: PSQL_PG_PORT
