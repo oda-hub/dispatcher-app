@@ -4,6 +4,7 @@ ALTER SCHEMA mmoda_pg_dev OWNER TO postgres;
 
 SET search_path = mmoda_pg_dev, public;
 
+-- TODO download and install the extension via the github actions
 --CREATE EXTENSION IF NOT EXISTS pg_sphere WITH SCHEMA mmoda_pg_dev;
 
 CREATE TABLE mmoda_pg_dev.data_product_table_view_v (
@@ -27,5 +28,7 @@ CREATE TABLE mmoda_pg_dev.data_product_table_view_v (
     image_name character varying(255) DEFAULT NULL::character varying,
     image_uri character varying(255) NOT NULL
 );
+
+COMMENT ON TABLE mmoda_pg_dev.data_product_table_view_v IS 'This is the table of the data_products of the gallery.';
 
 ALTER TABLE mmoda_pg_dev.data_product_table_view_v OWNER TO postgres;

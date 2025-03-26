@@ -53,15 +53,13 @@ def parse_adql_query(query):
 
 
 def run_metadata_query(query, **kwargs):
-    parsed_query_obj = parse_adql_query(query)
-
     logger.info('Performing metadata query on the product_gallery')
     vo_psql_pg_host = kwargs.get('vo_psql_pg_host', None)
     vo_psql_pg_port = kwargs.get('vo_psql_pg_port', None)
     vo_psql_pg_user = kwargs.get('vo_psql_pg_user', None)
     vo_psql_pg_password = kwargs.get('vo_psql_pg_password', None)
     vo_psql_pg_db = kwargs.get('vo_psql_pg_db', None)
-    result_query = run_metadata_query_from_product_gallery(parsed_query_obj,
+    result_query = run_metadata_query_from_product_gallery(query,
                                                            vo_psql_pg_host=vo_psql_pg_host,
                                                            vo_psql_pg_port=vo_psql_pg_port,
                                                            vo_psql_pg_user=vo_psql_pg_user,
@@ -72,6 +70,7 @@ def run_metadata_query(query, **kwargs):
 def run_adql_query(query, **kwargs):
     parsed_query_obj = parse_adql_query(query)
 
+    psql_query = parsed_query_obj['psql_query']
     logger.info('Performing query on the product_gallery')
     vo_psql_pg_host = kwargs.get('vo_psql_pg_host', None)
     vo_psql_pg_port = kwargs.get('vo_psql_pg_port', None)
@@ -79,17 +78,17 @@ def run_adql_query(query, **kwargs):
     vo_psql_pg_password = kwargs.get('vo_psql_pg_password', None)
     vo_psql_pg_db = kwargs.get('vo_psql_pg_db', None)
     product_gallery_url = kwargs.get('product_gallery_url', None)
-    result_query = run_query_from_product_gallery(parsed_query_obj,
-                                                       vo_psql_pg_host=vo_psql_pg_host,
-                                                       vo_psql_pg_port=vo_psql_pg_port,
-                                                       vo_psql_pg_user=vo_psql_pg_user,
-                                                       vo_psql_pg_password=vo_psql_pg_password,
-                                                       vo_psql_pg_db=vo_psql_pg_db,
-                                                       product_gallery_url=product_gallery_url)
+    result_query = run_query_from_product_gallery(psql_query,
+                                                  vo_psql_pg_host=vo_psql_pg_host,
+                                                  vo_psql_pg_port=vo_psql_pg_port,
+                                                  vo_psql_pg_user=vo_psql_pg_user,
+                                                  vo_psql_pg_password=vo_psql_pg_password,
+                                                  vo_psql_pg_db=vo_psql_pg_db,
+                                                  product_gallery_url=product_gallery_url)
     return result_query
 
 
-def run_query_from_product_gallery(parsed_query_obj,
+def run_query_from_product_gallery(psql_query,
                                    vo_psql_pg_host,
                                    vo_psql_pg_port,
                                    vo_psql_pg_user,
@@ -114,9 +113,8 @@ def run_query_from_product_gallery(parsed_query_obj,
             user=vo_psql_pg_user,
             password=vo_psql_pg_password
         ) as connection:
-            db_query = parsed_query_obj.get('psql_query')
             with connection.cursor() as cursor:
-                cursor.execute(db_query)
+                cursor.execute(psql_query)
                 data = cursor.fetchall()
                 for r_index, row in enumerate(data):
                     table_row = list(row)
@@ -167,7 +165,7 @@ def run_query_from_product_gallery(parsed_query_obj,
 
     return votable_xml_output
 
-def run_metadata_query_from_product_gallery(parsed_query_obj,
+def run_metadata_query_from_product_gallery(psql_query,
                                             vo_psql_pg_host,
                                             vo_psql_pg_port,
                                             vo_psql_pg_user,
@@ -191,9 +189,8 @@ def run_metadata_query_from_product_gallery(parsed_query_obj,
             user=vo_psql_pg_user,
             password=vo_psql_pg_password
         ) as connection:
-            db_query = parsed_query_obj.get('psql_query')
             with connection.cursor() as cursor:
-                cursor.execute(db_query)
+                cursor.execute(psql_query)
                 data = cursor.fetchall()
                 if len(data) > 0:
                     # for each row in the query result
@@ -201,24 +198,31 @@ def run_metadata_query_from_product_gallery(parsed_query_obj,
                         table_row = list(row)
                         schema_elem_name = None
                         table_elem_name = None
+                        description_elem_name = None
                         # for each column in the row, get the column description and its corresponding value, to create a table element in the xml output, and the relative schema if needed
                         for v_index, value in enumerate(table_row):
                             description = cursor.description[v_index]
-                            if description.name == 'schemaname':
+                            if description.name == 'table_schema':
                                 schema_elem_name = value
-                            if description.name == 'tablename':
+                            if description.name == 'table_name':
                                 table_elem_name = value
+                            if description.name == 'table_description':
+                                description_elem_name = value
 
                         if schema_elem_name is not None:
                             schema_elem = get_schema_element(xml_output_root, schema_elem_name)
                             if schema_elem is None:
                                 schema_elem = ET.SubElement(xml_output_root, 'schema')
-                                ET.SubElement(schema_elem, 'name').text = value
+                                ET.SubElement(schema_elem, 'name').text = schema_elem_name
                                 ET.SubElement(schema_elem, 'description').text = 'description'
                             if table_elem_name is not None:
                                 table_elem = ET.SubElement(schema_elem, 'table')
-                                ET.SubElement(table_elem, 'name').text = value
-                                ET.SubElement(table_elem, 'description').text = 'description'
+                                ET.SubElement(table_elem, 'name').text = table_elem_name
+                                if description_elem_name is not None:
+                                    ET.SubElement(table_elem, 'description').text = description_elem_name
+                                else:
+                                    ET.SubElement(table_elem, 'description').text = 'description'
+
 
 
     except (Exception, DatabaseError) as e:
@@ -237,6 +241,6 @@ def run_metadata_query_from_product_gallery(parsed_query_obj,
 def get_schema_element(table_set_element, schema_name):
     for schema_elem in table_set_element.findall('schema'):
         name_elem = schema_elem.find('name')
-        if len(name_elem) > 0 and name_elem[0].text == schema_name:
+        if name_elem is not None and name_elem.text == schema_name:
             return schema_elem
     return None

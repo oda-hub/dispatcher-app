@@ -6,9 +6,10 @@ from astroquery.utils.tap.core import TapPlus
 from pytest_postgresql import factories
 from pathlib import Path
 
+
 logger = logging.getLogger(__name__)
 
-
+# TODO find a way to parametrize this call
 postgresql_fixture = factories.postgresql_proc(
     host="localhost",
     port=5435,
@@ -17,6 +18,7 @@ postgresql_fixture = factories.postgresql_proc(
     password="postgres",
     load=[Path(os.path.join(os.path.dirname(__file__), 'gallery_pg_db_data/pg_gallery_db_init_dump.sql'))],
 )
+
 
 postgresql = factories.postgresql(
     "postgresql_fixture",
@@ -82,3 +84,7 @@ def test_local_tap_load_tables(dispatcher_live_fixture_with_tap, postgresql_fixt
     print(tables)
 
     assert len(tables) == number_results
+
+    assert tables[0].name == 'data_product_table_view_v'
+    assert tables[0].schema == 'mmoda_pg_dev'
+    assert tables[0].description == 'This is the table of the data_products of the gallery.'

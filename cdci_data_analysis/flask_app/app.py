@@ -443,10 +443,15 @@ class TAPQueryResult(Resource):
             vo_psql_pg_password = app_config.vo_psql_pg_password
             vo_psql_pg_db = app_config.vo_psql_pg_db
 
-            list_tables_query = ("SELECT * "
-                                 "FROM pg_catalog.pg_tables "
-                                 "WHERE schemaname != 'pg_catalog' AND "
-                                 "schemaname != 'information_schema';")
+            # list_tables_query = ("SELECT * "
+            #                      "FROM pg_catalog.pg_tables "
+            #                      "WHERE schemaname != 'pg_catalog' AND "
+            #                      "schemaname != 'information_schema';")
+            list_tables_query = ("SELECT t.table_schema AS table_schema, t.table_name AS table_name, string_agg(d.description, ' ') AS table_description "
+                                 "FROM information_schema.tables t LEFT JOIN pg_catalog.pg_description d "
+                                 "ON d.objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = t.table_name AND relkind = 'r' LIMIT 1) "
+                                 "WHERE table_schema != 'pg_catalog' AND table_schema != 'information_schema' GROUP BY t.table_schema, t.table_name ORDER BY t.table_schema, t.table_name;")
+
             result_request = ivoa_helper.run_metadata_query(list_tables_query,
                                                             vo_psql_pg_host=vo_psql_pg_host,
                                                             vo_psql_pg_port=vo_psql_pg_port,
