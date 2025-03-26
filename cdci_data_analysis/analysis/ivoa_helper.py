@@ -172,7 +172,6 @@ def run_metadata_query_from_product_gallery(psql_query,
                                             vo_psql_pg_password,
                                             vo_psql_pg_db,
                                             ):
-    table_list = []
     # following https://wiki.ivoa.net/internal/IVOA/VODataService/VODataService-v1.1wd.html
     xml_output_root = ET.Element('vod:tableset', {
         'xmlns:vod': 'http://www.ivoa.net/xml/VODataService/v1.1',
