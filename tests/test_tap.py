@@ -23,14 +23,14 @@ postgresql = factories.postgresql(
 )
 
 @pytest.fixture
-def alter_db_search_path(dispatcher_test_conf_with_vo_options, postgresql):
+def postgresql_fixture_altered_db_search_path(dispatcher_test_conf_with_vo_options, postgresql):
     with postgresql.cursor() as cur:
         cur.execute(f"ALTER DATABASE {dispatcher_test_conf_with_vo_options['vo_options']['vo_psql_pg_db']} SET search_path TO mmoda_pg_dev, public;")
         postgresql.commit()
 
 
 @pytest.fixture
-def fill_up_db(dispatcher_test_conf_with_vo_options, postgresql, alter_db_search_path):
+def fill_up_db(dispatcher_test_conf_with_vo_options, postgresql, postgresql_fixture_altered_db_search_path):
     with postgresql.cursor() as cur:
         with open(os.path.join(os.path.dirname(__file__), 'gallery_pg_db_data/pg_gallery_db_init_data_products.sql')) as f:
             cur.execute(f.read())
@@ -38,7 +38,7 @@ def fill_up_db(dispatcher_test_conf_with_vo_options, postgresql, alter_db_search
 
 
 @pytest.mark.test_tap
-def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, alter_db_search_path):
+def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, postgresql_fixture_altered_db_search_path):
     server = dispatcher_live_fixture_with_tap
     tap_query = f"SELECT * FROM data_product_table_view_v"
 
@@ -71,11 +71,14 @@ def test_local_tap_sync_job(dispatcher_live_fixture_with_tap, fill_up_db):
 
 
 @pytest.mark.test_tap
-def test_local_tap_load_tables(dispatcher_live_fixture_with_tap):
+def test_local_tap_load_tables(dispatcher_live_fixture_with_tap, postgresql_fixture_altered_db_search_path):
     server = dispatcher_live_fixture_with_tap
+    number_results = 1
 
     oda_tap = TapPlus(url=os.path.join(server, "tap"))
 
     tables = oda_tap.load_tables()
 
     print(tables)
+
+    assert len(tables) == number_results

@@ -4,8 +4,8 @@ import numpy as np
 import psycopg2.extensions
 from queryparser.adql import ADQLQueryTranslator
 from queryparser.exceptions import QuerySyntaxError
-
 from psycopg2 import connect, DatabaseError
+import xml.etree.ElementTree as ET
 
 from ..app_logging import app_logging
 from ..analysis.exceptions import RequestNotUnderstood
@@ -175,7 +175,14 @@ def run_metadata_query_from_product_gallery(parsed_query_obj,
                                             vo_psql_pg_db,
                                             ):
     table_list = []
-
+    # following https://wiki.ivoa.net/internal/IVOA/VODataService/VODataService-v1.1wd.html
+    xml_output_root = ET.Element('vod:tableset', {
+        'xmlns:vod': 'http://www.ivoa.net/xml/VODataService/v1.1',
+        'xsi:type': 'vod:TableSet',
+        'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+        'xsi:schemaLocation': 'http://www.ivoa.net/xml/VODataService/v1.1 http://esa.int/xml/EsaTapPlus https://gea.esac.esa.int/tap-server/xml/esaTapPlusAttributes.xsd'
+    })
+    # gallery tables query
     try:
         with connect(
             host=vo_psql_pg_host,
@@ -188,6 +195,30 @@ def run_metadata_query_from_product_gallery(parsed_query_obj,
             with connection.cursor() as cursor:
                 cursor.execute(db_query)
                 data = cursor.fetchall()
+                if len(data) > 0:
+                    # for each row in the query result
+                    for r_index, row in enumerate(data):
+                        table_row = list(row)
+                        schema_elem_name = None
+                        table_elem_name = None
+                        # for each column in the row, get the column description and its corresponding value, to create a table element in the xml output, and the relative schema if needed
+                        for v_index, value in enumerate(table_row):
+                            description = cursor.description[v_index]
+                            if description.name == 'schemaname':
+                                schema_elem_name = value
+                            if description.name == 'tablename':
+                                table_elem_name = value
+
+                        if schema_elem_name is not None:
+                            schema_elem = get_schema_element(xml_output_root, schema_elem_name)
+                            if schema_elem is None:
+                                schema_elem = ET.SubElement(xml_output_root, 'schema')
+                                ET.SubElement(schema_elem, 'name').text = value
+                                ET.SubElement(schema_elem, 'description').text = 'description'
+                            if table_elem_name is not None:
+                                table_elem = ET.SubElement(schema_elem, 'table')
+                                ET.SubElement(table_elem, 'name').text = value
+                                ET.SubElement(table_elem, 'description').text = 'description'
 
 
     except (Exception, DatabaseError) as e:
@@ -199,3 +230,13 @@ def run_metadata_query_from_product_gallery(parsed_query_obj,
             cursor.close()
             connection.close()
             logger.info('Database connection closed')
+
+    return ET.tostring(xml_output_root, encoding='unicode')
+
+
+def get_schema_element(table_set_element, schema_name):
+    for schema_elem in table_set_element.findall('schema'):
+        name_elem = schema_elem.find('name')
+        if len(name_elem) > 0 and name_elem[0].text == schema_name:
+            return schema_elem
+    return None

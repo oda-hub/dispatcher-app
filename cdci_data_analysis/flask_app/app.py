@@ -443,9 +443,9 @@ class TAPQueryResult(Resource):
             vo_psql_pg_password = app_config.vo_psql_pg_password
             vo_psql_pg_db = app_config.vo_psql_pg_db
 
-            list_tables_query = ("SELECT *"
-                                 "FROM pg_catalog.pg_tables"
-                                 "WHERE schemaname != 'pg_catalog' AND"
+            list_tables_query = ("SELECT * "
+                                 "FROM pg_catalog.pg_tables "
+                                 "WHERE schemaname != 'pg_catalog' AND "
                                  "schemaname != 'information_schema';")
             result_request = ivoa_helper.run_metadata_query(list_tables_query,
                                                             vo_psql_pg_host=vo_psql_pg_host,
