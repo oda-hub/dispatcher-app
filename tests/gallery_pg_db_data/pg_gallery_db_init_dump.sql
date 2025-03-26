@@ -4,7 +4,7 @@ ALTER SCHEMA mmoda_pg_dev OWNER TO postgres;
 
 SET search_path = mmoda_pg_dev, public;
 
-CREATE EXTENSION IF NOT EXISTS pg_sphere WITH SCHEMA mmoda_pg_dev;
+--CREATE EXTENSION IF NOT EXISTS pg_sphere WITH SCHEMA mmoda_pg_dev;
 
 CREATE TABLE mmoda_pg_dev.data_product_table_view_v (
     title character varying(255) NOT NULL,

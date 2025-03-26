@@ -57,7 +57,7 @@ def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, alter_db_
 def test_local_tap_sync_job(dispatcher_live_fixture_with_tap, fill_up_db):
     server = dispatcher_live_fixture_with_tap
     number_results = 5
-    tap_query = f"SELECT TOP {number_results} * FROM data_product_table_view_v WHERE DISTANCE(POINT(308.107, 40.9577), POINT(ra, dec)) < 107474700"
+    tap_query = f"SELECT TOP {number_results} * FROM data_product_table_view_v"
 
     oda_tap = TapPlus(url=os.path.join(server, "tap"))
 
