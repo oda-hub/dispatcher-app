@@ -121,7 +121,8 @@ def run_query_from_product_gallery(psql_query,
                     datatype = map_psql_type_to_vo_datatype(column.type_code)
                     default_no_value = map_psql_null_to_vo_default_value(datatype)
                     f = Field(votable, ID=column.name, name=column.name, datatype=datatype, arraysize="*")
-                    f.description = 'description'
+                    # TODO find a way to extract the column description from the DB
+                    f.description = ''
                     f.values.null = default_no_value
                     table.fields.append(f)
                 for r_index, row in enumerate(data):
