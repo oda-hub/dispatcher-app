@@ -116,6 +116,14 @@ def run_query_from_product_gallery(psql_query,
             with connection.cursor() as cursor:
                 cursor.execute(psql_query)
                 data = cursor.fetchall()
+                # loop over the description of the data result to define the fields of the output VOTable
+                for column in cursor.description:
+                    datatype = map_psql_type_to_vo_datatype(column.type_code)
+                    default_no_value = map_psql_null_to_vo_default_value(datatype)
+                    f = Field(votable, ID=column.name, name=column.name, datatype=datatype, arraysize="*")
+                    f.description = 'description'
+                    f.values.null = default_no_value
+                    table.fields.append(f)
                 for r_index, row in enumerate(data):
                     table_row = list(row)
                     table_entry = [""] * len(table_row)
@@ -125,10 +133,6 @@ def run_query_from_product_gallery(psql_query,
                         description = cursor.description[v_index]
                         datatype = map_psql_type_to_vo_datatype(description.type_code)
                         default_no_value = map_psql_null_to_vo_default_value(datatype)
-                        if r_index == 0:
-                            f = Field(votable, ID=description.name, name=description.name, datatype=datatype, arraysize="*")
-                            f.values.null = default_no_value
-                            table.fields.append(f)
                         if value is None:
                             table_entry[v_index] = default_no_value
                         else:
