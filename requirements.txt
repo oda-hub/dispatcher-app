@@ -23,6 +23,7 @@ celery
 redis
 psutil
 pyjwt
+pyvo
 giturlparse
 aiosmtpd
 marshmallow
