@@ -28,7 +28,27 @@ CREATE TABLE mmoda_pg_dev.data_product_table_view_v (
     image_name character varying(255) DEFAULT NULL::character varying,
     image_uri character varying(255) NOT NULL
 );
-
+-- dummy description for the table and each column
 COMMENT ON TABLE mmoda_pg_dev.data_product_table_view_v IS 'This is the table of the data_products of the gallery.';
+
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.title IS 'The title of the data product.';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.product_path IS 'The path to the data product.';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.e1_kev IS 'This is e1';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.e2_kev IS 'This is e2';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.ra IS 'This is the RA';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.dec IS 'This is the DEC';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.time_bin IS 'This is the time bin';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.instrument_name IS 'This is the mame of the instrument';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.product_type_name IS 'This is the name of the product type';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.rev1 IS 'This is the start revolution';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.rev2 IS 'This is the end revolution';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.t_start IS 'This is the start time';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.t_stop IS 'This is the end time';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.proposal_id IS 'This is the proposal id';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.sources IS 'This is the source';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.file_name IS 'This is the name of the file';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.file_uri IS 'This is the uri of the file';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.image_name IS 'This is the name of the image';
+COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.image_uri IS 'This is the uri of the image';
 
 ALTER TABLE mmoda_pg_dev.data_product_table_view_v OWNER TO postgres;
