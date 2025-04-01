@@ -17,8 +17,6 @@ CREATE TABLE mmoda_pg_dev.data_product_table_view_v (
     time_bin double precision NOT NULL,
     instrument_name character varying(255) NOT NULL,
     product_type_name character varying(255) NOT NULL,
-    rev1 bigint NOT NULL,
-    rev2 bigint NOT NULL,
     t_start character varying(20) NOT NULL,
     t_stop character varying(20) NOT NULL,
     proposal_id character varying(255) NOT NULL,
@@ -40,8 +38,6 @@ COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.dec IS 'This is the DEC
 COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.time_bin IS 'This is the time bin';
 COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.instrument_name IS 'This is the mame of the instrument';
 COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.product_type_name IS 'This is the name of the product type';
-COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.rev1 IS 'This is the start revolution';
-COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.rev2 IS 'This is the end revolution';
 COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.t_start IS 'This is the start time';
 COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.t_stop IS 'This is the end time';
 COMMENT ON COLUMN mmoda_pg_dev.data_product_table_view_v.proposal_id IS 'This is the proposal id';
