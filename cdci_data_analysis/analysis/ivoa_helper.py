@@ -52,20 +52,32 @@ def parse_adql_query(query):
     return output_obj
 
 
-def run_metadata_query(query, **kwargs):
+def run_metadata_query(**kwargs):
     logger.info('Performing metadata query on the product_gallery')
     vo_psql_pg_host = kwargs.get('vo_psql_pg_host', None)
     vo_psql_pg_port = kwargs.get('vo_psql_pg_port', None)
     vo_psql_pg_user = kwargs.get('vo_psql_pg_user', None)
     vo_psql_pg_password = kwargs.get('vo_psql_pg_password', None)
     vo_psql_pg_db = kwargs.get('vo_psql_pg_db', None)
-    result_query = run_metadata_query_from_product_gallery(query,
-                                                           vo_psql_pg_host=vo_psql_pg_host,
-                                                           vo_psql_pg_port=vo_psql_pg_port,
-                                                           vo_psql_pg_user=vo_psql_pg_user,
-                                                           vo_psql_pg_password=vo_psql_pg_password,
-                                                           vo_psql_pg_db=vo_psql_pg_db)
-    return result_query
+    # following https://wiki.ivoa.net/internal/IVOA/VODataService/VODataService-v1.1wd.html
+    xml_output_root = ET.Element('vod:tableset', {
+        'xmlns:vod': 'http://www.ivoa.net/xml/VODataService/v1.1',
+        'xsi:type': 'vod:TableSet',
+        'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+        'xsi:schemaLocation': 'http://www.ivoa.net/xml/VODataService/v1.1 http://esa.int/xml/EsaTapPlus https://gea.esac.esa.int/tap-server/xml/esaTapPlusAttributes.xsd'
+    })
+    gallery_query = ("SELECT t.table_schema AS table_schema, t.table_name AS table_name, string_agg(d.description, ' ') AS table_description "
+                     "FROM information_schema.tables t LEFT JOIN pg_catalog.pg_description d "
+                     "ON d.objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = t.table_name AND relkind = 'r' LIMIT 1) "
+                     "WHERE table_schema != 'pg_catalog' AND table_schema != 'information_schema' GROUP BY t.table_schema, t.table_name ORDER BY t.table_schema, t.table_name;")
+    run_metadata_query_from_product_gallery(gallery_query,
+                                            xml_output_root=xml_output_root,
+                                            vo_psql_pg_host=vo_psql_pg_host,
+                                            vo_psql_pg_port=vo_psql_pg_port,
+                                            vo_psql_pg_user=vo_psql_pg_user,
+                                            vo_psql_pg_password=vo_psql_pg_password,
+                                            vo_psql_pg_db=vo_psql_pg_db)
+    return ET.tostring(xml_output_root, encoding='unicode')
 
 def run_adql_query(query, **kwargs):
     parsed_query_obj = parse_adql_query(query)
@@ -171,19 +183,13 @@ def run_query_from_product_gallery(psql_query,
     return votable_xml_output
 
 def run_metadata_query_from_product_gallery(psql_query,
+                                            xml_output_root,
                                             vo_psql_pg_host,
                                             vo_psql_pg_port,
                                             vo_psql_pg_user,
                                             vo_psql_pg_password,
                                             vo_psql_pg_db,
                                             ):
-    # following https://wiki.ivoa.net/internal/IVOA/VODataService/VODataService-v1.1wd.html
-    xml_output_root = ET.Element('vod:tableset', {
-        'xmlns:vod': 'http://www.ivoa.net/xml/VODataService/v1.1',
-        'xsi:type': 'vod:TableSet',
-        'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-        'xsi:schemaLocation': 'http://www.ivoa.net/xml/VODataService/v1.1 http://esa.int/xml/EsaTapPlus https://gea.esac.esa.int/tap-server/xml/esaTapPlusAttributes.xsd'
-    })
     # gallery tables query
     try:
         with connect(
@@ -227,8 +233,6 @@ def run_metadata_query_from_product_gallery(psql_query,
                                 else:
                                     ET.SubElement(table_elem, 'description').text = 'description'
 
-
-
     except (Exception, DatabaseError) as e:
         logger.error(f"Error when querying to the Postgresql server: {str(e)}")
         raise e
@@ -238,8 +242,6 @@ def run_metadata_query_from_product_gallery(psql_query,
             cursor.close()
             connection.close()
             logger.info('Database connection closed')
-
-    return ET.tostring(xml_output_root, encoding='unicode')
 
 
 def get_schema_element(table_set_element, schema_name):
