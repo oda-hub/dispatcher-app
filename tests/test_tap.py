@@ -3,7 +3,6 @@ import logging
 import pytest
 import pyvo
 
-from astroquery.utils.tap.core import TapPlus
 from pytest_postgresql import factories
 from pathlib import Path
 
@@ -45,7 +44,6 @@ def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, postgresq
     server = dispatcher_live_fixture_with_tap
     tap_query = f"SELECT * FROM data_product_table_view_v"
 
-    # oda_tap = TapPlus(url=os.path.join(server, "tap"))
     oda_tap = pyvo.dal.TAPService(os.path.join(server, "tap"))
 
     result = oda_tap.search(tap_query)
