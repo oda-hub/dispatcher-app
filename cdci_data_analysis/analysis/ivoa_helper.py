@@ -15,16 +15,21 @@ from astropy.io.votable.tree import VOTableFile, Resource, Field, Table
 logger = app_logging.getLogger('ivoa_helper')
 
 
-def map_psql_type_to_vo_datatype(type_code):
+def map_psql_type_code_to_vo_datatype(type_code):
     type_db = psycopg2.extensions.string_types[type_code]
-    if type_db.name == 'LONGINTEGER':
+    return map_psql_type_to_vo_datatype(type_db.name)
+
+def map_psql_type_to_vo_datatype(type_db):
+    if type_db.upper() == 'LONGINTEGER' or type_db.upper() == 'BIGINT':
         return 'int'
-    elif type_db.name == 'STRING':
+    elif type_db.upper() == 'STRING':
         return 'char'
-    elif type_db.name == 'FLOAT':
+    elif type_db.upper() == 'FLOAT':
         return 'double'
-    elif type_db.name == 'BOOLEAN':
+    elif type_db.upper() == 'BOOLEAN':
         return 'boolean'
+    elif type_db.upper() == 'BYTEA':
+        return 'unsignedByte'
     return 'char'
 
 
@@ -66,17 +71,14 @@ def run_metadata_query(**kwargs):
         'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
         'xsi:schemaLocation': 'http://www.ivoa.net/xml/VODataService/v1.1 http://esa.int/xml/EsaTapPlus https://gea.esac.esa.int/tap-server/xml/esaTapPlusAttributes.xsd'
     })
-    gallery_query = ("SELECT t.table_schema AS table_schema, t.table_name AS table_name, string_agg(d.description, ' ') AS table_description "
-                     "FROM information_schema.tables t LEFT JOIN pg_catalog.pg_description d "
-                     "ON d.objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = t.table_name AND relkind = 'r' LIMIT 1) "
-                     "WHERE table_schema != 'pg_catalog' AND table_schema != 'information_schema' GROUP BY t.table_schema, t.table_name ORDER BY t.table_schema, t.table_name;")
-    run_metadata_query_from_product_gallery(gallery_query,
-                                            xml_output_root=xml_output_root,
-                                            vo_psql_pg_host=vo_psql_pg_host,
-                                            vo_psql_pg_port=vo_psql_pg_port,
-                                            vo_psql_pg_user=vo_psql_pg_user,
-                                            vo_psql_pg_password=vo_psql_pg_password,
-                                            vo_psql_pg_db=vo_psql_pg_db)
+
+    extract_metadata_from_product_gallery(xml_output_root=xml_output_root,
+                                          vo_psql_pg_host=vo_psql_pg_host,
+                                          vo_psql_pg_port=vo_psql_pg_port,
+                                          vo_psql_pg_user=vo_psql_pg_user,
+                                          vo_psql_pg_password=vo_psql_pg_password,
+                                          vo_psql_pg_db=vo_psql_pg_db)
+
     return ET.tostring(xml_output_root, encoding='unicode')
 
 def run_adql_query(query, **kwargs):
@@ -130,7 +132,7 @@ def run_query_from_product_gallery(psql_query,
                 data = cursor.fetchall()
                 # loop over the description of the data result to define the fields of the output VOTable
                 for column in cursor.description:
-                    datatype = map_psql_type_to_vo_datatype(column.type_code)
+                    datatype = map_psql_type_code_to_vo_datatype(column.type_code)
                     default_no_value = map_psql_null_to_vo_default_value(datatype)
                     f = Field(votable, ID=column.name, name=column.name, datatype=datatype, arraysize="*")
                     # TODO find a way to extract the column description from the DB
@@ -144,7 +146,7 @@ def run_query_from_product_gallery(psql_query,
                         # Get the column description and its corresponding datatype and default value in case of null in the DB
                         # then create the field in the VOTable obj
                         description = cursor.description[v_index]
-                        datatype = map_psql_type_to_vo_datatype(description.type_code)
+                        datatype = map_psql_type_code_to_vo_datatype(description.type_code)
                         default_no_value = map_psql_null_to_vo_default_value(datatype)
                         if value is None:
                             table_entry[v_index] = default_no_value
@@ -182,15 +184,32 @@ def run_query_from_product_gallery(psql_query,
 
     return votable_xml_output
 
-def run_metadata_query_from_product_gallery(psql_query,
-                                            xml_output_root,
-                                            vo_psql_pg_host,
-                                            vo_psql_pg_port,
-                                            vo_psql_pg_user,
-                                            vo_psql_pg_password,
-                                            vo_psql_pg_db,
-                                            ):
+def extract_metadata_from_product_gallery(xml_output_root,
+                                          vo_psql_pg_host,
+                                          vo_psql_pg_port,
+                                          vo_psql_pg_user,
+                                          vo_psql_pg_password,
+                                          vo_psql_pg_db,
+                                          ):
     # gallery tables query
+    tables_gallery_query = ("SELECT t.table_schema AS table_schema, t.table_name AS table_name, t.table_type AS table_type, "
+                            "string_agg(d.description, ' ') AS table_description "
+                            "FROM information_schema.tables t LEFT JOIN pg_catalog.pg_description d "
+                            "ON d.objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = t.table_name AND relkind = 'r' LIMIT 1) "
+                            "WHERE table_schema != 'pg_catalog' AND table_schema != 'information_schema' "
+                            "GROUP BY t.table_schema, t.table_name, t.table_type ORDER BY t.table_schema, t.table_name;")
+
+    columns_table_gallery_query = ("SELECT c.column_name, c.data_type, c.column_default, "
+                                   "COL_DESCRIPTION(CONCAT(c.table_schema, '.', c.table_name)::regclass, ordinal_position) as description "
+                                   "FROM information_schema.columns as c "
+                                   "JOIN information_schema.tables as t "
+                                   "ON t.table_catalog = c.table_catalog "
+                                   "AND t.table_schema = c.table_schema "
+                                   "AND t.table_name = c.table_name "
+                                   "WHERE c.table_name = '{table_name}' "
+                                   "AND c.table_schema = '{schema_name}' "
+                                   "ORDER BY c.column_name;")
+
     try:
         with connect(
             host=vo_psql_pg_host,
@@ -200,7 +219,7 @@ def run_metadata_query_from_product_gallery(psql_query,
             password=vo_psql_pg_password
         ) as connection:
             with connection.cursor() as cursor:
-                cursor.execute(psql_query)
+                cursor.execute(tables_gallery_query)
                 data = cursor.fetchall()
                 if len(data) > 0:
                     # for each row in the query result
@@ -209,6 +228,7 @@ def run_metadata_query_from_product_gallery(psql_query,
                         schema_elem_name = None
                         table_elem_name = None
                         description_elem_name = None
+                        table_type_name = None
                         # for each column in the row, get the column description and its corresponding value, to create a table element in the xml output, and the relative schema if needed
                         for v_index, value in enumerate(table_row):
                             description = cursor.description[v_index]
@@ -218,6 +238,8 @@ def run_metadata_query_from_product_gallery(psql_query,
                                 table_elem_name = value
                             if description.name == 'table_description':
                                 description_elem_name = value
+                            if description.name == 'table_type':
+                                table_type_name = value
 
                         if schema_elem_name is not None:
                             schema_elem = get_schema_element(xml_output_root, schema_elem_name)
@@ -227,11 +249,44 @@ def run_metadata_query_from_product_gallery(psql_query,
                                 ET.SubElement(schema_elem, 'description').text = 'description'
                             if table_elem_name is not None:
                                 table_elem = ET.SubElement(schema_elem, 'table')
+                                if table_type_name is not None:
+                                    table_elem.set('type', '_'.join(table_type_name.lower().split()))
                                 ET.SubElement(table_elem, 'name').text = table_elem_name
                                 if description_elem_name is not None:
                                     ET.SubElement(table_elem, 'description').text = description_elem_name
                                 else:
                                     ET.SubElement(table_elem, 'description').text = 'description'
+
+                            formatted_columns_table_gallery_query = columns_table_gallery_query.format(table_name=table_elem_name, schema_name=schema_elem_name)
+                            with connection.cursor() as column_cursor:
+                                column_cursor.execute(formatted_columns_table_gallery_query)
+                                columns_table_data = column_cursor.fetchall()
+                                for c_t_index, c_t_row in enumerate(columns_table_data):
+                                    c_t_table_row = list(c_t_row)
+                                    column_description = None
+                                    column_datatype = None
+                                    for v_c_t_index, v_c_t_value in enumerate(c_t_table_row):
+                                        c_t_description = column_cursor.description[v_c_t_index]
+                                        if c_t_description.name == 'column_name':
+                                            column_elem_name = v_c_t_value
+                                        if c_t_description.name == 'data_type':
+                                            column_datatype = v_c_t_value
+                                        if c_t_description.name == 'column_default':
+                                            column_default = v_c_t_value
+                                        if c_t_description.name == 'description':
+                                            column_description = v_c_t_value
+                                    column_elem = ET.SubElement(table_elem, 'column')
+                                    ET.SubElement(column_elem, 'name').text = column_elem_name
+                                    if column_description is not None:
+                                        ET.SubElement(column_elem, 'description').text = column_description
+                                    else:
+                                        ET.SubElement(column_elem, 'description').text = 'description'
+                                    if column_datatype is not None:
+                                        vo_table_type = map_psql_type_to_vo_datatype(column_datatype)
+                                        data_type_elem = ET.SubElement(column_elem, 'dataType')
+                                        table_elem.set('type', '_'.join(table_type_name.lower().split()))
+                                        data_type_elem.text = vo_table_type
+                                        data_type_elem.set('xsi:type', 'vod:VOTableType')
 
     except (Exception, DatabaseError) as e:
         logger.error(f"Error when querying to the Postgresql server: {str(e)}")
