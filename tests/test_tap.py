@@ -42,7 +42,7 @@ def fill_up_db(dispatcher_test_conf_with_vo_options, postgresql, postgresql_fixt
 @pytest.mark.test_tap
 def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, postgresql_fixture_altered_db_search_path):
     server = dispatcher_live_fixture_with_tap
-    tap_query = f"SELECT * FROM data_product_table_view_v"
+    tap_query = f"SELECT * FROM ivoa.obscore"
 
     oda_tap = pyvo.dal.TAPService(os.path.join(server, "tap"))
 
@@ -57,7 +57,7 @@ def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, postgresq
 def test_local_tap_sync_job(dispatcher_live_fixture_with_tap, fill_up_db):
     server = dispatcher_live_fixture_with_tap
     number_results = 5
-    tap_query = f"SELECT TOP {number_results} * FROM data_product_table_view_v"
+    tap_query = f"SELECT TOP {number_results} * FROM ivoa.obscore"
 
     oda_tap = pyvo.dal.TAPService(os.path.join(server, "tap"))
 
@@ -83,4 +83,4 @@ def test_local_tap_load_tables(dispatcher_live_fixture_with_tap, postgresql_fixt
 
     tab_names = [tab_name for tab_name in tables.keys()]
 
-    assert tab_names[0] == 'data_product_table_view_v'
+    assert tab_names[0] == 'obscore'

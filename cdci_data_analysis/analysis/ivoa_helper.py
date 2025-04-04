@@ -154,9 +154,9 @@ def run_query_from_product_gallery(psql_query,
                             table_entry[v_index] = value
 
                         if product_gallery_url is not None:
-                            if description.name in {'file_uri', 'file_name', 'image_name', 'image_uri'} and value is not None and isinstance(value, str):
+                            if description.name in {'file_uri', 'file_name', 'image_name', 'image_uri', 'access_url'} and value is not None and isinstance(value, str):
                                 value_list = [v.strip() for v in value.split(',')]
-                                if description.name == 'file_uri' or description.name == 'image_uri':
+                                if description.name == 'file_uri' or description.name == 'image_uri' or description.name == 'access_url':
                                     for file_id, file_name in enumerate(value_list):
                                         value_list[file_id] = os.path.join(product_gallery_url, 'sites/default/files/', file_name.strip())
                                 table_entry[v_index] = ",".join(value_list)
