@@ -5,6 +5,7 @@ import psycopg2.extensions
 from queryparser.adql import ADQLQueryTranslator
 from queryparser.exceptions import QuerySyntaxError
 from psycopg2 import connect, DatabaseError
+from astropy.time import Time as astropyTime
 import xml.etree.ElementTree as ET
 
 from ..app_logging import app_logging
@@ -32,6 +33,18 @@ def map_psql_type_to_vo_datatype(type_db):
         return 'unsignedByte'
     return 'char'
 
+def map_python_type_to_vo_datatype(python_type):
+    if python_type == str:
+        return 'char'
+    elif python_type == int:
+        return 'int'
+    elif python_type == float:
+        return 'double'
+    elif python_type == bool:
+        return 'boolean'
+    elif python_type == bytes:
+        return 'unsignedByte'
+    return 'char'
 
 def map_psql_null_to_vo_default_value(datatype):
     if datatype == 'char':
@@ -131,27 +144,42 @@ def run_query_from_product_gallery(psql_query,
                 cursor.execute(psql_query)
                 data = cursor.fetchall()
                 # loop over the description of the data result to define the fields of the output VOTable
-                for column in cursor.description:
-                    datatype = map_psql_type_code_to_vo_datatype(column.type_code)
-                    default_no_value = map_psql_null_to_vo_default_value(datatype)
-                    f = Field(votable, ID=column.name, name=column.name, datatype=datatype, arraysize="*")
-                    # TODO find a way to extract the column description from the DB
-                    f.description = ''
-                    f.values.null = default_no_value
-                    table.fields.append(f)
+                # for column in cursor.description:
+                #     datatype = map_psql_type_code_to_vo_datatype(column.type_code)
+                #     default_no_value = map_psql_null_to_vo_default_value(datatype)
+                #     f = Field(votable, ID=column.name, name=column.name, datatype=datatype, arraysize="*")
+                #     # TODO find a way to extract the column description from the DB
+                #     f.description = ''
+                #     f.values.null = default_no_value
+                #     table.fields.append(f)
+                # table.create_arrays(len(data))
                 for r_index, row in enumerate(data):
                     table_row = list(row)
                     table_entry = [""] * len(table_row)
+                    # for each column of a table_row
                     for v_index, value in enumerate(table_row):
                         # Get the column description and its corresponding datatype and default value in case of null in the DB
                         # then create the field in the VOTable obj
                         description = cursor.description[v_index]
-                        datatype = map_psql_type_code_to_vo_datatype(description.type_code)
-                        default_no_value = map_psql_null_to_vo_default_value(datatype)
-                        if value is None:
-                            table_entry[v_index] = default_no_value
-                        else:
-                            table_entry[v_index] = value
+                        datatype = None
+                        default_no_value = None
+                        # datatype = map_psql_type_code_to_vo_datatype(description.type_code)
+                        # default_no_value = map_psql_null_to_vo_default_value(datatype)
+                        # if value is None:
+                        #     table_entry[v_index] = default_no_value
+                        # else:
+                        #     table_entry[v_index] = value
+
+                        table_entry[v_index] = value
+                        if description.name in {'t_min', 't_max'}:
+                            datatype = 'double'
+                            default_no_value = np.nan
+                            try:
+                                time = astropyTime(value)
+                                table_entry[v_index] = time.jd
+                            except Exception as e:
+                                logger.error(f"Error while parsing the field {description.name}, with value {value}: {str(e)}")
+                                table_entry[v_index] = default_no_value
 
                         if product_gallery_url is not None:
                             if description.name in {'file_uri', 'file_name', 'image_name', 'image_uri', 'access_url'} and value is not None and isinstance(value, str):
@@ -164,6 +192,26 @@ def run_query_from_product_gallery(psql_query,
                                 if value.startswith('/'):
                                     value = value[1:]
                                 table_entry[v_index] = os.path.join(product_gallery_url, value)
+                            datatype = 'char'
+                            default_no_value = ''
+                            # get datatype using numpy, from the table_entry[v_index] inserted
+                        # in the table_row, to be able to set the default value in case of null
+                        if datatype is None:
+                            # datatype = map_python_type_to_vo_datatype(type(table_entry[v_index]))
+                            datatype = map_psql_type_code_to_vo_datatype(description.type_code)
+                            default_no_value = map_psql_null_to_vo_default_value(datatype)
+                            if value is None:
+                                table_entry[v_index] = default_no_value
+                            else:
+                                table_entry[v_index] = value
+
+                        if r_index == 0:
+                            f = Field(votable, ID=description.name, name=description.name, datatype=datatype, arraysize="*")
+                            # TODO find a way to extract the column description from the DB
+                            f.description = ''
+                            f.values.null = default_no_value
+                            table.fields.append(f)
+                    # it has to be done here, since the fields have to be created first
                     if r_index == 0:
                         table.create_arrays(len(data))
                     table.array[r_index] = tuple(table_entry)

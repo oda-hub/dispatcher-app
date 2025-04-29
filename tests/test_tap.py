@@ -56,7 +56,7 @@ def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, postgresq
 @pytest.mark.test_tap
 def test_local_tap_sync_job(dispatcher_live_fixture_with_tap, fill_up_db):
     server = dispatcher_live_fixture_with_tap
-    number_results = 5
+    number_results = 7
     tap_query = f"SELECT TOP {number_results} * FROM ivoa.obscore"
 
     oda_tap = pyvo.dal.TAPService(os.path.join(server, "tap"))
