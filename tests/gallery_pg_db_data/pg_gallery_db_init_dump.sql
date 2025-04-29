@@ -8,12 +8,12 @@ SET search_path = ivoa, public;
 --CREATE EXTENSION IF NOT EXISTS pg_sphere WITH SCHEMA ivoa;
 
 CREATE TABLE ivoa.obscore (
-    title character varying(255) NOT NULL,
+    obs_title character varying(255) NOT NULL,
     product_path character varying(255) DEFAULT NULL::character varying,
-    e1_kev double precision,
-    e2_kev double precision,
-    ra double precision,
-    "dec" double precision,
+    em_min double precision,
+    em_max double precision,
+    s_ra double precision,
+    s_dec double precision,
     time_bin double precision,
     instrument_name character varying(255),
     dataproduct_type character varying(255),
@@ -27,12 +27,12 @@ CREATE TABLE ivoa.obscore (
 -- dummy description for the table and each column
 COMMENT ON TABLE ivoa.obscore IS 'This is the table of the data_products of the gallery.';
 
-COMMENT ON COLUMN ivoa.obscore.title IS 'The title of the data product.';
+COMMENT ON COLUMN ivoa.obscore.obs_title IS 'The title of the data product.';
 COMMENT ON COLUMN ivoa.obscore.product_path IS 'The path to the data product.';
-COMMENT ON COLUMN ivoa.obscore.e1_kev IS 'This is e1';
-COMMENT ON COLUMN ivoa.obscore.e2_kev IS 'This is e2';
-COMMENT ON COLUMN ivoa.obscore.ra IS 'This is the RA';
-COMMENT ON COLUMN ivoa.obscore.dec IS 'This is the DEC';
+COMMENT ON COLUMN ivoa.obscore.em_min IS 'This is e1';
+COMMENT ON COLUMN ivoa.obscore.em_max IS 'This is e2';
+COMMENT ON COLUMN ivoa.obscore.s_ra IS 'This is the RA';
+COMMENT ON COLUMN ivoa.obscore.s_dec IS 'This is the DEC';
 COMMENT ON COLUMN ivoa.obscore.time_bin IS 'This is the time bin';
 COMMENT ON COLUMN ivoa.obscore.instrument_name IS 'This is the mame of the instrument';
 COMMENT ON COLUMN ivoa.obscore.dataproduct_type IS 'This is the name of the product type';
