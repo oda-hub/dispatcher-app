@@ -33,19 +33,6 @@ def map_psql_type_to_vo_datatype(type_db):
         return 'unsignedByte'
     return 'char'
 
-def map_python_type_to_vo_datatype(python_type):
-    if python_type == str:
-        return 'char'
-    elif python_type == int:
-        return 'int'
-    elif python_type == float:
-        return 'double'
-    elif python_type == bool:
-        return 'boolean'
-    elif python_type == bytes:
-        return 'unsignedByte'
-    return 'char'
-
 def map_psql_null_to_vo_default_value(datatype):
     if datatype == 'char':
         return ""
@@ -53,6 +40,7 @@ def map_psql_null_to_vo_default_value(datatype):
         return -1
     elif datatype in 'double':
         return np.nan
+    return ""
 
 
 def parse_adql_query(query):
@@ -143,16 +131,6 @@ def run_query_from_product_gallery(psql_query,
             with connection.cursor() as cursor:
                 cursor.execute(psql_query)
                 data = cursor.fetchall()
-                # loop over the description of the data result to define the fields of the output VOTable
-                # for column in cursor.description:
-                #     datatype = map_psql_type_code_to_vo_datatype(column.type_code)
-                #     default_no_value = map_psql_null_to_vo_default_value(datatype)
-                #     f = Field(votable, ID=column.name, name=column.name, datatype=datatype, arraysize="*")
-                #     # TODO find a way to extract the column description from the DB
-                #     f.description = ''
-                #     f.values.null = default_no_value
-                #     table.fields.append(f)
-                # table.create_arrays(len(data))
                 for r_index, row in enumerate(data):
                     table_row = list(row)
                     table_entry = [""] * len(table_row)
@@ -163,12 +141,6 @@ def run_query_from_product_gallery(psql_query,
                         description = cursor.description[v_index]
                         datatype = None
                         default_no_value = None
-                        # datatype = map_psql_type_code_to_vo_datatype(description.type_code)
-                        # default_no_value = map_psql_null_to_vo_default_value(datatype)
-                        # if value is None:
-                        #     table_entry[v_index] = default_no_value
-                        # else:
-                        #     table_entry[v_index] = value
 
                         table_entry[v_index] = value
                         if description.name in {'t_min', 't_max'}:
@@ -197,7 +169,6 @@ def run_query_from_product_gallery(psql_query,
                             # get datatype using numpy, from the table_entry[v_index] inserted
                         # in the table_row, to be able to set the default value in case of null
                         if datatype is None:
-                            # datatype = map_python_type_to_vo_datatype(type(table_entry[v_index]))
                             datatype = map_psql_type_code_to_vo_datatype(description.type_code)
                             default_no_value = map_psql_null_to_vo_default_value(datatype)
                             if value is None:
