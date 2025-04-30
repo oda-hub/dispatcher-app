@@ -7,11 +7,13 @@ from queryparser.exceptions import QuerySyntaxError
 from psycopg2 import connect, DatabaseError
 from astropy.time import Time as astropyTime
 import xml.etree.ElementTree as ET
+import astropy.units as u
 
 from ..app_logging import app_logging
 from ..analysis.exceptions import RequestNotUnderstood
 
 from astropy.io.votable.tree import VOTableFile, Resource, Field, Table
+from astropy import constants
 
 logger = app_logging.getLogger('ivoa_helper')
 
@@ -153,6 +155,14 @@ def run_query_from_product_gallery(psql_query,
                                 logger.error(f"Error while parsing the field {description.name}, with value {value}: {str(e)}")
                                 table_entry[v_index] = default_no_value
 
+                        if description.name in {'em_min', 'em_max'}:
+                            try:
+                                meters_em = kev_to_meters(value)
+                                table_entry[v_index] = meters_em
+                            except Exception as e:
+                                logger.error(f"Error while converting energy value from keV to m, with value {value}: {str(e)}")
+                                table_entry[v_index] = default_no_value
+
                         if product_gallery_url is not None:
                             if description.name in {'file_uri', 'file_name', 'image_name', 'image_uri', 'access_url'} and value is not None and isinstance(value, str):
                                 value_list = [v.strip() for v in value.split(',')]
@@ -175,8 +185,6 @@ def run_query_from_product_gallery(psql_query,
                             default_no_value = map_psql_null_to_vo_default_value(datatype)
                             if value is None:
                                 table_entry[v_index] = default_no_value
-                            else:
-                                table_entry[v_index] = value
 
                         if r_index == 0:
                             f = Field(votable, ID=description.name, name=description.name, datatype=datatype, arraysize="*")
@@ -329,3 +337,8 @@ def get_schema_element(table_set_element, schema_name):
         if name_elem is not None and name_elem.text == schema_name:
             return schema_elem
     return None
+
+def kev_to_meters(energy_keV):
+    energy = energy_keV * u.keV
+    wavelength = (constants.h * constants.c / energy).to(u.m).value
+    return wavelength
