@@ -291,7 +291,10 @@ def extract_metadata_from_product_gallery(xml_output_root,
                                         if c_t_description.name == 'column_name':
                                             column_elem_name = v_c_t_value
                                         if c_t_description.name == 'data_type':
-                                            column_datatype = v_c_t_value
+                                            if column_elem_name in {'t_max', 't_min'}:
+                                                column_datatype = 'FLOAT'
+                                            else:
+                                                column_datatype = v_c_t_value
                                         if c_t_description.name == 'column_default':
                                             column_default = v_c_t_value
                                         if c_t_description.name == 'description':
