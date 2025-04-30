@@ -148,11 +148,14 @@ def run_query_from_product_gallery(psql_query,
                         if description.name in {'t_min', 't_max'}:
                             datatype = 'double'
                             default_no_value = np.nan
-                            try:
-                                time = astropyTime(value)
-                                table_entry[v_index] = time.jd
-                            except Exception as e:
-                                logger.error(f"Error while parsing the field {description.name}, with value {value}: {str(e)}")
+                            if value is not None:
+                                try:
+                                    time = astropyTime(value)
+                                    table_entry[v_index] = time.jd
+                                except Exception as e:
+                                    logger.error(f"Error while parsing the field {description.name}, with value {value}: {str(e)}")
+                                    table_entry[v_index] = default_no_value
+                            else:
                                 table_entry[v_index] = default_no_value
 
                         if description.name in {'em_min', 'em_max'}:
