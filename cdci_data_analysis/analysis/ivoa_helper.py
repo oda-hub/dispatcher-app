@@ -135,9 +135,6 @@ def run_query_from_product_gallery(psql_query,
                 data = cursor.fetchall()
                 # loop over the description of the data result to define the fields of the output VOTable
                 for column in cursor.description:
-                    # if column.name in {'t_min', 't_max'}:
-                    #     datatype = 'double'
-                    # else:
                     datatype = map_psql_type_code_to_vo_datatype(column.type_code)
                     default_no_value = map_psql_null_to_vo_default_value(datatype)
                     f = Field(votable, ID=column.name, name=column.name, datatype=datatype, arraysize="*")
@@ -158,18 +155,6 @@ def run_query_from_product_gallery(psql_query,
                         default_no_value = None
 
                         table_entry[v_index] = value
-                        # if description.name in {'t_min', 't_max'}:
-                        #     datatype = 'double'
-                        #     default_no_value = np.nan
-                        #     if value is not None:
-                        #         try:
-                        #             time = astropyTime(value)
-                        #             table_entry[v_index] = time.mjd
-                        #         except Exception as e:
-                        #             logger.error(f"Error while parsing the field {description.name}, with value {value}: {str(e)}")
-                        #             table_entry[v_index] = default_no_value
-                        #     else:
-                        #         table_entry[v_index] = default_no_value
 
                         if description.name in {'em_min', 'em_max'}:
                             try:
@@ -187,13 +172,11 @@ def run_query_from_product_gallery(psql_query,
                                         value_list[file_id] = os.path.join(product_gallery_url, 'sites/default/files/', file_name.strip())
                                 table_entry[v_index] = ",".join(value_list)
                                 datatype = 'char'
-                                default_no_value = ''
                             if description.name in {'path', 'path_alias', 'product_path'} and value is not None and isinstance(value, str):
                                 if value.startswith('/'):
                                     value = value[1:]
                                 table_entry[v_index] = os.path.join(product_gallery_url, value)
                                 datatype = 'char'
-                                default_no_value = ''
                             # get datatype using numpy, from the table_entry[v_index] inserted
                         # in the table_row, to be able to set the default value in case of null
                         if datatype is None:
