@@ -164,7 +164,7 @@ def run_query_from_product_gallery(psql_query,
                             if value is not None:
                                 try:
                                     time = astropyTime(value)
-                                    table_entry[v_index] = time.jd
+                                    table_entry[v_index] = time.mjd
                                 except Exception as e:
                                     logger.error(f"Error while parsing the field {description.name}, with value {value}: {str(e)}")
                                     table_entry[v_index] = default_no_value
