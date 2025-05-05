@@ -22,18 +22,20 @@ def map_psql_type_code_to_vo_datatype(type_code):
     type_db = psycopg2.extensions.string_types[type_code]
     return map_psql_type_to_vo_datatype(type_db.name)
 
+
 def map_psql_type_to_vo_datatype(type_db):
     if type_db.upper() == 'LONGINTEGER' or type_db.upper() == 'BIGINT':
         return 'int'
     elif type_db.upper() == 'STRING':
         return 'char'
-    elif type_db.upper() == 'FLOAT':
+    elif type_db.upper() == 'FLOAT' or type_db.upper() == 'DOUBLE PRECISION':
         return 'double'
     elif type_db.upper() == 'BOOLEAN':
         return 'boolean'
     elif type_db.upper() == 'BYTEA':
         return 'unsignedByte'
     return 'char'
+
 
 def map_psql_null_to_vo_default_value(datatype):
     if datatype == 'char':
@@ -289,10 +291,7 @@ def extract_metadata_from_product_gallery(xml_output_root,
                                         if c_t_description.name == 'column_name':
                                             column_elem_name = v_c_t_value
                                         if c_t_description.name == 'data_type':
-                                            if column_elem_name in {'t_max', 't_min'}:
-                                                column_datatype = 'FLOAT'
-                                            else:
-                                                column_datatype = v_c_t_value
+                                            column_datatype = v_c_t_value
                                         if c_t_description.name == 'column_default':
                                             column_default = v_c_t_value
                                         if c_t_description.name == 'description':
