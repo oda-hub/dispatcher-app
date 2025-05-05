@@ -1,13 +1,13 @@
 import os.path
+import psycopg2.extensions
 
 import numpy as np
-import psycopg2.extensions
+import xml.etree.ElementTree as ET
+import astropy.units as u
+
 from queryparser.adql import ADQLQueryTranslator
 from queryparser.exceptions import QuerySyntaxError
 from psycopg2 import connect, DatabaseError
-from astropy.time import Time as astropyTime
-import xml.etree.ElementTree as ET
-import astropy.units as u
 
 from ..app_logging import app_logging
 from ..analysis.exceptions import RequestNotUnderstood
