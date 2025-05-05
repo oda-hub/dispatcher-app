@@ -158,14 +158,6 @@ def run_query_from_product_gallery(psql_query,
 
                         table_entry[v_index] = value
 
-                        if description.name in {'em_min', 'em_max'}:
-                            try:
-                                meters_em = kev_to_meters(value)
-                                table_entry[v_index] = meters_em
-                            except Exception as e:
-                                logger.error(f"Error while converting energy value from keV to m, with value {value}: {str(e)}")
-                                table_entry[v_index] = default_no_value
-
                         if product_gallery_url is not None:
                             if description.name in {'file_uri', 'file_name', 'image_name', 'image_uri', 'access_url'} and value is not None and isinstance(value, str):
                                 value_list = [v.strip() for v in value.split(',')]
