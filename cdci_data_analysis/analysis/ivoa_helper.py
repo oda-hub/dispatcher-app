@@ -37,7 +37,7 @@ def map_psql_type_to_vo_datatype(type_db):
     return 'char'
 
 
-def map_psql_null_to_vo_default_value(datatype):
+def map_vo_type_to_vo_default_value(datatype):
     if datatype == 'char':
         return ""
     elif datatype in 'int':
@@ -138,7 +138,7 @@ def run_query_from_product_gallery(psql_query,
                 # loop over the description of the data result to define the fields of the output VOTable
                 for column in cursor.description:
                     datatype = map_psql_type_code_to_vo_datatype(column.type_code)
-                    default_no_value = map_psql_null_to_vo_default_value(datatype)
+                    default_no_value = map_vo_type_to_vo_default_value(datatype)
                     f = Field(votable, ID=column.name, name=column.name, datatype=datatype, arraysize="*")
                     # TODO find a way to extract the column description from the DB
                     f.description = ''
@@ -169,7 +169,7 @@ def run_query_from_product_gallery(psql_query,
                                 table_entry[v_index] = os.path.join(product_gallery_url, value)
 
                         datatype = map_psql_type_code_to_vo_datatype(description.type_code)
-                        default_no_value = map_psql_null_to_vo_default_value(datatype)
+                        default_no_value = map_vo_type_to_vo_default_value(datatype)
                         if value is None:
                             table_entry[v_index] = default_no_value
 
