@@ -153,8 +153,6 @@ def run_query_from_product_gallery(psql_query,
                         # Get the column description and its corresponding datatype and default value in case of null in the DB
                         # then create the field in the VOTable obj
                         description = cursor.description[v_index]
-                        datatype = None
-                        default_no_value = None
 
                         table_entry[v_index] = value
 
@@ -165,19 +163,15 @@ def run_query_from_product_gallery(psql_query,
                                     for file_id, file_name in enumerate(value_list):
                                         value_list[file_id] = os.path.join(product_gallery_url, 'sites/default/files/', file_name.strip())
                                 table_entry[v_index] = ",".join(value_list)
-                                datatype = 'char'
                             if description.name in {'path', 'path_alias', 'product_path'} and value is not None and isinstance(value, str):
                                 if value.startswith('/'):
                                     value = value[1:]
                                 table_entry[v_index] = os.path.join(product_gallery_url, value)
-                                datatype = 'char'
-                            # get datatype using numpy, from the table_entry[v_index] inserted
-                        # in the table_row, to be able to set the default value in case of null
-                        if datatype is None:
-                            datatype = map_psql_type_code_to_vo_datatype(description.type_code)
-                            default_no_value = map_psql_null_to_vo_default_value(datatype)
-                            if value is None:
-                                table_entry[v_index] = default_no_value
+
+                        datatype = map_psql_type_code_to_vo_datatype(description.type_code)
+                        default_no_value = map_psql_null_to_vo_default_value(datatype)
+                        if value is None:
+                            table_entry[v_index] = default_no_value
 
                     table.array[r_index] = tuple(table_entry)
 
