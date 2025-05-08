@@ -230,6 +230,8 @@ def extract_metadata_from_product_gallery(xml_output_root,
                                    "AND c.table_schema = '{schema_name}' "
                                    "ORDER BY c.column_name;")
 
+    columns_to_exclude = {'ivoa.obscore': 'nid'}
+
     try:
         with connect(
             host=vo_psql_pg_host,
@@ -282,19 +284,15 @@ def extract_metadata_from_product_gallery(xml_output_root,
                                 column_cursor.execute(formatted_columns_table_gallery_query)
                                 columns_table_data = column_cursor.fetchall()
                                 for c_t_index, c_t_row in enumerate(columns_table_data):
-                                    c_t_table_row = list(c_t_row)
-                                    column_description = None
-                                    column_datatype = None
-                                    for v_c_t_index, v_c_t_value in enumerate(c_t_table_row):
-                                        c_t_description = column_cursor.description[v_c_t_index]
-                                        if c_t_description.name == 'column_name':
-                                            column_elem_name = v_c_t_value
-                                        if c_t_description.name == 'data_type':
-                                            column_datatype = v_c_t_value
-                                        if c_t_description.name == 'column_default':
-                                            column_default = v_c_t_value
-                                        if c_t_description.name == 'description':
-                                            column_description = v_c_t_value
+                                    if columns_to_exclude.get(schema_elem_name + '.' + table_elem_name, None) is not None and columns_to_exclude[schema_elem_name + '.' + table_elem_name] == c_t_row[0]:
+                                        continue
+                                    # considering the query
+                                    # "SELECT c.column_name, c.data_type, c.column_default, "
+                                    # "COL_DESCRIPTION(CONCAT(c.table_schema, '.', c.table_name)::regclass, ordinal_position) as description "
+                                    column_elem_name = c_t_row[0]
+                                    column_datatype = c_t_row[1]
+                                    column_default = c_t_row[2]
+                                    column_description = c_t_row[3]
                                     column_elem = ET.SubElement(table_elem, 'column')
                                     ET.SubElement(column_elem, 'name').text = column_elem_name
                                     if column_description is not None:
