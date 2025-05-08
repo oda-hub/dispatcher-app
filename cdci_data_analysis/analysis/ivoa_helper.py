@@ -124,6 +124,9 @@ def run_query_from_product_gallery(psql_query,
     table = Table(votable)
     resource.tables.append(table)
 
+    columns_to_exclude = ['nid']
+    indexes_to_exclude = []
+
     try:
         with connect(
             host=vo_psql_pg_host,
@@ -136,7 +139,11 @@ def run_query_from_product_gallery(psql_query,
                 cursor.execute(psql_query)
                 data = cursor.fetchall()
                 # loop over the description of the data result to define the fields of the output VOTable
-                for column in cursor.description:
+                for column_index, column in enumerate(cursor.description):
+                    # purely drupal related, not related within the context of TAP
+                    if column.name in columns_to_exclude:
+                        indexes_to_exclude.append(column_index)
+                        continue
                     datatype = map_psql_type_code_to_vo_datatype(column.type_code)
                     default_no_value = map_vo_type_to_vo_default_value(datatype)
                     f = Field(votable, ID=column.name, name=column.name, datatype=datatype, arraysize="*")
@@ -147,13 +154,15 @@ def run_query_from_product_gallery(psql_query,
                 table.create_arrays(len(data))
                 for r_index, row in enumerate(data):
                     table_row = list(row)
-                    table_entry = [""] * len(table_row)
+                    table_entry = [""] * len(row)
                     # for each column of a table_row
                     for v_index, value in enumerate(table_row):
                         # Get the column description and its corresponding datatype and default value in case of null in the DB
                         # then create the field in the VOTable obj
                         description = cursor.description[v_index]
-
+                        # purely drupal related, not related within the context of TAP
+                        if description.name in columns_to_exclude:
+                            continue
                         table_entry[v_index] = value
 
                         if product_gallery_url is not None:
@@ -172,6 +181,10 @@ def run_query_from_product_gallery(psql_query,
                         default_no_value = map_vo_type_to_vo_default_value(datatype)
                         if value is None:
                             table_entry[v_index] = default_no_value
+
+                    # remove entry based on the index to excludes
+                    for index in indexes_to_exclude:
+                        del table_entry[index]
 
                     table.array[r_index] = tuple(table_entry)
 
