@@ -450,7 +450,8 @@ class TAPQueryResult(Resource):
                                                             vo_psql_pg_db=vo_psql_pg_db)
 
             return output_xml(result_request, 200)
-        return None
+
+        return make_response(f"The requested tap service is currently not available.", 501)
 
     def post(self, request_type):
         if request_type == 'async':
@@ -512,6 +513,8 @@ class TAPQueryResult(Resource):
                 logging.getLogger().error(error_message)
                 sentry.capture_message(error_message)
                 return make_response(f"Internal error while running an ADQL query. Our team is notified and is working on it.")
+
+        return make_response(f"The requested tap service is currently not available.", 501)
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
