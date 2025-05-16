@@ -321,6 +321,22 @@ def free_up_space():
     return free_up_result_data_obj
 
 
+@app.route('/inspect-user-state', methods=['POST', 'GET'])
+def inspect_user_state():
+    token = request.args.get('token', None)
+
+    app_config = app.config.get('conf')
+    secret_key = app_config.secret_key
+    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+                                                                  action="inspect the user state for a given job_id")
+
+    if output_code is not None:
+        return make_response(output, output_code)
+
+    state_data_obj = InstrumentQueryBackEnd.inspect_state()
+    return jsonify(dict(records=state_data_obj['records']))
+
+
 @app.route('/inspect-state', methods=['POST', 'GET'])
 def inspect_state():
     token = request.args.get('token', None)
@@ -333,6 +349,7 @@ def inspect_state():
 
     if output_code is not None:
         return make_response(output, output_code)
+
     state_data_obj = InstrumentQueryBackEnd.inspect_state()
     return jsonify(dict(records=state_data_obj['records']))
 
