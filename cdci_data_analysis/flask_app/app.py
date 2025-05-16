@@ -333,7 +333,10 @@ def inspect_user_state():
     if output_code is not None:
         return make_response(output, output_code)
 
-    state_data_obj = InstrumentQueryBackEnd.inspect_state()
+    user_name = tokenHelper.get_token_user_email_address(output)
+    tokenHelper.get_token_user_email_address(decoded_token)
+
+    state_data_obj = InstrumentQueryBackEnd.inspect_user_state(user_email)
     return jsonify(dict(records=state_data_obj['records']))
 
 
