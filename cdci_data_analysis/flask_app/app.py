@@ -327,16 +327,15 @@ def inspect_user_state():
 
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
-    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+    decoded_token, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
                                                                   action="inspect the user state for a given job_id")
 
     if output_code is not None:
-        return make_response(output, output_code)
+        return make_response(decoded_token, output_code)
 
-    user_name = tokenHelper.get_token_user_email_address(output)
-    tokenHelper.get_token_user_email_address(decoded_token)
-
+    user_email = tokenHelper.get_token_user_email_address(decoded_token)
     state_data_obj = InstrumentQueryBackEnd.inspect_user_state(user_email)
+
     return jsonify(dict(records=state_data_obj['records']))
 
 
@@ -346,12 +345,12 @@ def inspect_state():
 
     app_config = app.config.get('conf')
     secret_key = app_config.secret_key
-    output, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
+    decoded_token, output_code = tokenHelper.validate_token_from_request(token=token, secret_key=secret_key,
                                                                   required_roles=['job manager'],
                                                                   action="inspect the state for a given job_id")
 
     if output_code is not None:
-        return make_response(output, output_code)
+        return make_response(decoded_token, output_code)
 
     state_data_obj = InstrumentQueryBackEnd.inspect_state()
     return jsonify(dict(records=state_data_obj['records']))
