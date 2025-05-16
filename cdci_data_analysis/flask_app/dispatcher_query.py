@@ -505,7 +505,7 @@ class InstrumentQueryBackEnd:
 
     @staticmethod
     def inspect_user_state(user_email):
-        return inspect_state(user_email)
+        return InstrumentQueryBackEnd.inspect_state(user_email)
 
     @staticmethod
     def inspect_state(user_email=None):
