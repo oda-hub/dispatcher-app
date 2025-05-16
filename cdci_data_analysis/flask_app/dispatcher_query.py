@@ -503,10 +503,9 @@ class InstrumentQueryBackEnd:
 
         return jsonify(out_instrument_list)
 
-
     @staticmethod
     def inspect_user_state(user_email):
-        inspect_state(user_email)
+        return inspect_state(user_email)
 
     @staticmethod
     def inspect_state(user_email=None):
@@ -595,12 +594,11 @@ class InstrumentQueryBackEnd:
     @staticmethod
     def read_job_status_scratch_dir(scratch_dir, include_session_log=False, include_status_query_output=False, exclude_analysis_parameters=True, user_email=None):
         result_job_status = None
-        result_content, request_completed, token_expired =
-            InstrumentQueryBackEnd.read_content_scratch_dir(scratch_dir,
-                                                            include_session_log=include_session_log,
-                                                            include_status_query_output=include_status_query_output,
-                                                            exclude_analysis_parameters=exclude_analysis_parameters,
-                                                            user_email=user_email)
+        result_content, request_completed, token_expired = InstrumentQueryBackEnd.read_content_scratch_dir(scratch_dir,
+                                                                                                           include_session_log=include_session_log,
+                                                                                                           include_status_query_output=include_status_query_output,
+                                                                                                           exclude_analysis_parameters=exclude_analysis_parameters,
+                                                                                                           user_email=user_email)
         if result_content is not None:
             result_job_status = dict(
                 request_completed = request_completed,
