@@ -619,24 +619,24 @@ class InstrumentQueryBackEnd:
         token_expired = None
         reading_output_message = None
 
+        analysis_parameters, reading_output_message = InstrumentQueryBackEnd.read_analysis_parameters_scratch_dir(scratch_dir,
+                                                                                                                  decode_token=True)
+        if analysis_parameters is None:
+            analysis_parameters = reading_output_message
+        else:
+            if 'token' in analysis_parameters:
+                token_expired = analysis_parameters['token']['exp'] < time_.time()
+
         if not exclude_analysis_parameters:
-            result_content['analysis_parameters'], reading_output_message = InstrumentQueryBackEnd.read_analysis_parameters_scratch_dir(scratch_dir,
-                                                                                                                                        decode_token=True)
-            if result_content['analysis_parameters'] is None:
-                result_content['analysis_parameters'] = reading_output_message
-            else:
-                if 'token' in result_content['analysis_parameters']:
-                    token_expired = result_content['analysis_parameters']['token']['exp'] < time_.time()
+            result_content['analysis_parameters'] = analysis_parameters
 
         if user_email is not None:
-            if exclude_analysis_parameters or result_content['analysis_parameters'] in [None, reading_output_message]:
+            if analysis_parameters in [None, reading_output_message]:
                 return None, None, None
 
-            analysis_parameters = result_content['analysis_parameters']
             token = analysis_parameters.get('token', {})
             if token.get('sub') != user_email:
                 return None, None, None
-
 
         for f in glob.glob(os.path.join(scratch_dir, "*")):
             file_list.append(f)
