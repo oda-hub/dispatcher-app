@@ -2903,7 +2903,8 @@ def test_inspect_user_status(dispatcher_live_fixture, user_request_cred, remove_
             assert isinstance(jdata['records'][0]['file_list'], list)
 
 @pytest.mark.parametrize("user_request_state", ['user_1', 'user_2'])
-def test_inspect_user_status_multiple_requests(dispatcher_live_fixture, user_request_state):
+@pytest.mark.parametrize("exclude_analysis_parameters", [True, False, None])
+def test_inspect_user_status_multiple_requests(dispatcher_live_fixture, user_request_state, exclude_analysis_parameters):
     DispatcherJobState.remove_scratch_folders()
 
     server = dispatcher_live_fixture
@@ -2959,7 +2960,8 @@ def test_inspect_user_status_multiple_requests(dispatcher_live_fixture, user_req
 
     c = requests.get(server + "/inspect-user-state",
                      params=dict(
-                     token=encoded_token,
+                         token=encoded_token,
+                         exclude_analysis_parameters=exclude_analysis_parameters
                      ))
 
     jdata= c.json()
@@ -2969,8 +2971,11 @@ def test_inspect_user_status_multiple_requests(dispatcher_live_fixture, user_req
     assert jdata['records'][0]['job_id'] == job_id_1 if user_request_state == 'user_1' else job_id_2
     assert jdata['records'][0]['ctime'] == scratch_dir_ctime_1 if user_request_state == 'user_1' else scratch_dir_ctime_2
     assert jdata['records'][0]['mtime'] == scratch_dir_mtime_1 if user_request_state == 'user_1' else scratch_dir_mtime_2
-    assert 'analysis_parameters' in jdata['records'][0]
-    assert jdata['records'][0]['analysis_parameters']['token']['sub'] == token_payload_user_1['sub'] if user_request_state == 'user_1' else token_payload_user_2['sub']
+    if exclude_analysis_parameters:
+        assert 'analysis_parameters' not in jdata['records'][0]
+    else:
+        assert 'analysis_parameters' in jdata['records'][0]
+        assert jdata['records'][0]['analysis_parameters']['token']['sub'] == token_payload_user_1['sub'] if user_request_state == 'user_1' else token_payload_user_2['sub']
     assert not jdata['records'][0]['token_expired']
     assert 'email_history' in jdata['records'][0]
     assert 'matrix_message_history' in jdata['records'][0]
@@ -3092,7 +3097,6 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id,
                     else f'scratch_sid_{session_id_failed}_jid_{job_id_failed}'
                 )
                 if exclude_analysis_parameters:
-                    assert 'token_expired' not in job['job_status_data'][0]
                     assert 'analysis_parameters' not in job['job_status_data'][0]['scratch_dir_content']
                 else:
                     assert not job['job_status_data'][0]['token_expired']
@@ -3105,12 +3109,7 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id,
                 f'scratch_sid_{session_id_done}_jid_{job_id_done}' if jdata['records'][0]['job_id'] == job_id_done
                 else f'scratch_sid_{session_id_failed}_jid_{job_id_failed}'
             )
-
-            if exclude_analysis_parameters:
-                assert 'token_expired' not in jdata['records'][0]['job_status_data'][0]
-            else:
-                assert not jdata['records'][0]['job_status_data'][0]['token_expired']
-
+            assert not jdata['records'][0]['job_status_data'][0]['token_expired']
 
 def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
     server = gunicorn_dispatcher_long_living_fixture
