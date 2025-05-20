@@ -2967,8 +2967,8 @@ def test_inspect_user_status_multiple_requests(dispatcher_live_fixture, user_req
     assert type(jdata['records']) is list
     assert len(jdata['records']) == 1
     assert jdata['records'][0]['job_id'] == job_id_1 if user_request_state == 'user_1' else job_id_2
-    assert jdata['records'][0]['ctime'] == scratch_dir_ctime_1 if user_request_state == 'user_1' else scratch_dir_ctime_1
-    assert jdata['records'][0]['mtime'] == scratch_dir_mtime_1 if user_request_state == 'user_1' else scratch_dir_mtime_1
+    assert jdata['records'][0]['ctime'] == scratch_dir_ctime_1 if user_request_state == 'user_1' else scratch_dir_ctime_2
+    assert jdata['records'][0]['mtime'] == scratch_dir_mtime_1 if user_request_state == 'user_1' else scratch_dir_mtime_2
     assert 'analysis_parameters' in jdata['records'][0]
     assert jdata['records'][0]['analysis_parameters']['token']['sub'] == token_payload_user_1['sub'] if user_request_state == 'user_1' else token_payload_user_2['sub']
     assert not jdata['records'][0]['token_expired']
