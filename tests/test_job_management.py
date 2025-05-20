@@ -2953,9 +2953,8 @@ def test_inspect_user_status_multiple_requests(dispatcher_live_fixture, user_req
     scratch_dir_ctime_2 = os.stat(scratch_dir_fn_2).st_ctime
     scratch_dir_mtime_2 = os.stat(scratch_dir_fn_2).st_mtime
 
-    if user_request_state == 'user_1':
-        encoded_token = encoded_token_user_1
-    elif user_request_state == 'user_2':
+    encoded_token = encoded_token_user_1
+    if user_request_state == 'user_2':
         encoded_token = encoded_token_user_2
 
     c = requests.get(server + "/inspect-user-state",
