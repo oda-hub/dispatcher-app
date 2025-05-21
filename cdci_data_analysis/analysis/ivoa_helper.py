@@ -216,7 +216,7 @@ def extract_metadata_from_product_gallery(xml_output_root,
                             "string_agg(d.description, ' ') AS table_description "
                             "FROM information_schema.tables t LEFT JOIN pg_catalog.pg_description d "
                             "ON d.objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = t.table_name AND relkind = 'r' LIMIT 1) "
-                            "WHERE table_schema != 'pg_catalog' AND table_schema != 'information_schema' "
+                            "WHERE d.objsubid = 0 AND table_schema != 'pg_catalog' AND table_schema != 'information_schema' "
                             "GROUP BY t.table_schema, t.table_name, t.table_type ORDER BY t.table_schema, t.table_name;")
 
     columns_table_gallery_query = ("SELECT c.column_name, c.data_type, c.column_default, "
