@@ -72,6 +72,7 @@ def test_local_tap_sync_job(dispatcher_live_fixture_with_tap, fill_up_db):
 def test_local_tap_load_tables(dispatcher_live_fixture_with_tap, postgresql_fixture_altered_db_search_path):
     server = dispatcher_live_fixture_with_tap
     number_results = 1
+    column_names = ['obs_title', 'product_path', 'em_min', 'em_max', 'time_bin', 'instrument_name', 'target_name', 'target_id', 's_ra', 's_dec', 'dataproduct_type', 't_min', 't_max', 'proposal_id', 'target_name', 'access_url', 'image_uri']
 
     oda_tap = pyvo.dal.TAPService(os.path.join(server, "tap"))
 
@@ -84,3 +85,10 @@ def test_local_tap_load_tables(dispatcher_live_fixture_with_tap, postgresql_fixt
     tab_names = [tab_name for tab_name in tables.keys()]
 
     assert tab_names[0] == 'obscore'
+
+    table_obj = list(tables.items())
+    assert table_obj[0][1].description.endswith('This is the table of the data_products of the gallery')
+    for column in table_obj[0][1].columns:
+        assert column.name in column_names
+        assert column.description is not None and column.description == f"{column.name} of the data product"
+

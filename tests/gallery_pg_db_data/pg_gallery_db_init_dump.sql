@@ -25,22 +25,22 @@ CREATE TABLE ivoa.obscore (
     image_uri character varying(255)
 );
 -- dummy description for the table and each column
-COMMENT ON TABLE ivoa.obscore IS 'This is the table of the data_products of the gallery.';
+COMMENT ON TABLE ivoa.obscore IS 'This is the table of the data_products of the gallery';
 
-COMMENT ON COLUMN ivoa.obscore.obs_title IS 'The title of the data product.';
-COMMENT ON COLUMN ivoa.obscore.product_path IS 'The path to the data product.';
-COMMENT ON COLUMN ivoa.obscore.em_min IS 'This is e1';
-COMMENT ON COLUMN ivoa.obscore.em_max IS 'This is e2';
-COMMENT ON COLUMN ivoa.obscore.s_ra IS 'This is the RA';
-COMMENT ON COLUMN ivoa.obscore.s_dec IS 'This is the DEC';
-COMMENT ON COLUMN ivoa.obscore.time_bin IS 'This is the time bin';
-COMMENT ON COLUMN ivoa.obscore.instrument_name IS 'This is the mame of the instrument';
-COMMENT ON COLUMN ivoa.obscore.dataproduct_type IS 'This is the name of the product type';
-COMMENT ON COLUMN ivoa.obscore.t_min IS 'This is the start time';
-COMMENT ON COLUMN ivoa.obscore.t_max IS 'This is the end time';
-COMMENT ON COLUMN ivoa.obscore.proposal_id IS 'This is the proposal id';
-COMMENT ON COLUMN ivoa.obscore.target_name IS 'This is the source';
-COMMENT ON COLUMN ivoa.obscore.access_url IS 'This is the uri of the file';
-COMMENT ON COLUMN ivoa.obscore.image_uri IS 'This is the uri of the image';
+COMMENT ON COLUMN ivoa.obscore.obs_title IS 'obs_title of the data product';
+COMMENT ON COLUMN ivoa.obscore.product_path IS 'product_path of the data product';
+COMMENT ON COLUMN ivoa.obscore.em_min IS 'em_min of the data product';
+COMMENT ON COLUMN ivoa.obscore.em_max IS 'em_max of the data product';
+COMMENT ON COLUMN ivoa.obscore.s_ra IS 's_ra of the data product';
+COMMENT ON COLUMN ivoa.obscore.s_dec IS 's_dec of the data product';
+COMMENT ON COLUMN ivoa.obscore.time_bin IS 'time_bin of the data product';
+COMMENT ON COLUMN ivoa.obscore.instrument_name IS 'instrument_name of the data product';
+COMMENT ON COLUMN ivoa.obscore.dataproduct_type IS 'dataproduct_type of the data product';
+COMMENT ON COLUMN ivoa.obscore.t_min IS 't_min of the data product';
+COMMENT ON COLUMN ivoa.obscore.t_max IS 't_max of the data product';
+COMMENT ON COLUMN ivoa.obscore.proposal_id IS 'proposal_id of the data product';
+COMMENT ON COLUMN ivoa.obscore.target_name IS 'target_name of the data product';
+COMMENT ON COLUMN ivoa.obscore.access_url IS 'access_url of the data product';
+COMMENT ON COLUMN ivoa.obscore.image_uri IS 'image_uri of the data product';
 
 ALTER TABLE ivoa.obscore OWNER TO postgres;
