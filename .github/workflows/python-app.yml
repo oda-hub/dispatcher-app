@@ -44,19 +44,6 @@ jobs:
         wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
         sudo apt-get update
 
-    - name: Install build dependencies for pg_sphere
-      run: sudo apt-get install -y postgresql-server-dev-16 build-essential git make gcc clang-13 sbcl
-
-    - name: Clone pgsphere
-      run: git clone --branch aiprdbms16 https://github.com/kimakan/pgsphere.git /tmp/pgsphere
-
-    - name: Build and install pgsphere
-      run: |
-        which pg_config && \
-        cd /tmp/pgsphere && \
-        make USE_PGXS=1 && \
-        sudo make USE_PGXS=1 install
-
     - name: Lint with flake8
       if: ${{ env.TEST_ONLY_FAST != 'true' }}
       run: |
