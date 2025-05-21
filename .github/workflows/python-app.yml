@@ -52,8 +52,9 @@ jobs:
 
     - name: Build and install pgsphere
       run: |
-        cd /tmp/pgsphere
-        make USE_PGXS=1
+        echo "which pg_config" && \
+        cd /tmp/pgsphere && \
+        make USE_PGXS=1 && \
         sudo make USE_PGXS=1 install
 
     - name: Lint with flake8
