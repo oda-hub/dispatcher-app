@@ -60,8 +60,8 @@ jobs:
       run: |
         which pg_config && \
         cd /tmp/pgsphere && \
-        make USE_PGXS=1 && \
-        sudo make USE_PGXS=1 install
+        gmake USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config && \
+        gmake USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config install
 
     - name: Lint with flake8
       if: ${{ env.TEST_ONLY_FAST != 'true' }}
