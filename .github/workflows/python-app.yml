@@ -52,7 +52,7 @@ jobs:
 
     - name: Build and install pgsphere
       run: |
-        echo "which pg_config" && \
+        which pg_config && \
         cd /tmp/pgsphere && \
         make USE_PGXS=1 && \
         sudo make USE_PGXS=1 install
