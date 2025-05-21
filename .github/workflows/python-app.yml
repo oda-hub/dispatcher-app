@@ -38,6 +38,9 @@ jobs:
         pip install -e .[test,ontology]
         curl -o tests/oda-ontology.ttl https://raw.githubusercontent.com/oda-hub/ontology/main/ontology.ttl
 
+    - name: Install build dependencies for pg_sphere
+      run: sudo apt-get update && sudo apt-get install -y git make gcc postgresql-server-dev-all
+
     - name: Clone pgsphere
       run: git clone --branch aiprdbms16 https://github.com/kimakan/pgsphere.git /tmp/pgsphere
 
