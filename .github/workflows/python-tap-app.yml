@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     env:
       TEST_ONLY_FAST: ${{ contains( github.event.pull_request.labels.*.name, 'test-only-fast') }}
