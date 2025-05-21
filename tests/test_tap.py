@@ -87,7 +87,7 @@ def test_local_tap_load_tables(dispatcher_live_fixture_with_tap, postgresql_fixt
     assert tab_names[0] == 'obscore'
 
     table_obj = list(tables.items())
-    assert table_obj[0][1].description.endswith('This is the table of the data_products of the gallery')
+    assert table_obj[0][1].description == 'This is the table of the data_products of the gallery'
     for column in table_obj[0][1].columns:
         assert column.name in column_names
         assert column.description is not None and column.description == f"{column.name} of the data product"
