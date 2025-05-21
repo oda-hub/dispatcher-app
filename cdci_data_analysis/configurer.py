@@ -269,11 +269,11 @@ class ConfigEnv(object):
                                      disp_dict.get('renku_options', {}).get('renku_gitlab_repository_url', None),
                                      disp_dict.get('renku_options', {}).get('renku_base_project_url', None),
                                      disp_dict.get('renku_options', {}).get('ssh_key_path', None),
-                                     disp_dict.get('vo_options', {}).get('vo_psql_pg_host', None),
-                                     disp_dict.get('vo_options', {}).get('vo_psql_pg_port', None),
-                                     disp_dict.get('vo_options', {}).get('vo_psql_pg_user', None),
-                                     disp_dict.get('vo_options', {}).get('vo_psql_pg_password', None),
-                                     disp_dict.get('vo_options', {}).get('vo_psql_pg_db', None)
+                                     disp_dict.get('vo_options', {}).get('vo_psql_pg_host', os.environ.get("POSTGRESQL_HOST", None)),
+                                     disp_dict.get('vo_options', {}).get('vo_psql_pg_port', os.environ.get("POSTGRESQL_PORT", None)),
+                                     disp_dict.get('vo_options', {}).get('vo_psql_pg_user', "mmoda_pg_user"),
+                                     disp_dict.get('vo_options', {}).get('vo_psql_pg_password', os.environ.get("POSTGRESQL_PASSWORD", None)),
+                                     disp_dict.get('vo_options', {}).get('vo_psql_pg_db', "mmoda_pg_db"),
                                      )
 
         # not used?
