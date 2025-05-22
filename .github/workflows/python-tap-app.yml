@@ -29,12 +29,14 @@ jobs:
     services:
       vo-interface-backend:
         image: gabrieleb870/dispatcher-postgresql:v1.2
+        env:
+          POSTGRES_PASSWORD: postgres
         options: >-
-          -e "POSTGRES_PASSWORD=postgres"
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+          -d
         ports:
           - 5432:5432
 
