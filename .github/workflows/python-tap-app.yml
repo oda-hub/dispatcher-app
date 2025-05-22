@@ -56,10 +56,11 @@ jobs:
 
     - name: Build and install pgsphere
       run: |
+        which psql && \
         which pg_config && \
         cd pgsphere && \
-        gmake USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config && \
-        gmake USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config install
+        make USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config && \
+        make USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config install
 
     - name: Lint with flake8
       if: ${{ env.TEST_ONLY_FAST != 'true' }}
