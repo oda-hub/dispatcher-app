@@ -26,10 +26,6 @@ postgresql_fixture = factories.postgresql_proc(
     password=test_psql_pass,
     load=[Path(os.path.join(os.path.dirname(__file__), 'gallery_pg_db_data/pg_gallery_db_init_dump.sql'))],
 )
-    # print("yielding the connection with the factory!")
-    # return factories.postgresql(
-    #     "postgresql_fixture_proc",
-    # )
 
 def postgresql_fixture_factory(test_psql_host_from_env,
                                test_psql_port_from_env,
@@ -54,7 +50,17 @@ def postgresql_fixture_factory(test_psql_host_from_env,
                         logger.error(f"Error during the database creation: {e}")
                         raise
                 connection.close()
+        except (Exception, DatabaseError) as e:
+            logger.error(f"Error when querying to the Postgresql server: {str(e)}")
+            raise e
 
+        finally:
+            if connection is not None:
+                cursor.close()
+                connection.close()
+                logger.info('Database connection closed')
+
+        try:
             with connect(
                     host=test_psql_host_from_env,
                     port=test_psql_port_from_env,
