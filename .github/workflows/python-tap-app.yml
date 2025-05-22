@@ -57,7 +57,9 @@ jobs:
     - name: Build and install pgsphere
       run: |
         which psql && \
+        psql --version && \
         which pg_config && \
+        pg_config --version && \
         cd pgsphere && \
         make USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config && \
         make USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config install
