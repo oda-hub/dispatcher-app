@@ -38,14 +38,14 @@ jobs:
         pip install -e .[test,ontology]
         curl -o tests/oda-ontology.ttl https://raw.githubusercontent.com/oda-hub/ontology/main/ontology.ttl
 
-    - name: Add PostgreSQL APT repository
+    - name: Add PostgreSQL 16 APT repository
       run: |
         sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
         wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
         sudo apt-get update
 
     - name: Install build dependencies for pg_sphere
-      run: sudo apt-get install -y postgresql-common postgresql-server-dev-all build-essential make gcc clang-13 sbcl
+      run: sudo apt-get install -y postgresql-16 postgresql-common postgresql-server-dev-16 build-essential make gcc clang-13 sbcl
 
     - name: Clone pgsphere repository
       uses: actions/checkout@v2
