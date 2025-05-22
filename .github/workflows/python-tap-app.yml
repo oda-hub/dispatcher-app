@@ -45,7 +45,7 @@ jobs:
         sudo apt-get update
 
     - name: Install build dependencies for pg_sphere
-      run: sudo apt-get install -y postgresql-16 postgresql-common postgresql-server-dev-16 build-essential make gcc clang-13 sbcl
+      run: sudo apt-get install -y postgresql-16=16.4-1.pgdg22.04+1 postgresql-server-dev-16=16.4-1.pgdg22.04+1 build-essential make gcc clang-13 sbcl
 
     - name: Clone pgsphere repository
       uses: actions/checkout@v2
@@ -63,14 +63,6 @@ jobs:
         cd pgsphere && \
         make USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config && \
         make USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config install
-
-    - name: Lint with flake8
-      if: ${{ env.TEST_ONLY_FAST != 'true' }}
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || echo "failed lint"
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || echo "failed second lint"
 
     - name: PyLint - more lint
       if: ${{ env.TEST_ONLY_FAST != 'true' }}
