@@ -47,7 +47,6 @@ def postgresql_fixture_factory(test_psql_host_from_env,
                         cursor.execute("SET AUTOCOMMIT TO ON")
                         cursor.execute(f"DROP DATABASE IF EXISTS {test_psql_dbname}")
                         cursor.execute(f"CREATE DATABASE {test_psql_dbname}")
-                        connection.commit()
                     except DatabaseError as e:
                         logger.error(f"Error during the database creation: {e}")
                         raise
