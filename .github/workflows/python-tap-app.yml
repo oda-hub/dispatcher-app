@@ -20,6 +20,7 @@ jobs:
       TEST_PSQL_USER: "postgres"
       TEST_PSQL_PASS: "postgres"
       TEST_PSQL_DBNAME: "gallery_dev_prod"
+      TEST_PSQL_WITH_IMAGE: "yes"
 
     strategy:
       matrix:
