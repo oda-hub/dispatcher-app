@@ -4,7 +4,6 @@ ALTER SCHEMA ivoa OWNER TO postgres;
 
 SET search_path = ivoa, public;
 
--- TODO download and install the extension via the github actions
 CREATE EXTENSION IF NOT EXISTS pg_sphere WITH SCHEMA ivoa;
 
 CREATE TABLE ivoa.obscore (
