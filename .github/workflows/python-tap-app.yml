@@ -30,7 +30,7 @@ jobs:
       vo-interface-backend:
         image: gabrieleb870/dispatcher-postgresql:v1.2
         options: >-
-          -e "POSTGRES_PASSWORD=postgres"
+          -e "POSTGRES_PASSWORD=${{ env.TEST_PSQL_PASS }}"
         ports:
           - 5432:5432
 
