@@ -23,6 +23,12 @@ jobs:
       matrix:
         python-version: [3.8, 3.9]
 
+    services:
+      vo-interface-backend:
+        image: gabrieleb870/dispatcher-postgresql:v1.2
+        ports:
+          - 5432:5432
+
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -37,45 +43,37 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install -e .[test,ontology]
         curl -o tests/oda-ontology.ttl https://raw.githubusercontent.com/oda-hub/ontology/main/ontology.ttl
+        
+    
 
-    - name: Add PostgreSQL 16 APT repository
-      run: |
-        wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/postgresql-archive-keyring.gpg
-        sudo sh -c 'echo "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-        sudo apt-get update -y
-
-    - name: List available PostgreSQL 16 versions
-      run: apt-cache madison postgresql-16 postgresql-server-dev-16
-
-    - name: Install build dependencies for pg_sphere
-      run: sudo apt-get install -y postgresql-16=16.4-1.pgdg22.04+1 postgresql-server-dev-16=16.4-1.pgdg22.04+1 build-essential make gcc clang-13 sbcl
-
-    - name: Clone pgsphere repository
-      uses: actions/checkout@v2
-      with:
-        repository: 'kimakan/pgsphere'
-        ref: aiprdbms16
-        path: pgsphere
-
-    - name: Build and install pgsphere
-      run: |
-        which psql && \
-        psql --version && \
-        which pg_config && \
-        pg_config --version && \
-        cd pgsphere && \
-        make USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config && \
-        make USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config install
-
-    - name: PyLint - more lint
-      if: ${{ env.TEST_ONLY_FAST != 'true' }}
-      run: |
-        pylint -E cdci_data_analysis || echo 'this is fine!'
-
-    - name: MyPy
-      if: ${{ env.TEST_ONLY_FAST != 'true' }}
-      run: |
-        mypy cdci_data_analysis --ignore-missing-imports || echo 'this is fine too!'
+#    - name: Add PostgreSQL 16 APT repository
+#      run: |
+#        wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/postgresql-archive-keyring.gpg
+#        sudo sh -c 'echo "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+#        sudo apt-get update -y
+#
+#    - name: List available PostgreSQL 16 versions
+#      run: apt-cache madison postgresql-16 postgresql-server-dev-16
+#
+#    - name: Install build dependencies for pg_sphere
+#      run: sudo apt-get install -y postgresql-16=16.4-1.pgdg22.04+1 postgresql-server-dev-16=16.4-1.pgdg22.04+1 build-essential make gcc clang-13 sbcl
+#
+#    - name: Clone pgsphere repository
+#      uses: actions/checkout@v2
+#      with:
+#        repository: 'kimakan/pgsphere'
+#        ref: aiprdbms16
+#        path: pgsphere
+#
+#    - name: Build and install pgsphere
+#      run: |
+#        which psql && \
+#        psql --version && \
+#        which pg_config && \
+#        pg_config --version && \
+#        cd pgsphere && \
+#        make USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config && \
+#        make USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config install
 
     - name: Test the tap server
       run: |
