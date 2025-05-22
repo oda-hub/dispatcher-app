@@ -44,8 +44,11 @@ jobs:
         wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
         sudo apt-get update
 
+    - name: List available PostgreSQL 16 versions
+      run: apt-cache policy postgresql-16 postgresql-server-dev-16
+
     - name: Install build dependencies for pg_sphere
-      run: sudo apt-get install -y postgresql-16=16.4-1.pgdg22.04+1 postgresql-server-dev-16=16.4-1.pgdg22.04+1 build-essential make gcc clang-13 sbcl
+      run: sudo apt-get install -y postgresql-16 postgresql-server-dev-16 build-essential make gcc clang-13 sbcl
 
     - name: Clone pgsphere repository
       uses: actions/checkout@v2
