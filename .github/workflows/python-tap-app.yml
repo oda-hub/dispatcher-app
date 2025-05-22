@@ -45,10 +45,13 @@ jobs:
         sudo apt-get update
 
     - name: Install build dependencies for pg_sphere
-      run: sudo apt-get install -y postgresql-common postgresql-server-dev-all build-essential git make gcc clang-13 sbcl
+      run: sudo apt-get install -y postgresql-common postgresql-server-dev-all build-essential make gcc clang-13 sbcl
 
     - name: Clone pgsphere
-      run: git clone --branch aiprdbms16 https://github.com/kimakan/pgsphere.git /tmp/pgsphere
+      uses: actions/checkout@v2
+      with:
+        repository: 'kimakan/pgsphere'
+        branch: aiprdbms16
 
     - name: Build and install pgsphere
       run: |
