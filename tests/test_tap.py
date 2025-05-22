@@ -34,30 +34,29 @@ def postgresql_fixture_factory(test_psql_host_from_env,
                                test_psql_dbname_from_env):
     @pytest.fixture
     def _container_postgresql_fixture():
-        try:
-            with connect(
-                    host=test_psql_host_from_env,
-                    port=test_psql_port_from_env,
-                    user=test_psql_user_from_env,
-                    password=test_psql_pass_from_env
-            ) as connection:
-                with connection.cursor() as cursor:
-                    connection = connection.execution_options(isolation_level="AUTOCOMMIT")
-                    try:
-                        cursor.execute(f"CREATE DATABASE {test_psql_dbname}")
-                    except DatabaseError as e:
-                        logger.error(f"Error during the database creation: {e}")
-                        raise
-                connection.close()
-        except (Exception, DatabaseError) as e:
-            logger.error(f"Error when querying to the Postgresql server: {str(e)}")
-            raise e
-
-        finally:
-            if connection is not None:
-                cursor.close()
-                connection.close()
-                logger.info('Database connection closed')
+        # try:
+        #     with connect(
+        #             host=test_psql_host_from_env,
+        #             port=test_psql_port_from_env,
+        #             user=test_psql_user_from_env,
+        #             password=test_psql_pass_from_env
+        #     ) as connection:
+        #         with connection.cursor() as cursor:
+        #             try:
+        #                 cursor.execute(f"CREATE DATABASE {test_psql_dbname}")
+        #             except DatabaseError as e:
+        #                 logger.error(f"Error during the database creation: {e}")
+        #                 raise
+        #         connection.close()
+        # except (Exception, DatabaseError) as e:
+        #     logger.error(f"Error when querying to the Postgresql server: {str(e)}")
+        #     raise e
+        #
+        # finally:
+        #     if connection is not None:
+        #         cursor.close()
+        #         connection.close()
+        #         logger.info('Database connection closed')
 
         try:
             with connect(
