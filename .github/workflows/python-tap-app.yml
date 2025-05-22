@@ -47,11 +47,12 @@ jobs:
     - name: Install build dependencies for pg_sphere
       run: sudo apt-get install -y postgresql-common postgresql-server-dev-all build-essential make gcc clang-13 sbcl
 
-    - name: Clone pgsphere
+    - name: Clone pgsphere repository
       uses: actions/checkout@v2
       with:
         repository: 'kimakan/pgsphere'
         branch: aiprdbms16
+        path: /tmp/pgsphere
 
     - name: Build and install pgsphere
       run: |
