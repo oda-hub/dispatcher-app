@@ -29,10 +29,8 @@ jobs:
     services:
       vo-interface-backend:
         image: gabrieleb870/dispatcher-postgresql:v1.2
-        environment:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: mmoda_pg_db
+        options: >-
+          -e "POSTGRES_PASSWORD=postgres"
         ports:
           - 5432:5432
 
