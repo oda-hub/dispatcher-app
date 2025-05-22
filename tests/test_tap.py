@@ -97,8 +97,6 @@ if test_psql_with_image:
 else:
     postgresql = factories.postgresql("postgresql_fixture")
 
-# postgresql = postgresql_fixture_factory(test_psql_with_image, test_psql_host, test_psql_port, test_psql_user, test_psql_pass, test_psql_dbname)
-
 # @pytest.fixture
 # def postgresql_fixture_altered_db_search_path(dispatcher_test_conf_with_vo_options, postgresql_fixture):
 #     with postgresql.cursor() as cur:
