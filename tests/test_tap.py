@@ -9,13 +9,19 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+test_psql_host = os.getenv("TEST_PSQL_HOST", "localhost")
+test_psql_port = os.getenv("TEST_PSQL_PORT", "5432")
+test_psql_user = os.getenv("TEST_PSQL_USER", "postgres")
+test_psql_pass = os.getenv("TEST_PSQL_PASS", "postgres")
+test_psql_dbname = os.getenv("TEST_PSQL_DBNAME", "gallery_dev_prod")
+
 # TODO find a way to parametrize this call
 postgresql_fixture = factories.postgresql_proc(
-    host="localhost",
-    port=5435,
-    user="postgres",
-    dbname="gallery_dev_prod",
-    password="postgres",
+    host=test_psql_host,
+    port=test_psql_port,
+    user=test_psql_user,
+    dbname=test_psql_dbname,
+    password=test_psql_pass,
     load=[Path(os.path.join(os.path.dirname(__file__), 'gallery_pg_db_data/pg_gallery_db_init_dump.sql'))],
 )
 
@@ -27,7 +33,7 @@ postgresql = factories.postgresql(
 @pytest.fixture
 def postgresql_fixture_altered_db_search_path(dispatcher_test_conf_with_vo_options, postgresql):
     with postgresql.cursor() as cur:
-        cur.execute(f"ALTER DATABASE {dispatcher_test_conf_with_vo_options['vo_options']['vo_psql_pg_db']} SET search_path TO mmoda_pg_dev, public;")
+        cur.execute(f"ALTER DATABASE {dispatcher_test_conf_with_vo_options['vo_options']['vo_psql_pg_db']} SET search_path TO ivoa, public;")
         postgresql.commit()
 
 

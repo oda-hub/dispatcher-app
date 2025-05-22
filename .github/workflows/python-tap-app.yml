@@ -10,14 +10,16 @@ on:
     branches: [ master ]
     types: [labeled, unlabeled, opened, edited, synchronize]
 
-
-
 jobs:
   build:
     runs-on: ubuntu-22.04
 
     env:
-      TEST_ONLY_FAST: ${{ contains( github.event.pull_request.labels.*.name, 'test-only-fast') }}
+      TEST_PSQL_HOST: "localhost"
+      TEST_PSQL_PORT: "5432"
+      TEST_PSQL_USER: "postgres"
+      TEST_PSQL_PASS: "postgres"
+      TEST_PSQL_DBNAME: "gallery_dev_prod"
 
     strategy:
       matrix:
@@ -44,42 +46,10 @@ jobs:
         pip install -e .[test,ontology]
         curl -o tests/oda-ontology.ttl https://raw.githubusercontent.com/oda-hub/ontology/main/ontology.ttl
         
-    
-
-#    - name: Add PostgreSQL 16 APT repository
-#      run: |
-#        wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/postgresql-archive-keyring.gpg
-#        sudo sh -c 'echo "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-#        sudo apt-get update -y
-#
-#    - name: List available PostgreSQL 16 versions
-#      run: apt-cache madison postgresql-16 postgresql-server-dev-16
-#
-#    - name: Install build dependencies for pg_sphere
-#      run: sudo apt-get install -y postgresql-16=16.4-1.pgdg22.04+1 postgresql-server-dev-16=16.4-1.pgdg22.04+1 build-essential make gcc clang-13 sbcl
-#
-#    - name: Clone pgsphere repository
-#      uses: actions/checkout@v2
-#      with:
-#        repository: 'kimakan/pgsphere'
-#        ref: aiprdbms16
-#        path: pgsphere
-#
-#    - name: Build and install pgsphere
-#      run: |
-#        which psql && \
-#        psql --version && \
-#        which pg_config && \
-#        pg_config --version && \
-#        cd pgsphere && \
-#        make USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config && \
-#        make USE_PGXS=1 PG_CONFIG=/usr/bin/pg_config install
-
     - name: Test the tap server
       run: |
         python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m "test_tap" --durations=0
 
-    # I wonder how this interacts with the Github App. But this is not only for PR. Also this does not always work
     - name: Codecov
       uses: codecov/codecov-action@v1.3.1
       with:
