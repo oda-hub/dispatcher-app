@@ -43,6 +43,7 @@ def postgresql_fixture_factory(test_psql_host_from_env,
             ) as connection:
                 with connection.cursor() as cursor:
                     try:
+                        connection.autocommit = True
                         cursor.execute(f"CREATE DATABASE {test_psql_dbname}")
                         connection.commit()
                     except DatabaseError as e:
