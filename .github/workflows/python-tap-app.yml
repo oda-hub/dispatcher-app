@@ -32,7 +32,7 @@ jobs:
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
-          POSTGRES_DB: postgres
+          POSTGRES_DB: mmoda_pg_db
         options: >-
           --health-cmd "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -h 127.0.0.1 -p 5432"
           --health-interval 15s
@@ -48,9 +48,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Wait for PostgreSQL and create database
-        run: |
-          PGPASSWORD=postgres psql -h localhost -p 5435 -U postgres -c "CREATE DATABASE mmoda_pg_db;"
+#      - name: Wait for PostgreSQL and create database
+#        run: |
+#          PGPASSWORD=postgres psql -h localhost -p 5435 -U postgres -c "CREATE DATABASE mmoda_pg_db;"
 
       - name: Install dependencies
         run: |
