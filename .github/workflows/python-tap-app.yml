@@ -33,13 +33,14 @@ jobs:
           POSTGRES_PASSWORD: ${{ env.TEST_PSQL_PASS }}
           POSTGRES_USER: ${{ env.TEST_PSQL_USER }}
           POSTGRES_DB: ${{ env.TEST_PSQL_DBNAME }}
+          POSTGRES_HOST: ${{ env.TEST_PSQL_HOST }}
         options: >-
-          --health-cmd "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -h 127.0.0.1 -p 5432"
+          --health-cmd "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -h $POSTGRES_HOST -p 5432"
           --health-interval 15s
           --health-timeout 15s
           --health-retries 20
         ports:
-        - 5435:5432
+        - ${{ env.TEST_PSQL_PORT }}:5432
 
     steps:
       - uses: actions/checkout@v2
