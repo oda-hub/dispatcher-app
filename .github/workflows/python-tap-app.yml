@@ -40,7 +40,8 @@ jobs:
           --health-timeout 15s
           --health-retries 20
         ports:
-        - ${{ env.TEST_PSQL_PORT }}:5432
+        # cannot be set dynamically
+        - 5435:5432
 
     steps:
       - uses: actions/checkout@v2
