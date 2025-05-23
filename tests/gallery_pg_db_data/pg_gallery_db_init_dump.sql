@@ -6,7 +6,7 @@ SET search_path = ivoa, public;
 
 CREATE EXTENSION IF NOT EXISTS pg_sphere WITH SCHEMA ivoa;
 
-CREATE TABLE ivoa.obscore (
+CREATE TABLE IF NOT EXISTS ivoa.obscore (
     obs_title character varying(255) NOT NULL,
     product_path character varying(255) DEFAULT NULL::character varying,
     em_min double precision,
