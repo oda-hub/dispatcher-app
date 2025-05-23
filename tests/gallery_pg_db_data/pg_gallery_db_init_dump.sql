@@ -2,9 +2,10 @@ CREATE SCHEMA IF NOT EXISTS ivoa;
 
 ALTER SCHEMA ivoa OWNER TO postgres;
 
-SET search_path = ivoa, public;
+CREATE EXTENSION IF NOT EXISTS pg_sphere;
 
-CREATE EXTENSION IF NOT EXISTS pg_sphere WITH SCHEMA ivoa;
+
+SET search_path = ivoa, public;
 
 CREATE TABLE IF NOT EXISTS ivoa.obscore (
     obs_title character varying(255) NOT NULL,
