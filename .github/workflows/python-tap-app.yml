@@ -12,6 +12,8 @@ on:
 
 jobs:
   build:
+    if: contains( github.event.pull_request.labels.*.name, 'test-tap')
+
     runs-on: ubuntu-latest
 
     env:
