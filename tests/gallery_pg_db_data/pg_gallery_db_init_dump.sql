@@ -1,4 +1,4 @@
-CREATE SCHEMA ivoa;
+CREATE SCHEMA IF NOT EXISTS ivoa;
 
 ALTER SCHEMA ivoa OWNER TO postgres;
 
