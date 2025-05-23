@@ -34,7 +34,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_DB: postgres
         options: >-
-          --health-cmd "pg_isready -U postgres -d db_name -h 127.0.0.1 -p 5432"
+          --health-cmd pg_isready
           --health-interval 20s
           --health-timeout 20s
           --health-retries 30
