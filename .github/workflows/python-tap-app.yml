@@ -16,7 +16,7 @@ jobs:
 
     env:
       TEST_PSQL_HOST: "localhost"
-      TEST_PSQL_PORT: "5432"
+      TEST_PSQL_PORT: "5435"
       TEST_PSQL_USER: "postgres"
       TEST_PSQL_PASS: "postgres"
       TEST_PSQL_DBNAME: "mmoda_pg_db"
@@ -39,7 +39,7 @@ jobs:
           --health-timeout 15s
           --health-retries 20
         ports:
-        - 5432:5432
+        - 5435:5432
 
     steps:
       - uses: actions/checkout@v2
