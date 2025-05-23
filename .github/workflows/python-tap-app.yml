@@ -50,8 +50,7 @@ jobs:
 
       - name: Wait for PostgreSQL and create database
         run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS mmoda_pg_db;"
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE mmoda_pg_db;"
+          PGPASSWORD=postgres psql -h localhost -p 5435 -U postgres -c "CREATE DATABASE mmoda_pg_db;"
 
       - name: Install dependencies
         run: |
