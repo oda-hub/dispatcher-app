@@ -1,3 +1,5 @@
+ TRUNCATE TABLE ivoa.obscore;
+
 INSERT INTO ivoa.obscore (obs_title, product_path, em_min, em_max, s_ra, s_dec, time_bin, instrument_name, dataproduct_type, t_min, t_max, proposal_id, target_name, access_url, image_uri)
     VALUES ('test1', '/data-products/emptydummy2022-01-11-121021', 1.0, 2.0, 95.23, 50, 5.0, 'test', 'test', 2458849.5, 2458849.5, 'test', 'test', 'test', 'test');
 

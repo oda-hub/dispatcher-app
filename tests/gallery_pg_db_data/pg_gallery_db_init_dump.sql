@@ -4,7 +4,6 @@ ALTER SCHEMA ivoa OWNER TO postgres;
 
 CREATE EXTENSION IF NOT EXISTS pg_sphere;
 
-
 SET search_path = ivoa, public;
 
 CREATE TABLE IF NOT EXISTS ivoa.obscore (
