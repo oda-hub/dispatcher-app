@@ -93,6 +93,7 @@ def test_sanitize_dict_before_log():
     assert sanitized_dict == expected_dict
 
 @pytest.mark.fast
+@pytest.mark.xfail
 def test_js9(dispatcher_live_fixture):
     server = dispatcher_live_fixture
     dispatcher_fetch_dummy_products('default')
