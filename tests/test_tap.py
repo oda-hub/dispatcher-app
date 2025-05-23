@@ -69,12 +69,6 @@ if test_psql_with_image:
 else:
     postgresql = factories.postgresql("postgresql_fixture")
 
-# @pytest.fixture
-# def postgresql_fixture_altered_db_search_path(dispatcher_test_conf_with_vo_options, postgresql_fixture):
-#     with postgresql.cursor() as cur:
-#         cur.execute(f"ALTER DATABASE {dispatcher_test_conf_with_vo_options['vo_options']['vo_psql_pg_db']} SET search_path TO ivoa, public;")
-#         postgresql.commit()
-
 
 @pytest.fixture
 def fill_up_db(dispatcher_test_conf_with_vo_options, postgresql):
@@ -103,6 +97,21 @@ def test_local_tap_sync_job(dispatcher_live_fixture_with_tap, fill_up_db):
     server = dispatcher_live_fixture_with_tap
     number_results = 7
     tap_query = f"SELECT TOP {number_results} * FROM ivoa.obscore"
+
+    oda_tap = pyvo.dal.TAPService(os.path.join(server, "tap"))
+
+    result = oda_tap.search(tap_query)
+
+    print(result)
+
+    assert len(result) == number_results
+
+
+@pytest.mark.test_tap
+def test_local_tap_sync_job_cone_search(dispatcher_live_fixture_with_tap, fill_up_db):
+    server = dispatcher_live_fixture_with_tap
+    number_results = 3
+    tap_query = f"SELECT TOP 100 * FROM ivoa.obscore WHERE (1=CONTAINS(POINT('ICRS', s_ra, s_dec), CIRCLE('ICRS', 95.23, 55, 15.0)));"
 
     oda_tap = pyvo.dal.TAPService(os.path.join(server, "tap"))
 
