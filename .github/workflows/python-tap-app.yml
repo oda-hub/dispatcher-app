@@ -39,7 +39,7 @@ jobs:
           --health-timeout 20s
           --health-retries 30
         ports:
-          - 5432:5432
+        - 5432:5432
 
     steps:
       - uses: actions/checkout@v2
