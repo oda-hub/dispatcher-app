@@ -42,7 +42,7 @@ jobs:
           --health-timeout 15s
           --health-retries 20
         ports:
-        # cannot be set dynamically
+        # TODO cannot be set dynamically, ideas?
         - 5435:5432
 
     steps:
