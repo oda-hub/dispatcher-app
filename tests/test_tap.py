@@ -43,7 +43,9 @@ def postgresql_fixture_factory(test_psql_host_from_env,
                     password=test_psql_pass_from_env
             ) as connection:
                 with connection.cursor() as cursor:
-                    cursor.execute(open(os.path.join(os.path.dirname(__file__), 'gallery_pg_db_data/pg_gallery_db_init_dump.sql')).read())
+                    file_path = os.path.join(os.path.dirname(__file__), 'gallery_pg_db_data/pg_gallery_db_init_dump.sql')
+                    with open(file_path, 'r') as f:
+                        cursor.execute(f.read())
                     connection.commit()
                 yield connection
         except (Exception, DatabaseError) as e:
