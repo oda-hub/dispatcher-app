@@ -4,6 +4,8 @@ pyyaml
 simplejson
 flask==2.0.3
 astropy>=5.0.1
+pytest-xdist<=3.5.0
+pytest_postgresql
 pylogstash_context>=0.1.19
 gunicorn
 decorator
@@ -21,6 +23,7 @@ celery
 redis
 psutil
 pyjwt
+pyvo
 giturlparse
 aiosmtpd
 marshmallow
@@ -29,6 +32,7 @@ GitPython
 nbformat
 sentry-sdk
 pytest-sentry
+queryparser-python3
 -e git+https://github.com/oda-hub/oda_api.git#egg=oda_api
 
 MarkupSafe==2.0.1

@@ -1,0 +1,71 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Test TAP server
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+    types: [labeled, unlabeled, opened, edited, synchronize]
+
+jobs:
+  build:
+    if: contains( github.event.pull_request.labels.*.name, 'test-tap')
+
+    runs-on: ubuntu-latest
+
+    env:
+      TEST_PSQL_HOST: "localhost"
+      TEST_PSQL_PORT: "5435"
+      TEST_PSQL_USER: "postgres"
+      TEST_PSQL_PASS: "postgres"
+      TEST_PSQL_DBNAME: "mmoda_pg_db"
+      TEST_PSQL_WITH_IMAGE: "yes"
+
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9]
+
+    services:
+      vo-interface-backend:
+        image: gabrieleb870/dispatcher-postgresql:v1.2
+        env:
+          POSTGRES_PASSWORD: ${{ env.TEST_PSQL_PASS }}
+          POSTGRES_USER: ${{ env.TEST_PSQL_USER }}
+          POSTGRES_DB: ${{ env.TEST_PSQL_DBNAME }}
+          POSTGRES_HOST: ${{ env.TEST_PSQL_HOST }}
+        options: >-
+          --health-cmd "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -h $POSTGRES_HOST -p 5432"
+          --health-interval 15s
+          --health-timeout 15s
+          --health-retries 20
+        ports:
+        # TODO cannot be set dynamically, ideas?
+        - 5435:5432
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest mypy pylint pytest-cov pytest-xdist wheel
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -e .[test,ontology]
+          curl -o tests/oda-ontology.ttl https://raw.githubusercontent.com/oda-hub/ontology/main/ontology.ttl
+        
+      - name: Test the tap server
+        run: |
+          python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m "test_tap" --durations=0
+
+      - name: Codecov
+        uses: codecov/codecov-action@v1.3.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
