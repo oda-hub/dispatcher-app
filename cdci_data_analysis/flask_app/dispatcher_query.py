@@ -503,9 +503,12 @@ class InstrumentQueryBackEnd:
 
         return jsonify(out_instrument_list)
 
+    @staticmethod
+    def inspect_user_state(user_email):
+        return InstrumentQueryBackEnd.inspect_state(user_email)
 
     @staticmethod
-    def inspect_state():
+    def inspect_state(user_email=None):
         recent_days = request.args.get('recent_days', 3, type=float)
         job_id = request.args.get('job_id', None)
         include_session_log = request.args.get('include_session_log', False) == 'True'
@@ -529,36 +532,41 @@ class InstrumentQueryBackEnd:
                             result_job_status = InstrumentQueryBackEnd.read_job_status_scratch_dir(scratch_dir,
                                                                                                    include_session_log=include_session_log,
                                                                                                    include_status_query_output=include_status_query_output,
-                                                                                                   exclude_analysis_parameters=exclude_analysis_parameters
+                                                                                                   exclude_analysis_parameters=exclude_analysis_parameters,
+                                                                                                   user_email=user_email
                                                                                                    )
-                            job_status_search_result = [(index, job_status_obj)
-                                                        for index, job_status_obj in enumerate(records_content) if
-                                                        job_status_obj.get('job_id') == scratch_dir_job_id]
-                            if len(job_status_search_result) > 0:
-                                records_content[job_status_search_result[0][0]]['job_status_data'].append(dict(**result_job_status))
-                            else:
-                                records_content.append(dict(
-                                    job_id=scratch_dir_job_id,
-                                    job_status_data=[dict(**result_job_status)]
-                                )
-                                )
+                            if result_job_status is not None:
+                                job_status_search_result = [(index, job_status_obj)
+                                                            for index, job_status_obj in enumerate(records_content) if
+                                                            job_status_obj.get('job_id') == scratch_dir_job_id]
+                                if len(job_status_search_result) > 0:
+                                    records_content[job_status_search_result[0][0]]['job_status_data'].append(dict(**result_job_status))
+                                else:
+                                    records_content.append(dict(
+                                        job_id=scratch_dir_job_id,
+                                        job_status_data=[dict(**result_job_status)]
+                                    )
+                                    )
                         else:
                             result_content, request_completed, token_expired = InstrumentQueryBackEnd.read_content_scratch_dir(scratch_dir,
-                                                                                                                include_session_log=include_session_log,
-                                                                                                                include_status_query_output=include_status_query_output,
-                                                                                                                exclude_analysis_parameters=exclude_analysis_parameters)
-                            record = dict(
-                                mtime=os.stat(scratch_dir).st_mtime,
-                                ctime=os.stat(scratch_dir).st_ctime,
-                                session_id=r.group('session_id'),
-                                job_id=scratch_dir_job_id,
-                                request_completed=request_completed,
-                                aliased_marker=r.group('aliased_marker'),
-                                **result_content
-                            )
-                            if token_expired is not None:
-                                record['token_expired'] = token_expired
-                            records_content.append(record)
+                                                                                                                               include_session_log=include_session_log,
+                                                                                                                               include_status_query_output=include_status_query_output,
+                                                                                                                               exclude_analysis_parameters=exclude_analysis_parameters,
+                                                                                                                               user_email=user_email)
+
+                            if result_content is not None:
+                                record = dict(
+                                    mtime=os.stat(scratch_dir).st_mtime,
+                                    ctime=os.stat(scratch_dir).st_ctime,
+                                    session_id=r.group('session_id'),
+                                    job_id=scratch_dir_job_id,
+                                    request_completed=request_completed,
+                                    aliased_marker=r.group('aliased_marker'),
+                                    **result_content
+                                )
+                                if token_expired is not None:
+                                    record['token_expired'] = token_expired
+                                records_content.append(record)
                 else:
                     logger.warning(f"scratch_dir {scratch_dir} not existing, cannot be inspected")
 
@@ -584,41 +592,55 @@ class InstrumentQueryBackEnd:
         return analysis_parameters_obj, reading_output_message
 
     @staticmethod
-    def read_job_status_scratch_dir(scratch_dir, include_session_log=False, include_status_query_output=False, exclude_analysis_parameters=True):
-        result_job_status = dict(
-            request_completed = False,
-            scratch_dir_fn = scratch_dir,
-            scratch_dir_content = None
-        )
+    def read_job_status_scratch_dir(scratch_dir, include_session_log=False, include_status_query_output=False, exclude_analysis_parameters=True, user_email=None):
+        result_job_status = None
+        result_content, request_completed, token_expired = InstrumentQueryBackEnd.read_content_scratch_dir(scratch_dir,
+                                                                                                           include_session_log=include_session_log,
+                                                                                                           include_status_query_output=include_status_query_output,
+                                                                                                           exclude_analysis_parameters=exclude_analysis_parameters,
+                                                                                                           user_email=user_email)
+        if result_content is not None:
+            result_job_status = dict(
+                request_completed = request_completed,
+                scratch_dir_fn = scratch_dir,
+                scratch_dir_content = result_content
+            )
 
-        result_job_status['scratch_dir_content'], result_job_status['request_completed'], token_expired = (
-            InstrumentQueryBackEnd.read_content_scratch_dir(scratch_dir,
-                                                            include_session_log=include_session_log,
-                                                            include_status_query_output=include_status_query_output,
-                                                            exclude_analysis_parameters=exclude_analysis_parameters))
-        if token_expired is not None:
-            result_job_status['token_expired'] = token_expired
+            if token_expired is not None:
+                result_job_status['token_expired'] = token_expired
 
         return result_job_status
 
     @staticmethod
-    def read_content_scratch_dir(scratch_dir, include_session_log=False, include_status_query_output=False, exclude_analysis_parameters=True):
+    def read_content_scratch_dir(scratch_dir, include_session_log=False, include_status_query_output=False, exclude_analysis_parameters=True, user_email=None):
         result_content = {}
         file_list = []
+        request_completed = False
+        token_expired = None
+        reading_output_message = None
+
+        analysis_parameters, reading_output_message = InstrumentQueryBackEnd.read_analysis_parameters_scratch_dir(scratch_dir,
+                                                                                                                  decode_token=True)
+        if analysis_parameters is None:
+            analysis_parameters = reading_output_message
+        else:
+            if 'token' in analysis_parameters:
+                token_expired = analysis_parameters['token']['exp'] < time_.time()
+
+        if not exclude_analysis_parameters:
+            result_content['analysis_parameters'] = analysis_parameters
+
+        if user_email is not None:
+            if analysis_parameters in [None, reading_output_message]:
+                return None, None, None
+
+            token = analysis_parameters.get('token', {})
+            if token.get('sub') != user_email:
+                return None, None, None
+
         for f in glob.glob(os.path.join(scratch_dir, "*")):
             file_list.append(f)
         result_content['file_list'] = file_list
-        request_completed = False
-        token_expired = None
-
-        if not exclude_analysis_parameters:
-            result_content['analysis_parameters'], reading_output_message = InstrumentQueryBackEnd.read_analysis_parameters_scratch_dir(scratch_dir,
-                                                                                                                                        decode_token=True)
-            if result_content['analysis_parameters'] is None:
-                result_content['analysis_parameters'] = reading_output_message
-            else:
-                if 'token' in result_content['analysis_parameters']:
-                    token_expired = result_content['analysis_parameters']['token']['exp'] < time_.time()
 
         if include_session_log:
             result_content['session_log'] = ''
