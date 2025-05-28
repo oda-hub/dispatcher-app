@@ -1313,8 +1313,7 @@ def cleanup(request):
 
 
 def dispatcher_fetch_dummy_products(dummy_product_pack: str, reuse=False):
-    url_base = "https://www.isdc.unige.ch/~savchenk" # TODO: to move somewhere to github
-    url = f"{url_base}/dispatcher-plugin-integral-data-dummy_prods-{dummy_product_pack}.tgz"
+    url = f"https://raw.githubusercontent.com/oda-hub/dispatcher-integral-dummy-data/main/dispatcher-plugin-integral-data-dummy_prods-{dummy_product_pack}.tgz"
 
     if reuse:
         if os.path.exists(dispatcher_dummy_product_pack_state_fn):
