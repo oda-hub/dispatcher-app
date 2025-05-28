@@ -2796,6 +2796,193 @@ def test_inspect_status(dispatcher_live_fixture, request_cred, roles, include_se
         assert 'file_list' in jdata['records'][0]
         assert isinstance(jdata['records'][0]['file_list'], list)
 
+@pytest.mark.parametrize("user_request_cred", ['user_1', 'user_2', 'invalid_token', 'public'])
+@pytest.mark.parametrize("remove_analysis_parameters_json", [True, False])
+@pytest.mark.parametrize("include_session_log", [True, False, None])
+def test_inspect_user_status(dispatcher_live_fixture, user_request_cred, remove_analysis_parameters_json, include_session_log):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token for the first user
+    token_payload_user_1 = {
+        **default_token_payload,
+    }
+
+    # let's generate a valid token for the second user
+    token_payload_user_2 = {
+        **default_token_payload,
+        "sub": "mtm_2@mtmco.net",
+    }
+
+    if user_request_cred == 'user_1':
+        token_payload = token_payload_user_1
+    elif user_request_cred == 'user_2':
+        token_payload = token_payload_user_2
+    else:
+        token_payload = None
+
+    if token_payload is None:
+        encoded_token = None
+    else:
+        encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        'query_status': 'new',
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token,
+    }
+
+    jdata = ask(server,
+                params,
+                expected_query_status=["done"],
+                max_time_s=150,
+                )
+
+    job_id = jdata['products']['job_id']
+    session_id = jdata['session_id']
+
+    scratch_dir_fn = f'scratch_sid_{session_id}_jid_{job_id}'
+    if remove_analysis_parameters_json:
+        os.remove(os.path.join(scratch_dir_fn, "analysis_parameters.json"))
+    scratch_dir_ctime = os.stat(scratch_dir_fn).st_ctime
+
+    assert os.path.exists(scratch_dir_fn)
+
+    status_code = 403
+    error_message = ''
+    if user_request_cred == 'invalid_token':
+        # an invalid (encoded) token, just a string
+        encoded_token = 'invalid_token'
+        error_message = 'The token provided is not valid.'
+    elif user_request_cred == 'public':
+        error_message = 'A token must be provided.'
+
+    # for the email we only use the first 8 characters
+    c = requests.get(server + "/inspect-user-state",
+                     params=dict(
+                         job_id=job_id[:8],
+                         token=encoded_token,
+                         include_session_log=include_session_log
+                     ))
+
+    scratch_dir_mtime = os.stat(scratch_dir_fn).st_mtime
+
+    if user_request_cred == 'invalid_token' or user_request_cred == 'public':
+        # email not supposed to be sent for public request
+        assert c.status_code == status_code
+        assert c.text == error_message
+    else:
+        jdata= c.json()
+        assert 'records' in jdata
+        assert type(jdata['records']) is list
+        if remove_analysis_parameters_json:
+            assert len(jdata['records']) == 0
+        else:
+            assert len(jdata['records']) == 1
+            assert jdata['records'][0]['job_id'] == job_id
+            assert jdata['records'][0]['ctime'] == scratch_dir_ctime
+            assert jdata['records'][0]['mtime'] == scratch_dir_mtime
+            assert 'analysis_parameters' in jdata['records'][0]
+            assert jdata['records'][0]['analysis_parameters']['token']['sub'] == token_payload['sub']
+            assert not jdata['records'][0]['token_expired']
+            assert 'email_history' in jdata['records'][0]
+            assert 'matrix_message_history' in jdata['records'][0]
+            assert len(jdata['records'][0]['email_history']) == 0
+            assert len(jdata['records'][0]['matrix_message_history']) == 0
+            if include_session_log:
+                assert 'session_log' in jdata['records'][0]
+            else:
+                assert 'session_log' not in jdata['records'][0]
+
+            assert 'file_list' in jdata['records'][0]
+            assert isinstance(jdata['records'][0]['file_list'], list)
+
+@pytest.mark.parametrize("user_request_state", ['user_1', 'user_2'])
+@pytest.mark.parametrize("exclude_analysis_parameters", [True, False, None])
+def test_inspect_user_status_multiple_requests(dispatcher_live_fixture, user_request_state, exclude_analysis_parameters):
+    DispatcherJobState.remove_scratch_folders()
+
+    server = dispatcher_live_fixture
+
+    logger.info("constructed server: %s", server)
+
+    # let's generate a valid token for the first user
+    token_payload_user_1 = {
+        **default_token_payload,
+    }
+    encoded_token_user_1 = jwt.encode(token_payload_user_1, secret_key, algorithm='HS256')
+
+    # let's generate a valid token for the second user
+    token_payload_user_2 = {
+        **default_token_payload,
+        "sub": "mtm_2@mtmco.net",
+    }
+    encoded_token_user_2 = jwt.encode(token_payload_user_2, secret_key, algorithm='HS256')
+
+    params = {'query_status': 'new',
+              'product_type': 'dummy',
+              'query_type': "Dummy",
+              'instrument': 'empty',
+              'token': encoded_token_user_1}
+
+    jdata_1 = ask(server,
+                  params,
+                  expected_query_status=["done"],
+                  max_time_s=150,
+                  )
+    job_id_1 = jdata_1['products']['job_id']
+    session_id_1 = jdata_1['session_id']
+    scratch_dir_fn_1 = f'scratch_sid_{session_id_1}_jid_{job_id_1}'
+    scratch_dir_ctime_1 = os.stat(scratch_dir_fn_1).st_ctime
+    scratch_dir_mtime_1 = os.stat(scratch_dir_fn_1).st_mtime
+
+    params['token'] = encoded_token_user_2
+    jdata_2 = ask(server,
+                  params,
+                  expected_query_status=["done"],
+                  max_time_s=150,
+                  )
+    job_id_2 = jdata_2['products']['job_id']
+    session_id_2 = jdata_2['session_id']
+    scratch_dir_fn_2 = f'scratch_sid_{session_id_2}_jid_{job_id_2}'
+    scratch_dir_ctime_2 = os.stat(scratch_dir_fn_2).st_ctime
+    scratch_dir_mtime_2 = os.stat(scratch_dir_fn_2).st_mtime
+
+    encoded_token = encoded_token_user_1
+    if user_request_state == 'user_2':
+        encoded_token = encoded_token_user_2
+
+    c = requests.get(server + "/inspect-user-state",
+                     params=dict(
+                         token=encoded_token,
+                         exclude_analysis_parameters=exclude_analysis_parameters
+                     ))
+
+    jdata= c.json()
+    assert 'records' in jdata
+    assert type(jdata['records']) is list
+    assert len(jdata['records']) == 1
+    assert jdata['records'][0]['job_id'] == job_id_1 if user_request_state == 'user_1' else job_id_2
+    assert jdata['records'][0]['ctime'] == scratch_dir_ctime_1 if user_request_state == 'user_1' else scratch_dir_ctime_2
+    assert jdata['records'][0]['mtime'] == scratch_dir_mtime_1 if user_request_state == 'user_1' else scratch_dir_mtime_2
+    if exclude_analysis_parameters:
+        assert 'analysis_parameters' not in jdata['records'][0]
+    else:
+        assert 'analysis_parameters' in jdata['records'][0]
+        assert jdata['records'][0]['analysis_parameters']['token']['sub'] == token_payload_user_1['sub'] if user_request_state == 'user_1' else token_payload_user_2['sub']
+    assert not jdata['records'][0]['token_expired']
+    assert 'email_history' in jdata['records'][0]
+    assert 'matrix_message_history' in jdata['records'][0]
+    assert len(jdata['records'][0]['email_history']) == 0
+    assert len(jdata['records'][0]['matrix_message_history']) == 0
+    assert 'file_list' in jdata['records'][0]
+    assert isinstance(jdata['records'][0]['file_list'], list)
+
 @pytest.mark.parametrize("request_cred", ['public', 'private', 'invalid_token'])
 @pytest.mark.parametrize("roles", ["general, job manager", "administrator", ""])
 @pytest.mark.parametrize("pass_job_id", [True, False])
@@ -2909,7 +3096,6 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id,
                     else f'scratch_sid_{session_id_failed}_jid_{job_id_failed}'
                 )
                 if exclude_analysis_parameters:
-                    assert 'token_expired' not in job['job_status_data'][0]
                     assert 'analysis_parameters' not in job['job_status_data'][0]['scratch_dir_content']
                 else:
                     assert not job['job_status_data'][0]['token_expired']
@@ -2922,12 +3108,7 @@ def test_inspect_jobs(dispatcher_live_fixture, request_cred, roles, pass_job_id,
                 f'scratch_sid_{session_id_done}_jid_{job_id_done}' if jdata['records'][0]['job_id'] == job_id_done
                 else f'scratch_sid_{session_id_failed}_jid_{job_id_failed}'
             )
-
-            if exclude_analysis_parameters:
-                assert 'token_expired' not in jdata['records'][0]['job_status_data'][0]
-            else:
-                assert not jdata['records'][0]['job_status_data'][0]['token_expired']
-
+            assert not jdata['records'][0]['job_status_data'][0]['token_expired']
 
 def test_inspect_jobs_with_callbacks(gunicorn_dispatcher_long_living_fixture):
     server = gunicorn_dispatcher_long_living_fixture
