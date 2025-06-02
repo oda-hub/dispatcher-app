@@ -198,9 +198,16 @@ def run_query_from_product_gallery(psql_query,
             connection.close()
             logger.info('Database connection closed')
 
-    votable.to_xml('output.xml')
-    with open('output.xml', 'r') as f:
-        votable_xml_output = f.read()
+    try:
+        votable.to_xml('output.xml')
+        with open('output.xml', 'r') as f:
+            votable_xml_output = f.read()
+    except Exception as e:
+        logger.error(f"Error when writing the VOTable to XML: {str(e)}")
+        raise e
+    finally:
+        if os.path.exists('output.xml'):
+            os.remove('output.xml')
 
     return votable_xml_output
 
