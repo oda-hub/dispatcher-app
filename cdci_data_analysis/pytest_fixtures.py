@@ -68,6 +68,14 @@ def sentry_sdk_fixture(monkeypatch, dispatcher_test_conf):
         max_breadcrumbs=50,
     )
 
+@pytest.fixture
+def postgres_backend(monkeypatch):
+    monkeypatch.setenv("TEST_PSQL_WITH_IMAGE", "no")
+    monkeypatch.setenv("TEST_PSQL_HOST", "localhost")
+    monkeypatch.setenv("TEST_PSQL_PORT", "5435")
+    monkeypatch.setenv("TEST_PSQL_USER", "postgres")
+    monkeypatch.setenv("TEST_PSQL_PASS", "postgres")
+    monkeypatch.setenv("TEST_PSQL_DBNAME", "gallery_dev_prod")
 
 @pytest.fixture
 def dispatcher_debug(monkeypatch):
@@ -641,14 +649,11 @@ def dispatcher_test_conf_with_vo_options_fn(dispatcher_test_conf_fn):
             f.write(f_default.read())
 
         f.write('\n    vo_options:'
-                '\n         vo_mysql_pg_host: "localhost"'
-                '\n         vo_mysql_pg_user: "user"'
-                '\n         vo_mysql_pg_password: "password"'
-                '\n         vo_mysql_pg_db: "database"'
                 '\n         vo_psql_pg_host: "localhost"'
-                '\n         vo_psql_pg_user: "user"'
-                '\n         vo_psql_pg_password: "password"'
-                '\n         vo_psql_pg_db: "database"')
+                '\n         vo_psql_pg_port: "5435"'
+                '\n         vo_psql_pg_user: "postgres"'
+                '\n         vo_psql_pg_password: "postgres"'
+                '\n         vo_psql_pg_db: "mmoda_pg_db"')
 
     yield fn
 
@@ -1137,6 +1142,19 @@ def dispatcher_live_fixture_empty_sentry(pytestconfig, dispatcher_test_conf_empt
 @pytest.fixture
 def dispatcher_live_fixture_with_gallery(pytestconfig, dispatcher_test_conf_with_gallery_fn, dispatcher_debug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_gallery_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_with_tap(pytestconfig, dispatcher_test_conf_with_vo_options_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_vo_options_fn)
 
     service = dispatcher_state['url']
     pid = dispatcher_state['pid']

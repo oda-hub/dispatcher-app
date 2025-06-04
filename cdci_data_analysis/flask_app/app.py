@@ -29,7 +29,7 @@ from flask_restx import Api, Resource
 import time as _time
 from urllib.parse import urlencode, urlparse
 
-from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper, email_helper, matrix_helper
+from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper, email_helper, matrix_helper, ivoa_helper
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError
@@ -70,6 +70,7 @@ api = Api(app=app, version='1.0', title='CDCI ODA API',
 
 
 ns_conf = api.namespace('api/v1.0/oda', description='api')
+ns_tap = api.namespace('tap', description='VO TAP service')
 
 
 @app.before_request
@@ -269,7 +270,7 @@ def common_exception_payload():
                                                  'product_gallery_secret_key',
                                                  'matrix_sender_access_token', 'matrix_incident_report_sender_personal_access_token',
                                                  'matrix_bcc_receivers_room_ids', 'matrix_incident_report_receivers_room_ids',
-                                                 'smtp_server_password'])
+                                                 'smtp_server_password', 'vo_psql_pg_db', 'vo_psql_pg_host', 'vo_psql_pg_password', 'vo_psql_pg_user'])
     }
 
     plugins = {}
@@ -448,6 +449,91 @@ def push_renku_branch():
         raise RequestNotUnderstood(message="Internal error while posting on the renku branch. "
                                            "Our team is notified and is working on it.")
 
+
+@ns_tap.route('/<string:request_type>')
+class TAPQueryResult(Resource):
+
+    def get(self, request_type):
+        if request_type == 'tables':
+            app_config = app.config.get('conf')
+            vo_psql_pg_host = app_config.vo_psql_pg_host
+            vo_psql_pg_port = app_config.vo_psql_pg_port
+            vo_psql_pg_user = app_config.vo_psql_pg_user
+            vo_psql_pg_password = app_config.vo_psql_pg_password
+            vo_psql_pg_db = app_config.vo_psql_pg_db
+
+            result_request = ivoa_helper.run_metadata_query(vo_psql_pg_host=vo_psql_pg_host,
+                                                            vo_psql_pg_port=vo_psql_pg_port,
+                                                            vo_psql_pg_user=vo_psql_pg_user,
+                                                            vo_psql_pg_password=vo_psql_pg_password,
+                                                            vo_psql_pg_db=vo_psql_pg_db)
+
+            return output_xml(result_request, 200)
+
+        return make_response(f"The requested tap service is currently not available.", 501)
+
+    def post(self, request_type):
+        if request_type == 'async':
+            return make_response("TAP async query not implemented", 501)
+        elif request_type == 'sync':
+            try:
+                result_request = ''
+                par_dic = request.values.to_dict()
+                sanitized_request_values = sanitize_dict_before_log(par_dic)
+                logger.info('\033[33m raw request values: %s \033[0m', dict(sanitized_request_values))
+
+                app_config = app.config.get('conf')
+
+                vo_psql_pg_host = app_config.vo_psql_pg_host
+                vo_psql_pg_port = app_config.vo_psql_pg_port
+                vo_psql_pg_user = app_config.vo_psql_pg_user
+                vo_psql_pg_password = app_config.vo_psql_pg_password
+                vo_psql_pg_db = app_config.vo_psql_pg_db
+                product_gallery_url = app_config.product_gallery_url
+                # This is an example of the URL for a synchronous ADQL query on r magnitude:
+                # http://some.where/tap/sync?
+                # REQUEST=doQuery&
+                # LANG=ADQL&
+                # QUERY='SELECT TOP 15 * FROM data_product_table_view_v WHERE DISTANCE(POINT(308.107, 40.9577), POINT(ra, dec)) < 107474700'
+
+                tap_query = par_dic.get('QUERY', None)
+                tap_lang = par_dic.get('LANG', 'ADQL')
+                tap_request = par_dic.get('REQUEST', 'doQuery')
+                tap_format = par_dic.get('FORMAT', 'votable')
+
+                if tap_format != 'votable':
+                    return make_response(f"Format {tap_format} currently not supported", 501)
+
+                if tap_request == 'doQuery':
+                    if tap_lang == 'ADQL':
+                        result_request = ivoa_helper.run_adql_query(tap_query,
+                                                                    vo_psql_pg_host=vo_psql_pg_host,
+                                                                    vo_psql_pg_port=vo_psql_pg_port,
+                                                                    vo_psql_pg_user=vo_psql_pg_user,
+                                                                    vo_psql_pg_password=vo_psql_pg_password,
+                                                                    vo_psql_pg_db=vo_psql_pg_db,
+                                                                    product_gallery_url=product_gallery_url)
+                    else:
+                        make_response(f"Language {tap_lang} currently not supported", 501)
+
+                return output_xml(result_request, 200)
+            except APIerror as api_e:
+                error_message = f"Error while running an ADQL query: "
+                if hasattr(api_e, 'message') and api_e.message is not None:
+                    error_message += api_e.message
+                else:
+                    error_message += f"{repr(api_e)}"
+                logging.getLogger().error(error_message)
+                sentry.capture_message(error_message)
+
+                return make_response(error_message)
+            except Exception as e:
+                error_message = f"Error while running an ADQL query: {str(e)}\n{traceback.format_exc()}"
+                logging.getLogger().error(error_message)
+                sentry.capture_message(error_message)
+                return make_response(f"Internal error while running an ADQL query. Our team is notified and is working on it.")
+
+        return make_response(f"The requested tap service is currently not available.", 501)
 
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
@@ -633,6 +719,10 @@ def output_html(data, code, headers=None):
     resp.status_code = code
     return resp
 
+def output_xml(data, code, headers=None):
+    resp = Response(data, mimetype='text/xml', headers=headers)
+    resp.status_code = code
+    return resp
 
 @ns_conf.route('/product/<path:path>', methods=['GET', 'POST'])
 # @app.route('/product/<path:path>',methods=['GET','POST'])

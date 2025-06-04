@@ -45,11 +45,13 @@ install_req = [
     "black>=22.10.0",
     "bs4",
     "GitPython",
+    "queryparser-python3>=0.6.1",
     "nbformat",
     "giturlparse",
     "sentry-sdk",
     "validators==0.28.3",
-    "jsonschema<=4.17.3"
+    "jsonschema<=4.17.3",
+    'psycopg2'
 ]
 
 test_req = [

@@ -124,4 +124,11 @@ dispatcher:
         # url for the conversion of a given time, in UTC format, to the correspondent REVNUM
         converttime_revnum_service_url: COVERTTIME_REVNUM_SERVICE_URL
 
-
+    # virtual observatory related configurations (eg postgressql credentials)
+    vo_options:
+        # postgresql credentials
+        vo_psql_pg_host: PSQL_PG_HOST
+        vo_psql_pg_port: PSQL_PG_PORT
+        vo_psql_pg_user: PSQL_PG_USER
+        vo_psql_pg_password: PSQL_PG_PASSWORD
+        vo_psql_pg_db: PSQL_PG_DB
