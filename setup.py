@@ -51,7 +51,7 @@ install_req = [
     "sentry-sdk",
     "validators==0.28.3",
     "jsonschema<=4.17.3",
-    'psycopg2'
+    'psycopg2<=2.7.3'
 ]
 
 test_req = [
