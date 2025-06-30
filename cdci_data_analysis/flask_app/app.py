@@ -22,6 +22,7 @@ import logging
 
 from raven.contrib.flask import Sentry
 from flask import jsonify, send_from_directory, redirect, Response, Flask, request, make_response, g, url_for
+from flask_cors import cross_origin
 
 # restx not really used
 from flask_restx import Api, Resource
@@ -670,6 +671,39 @@ def load_frontend_fits_file_url():
     else:
         logging.warning(f'fits_file_url argument missing in request: {par_dic}')
         return make_response("fits_file_url arg not provided", 400)
+
+
+@app.route('/oauth_access_token_request', methods=['GET'])
+@cross_origin(origins=["http://localhost:5173"])
+def oauth_access_token_request():
+    par_dic = request.values.to_dict()
+    logger.info('\033[32m===========================> oauth_access_token_request\033[0m')
+
+    client_id = par_dic.get('client_id', None)
+    code = par_dic.get('code', None)
+    redirect_uri = par_dic.get('redirect_uri', None)
+    client_secret = par_dic.get('client_secret', None)
+    access_token_request_url = par_dic.get('access_token_request_url', None)
+
+    if client_id is None or code is None or redirect_uri is None or client_secret is None or access_token_request_url is None:
+        error_message = "One of the following parameters is missing from the request: 'redirect_uri', 'client_id', 'code', 'client_secret' or 'access_token_request_url'."
+        logger.error(error_message)
+        return make_response(error_message, 400)
+
+    headers = {
+        'Accept': 'application/json'
+    }
+
+    access_token_request_response = requests.post(access_token_request_url,
+                                                  headers=headers,
+                                                  data={
+                                                      'client_id': client_id,
+                                                      'code': code,
+                                                      'redirect_uri': redirect_uri,
+                                                      'client_secret': client_secret,
+                                                  })
+    return jsonify(access_token_request_response.json())
+
 
 
 @app.route('/call_back', methods=['POST', 'GET'])
