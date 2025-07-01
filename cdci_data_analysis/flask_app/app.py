@@ -604,7 +604,7 @@ def validate_schema(response):
             'error': repr(e),
             'invalid_response': response.json
         }), 500
-
+    # TODO improve this
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
