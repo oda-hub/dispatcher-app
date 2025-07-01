@@ -22,7 +22,6 @@ import logging
 
 from raven.contrib.flask import Sentry
 from flask import jsonify, send_from_directory, redirect, Response, Flask, request, make_response, g, url_for
-from flask_cors import cross_origin
 
 # restx not really used
 from flask_restx import Api, Resource
@@ -605,6 +604,11 @@ def validate_schema(response):
             'error': repr(e),
             'invalid_response': response.json
         }), 500
+
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+
     return response
 
 
@@ -674,7 +678,6 @@ def load_frontend_fits_file_url():
 
 
 @app.route('/oauth_access_token_request', methods=['GET'])
-@cross_origin(origins=["http://localhost:5173"])
 def oauth_access_token_request():
     par_dic = request.values.to_dict()
     logger.info('\033[32m===========================> oauth_access_token_request\033[0m')
