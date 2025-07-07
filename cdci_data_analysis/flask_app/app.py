@@ -704,6 +704,8 @@ def oauth_access_token_request():
                                                       'code': code,
                                                       'redirect_uri': redirect_uri,
                                                       'client_secret': client_secret,
+                                                      # for gitlab
+                                                      'grant_type': 'authorization_code'
                                                   })
     return jsonify(access_token_request_response.json())
 
