@@ -1,4 +1,6 @@
 import jwt
+import os
+import requests
 import oda_api.token
 
 from marshmallow import ValidationError
@@ -25,9 +27,32 @@ def get_token_roles(decoded_token):
     return roles
 
 
+def set_token_roles(decoded_token, roles):
+    decoded_token['roles'] = ','.join(roles)
+    return decoded_token
+
+
 def get_token_user(decoded_token):
     # extract user name
     return decoded_token['name'] if 'name' in decoded_token else ''
+
+
+def get_user_roles(decoded_token):
+    # extract user roles, based on the claims in the token
+    claims = decoded_token.get('claims', {})
+
+
+def get_openid_oauth_userinfo(oauth_host, access_token):
+    userinfo_url = os.path.join(oauth_host, 'oauth/userinfo')
+    headers = {
+        'Authorization': 'Bearer ' + access_token,
+    }
+    userinfo_response = requests.get(userinfo_url, headers=headers)
+    if userinfo_response.status_code == 200:
+        return userinfo_response.json()
+    else:
+        logger.error(f"Failed to get userinfo: {userinfo_response.status_code} {userinfo_response.text}")
+        return None
 
 
 def get_token_user_email_address(decoded_token):
