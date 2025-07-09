@@ -720,7 +720,7 @@ def oauth_access_token_request():
         # get user info
         userinfo = tokenHelper.get_openid_oauth_userinfo(oauth_host, access_token)
         userinfo_claims = tokenHelper.get_userinfo_claims(userinfo)
-        user_roles = tokenHelper.get_roles_from_userinfo(userinfo_claims)
+        user_roles = tokenHelper.get_roles_from_userinfo_claims(userinfo_claims)
 
         id_token = access_token_request_response_obj.get('id_token', None)
         decoded_id_token = tokenHelper.get_decoded_token(id_token, secret_key=None, validate_token=False)

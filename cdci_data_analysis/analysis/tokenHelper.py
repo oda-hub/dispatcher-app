@@ -37,9 +37,23 @@ def get_token_user(decoded_token):
     return decoded_token['name'] if 'name' in decoded_token else ''
 
 
-def get_roles_from_userinfo(userinfo_claims):
+def get_roles_from_userinfo_claims(userinfo_claims):
     roles = []
-    
+
+    # claims_obj = {
+    #     'developer': [],
+    #     'maintainer': [],
+    #     'owner': [],
+    # }
+    # TODO - this is a temporary solution, we should properly implement the logic to assign roles based on the userinfo claims
+    if len(userinfo_claims['developer']) > 0 or len(userinfo_claims['maintainer']) > 0 or len(userinfo_claims['owner']) > 0:
+        roles.append('oda workflow developer')
+
+    if len(userinfo_claims['owner']) > 0:
+        roles.append('administrator')
+        roles.append('job manager')
+        roles.append('gallery contributor')
+
     return roles
 
 
@@ -64,11 +78,11 @@ def get_userinfo_claims(userinfo):
     }
     for i in userinfo:
         if i.endswith('claims/groups/developer'):
-            claims_obj['developer'].append(userinfo[i])
+            claims_obj['developer'].extend(userinfo[i])
         elif i.endswith('claims/groups/owner'):
-            claims_obj['owner'].append(userinfo[i])
+            claims_obj['owner'].extend(userinfo[i])
         elif i.endswith('claims/groups/maintainer'):
-            claims_obj['maintainer'].append(userinfo[i])
+            claims_obj['maintainer'].extend(userinfo[i])
 
     return claims_obj
 
