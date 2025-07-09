@@ -690,6 +690,7 @@ def oauth_access_token_request():
     client_secret = app_config.oauth_gitlab_app_client_secret
     access_token_request_url = app_config.oauth_gitlab_access_token_request_url
     oauth_host = app_config.oauth_gitlab_host
+    secret_key = app_config.secret_key
 
     if client_id is None or code is None or redirect_uri is None or client_secret is None or access_token_request_url is None:
         error_message = "One of the following parameters is missing from the request: 'redirect_uri', 'client_id', 'code', 'client_secret' or 'access_token_request_url'."
@@ -718,11 +719,17 @@ def oauth_access_token_request():
         access_token = access_token_request_response_obj.get('access_token', None)
         # get user info
         userinfo = tokenHelper.get_openid_oauth_userinfo(oauth_host, access_token)
+        userinfo_claims = tokenHelper.get_userinfo_claims(userinfo)
+        user_roles = tokenHelper.get_roles_from_userinfo(userinfo_claims)
 
         id_token = access_token_request_response_obj.get('id_token', None)
         decoded_id_token = tokenHelper.get_decoded_token(id_token, secret_key=None, validate_token=False)
+        decoded_id_token['roles'] = user_roles
+        updated_id_token = tokenHelper.encode_token(decoded_id_token, secret_key=secret_key)
+        access_token_request_response_obj['id_token'] = updated_id_token
 
-    return jsonify(access_token_request_response.json())
+
+    return jsonify(access_token_request_response_obj)
 
 
 

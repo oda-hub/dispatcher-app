@@ -37,9 +37,10 @@ def get_token_user(decoded_token):
     return decoded_token['name'] if 'name' in decoded_token else ''
 
 
-def get_user_roles(decoded_token):
-    # extract user roles, based on the claims in the token
-    claims = decoded_token.get('claims', {})
+def get_roles_from_userinfo(userinfo_claims):
+    roles = []
+    
+    return roles
 
 
 def get_openid_oauth_userinfo(oauth_host, access_token):
@@ -53,6 +54,23 @@ def get_openid_oauth_userinfo(oauth_host, access_token):
     else:
         logger.error(f"Failed to get userinfo: {userinfo_response.status_code} {userinfo_response.text}")
         return None
+
+
+def get_userinfo_claims(userinfo):
+    claims_obj = {
+        'developer': [],
+        'owner': [],
+        'maintainer': [],
+    }
+    for i in userinfo:
+        if i.endswith('claims/groups/developer'):
+            claims_obj['developer'].append(userinfo[i])
+        elif i.endswith('claims/groups/owner'):
+            claims_obj['owner'].append(userinfo[i])
+        elif i.endswith('claims/groups/maintainer'):
+            claims_obj['maintainer'].append(userinfo[i])
+
+    return claims_obj
 
 
 def get_token_user_email_address(decoded_token):
@@ -102,6 +120,14 @@ def get_decoded_token(token, secret_key, validate_token=True):
                             ))
 
 
+def encode_token(payload, secret_key, algorithm=default_algorithm):
+    # encode the payload to a token
+    if secret_key is None:
+        raise BadRequest('A secret key must be provided to encode the token.')
+
+    return jwt.encode(payload, secret_key, algorithm=algorithm)
+
+
 def refresh_token(token, secret_key, refresh_interval):
     def refresh_token_exp_time(token_payload):
 
@@ -127,6 +153,21 @@ def refresh_token(token, secret_key, refresh_interval):
 
     # use the oda_api function
     updated_token = oda_api.token.update_token(token, secret_key=secret_key, payload_mutation=refresh_token_exp_time)
+    return updated_token
+
+
+def update_token_roles(token, secret_key, new_roles, allow_invalid=False):
+
+    roles_dict = {'roles': new_roles}
+
+    def mutate_token_roles(token_payload):
+        new_payload = token_payload.copy()
+        new_payload.update(roles_dict)
+
+        return new_payload
+
+    # use the oda_api function
+    updated_token = oda_api.token.update_token(token, secret_key=secret_key, payload_mutation=mutate_token_roles, allow_invalid=allow_invalid)
     return updated_token
 
 
