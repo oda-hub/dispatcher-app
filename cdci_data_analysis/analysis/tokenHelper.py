@@ -50,9 +50,11 @@ def get_roles_from_userinfo_claims(userinfo_claims):
         roles.append('oda workflow developer')
 
     if len(userinfo_claims['owner']) > 0:
-        roles.append('administrator')
         roles.append('job manager')
         roles.append('gallery contributor')
+        roles.append('space manager')
+        roles.append('refresh-tokens')
+        roles.append('inspect-state')
 
     return roles
 
