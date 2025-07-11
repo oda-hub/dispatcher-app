@@ -604,6 +604,12 @@ def validate_schema(response):
             'error': repr(e),
             'invalid_response': response.json
         }), 500
+    # TODO improve this
+    if os.environ.get('DISPATCHER_DEBUG_MODE', 'no') == 'yes':
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+
     return response
 
 
@@ -670,6 +676,61 @@ def load_frontend_fits_file_url():
     else:
         logging.warning(f'fits_file_url argument missing in request: {par_dic}')
         return make_response("fits_file_url arg not provided", 400)
+
+
+@app.route('/oauth_access_token_request', methods=['GET'])
+def oauth_access_token_request():
+    par_dic = request.values.to_dict()
+    logger.info('\033[32m===========================> oauth_access_token_request\033[0m')
+    app_config = app.config.get('conf')
+
+    client_id = par_dic.get('client_id', None)
+    code = par_dic.get('code', None)
+    redirect_uri = par_dic.get('redirect_uri', None)
+    client_secret = app_config.oauth_gitlab_app_client_secret
+    access_token_request_url = app_config.oauth_gitlab_access_token_request_url
+    oauth_host = app_config.oauth_gitlab_host
+    secret_key = app_config.secret_key
+
+    if client_id is None or code is None or redirect_uri is None or client_secret is None or access_token_request_url is None:
+        error_message = "One of the following parameters is missing from the request: 'redirect_uri', 'client_id', 'code', 'client_secret' or 'access_token_request_url'."
+        logger.error(error_message)
+        return make_response(error_message, 400)
+
+    headers = {
+        'Accept': 'application/json'
+    }
+
+    access_token_request_response = requests.post(access_token_request_url,
+                                                  headers=headers,
+                                                  data={
+                                                      'client_id': client_id,
+                                                      'code': code,
+                                                      'redirect_uri': redirect_uri,
+                                                      'client_secret': client_secret,
+                                                      # for gitlab
+                                                      'grant_type': 'authorization_code'
+                                                  })
+
+    access_token_request_response_obj = {}
+
+    if access_token_request_response.status_code == 200:
+        access_token_request_response_obj = access_token_request_response.json()
+        access_token = access_token_request_response_obj.get('access_token', None)
+        # get user info
+        userinfo = tokenHelper.get_openid_oauth_userinfo(oauth_host, access_token)
+        userinfo_claims = tokenHelper.get_userinfo_claims(userinfo)
+        user_roles = tokenHelper.get_roles_from_userinfo_claims(userinfo_claims)
+
+        id_token = access_token_request_response_obj.get('id_token', None)
+        decoded_id_token = tokenHelper.get_decoded_token(id_token, secret_key=None, validate_token=False)
+        decoded_id_token['roles'] = user_roles
+        updated_id_token = tokenHelper.encode_token(decoded_id_token, secret_key=secret_key)
+        access_token_request_response_obj['id_token'] = updated_id_token
+
+
+    return jsonify(access_token_request_response_obj)
+
 
 
 @app.route('/call_back', methods=['POST', 'GET'])

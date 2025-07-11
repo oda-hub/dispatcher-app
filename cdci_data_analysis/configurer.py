@@ -269,6 +269,9 @@ class ConfigEnv(object):
                                      disp_dict.get('renku_options', {}).get('renku_gitlab_repository_url', None),
                                      disp_dict.get('renku_options', {}).get('renku_base_project_url', None),
                                      disp_dict.get('renku_options', {}).get('ssh_key_path', None),
+                                     disp_dict.get('oauth_options', {}).get('oauth_gitlab_host', 'https://gitlab.in2p3.fr'),
+                                     disp_dict.get('oauth_options', {}).get('oauth_gitlab_app_client_secret', None),
+                                     disp_dict.get('oauth_options', {}).get('oauth_gitlab_access_token_request_url', 'https://gitlab.in2p3.fr/oauth/token'),
                                      disp_dict.get('vo_options', {}).get('vo_psql_pg_host', os.environ.get("POSTGRESQL_HOST", None)),
                                      disp_dict.get('vo_options', {}).get('vo_psql_pg_port', os.environ.get("POSTGRESQL_PORT", None)),
                                      disp_dict.get('vo_options', {}).get('vo_psql_pg_user', "mmoda_pg_user"),
@@ -353,6 +356,9 @@ class ConfigEnv(object):
                             renku_gitlab_repository_url,
                             renku_base_project_url,
                             renku_gitlab_ssh_key_path,
+                            oauth_gitlab_host,
+                            oauth_gitlab_app_client_secret,
+                            oauth_gitlab_access_token_request_url,
                             vo_psql_pg_host,
                             vo_psql_pg_port,
                             vo_psql_pg_user,
@@ -410,6 +416,9 @@ class ConfigEnv(object):
         self.renku_gitlab_repository_url = renku_gitlab_repository_url
         self.renku_gitlab_ssh_key_path = renku_gitlab_ssh_key_path
         self.renku_base_project_url = renku_base_project_url
+        self.oauth_gitlab_host = oauth_gitlab_host
+        self.oauth_gitlab_app_client_secret = oauth_gitlab_app_client_secret
+        self.oauth_gitlab_access_token_request_url = oauth_gitlab_access_token_request_url
         self.vo_psql_pg_host = vo_psql_pg_host
         self.vo_psql_pg_port = vo_psql_pg_port
         self.vo_psql_pg_user = vo_psql_pg_user
