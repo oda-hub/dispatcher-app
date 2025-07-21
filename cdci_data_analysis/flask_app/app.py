@@ -605,10 +605,18 @@ def validate_schema(response):
             'invalid_response': response.json
         }), 500
     # TODO improve this
-    if os.environ.get('DISPATCHER_DEBUG_MODE', 'no') == 'yes':
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+    app_config = app.config.get('conf')
+    cors_allowed_origins = app_config.cors_allowed_origins
+    if cors_allowed_origins is not None:
+        response.headers.add('Access-Control-Allow-Origin', ','.join(cors_allowed_origins))
+
+    cors_allowed_headers = app_config.cors_allowed_headers
+    if cors_allowed_headers is not None:
+        response.headers.add('Access-Control-Allow-Headers', ','.join(cors_allowed_headers))
+
+    cors_allowed_methods = app_config.cors_allowed_methods
+    if cors_allowed_methods is not None:
+        response.headers.add('Access-Control-Allow-Methods', ','.join(cors_allowed_methods))
 
     return response
 

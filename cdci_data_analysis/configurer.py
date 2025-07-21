@@ -230,6 +230,9 @@ class ConfigEnv(object):
                                      disp_dict.get('resubmit_timeout', 1800),
                                      disp_dict.get('soft_minimum_folder_age_days', 5),
                                      disp_dict.get('hard_minimum_folder_age_days', 30),
+                                     disp_dict.get('cors_options', {}).get('cors_allowed_origins', None),
+                                     disp_dict.get('cors_options', {}).get('cors_allowed_headers', None),
+                                     disp_dict.get('cors_options', {}).get('cors_allowed_methods', None),
                                      disp_dict['email_options']['smtp_server'],
                                      disp_dict['email_options'].get('site_name', 'University of Geneva'),
                                      disp_dict['email_options'].get('manual_reference', 'possibly-non-site-specific-link'),
@@ -320,6 +323,9 @@ class ConfigEnv(object):
                             resubmit_timeout,
                             soft_minimum_folder_age_days,
                             hard_minimum_folder_age_days,
+                            cors_allowed_origins,
+                            cors_allowed_headers,
+                            cors_allowed_methods,
                             smtp_server,
                             site_name,
                             manual_reference,
@@ -380,6 +386,9 @@ class ConfigEnv(object):
         self.resubmit_timeout = resubmit_timeout
         self.soft_minimum_folder_age_days = soft_minimum_folder_age_days
         self.hard_minimum_folder_age_days = hard_minimum_folder_age_days
+        self.cors_allowed_origins = cors_allowed_origins
+        self.cors_allowed_headers = cors_allowed_headers
+        self.cors_allowed_methods = cors_allowed_methods
         self.smtp_server = smtp_server
         self.site_name = site_name
         self.manual_reference = manual_reference
