@@ -604,7 +604,7 @@ def validate_schema(response):
             'error': repr(e),
             'invalid_response': response.json
         }), 500
-    # TODO improve this
+
     app_config = app.config.get('conf')
     cors_allowed_origins = app_config.cors_allowed_origins
     if cors_allowed_origins is not None:
