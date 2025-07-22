@@ -45,7 +45,7 @@ def get_roles_from_userinfo_claims(userinfo_claims):
     #     'maintainer': [],
     #     'owner': [],
     # }
-    # TODO - this is a temporary solution, we should properly implement the logic to assign roles based on the userinfo claims
+    # TODO - are qe happy for the moment to just use the userinfo claims?
     if len(userinfo_claims['developer']) > 0 or len(userinfo_claims['maintainer']) > 0 or len(userinfo_claims['owner']) > 0:
         roles.append('oda workflow developer')
 
