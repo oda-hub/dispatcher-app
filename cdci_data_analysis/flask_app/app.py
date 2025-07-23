@@ -605,6 +605,11 @@ def validate_schema(response):
             'invalid_response': response.json
         }), 500
 
+    return response
+
+
+@app.after_request
+def set_response_header(response):
     app_config = app.config.get('conf')
 
     cors_paths = app_config.cors_paths
