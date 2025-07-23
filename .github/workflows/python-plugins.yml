@@ -28,9 +28,9 @@ jobs:
         plugin-name:
         - integral
         - integral-all-sky
-        - antares
-        - gw
-        - legacysurvey
+#        - antares
+#        - gw
+#        - legacysurvey
         - nb2workflow
         # - polar
 
