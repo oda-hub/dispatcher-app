@@ -696,6 +696,7 @@ def oauth_access_token_request():
     code = par_dic.get('code', None)
     redirect_uri = par_dic.get('redirect_uri', None)
     client_secret = app_config.oauth_gitlab_app_client_secret
+    oauth_gitlab_app_owner_name = app_config.oauth_gitlab_app_owner_name
     access_token_request_url = app_config.oauth_gitlab_access_token_request_url
     oauth_host = app_config.oauth_gitlab_host
     secret_key = app_config.secret_key
@@ -728,7 +729,7 @@ def oauth_access_token_request():
         # get user info
         userinfo = tokenHelper.get_openid_oauth_userinfo(oauth_host, access_token)
         userinfo_claims = tokenHelper.get_userinfo_claims(userinfo)
-        user_roles = tokenHelper.get_roles_from_userinfo_claims(userinfo_claims)
+        user_roles = tokenHelper.get_roles_from_userinfo_claims(userinfo_claims, oauth_gitlab_app_owner_name)
 
         id_token = access_token_request_response_obj.get('id_token', None)
         decoded_id_token = tokenHelper.get_decoded_token(id_token, secret_key=None, validate_token=False)

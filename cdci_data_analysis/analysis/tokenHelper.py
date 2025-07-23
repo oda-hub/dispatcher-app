@@ -37,26 +37,37 @@ def get_token_user(decoded_token):
     return decoded_token['name'] if 'name' in decoded_token else ''
 
 
-def get_roles_from_userinfo_claims(userinfo_claims):
-    roles = []
+def get_roles_from_userinfo_claims(userinfo_claims, oauth_gitlab_app_owner_name):
+    roles = set()
 
     # claims_obj = {
     #     'developer': [],
     #     'maintainer': [],
     #     'owner': [],
     # }
-    # TODO - are qe happy for the moment to just use the userinfo claims?
-    if len(userinfo_claims['developer']) > 0 or len(userinfo_claims['maintainer']) > 0 or len(userinfo_claims['owner']) > 0:
-        roles.append('oda workflow developer')
+    # using the claims_obj to get the roles, along with the name of the oauth app owner
 
-    if len(userinfo_claims['owner']) > 0:
-        roles.append('job manager')
-        roles.append('gallery contributor')
-        roles.append('space manager')
-        roles.append('refresh-tokens')
-        roles.append('inspect-state')
+    for g in userinfo_claims['developer']:
+        if oauth_gitlab_app_owner_name in g:
+            roles.add('oda workflow developer')
+            break
 
-    return roles
+    for g in userinfo_claims['maintainer']:
+        if oauth_gitlab_app_owner_name in g:
+            roles.add('oda workflow developer')
+            break
+
+    for g in userinfo_claims['owner']:
+        if oauth_gitlab_app_owner_name in g:
+            roles.add('oda workflow developer')
+            roles.add('job manager')
+            roles.add('gallery contributor')
+            roles.add('space manager')
+            roles.add('refresh-tokens')
+            roles.add('inspect-state')
+            break
+
+    return list(roles)
 
 
 def get_openid_oauth_userinfo(oauth_host, access_token):
