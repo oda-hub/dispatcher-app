@@ -606,17 +606,23 @@ def validate_schema(response):
         }), 500
 
     app_config = app.config.get('conf')
-    cors_allowed_origins = app_config.cors_allowed_origins
-    if cors_allowed_origins is not None:
-        response.headers.add('Access-Control-Allow-Origin', ','.join(cors_allowed_origins))
 
-    cors_allowed_headers = app_config.cors_allowed_headers
-    if cors_allowed_headers is not None:
-        response.headers.add('Access-Control-Allow-Headers', ','.join(cors_allowed_headers))
+    cors_paths = app_config.cors_paths
+    if cors_paths is not None and request.path not in cors_paths:
+        return response
+    else:
+        if request.path in cors_paths or '*' in cors_paths:
+            cors_allowed_origins = app_config.cors_allowed_origins
+            if cors_allowed_origins is not None:
+                response.headers.add('Access-Control-Allow-Origin', ','.join(cors_allowed_origins))
 
-    cors_allowed_methods = app_config.cors_allowed_methods
-    if cors_allowed_methods is not None:
-        response.headers.add('Access-Control-Allow-Methods', ','.join(cors_allowed_methods))
+            cors_allowed_headers = app_config.cors_allowed_headers
+            if cors_allowed_headers is not None:
+                response.headers.add('Access-Control-Allow-Headers', ','.join(cors_allowed_headers))
+
+            cors_allowed_methods = app_config.cors_allowed_methods
+            if cors_allowed_methods is not None:
+                response.headers.add('Access-Control-Allow-Methods', ','.join(cors_allowed_methods))
 
     return response
 
