@@ -233,7 +233,7 @@ class ConfigEnv(object):
                                      disp_dict.get('cors_options', {}).get('cors_allowed_origins', None),
                                      disp_dict.get('cors_options', {}).get('cors_allowed_headers', None),
                                      disp_dict.get('cors_options', {}).get('cors_allowed_methods', None),
-                                     disp_dict.get('cors_options', {}).get('cors_paths', ['*']),
+                                     disp_dict.get('cors_options', {}).get('cors_paths', None),
                                      disp_dict['email_options']['smtp_server'],
                                      disp_dict['email_options'].get('site_name', 'University of Geneva'),
                                      disp_dict['email_options'].get('manual_reference', 'possibly-non-site-specific-link'),
