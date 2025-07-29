@@ -270,7 +270,9 @@ def common_exception_payload():
                                                  'product_gallery_secret_key',
                                                  'matrix_sender_access_token', 'matrix_incident_report_sender_personal_access_token',
                                                  'matrix_bcc_receivers_room_ids', 'matrix_incident_report_receivers_room_ids',
-                                                 'smtp_server_password', 'vo_psql_pg_db', 'vo_psql_pg_host', 'vo_psql_pg_password', 'vo_psql_pg_user'])
+                                                 'smtp_server_password', 'vo_psql_pg_db', 'vo_psql_pg_host', 'vo_psql_pg_password', 'vo_psql_pg_user',
+                                                 'oauth_gitlab_app_client_secret', 'oauth_gitlab_app_owner_name', 'oauth_gitlab_access_token_request_url', 'oauth_gitlab_host',
+                                                 'cors_paths', 'cors_allowed_origins', 'cors_allowed_headers', 'cors_allowed_methods',])
     }
 
     plugins = {}
