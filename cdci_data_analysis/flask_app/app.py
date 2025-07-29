@@ -710,8 +710,8 @@ def oauth_access_token_request():
     redirect_uri = par_dic.get('redirect_uri', None)
     client_secret = app_config.oauth_gitlab_app_client_secret
     oauth_gitlab_app_owner_name = app_config.oauth_gitlab_app_owner_name
-    access_token_request_url = app_config.oauth_gitlab_access_token_request_url
-    oauth_host = app_config.oauth_gitlab_host
+    oauth_gitlab_access_token_request_url = app_config.oauth_gitlab_access_token_request_url
+    oauth_gitlab_host = app_config.oauth_gitlab_host
     secret_key = app_config.secret_key
 
     if client_id is None or code is None or redirect_uri is None:
@@ -719,7 +719,7 @@ def oauth_access_token_request():
         logger.error(error_message)
         return make_response(error_message, 400)
 
-    if client_secret is None or access_token_request_url is None:
+    if client_secret is None or oauth_gitlab_access_token_request_url is None or oauth_gitlab_app_owner_name is None or oauth_gitlab_host is None:
         error_message = "One or more Oauth-related configuration parameters are not  properly configured in this instance."
         logger.error(error_message)
         return make_response(error_message, 400)
@@ -728,7 +728,7 @@ def oauth_access_token_request():
         'Accept': 'application/json'
     }
 
-    access_token_request_response = requests.post(access_token_request_url,
+    access_token_request_response = requests.post(oauth_gitlab_access_token_request_url,
                                                   headers=headers,
                                                   data={
                                                       'client_id': client_id,
@@ -745,7 +745,7 @@ def oauth_access_token_request():
         access_token_request_response_obj = access_token_request_response.json()
         access_token = access_token_request_response_obj.get('access_token', None)
         # get user info
-        userinfo = tokenHelper.get_openid_oauth_userinfo(oauth_host, access_token)
+        userinfo = tokenHelper.get_openid_oauth_userinfo(oauth_gitlab_host, access_token)
         userinfo_claims = tokenHelper.get_userinfo_claims(userinfo)
         user_roles = tokenHelper.get_roles_from_userinfo_claims(userinfo_claims, oauth_gitlab_app_owner_name)
 
