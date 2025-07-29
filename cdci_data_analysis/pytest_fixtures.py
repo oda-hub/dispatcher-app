@@ -659,6 +659,22 @@ def dispatcher_test_conf_with_vo_options_fn(dispatcher_test_conf_fn):
 
 
 @pytest.fixture
+def dispatcher_test_conf_with_cors_options_fn(dispatcher_test_conf_fn):
+    fn = "test-dispatcher-conf-with-cors-options.yaml"
+
+    with open(fn, "w") as f:
+        with open(dispatcher_test_conf_fn) as f_default:
+            f.write(f_default.read())
+
+        f.write('\n    cors_options:'
+                '\n         cors_allowed_origins: ["*"]'
+                '\n         cors_allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]'
+                '\n         cors_allowed_headers: ["Content-Type"]')
+
+    yield fn
+
+
+@pytest.fixture
 def dispatcher_test_conf_with_matrix_options_fn(dispatcher_test_conf_fn):
     fn = "test-dispatcher-conf-with-matrix-options.yaml"
 
@@ -763,6 +779,11 @@ def dispatcher_test_conf_with_gallery_invalid_local_resolver(dispatcher_test_con
 @pytest.fixture
 def dispatcher_test_conf_with_vo_options(dispatcher_test_conf_with_vo_options_fn):
     yield yaml.load(open(dispatcher_test_conf_with_vo_options_fn), Loader=yaml.SafeLoader)['dispatcher']
+
+
+@pytest.fixture
+def dispatcher_test_conf_with_cors_options(dispatcher_test_conf_with_cors_options_fn):
+    yield yaml.load(open(dispatcher_test_conf_with_cors_options_fn), Loader=yaml.SafeLoader)['dispatcher']
 
 
 @pytest.fixture
@@ -1155,6 +1176,19 @@ def dispatcher_live_fixture_with_gallery(pytestconfig, dispatcher_test_conf_with
 @pytest.fixture
 def dispatcher_live_fixture_with_tap(pytestconfig, dispatcher_test_conf_with_vo_options_fn, dispatcher_debug):
     dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_vo_options_fn)
+
+    service = dispatcher_state['url']
+    pid = dispatcher_state['pid']
+
+    yield service
+
+    kill_child_processes(pid, signal.SIGINT)
+    os.kill(pid, signal.SIGINT)
+
+
+@pytest.fixture
+def dispatcher_live_fixture_with_cors(pytestconfig, dispatcher_test_conf_with_cors_options_fn, dispatcher_debug):
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_with_cors_options_fn)
 
     service = dispatcher_state['url']
     pid = dispatcher_state['pid']
