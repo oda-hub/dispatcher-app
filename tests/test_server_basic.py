@@ -4957,7 +4957,7 @@ def test_with_cors_headers(dispatcher_live_fixture_with_cors):
 
 
 @pytest.mark.fast
-def test_with_cors_headers(dispatcher_live_fixture_with_cors_path):
+def test_with_cors_headers_paths(dispatcher_live_fixture_with_cors_path):
     server = dispatcher_live_fixture_with_cors_path
     print("constructed server:", server)
 
