@@ -785,7 +785,9 @@ def dispatcher_test_conf_with_no_resubmit_timeout(dispatcher_test_conf_with_no_r
 
 @pytest.fixture
 def dispatcher_test_conf_with_gallery(dispatcher_test_conf_with_gallery_fn):
-    yield yaml.load(open(dispatcher_test_conf_with_gallery_fn), Loader=yaml.SafeLoader)['dispatcher']
+    with open (dispatcher_test_conf_with_gallery_fn) as yaml_f:
+        loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
+    yield loaded_yaml['dispatcher']
 
 
 @pytest.fixture
@@ -795,17 +797,23 @@ def dispatcher_test_conf_with_gallery_invalid_local_resolver(dispatcher_test_con
 
 @pytest.fixture
 def dispatcher_test_conf_with_vo_options(dispatcher_test_conf_with_vo_options_fn):
-    yield yaml.load(open(dispatcher_test_conf_with_vo_options_fn), Loader=yaml.SafeLoader)['dispatcher']
+    with open(dispatcher_test_conf_with_vo_options_fn) as yaml_f:
+        loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
+    yield loaded_yaml['dispatcher']
 
 
 @pytest.fixture
 def dispatcher_test_conf_with_cors_options(dispatcher_test_conf_with_cors_options_fn):
-    yield yaml.load(open(dispatcher_test_conf_with_cors_options_fn), Loader=yaml.SafeLoader)['dispatcher']
+    with open(dispatcher_test_conf_with_cors_options_fn) as yaml_f:
+        loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
+    yield loaded_yaml['dispatcher']
 
 
 @pytest.fixture
 def dispatcher_test_conf_with_cors_options_path(dispatcher_test_conf_with_cors_options_path_fn):
-    yield yaml.load(open(dispatcher_test_conf_with_cors_options_path_fn), Loader=yaml.SafeLoader)['dispatcher']
+    with open(dispatcher_test_conf_with_cors_options_path_fn) as yaml_f:
+        loaded_yaml = yaml.load(yaml_f, Loader=yaml.SafeLoader)
+    yield loaded_yaml['dispatcher']
 
 
 @pytest.fixture
