@@ -618,7 +618,7 @@ def set_response_header(response):
 
     if cors_paths is None or ('*' not in cors_paths and request.path not in cors_paths):
         return response
-    elif request.path in cors_paths or '*' in cors_paths:
+    else:
         cors_allowed_origins = app_config.cors_allowed_origins
         if cors_allowed_origins is not None:
             response.headers.add('Access-Control-Allow-Origin', ','.join(cors_allowed_origins))
