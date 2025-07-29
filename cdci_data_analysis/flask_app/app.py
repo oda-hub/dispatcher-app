@@ -613,7 +613,7 @@ def set_response_header(response):
     app_config = app.config.get('conf')
 
     cors_paths = app_config.cors_paths
-    if cors_paths is not None and request.path not in cors_paths:
+    if cors_paths is not None and '*' not in cors_paths and request.path not in cors_paths:
         return response
     else:
         if request.path in cors_paths or '*' in cors_paths:
