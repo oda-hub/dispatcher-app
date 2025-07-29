@@ -4893,3 +4893,103 @@ def test_job_status_unaccessible(dispatcher_live_fixture):
         job_monitor = json.loads(f.read())
 
     assert job_monitor['status'] == 'done'
+
+
+@pytest.mark.fast
+def test_no_cors_headers(dispatcher_live_fixture):
+    server = dispatcher_live_fixture
+    print("constructed server:", server)
+
+    logger.info("constructed server: %s", server)
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token
+    }
+
+    c = requests.get(server + "/run_analysis",
+                     params=params
+                     )
+
+    assert c.status_code == 200
+    assert 'Access-Control-Allow-Origin' not in c.headers
+    assert 'Access-Control-Allow-Headers' not in c.headers
+    assert 'Access-Control-Allow-Methods' not in c.headers
+
+
+@pytest.mark.fast
+def test_with_cors_headers(dispatcher_live_fixture_with_cors):
+    server = dispatcher_live_fixture_with_cors
+    print("constructed server:", server)
+
+    logger.info("constructed server: %s", server)
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token
+    }
+
+    c = requests.get(server + "/run_analysis",
+                     params=params
+                     )
+
+    assert c.status_code == 200
+    assert c.headers['Access-Control-Allow-Origin'] == '*'
+    assert c.headers['Access-Control-Allow-Headers'] == 'Content-Type'
+    assert (set(c.headers['Access-Control-Allow-Methods'].split(',')) ==
+            {'GET', 'POST', 'OPTIONS', 'PUT', 'DELETE', 'PATCH'})
+
+
+@pytest.mark.fast
+def test_with_cors_headers_paths(dispatcher_live_fixture_with_cors_path):
+    server = dispatcher_live_fixture_with_cors_path
+    print("constructed server:", server)
+
+    logger.info("constructed server: %s", server)
+    # let's generate a valid token
+    token_payload = {
+        **default_token_payload,
+    }
+    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
+
+    params = {
+        **default_params,
+        'product_type': 'dummy',
+        'query_type': "Dummy",
+        'instrument': 'empty',
+        'token': encoded_token
+    }
+
+    c = requests.get(server + "/run_analysis",
+                     params=params
+                     )
+
+    assert c.status_code == 200
+    assert c.headers['Access-Control-Allow-Origin'] == '*'
+    assert c.headers['Access-Control-Allow-Headers'] == 'Content-Type'
+    assert (set(c.headers['Access-Control-Allow-Methods'].split(',')) ==
+            {'GET', 'POST', 'OPTIONS', 'PUT', 'DELETE', 'PATCH'})
+
+    c = requests.get(server + "/instr-list",
+                     params={'instrument': 'mock'})
+    assert c.status_code == 200
+    assert 'Access-Control-Allow-Origin' not in c.headers
+    assert 'Access-Control-Allow-Headers' not in c.headers
+    assert 'Access-Control-Allow-Methods' not in c.headers
+

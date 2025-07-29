@@ -1,4 +1,6 @@
 import jwt
+import os
+import requests
 import oda_api.token
 
 from marshmallow import ValidationError
@@ -25,9 +27,77 @@ def get_token_roles(decoded_token):
     return roles
 
 
+def set_token_roles(decoded_token, roles):
+    decoded_token['roles'] = ','.join(roles)
+    return decoded_token
+
+
 def get_token_user(decoded_token):
     # extract user name
     return decoded_token['name'] if 'name' in decoded_token else ''
+
+
+def get_roles_from_userinfo_claims(userinfo_claims, oauth_gitlab_app_owner_name):
+    roles = set()
+
+    # claims_obj = {
+    #     'developer': [],
+    #     'maintainer': [],
+    #     'owner': [],
+    # }
+    # using the claims_obj to get the roles, along with the name of the oauth app owner
+
+    for g in userinfo_claims['developer']:
+        if oauth_gitlab_app_owner_name in g:
+            roles.add('oda workflow developer')
+            break
+
+    for g in userinfo_claims['maintainer']:
+        if oauth_gitlab_app_owner_name in g:
+            roles.add('oda workflow developer')
+            break
+
+    for g in userinfo_claims['owner']:
+        if oauth_gitlab_app_owner_name in g:
+            roles.add('oda workflow developer')
+            roles.add('job manager')
+            roles.add('gallery contributor')
+            roles.add('space manager')
+            roles.add('refresh-tokens')
+            roles.add('inspect-state')
+            break
+
+    return list(roles)
+
+
+def get_openid_oauth_userinfo(oauth_host, access_token):
+    userinfo_url = os.path.join(oauth_host, 'oauth/userinfo')
+    headers = {
+        'Authorization': 'Bearer ' + access_token,
+    }
+    userinfo_response = requests.get(userinfo_url, headers=headers)
+    if userinfo_response.status_code == 200:
+        return userinfo_response.json()
+    else:
+        logger.error(f"Failed to get userinfo: {userinfo_response.status_code} {userinfo_response.text}")
+        return None
+
+
+def get_userinfo_claims(userinfo):
+    claims_obj = {
+        'developer': [],
+        'owner': [],
+        'maintainer': [],
+    }
+    for i in userinfo:
+        if i.endswith('claims/groups/developer'):
+            claims_obj['developer'].extend(userinfo[i])
+        elif i.endswith('claims/groups/owner'):
+            claims_obj['owner'].extend(userinfo[i])
+        elif i.endswith('claims/groups/maintainer'):
+            claims_obj['maintainer'].extend(userinfo[i])
+
+    return claims_obj
 
 
 def get_token_user_email_address(decoded_token):
@@ -77,6 +147,14 @@ def get_decoded_token(token, secret_key, validate_token=True):
                             ))
 
 
+def encode_token(payload, secret_key, algorithm=default_algorithm):
+    # encode the payload to a token
+    if secret_key is None:
+        raise BadRequest('A secret key must be provided to encode the token.')
+
+    return jwt.encode(payload, secret_key, algorithm=algorithm)
+
+
 def refresh_token(token, secret_key, refresh_interval):
     def refresh_token_exp_time(token_payload):
 
@@ -102,6 +180,21 @@ def refresh_token(token, secret_key, refresh_interval):
 
     # use the oda_api function
     updated_token = oda_api.token.update_token(token, secret_key=secret_key, payload_mutation=refresh_token_exp_time)
+    return updated_token
+
+
+def update_token_roles(token, secret_key, new_roles, allow_invalid=False):
+
+    roles_dict = {'roles': new_roles}
+
+    def mutate_token_roles(token_payload):
+        new_payload = token_payload.copy()
+        new_payload.update(roles_dict)
+
+        return new_payload
+
+    # use the oda_api function
+    updated_token = oda_api.token.update_token(token, secret_key=secret_key, payload_mutation=mutate_token_roles, allow_invalid=allow_invalid)
     return updated_token
 
 
