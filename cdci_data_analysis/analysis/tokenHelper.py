@@ -83,32 +83,6 @@ def get_openid_oauth_userinfo(oauth_host, access_token):
         return None
 
 
-def get_gitlab_group_info(oauth_host, access_token, group_name):
-    userinfo_url = os.path.join(oauth_host, f'api/v4/groups?search={group_name}')
-    headers = {
-        'Authorization': 'Bearer ' + access_token,
-    }
-    group_info_response = requests.get(userinfo_url, headers=headers)
-    if group_info_response.status_code == 200:
-        return group_info_response.json()
-    else:
-        logger.error(f"Failed to get group info: {group_info_response.status_code} {group_info_response.text}")
-        return None
-
-
-def get_gitlab_list_projects_groups(oauth_host, access_token, group_id):
-    list_projects_url = os.path.join(oauth_host, f'api/v4/groups/{group_id}/projects')
-    headers = {
-        'Authorization': 'Bearer ' + access_token,
-    }
-    list_projects_response = requests.get(list_projects_url, headers=headers)
-    if list_projects_response.status_code == 200:
-        return list_projects_response.json()
-    else:
-        logger.error(f"Failed to get the list of projects of a given group: {list_projects_response.status_code} {list_projects_response.text}")
-        return None
-
-
 def get_userinfo_claims(userinfo):
     claims_obj = {
         'developer': [],
