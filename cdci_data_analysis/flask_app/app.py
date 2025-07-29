@@ -714,8 +714,13 @@ def oauth_access_token_request():
     oauth_host = app_config.oauth_gitlab_host
     secret_key = app_config.secret_key
 
-    if client_id is None or code is None or redirect_uri is None or client_secret is None or access_token_request_url is None:
-        error_message = "One of the following parameters is missing from the request: 'redirect_uri', 'client_id', 'code', 'client_secret' or 'access_token_request_url'."
+    if client_id is None or code is None or redirect_uri is None:
+        error_message = "One or more Oauth-related parameters are not properly configured in this request."
+        logger.error(error_message)
+        return make_response(error_message, 400)
+
+    if client_secret is None or access_token_request_url is None:
+        error_message = "One or more Oauth-related configuration parameters are not  properly configured in this instance."
         logger.error(error_message)
         return make_response(error_message, 400)
 
