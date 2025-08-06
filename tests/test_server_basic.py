@@ -2776,7 +2776,7 @@ def test_get_query_products_exception(dispatcher_live_fixture):
 
 
 @pytest.mark.test_drupal
-@pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'GX 1+4', 'fake object', None])
+@pytest.mark.parametrize("source_to_resolve", ['Mrk 421', 'Mrk_421', 'GX 1+4', 'fake object', None, 'GRB161203A'])
 @pytest.mark.parametrize("request_type", ["private", "public"])
 def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_conf_with_gallery, source_to_resolve, request_type):
     server = dispatcher_live_fixture_with_gallery
@@ -2815,8 +2815,15 @@ def test_source_resolver(dispatcher_live_fixture_with_gallery, dispatcher_test_c
         assert resolved_obj['message'].startswith(f'{source_to_resolve} could not be resolved')
     else:
         assert 'name' in resolved_obj
-        assert 'DEC' in resolved_obj
-        assert 'RA' in resolved_obj
+        if source_to_resolve == 'GRB161203A':
+            assert 'DEC' not in resolved_obj
+            assert 'RA' not in resolved_obj
+            assert 'have_coordinates' in resolved_obj
+            assert not resolved_obj['have_coordinates']
+        else:
+            assert 'DEC' in resolved_obj
+            assert 'RA' in resolved_obj
+            assert resolved_obj['have_coordinates']
         assert 'entity_portal_link' in resolved_obj
         assert 'object_ids' in resolved_obj
         assert 'object_type' in resolved_obj

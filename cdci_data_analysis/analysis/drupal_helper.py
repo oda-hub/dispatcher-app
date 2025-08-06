@@ -1461,16 +1461,20 @@ def resolve_name(local_name_resolver_url: str, external_name_resolver_url: str, 
                     resolved_obj['name'] = name.replace('_', ' ')
                     if returned_resolved_obj['success']:
                         logger.info(f"object {name} successfully resolved")
-                        if 'ra' in returned_resolved_obj:
+                        if 'ra' in returned_resolved_obj and returned_resolved_obj['ra'] is not None:
                             resolved_obj['RA'] = float(returned_resolved_obj['ra'])
-                        if 'dec' in returned_resolved_obj:
+                        if 'dec' in returned_resolved_obj and returned_resolved_obj['dec'] is not None:
                             resolved_obj['DEC'] = float(returned_resolved_obj['dec'])
                         if 'object_ids' in returned_resolved_obj:
                             resolved_obj['object_ids'] = returned_resolved_obj['object_ids']
                         if 'object_type' in returned_resolved_obj:
                             resolved_obj['object_type'] = returned_resolved_obj['object_type']
+                        if 'have_coordinates' in returned_resolved_obj:
+                            resolved_obj['have_coordinates'] = returned_resolved_obj['have_coordinates']
                         resolved_obj['entity_portal_link'] = entities_portal_url.format(quoted_name)
                         resolved_obj['message'] = f'{name} successfully resolved'
+
+                        return resolved_obj
                     elif not returned_resolved_obj['success']:
                         logger.info(f"resolution of the object {name} unsuccessful")
                         resolved_obj['message'] = f'{name} could not be resolved'
