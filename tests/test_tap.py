@@ -78,27 +78,9 @@ def fill_up_db(dispatcher_test_conf_with_vo_options, postgresql):
         postgresql.commit()
 
 
-@pytest.fixture
-def setup_tap_views(fill_up_db, postgresql):
-    with postgresql.cursor() as cur:
-        file_path = os.path.join(os.path.dirname(__file__), 'gallery_pg_db_data/pg_gallery_db_init_views_dump.sql')
-        with open(file_path) as f:
-            cur.execute(f.read())
-        postgresql.commit()
-
-
-@pytest.fixture
-def setup_tap_views_empty_db(dispatcher_test_conf_with_vo_options, postgresql):
-    with postgresql.cursor() as cur:
-        file_path = os.path.join(os.path.dirname(__file__), 'gallery_pg_db_data/pg_gallery_db_init_views_dump.sql')
-        with open(file_path) as f:
-            cur.execute(f.read())
-        postgresql.commit()
-
-
 @pytest.mark.test_tap
 @pytest.mark.parametrize("table", ["ivoa.obscore", "ivoa.obscore_view"])
-def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, setup_tap_views_empty_db, table, postgresql):
+def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, table, postgresql):
     server = dispatcher_live_fixture_with_tap
     tap_query = f"SELECT * FROM {table}"
 
@@ -113,7 +95,7 @@ def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, setup_tap
 
 @pytest.mark.test_tap
 @pytest.mark.parametrize("table", ["ivoa.obscore", "ivoa.obscore_view"])
-def test_local_tap_sync_job(dispatcher_live_fixture_with_tap, setup_tap_views, table):
+def test_local_tap_sync_job(dispatcher_live_fixture_with_tap, fill_up_db, table):
     server = dispatcher_live_fixture_with_tap
     number_results = 7
     tap_query = f"SELECT TOP {number_results} * FROM {table}"
@@ -129,7 +111,7 @@ def test_local_tap_sync_job(dispatcher_live_fixture_with_tap, setup_tap_views, t
 
 @pytest.mark.test_tap
 @pytest.mark.parametrize("table", ["ivoa.obscore", "ivoa.obscore_view"])
-def test_local_tap_sync_job_cone_search(dispatcher_live_fixture_with_tap, setup_tap_views, table):
+def test_local_tap_sync_job_cone_search(dispatcher_live_fixture_with_tap, table, fill_up_db):
     server = dispatcher_live_fixture_with_tap
     number_results = 3
     tap_query = f"SELECT TOP 100 * FROM {table} WHERE (1=CONTAINS(POINT('ICRS', s_ra, s_dec), CIRCLE('ICRS', 95.23, 55, 15.0)));"
@@ -144,7 +126,7 @@ def test_local_tap_sync_job_cone_search(dispatcher_live_fixture_with_tap, setup_
 
 
 @pytest.mark.test_tap
-def test_local_tap_load_tables(dispatcher_live_fixture_with_tap, setup_tap_views_empty_db):
+def test_local_tap_load_tables(dispatcher_live_fixture_with_tap, postgresql):
     server = dispatcher_live_fixture_with_tap
     number_results = 2
     column_names = ['obs_title', 'product_path', 'em_min', 'em_max', 'time_bin', 'instrument_name', 'target_name', 'target_id', 's_ra', 's_dec', 'dataproduct_type', 't_min', 't_max', 'proposal_id', 'target_name', 'access_url', 'image_uri']
