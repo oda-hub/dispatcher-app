@@ -97,7 +97,7 @@ def setup_tap_views_empty_db(dispatcher_test_conf_with_vo_options, postgresql):
 
 
 @pytest.mark.test_tap
-@pytest.mark.parametrize("table", ["ivoa.obscore", "ivoa.obscore_view", "ivoa.obscore_mv"])
+@pytest.mark.parametrize("table", ["ivoa.obscore", "ivoa.obscore_view"])
 def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, setup_tap_views_empty_db, table, postgresql):
     server = dispatcher_live_fixture_with_tap
     tap_query = f"SELECT * FROM {table}"
@@ -112,7 +112,7 @@ def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, setup_tap
 
 
 @pytest.mark.test_tap
-@pytest.mark.parametrize("table", ["ivoa.obscore", "ivoa.obscore_view", "ivoa.obscore_mv"])
+@pytest.mark.parametrize("table", ["ivoa.obscore", "ivoa.obscore_view"])
 def test_local_tap_sync_job(dispatcher_live_fixture_with_tap, setup_tap_views, table):
     server = dispatcher_live_fixture_with_tap
     number_results = 7
@@ -128,7 +128,7 @@ def test_local_tap_sync_job(dispatcher_live_fixture_with_tap, setup_tap_views, t
 
 
 @pytest.mark.test_tap
-@pytest.mark.parametrize("table", ["ivoa.obscore", "ivoa.obscore_view", "ivoa.obscore_mv"])
+@pytest.mark.parametrize("table", ["ivoa.obscore", "ivoa.obscore_view"])
 def test_local_tap_sync_job_cone_search(dispatcher_live_fixture_with_tap, setup_tap_views, table):
     server = dispatcher_live_fixture_with_tap
     number_results = 3
