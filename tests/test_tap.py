@@ -98,7 +98,7 @@ def setup_tap_views_empty_db(dispatcher_test_conf_with_vo_options, postgresql):
 
 @pytest.mark.test_tap
 @pytest.mark.parametrize("table", ["ivoa.obscore", "ivoa.obscore_view", "ivoa.obscore_mv"])
-def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, setup_tap_views_empty_db, table):
+def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, setup_tap_views_empty_db, table, postgresql):
     server = dispatcher_live_fixture_with_tap
     tap_query = f"SELECT * FROM {table}"
 
