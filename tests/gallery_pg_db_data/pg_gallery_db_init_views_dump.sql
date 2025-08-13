@@ -1,3 +1,5 @@
+DROP VIEW IF EXISTS ivoa.obscore_view;
+
 CREATE VIEW ivoa.obscore_view AS
     SELECT * FROM ivoa.obscore;
 
