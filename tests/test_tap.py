@@ -78,10 +78,27 @@ def fill_up_db(dispatcher_test_conf_with_vo_options, postgresql):
         postgresql.commit()
 
 
+@pytest.fixture
+def setup_tap_views(fill_up_db, postgresql):
+    with postgresql.cursor() as cur:
+        with open(os.path.join(os.path.dirname(__file__), 'gallery_pg_db_data/pg_gallery_db_init_views_dump.sql')) as f:
+            cur.execute(f.read())
+        postgresql.commit()
+
+
+@pytest.fixture
+def setup_tap_views_empty_db(dispatcher_test_conf_with_vo_options, postgresql):
+    with postgresql.cursor() as cur:
+        with open(os.path.join(os.path.dirname(__file__), 'gallery_pg_db_data/pg_gallery_db_init_views_dump.sql')) as f:
+            cur.execute(f.read())
+        postgresql.commit()
+
+
 @pytest.mark.test_tap
-def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, postgresql):
+@pytest.mark.parametrize("table", ["ivoa.obscore", "ivoa.obscore_view", "ivoa.obscore_mv"])
+def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, setup_tap_views_empty_db, table):
     server = dispatcher_live_fixture_with_tap
-    tap_query = "SELECT * FROM ivoa.obscore"
+    tap_query = f"SELECT * FROM {table}"
 
     oda_tap = pyvo.dal.TAPService(os.path.join(server, "tap"))
 
@@ -93,10 +110,11 @@ def test_local_tap_sync_job_empty_db(dispatcher_live_fixture_with_tap, postgresq
 
 
 @pytest.mark.test_tap
-def test_local_tap_sync_job(dispatcher_live_fixture_with_tap, fill_up_db):
+@pytest.mark.parametrize("table", ["ivoa.obscore", "ivoa.obscore_view", "ivoa.obscore_mv"])
+def test_local_tap_sync_job(dispatcher_live_fixture_with_tap, setup_tap_views, table):
     server = dispatcher_live_fixture_with_tap
     number_results = 7
-    tap_query = f"SELECT TOP {number_results} * FROM ivoa.obscore"
+    tap_query = f"SELECT TOP {number_results} * FROM {table}"
 
     oda_tap = pyvo.dal.TAPService(os.path.join(server, "tap"))
 
@@ -108,10 +126,11 @@ def test_local_tap_sync_job(dispatcher_live_fixture_with_tap, fill_up_db):
 
 
 @pytest.mark.test_tap
-def test_local_tap_sync_job_cone_search(dispatcher_live_fixture_with_tap, fill_up_db):
+@pytest.mark.parametrize("table", ["ivoa.obscore", "ivoa.obscore_view", "ivoa.obscore_mv"])
+def test_local_tap_sync_job_cone_search(dispatcher_live_fixture_with_tap, setup_tap_views, table):
     server = dispatcher_live_fixture_with_tap
     number_results = 3
-    tap_query = f"SELECT TOP 100 * FROM ivoa.obscore WHERE (1=CONTAINS(POINT('ICRS', s_ra, s_dec), CIRCLE('ICRS', 95.23, 55, 15.0)));"
+    tap_query = f"SELECT TOP 100 * FROM {table} WHERE (1=CONTAINS(POINT('ICRS', s_ra, s_dec), CIRCLE('ICRS', 95.23, 55, 15.0)));"
 
     oda_tap = pyvo.dal.TAPService(os.path.join(server, "tap"))
 
@@ -123,9 +142,9 @@ def test_local_tap_sync_job_cone_search(dispatcher_live_fixture_with_tap, fill_u
 
 
 @pytest.mark.test_tap
-def test_local_tap_load_tables(dispatcher_live_fixture_with_tap, postgresql):
+def test_local_tap_load_tables(dispatcher_live_fixture_with_tap, setup_tap_views_empty_db):
     server = dispatcher_live_fixture_with_tap
-    number_results = 1
+    number_results = 2
     column_names = ['obs_title', 'product_path', 'em_min', 'em_max', 'time_bin', 'instrument_name', 'target_name', 'target_id', 's_ra', 's_dec', 'dataproduct_type', 't_min', 't_max', 'proposal_id', 'target_name', 'access_url', 'image_uri']
 
     oda_tap = pyvo.dal.TAPService(os.path.join(server, "tap"))
@@ -137,8 +156,7 @@ def test_local_tap_load_tables(dispatcher_live_fixture_with_tap, postgresql):
     assert len(tables) == number_results
 
     tab_names = [tab_name for tab_name in tables.keys()]
-
-    assert tab_names[0] == 'obscore'
+    assert set(tab_names) == {'obscore', 'obscore_view'}
 
     table_obj = list(tables.items())
     assert table_obj[0][1].description == 'This is the table of the data_products of the gallery'
@@ -146,3 +164,7 @@ def test_local_tap_load_tables(dispatcher_live_fixture_with_tap, postgresql):
         assert column.name in column_names
         assert column.description is not None and column.description == f"{column.name} of the data product"
 
+    assert table_obj[1][1].description == 'This is the view of the data_products of the gallery'
+    for column in table_obj[0][1].columns:
+        assert column.name in column_names
+        assert column.description is not None and column.description == f"{column.name} of the data product"

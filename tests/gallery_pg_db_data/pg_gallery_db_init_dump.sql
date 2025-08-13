@@ -42,4 +42,3 @@ COMMENT ON COLUMN ivoa.obscore.target_name IS 'target_name of the data product';
 COMMENT ON COLUMN ivoa.obscore.access_url IS 'access_url of the data product';
 COMMENT ON COLUMN ivoa.obscore.image_uri IS 'image_uri of the data product';
 
-ALTER TABLE ivoa.obscore OWNER TO postgres;
