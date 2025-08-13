@@ -228,7 +228,7 @@ def extract_metadata_from_product_gallery(xml_output_root,
                             "GROUP BY c.relnamespace, c.relname, c.relkind "
                             "ORDER BY table_schema, table_name;")
 
-    columns_table_gallery_query = ("SELECT c.column_name, c.data_type, c.column_default, "
+    columns_table_gallery_query = ("SELECT c.column_name, c.data_type, "
                                    "COL_DESCRIPTION(CONCAT(c.table_schema, '.', c.table_name)::regclass, ordinal_position) as description "
                                    "FROM information_schema.columns as c "
                                    "JOIN information_schema.tables as t "
@@ -269,8 +269,6 @@ def extract_metadata_from_product_gallery(xml_output_root,
                                 table_elem_name = value
                             if description.name == 'table_description':
                                 description_elem_name = value
-                            # if description.name == 'table_type':
-                            #     table_type_name = value
 
                         if schema_elem_name is not None:
                             schema_elem = get_schema_element(xml_output_root, schema_elem_name)
@@ -297,7 +295,6 @@ def extract_metadata_from_product_gallery(xml_output_root,
                                         continue
                                     column_elem_name = c_t_row[0]
                                     column_datatype = c_t_row[1]
-                                    column_default = c_t_row[2]
                                     column_description = c_t_row[3]
                                     column_elem = ET.SubElement(table_elem, 'column')
                                     ET.SubElement(column_elem, 'name').text = column_elem_name
@@ -308,7 +305,6 @@ def extract_metadata_from_product_gallery(xml_output_root,
                                     if column_datatype is not None:
                                         vo_table_type = map_psql_type_to_vo_datatype(column_datatype)
                                         data_type_elem = ET.SubElement(column_elem, 'dataType')
-                                        # table_elem.set('type', '_'.join(table_type_name.lower().split()))
                                         data_type_elem.text = vo_table_type
                                         data_type_elem.set('xsi:type', 'vod:VOTableType')
 
