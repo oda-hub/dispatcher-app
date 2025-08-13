@@ -295,7 +295,7 @@ def extract_metadata_from_product_gallery(xml_output_root,
                                         continue
                                     column_elem_name = c_t_row[0]
                                     column_datatype = c_t_row[1]
-                                    column_description = c_t_row[3]
+                                    column_description = c_t_row[2]
                                     column_elem = ET.SubElement(table_elem, 'column')
                                     ET.SubElement(column_elem, 'name').text = column_elem_name
                                     if column_description is not None:
