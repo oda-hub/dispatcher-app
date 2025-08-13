@@ -218,15 +218,17 @@ def extract_metadata_from_product_gallery(xml_output_root,
                                           vo_psql_pg_password,
                                           vo_psql_pg_db,
                                           ):
-    # gallery tables query
-    tables_gallery_query = ("SELECT t.table_schema AS table_schema, t.table_name AS table_name, t.table_type AS table_type, "
-                            "string_agg(d.description, ' ') AS table_description "
-                            "FROM information_schema.tables t LEFT JOIN pg_catalog.pg_description d "
-                            "ON d.objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = t.table_name AND relkind = 'r' LIMIT 1) "
-                            "WHERE d.objsubid = 0 AND table_schema != 'pg_catalog' AND table_schema != 'information_schema' "
-                            "GROUP BY t.table_schema, t.table_name, t.table_type ORDER BY t.table_schema, t.table_name;")
+    # gallery tables, views, and materialized views query
+    tables_gallery_query = ("SELECT c.relnamespace::regnamespace::text AS table_schema, c.relname AS table_name, "
+                            "COALESCE(string_agg(d.description, ' '), 'No description') AS table_description "
+                            "FROM pg_catalog.pg_class c "
+                            "LEFT JOIN pg_catalog.pg_description d ON d.objoid = c.oid AND d.objsubid = 0 "
+                            "WHERE c.relkind IN ('r', 'v', 'm') "
+                            "    AND c.relnamespace::regnamespace::text NOT IN ('pg_catalog', 'information_schema') "
+                            "GROUP BY c.relnamespace, c.relname, c.relkind "
+                            "ORDER BY table_schema, table_name;")
 
-    columns_table_gallery_query = ("SELECT c.column_name, c.data_type, c.column_default, "
+    columns_table_gallery_query = ("SELECT c.column_name, c.data_type, "
                                    "COL_DESCRIPTION(CONCAT(c.table_schema, '.', c.table_name)::regclass, ordinal_position) as description "
                                    "FROM information_schema.columns as c "
                                    "JOIN information_schema.tables as t "
@@ -267,8 +269,6 @@ def extract_metadata_from_product_gallery(xml_output_root,
                                 table_elem_name = value
                             if description.name == 'table_description':
                                 description_elem_name = value
-                            if description.name == 'table_type':
-                                table_type_name = value
 
                         if schema_elem_name is not None:
                             schema_elem = get_schema_element(xml_output_root, schema_elem_name)
@@ -293,13 +293,9 @@ def extract_metadata_from_product_gallery(xml_output_root,
                                 for c_t_index, c_t_row in enumerate(columns_table_data):
                                     if columns_to_exclude.get(schema_elem_name + '.' + table_elem_name, None) is not None and columns_to_exclude[schema_elem_name + '.' + table_elem_name] == c_t_row[0]:
                                         continue
-                                    # considering the query
-                                    # "SELECT c.column_name, c.data_type, c.column_default, "
-                                    # "COL_DESCRIPTION(CONCAT(c.table_schema, '.', c.table_name)::regclass, ordinal_position) as description "
                                     column_elem_name = c_t_row[0]
                                     column_datatype = c_t_row[1]
-                                    column_default = c_t_row[2]
-                                    column_description = c_t_row[3]
+                                    column_description = c_t_row[2]
                                     column_elem = ET.SubElement(table_elem, 'column')
                                     ET.SubElement(column_elem, 'name').text = column_elem_name
                                     if column_description is not None:
@@ -309,7 +305,6 @@ def extract_metadata_from_product_gallery(xml_output_root,
                                     if column_datatype is not None:
                                         vo_table_type = map_psql_type_to_vo_datatype(column_datatype)
                                         data_type_elem = ET.SubElement(column_elem, 'dataType')
-                                        table_elem.set('type', '_'.join(table_type_name.lower().split()))
                                         data_type_elem.text = vo_table_type
                                         data_type_elem.set('xsi:type', 'vod:VOTableType')
 
