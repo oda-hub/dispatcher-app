@@ -81,7 +81,8 @@ def fill_up_db(dispatcher_test_conf_with_vo_options, postgresql):
 @pytest.fixture
 def setup_tap_views(fill_up_db, postgresql):
     with postgresql.cursor() as cur:
-        with open(os.path.join(os.path.dirname(__file__), 'gallery_pg_db_data/pg_gallery_db_init_views_dump.sql')) as f:
+        file_path = os.path.join(os.path.dirname(__file__), 'gallery_pg_db_data/pg_gallery_db_init_views_dump.sql')
+        with open(file_path) as f:
             cur.execute(f.read())
         postgresql.commit()
 
