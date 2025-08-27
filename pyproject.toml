@@ -54,9 +54,9 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    'pytest',
-    'pytest-sentry',
-    'psutil',
+    "pytest",
+    "pytest-sentry",
+    "psutil",
 ]
 ontology = [
     "rdflib>=6.2.0"
@@ -64,3 +64,12 @@ ontology = [
 
 [project.scripts]
 run_osa_cdci_server = "bin.run_osa_cdci_server:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+cdci_data_analysis = ["config_dir/*"]
