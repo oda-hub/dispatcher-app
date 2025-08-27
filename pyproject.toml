@@ -4,6 +4,7 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = "cdci_data_analysis"
+dynamic = ["version"]
 description = "A Python Framework for CDCI online data analysis"
 authors = [
     {name = "Andrea Tramacere", email = "contact@odahub.io"},
