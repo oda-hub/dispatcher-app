@@ -1,3 +1,75 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools"]
 build-backend = 'setuptools.build_meta'
+
+[project]
+name = "cdci_data_analysis"
+dynamic = ["version"]
+description = "A Python Framework for CDCI online data analysis"
+authors = [
+    {name = "Andrea Tramacere", email = "contact@odahub.io"},
+    {name = "Volodymyr Savchenko", email = "contact@odahub.io"}
+]
+maintainers = [
+  {name = "Gabriele Barni", email = "contact@odahub.io"},
+  {name = "Denys Savchenko", email = "contact@odahub.io"}
+]
+readme = "README.md"
+
+dependencies = [
+    'oda_api>=1.1.31',
+    'pylogstash_context>=0.1.19',
+    "numpy<2.0.0",
+    "pyyaml",
+    "simplejson",
+    "flask==2.0.3",
+    "astropy>=2.0.3",
+    "gunicorn",
+    "decorator",
+    "python-logstash",
+    "raven",
+    "blinker",
+    "bokeh>3.0,<3.2",
+    "json_tricks",
+    "flask-restx==1.2.0",
+    "six",
+    "werkzeug==2.0.3",
+    "python-shell-colors==0.2.1",
+    "logging_tree",
+    "celery",
+    "redis",
+    "pyjwt",
+    "marshmallow<3.24",
+    "black>=22.10.0",
+    "bs4",
+    "GitPython",
+    "queryparser-python3>=0.6.1",
+    "nbformat",
+    "giturlparse",
+    "sentry-sdk",
+    "validators==0.28.3",
+    "jsonschema<=4.17.3",
+    'psycopg2'
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-sentry",
+    "psutil",
+]
+ontology = [
+    "rdflib>=6.2.0"
+]
+
+[project.scripts]
+run_osa_cdci_server = "bin.run_osa_cdci_server:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+cdci_data_analysis = ["config_dir/*"]
