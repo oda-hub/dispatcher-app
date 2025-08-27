@@ -63,4 +63,4 @@ ontology = [
 ]
 
 [project.scripts]
-run_osa_cdci_server.py = "bin.run_osa_cdci_server:main"
+run_osa_cdci_server = "bin.run_osa_cdci_server:main"
