@@ -72,7 +72,7 @@ include-package-data = true
 where = ["."]
 
 [tool.setuptools.package-data]
-cdci_data_analysis = ["config_dir/*"]
+cdci_data_analysis = ["config_dir/*", "plugins/dummy_plugin/*yml"]
 
 [tool.setuptools.dynamic]
 version = {attr = "cdci_data_analysis.__version__"}
