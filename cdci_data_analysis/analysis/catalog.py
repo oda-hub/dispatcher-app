@@ -205,7 +205,7 @@ class BasicCatalog(object):
         for f in format_list:
             try:
                 cat= cls.from_table(Table.read(file_name,format=f))
-            except:
+            except Exception as e:
                 pass
 
         if cat is None:

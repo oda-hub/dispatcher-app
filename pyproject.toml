@@ -78,6 +78,7 @@ version = {attr = "cdci_data_analysis.__version__"}
 
 [dependency-groups]
 dev = [
+    "aiosmtpd>=1.4.6",
     "flake8>=7.3.0",
     "mypy>=1.17.1",
     "psutil>=7.0.0",

@@ -8,6 +8,19 @@ resolution-markers = [
 ]
 
 [[package]]
+name = "aiosmtpd"
+version = "1.4.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "atpublic" },
+    { name = "attrs" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c4/ca/b2b7cc880403ef24be77383edaadfcf0098f5d7b9ddbf3e2c17ef0a6af0d/aiosmtpd-1.4.6.tar.gz", hash = "sha256:5a811826e1a5a06c25ebc3e6c4a704613eb9a1bcf6b78428fbe865f4f6c9a4b8", size = 152775, upload-time = "2024-05-18T11:37:50.029Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ec/39/d401756df60a8344848477d54fdf4ce0f50531f6149f3b8eaae9c06ae3dc/aiosmtpd-1.4.6-py3-none-any.whl", hash = "sha256:72c99179ba5aa9ae0abbda6994668239b64a5ce054471955fe75f581d2592475", size = 154263, upload-time = "2024-05-18T11:37:47.877Z" },
+]
+
+[[package]]
 name = "amqp"
 version = "5.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -119,6 +132,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/67/6b/a3757b4e383679d39e8fc75262c1747dcdce1b2fd540984e409d0b2fc7d1/astroquery-0.4.10.tar.gz", hash = "sha256:eacd91e9da378e641740fbc3123850daa83ba0926a6fff4c40ccbf5dc6d5a406", size = 12533999, upload-time = "2025-03-18T19:21:44.925Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/73/8c/64ac07bf58f14d861127d8583122e10686e23161cc9e874b979a35810065/astroquery-0.4.10-py3-none-any.whl", hash = "sha256:43a0255766bfe1f7a86f528e19832d1a6428400bda348e9f0ec970cac2ee81ec", size = 11119748, upload-time = "2025-03-18T19:21:38.494Z" },
+]
+
+[[package]]
+name = "atpublic"
+version = "6.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/20/40/e686038a07af08e8462a71dc9201867ffdde408b4d93be90a4ad0fbc83ef/atpublic-6.0.1.tar.gz", hash = "sha256:718932844f5bdfdf5d80ad4c64e13964f22274b4f8937d54a8d3811d6bc5dc05", size = 17520, upload-time = "2025-05-07T03:11:30.609Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cd/37/66f9fcdd6a56ab3da53291c7501890246c39bc7b5891e27cd956efe127ca/atpublic-6.0.1-py3-none-any.whl", hash = "sha256:f9a23902faf5ca1fdc6436b3712d79452f71abc61a810d22be1f31b40a8004c5", size = 6421, upload-time = "2025-05-07T03:11:29.398Z" },
 ]
 
 [[package]]
@@ -287,6 +309,7 @@ renku = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "aiosmtpd" },
     { name = "flake8" },
     { name = "mypy" },
     { name = "psutil" },
@@ -336,6 +359,7 @@ provides-extras = ["ontology", "async", "ivoa", "renku"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "aiosmtpd", specifier = ">=1.4.6" },
     { name = "flake8", specifier = ">=7.3.0" },
     { name = "mypy", specifier = ">=1.17.1" },
     { name = "psutil", specifier = ">=7.0.0" },
