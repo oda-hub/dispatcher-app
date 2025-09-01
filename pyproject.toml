@@ -16,49 +16,49 @@ maintainers = [
 ]
 readme = "README.md"
 
+requires-python = ">=3.10"
+
 dependencies = [
-    'oda_api>=1.1.31',
-    'pylogstash_context>=0.1.19',
+    "oda-api>=1.3.0",
     "numpy",
     "pyyaml",
     "flask==2.0.3",
-    "astropy>=2.0.3",
+    "astropy>=6.1",
     "gunicorn",
     "decorator",
     "python-logstash",
-    "raven",
+    "pylogstash-context",
     "blinker",
     "bokeh>3.0,<3.2",
     "json_tricks",
     "flask-restx==1.2.0",
-    "six",
     "werkzeug==2.0.3",
-    "python-shell-colors==0.2.1",
     "logging_tree",
-    "celery",
-    "redis",
     "pyjwt",
     "marshmallow<3.24",
     "black>=22.10.0",
     "bs4",
-    "GitPython",
-    "queryparser-python3>=0.6.1",
-    "nbformat",
-    "giturlparse",
     "sentry-sdk",
+    "raven",
     "validators==0.28.3",
     "jsonschema<=4.17.3",
-    'psycopg2-binary'
 ]
 
 [project.optional-dependencies]
-test = [
-    "pytest",
-    "pytest-sentry",
-    "psutil",
-]
 ontology = [
-    "rdflib>=6.2.0"
+    "rdflib>=6.2.0",
+]
+async = [
+    "celery",
+]
+ivoa = [
+    "queryparser-python3>=0.6.1",
+    "psycopg2-binary"
+]
+renku = [
+    "GitPython",
+    "nbformat",
+    "giturlparse",
 ]
 
 [project.scripts]
@@ -75,3 +75,15 @@ cdci_data_analysis = ["config_dir/*", "plugins/dummy_plugin/*yml"]
 
 [tool.setuptools.dynamic]
 version = {attr = "cdci_data_analysis.__version__"}
+
+[dependency-groups]
+dev = [
+    "psutil>=7.0.0",
+    "psycopg2-binary>=2.9.10",
+    "pytest>=8.4.1",
+    "pytest-postgresql>=7.0.2",
+    "pytest-sentry>=0.3.3",
+]
+
+[tool.uv.sources]
+oda-api = { git = "https://github.com/oda-hub/oda_api.git", branch="numpy-gt-2" }

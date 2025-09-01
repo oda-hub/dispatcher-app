@@ -52,7 +52,6 @@ from .mock_data_server import mock_query
 from ..analysis.products import QueryOutput
 from ..configurer import DataServerConf
 from ..analysis.exceptions import BadRequest, APIerror, MissingRequestParameter, RequestNotUnderstood, RequestNotAuthorized, ProblemDecodingStoredQueryOut, InternalError
-from . import tasks
 from ..flask_app.sentry import sentry
 
 from oda_api.api import DispatcherAPI
@@ -64,6 +63,12 @@ import oda_api
 from cdci_data_analysis.timer import block_timer
 
 logger = logging.getLogger(__name__)
+
+
+try:
+    from . import tasks
+except ModuleNotFoundError:
+    logger.warning("Celery not installed, async dispatcher mode unavailable")
 
 
 class NoInstrumentSpecified(BadRequest):
@@ -1906,6 +1911,7 @@ class InstrumentQueryBackEnd:
             "\033[31mstored query out NOT FOUND at %s\033[0m", self.response_filename)
 
     def request_query_out(self, overwrite=False):
+        
         if os.path.exists(self.response_request):
             r_json = json.load(open(self.response_request))
 

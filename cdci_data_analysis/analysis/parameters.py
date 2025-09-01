@@ -18,16 +18,8 @@ Module API
 ----------
 """
 
-from __future__ import absolute_import, division, print_function
-
-from builtins import (bytes, str, open, super, range,
-                      zip, round, input, int, pow, object, map, zip)
-import typing
-
 __author__ = "Andrea Tramacere"
 
-# TODO importing six necessary for compatibility with the plugin, to be removed in the future with the necessary adaptations
-import six
 import decorator
 import logging
 import os

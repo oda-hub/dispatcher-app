@@ -29,7 +29,7 @@ from flask_restx import Api, Resource
 import time as _time
 from urllib.parse import urlencode, urlparse
 
-from cdci_data_analysis.analysis import drupal_helper, tokenHelper, renku_helper, email_helper, matrix_helper, ivoa_helper
+from cdci_data_analysis.analysis import drupal_helper, tokenHelper, email_helper, matrix_helper
 from .logstash import logstash_message
 from .schemas import QueryOutJSON, dispatcher_strict_validate
 from marshmallow.exceptions import ValidationError
@@ -55,6 +55,11 @@ from cdci_data_analysis.timer import block_timer
 
 logger = app_logging.getLogger('flask_app')
 
+
+try:
+    from cdci_data_analysis.analysis import ivoa_helper
+except ModuleNotFoundError:
+    logger.warning("IVOA endpoint is not available")
 
 app = Flask(__name__,
             static_url_path=os.path.abspath('./'),
@@ -367,6 +372,8 @@ def instr_list():
 
 @app.route('/push-renku-branch', methods=['POST'])
 def push_renku_branch():
+    from cdci_data_analysis.analysis import renku_helper
+
     logger.info("request.args: %s ", request.args)
 
     try:

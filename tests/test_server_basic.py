@@ -18,7 +18,6 @@ from dateutil import parser, tz
 from functools import reduce
 from urllib import parse
 from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
-import nbformat as nbf
 import yaml
 import gzip
 import random
@@ -27,7 +26,6 @@ import string
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.pytest_fixtures import DispatcherJobState, ask, make_hash, dispatcher_fetch_dummy_products, make_hash_file
 from cdci_data_analysis.flask_app.dispatcher_query import InstrumentQueryBackEnd
-from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, create_new_notebook_with_code, generate_nb_hash, create_renku_ini_config_obj, generate_ini_file_hash
 from cdci_data_analysis.analysis.drupal_helper import execute_drupal_request, get_drupal_request_headers, get_revnum, get_observations_for_time_range, generate_gallery_jwt_token, get_user_id, get_source_astrophysical_entity_id_by_source_name
 from cdci_data_analysis.plugins.dummy_plugin.data_server_dispatcher import DataServerQuery, ReturnProgressProductQuery
 from cdci_data_analysis.flask_app.app import sanitize_dict_before_log
@@ -4414,6 +4412,7 @@ def test_product_gallery_error_message(dispatcher_live_fixture_with_gallery):
 
 @pytest.mark.test_renku
 def test_posting_renku_error_missing_file(dispatcher_live_fixture_with_renku_options, dispatcher_test_conf_with_renku_options):
+
     DispatcherJobState.remove_scratch_folders()
     server = dispatcher_live_fixture_with_renku_options
     print("constructed server:", server)
@@ -4466,6 +4465,9 @@ def test_posting_renku_error_missing_file(dispatcher_live_fixture_with_renku_opt
 @pytest.mark.parametrize("existing_branch", [True, False])
 @pytest.mark.parametrize("scw_list_passage", ['file', 'params'])
 def test_posting_renku(dispatcher_live_fixture_with_renku_options, dispatcher_test_conf_with_renku_options, existing_branch, scw_list_passage):
+    from cdci_data_analysis.analysis.renku_helper import clone_renku_repo, checkout_branch_renku_repo, check_job_id_branch_is_present, get_repo_path, generate_commit_request_url, create_new_notebook_with_code, generate_nb_hash, create_renku_ini_config_obj, generate_ini_file_hash
+    import nbformat as nbf
+
     server = dispatcher_live_fixture_with_renku_options
     print("constructed server:", server)
     logger.info("constructed server: %s", server)
