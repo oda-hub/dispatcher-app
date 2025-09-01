@@ -5,5 +5,8 @@ repos:
     hooks:
       - id: uv-lock
       - id: uv-export
-        name: uv-export
-        args: ["--no-hashes", "-o", "requirements.txt"]
+        name: uv-export with dev, all extras
+        args: ["--no-hashes", "--all-extras", "-o", "requirements-dev.txt"]
+      - id: uv-export
+        name: uv-export no dev, all extras
+        args: ["--no-hashes", "--all-extras", "--no-dev", "-o", "requirements.txt"]
