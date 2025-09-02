@@ -4,9 +4,15 @@ repos:
     rev: 0.8.13
     hooks:
       - id: uv-lock
-      - id: uv-export
-        name: uv-export dev environment
-        args: ["--no-hashes", "--all-extras", "-o", "requirements-dev.txt"]
-      - id: uv-export
-        name: uv-export plugins test env
-        args: ["--no-hashes", "--all-extras", "--group", "plugins", "-o", "requirements-plugins.txt"]
+      # - id: uv-export
+      #   name: uv-export dev environment
+      #   args: ["--no-hashes", "--all-extras", "-o", "requirements-dev.txt"]
+      # - id: uv-export
+      #   name: uv-export plugin nb2workflow test env
+      #   args: ["--no-hashes", "--all-extras", "--group", "plugin-nb2workflow", "-o", "requirements-nb2workflow.txt"]
+      # - id: uv-export
+      #   name: uv-export plugin integral test env
+      #   args: ["--no-hashes", "--all-extras", "--group", "plugin-integral", "-o", "requirements-integral.txt"]
+      # - id: uv-export
+      #   name: uv-export plugin integral-all-sky test env
+      #   args: ["--no-hashes", "--all-extras", "--group", "plugin-integral-all-sky", "-o", "requirements-integral-all-sky.txt"]
