@@ -63,8 +63,9 @@ jobs:
     - name: Test ${{ matrix.plugin-name }} plugin with pytest
       env: 
         ODA_ONTOLOGY_PATH: ./tests/oda-ontology.ttl
+        DISPATCHER_MOCK_KB: yes
       run: |
         source .venv/bin/activate
         cd dispatcher-plugin-${{matrix.plugin-name}}
-        DISPATCHER_MOCK_KB=yes python -m pytest tests -sv --full-trace --log-cli-level=DEBUG 
+        python -m pytest tests -sv --full-trace --log-cli-level=DEBUG 
     
