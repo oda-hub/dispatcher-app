@@ -58,11 +58,13 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: 'oda-hub/dispatcher-plugin-${{matrix.plugin-name}}'
-        path: plugin   
+        path: dispatcher-plugin-${{matrix.plugin-name}}
 
     - name: Test ${{ matrix.plugin-name }} plugin with pytest
       env: 
-        ODA_ONTOLOGY_PATH: ../tests/oda-ontology.ttl
+        ODA_ONTOLOGY_PATH: ./tests/oda-ontology.ttl
       run: |
-        cd plugin && DISPATCHER_MOCK_KB=yes uv run python -m pytest tests -sv --full-trace --log-cli-level=DEBUG 
+        source .venv/bin/activate
+        cd dispatcher-plugin-${{matrix.plugin-name}}
+        DISPATCHER_MOCK_KB=yes python -m pytest tests -sv --full-trace --log-cli-level=DEBUG 
     
