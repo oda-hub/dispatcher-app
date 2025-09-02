@@ -90,6 +90,15 @@ dev = [
     "pytest-sentry>=0.3.3",
     "pytest-xdist>=3.8.0",
 ]
+plugins = [
+    {include-group = "dev"},
+    "cdci-osa-plugin[test]",
+    "dispatcher-plugin-integral-all-sky[test]",
+    "dispatcher-plugin-nb2workflow[test]",
+]
 
 [tool.uv.sources]
 oda-api = { git = "https://github.com/oda-hub/oda_api.git", branch="numpy-gt-2" }
+dispatcher-plugin-nb2workflow = { git = "https://github.com/oda-hub/dispatcher-plugin-nb2workflow" }
+cdci-osa-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-integral" }
+dispatcher-plugin-integral-all-sky = { git = "https://github.com/oda-hub/dispatcher-plugin-integral-all-sky" }
