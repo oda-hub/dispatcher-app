@@ -5,8 +5,8 @@ repos:
     hooks:
       - id: uv-lock
       - id: uv-export
-        name: uv-export with dev, all extras
+        name: uv-export dev environment
         args: ["--no-hashes", "--all-extras", "-o", "requirements-dev.txt"]
       - id: uv-export
-        name: uv-export no dev, all extras
-        args: ["--no-hashes", "--all-extras", "--no-dev", "-o", "requirements.txt"]
+        name: uv-export plugins test env
+        args: ["--no-hashes", "--all-extras", "--group", "plugins", "-o", "requirements-plugins.txt"]
