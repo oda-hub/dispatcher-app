@@ -109,7 +109,7 @@ plugin-integral-all-sky = [
 plugin-nb2workflow = [
     {include-group = "dev"},
     "dispatcher-plugin-nb2workflow",
-    "nb2workflow>=1.3.114",
+    "nb2workflow[service,rdf] >= 1.3.114",
     "pytest-httpserver>=1.1.3",
     "pytest-xprocess>=1.0.2",
 ]
