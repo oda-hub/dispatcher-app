@@ -51,7 +51,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        uv sync --locked --group plugins
+        uv sync --locked --group plugin-${{matrix.plugin-name}}
         curl -o tests/oda-ontology.ttl https://raw.githubusercontent.com/oda-hub/ontology/main/ontology.ttl
     
     - name: Clone ${{ matrix.plugin-name }} plugin 
