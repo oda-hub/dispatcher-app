@@ -53,6 +53,12 @@ jobs:
       run: |
         uv sync --locked --group plugins
         curl -o tests/oda-ontology.ttl https://raw.githubusercontent.com/oda-hub/ontology/main/ontology.ttl
+    
+    - name: Clone ${{ matrix.plugin-name }} plugin 
+      uses: actions/checkout@v4
+      with:
+        repository: 'oda-hub/dispatcher-plugin-${{matrix.plugin-name}}'
+        path: plugin   
 
     - name: Test ${{ matrix.plugin-name }} plugin with pytest
       env: 
