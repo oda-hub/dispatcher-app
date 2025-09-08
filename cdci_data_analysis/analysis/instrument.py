@@ -300,7 +300,7 @@ class Instrument:
             error_message = error_message.format(step=step,
                                                  temp_dir_content_msg='' if not os.path.exists(temp_dir) else
                                                  f', content of the temporary directory is {os.listdir(temp_dir)}',
-                                                 additional='')
+                                                 additional=f'content of the request dict is {par_dic}')
 
             sentry.capture_message(f'{error_message}\n{e}')
 
