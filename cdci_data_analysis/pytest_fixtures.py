@@ -846,6 +846,8 @@ def dispatcher_test_conf(dispatcher_test_conf_fn):
 def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
     clean_test_dispatchers()
 
+    timeout_sec_thread_start = 90
+
     env = copy.deepcopy(dict(os.environ))
     print(("rootdir", str(rootdir)))
     env['PYTHONPATH'] = str(rootdir) + ":" + str(rootdir) + "/tests:" + \
@@ -933,13 +935,19 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
                     print(f"{C}following server: server ready, url {url_store[0]}")
 
 
-    thread = Thread(target=follow_output, args=())
-    thread.start()
+    start_thread(target=follow_output)
 
     started_waiting = time.time()
     while url_store[0] is None:
-        print("waiting for server to start since", time.time() - started_waiting)
-        time.sleep(0.2)
+        waiting_time_for_start = time.time() - started_waiting
+        print(f"waiting for server to start since {waiting_time_for_start}")
+        if waiting_time_for_start > timeout_sec_thread_start:
+            print(f"timeout for starting the server reached, re-starting the thread")
+            kill_child_processes(p.pid, signal.SIGINT)
+            os.kill(p.pid, signal.SIGINT)
+            start_thread(target=follow_output)
+        else:
+            time.sleep(0.2)
     time.sleep(0.5)
 
     service = url_store[0]
@@ -949,6 +957,9 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
         pid=p.pid
     )
 
+def start_thread(target):
+    thread = Thread(target=target, args=())
+    thread.start()
 
 @pytest.fixture
 def gunicorn_dispatcher_long_living_fixture(gunicorn_tmp_path, gunicorn_dispatcher, dispatcher_long_living_fixture):
