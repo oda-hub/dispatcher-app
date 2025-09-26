@@ -677,10 +677,26 @@ plugin-nb2workflow = [
     { name = "pytest-xdist" },
     { name = "pytest-xprocess" },
 ]
+plugin-polar = [
+    { name = "aiosmtpd" },
+    { name = "cdci-polar-plugin" },
+    { name = "flake8" },
+    { name = "mypy" },
+    { name = "psutil" },
+    { name = "psycopg2-binary" },
+    { name = "pylint" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-depends" },
+    { name = "pytest-postgresql" },
+    { name = "pytest-sentry" },
+    { name = "pytest-xdist" },
+]
 plugins = [
     { name = "aiosmtpd" },
     { name = "astroquery-integral" },
     { name = "cdci-osa-plugin" },
+    { name = "cdci-polar-plugin" },
     { name = "dispatcher-plugin-integral-all-sky" },
     { name = "dispatcher-plugin-nb2workflow" },
     { name = "flake8" },
@@ -798,10 +814,26 @@ plugin-nb2workflow = [
     { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "pytest-xprocess", specifier = ">=1.0.2" },
 ]
+plugin-polar = [
+    { name = "aiosmtpd", specifier = ">=1.4.6" },
+    { name = "cdci-polar-plugin", git = "https://github.com/oda-hub/dispatcher-plugin-polar" },
+    { name = "flake8", specifier = ">=7.3.0" },
+    { name = "mypy", specifier = ">=1.17.1" },
+    { name = "psutil", specifier = ">=7.0.0" },
+    { name = "psycopg2-binary", specifier = ">=2.9.10" },
+    { name = "pylint", specifier = ">=3.3.8" },
+    { name = "pytest", specifier = ">=8.4.1" },
+    { name = "pytest-cov", specifier = ">=6.2.1" },
+    { name = "pytest-depends", specifier = ">=1.0.1" },
+    { name = "pytest-postgresql", specifier = ">=7.0.2" },
+    { name = "pytest-sentry", specifier = ">=0.3.3" },
+    { name = "pytest-xdist", specifier = ">=3.8.0" },
+]
 plugins = [
     { name = "aiosmtpd", specifier = ">=1.4.6" },
     { name = "astroquery-integral" },
     { name = "cdci-osa-plugin", git = "https://github.com/oda-hub/dispatcher-plugin-integral?branch=migrate-python" },
+    { name = "cdci-polar-plugin", git = "https://github.com/oda-hub/dispatcher-plugin-polar" },
     { name = "dispatcher-plugin-integral-all-sky", git = "https://github.com/oda-hub/dispatcher-plugin-integral-all-sky" },
     { name = "dispatcher-plugin-nb2workflow", git = "https://github.com/oda-hub/dispatcher-plugin-nb2workflow" },
     { name = "flake8", specifier = ">=7.3.0" },
@@ -833,6 +865,16 @@ dependencies = [
     { name = "oda-knowledge-base", extra = ["cwl", "rdf"] },
     { name = "redis" },
     { name = "simple-logger" },
+]
+
+[[package]]
+name = "cdci-polar-plugin"
+version = "1.0"
+source = { git = "https://github.com/oda-hub/dispatcher-plugin-polar#8061c77e3a9a9fed1a497c9327b88ac198a86123" }
+dependencies = [
+    { name = "astropy" },
+    { name = "cdci-data-analysis" },
+    { name = "pandas" },
 ]
 
 [[package]]
