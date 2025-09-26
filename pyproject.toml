@@ -107,10 +107,15 @@ plugin-nb2workflow = [
     "pytest-httpserver>=1.1.3",
     "pytest-xprocess>=1.0.2",
 ]
+plugin-polar = [
+    {include-group = "dev"},
+]
+
 plugins = [
     {include-group = "plugin-integral"},
     {include-group = "plugin-integral-all-sky"},
     {include-group = "plugin-nb2workflow"}
+    {include-group = "plugin-polar"}
 ]
 
 [tool.uv.sources]
