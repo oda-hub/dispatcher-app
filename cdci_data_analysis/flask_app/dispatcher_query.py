@@ -1727,10 +1727,10 @@ class InstrumentQueryBackEnd:
         return config, self.config_data_server
 
     def get_existing_job_ID_path(self, wd):
-        with os.scandir(wd) as scan:
+        with os.scandir() as scan:
             dir_list = [
                 item.name for item in scan 
-                if item.name.endswith(f'*_jid_{self.job_id}')
+                if item.name.endswith(f'_jid_{self.job_id}')
             ]
 
         if len(dir_list) == 1:
