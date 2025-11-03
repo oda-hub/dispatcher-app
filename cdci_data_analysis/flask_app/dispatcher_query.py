@@ -958,7 +958,8 @@ class InstrumentQueryBackEnd:
                     wd_path_obj.mkdir()
                     self.scratch_dir = wd_path_obj.path
                     scratch_dir_created = True
-                    break
+                os.remove(lock_file)
+                break
             except (OSError, IOError) as io_e:
                 scratch_dir_created = False
                 self.logger.warning(f'Failed to acquire lock for the scratch directory "{wd}" creation, attempt number {attempt + 1} ({scratch_dir_retry_attempts - (attempt + 1)} left), sleeping {scratch_dir_retry_delay} seconds until retry.\nError: {str(io_e)}')
@@ -1726,9 +1727,11 @@ class InstrumentQueryBackEnd:
         return config, self.config_data_server
 
     def get_existing_job_ID_path(self, wd):
-        # exist same job_ID, different session ID
-        dir_list = glob.glob(f'*_jid_{self.job_id}')
-        dir_list = [d for d in dir_list if 'aliased' not in d]
+        with os.scandir(wd) as scan:
+            dir_list = [
+                item.name for item in scan 
+                if item.name.endswith(f'*_jid_{self.job_id}')
+            ]
 
         if len(dir_list) == 1:
             if dir_list[0] != wd:
