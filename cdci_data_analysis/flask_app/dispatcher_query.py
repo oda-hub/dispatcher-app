@@ -958,8 +958,7 @@ class InstrumentQueryBackEnd:
                     wd_path_obj.mkdir()
                     self.scratch_dir = wd_path_obj.path
                     scratch_dir_created = True
-                os.remove(lock_file)
-                break
+                    break
             except (OSError, IOError) as io_e:
                 scratch_dir_created = False
                 self.logger.warning(f'Failed to acquire lock for the scratch directory "{wd}" creation, attempt number {attempt + 1} ({scratch_dir_retry_attempts - (attempt + 1)} left), sleeping {scratch_dir_retry_delay} seconds until retry.\nError: {str(io_e)}')
