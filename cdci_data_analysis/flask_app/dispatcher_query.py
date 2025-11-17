@@ -1731,9 +1731,11 @@ class InstrumentQueryBackEnd:
         return config, self.config_data_server
 
     def get_existing_job_ID_path(self, wd):
-        # exist same job_ID, different session ID
-        dir_list = glob.glob(f'*_jid_{self.job_id}')
-        dir_list = [d for d in dir_list if 'aliased' not in d]
+        with os.scandir() as scan:
+            dir_list = [
+                item.name for item in scan 
+                if item.name.endswith(f'_jid_{self.job_id}')
+            ]
 
         if len(dir_list) == 1:
             if dir_list[0] != wd:
