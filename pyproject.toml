@@ -53,7 +53,7 @@ async = [
 ]
 ivoa = [
     "queryparser-python3>=0.6.1",
-    "psycopg2-binary"
+    "psycopg2"
 ]
 renku = [
     "GitPython",
