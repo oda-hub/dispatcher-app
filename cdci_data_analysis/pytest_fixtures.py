@@ -460,9 +460,9 @@ def dispatcher_local_mail_server_subprocess(pytestconfig, dispatcher_test_conf):
 
     cmd = [
         "python",
-        "-m", "smtpd",
-        "-c", "DebuggingServer",
+        "-m", "aiosmtpd",
         "-n", 
+        "-l",
         f"localhost:{dispatcher_test_conf['email_options']['smtp_port']}"
     ]
 
@@ -1775,7 +1775,7 @@ class DispatcherJobState:
                 # - {LON_NAME: ra}
                 # schema: astropy-2.0
                 meta_ID src_names significance ra dec NEW_SOURCE ISGRI_FLAG FLAG ERR_RAD
-                0 "1E 1740.7-2942" 50.4813 265.9771 -29.7467 -32768 2 0 0.0000345
+                0 "1E 1740.7-2942" 50.4813 265.9771 -29.7467 0 2 0 0.0000345
                 """)
         if wrong_format:
             catalog_str += " 0000"

@@ -15,51 +15,51 @@ maintainers = [
   {name = "Denys Savchenko", email = "contact@odahub.io"}
 ]
 readme = "README.md"
+license = "MIT"
+
+requires-python = ">=3.10"
 
 dependencies = [
-    'oda_api>=1.1.31',
-    'pylogstash_context>=0.1.19',
-    "numpy<2.0.0",
+    "oda-api>=1.3.0",
+    "numpy",
     "pyyaml",
-    "simplejson",
     "flask==2.0.3",
-    "astropy>=2.0.3",
+    "astropy>=6.1",
     "gunicorn",
     "decorator",
     "python-logstash",
-    "raven",
+    "pylogstash-context",
     "blinker",
     "bokeh>3.0,<3.2",
     "json_tricks",
     "flask-restx==1.2.0",
-    "six",
     "werkzeug==2.0.3",
-    "python-shell-colors==0.2.1",
     "logging_tree",
-    "celery",
-    "redis",
     "pyjwt",
     "marshmallow<3.24",
     "black>=22.10.0",
     "bs4",
-    "GitPython",
-    "queryparser-python3>=0.6.1",
-    "nbformat",
-    "giturlparse",
     "sentry-sdk",
+    "raven",
     "validators==0.28.3",
     "jsonschema<=4.17.3",
-    'psycopg2'
 ]
 
 [project.optional-dependencies]
-test = [
-    "pytest",
-    "pytest-sentry",
-    "psutil",
-]
 ontology = [
-    "rdflib>=6.2.0"
+    "rdflib>=6.2.0",
+]
+async = [
+    "celery",
+]
+ivoa = [
+    "queryparser-python3>=0.6.1",
+    "psycopg2"
+]
+renku = [
+    "GitPython",
+    "nbformat",
+    "giturlparse",
 ]
 
 [project.scripts]
@@ -72,4 +72,57 @@ include-package-data = true
 where = ["."]
 
 [tool.setuptools.package-data]
-cdci_data_analysis = ["config_dir/*"]
+cdci_data_analysis = ["config_dir/*", "plugins/dummy_plugin/*yml"]
+
+[tool.setuptools.dynamic]
+version = {attr = "cdci_data_analysis.__version__"}
+
+[dependency-groups]
+dev = [
+    "aiosmtpd>=1.4.6",
+    "flake8>=7.3.0",
+    "mypy>=1.17.1",
+    "psutil>=7.0.0",
+    "psycopg2-binary>=2.9.10",
+    "pylint>=3.3.8",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "pytest-depends>=1.0.1",
+    "pytest-postgresql>=7.0.2",
+    "pytest-sentry>=0.3.3",
+    "pytest-xdist>=3.8.0",
+]
+plugin-integral = [
+    {include-group = "dev"},
+    "cdci-osa-plugin",
+    "astroquery-integral",
+]
+plugin-integral-all-sky = [
+    {include-group = "dev"},
+    "dispatcher-plugin-integral-all-sky",
+]
+plugin-nb2workflow = [
+    {include-group = "dev"},
+    "dispatcher-plugin-nb2workflow",
+    "nb2workflow[service,rdf] >= 1.3.114",
+    "pytest-httpserver>=1.1.3",
+    "pytest-xprocess>=1.0.2",
+]
+plugin-polar = [
+    {include-group = "dev"},
+    "cdci-polar-plugin",
+]
+
+plugins = [
+    {include-group = "plugin-integral"},
+    {include-group = "plugin-integral-all-sky"},
+    {include-group = "plugin-nb2workflow"},
+    {include-group = "plugin-polar"}
+]
+
+[tool.uv.sources]
+oda-api = { git = "https://github.com/oda-hub/oda_api.git", branch="numpy-gt-2" }
+dispatcher-plugin-nb2workflow = { git = "https://github.com/oda-hub/dispatcher-plugin-nb2workflow" }
+cdci-osa-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-integral", branch = "migrate-python"}
+dispatcher-plugin-integral-all-sky = { git = "https://github.com/oda-hub/dispatcher-plugin-integral-all-sky" }
+cdci-polar-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-polar" } 

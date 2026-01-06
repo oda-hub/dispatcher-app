@@ -26,7 +26,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [3.8, 3.9]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     services:
       vo-interface-backend:
@@ -46,26 +46,23 @@ jobs:
         - 5435:5432
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
+    - uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install flake8 pytest mypy pylint pytest-cov pytest-xdist wheel
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install -e .[test,ontology]
-          curl -o tests/oda-ontology.ttl https://raw.githubusercontent.com/oda-hub/ontology/main/ontology.ttl
-        
-      - name: Test the tap server
-        run: |
-          python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m "test_tap" --durations=0
+    - name: Install uv and set the python version
+      uses: astral-sh/setup-uv@v6
+      with:
+        version: "0.8.22"
+        python-version: ${{ matrix.python-version }}
 
-      - name: Codecov
-        uses: codecov/codecov-action@v1.3.1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true
+    - name: Install the project
+      run: |
+        uv sync --locked --extra ivoa --dev
+    - name: Test the tap server
+      run: |
+        uv run python -m pytest tests --cov=cdci_data_analysis -sv --full-trace --log-cli-level=DEBUG -m "test_tap" --durations=0
+
+    - name: Codecov
+      uses: codecov/codecov-action@v1.3.1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true

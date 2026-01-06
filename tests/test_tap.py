@@ -1,6 +1,5 @@
 import os.path
 import logging
-from symbol import return_stmt
 
 import pytest
 import pyvo

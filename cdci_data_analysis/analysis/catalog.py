@@ -37,6 +37,7 @@ __author__ = "Andrea Tramacere"
 # relative import eg: from .mod import f
 import  decorator
 import  numpy as np
+import logging
 from astropy.coordinates import SkyCoord
 from astropy.table import Table,Column
 from astropy.io  import fits as pf
@@ -205,8 +206,8 @@ class BasicCatalog(object):
         for f in format_list:
             try:
                 cat= cls.from_table(Table.read(file_name,format=f))
-            except:
-                pass
+            except Exception as e:
+                logging.debug(f"Failed to read '{file_name}' as format '{f}': {e}")
 
         if cat is None:
             raise RuntimeError('file format for catalog not valid')

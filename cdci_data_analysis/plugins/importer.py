@@ -37,7 +37,6 @@ import pkgutil
 import traceback
 import os
 import logging
-from pscolors import render
 logger = logging.getLogger(__name__)
 import sys
 from importlib import reload
@@ -68,7 +67,7 @@ def build_instrument_factory_iter():
             try:
                 e = importlib.import_module('.exposer', cdci_plugins_dict[plugin_name].__name__)
                 instr_factory_iter.extend(e.instr_factory_list)
-                logger.info(render('{GREEN}imported plugin: %s{/}'), plugin_name)
+                logger.info("\033[92m imported plugin: %s\033[0m", plugin_name)
 
             except Exception as e:
                 logger.error('failed to import %s: %s', plugin_name,e )
