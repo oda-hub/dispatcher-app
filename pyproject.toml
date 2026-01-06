@@ -36,7 +36,7 @@ dependencies = [
     "werkzeug==2.0.3",
     "logging_tree",
     "pyjwt",
-    "marshmallow<3.24",
+    "marshmallow<3.27",
     "black>=22.10.0",
     "bs4",
     "sentry-sdk",
