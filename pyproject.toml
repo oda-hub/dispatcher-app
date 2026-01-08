@@ -33,7 +33,7 @@ dependencies = [
     "bokeh>3.0,<3.2",
     "json_tricks",
     "flask-restx==1.2.0",
-    "werkzeug==2.0.3",
+    "werkzeug==3.1.5",
     "logging_tree",
     "pyjwt",
     "marshmallow<3.24",
