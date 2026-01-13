@@ -333,7 +333,7 @@ markupsafe==3.0.2
     # via
     #   jinja2
     #   nbconvert
-marshmallow==3.23.3
+marshmallow==3.26.2
     # via cdci-data-analysis
 matplotlib==3.9.4
     # via oda-api
