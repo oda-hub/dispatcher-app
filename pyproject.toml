@@ -30,7 +30,7 @@ dependencies = [
     "python-logstash",
     "pylogstash-context",
     "blinker",
-    "bokeh>3.0,<3.2",
+    "bokeh>3.0,<3.9",
     "json_tricks",
     "flask-restx==1.2.0",
     "werkzeug==2.0.3",

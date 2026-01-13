@@ -78,7 +78,7 @@ bleach==6.2.0
     # via nbconvert
 blinker==1.9.0
     # via cdci-data-analysis
-bokeh==3.1.1
+bokeh==3.8.2
     # via
     #   cdci-data-analysis
     #   oda-api
