@@ -1447,6 +1447,9 @@ class InstrumentQueryBackEnd:
         else:
             job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
 
+        job.write_dataserver_status(status_dictionary_value=status,
+                                    full_dict=self.par_dic)
+
         try:
             # TODO for a future implementation
             # self.validate_job_id()
@@ -1479,8 +1482,8 @@ class InstrumentQueryBackEnd:
                                             full_dict=self.par_dic,
                                             email_status='email sent',
                                             email_status_details=status_details)
-            else:
-                job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
+            # else:
+            #     job.write_dataserver_status(status_dictionary_value=status, full_dict=self.par_dic)
 
         except email_helper.EMailNotSent as e:
             job.write_dataserver_status(status_dictionary_value=status,
@@ -2383,6 +2386,8 @@ class InstrumentQueryBackEnd:
                         query_out.set_status_field('matrix_message_status', matrix_message_status)
                         query_out.set_status_field('matrix_message_status_details', matrix_message_status_details)
 
+                    job.write_dataserver_status()
+
                     if email_helper.is_email_to_send_run_query(self.logger,
                                                                query_new_status,
                                                                self.time_request,
@@ -2412,7 +2417,7 @@ class InstrumentQueryBackEnd:
                                 api_code=email_api_code,
                                 scratch_dir=self.scratch_dir)
 
-                            # store an additional information about the sent email
+                            # store additional information about the sent email
                             query_out.set_status_field('email_status', 'email sent')
                         except email_helper.EMailNotSent as e:
                             query_out.set_status_field('email_status', 'sending email failed')
