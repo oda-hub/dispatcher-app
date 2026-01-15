@@ -330,6 +330,20 @@ and if this is not what you expected, you probably need to modify the request pa
     # TODO: enable this sometimes
     # compressed_request_url = compress_request_url_params(request_url)
 
+    include_extra_message_submitted_status = False
+    if status == 'submitted':
+        # get all the number of already submitted emails in the directory
+        email_history_dirs_same_job_id = f"scratch_*_{job_id}*/email_history"
+        submitted_email_pattern = os.path.join(
+            email_history_dirs_same_job_id,
+            'email_submitted_*.email'
+        )
+        submitted_email_files = glob.glob(submitted_email_pattern)
+        logger.info("submitted_email_files: %s as %s", len(submitted_email_files), submitted_email_pattern)
+        # additional message for more submitted-status emails
+        if len(submitted_email_files) > 1:
+            include_extra_message_submitted_status = True;
+
     if len(request_url) > 2000:
         possibly_compressed_request_url = ""
         permanent_url = False
@@ -358,6 +372,7 @@ and if this is not what you expected, you probably need to modify the request pa
             'instrument': instrument,
             'product_type': product_type,
             'time_request': time_request,
+            'include_extra_message_submitted_status': include_extra_message_submitted_status,
             'request_url': possibly_compressed_request_url,
             # TODO to be removed ?
             'api_code_no_token': api_code_no_token,
@@ -634,6 +649,12 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
         logger.info("email_sending_job_submitted_interval: %s", email_sending_job_submitted_interval)
         log_additional_info_obj['email_sending_job_submitted_interval'] = f'{email_sending_job_submitted_interval}, {info_parameter}'
 
+        token_expiration_time = tokenHelper.get_token_expiration_time(decoded_token)
+        logger.info("token_expiration_time: %s", token_expiration_time)
+        time_to_token_expiration = float(token_expiration_time) - time_.time()
+
+        intsub = max(time_to_token_expiration, email_sending_job_submitted_interval)
+
         email_history_dir = os.path.join(scratch_dir + '/email_history')
         logger.info("email_history_dir: %s", email_history_dir)
 
@@ -657,8 +678,11 @@ def is_email_to_send_run_query(logger, status, time_original_request, scratch_di
                     times.append(float(f_name.split('_')[2]))
 
             time_last_email_submitted_sent = max(times)
-            time_from_last_submitted_email = time_check - float(time_last_email_submitted_sent)
-            interval_ok = time_from_last_submitted_email > email_sending_job_submitted_interval
+
+            time_from_last_submitted_email = time_.time() - float(time_last_email_submitted_sent)
+
+            interval_ok = time_from_last_submitted_email > intsub
+
 
         logger.info("interval_ok: %s", interval_ok)
         log_additional_info_obj['interval_ok'] = interval_ok
