@@ -943,8 +943,8 @@ class SpectralFitQuery(PostProcessProductQuery):
         logger.info("\033[31mprocess_product: rmf_file: %s\033[0m", rmf_file)
         logger.info("\033[31mprocess_product: arf_file: %s\033[0m", arf_file)        
 
-        e_min_kev=np.float(instrument.get_par_by_name('E1_keV').value)
-        e_max_kev=np.float(instrument.get_par_by_name('E2_keV').value)
+        e_min_kev=np.float64(instrument.get_par_by_name('E1_keV').value)
+        e_max_kev=np.float64(instrument.get_par_by_name('E2_keV').value)
 
         if instrument.name == 'isgri':
             e_min_kev=30.
