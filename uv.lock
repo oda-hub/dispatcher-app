@@ -590,7 +590,6 @@ dependencies = [
     { name = "pylogstash-context" },
     { name = "python-logstash" },
     { name = "pyyaml" },
-    { name = "raven" },
     { name = "sentry-sdk" },
     { name = "validators" },
     { name = "werkzeug" },
@@ -742,7 +741,6 @@ requires-dist = [
     { name = "python-logstash" },
     { name = "pyyaml" },
     { name = "queryparser-python3", marker = "extra == 'ivoa'", specifier = ">=0.6.1" },
-    { name = "raven" },
     { name = "rdflib", marker = "extra == 'ontology'", specifier = ">=6.2.0" },
     { name = "sentry-sdk" },
     { name = "validators", specifier = "==0.28.3" },
@@ -768,7 +766,7 @@ dev = [
 plugin-integral = [
     { name = "aiosmtpd", specifier = ">=1.4.6" },
     { name = "astroquery-integral" },
-    { name = "cdci-osa-plugin", git = "https://github.com/oda-hub/dispatcher-plugin-integral" },
+    { name = "cdci-osa-plugin", git = "https://github.com/oda-hub/dispatcher-plugin-integral?branch=no-raven" },
     { name = "flake8", specifier = ">=7.3.0" },
     { name = "mypy", specifier = ">=1.17.1" },
     { name = "psutil", specifier = ">=7.0.0" },
@@ -832,7 +830,7 @@ plugin-polar = [
 plugins = [
     { name = "aiosmtpd", specifier = ">=1.4.6" },
     { name = "astroquery-integral" },
-    { name = "cdci-osa-plugin", git = "https://github.com/oda-hub/dispatcher-plugin-integral" },
+    { name = "cdci-osa-plugin" },
     { name = "cdci-polar-plugin", git = "https://github.com/oda-hub/dispatcher-plugin-polar" },
     { name = "dispatcher-plugin-integral-all-sky", git = "https://github.com/oda-hub/dispatcher-plugin-integral-all-sky" },
     { name = "dispatcher-plugin-nb2workflow", git = "https://github.com/oda-hub/dispatcher-plugin-nb2workflow" },
@@ -855,7 +853,7 @@ plugins = [
 [[package]]
 name = "cdci-osa-plugin"
 version = "2.0"
-source = { git = "https://github.com/oda-hub/dispatcher-plugin-integral#8942bbf67454377e54fa9954f1ab7eb945010a0a" }
+source = { git = "https://github.com/oda-hub/dispatcher-plugin-integral?branch=no-raven#585fb2c267bbfcc578125aa7124d3334d8910e46" }
 dependencies = [
     { name = "astropy" },
     { name = "cdci-data-analysis" },
@@ -1477,11 +1475,16 @@ wheels = [
 
 [[package]]
 name = "ddaclient"
-version = "1.2.0"
-source = { git = "https://github.com/oda-hub/ddaclient.git?branch=migrate-python#29f39569471db91617e663611d80321de8110e24" }
+version = "1.1.13"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
+    { name = "python-shell-colors" },
     { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f1/97/9accfd41b877cbcf7512a506e07dd1c5d288c3a95182cae4cd706dd72234/ddaclient-1.1.13.tar.gz", hash = "sha256:faeff1abada34cbdceb1497497e2972a5d4db899e14ea211b39eb52297dda7d9", size = 16711, upload-time = "2022-08-09T09:30:38.264Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/87/a6/a57e8fb6f506c5bc9637578b4fdc310ef4b959682f095dc1429b4cfc1b68/ddaclient-1.1.13-py3-none-any.whl", hash = "sha256:7c2e8e853296b3097f32744915a3f3745b326cb8e5789866f3765808a63f5c7c", size = 7686, upload-time = "2022-08-09T09:30:40.427Z" },
 ]
 
 [[package]]
@@ -4169,6 +4172,15 @@ wheels = [
 ]
 
 [[package]]
+name = "python-shell-colors"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c3/f4/7b24495da9b55aef080ca6dd18a4ffe5f7bdd6e7b96a8a5db13a092c93dd/python-shell-colors-0.4.0.tar.gz", hash = "sha256:9a80b42163b68d2c0c29c587a2552341a068f32d18d29b1e34b9fa519d827454", size = 2636, upload-time = "2023-06-22T14:12:17.182Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/93/a5/211a0734f37d469d54638f9ee9deb6873451baa2c8f8bc16d4011e124245/python_shell_colors-0.4.0-py2.py3-none-any.whl", hash = "sha256:56398d72903c5bb35fb566f83bd41d2b378e06dcd00669fb597933f0aeda0227", size = 2099, upload-time = "2023-06-22T14:12:19.623Z" },
+]
+
+[[package]]
 name = "pytz"
 version = "2025.2"
 source = { registry = "https://pypi.org/simple" }
@@ -4348,15 +4360,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d5/12/6404799a93780f64be15fc9a49a2d0d58fc6e1238f7f8d6dc9a47cc76162/queryparser_python3-0.7.4.tar.gz", hash = "sha256:319f941054a6bf97e59370c70ba88c1407bdbb9d87dcfd1f4fabead93facc341", size = 269235, upload-time = "2025-08-18T12:54:33.476Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0c/45/0a6faf18b0745f5815d23682925c26f44070f762c8cf451746d81355e05f/queryparser_python3-0.7.4-py3-none-any.whl", hash = "sha256:232f3976d169122c6bc95e59525315f7cb8e9a100678ee7e337d453244f818f2", size = 274240, upload-time = "2025-08-18T12:54:31.531Z" },
-]
-
-[[package]]
-name = "raven"
-version = "6.10.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/79/57/b74a86d74f96b224a477316d418389af9738ba7a63c829477e7a86dd6f47/raven-6.10.0.tar.gz", hash = "sha256:3fa6de6efa2493a7c827472e984ce9b020797d0da16f1db67197bcc23c8fae54", size = 288902, upload-time = "2018-12-19T11:55:50.498Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/bd/8e/62e26a88c0a1bbae677200baf0767c1022321a6555634f8129e6d55c5ddc/raven-6.10.0-py2.py3-none-any.whl", hash = "sha256:44a13f87670836e153951af9a3c80405d36b43097db869a36e92809673692ce4", size = 284314, upload-time = "2018-12-19T11:55:45.435Z" },
 ]
 
 [[package]]
