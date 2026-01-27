@@ -20,7 +20,6 @@ import validators
 import re
 import logging
 
-from raven.contrib.flask import Sentry
 from flask import jsonify, send_from_directory, redirect, Response, Flask, request, make_response, g, url_for
 
 # restx not really used
@@ -1515,9 +1514,6 @@ def conf_app(conf):
                                         set_by=f'command line {__file__}:{__name__}')
 
     app.config['conf'] = conf
-    if getattr(conf, 'sentry_url', None) is not None:
-        sentry = Sentry(app, dsn=conf.sentry_url)
-        logger.warning("sentry not used")
     return app
 
 def run_app(conf, debug=False, threaded=False):

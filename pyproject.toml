@@ -40,7 +40,6 @@ dependencies = [
     "black>=22.10.0",
     "bs4",
     "sentry-sdk",
-    "raven",
     "validators==0.28.3",
     "jsonschema<=4.17.3",
 ]
