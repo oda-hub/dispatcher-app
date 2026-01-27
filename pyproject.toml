@@ -122,6 +122,6 @@ plugins = [
 [tool.uv.sources]
 oda-api = { git = "https://github.com/oda-hub/oda_api.git"}
 dispatcher-plugin-nb2workflow = { git = "https://github.com/oda-hub/dispatcher-plugin-nb2workflow" }
-cdci-osa-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-integral"}
+cdci-osa-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-integral", branch="no-raven", group="plugin-integral"}
 dispatcher-plugin-integral-all-sky = { git = "https://github.com/oda-hub/dispatcher-plugin-integral-all-sky" }
 cdci-polar-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-polar" } 
