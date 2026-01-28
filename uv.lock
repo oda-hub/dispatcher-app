@@ -830,7 +830,7 @@ plugin-polar = [
 plugins = [
     { name = "aiosmtpd", specifier = ">=1.4.6" },
     { name = "astroquery-integral" },
-    { name = "cdci-osa-plugin" },
+    { name = "cdci-osa-plugin", git = "https://github.com/oda-hub/dispatcher-plugin-integral?branch=no-raven" },
     { name = "cdci-polar-plugin", git = "https://github.com/oda-hub/dispatcher-plugin-polar" },
     { name = "dispatcher-plugin-integral-all-sky", git = "https://github.com/oda-hub/dispatcher-plugin-integral-all-sky" },
     { name = "dispatcher-plugin-nb2workflow", git = "https://github.com/oda-hub/dispatcher-plugin-nb2workflow" },
@@ -853,7 +853,7 @@ plugins = [
 [[package]]
 name = "cdci-osa-plugin"
 version = "2.0"
-source = { git = "https://github.com/oda-hub/dispatcher-plugin-integral?branch=no-raven#585fb2c267bbfcc578125aa7124d3334d8910e46" }
+source = { git = "https://github.com/oda-hub/dispatcher-plugin-integral?branch=no-raven#4f0fa442212a039e1b36168db03bda523bb9f107" }
 dependencies = [
     { name = "astropy" },
     { name = "cdci-data-analysis" },
@@ -1475,16 +1475,11 @@ wheels = [
 
 [[package]]
 name = "ddaclient"
-version = "1.1.13"
-source = { registry = "https://pypi.org/simple" }
+version = "1.2.0"
+source = { git = "https://github.com/oda-hub/ddaclient.git?branch=master#c61d56217609ac0f6e9634413617d9d7789525d8" }
 dependencies = [
     { name = "astropy" },
-    { name = "python-shell-colors" },
     { name = "requests" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/97/9accfd41b877cbcf7512a506e07dd1c5d288c3a95182cae4cd706dd72234/ddaclient-1.1.13.tar.gz", hash = "sha256:faeff1abada34cbdceb1497497e2972a5d4db899e14ea211b39eb52297dda7d9", size = 16711, upload-time = "2022-08-09T09:30:38.264Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/87/a6/a57e8fb6f506c5bc9637578b4fdc310ef4b959682f095dc1429b4cfc1b68/ddaclient-1.1.13-py3-none-any.whl", hash = "sha256:7c2e8e853296b3097f32744915a3f3745b326cb8e5789866f3765808a63f5c7c", size = 7686, upload-time = "2022-08-09T09:30:40.427Z" },
 ]
 
 [[package]]
@@ -4169,15 +4164,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/da/db/0b3e28ac047452d079d375ec6798bf76a036a08182dbb39ed38116a49130/python-magic-0.4.27.tar.gz", hash = "sha256:c1ba14b08e4a5f5c31a302b7721239695b2f0f058d125bd5ce1ee36b9d9d3c3b", size = 14677, upload-time = "2022-06-07T20:16:59.508Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6c/73/9f872cb81fc5c3bb48f7227872c28975f998f3e7c2b1c16e95e6432bbb90/python_magic-0.4.27-py2.py3-none-any.whl", hash = "sha256:c212960ad306f700aa0d01e5d7a325d20548ff97eb9920dcd29513174f0294d3", size = 13840, upload-time = "2022-06-07T20:16:57.763Z" },
-]
-
-[[package]]
-name = "python-shell-colors"
-version = "0.4.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c3/f4/7b24495da9b55aef080ca6dd18a4ffe5f7bdd6e7b96a8a5db13a092c93dd/python-shell-colors-0.4.0.tar.gz", hash = "sha256:9a80b42163b68d2c0c29c587a2552341a068f32d18d29b1e34b9fa519d827454", size = 2636, upload-time = "2023-06-22T14:12:17.182Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/93/a5/211a0734f37d469d54638f9ee9deb6873451baa2c8f8bc16d4011e124245/python_shell_colors-0.4.0-py2.py3-none-any.whl", hash = "sha256:56398d72903c5bb35fb566f83bd41d2b378e06dcd00669fb597933f0aeda0227", size = 2099, upload-time = "2023-06-22T14:12:19.623Z" },
 ]
 
 [[package]]

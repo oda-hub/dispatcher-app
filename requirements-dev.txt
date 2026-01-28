@@ -88,7 +88,7 @@ cachecontrol==0.14.3
     # via schema-salad
 cachelib==0.13.0
     # via flask-caching
-cdci-osa-plugin @ git+https://github.com/oda-hub/dispatcher-plugin-integral@585fb2c267bbfcc578125aa7124d3334d8910e46
+cdci-osa-plugin @ git+https://github.com/oda-hub/dispatcher-plugin-integral@4f0fa442212a039e1b36168db03bda523bb9f107
 cdci-polar-plugin @ git+https://github.com/oda-hub/dispatcher-plugin-polar@8061c77e3a9a9fed1a497c9327b88ac198a86123
 celery==5.5.3
     # via cdci-data-analysis
@@ -161,7 +161,7 @@ cwltool==3.1.20250715140722
     # via oda-knowledge-base
 cycler==0.12.1
     # via matplotlib
-ddaclient==1.1.13
+ddaclient @ git+https://github.com/oda-hub/ddaclient.git@c61d56217609ac0f6e9634413617d9d7789525d8
     # via cdci-osa-plugin
 debugpy==1.8.16
     # via ipykernel
@@ -591,8 +591,6 @@ python-logstash==0.4.8
     # via cdci-data-analysis
 python-magic==0.4.27
     # via dispatcher-plugin-nb2workflow
-python-shell-colors==0.4.0
-    # via ddaclient
 pytz==2025.2
     # via
     #   flask-restx
