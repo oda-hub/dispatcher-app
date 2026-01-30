@@ -590,7 +590,6 @@ dependencies = [
     { name = "pylogstash-context" },
     { name = "python-logstash" },
     { name = "pyyaml" },
-    { name = "raven" },
     { name = "sentry-sdk" },
     { name = "validators" },
     { name = "werkzeug" },
@@ -742,7 +741,6 @@ requires-dist = [
     { name = "python-logstash" },
     { name = "pyyaml" },
     { name = "queryparser-python3", marker = "extra == 'ivoa'", specifier = ">=0.6.1" },
-    { name = "raven" },
     { name = "rdflib", marker = "extra == 'ontology'", specifier = ">=6.2.0" },
     { name = "sentry-sdk" },
     { name = "validators", specifier = "==0.28.3" },
@@ -768,7 +766,7 @@ dev = [
 plugin-integral = [
     { name = "aiosmtpd", specifier = ">=1.4.6" },
     { name = "astroquery-integral" },
-    { name = "cdci-osa-plugin", git = "https://github.com/oda-hub/dispatcher-plugin-integral" },
+    { name = "cdci-osa-plugin", git = "https://github.com/oda-hub/dispatcher-plugin-integral?branch=no-raven" },
     { name = "flake8", specifier = ">=7.3.0" },
     { name = "mypy", specifier = ">=1.17.1" },
     { name = "psutil", specifier = ">=7.0.0" },
@@ -832,7 +830,7 @@ plugin-polar = [
 plugins = [
     { name = "aiosmtpd", specifier = ">=1.4.6" },
     { name = "astroquery-integral" },
-    { name = "cdci-osa-plugin", git = "https://github.com/oda-hub/dispatcher-plugin-integral" },
+    { name = "cdci-osa-plugin", git = "https://github.com/oda-hub/dispatcher-plugin-integral?branch=no-raven" },
     { name = "cdci-polar-plugin", git = "https://github.com/oda-hub/dispatcher-plugin-polar" },
     { name = "dispatcher-plugin-integral-all-sky", git = "https://github.com/oda-hub/dispatcher-plugin-integral-all-sky" },
     { name = "dispatcher-plugin-nb2workflow", git = "https://github.com/oda-hub/dispatcher-plugin-nb2workflow" },
@@ -855,7 +853,7 @@ plugins = [
 [[package]]
 name = "cdci-osa-plugin"
 version = "2.0"
-source = { git = "https://github.com/oda-hub/dispatcher-plugin-integral#8942bbf67454377e54fa9954f1ab7eb945010a0a" }
+source = { git = "https://github.com/oda-hub/dispatcher-plugin-integral?branch=no-raven#4f0fa442212a039e1b36168db03bda523bb9f107" }
 dependencies = [
     { name = "astropy" },
     { name = "cdci-data-analysis" },
@@ -1478,7 +1476,7 @@ wheels = [
 [[package]]
 name = "ddaclient"
 version = "1.2.0"
-source = { git = "https://github.com/oda-hub/ddaclient.git?branch=migrate-python#29f39569471db91617e663611d80321de8110e24" }
+source = { git = "https://github.com/oda-hub/ddaclient.git?branch=master#c61d56217609ac0f6e9634413617d9d7789525d8" }
 dependencies = [
     { name = "astropy" },
     { name = "requests" },
@@ -4348,15 +4346,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d5/12/6404799a93780f64be15fc9a49a2d0d58fc6e1238f7f8d6dc9a47cc76162/queryparser_python3-0.7.4.tar.gz", hash = "sha256:319f941054a6bf97e59370c70ba88c1407bdbb9d87dcfd1f4fabead93facc341", size = 269235, upload-time = "2025-08-18T12:54:33.476Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0c/45/0a6faf18b0745f5815d23682925c26f44070f762c8cf451746d81355e05f/queryparser_python3-0.7.4-py3-none-any.whl", hash = "sha256:232f3976d169122c6bc95e59525315f7cb8e9a100678ee7e337d453244f818f2", size = 274240, upload-time = "2025-08-18T12:54:31.531Z" },
-]
-
-[[package]]
-name = "raven"
-version = "6.10.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/79/57/b74a86d74f96b224a477316d418389af9738ba7a63c829477e7a86dd6f47/raven-6.10.0.tar.gz", hash = "sha256:3fa6de6efa2493a7c827472e984ce9b020797d0da16f1db67197bcc23c8fae54", size = 288902, upload-time = "2018-12-19T11:55:50.498Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/bd/8e/62e26a88c0a1bbae677200baf0767c1022321a6555634f8129e6d55c5ddc/raven-6.10.0-py2.py3-none-any.whl", hash = "sha256:44a13f87670836e153951af9a3c80405d36b43097db869a36e92809673692ce4", size = 284314, upload-time = "2018-12-19T11:55:45.435Z" },
 ]
 
 [[package]]

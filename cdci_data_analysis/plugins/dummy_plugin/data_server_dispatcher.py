@@ -36,7 +36,6 @@ __author__ = "Andrea Tramacere"
 from typing import Tuple
 
 from oda_api.data_products import ApiCatalog
-from raven.utils.urlparse import urlparse
 
 from cdci_data_analysis.analysis.catalog import BasicCatalog
 from cdci_data_analysis.analysis.queries import ProductQuery
