@@ -7,7 +7,7 @@
     #   dispatcher-plugin-nb2workflow
 aiohappyeyeballs==2.6.1 ; python_full_version == '3.12.*'
     # via aiohttp
-aiohttp==3.12.15 ; python_full_version == '3.12.*'
+aiohttp==3.13.3 ; python_full_version == '3.12.*'
     # via papermill
 aiosignal==1.4.0 ; python_full_version == '3.12.*'
     # via aiohttp
