@@ -88,7 +88,7 @@ cachecontrol==0.14.3
     # via schema-salad
 cachelib==0.13.0
     # via flask-caching
-cdci-osa-plugin @ git+https://github.com/oda-hub/dispatcher-plugin-integral@4f0fa442212a039e1b36168db03bda523bb9f107
+cdci-osa-plugin @ git+https://github.com/oda-hub/dispatcher-plugin-integral@1005dac302033f457d5b3cef16a503f0ff37a58c
 cdci-polar-plugin @ git+https://github.com/oda-hub/dispatcher-plugin-polar@8061c77e3a9a9fed1a497c9327b88ac198a86123
 celery==5.5.3
     # via cdci-data-analysis

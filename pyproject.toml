@@ -90,6 +90,7 @@ dev = [
     "pytest-postgresql>=7.0.2",
     "pytest-sentry>=0.3.3",
     "pytest-xdist>=3.8.0",
+    "oda-api"
 ]
 plugin-integral = [
     {include-group = "dev"},
@@ -120,8 +121,8 @@ plugins = [
 ]
 
 [tool.uv.sources]
-oda-api = { git = "https://github.com/oda-hub/oda_api.git"}
-dispatcher-plugin-nb2workflow = { git = "https://github.com/oda-hub/dispatcher-plugin-nb2workflow" }
-cdci-osa-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-integral", branch="no-raven"}
-dispatcher-plugin-integral-all-sky = { git = "https://github.com/oda-hub/dispatcher-plugin-integral-all-sky" }
-cdci-polar-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-polar" } 
+oda-api = { git = "https://github.com/oda-hub/oda_api.git", group="dev"}
+dispatcher-plugin-nb2workflow = { git = "https://github.com/oda-hub/dispatcher-plugin-nb2workflow", group="plugins"}
+cdci-osa-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-integral", group="plugins"}
+dispatcher-plugin-integral-all-sky = { git = "https://github.com/oda-hub/dispatcher-plugin-integral-all-sky", group="plugins"}
+cdci-polar-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-polar", group="plugins"} 
