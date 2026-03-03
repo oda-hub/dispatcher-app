@@ -56,8 +56,6 @@ attrs==25.4.0
     #   aiosmtpd
     #   jsonschema
     #   referencing
-backports-datetime-fromisoformat==2.0.3 ; python_full_version < '3.11'
-    # via marshmallow
 backports-tarfile==1.2.0 ; python_full_version < '3.12'
     # via jaraco-context
 beautifulsoup4==4.14.3
@@ -155,7 +153,7 @@ decorator==5.2.1
 dill==0.4.1
     # via pylint
 dispatcher-plugin-integral-all-sky @ git+https://github.com/oda-hub/dispatcher-plugin-integral-all-sky@cd0b46dcd9eaa58a8adb753e338525210d3aa9cb
-dispatcher-plugin-nb2workflow @ git+https://github.com/oda-hub/dispatcher-plugin-nb2workflow@a4bd311972646ebd961f4d503398cb76f18a8cd9
+dispatcher-plugin-nb2workflow @ git+https://github.com/oda-hub/dispatcher-plugin-nb2workflow@cb3c862624e6d8df24b3f8f5243e287930def197
 dynaconf==3.2.12
     # via oda-knowledge-base
 exceptiongroup==1.3.1 ; python_full_version < '3.11'
@@ -267,7 +265,7 @@ markupsafe==3.0.3
     #   flask
     #   jinja2
     #   werkzeug
-marshmallow==4.2.2
+marshmallow==3.26.2
     # via cdci-data-analysis
 matplotlib==3.10.8
     # via oda-api
@@ -350,6 +348,7 @@ packaging==26.0
     #   cwl-utils
     #   gunicorn
     #   kombu
+    #   marshmallow
     #   matplotlib
     #   pytest
     #   pytest-postgresql
@@ -584,7 +583,6 @@ typing-extensions==4.15.0
     #   cryptography
     #   cwltool
     #   exceptiongroup
-    #   marshmallow
     #   mistune
     #   mypy
     #   psycopg

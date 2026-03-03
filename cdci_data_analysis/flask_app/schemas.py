@@ -4,7 +4,6 @@ import typing
 
 from marshmallow import Schema, EXCLUDE, fields
 from marshmallow.validate import OneOf
-from marshmallow.fields import _T
 
 dispatcher_strict_validate = os.environ.get('DISPATCHER_STRICT_VALIDATE', 'no') == 'yes'
 
@@ -58,7 +57,7 @@ class UserOptionsTokenSchema(Schema):
 
 # TODO could this be needed?
 class FloatNoFormattingField(fields.Number):
-    def _deserialize(self, value, attr, data, **kwargs) -> typing.Optional[_T]:
+    def _deserialize(self, value, attr, data, **kwargs) -> typing.Optional[object]:
         # validate the provided value
         self._validated(value)
         # to prevent un-wanted conversion to different types
