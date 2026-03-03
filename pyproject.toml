@@ -4,7 +4,7 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = "cdci_data_analysis"
-dynamic = ["version"]
+version = "1.3.5"
 description = "A Python Framework for CDCI online data analysis"
 authors = [
     {name = "Andrea Tramacere", email = "contact@odahub.io"},
@@ -72,9 +72,6 @@ where = ["."]
 
 [tool.setuptools.package-data]
 cdci_data_analysis = ["config_dir/*", "plugins/dummy_plugin/*yml"]
-
-[tool.setuptools.dynamic]
-version = {attr = "cdci_data_analysis.__version__"}
 
 [dependency-groups]
 dev = [

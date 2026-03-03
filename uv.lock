@@ -568,6 +568,7 @@ wheels = [
 
 [[package]]
 name = "cdci-data-analysis"
+version = "1.3.5"
 source = { editable = "." }
 dependencies = [
     { name = "astropy" },
