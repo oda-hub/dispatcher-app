@@ -23,7 +23,7 @@ dependencies = [
     "oda-api>=1.3.0",
     "numpy",
     "pyyaml",
-    "flask==2.0.3",
+    "flask",
     "astropy>=6.1",
     "gunicorn",
     "decorator",
@@ -32,16 +32,15 @@ dependencies = [
     "blinker",
     "bokeh>3.0,<3.2",
     "json_tricks",
-    "flask-restx==1.2.0",
-    "werkzeug==2.0.3",
+    "flask-restx",
     "logging_tree",
     "pyjwt",
-    "marshmallow<3.24",
+    "marshmallow",
     "black>=22.10.0",
     "bs4",
     "sentry-sdk",
-    "validators==0.28.3",
-    "jsonschema<=4.17.3",
+    "validators",
+    "jsonschema",
 ]
 
 [project.optional-dependencies]
@@ -101,7 +100,6 @@ plugin-integral-all-sky = [
 plugin-nb2workflow = [
     {include-group = "dev"},
     "dispatcher-plugin-nb2workflow",
-    "nb2workflow[service,rdf] >= 1.3.114",
     "pytest-httpserver>=1.1.3",
     "pytest-xprocess>=1.0.2",
 ]
@@ -119,7 +117,7 @@ plugins = [
 
 [tool.uv.sources]
 oda-api = { git = "https://github.com/oda-hub/oda_api.git", group="dev"}
-dispatcher-plugin-nb2workflow = { git = "https://github.com/oda-hub/dispatcher-plugin-nb2workflow", group="plugins"}
+dispatcher-plugin-nb2workflow = { git = "https://github.com/oda-hub/dispatcher-plugin-nb2workflow", branch="nb2service-venv", group="plugins"}
 cdci-osa-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-integral", group="plugins"}
 dispatcher-plugin-integral-all-sky = { git = "https://github.com/oda-hub/dispatcher-plugin-integral-all-sky", group="plugins"}
 cdci-polar-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-polar", group="plugins"} 
