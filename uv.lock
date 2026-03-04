@@ -535,7 +535,7 @@ requires-dist = [
     { name = "bs4" },
     { name = "celery", marker = "extra == 'async'" },
     { name = "decorator" },
-    { name = "flask" },
+    { name = "flask", specifier = ">=3.1.3" },
     { name = "flask-restx" },
     { name = "gitpython", marker = "extra == 'renku'" },
     { name = "giturlparse", marker = "extra == 'renku'" },
