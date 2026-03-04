@@ -854,13 +854,13 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
                         env.get('PYTHONPATH', "")
     print(("pythonpath", env['PYTHONPATH']))
 
+    conf = ConfigEnv.from_conf_file(test_conf_fn,
+                                    set_by=f'command line {__file__}:{__name__}')
+
+    dispatcher_bind_host = conf.bind_host
+    dispatcher_bind_port = conf.bind_port
+
     if gunicorn:
-
-        conf = ConfigEnv.from_conf_file(test_conf_fn,
-                                        set_by=f'command line {__file__}:{__name__}')
-
-        dispatcher_bind_host = conf.bind_host
-        dispatcher_bind_port = conf.bind_port
         cmd = [
             "gunicorn",
             f"cdci_data_analysis.flask_app.app:conf_app(\"{test_conf_fn}\")",
@@ -920,16 +920,11 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
             if gunicorn:
                 m = re.search(r"Listening at: (.*?) (.*?)\n", line)
                 if m:
-                    url_store[0] = m.group(1).strip()  # alternatively get from configenv
-                    print(f"{C}following server: found url:{url_store[0]}")
+                    url_store[0] = f"http://{dispatcher_bind_host}:{dispatcher_bind_port}"
+                    print(f"{C}following server: server ready, url:{url_store[0]}")
             else:
-                m = re.search(r"Running on (http.*)", line)
-                if m:
-                    url_store[0] = m.group(1).strip()  # alternatively get from configenv
-                    print(f"{C}following server: found url:{url_store[0]}")
-
                 if re.search(r"\* Debugger PIN:.*?", line):
-                    url_store[0] = url_store[0].replace("0.0.0.0", "127.0.0.1")
+                    url_store[0] = f"http://{dispatcher_bind_host}:{dispatcher_bind_port}"
                     print(f"{C}following server: server ready, url {url_store[0]}")
 
 
