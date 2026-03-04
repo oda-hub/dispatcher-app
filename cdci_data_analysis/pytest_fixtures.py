@@ -540,7 +540,7 @@ def dispatcher_test_conf_empty_sentry_fn(dispatcher_test_conf_fn):
     fn = dispatcher_test_conf_fn
     with open(fn, "r+") as f:
         data = f.read()
-        data = re.sub('(\s+sentry_url:).*\n', r'\1\n', data)
+        data = re.sub(r'(\s+sentry_url:).*\n', r'\1\n', data)
         f.seek(0)
         f.write(data)
         f.truncate()
@@ -553,7 +553,7 @@ def dispatcher_test_conf_no_products_url_fn(dispatcher_test_conf_fn):
     fn = dispatcher_test_conf_fn
     with open(fn, "r+") as f:
         data = f.read()
-        data = re.sub('(\s+products_url:).*\n', r'\1\n', data)
+        data = re.sub(r'(\s+products_url:).*\n', r'\1\n', data)
         f.seek(0)
         f.write(data)
         f.truncate()
@@ -566,7 +566,7 @@ def dispatcher_test_conf_with_external_products_url_fn(dispatcher_test_conf_fn):
     fn = dispatcher_test_conf_fn
     with open(fn, "r+") as f:
         data = f.read()
-        data = re.sub('(\s+products_url:).*\n', '\n    products_url: http://localhost:1234/mmoda/\n', data)
+        data = re.sub(r'(\s+products_url:).*\n', '\n    products_url: http://localhost:1234/mmoda/\n', data)
         f.seek(0)
         f.write(data)
         f.truncate()
@@ -579,7 +579,7 @@ def dispatcher_test_conf_with_default_route_products_url_fn(dispatcher_test_conf
     fn = dispatcher_test_conf_fn
     with open(fn, "r+") as f:
         data = f.read()
-        data = re.sub('(\s+products_url:).*\n', '\n    products_url: http://0.0.0.0:1234/mmoda/\n', data)
+        data = re.sub(r'(\s+products_url:).*\n', '\n    products_url: http://0.0.0.0:1234/mmoda/\n', data)
         f.seek(0)
         f.write(data)
         f.truncate()
@@ -592,7 +592,7 @@ def dispatcher_test_conf_no_resubmit_timeout_fn(dispatcher_test_conf_fn):
     fn = dispatcher_test_conf_fn
     with open(fn, "r+") as f:
         data = f.read()
-        data = re.sub('(\s+resubmit_timeout:).*\n', '\n    resubmit_timeout: 10\n', data)
+        data = re.sub(r'(\s+resubmit_timeout:).*\n', '\n    resubmit_timeout: 10\n', data)
         f.seek(0)
         f.write(data)
         f.truncate()
@@ -923,12 +923,12 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
                     url_store[0] = m.group(1).strip()  # alternatively get from configenv
                     print(f"{C}following server: found url:{url_store[0]}")
             else:
-                m = re.search(r"Running on (.*?) \(Press CTRL\+C to quit\)", line)
+                m = re.search(r"Running on (http.*)", line)
                 if m:
                     url_store[0] = m.group(1).strip()  # alternatively get from configenv
                     print(f"{C}following server: found url:{url_store[0]}")
 
-                if re.search("\* Debugger PIN:.*?", line):
+                if re.search(r"\* Debugger PIN:.*?", line):
                     url_store[0] = url_store[0].replace("0.0.0.0", "127.0.0.1")
                     print(f"{C}following server: server ready, url {url_store[0]}")
 
@@ -1458,7 +1458,7 @@ class DispatcherJobState:
             '(href=")(.*?)(">url)',
         ],
         'job_id': [
-            '(job_id: )(.*?)(\) from)'
+            r'(job_id: )(.*?)(\) from)'
         ],
     }
 
@@ -1503,7 +1503,7 @@ class DispatcherJobState:
 
     @staticmethod
     def extract_api_code_from_text(text):
-        r = re.search('<div.*?>(.*?)</div>', text, flags=re.DOTALL)
+        r = re.search(r'<div.*?>(.*?)</div>', text, flags=re.DOTALL)
         if r:
             return textify_email(r.group(1))
         else:
@@ -1548,7 +1548,7 @@ class DispatcherJobState:
 
     @staticmethod
     def extract_products_url(text):
-        r = re.search('<a href="(.*?)">url</a>', text, flags=re.DOTALL)
+        r = re.search(r'<a href="(.*?)">url</a>', text, flags=re.DOTALL)
         if r:
             return r.group(1)
         else:
