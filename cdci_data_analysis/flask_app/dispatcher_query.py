@@ -1204,12 +1204,10 @@ class InstrumentQueryBackEnd:
                 file_list, file_name,
                 return_archive=return_archive,
                 from_request_files_dir=from_request_files_dir)
-            try:
-                return send_from_directory(directory=tmp_dir, path=target_file, attachment_filename=target_file,
+            
+            return send_from_directory(directory=tmp_dir, path=target_file, download_name=target_file,
                                         as_attachment=True, mimetype=mimetype)
-            except Exception as e:
-                return send_from_directory(directory=tmp_dir, filename=target_file, attachment_filename=target_file,
-                                           as_attachment=True, mimetype=mimetype)
+
         except RequestNotAuthorized as e:
             extract_job_monitor = True
             if not hasattr(self, 'scratch_dir') or self.scratch_dir is None:
