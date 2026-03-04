@@ -92,6 +92,7 @@ plugin-integral = [
     {include-group = "dev"},
     "cdci-osa-plugin",
     "astroquery-integral",
+    "oda-knowledge-base",
 ]
 plugin-integral-all-sky = [
     {include-group = "dev"},
@@ -121,3 +122,4 @@ dispatcher-plugin-nb2workflow = { git = "https://github.com/oda-hub/dispatcher-p
 cdci-osa-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-integral", group="plugins"}
 dispatcher-plugin-integral-all-sky = { git = "https://github.com/oda-hub/dispatcher-plugin-integral-all-sky", group="plugins"}
 cdci-polar-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-polar", group="plugins"} 
+oda-knowledge-base = { url = "https://github.com/oda-hub/oda-kb/archive/refs/heads/master.zip" }
