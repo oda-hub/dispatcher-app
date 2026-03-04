@@ -41,7 +41,7 @@ from .dispatcher_query import InstrumentQueryBackEnd
 from ..analysis.exceptions import APIerror, MissingRequestParameter
 from ..app_logging import app_logging
 
-from ..analysis.json import CustomJSONEncoder
+from ..analysis.json import CustomJSONProvider
 from .sentry import sentry
 
 from cdci_data_analysis import __version__
@@ -66,7 +66,7 @@ app = Flask(__name__,
 
 sentry.app = app
 
-app.json_encoder = CustomJSONEncoder
+app.json = CustomJSONProvider(app)
 
 
 api = Api(app=app, version='1.0', title='CDCI ODA API',

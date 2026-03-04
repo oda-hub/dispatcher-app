@@ -617,13 +617,6 @@ def test_download_products_aliased_dir(dispatcher_live_fixture):
 
     logger.info("constructed server: %s", server)
 
-    # let's generate a valid token
-    token_payload = {
-        **default_token_payload,
-        "roles": "unige-hpc-full, general",
-    }
-    encoded_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
-
     params = {
         **default_params,
         'product_type': 'dummy',

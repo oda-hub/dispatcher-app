@@ -8,13 +8,10 @@ Created on Wed May 10 10:55:20 2017
 import os
 import pathlib
 import time
-from builtins import (open, str, range,
-                      object)
 
 import traceback
 
-from collections import Counter, OrderedDict
-import copy
+from collections import OrderedDict
 
 # import logging
 # from werkzeug.utils import secure_filename
