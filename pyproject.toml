@@ -120,6 +120,6 @@ plugins = [
 oda-api = { git = "https://github.com/oda-hub/oda_api.git", group="dev"}
 dispatcher-plugin-nb2workflow = { git = "https://github.com/oda-hub/dispatcher-plugin-nb2workflow", group="plugins"}
 cdci-osa-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-integral", group="plugins"}
-dispatcher-plugin-integral-all-sky = { git = "https://github.com/oda-hub/dispatcher-plugin-integral-all-sky", group="plugins"}
+dispatcher-plugin-integral-all-sky = { git = "https://github.com/oda-hub/dispatcher-plugin-integral-all-sky", branch="fix-test-str-type", group="plugins"}
 cdci-polar-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-polar", group="plugins"} 
 oda-knowledge-base = { url = "https://github.com/oda-hub/oda-kb/archive/refs/heads/master.zip" }
