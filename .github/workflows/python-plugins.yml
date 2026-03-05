@@ -60,6 +60,8 @@ jobs:
       with:
         repository: 'oda-hub/dispatcher-plugin-${{matrix.plugin-name}}'
         path: dispatcher-plugin-${{matrix.plugin-name}}
+        ref: ${{ matrix.plugin-name == 'integral-all-sky' && 'fix-test-str-type' || 'master' }}
+
 
     - name: Test ${{ matrix.plugin-name }} plugin with pytest
       env: 
