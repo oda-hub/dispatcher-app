@@ -920,11 +920,16 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
             if gunicorn:
                 m = re.search(r"Listening at: (.*?) (.*?)\n", line)
                 if m:
-                    url_store[0] = f"http://{dispatcher_bind_host}:{dispatcher_bind_port}"
-                    print(f"{C}following server: server ready, url:{url_store[0]}")
+                    url_store[0] = m.group(1).strip()  # alternatively get from configenv
+                    print(f"{C}following server: found url:{url_store[0]}")
             else:
+                m = re.search(r"Running on (http.*)", line)
+                if m:
+                    url_store[0] = m.group(1).strip()  # alternatively get from configenv
+                    print(f"{C}following server: found url:{url_store[0]}")
+
                 if re.search(r"\* Debugger PIN:.*?", line):
-                    url_store[0] = f"http://{dispatcher_bind_host}:{dispatcher_bind_port}"
+                    url_store[0] = url_store[0].replace("0.0.0.0", "127.0.0.1")
                     print(f"{C}following server: server ready, url {url_store[0]}")
 
 
