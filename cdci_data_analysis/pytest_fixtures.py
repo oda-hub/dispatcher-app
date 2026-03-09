@@ -25,7 +25,6 @@ import pytest
 import subprocess
 import os
 import signal
-import socket
 import psutil
 import copy
 import time
