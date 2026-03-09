@@ -490,7 +490,6 @@ def dispatcher_local_mail_server_subprocess(pytestconfig, dispatcher_test_conf):
     kill_child_processes(p.pid, signal.SIGINT)
     os.kill(p.pid, signal.SIGINT)
 
-
 @pytest.fixture
 def dispatcher_test_conf_fn(tmpdir):
     fn = os.path.join(tmpdir, "test-dispatcher-conf.yaml")
@@ -512,6 +511,50 @@ dispatcher:
     bind_options:
         bind_host: 0.0.0.0
         bind_port: 8011
+    email_options:
+        smtp_server: 'localhost'
+        site_name: 'University of Geneva'
+        manual_reference: 'possibly-non-site-specific-link'
+        sender_email_address: 'team@odahub.io'
+        contact_email_address: 'contact@odahub.io'
+        cc_receivers_email_addresses: ['team@odahub.io']
+        bcc_receivers_email_addresses: ['teamBcc@odahub.io']
+        smtp_port: 61025
+        smtp_server_password: ''
+        email_sending_timeout: True
+        email_sending_timeout_default_threshold: 1800
+        email_sending_job_submitted: True
+        email_sending_job_submitted_default_interval: 60
+        sentry_for_email_sending_check: False
+        incident_report_email_options:
+            incident_report_sender_email_address: 'postmaster@in.odahub.io'
+            incident_report_receivers_email_addresses: ['team@odahub.io']
+    """)
+
+    yield fn
+
+
+@pytest.fixture
+def long_dispatcher_test_conf_fn(tmpdir):
+    fn = os.path.join(tmpdir, "test-long-dispatcher-conf.yaml")
+    with open(fn, "w") as f:
+        f.write("""
+dispatcher:
+    dummy_cache: dummy-cache
+    products_url: PRODUCTS_URL
+    dispatcher_callback_url_base: http://0.0.0.0:8022
+    sentry_url: "https://2ba7e5918358439485632251fa73658c@sentry.io/1467382"
+    sentry_environment: "production"
+    logstash_host: 
+    logstash_port: 
+    secret_key: 'secretkey_test'
+    token_max_refresh_interval: 604800
+    resubmit_timeout: 1800
+    soft_minimum_folder_age_days: 5
+    hard_minimum_folder_age_days: 30
+    bind_options:
+        bind_host: 0.0.0.0
+        bind_port: 8022
     email_options:
         smtp_server: 'localhost'
         site_name: 'University of Geneva'
@@ -956,13 +999,13 @@ def gunicorn_dispatcher_long_living_fixture(gunicorn_tmp_path, gunicorn_dispatch
 
 
 @pytest.fixture
-def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
+def dispatcher_long_living_fixture(pytestconfig, long_dispatcher_test_conf_fn, dispatcher_debug):
     tmp_path = "/tmp/dispatcher-test-fixture-state-{}.json"
     if os.environ.get('GUNICORN_TMP_PATH', None) is not None:
         tmp_path = os.environ.get('GUNICORN_TMP_PATH')
 
     dispatcher_state_fn = tmp_path.format(
-        hashlib.md5(open(dispatcher_test_conf_fn, "rb").read()).hexdigest()[:8]
+        hashlib.md5(open(long_dispatcher_test_conf_fn, "rb").read()).hexdigest()[:8]
     )
 
     if os.path.exists(dispatcher_state_fn):
