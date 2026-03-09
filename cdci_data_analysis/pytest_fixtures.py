@@ -1033,7 +1033,7 @@ def dispatcher_long_living_fixture(pytestconfig, long_dispatcher_test_conf_fn, d
     if os.environ.get('GUNICORN_DISPATCHER', 'no') == 'yes':
         gunicorn = True
 
-    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=gunicorn)
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, long_dispatcher_test_conf_fn, gunicorn=gunicorn)
     json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
     return dispatcher_state['url']
 
