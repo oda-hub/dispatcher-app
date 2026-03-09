@@ -240,12 +240,6 @@ def validate_no_data_products(jdata):
     assert jdata["job_status"] == "failed"
 
 
-def find_empty_port():
-    """Find and return an empty port."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('', 0))  # Bind to a free port provided by the OS
-        return s.getsockname()[1]  # Return the port number
-
 @pytest.fixture
 def dispatcher_local_mail_server(pytestconfig, dispatcher_test_conf):
     from aiosmtpd.controller import Controller
