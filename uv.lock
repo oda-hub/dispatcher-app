@@ -373,7 +373,7 @@ filecache = [
 
 [[package]]
 name = "cdci-data-analysis"
-version = "1.3.5"
+version = "1.3.6"
 source = { editable = "." }
 dependencies = [
     { name = "astropy", version = "6.1.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
