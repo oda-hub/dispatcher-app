@@ -4,7 +4,7 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = "cdci_data_analysis"
-dynamic = ["version"]
+version = "1.3.5"
 description = "A Python Framework for CDCI online data analysis"
 authors = [
     {name = "Andrea Tramacere", email = "contact@odahub.io"},
@@ -23,7 +23,7 @@ dependencies = [
     "oda-api>=1.3.0",
     "numpy",
     "pyyaml",
-    "flask==2.0.3",
+    "flask>=3.1.3",
     "astropy>=6.1",
     "gunicorn",
     "decorator",
@@ -32,16 +32,15 @@ dependencies = [
     "blinker",
     "bokeh>3.0,<3.2",
     "json_tricks",
-    "flask-restx==1.2.0",
-    "werkzeug==2.0.3",
+    "flask-restx",
     "logging_tree",
     "pyjwt",
-    "marshmallow<3.24",
+    "marshmallow<4.0",
     "black>=22.10.0",
     "bs4",
     "sentry-sdk",
-    "validators==0.28.3",
-    "jsonschema<=4.17.3",
+    "validators",
+    "jsonschema",
 ]
 
 [project.optional-dependencies]
@@ -73,9 +72,6 @@ where = ["."]
 [tool.setuptools.package-data]
 cdci_data_analysis = ["config_dir/*", "plugins/dummy_plugin/*yml"]
 
-[tool.setuptools.dynamic]
-version = {attr = "cdci_data_analysis.__version__"}
-
 [dependency-groups]
 dev = [
     "aiosmtpd>=1.4.6",
@@ -96,6 +92,7 @@ plugin-integral = [
     {include-group = "dev"},
     "cdci-osa-plugin",
     "astroquery-integral",
+    "oda-knowledge-base",
 ]
 plugin-integral-all-sky = [
     {include-group = "dev"},
@@ -104,7 +101,6 @@ plugin-integral-all-sky = [
 plugin-nb2workflow = [
     {include-group = "dev"},
     "dispatcher-plugin-nb2workflow",
-    "nb2workflow[service,rdf] >= 1.3.114",
     "pytest-httpserver>=1.1.3",
     "pytest-xprocess>=1.0.2",
 ]
@@ -126,3 +122,4 @@ dispatcher-plugin-nb2workflow = { git = "https://github.com/oda-hub/dispatcher-p
 cdci-osa-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-integral", group="plugins"}
 dispatcher-plugin-integral-all-sky = { git = "https://github.com/oda-hub/dispatcher-plugin-integral-all-sky", group="plugins"}
 cdci-polar-plugin = { git = "https://github.com/oda-hub/dispatcher-plugin-polar", group="plugins"} 
+oda-knowledge-base = { url = "https://github.com/oda-hub/oda-kb/archive/refs/heads/master.zip" }

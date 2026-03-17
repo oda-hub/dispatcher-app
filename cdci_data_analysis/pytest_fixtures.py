@@ -239,8 +239,6 @@ def validate_no_data_products(jdata):
     assert jdata["job_status"] == "failed"
 
 
-
-
 @pytest.fixture
 def dispatcher_local_mail_server(pytestconfig, dispatcher_test_conf):
     from aiosmtpd.controller import Controller
@@ -490,7 +488,6 @@ def dispatcher_local_mail_server_subprocess(pytestconfig, dispatcher_test_conf):
     kill_child_processes(p.pid, signal.SIGINT)
     os.kill(p.pid, signal.SIGINT)
 
-
 @pytest.fixture
 def dispatcher_test_conf_fn(tmpdir):
     fn = os.path.join(tmpdir, "test-dispatcher-conf.yaml")
@@ -540,7 +537,7 @@ def dispatcher_test_conf_empty_sentry_fn(dispatcher_test_conf_fn):
     fn = dispatcher_test_conf_fn
     with open(fn, "r+") as f:
         data = f.read()
-        data = re.sub('(\s+sentry_url:).*\n', r'\1\n', data)
+        data = re.sub(r'(\s+sentry_url:).*\n', r'\1\n', data)
         f.seek(0)
         f.write(data)
         f.truncate()
@@ -553,7 +550,7 @@ def dispatcher_test_conf_no_products_url_fn(dispatcher_test_conf_fn):
     fn = dispatcher_test_conf_fn
     with open(fn, "r+") as f:
         data = f.read()
-        data = re.sub('(\s+products_url:).*\n', r'\1\n', data)
+        data = re.sub(r'(\s+products_url:).*\n', r'\1\n', data)
         f.seek(0)
         f.write(data)
         f.truncate()
@@ -566,7 +563,7 @@ def dispatcher_test_conf_with_external_products_url_fn(dispatcher_test_conf_fn):
     fn = dispatcher_test_conf_fn
     with open(fn, "r+") as f:
         data = f.read()
-        data = re.sub('(\s+products_url:).*\n', '\n    products_url: http://localhost:1234/mmoda/\n', data)
+        data = re.sub(r'(\s+products_url:).*\n', '\n    products_url: http://localhost:1234/mmoda/\n', data)
         f.seek(0)
         f.write(data)
         f.truncate()
@@ -579,7 +576,7 @@ def dispatcher_test_conf_with_default_route_products_url_fn(dispatcher_test_conf
     fn = dispatcher_test_conf_fn
     with open(fn, "r+") as f:
         data = f.read()
-        data = re.sub('(\s+products_url:).*\n', '\n    products_url: http://0.0.0.0:1234/mmoda/\n', data)
+        data = re.sub(r'(\s+products_url:).*\n', '\n    products_url: http://0.0.0.0:1234/mmoda/\n', data)
         f.seek(0)
         f.write(data)
         f.truncate()
@@ -592,7 +589,7 @@ def dispatcher_test_conf_no_resubmit_timeout_fn(dispatcher_test_conf_fn):
     fn = dispatcher_test_conf_fn
     with open(fn, "r+") as f:
         data = f.read()
-        data = re.sub('(\s+resubmit_timeout:).*\n', '\n    resubmit_timeout: 10\n', data)
+        data = re.sub(r'(\s+resubmit_timeout:).*\n', '\n    resubmit_timeout: 10\n', data)
         f.seek(0)
         f.write(data)
         f.truncate()
@@ -854,13 +851,13 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
                         env.get('PYTHONPATH', "")
     print(("pythonpath", env['PYTHONPATH']))
 
+    conf = ConfigEnv.from_conf_file(test_conf_fn,
+                                    set_by=f'command line {__file__}:{__name__}')
+
+    dispatcher_bind_host = conf.bind_host
+    dispatcher_bind_port = conf.bind_port
+
     if gunicorn:
-
-        conf = ConfigEnv.from_conf_file(test_conf_fn,
-                                        set_by=f'command line {__file__}:{__name__}')
-
-        dispatcher_bind_host = conf.bind_host
-        dispatcher_bind_port = conf.bind_port
         cmd = [
             "gunicorn",
             f"cdci_data_analysis.flask_app.app:conf_app(\"{test_conf_fn}\")",
@@ -923,12 +920,12 @@ def start_dispatcher(rootdir, test_conf_fn, multithread=False, gunicorn=False):
                     url_store[0] = m.group(1).strip()  # alternatively get from configenv
                     print(f"{C}following server: found url:{url_store[0]}")
             else:
-                m = re.search(r"Running on (.*?) \(Press CTRL\+C to quit\)", line)
+                m = re.search(r"Running on (http.*)", line)
                 if m:
                     url_store[0] = m.group(1).strip()  # alternatively get from configenv
                     print(f"{C}following server: found url:{url_store[0]}")
 
-                if re.search("\* Debugger PIN:.*?", line):
+                if re.search(r"\* Debugger PIN:.*?", line):
                     url_store[0] = url_store[0].replace("0.0.0.0", "127.0.0.1")
                     print(f"{C}following server: server ready, url {url_store[0]}")
 
@@ -956,13 +953,53 @@ def gunicorn_dispatcher_long_living_fixture(gunicorn_tmp_path, gunicorn_dispatch
 
 
 @pytest.fixture
-def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispatcher_debug):
+def dispatcher_long_living_fixture(pytestconfig, dispatcher_debug):
+    tmp_d = tempfile.mkdtemp()
+    fn = os.path.join(tmp_d, "long-dispatcher-conf.yaml")
+    with open(fn, "w") as f:
+        f.write("""
+dispatcher:
+    dummy_cache: dummy-cache
+    products_url: PRODUCTS_URL
+    dispatcher_callback_url_base: http://0.0.0.0:8022
+    sentry_url: "https://2ba7e5918358439485632251fa73658c@sentry.io/1467382"
+    sentry_environment: "production"
+    logstash_host: 
+    logstash_port: 
+    secret_key: 'secretkey_test'
+    token_max_refresh_interval: 604800
+    resubmit_timeout: 1800
+    soft_minimum_folder_age_days: 5
+    hard_minimum_folder_age_days: 30
+    bind_options:
+        bind_host: 0.0.0.0
+        bind_port: 8022
+    email_options:
+        smtp_server: 'localhost'
+        site_name: 'University of Geneva'
+        manual_reference: 'possibly-non-site-specific-link'
+        sender_email_address: 'team@odahub.io'
+        contact_email_address: 'contact@odahub.io'
+        cc_receivers_email_addresses: ['team@odahub.io']
+        bcc_receivers_email_addresses: ['teamBcc@odahub.io']
+        smtp_port: 61025
+        smtp_server_password: ''
+        email_sending_timeout: True
+        email_sending_timeout_default_threshold: 1800
+        email_sending_job_submitted: True
+        email_sending_job_submitted_default_interval: 60
+        sentry_for_email_sending_check: False
+        incident_report_email_options:
+            incident_report_sender_email_address: 'postmaster@in.odahub.io'
+            incident_report_receivers_email_addresses: ['team@odahub.io']
+    """)
+
     tmp_path = "/tmp/dispatcher-test-fixture-state-{}.json"
     if os.environ.get('GUNICORN_TMP_PATH', None) is not None:
         tmp_path = os.environ.get('GUNICORN_TMP_PATH')
 
     dispatcher_state_fn = tmp_path.format(
-        hashlib.md5(open(dispatcher_test_conf_fn, "rb").read()).hexdigest()[:8]
+        hashlib.md5(open(fn, "rb").read()).hexdigest()[:8]
     )
 
     if os.path.exists(dispatcher_state_fn):
@@ -990,7 +1027,7 @@ def dispatcher_long_living_fixture(pytestconfig, dispatcher_test_conf_fn, dispat
     if os.environ.get('GUNICORN_DISPATCHER', 'no') == 'yes':
         gunicorn = True
 
-    dispatcher_state = start_dispatcher(pytestconfig.rootdir, dispatcher_test_conf_fn, gunicorn=gunicorn)
+    dispatcher_state = start_dispatcher(pytestconfig.rootdir, fn, gunicorn=gunicorn)
     json.dump(dispatcher_state, open(dispatcher_state_fn, "w"))
     return dispatcher_state['url']
 
@@ -1458,7 +1495,7 @@ class DispatcherJobState:
             '(href=")(.*?)(">url)',
         ],
         'job_id': [
-            '(job_id: )(.*?)(\) from)'
+            r'(job_id: )(.*?)(\) from)'
         ],
     }
 
@@ -1503,7 +1540,7 @@ class DispatcherJobState:
 
     @staticmethod
     def extract_api_code_from_text(text):
-        r = re.search('<div.*?>(.*?)</div>', text, flags=re.DOTALL)
+        r = re.search(r'<div.*?>(.*?)</div>', text, flags=re.DOTALL)
         if r:
             return textify_email(r.group(1))
         else:
@@ -1548,7 +1585,7 @@ class DispatcherJobState:
 
     @staticmethod
     def extract_products_url(text):
-        r = re.search('<a href="(.*?)">url</a>', text, flags=re.DOTALL)
+        r = re.search(r'<a href="(.*?)">url</a>', text, flags=re.DOTALL)
         if r:
             return r.group(1)
         else:

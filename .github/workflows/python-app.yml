@@ -41,9 +41,11 @@ jobs:
       if: ${{ env.TEST_ONLY_FAST != 'true' }}
       run: |
         # stop the build if there are Python syntax errors or undefined names
-        uv run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || echo "failed lint"
+        uv run flake8 cdci_data_analysis --count --select=E9,F63,F7,F82 --show-source --statistics || echo "failed lint"
+        uv run flake8 bin --count --select=E9,F63,F7,F82 --show-source --statistics || echo "failed lint"
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        uv run flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || echo "failed second lint"
+        uv run flake8 cdci_data_analysis --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || echo "failed second lint"
+        uv run flake8 bin --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || echo "failed second lint"
 
     - name: PyLint - more lint
       if: ${{ env.TEST_ONLY_FAST != 'true' }}
@@ -67,7 +69,7 @@ jobs:
 
     # I wonder how this interacts with the Github App. But this is not only for PR. Also this does not always work
     - name: Codecov
-      uses: codecov/codecov-action@v1.3.1
+      uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         verbose: true
