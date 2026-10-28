@@ -2475,6 +2475,20 @@ scwl_dict = {"scw_list": "115000860010.001,115000870010.001,115000980010.001,115
     assert len(my_globals['scwl_dict']['scw_list']) > max_length
 
 
+@pytest.mark.parametrize("line, too_long", [
+    ("'" + '"a", ' * 10 + "'", False),  # short line with quotes
+    ("'" + '"a", ' * 180 + "'", True),  # like a selected_catalog: under 999 chars, but not once ' and " are escaped (5 chars each)
+    ("1" * 997, True),  # no quotes, but 997 chars + <br> added by the html template
+])
+def test_api_code_line_length_html_escaped(line, too_long):
+    from cdci_data_analysis.analysis.email_helper import invalid_email_line_length, invalid_api_code_line_length
+
+    api_code = f"par_dict = {{\n{line}\n}}"
+
+    assert not invalid_email_line_length(api_code)
+    assert invalid_api_code_line_length(api_code) == too_long
+
+
 @pytest.mark.parametrize('sb_value', [25, 25., 25.64547871216879451687311211245117852145229614585985498212321])
 def test_spectral_parameter(dispatcher_live_fixture, sb_value):
 

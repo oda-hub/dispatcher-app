@@ -22,6 +22,7 @@ from urllib import parse
 import zlib
 import json
 from jinja2 import Environment, FileSystemLoader
+from markupsafe import escape
 from bs4 import BeautifulSoup
 
 from ..app_logging import app_logging
@@ -87,6 +88,11 @@ def invalid_email_line_length(body):
         if len(line) > 999:
             return True
     return False
+
+
+def invalid_api_code_line_length(api_code):
+    # check the api code as the html template renders it: escaped (' -> &#39;, " -> &#34;) and with <br> at each line end
+    return invalid_email_line_length(str(escape(api_code)).replace("\n", "<br>\n"))
 
 # TODO: not currently fully used, not critical, but should finish this too since it will make nice short permanent urls
 def compress_request_url_params(request_url, consider_args=['selected_catalog', 'string_like_name']):
@@ -299,7 +305,7 @@ def send_job_email(
     api_code_no_token = wrap_python_code(api_code_no_token)
 
     api_code = wrap_python_code(api_code)
-    api_code_too_long = invalid_email_line_length(api_code) or invalid_email_line_length(api_code_no_token)
+    api_code_too_long = invalid_api_code_line_length(api_code) or invalid_api_code_line_length(api_code_no_token)
 
     api_code_email_attachment = None
     if api_code_too_long:
