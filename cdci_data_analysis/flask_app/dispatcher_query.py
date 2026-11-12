@@ -62,6 +62,21 @@ from cdci_data_analysis.timer import block_timer
 logger = logging.getLogger(__name__)
 
 
+# Instruments reserved to specific roles: ONLY users having at least one of the listed roles
+# can see (instr-list) and use these instruments, whatever their restricted_access setting
+# (i.e. 'oda workflow developer' alone is NOT enough). Key = instrument name as used by the dispatcher.
+INSTRUMENT_REQUIRED_ROLES = {
+    'ctao_sdc': ['ctao sdc'],
+}
+
+
+def check_instrument_access_with_required_roles(instr_name, instrument_query, roles=None, email=None):
+    required_roles = INSTRUMENT_REQUIRED_ROLES.get(instr_name)
+    if required_roles:
+        return bool(set(roles or []) & set(required_roles))
+    return instrument_query.check_instrument_access(roles, email)
+
+
 try:
     from . import tasks
 except ModuleNotFoundError:
@@ -500,7 +515,7 @@ class InstrumentQueryBackEnd:
                     instr_name = instrument.name
                     
 
-                if instrument_query.check_instrument_access(roles, email):
+                if check_instrument_access_with_required_roles(instr_name, instrument_query, roles, email):
                     out_instrument_list.append(instr_name)
 
         return jsonify(out_instrument_list)
@@ -1668,7 +1683,7 @@ class InstrumentQueryBackEnd:
                                 _instrument = instrument_factory()
                             instr_query = _instrument.instrumet_query
                                 
-                        if instr_query.check_instrument_access(roles, email):
+                        if check_instrument_access_with_required_roles(instr_name, instr_query, roles, email):
                             if _instrument is None:
                                 _instrument = instrument_factory()
                             new_instrument = _instrument  # multiple assignment? TODO
